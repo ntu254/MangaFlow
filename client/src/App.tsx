@@ -22,6 +22,7 @@ import { resolveAuthRoute, type AuthRouteUser } from "@/features/auth/auth-flow"
 import { SeriesListPage } from "@/features/series/routes/SeriesListPage";
 import { CreateSeriesPage } from "@/features/series/routes/CreateSeriesPage";
 import { SeriesDetailPage } from "@/features/series/routes/SeriesDetailPage";
+import { EditorReviewPage } from "@/features/manuscript/routes/EditorReviewPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -207,6 +208,28 @@ function AuthenticatedApp() {
               <Route path="/app/mangaka/series" element={<SeriesListPage />} />
               <Route path="/app/mangaka/series/new" element={<CreateSeriesPage />} />
               <Route path="/app/mangaka/series/:seriesId" element={<SeriesDetailPage />} />
+            </Routes>
+          </main>
+        </div>
+      </RoleGuard>
+    );
+  }
+
+  if (path.startsWith("/app/editor")) {
+    return (
+      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.EDITOR]}>
+        <div className="min-h-screen flex flex-col bg-background">
+          <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+            <div className="flex-1 flex items-center gap-4">
+              <strong className="text-lg tracking-tight">MangaFlow</strong>
+              <span className="text-muted-foreground text-sm">Editor Workspace</span>
+            </div>
+            <UserButton />
+          </header>
+          <main className="flex-1">
+            <Routes>
+              {/* Other editor routes like dashboard can go here */}
+              <Route path="/app/editor/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
             </Routes>
           </main>
         </div>

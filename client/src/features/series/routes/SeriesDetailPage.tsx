@@ -1,33 +1,52 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { fetchSeriesById, type Series } from "../api/series";
+import { listManuscripts, type Manuscript } from "@/features/manuscript/api/manuscript";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UploadManuscriptDialog } from "@/features/manuscript/components/UploadManuscriptDialog";
 
 export function SeriesDetailPage() {
   const { seriesId } = useParams<{ seriesId: string }>();
   const { getToken } = useAuth();
   const [series, setSeries] = useState<Series | null>(null);
+  const [manuscripts, setManuscripts] = useState<Manuscript[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (!seriesId) return;
-      try {
-        const token = await getToken();
-        if (!token) throw new Error("Not authenticated");
-        const data = await fetchSeriesById(token, seriesId);
-        setSeries(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load series details");
-      } finally {
-        setIsLoading(false);
-      }
+  const loadManuscripts = useCallback(async () => {
+    if (!seriesId) return;
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const data = await listManuscripts(token, seriesId);
+      setManuscripts(data);
+    } catch (err: any) {
+      console.error(err);
     }
-    load();
   }, [seriesId, getToken]);
+
+  const load = useCallback(async () => {
+    if (!seriesId) return;
+    try {
+      setIsLoading(true);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const data = await fetchSeriesById(token, seriesId);
+      setSeries(data);
+      await loadManuscripts();
+    } catch (err: any) {
+      setError(err.message || "Failed to load series details");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [seriesId, getToken, loadManuscripts]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (isLoading) {
     return (
@@ -102,13 +121,48 @@ export function SeriesDetailPage() {
             </div>
           </div>
 
-          {/* Placeholder for future tabs (Manuscripts, Chapters, Members) */}
-          <div className="border rounded-xl p-6 bg-card text-center">
-            <h3 className="text-lg font-semibold mb-2">Manuscripts & Chapters</h3>
-            <p className="text-muted-foreground text-sm">
-              Uploading manuscripts and creating chapters will be available here soon.
-            </p>
-          </div>
+          <Tabs defaultValue="manuscripts" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="manuscripts">Manuscripts</TabsTrigger>
+              <TabsTrigger value="chapters">Chapters</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="border rounded-xl p-6 bg-card">
+              <h3 className="text-lg font-semibold mb-2">Overview</h3>
+              <p className="text-muted-foreground text-sm">Series statistics and details will appear here.</p>
+            </TabsContent>
+            <TabsContent value="manuscripts" className="border rounded-xl p-6 bg-card">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Manuscripts</h3>
+                {seriesId && <UploadManuscriptDialog seriesId={seriesId} onUploadSuccess={loadManuscripts} />}
+              </div>
+              
+              {manuscripts.length > 0 ? (
+                <div className="space-y-4">
+                  {manuscripts.map(m => (
+                    <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg bg-background">
+                      <div>
+                        <h4 className="font-medium">{m.title || `Manuscript v${m.currentVersion}`}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(m.createdAt).toLocaleDateString()} &middot; {m.fileUrls.length} file(s)
+                        </p>
+                      </div>
+                      <Badge variant="outline">{m.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <p>No manuscripts uploaded yet.</p>
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="chapters" className="border rounded-xl p-6 bg-card">
+              <h3 className="text-lg font-semibold mb-2">Chapters</h3>
+              <p className="text-muted-foreground text-sm">Create and manage chapters here (Coming soon).</p>
+            </TabsContent>
+          </Tabs>
+
         </div>
       </div>
     </div>
