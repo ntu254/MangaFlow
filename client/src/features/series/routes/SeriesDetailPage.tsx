@@ -3,16 +3,19 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { fetchSeriesById, type Series } from "../api/series";
 import { listManuscripts, type Manuscript } from "@/features/manuscript/api/manuscript";
+import { listChapters, type Chapter } from "@/features/chapter/api/chapter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadManuscriptDialog } from "@/features/manuscript/components/UploadManuscriptDialog";
+import { CreateChapterDialog } from "@/features/chapter/components/CreateChapterDialog";
 
 export function SeriesDetailPage() {
   const { seriesId } = useParams<{ seriesId: string }>();
   const { getToken } = useAuth();
   const [series, setSeries] = useState<Series | null>(null);
   const [manuscripts, setManuscripts] = useState<Manuscript[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +31,18 @@ export function SeriesDetailPage() {
     }
   }, [seriesId, getToken]);
 
+  const loadChapters = useCallback(async () => {
+    if (!seriesId) return;
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const data = await listChapters(token, seriesId);
+      setChapters(data);
+    } catch (err: any) {
+      console.error(err);
+    }
+  }, [seriesId, getToken]);
+
   const load = useCallback(async () => {
     if (!seriesId) return;
     try {
@@ -37,12 +52,13 @@ export function SeriesDetailPage() {
       const data = await fetchSeriesById(token, seriesId);
       setSeries(data);
       await loadManuscripts();
+      await loadChapters();
     } catch (err: any) {
       setError(err.message || "Failed to load series details");
     } finally {
       setIsLoading(false);
     }
-  }, [seriesId, getToken, loadManuscripts]);
+  }, [seriesId, getToken, loadManuscripts, loadChapters]);
 
   useEffect(() => {
     load();
@@ -158,8 +174,36 @@ export function SeriesDetailPage() {
               )}
             </TabsContent>
             <TabsContent value="chapters" className="border rounded-xl p-6 bg-card">
-              <h3 className="text-lg font-semibold mb-2">Chapters</h3>
-              <p className="text-muted-foreground text-sm">Create and manage chapters here (Coming soon).</p>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Chapters</h3>
+                {seriesId && <CreateChapterDialog seriesId={seriesId} onSuccess={loadChapters} />}
+              </div>
+
+              {chapters.length > 0 ? (
+                <div className="space-y-4">
+                  {chapters.map(c => (
+                    <div key={c.id} className="flex items-center justify-between p-4 border rounded-lg bg-background">
+                      <div>
+                        <h4 className="font-medium">Ch. {c.chapterNumber}: {c.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Created: {new Date(c.createdAt).toLocaleDateString()}
+                          {c.deadline && ` | Deadline: ${new Date(c.deadline).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline">{c.status}</Badge>
+                        <Link to={`/app/mangaka/chapters/${c.id}/pages`}>
+                          <Button size="sm" variant="secondary">Manage Pages</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <p>No chapters created yet.</p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
 

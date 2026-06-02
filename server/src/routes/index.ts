@@ -13,12 +13,18 @@ import { createSeriesRouter } from "../modules/series/series.routes.js";
 import type { SeriesRepository } from "../modules/series/series.service.js";
 import { createMongoManuscriptRepository, type ManuscriptRepository } from "../modules/manuscript/manuscript.repository.js";
 import { createManuscriptRouter } from "../modules/manuscript/manuscript.routes.js";
+import { createMongoChapterRepository, type ChapterRepository } from "../modules/chapter/chapter.repository.js";
+import { createChapterRouter } from "../modules/chapter/chapter.routes.js";
+import { createMongoPageRepository, type PageRepository } from "../modules/page/page.repository.js";
+import { createPageRouter } from "../modules/page/page.routes.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
   userRepository?: UserRepository;
   seriesRepository?: SeriesRepository;
   manuscriptRepository?: ManuscriptRepository;
+  chapterRepository?: ChapterRepository;
+  pageRepository?: PageRepository;
 };
 
 export const apiRouter = Router();
@@ -59,6 +65,48 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository()
+    })
+  );
+
+  router.use(
+    "/series/:seriesId/chapters",
+    createChapterRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository()
+    })
+  );
+
+  router.use(
+    "/chapters",
+    createChapterRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository()
+    })
+  );
+
+  router.use(
+    "/chapters/:chapterId/pages",
+    createPageRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: dependencies.pageRepository ?? createMongoPageRepository()
+    })
+  );
+
+  router.use(
+    "/pages",
+    createPageRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: dependencies.pageRepository ?? createMongoPageRepository()
     })
   );
 
