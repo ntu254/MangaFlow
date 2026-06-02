@@ -23,6 +23,7 @@ import { SeriesListPage } from "@/features/series/routes/SeriesListPage";
 import { CreateSeriesPage } from "@/features/series/routes/CreateSeriesPage";
 import { SeriesDetailPage } from "@/features/series/routes/SeriesDetailPage";
 import { EditorReviewPage } from "@/features/manuscript/routes/EditorReviewPage";
+import { ChapterPagesPage } from "@/features/page/routes/ChapterPagesPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -192,7 +193,7 @@ function AuthenticatedApp() {
     );
   }
 
-  if (path.startsWith("/app/mangaka/series")) {
+  if (path.startsWith("/app/mangaka")) {
     return (
       <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.MANGAKA]}>
         <div className="min-h-screen flex flex-col bg-background">
@@ -208,6 +209,7 @@ function AuthenticatedApp() {
               <Route path="/app/mangaka/series" element={<SeriesListPage />} />
               <Route path="/app/mangaka/series/new" element={<CreateSeriesPage />} />
               <Route path="/app/mangaka/series/:seriesId" element={<SeriesDetailPage />} />
+              <Route path="/app/mangaka/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
             </Routes>
           </main>
         </div>
