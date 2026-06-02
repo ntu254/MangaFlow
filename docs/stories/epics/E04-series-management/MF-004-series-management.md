@@ -43,10 +43,10 @@ When updating durable proof status, use numeric booleans:
 
 | Layer | Expected proof |
 | --- | --- |
-| Unit | No unit tests needed for MVP basic CRUD |
-| Integration | Manual endpoint testing via UI / Typechecking passes |
+| Unit | Series service validates title input, slug generation, owner-only deletion, and draft-only deletion. |
+| Integration | Series API route tests cover Mangaka create/list, RBAC rejection, owner update/delete, and non-member detail access denial. |
 | E2E | Not yet implemented |
-| Platform | Not yet implemented |
+| Platform | Typecheck/test/build commands run locally. |
 | Release | Not yet implemented |
 
 ## Harness Delta
@@ -56,5 +56,8 @@ When updating durable proof status, use numeric booleans:
 
 ## Evidence
 
-- `npm run typecheck` passes on both client and server.
-- Visual inspection of `/app/mangaka/series`.
+- `npm run typecheck --workspace server` passes.
+- `npm run test --workspace server` passes: 8 server source test files, 27 tests.
+- Added `server/src/modules/series/series.service.test.ts`.
+- Added `server/src/modules/series/series.routes.test.ts`.
+- Browser E2E remains deferred until reusable Clerk/Mongo demo fixtures exist.
