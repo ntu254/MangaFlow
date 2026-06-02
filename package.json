@@ -1,0 +1,19 @@
+{
+  "name": "mangaflow",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace client",
+    "dev:server": "npm run dev --workspace server",
+    "build": "npm run build --workspace client && npm run build --workspace server",
+    "typecheck": "npm run typecheck --workspace client && npm run typecheck --workspace server",
+    "test:quick": "npm run typecheck && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

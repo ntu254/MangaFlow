@@ -1,0 +1,12 @@
+[project]
+name = "mangaflow-ai-service"
+version = "0.0.0"
+description = "FastAPI boundary for MangaFlow AI image processing"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
