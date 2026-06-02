@@ -5,6 +5,7 @@
 | Surface | Stack | Target |
 | --- | --- | --- |
 | Browser client | React, Vite, TypeScript, React Router, TanStack Query, ShadCN/ui, Tailwind CSS, Clerk React SDK | Vercel |
+| Mobile client | React Native, Expo, TypeScript | Expo/EAS or companion mobile distribution |
 | Backend API | Node.js, Express, TypeScript, MongoDB, Mongoose, Clerk Express SDK | Railway |
 | AI service | Python, FastAPI, YOLO11, OpenCV | Separate Railway service |
 | Database | MongoDB Atlas M0 | Production database |
@@ -15,6 +16,9 @@
 ```text
 client/
   React + Vite browser app
+
+mobile/
+  Expo React Native companion app for Editor and Board mobile workflows
 
 server/
   Express + TypeScript modular monolith
@@ -64,11 +68,25 @@ The frontend uses feature-based routing and component ownership:
 - Role dashboards and workspaces are route guarded after auth is implemented.
 - Page annotation uses canvas or SVG overlays with normalized coordinates.
 
+## Mobile Module Direction
+
+The mobile client is a companion app, not a full desktop replacement. It should
+prioritize fast review and decision confidence for Tantou Editor and Editorial
+Board users. Phone workflows cover dashboards, assigned review queues, comment
+resolution, publication readiness, board approval, voting, ranking, at-risk
+decisions, and notifications. Full page annotation, batch upload, layer
+management, and AI batch processing remain desktop-first for MVP.
+
+The mobile client sends Clerk-backed bearer tokens to the same backend API. It
+must not send trusted role or permission decisions; backend authorization stays
+the source of truth.
+
 ## Local Development Defaults
 
 | Surface | Default URL |
 | --- | --- |
 | Client | `http://localhost:5173` |
+| Mobile | Expo Metro dev server |
 | Backend API | `http://localhost:5000/api` |
 | AI service | `http://localhost:8000` |
 
