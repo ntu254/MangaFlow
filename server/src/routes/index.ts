@@ -20,6 +20,8 @@ import { createPageRouter } from "../modules/page/page.routes.js";
 import { createMongoFileRepository, type FileRepository } from "../modules/file/file.repository.js";
 import { createFileService } from "../modules/file/file.service.js";
 import { createFileRouter } from "../modules/file/file.routes.js";
+import { createMongoRegionRepository, type RegionRepository } from "../modules/region/region.repository.js";
+import { createRegionRouter } from "../modules/region/region.routes.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -29,6 +31,7 @@ export type ApiRouterDependencies = {
   chapterRepository?: ChapterRepository;
   pageRepository?: PageRepository;
   fileRepository?: FileRepository;
+  regionRepository?: RegionRepository;
 };
 
 export const apiRouter = Router();
@@ -102,6 +105,17 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
       fileRepository: dependencies.fileRepository
+    })
+  );
+
+  router.use(
+    createRegionRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
+      regionRepository: dependencies.regionRepository ?? createMongoRegionRepository()
     })
   );
 
