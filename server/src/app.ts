@@ -13,6 +13,7 @@ export function createApp(dependencies: ApiRouterDependencies = {}) {
     })
   );
   app.use(express.json());
+  app.use("/uploads", express.static("uploads"));
 
   app.use("/api", createApiRouter(dependencies));
 

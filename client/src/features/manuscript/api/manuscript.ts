@@ -17,15 +17,14 @@ export type Manuscript = {
 export async function createManuscript(
   token: string, 
   seriesId: string, 
-  data: { title?: string; description?: string; fileUrls: string[] }
+  formData: FormData
 ): Promise<Manuscript> {
   const res = await fetch(`${apiBaseUrl}/series/${seriesId}/manuscripts`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify(data),
+    body: formData
   });
   const json = await res.json();
   if (!json.success) throw new Error(json.error?.message || "Failed to create manuscript");

@@ -3,20 +3,41 @@ import { fail, ok } from "../../shared/responses/api-response.js";
 import { requireAuth, type AuthVerifier } from "../auth/auth.middleware.js";
 import { requireSystemRole, requireSeriesRole, type RoleAuthorizedRequest } from "../auth/rbac.middleware.js";
 import { SYSTEM_ROLES, SERIES_MEMBER_ROLES } from "../../shared/constants/roles.js";
-import { createManuscriptService, ManuscriptServiceError } from "./manuscript.service.js";
+import { createManuscriptService, ManuscriptServiceError, type Manuscript } from "./manuscript.service.js";
 import type { ManuscriptRepository } from "./manuscript.repository.js";
 import type { UserRepository } from "../auth/auth.service.js";
 import type { SeriesRepository } from "../series/series.service.js";
+import { createMongoFileRepository, type FileRepository } from "../file/file.repository.js";
+import { createFileService } from "../file/file.service.js";
+import { upload } from "../../shared/middleware/upload.middleware.js";
+import { storageService } from "../../infrastructure/storage/storage.service.js";
+import { storageKeyUtil } from "../../infrastructure/storage/storage-key.util.js";
 
 export type ManuscriptRouteDependencies = {
   authVerifier: AuthVerifier;
   userRepository: UserRepository;
   seriesRepository: SeriesRepository;
   manuscriptRepository: ManuscriptRepository;
+  fileRepository?: FileRepository;
 };
 
+async function resolveManuscriptUrls(manuscript: Manuscript): Promise<Manuscript> {
+  const resolved = { ...manuscript };
+  if (resolved.fileUrls) {
+    resolved.fileUrls = await Promise.all(resolved.fileUrls.map(url => storageService.getSignedUrl(url)));
+  }
+  if (resolved.previewUrls) {
+    resolved.previewUrls = await Promise.all(resolved.previewUrls.map(url => storageService.getSignedUrl(url)));
+  }
+  return resolved;
+}
+
+async function resolveManuscriptUrlsList(manuscripts: Manuscript[]): Promise<Manuscript[]> {
+  return Promise.all(manuscripts.map(resolveManuscriptUrls));
+}
+
 export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies) {
-  const router = Router({ mergeParams: true }); // Important: mergeParams to access :seriesId
+  const router = Router({ mergeParams: true });
   const service = createManuscriptService(dependencies.manuscriptRepository);
   const authenticate = requireAuth(dependencies.authVerifier);
   
@@ -39,24 +60,64 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   );
 
   // Mangaka uploads a manuscript
-  router.post("/", authenticate, requireSystemMangaka, checkMangakaMember, async (req, res) => {
+  router.post("/", authenticate, requireSystemMangaka, checkMangakaMember, upload.array("files", 10), async (req, res) => {
     const user = (req as RoleAuthorizedRequest).localUser;
     const seriesId = req.params.seriesId as string;
     
     try {
+      const files = req.files as Express.Multer.File[] | undefined;
+      if (!files || files.length === 0) {
+        res.status(400).json(fail("No files uploaded", "BAD_REQUEST"));
+        return;
+      }
+
+      const fileRepo = dependencies.fileRepository ?? createMongoFileRepository();
+      const fileService = createFileService(fileRepo);
+
+      const fileUrls = [];
+
+      for (const file of files) {
+        const version = 1;
+        const cleanFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const uniquePrefix = `${Date.now()}_${Math.floor(Math.random() * 1000)}_`;
+        const key = storageKeyUtil.generateManuscriptKey(seriesId, version, `${uniquePrefix}${cleanFileName}`);
+
+        const url = await storageService.uploadFile(key, file.buffer, file.mimetype);
+        fileUrls.push(url);
+      }
+
       const manuscript = await service.createManuscript({
         seriesId,
         title: req.body.title,
         description: req.body.description,
-        fileUrls: req.body.fileUrls
+        fileUrls
       }, user.id);
-      res.status(201).json(ok(manuscript));
+
+      // Register uploaded files as FileAsset metadata
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const originalUrl = fileUrls[i];
+        
+        await fileService.createFileAsset({
+          ownerType: "MANUSCRIPT",
+          ownerId: manuscript.id,
+          originalUrl,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          versionNumber: 1,
+          uploadedBy: user.id
+        });
+      }
+
+      const resolved = await resolveManuscriptUrls(manuscript);
+      res.status(201).json(ok(resolved));
     } catch (error) {
       if (error instanceof ManuscriptServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 
@@ -64,20 +125,22 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   router.get("/", authenticate, checkMember, async (req, res) => {
     const seriesId = req.params.seriesId as string;
     const list = await service.listBySeries(seriesId);
-    res.json(ok(list));
+    const resolvedList = await resolveManuscriptUrlsList(list);
+    res.json(ok(resolvedList));
   });
 
   // Get a single manuscript
   router.get("/:manuscriptId", authenticate, checkMember, async (req, res) => {
     try {
       const manuscript = await service.getById(req.params.manuscriptId as string);
-      res.json(ok(manuscript));
+      const resolved = await resolveManuscriptUrls(manuscript);
+      res.json(ok(resolved));
     } catch (error) {
       if (error instanceof ManuscriptServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 
@@ -85,13 +148,18 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   router.patch("/:manuscriptId/submit", authenticate, requireSystemMangaka, checkMangakaMember, async (req, res) => {
     try {
       const manuscript = await service.submitManuscript(req.params.manuscriptId as string);
-      res.json(ok(manuscript));
+      if (!manuscript) {
+        res.status(404).json(fail("Manuscript not found", "NOT_FOUND"));
+        return;
+      }
+      const resolved = await resolveManuscriptUrls(manuscript);
+      res.json(ok(resolved));
     } catch (error) {
       if (error instanceof ManuscriptServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 
@@ -115,13 +183,14 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
           res.status(400).json(fail("Invalid action", "BAD_REQUEST"));
           return;
       }
-      res.json(ok(manuscript));
+      const resolved = manuscript ? await resolveManuscriptUrls(manuscript) : null;
+      res.json(ok(resolved));
     } catch (error) {
       if (error instanceof ManuscriptServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 

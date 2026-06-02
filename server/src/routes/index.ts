@@ -17,6 +17,9 @@ import { createMongoChapterRepository, type ChapterRepository } from "../modules
 import { createChapterRouter } from "../modules/chapter/chapter.routes.js";
 import { createMongoPageRepository, type PageRepository } from "../modules/page/page.repository.js";
 import { createPageRouter } from "../modules/page/page.routes.js";
+import { createMongoFileRepository, type FileRepository } from "../modules/file/file.repository.js";
+import { createFileService } from "../modules/file/file.service.js";
+import { createFileRouter } from "../modules/file/file.routes.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -25,6 +28,7 @@ export type ApiRouterDependencies = {
   manuscriptRepository?: ManuscriptRepository;
   chapterRepository?: ChapterRepository;
   pageRepository?: PageRepository;
+  fileRepository?: FileRepository;
 };
 
 export const apiRouter = Router();
@@ -107,6 +111,16 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository()
+    })
+  );
+
+  const fileRepository = dependencies.fileRepository ?? createMongoFileRepository();
+  const fileService = createFileService(fileRepository);
+  router.use(
+    "/files",
+    createFileRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      fileService
     })
   );
 

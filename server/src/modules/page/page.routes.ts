@@ -3,11 +3,17 @@ import { fail, ok } from "../../shared/responses/api-response.js";
 import { requireAuth, type AuthVerifier } from "../auth/auth.middleware.js";
 import { requireSystemRole, type RoleAuthorizedRequest } from "../auth/rbac.middleware.js";
 import { SYSTEM_ROLES, SERIES_MEMBER_ROLES } from "../../shared/constants/roles.js";
-import { createPageService, PageServiceError } from "./page.service.js";
+import { createPageService, PageServiceError, type Page } from "./page.service.js";
 import type { PageRepository } from "./page.repository.js";
 import type { ChapterRepository } from "../chapter/chapter.repository.js";
 import type { UserRepository } from "../auth/auth.service.js";
 import type { SeriesRepository } from "../series/series.service.js";
+import { createMongoFileRepository, type FileRepository } from "../file/file.repository.js";
+import { createFileService } from "../file/file.service.js";
+import { upload } from "../../shared/middleware/upload.middleware.js";
+import { storageService } from "../../infrastructure/storage/storage.service.js";
+import { storageKeyUtil } from "../../infrastructure/storage/storage-key.util.js";
+import { imageResizeService, ImageResizeService } from "../../infrastructure/image/image-resize.service.js";
 
 export type PageRouteDependencies = {
   authVerifier: AuthVerifier;
@@ -15,7 +21,29 @@ export type PageRouteDependencies = {
   seriesRepository: SeriesRepository;
   chapterRepository: ChapterRepository;
   pageRepository: PageRepository;
+  fileRepository?: FileRepository;
 };
+
+async function resolvePageUrls(page: Page): Promise<Page> {
+  const resolved = { ...page };
+  if (resolved.originalFileUrl) {
+    resolved.originalFileUrl = await storageService.getSignedUrl(resolved.originalFileUrl);
+  }
+  if (resolved.previewUrl) {
+    resolved.previewUrl = await storageService.getSignedUrl(resolved.previewUrl);
+  }
+  if (resolved.thumbnailUrl) {
+    resolved.thumbnailUrl = await storageService.getSignedUrl(resolved.thumbnailUrl);
+  }
+  if (resolved.processedFileUrl) {
+    resolved.processedFileUrl = await storageService.getSignedUrl(resolved.processedFileUrl);
+  }
+  return resolved;
+}
+
+async function resolvePageUrlsList(pages: Page[]): Promise<Page[]> {
+  return Promise.all(pages.map(resolvePageUrls));
+}
 
 export function createPageRouter(dependencies: PageRouteDependencies) {
   const router = Router({ mergeParams: true });
@@ -25,7 +53,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
   const requireSystemMangaka = requireSystemRole([SYSTEM_ROLES.MANGAKA], dependencies.userRepository);
 
   // POST /api/chapters/:chapterId/pages
-  router.post("/", authenticate, requireSystemMangaka, async (req, res) => {
+  router.post("/", authenticate, requireSystemMangaka, upload.array("files", 50), async (req, res) => {
     try {
       const chapterId = req.params.chapterId as string;
       const chapter = await dependencies.chapterRepository.findById(chapterId);
@@ -37,7 +65,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       const authReq = req as RoleAuthorizedRequest;
       const user = authReq.localUser;
 
-      // Check series role (Mangaka creator)
+      // Check series role (Mangaka owner/co-creator)
       const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
       const allowedRoles = [SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA];
       if (!role || !allowedRoles.includes(role as any)) {
@@ -45,23 +73,87 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
         return;
       }
 
-      const page = await service.createPage({
-        chapterId,
-        pageNumber: Number(req.body.pageNumber),
-        originalFileUrl: req.body.originalFileUrl,
-        previewUrl: req.body.previewUrl ?? req.body.originalFileUrl,
-        thumbnailUrl: req.body.thumbnailUrl ?? req.body.originalFileUrl,
-        width: req.body.width !== undefined ? Number(req.body.width) : undefined,
-        height: req.body.height !== undefined ? Number(req.body.height) : undefined
-      });
+      const files = req.files as Express.Multer.File[] | undefined;
+      if (!files || files.length === 0) {
+        res.status(400).json(fail("No files uploaded", "BAD_REQUEST"));
+        return;
+      }
 
-      res.status(201).json(ok(page));
+      const currentPages = await service.listByChapter(chapterId);
+      let nextPageNum = currentPages.length > 0 ? Math.max(...currentPages.map(p => p.pageNumber)) + 1 : 1;
+
+      const fileRepo = dependencies.fileRepository ?? createMongoFileRepository();
+      const fileService = createFileService(fileRepo);
+
+      const createdPages = [];
+
+      for (const file of files) {
+        const pageNumber = nextPageNum++;
+
+        // Extract metadata and dimensions
+        const metadata = await imageResizeService.getImageMetadata(file.buffer);
+        const width = metadata.width ?? 1200;
+        const height = metadata.height ?? 1600;
+
+        // Generate resized images using sharp
+        const aiCopyBuffer = await imageResizeService.resizeImage(file.buffer, ImageResizeService.AI_COPY_WIDTH);
+        const previewBuffer = await imageResizeService.resizeImage(file.buffer, ImageResizeService.PREVIEW_WIDTH);
+        const thumbnailBuffer = await imageResizeService.resizeImage(file.buffer, ImageResizeService.THUMBNAIL_WIDTH);
+
+        // Define unique keys
+        const version = 1;
+        const cleanFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const uniquePrefix = `${Date.now()}_${Math.floor(Math.random() * 1000)}_`;
+        const originalKey = storageKeyUtil.generateChapterPageKey(chapterId, version, `${uniquePrefix}original_${cleanFileName}`);
+        const aiKey = storageKeyUtil.generateChapterPageKey(chapterId, version, `${uniquePrefix}ai_${cleanFileName}`);
+        const previewKey = storageKeyUtil.generateChapterPageKey(chapterId, version, `${uniquePrefix}preview_${cleanFileName}`);
+        const thumbnailKey = storageKeyUtil.generateChapterPageKey(chapterId, version, `${uniquePrefix}thumb_${cleanFileName}`);
+
+        // Upload all versions to storage
+        const originalUrl = await storageService.uploadFile(originalKey, file.buffer, file.mimetype);
+        const aiProcessUrl = await storageService.uploadFile(aiKey, aiCopyBuffer, file.mimetype);
+        const previewUrl = await storageService.uploadFile(previewKey, previewBuffer, file.mimetype);
+        const thumbnailUrl = await storageService.uploadFile(thumbnailKey, thumbnailBuffer, file.mimetype);
+
+        // Create page
+        const page = await service.createPage({
+          chapterId,
+          pageNumber,
+          originalFileUrl: originalUrl,
+          previewUrl,
+          thumbnailUrl,
+          width,
+          height
+        });
+
+        // Create associated FileAsset record
+        await fileService.createFileAsset({
+          ownerType: "PAGE",
+          ownerId: page.id,
+          originalUrl,
+          aiProcessUrl,
+          previewUrl,
+          thumbnailUrl,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          width,
+          height,
+          versionNumber: 1,
+          uploadedBy: user.id
+        });
+
+        const resolvedPage = await resolvePageUrls(page);
+        createdPages.push(resolvedPage);
+      }
+
+      res.status(201).json(ok(files.length === 1 ? createdPages[0] : createdPages));
     } catch (error) {
       if (error instanceof PageServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 
@@ -91,9 +183,10 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       }
 
       const list = await service.listByChapter(chapterId);
-      res.json(ok(list));
+      const resolvedList = await resolvePageUrlsList(list);
+      res.json(ok(resolvedList));
     } catch (error) {
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 
@@ -123,13 +216,14 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
         }
       }
 
-      res.json(ok(page));
+      const resolvedPage = await resolvePageUrls(page);
+      res.json(ok(resolvedPage));
     } catch (error) {
       if (error instanceof PageServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 
@@ -154,6 +248,15 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
         return;
       }
 
+      // 1. Delete associated physical files and metadata
+      const fileRepo = dependencies.fileRepository ?? createMongoFileRepository();
+      const fileService = createFileService(fileRepo);
+      const fileAssets = await fileService.getByOwner("PAGE", pageId);
+      for (const asset of fileAssets) {
+        await fileService.deleteFileAsset(asset.id);
+      }
+
+      // 2. Delete page
       const deleted = await service.deletePage(pageId);
       res.json(ok({ deleted }));
     } catch (error) {
@@ -161,7 +264,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { getChapter, type Chapter } from "@/features/chapter/api/chapter";
@@ -6,7 +6,7 @@ import { listPages, createPage, deletePage, type Page } from "../api/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Trash, Plus, ChevronLeft, Image as ImageIcon } from "lucide-react";
+import { Trash, Plus, ChevronLeft, Image as ImageIcon, UploadCloud, X, Loader2 } from "lucide-react";
 
 export function ChapterPagesPage() {
   const { chapterId } = useParams<{ chapterId: string }>();
@@ -19,10 +19,12 @@ export function ChapterPagesPage() {
 
   // Add Page form state
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [pageNumber, setPageNumber] = useState("");
-  const [originalFileUrl, setOriginalFileUrl] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<{ file: File; preview: string }[]>([]);
+  const [dragActive, setDragActive] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
     if (!chapterId) return;
@@ -48,9 +50,54 @@ export function ChapterPagesPage() {
     loadData();
   }, [loadData]);
 
-  async function handleAddPage(e: React.FormEvent) {
+  const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!chapterId) return;
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addFiles(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      addFiles(Array.from(e.target.files));
+    }
+  };
+
+  const addFiles = (files: File[]) => {
+    const validImageTypes = ["image/jpeg", "image/png", "image/webp"];
+    const newFiles = files
+      .filter(f => validImageTypes.includes(f.type))
+      .map(file => ({
+        file,
+        preview: URL.createObjectURL(file)
+      }));
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => {
+      const copy = [...prev];
+      URL.revokeObjectURL(copy[index].preview);
+      copy.splice(index, 1);
+      return copy;
+    });
+  };
+
+  async function handleAddPages(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chapterId || selectedFiles.length === 0) return;
     setSubmitLoading(true);
     setSubmitError(null);
 
@@ -58,31 +105,24 @@ export function ChapterPagesPage() {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
-      const num = Number(pageNumber);
-      if (isNaN(num) || num <= 0) {
-        throw new Error("Page number must be a valid positive number");
-      }
-      if (!originalFileUrl.trim()) {
-        throw new Error("Page Image URL is required");
-      }
-
-      await createPage(token, chapterId, {
-        pageNumber: num,
-        originalFileUrl: originalFileUrl.trim(),
-        width: 1200,
-        height: 1600
+      const formData = new FormData();
+      selectedFiles.forEach(({ file }) => {
+        formData.append("files", file);
       });
 
+      await createPage(token, chapterId, formData);
+
+      // Clean up object URLs
+      selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
+      setSelectedFiles([]);
       setAddDialogOpen(false);
-      setPageNumber("");
-      setOriginalFileUrl("");
       
       // Reload pages
       const pgData = await listPages(token, chapterId);
       setPages(pgData);
     } catch (err: any) {
       console.error(err);
-      setSubmitError(err.message || "Failed to add page");
+      setSubmitError(err.message || "Failed to upload pages");
     } finally {
       setSubmitLoading(false);
     }
@@ -164,48 +204,96 @@ export function ChapterPagesPage() {
           </p>
         </div>
 
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <Dialog open={addDialogOpen} onOpenChange={(open) => {
+          if (!open && !submitLoading) {
+            selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
+            setSelectedFiles([]);
+          }
+          setAddDialogOpen(open);
+        }}>
           <DialogTrigger>
             <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add Page
+              <Plus className="w-4 h-4" /> Add Pages
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add Page (Mock)</DialogTitle>
+              <DialogTitle>Upload Chapter Pages</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleAddPage} className="space-y-4 mt-4">
+            <form onSubmit={handleAddPages} className="space-y-6 mt-4">
               {submitError && (
-                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md">
+                <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md">
                   {submitError}
                 </div>
               )}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Page Number</label>
+
+              <div 
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                  dragActive ? "border-primary bg-primary/5" : "border-muted hover:border-primary/50"
+                }`}
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <input 
-                  type="number" 
-                  className="w-full p-2 border rounded-md bg-background" 
-                  value={pageNumber} 
-                  onChange={e => setPageNumber(e.target.value)} 
-                  placeholder="e.g. 1"
-                  required
-                  min="1"
+                  ref={fileInputRef}
+                  type="file" 
+                  multiple 
+                  accept="image/png, image/jpeg, image/webp" 
+                  className="hidden" 
+                  onChange={handleFileChange}
                 />
+                <UploadCloud className="w-12 h-12 mx-auto mb-4 text-muted-foreground/80" />
+                <h3 className="font-semibold text-lg mb-1">Drag & drop page images here</h3>
+                <p className="text-sm text-muted-foreground mb-2">or click to browse from your device</p>
+                <p className="text-xs text-muted-foreground/60">Supports PNG, JPG, and WEBP. Max 50MB per file.</p>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Page Image URL</label>
-                <input 
-                  type="url" 
-                  className="w-full p-2 border rounded-md bg-background" 
-                  value={originalFileUrl} 
-                  onChange={e => setOriginalFileUrl(e.target.value)} 
-                  placeholder="https://images.unsplash.com/photo-..."
-                  required
-                />
-                <p className="text-xs text-muted-foreground">Provide a link to an image file.</p>
-              </div>
-              <Button type="submit" className="w-full" disabled={submitLoading || !pageNumber || !originalFileUrl.trim()}>
-                {submitLoading ? "Adding..." : "Add Page"}
+
+              {selectedFiles.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Selected Pages ({selectedFiles.length})</h4>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[240px] overflow-y-auto p-1 border rounded-lg bg-muted/30">
+                    {selectedFiles.map(({ file, preview }, idx) => (
+                      <div key={idx} className="relative aspect-[3/4] rounded-md overflow-hidden bg-card border group">
+                        <img src={preview} alt={file.name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button 
+                            type="button"
+                            size="icon" 
+                            variant="destructive" 
+                            className="w-7 h-7 rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(idx);
+                            }}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 px-1 text-[9px] text-white truncate text-center">
+                          Page {pages.length + idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full flex items-center justify-center gap-2" 
+                disabled={submitLoading || selectedFiles.length === 0}
+              >
+                {submitLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading & Processing ({selectedFiles.length} pages)...
+                  </>
+                ) : (
+                  `Upload ${selectedFiles.length} Page${selectedFiles.length > 1 ? "s" : ""}`
+                )}
               </Button>
             </form>
           </DialogContent>
@@ -217,9 +305,9 @@ export function ChapterPagesPage() {
           {pages.map(page => (
             <div key={page.id} className="group relative border rounded-xl overflow-hidden bg-card hover:border-primary/50 transition-all flex flex-col">
               <div className="aspect-[3/4] w-full bg-muted flex items-center justify-center relative overflow-hidden">
-                {page.originalFileUrl ? (
+                {page.thumbnailUrl || page.originalFileUrl ? (
                   <img 
-                    src={page.originalFileUrl} 
+                    src={page.thumbnailUrl || page.originalFileUrl} 
                     alt={`Page ${page.pageNumber}`} 
                     className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200"
                   />
@@ -228,12 +316,15 @@ export function ChapterPagesPage() {
                 )}
                 
                 {/* Delete button overlay on hover */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <Button 
                     size="icon" 
                     variant="destructive" 
                     className="w-8 h-8 rounded-full shadow-md"
-                    onClick={() => handleDeletePage(page.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePage(page.id);
+                    }}
                   >
                     <Trash className="w-4 h-4" />
                   </Button>

@@ -31,15 +31,14 @@ export type Page = {
 export async function createPage(
   token: string, 
   chapterId: string, 
-  data: { pageNumber: number; originalFileUrl: string; width?: number; height?: number }
-): Promise<Page> {
+  formData: FormData
+): Promise<Page | Page[]> {
   const res = await fetch(`${apiBaseUrl}/chapters/${chapterId}/pages`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify(data),
+    body: formData
   });
   const json = await res.json();
   if (!json.success) throw new Error(json.error?.message || "Failed to create page");

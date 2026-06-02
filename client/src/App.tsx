@@ -132,36 +132,45 @@ function AuthenticatedApp() {
       }
 
       setState({ status: "loading" });
-      const token = await getToken();
+      try {
+        const token = await getToken();
 
-      if (!token) {
-        setState({ status: "error", message: "Authentication token unavailable." });
-        return;
-      }
-
-      const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+        if (!token) {
+          setState({ status: "error", message: "Authentication token unavailable." });
+          return;
         }
-      });
-      const body = await response.json();
 
-      if (cancelled) {
-        return;
+        const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+        const body = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !body.success) {
+          setState({ status: "error", message: body.message ?? "Auth sync failed." });
+          return;
+        }
+
+        setState({
+          status: "ready",
+          user: body.data.user,
+          redirectTo: body.data.auth.redirectTo
+        });
+      } catch (err: any) {
+        if (!cancelled) {
+          setState({ 
+            status: "error", 
+            message: `Failed to connect to backend API: ${err.message}. Please ensure the server is running and CORS matches.` 
+          });
+        }
       }
-
-      if (!response.ok || !body.success) {
-        setState({ status: "error", message: body.message ?? "Auth sync failed." });
-        return;
-      }
-
-      setState({
-        status: "ready",
-        user: body.data.user,
-        redirectTo: body.data.auth.redirectTo
-      });
     }
 
     void syncUser();
@@ -184,7 +193,7 @@ function AuthenticatedApp() {
       ? resolveAuthRoute({ isSignedIn: true, user: state.user })
       : "/app/onboarding";
 
-  if (path.startsWith(getAdminRoleReviewRoute())) {
+  if (path.startsWith("/app/admin")) {
     return (
       <AdminRoleReviewPage
         authState={state}
