@@ -68,7 +68,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
-      manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository()
+      manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository(),
+      fileRepository: dependencies.fileRepository
     })
   );
 
@@ -99,7 +100,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
-      pageRepository: dependencies.pageRepository ?? createMongoPageRepository()
+      pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
+      fileRepository: dependencies.fileRepository
     })
   );
 
@@ -110,7 +112,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
-      pageRepository: dependencies.pageRepository ?? createMongoPageRepository()
+      pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
+      fileRepository: dependencies.fileRepository
     })
   );
 

@@ -41,7 +41,7 @@ export async function createPage(
     body: formData
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to create page");
+  if (!json.success) throw new Error(json.message || "Failed to create page");
   return json.data;
 }
 
@@ -52,7 +52,7 @@ export async function listPages(token: string, chapterId: string): Promise<Page[
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to list pages");
+  if (!json.success) throw new Error(json.message || "Failed to list pages");
   return json.data;
 }
 
@@ -63,7 +63,7 @@ export async function getPage(token: string, pageId: string): Promise<Page> {
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to fetch page");
+  if (!json.success) throw new Error(json.message || "Failed to fetch page");
   return json.data;
 }
 
@@ -75,6 +75,6 @@ export async function deletePage(token: string, pageId: string): Promise<boolean
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to delete page");
+  if (!json.success) throw new Error(json.message || "Failed to delete page");
   return json.data.deleted;
 }

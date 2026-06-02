@@ -27,7 +27,7 @@ export async function createManuscript(
     body: formData
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to create manuscript");
+  if (!json.success) throw new Error(json.message || "Failed to create manuscript");
   return json.data;
 }
 
@@ -38,7 +38,7 @@ export async function listManuscripts(token: string, seriesId: string): Promise<
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to list manuscripts");
+  if (!json.success) throw new Error(json.message || "Failed to list manuscripts");
   return json.data;
 }
 
@@ -49,7 +49,7 @@ export async function getManuscript(token: string, seriesId: string, manuscriptI
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to fetch manuscript");
+  if (!json.success) throw new Error(json.message || "Failed to fetch manuscript");
   return json.data;
 }
 
@@ -61,7 +61,7 @@ export async function submitManuscript(token: string, seriesId: string, manuscri
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to submit manuscript");
+  if (!json.success) throw new Error(json.message || "Failed to submit manuscript");
   return json.data;
 }
 
@@ -80,6 +80,6 @@ export async function reviewManuscript(
     body: JSON.stringify({ action }),
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to review manuscript");
+  if (!json.success) throw new Error(json.message || "Failed to review manuscript");
   return json.data;
 }
