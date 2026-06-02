@@ -4,7 +4,7 @@ import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
-import type { AuthUser, UserRepository } from "../auth/auth.service.js";
+import type { AuthUser, SystemRole, UserRepository } from "../auth/auth.service.js";
 import type { ChapterRepository } from "../chapter/chapter.repository.js";
 import type { Chapter } from "../chapter/chapter.service.js";
 import type { CreateFileAssetInput, FileAsset } from "../file/file.types.js";
@@ -17,6 +17,7 @@ const now = "2026-06-03T00:00:00.000Z";
 const seriesId = "507f1f77bcf86cd799439011";
 const chapterId = "507f1f77bcf86cd799439012";
 const userId = "507f1f77bcf86cd799439013";
+const assistantId = "507f1f77bcf86cd799439014";
 
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
@@ -29,47 +30,55 @@ afterEach(() => {
   fs.rmSync(uploadRoot, { recursive: true, force: true });
 });
 
-function createVerifier(): AuthVerifier {
+function createVerifier(clerkId = "clerk_mangaka_001"): AuthVerifier {
   return {
     async verify() {
       return {
-        clerkId: "clerk_mangaka_001",
-        email: "mangaka@example.com",
-        fullName: "Mangaka One",
+        clerkId,
+        email: `${clerkId}@example.com`,
+        fullName: clerkId,
         avatarUrl: null
       };
     }
   };
 }
 
-function createUserRepository(): UserRepository {
-  const user: AuthUser = {
-    id: userId,
-    clerkId: "clerk_mangaka_001",
-    email: "mangaka@example.com",
-    fullName: "Mangaka One",
+function createUser(id: string, clerkId: string, systemRole: SystemRole): AuthUser {
+  return {
+    id,
+    clerkId,
+    email: `${clerkId}@example.com`,
+    fullName: clerkId,
     avatarUrl: null,
-    systemRole: "MANGAKA",
+    systemRole,
     requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
+}
+
+function createUserRepository(users: AuthUser[] = [createUser(userId, "clerk_mangaka_001", "MANGAKA")]): UserRepository {
+  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
 
   return {
     async findByClerkId(clerkId) {
-      return clerkId === user.clerkId ? user : null;
+      return byClerkId.get(clerkId) ?? null;
     },
-    async upsertFromClerk() {
-      return user;
+    async upsertFromClerk(profile) {
+      const existing = byClerkId.get(profile.clerkId);
+      if (existing) return existing;
+      const created = createUser(`user_${profile.clerkId}`, profile.clerkId, "MANGAKA");
+      byClerkId.set(profile.clerkId, created);
+      return created;
     },
     async updateOnboarding() {
-      return user;
+      throw new Error("not needed in page route tests");
     }
   };
 }
 
-function createSeriesRepository(): SeriesRepository {
+function createSeriesRepository(roleByUserId: Record<string, string | null> = { [userId]: "OWNER_MANGAKA" }): SeriesRepository {
   return {
     async createSeries() {
       throw new Error("not needed");
@@ -90,10 +99,8 @@ function createSeriesRepository(): SeriesRepository {
       return false;
     },
     async getSeriesMemberRole(inputSeriesId, inputUserId) {
-      if (inputSeriesId === seriesId && inputUserId === userId) {
-        return "OWNER_MANGAKA";
-      }
-      return null;
+      if (inputSeriesId !== seriesId) return null;
+      return roleByUserId[inputUserId] ?? null;
     }
   };
 }
@@ -266,5 +273,109 @@ describe("page upload routes", () => {
     });
     expect(assets[0].aiProcessUrl).toContain("ai_page-001.png");
     expect(fs.existsSync(uploadRoot)).toBe(true);
+  });
+
+  it("lists, fetches, and deletes pages for authorized owners", async () => {
+    const page = {
+      id: "page_existing",
+      chapterId,
+      pageNumber: 1,
+      originalFileUrl: `http://localhost:5000/uploads/chapters/${chapterId}/pages/v1/original_page.png`,
+      previewUrl: `http://localhost:5000/uploads/chapters/${chapterId}/pages/v1/preview_page.png`,
+      thumbnailUrl: `http://localhost:5000/uploads/chapters/${chapterId}/pages/v1/thumb_page.png`,
+      width: 1,
+      height: 1,
+      currentVersion: 1,
+      status: "UPLOADED" as const,
+      createdAt: now,
+      updatedAt: now
+    };
+    const { repository: pageRepository, pages } = createPageRepository();
+    pages.push(page);
+    const { repository: fileRepository, assets } = createFileRepository();
+    assets.push({
+      id: "file_page_existing",
+      ownerType: "PAGE",
+      ownerId: page.id,
+      originalUrl: page.originalFileUrl,
+      previewUrl: page.previewUrl,
+      thumbnailUrl: page.thumbnailUrl,
+      fileName: "page.png",
+      mimeType: "image/png",
+      fileSize: 10,
+      width: 1,
+      height: 1,
+      versionNumber: 1,
+      uploadedBy: userId,
+      createdAt: now,
+      updatedAt: now
+    });
+    const app = createApp({
+      authVerifier: createVerifier(),
+      userRepository: createUserRepository(),
+      seriesRepository: createSeriesRepository(),
+      chapterRepository: createChapterRepository(),
+      pageRepository,
+      fileRepository
+    });
+
+    const listResponse = await request(app)
+      .get(`/api/chapters/${chapterId}/pages`)
+      .set("Authorization", "Bearer valid");
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.data).toHaveLength(1);
+
+    const detailResponse = await request(app)
+      .get(`/api/pages/${page.id}`)
+      .set("Authorization", "Bearer valid");
+    expect(detailResponse.status).toBe(200);
+    expect(detailResponse.body.data).toMatchObject({ id: page.id, chapterId });
+
+    const deleteResponse = await request(app)
+      .delete(`/api/pages/${page.id}`)
+      .set("Authorization", "Bearer valid");
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.body.data.deleted).toBe(true);
+    expect(pages).toHaveLength(0);
+    expect(assets).toHaveLength(0);
+  });
+
+  it("rejects page upload and delete for non-owner series members", async () => {
+    const assistant = createUser(assistantId, "clerk_assistant_001", "ASSISTANT");
+    const { repository: pageRepository, pages } = createPageRepository();
+    pages.push({
+      id: "page_assistant_blocked",
+      chapterId,
+      pageNumber: 1,
+      originalFileUrl: "storage://page.png",
+      width: 1,
+      height: 1,
+      currentVersion: 1,
+      status: "UPLOADED",
+      createdAt: now,
+      updatedAt: now
+    });
+    const app = createApp({
+      authVerifier: createVerifier(assistant.clerkId),
+      userRepository: createUserRepository([assistant]),
+      seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
+      chapterRepository: createChapterRepository(),
+      pageRepository,
+      fileRepository: createFileRepository().repository
+    });
+
+    const uploadResponse = await request(app)
+      .post(`/api/chapters/${chapterId}/pages`)
+      .set("Authorization", "Bearer valid")
+      .attach("files", tinyPng, {
+        filename: "blocked.png",
+        contentType: "image/png"
+      });
+    expect(uploadResponse.status).toBe(403);
+
+    const deleteResponse = await request(app)
+      .delete("/api/pages/page_assistant_blocked")
+      .set("Authorization", "Bearer valid");
+    expect(deleteResponse.status).toBe(403);
   });
 });

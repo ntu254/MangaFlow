@@ -22,6 +22,10 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
 
   const requireSystemMangaka = requireSystemRole([SYSTEM_ROLES.MANGAKA], dependencies.userRepository);
   const requireSystemEditor = requireSystemRole([SYSTEM_ROLES.EDITOR], dependencies.userRepository);
+  const requireSystemSeriesParticipant = requireSystemRole(
+    [SYSTEM_ROLES.MANGAKA, SYSTEM_ROLES.ASSISTANT, SYSTEM_ROLES.EDITOR],
+    dependencies.userRepository
+  );
   
   const checkMember = requireSeriesRole(
     [SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA, SERIES_MEMBER_ROLES.EDITOR, SERIES_MEMBER_ROLES.ASSISTANT],
@@ -54,7 +58,7 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
   });
 
   // GET /api/series/:seriesId/chapters
-  router.get("/", authenticate, checkMember, async (req, res) => {
+  router.get("/", authenticate, requireSystemSeriesParticipant, checkMember, async (req, res) => {
     const seriesId = req.params.seriesId as string;
     try {
       const list = await service.listBySeries(seriesId);
