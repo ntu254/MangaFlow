@@ -53,12 +53,19 @@ Implemented deterministic proof:
   - Admin role review route helper returns `/app/admin/users/role-review`.
 - `npm run test:quick` passed.
   - Root typecheck, tests, and build all pass.
+- Live local seed smoke passed:
+  - MongoDB `users` collection initially had one active pending user after
+    Clerk sign-in and sync.
+  - That user was manually seeded to `systemRole: "ADMIN"` in MongoDB.
+  - After seed, MongoDB had `admins: 1` and `pending: 0`.
+  - `GET /api/admin/users?role=pending` without a token returned `401`.
+  - `GET /api/auth/me` without a token returned `401`.
 
 Deferred proof:
 
 - Browser E2E for pending user -> admin assignment -> role dashboard redirect is
-  deferred until a live Clerk browser session and seeded first admin are
-  available.
+  deferred until the app exposes a role-review UI or the agent can reuse a live
+  Clerk session token from the browser.
 - Persistent audit-log storage is deferred; this slice defines audit-worthy
   events but does not introduce an audit collection.
 

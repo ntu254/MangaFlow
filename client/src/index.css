@@ -178,6 +178,100 @@ h1 {
   justify-content: flex-end;
 }
 
+.admin-shell {
+  align-content: start;
+}
+
+.compact-hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4.75rem);
+}
+
+.admin-panel {
+  display: grid;
+  gap: 18px;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #eadff6;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.admin-panel-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-panel h2 {
+  margin: 0;
+  color: #2f243a;
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+
+.admin-error {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 113, 150, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 113, 150, 0.12);
+  color: #8f2748;
+}
+
+.admin-empty {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 96px;
+  color: #5f5270;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 14px 12px;
+  border-top: 1px solid #f3d7e7;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: #8a7a99;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  color: #2f243a;
+}
+
+.admin-table td span {
+  display: block;
+  margin-top: 4px;
+  color: #8a7a99;
+  font-size: 0.85rem;
+}
+
+.role-actions,
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .workflow-step {
   display: grid;
   gap: 8px;
@@ -211,6 +305,11 @@ h1 {
   }
 
   .auth-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-panel-header {
     align-items: flex-start;
     flex-direction: column;
   }

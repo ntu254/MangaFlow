@@ -10,6 +10,29 @@ export function getAdminRoleReviewRoute() {
   return "/app/admin/users/role-review";
 }
 
+export const assignableSystemRoles = [
+  "MANGAKA",
+  "ASSISTANT",
+  "EDITOR",
+  "BOARD"
+] as const satisfies readonly SystemRole[];
+
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/$/, "");
+}
+
+export function buildAdminRoleReviewUrl(apiBaseUrl: string) {
+  return `${trimTrailingSlash(apiBaseUrl)}/admin/users?role=pending&status=ACTIVE`;
+}
+
+export function buildAdminUserRoleUrl(apiBaseUrl: string, userId: string) {
+  return `${trimTrailingSlash(apiBaseUrl)}/admin/users/${userId}/role`;
+}
+
+export function buildAdminUserStatusUrl(apiBaseUrl: string, userId: string) {
+  return `${trimTrailingSlash(apiBaseUrl)}/admin/users/${userId}/status`;
+}
+
 export function isAdminRoleReviewUser(user: RoleReviewUser) {
   return (
     user.status === "ACTIVE" &&
@@ -17,4 +40,3 @@ export function isAdminRoleReviewUser(user: RoleReviewUser) {
     user.requestedSystemRole !== null
   );
 }
-

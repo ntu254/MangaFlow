@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getAdminRoleReviewRoute, isAdminRoleReviewUser } from "./admin-flow";
+import {
+  assignableSystemRoles,
+  buildAdminRoleReviewUrl,
+  buildAdminUserRoleUrl,
+  buildAdminUserStatusUrl,
+  getAdminRoleReviewRoute,
+  isAdminRoleReviewUser
+} from "./admin-flow";
 
 describe("admin-flow", () => {
   it("uses the admin role review route", () => {
@@ -32,5 +39,25 @@ describe("admin-flow", () => {
       })
     ).toBe(false);
   });
-});
 
+  it("builds admin API URLs", () => {
+    expect(buildAdminRoleReviewUrl("http://localhost:5001/api")).toBe(
+      "http://localhost:5001/api/admin/users?role=pending&status=ACTIVE"
+    );
+    expect(buildAdminUserRoleUrl("http://localhost:5001/api", "user_1")).toBe(
+      "http://localhost:5001/api/admin/users/user_1/role"
+    );
+    expect(buildAdminUserStatusUrl("http://localhost:5001/api", "user_1")).toBe(
+      "http://localhost:5001/api/admin/users/user_1/status"
+    );
+  });
+
+  it("exposes assignable non-admin workflow roles", () => {
+    expect(assignableSystemRoles).toEqual([
+      "MANGAKA",
+      "ASSISTANT",
+      "EDITOR",
+      "BOARD"
+    ]);
+  });
+});
