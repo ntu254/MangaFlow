@@ -20,7 +20,7 @@ Provide Mangaka with the ability to upload and submit manuscripts, and Editor to
 - Editor Review Page UI
 
 ## Architecture Decisions
-- Mocking file uploads via text inputs until EPIC-07 (R2).
+- Multipart upload is now backed by the EPIC-07 storage/FileAsset foundation.
 - Utilizing Tabs component from shadcn for Series page organization.
 - Reusing RBAC middlewares (`requireSeriesRole`) to guard editor/mangaka actions.
 
@@ -37,6 +37,17 @@ Provide Mangaka with the ability to upload and submit manuscripts, and Editor to
 - [x] Mangaka can submit manuscript.
 - [x] Editor can start review and approve/request revision.
 - [x] Unauthenticated users or wrong roles get 403 Forbidden.
+- [x] Manuscript routes require both system role and series membership.
+- [x] Manuscript submit/review actions reject manuscript IDs outside the route series.
 
 ## Review Notes
-Typecheck passes. Verified all roles and frontend rendering.
+Backend typecheck and tests pass. Frontend rendering remains covered by build/typecheck, with browser E2E deferred until reusable Clerk/Mongo fixtures exist.
+
+## Validation Evidence
+
+- `npm run typecheck --workspace server` passes.
+- `npm run test --workspace server` passes: 10 server source test files, 34 tests.
+- Added `server/src/modules/manuscript/manuscript.service.test.ts`.
+- Added `server/src/modules/manuscript/manuscript.routes.test.ts`.
+- Fixed `server/src/modules/manuscript/manuscript.routes.ts` so list/detail routes load `localUser` before `requireSeriesRole`.
+- Fixed submit/review/detail routes to verify the manuscript belongs to the route `seriesId` before returning or mutating it.

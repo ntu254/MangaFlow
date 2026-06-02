@@ -43,6 +43,10 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   
   const requireSystemMangaka = requireSystemRole([SYSTEM_ROLES.MANGAKA], dependencies.userRepository);
   const requireSystemEditor = requireSystemRole([SYSTEM_ROLES.EDITOR], dependencies.userRepository);
+  const requireSystemSeriesParticipant = requireSystemRole(
+    [SYSTEM_ROLES.MANGAKA, SYSTEM_ROLES.ASSISTANT, SYSTEM_ROLES.EDITOR],
+    dependencies.userRepository
+  );
   
   const checkMember = requireSeriesRole(
     [SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA, SERIES_MEMBER_ROLES.EDITOR, SERIES_MEMBER_ROLES.ASSISTANT],
@@ -122,7 +126,7 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   });
 
   // Get series manuscripts
-  router.get("/", authenticate, checkMember, async (req, res) => {
+  router.get("/", authenticate, requireSystemSeriesParticipant, checkMember, async (req, res) => {
     const seriesId = req.params.seriesId as string;
     const list = await service.listBySeries(seriesId);
     const resolvedList = await resolveManuscriptUrlsList(list);
@@ -130,9 +134,13 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   });
 
   // Get a single manuscript
-  router.get("/:manuscriptId", authenticate, checkMember, async (req, res) => {
+  router.get("/:manuscriptId", authenticate, requireSystemSeriesParticipant, checkMember, async (req, res) => {
     try {
       const manuscript = await service.getById(req.params.manuscriptId as string);
+      if (manuscript.seriesId !== req.params.seriesId) {
+        res.status(404).json(fail("Manuscript not found in this series", "NOT_FOUND"));
+        return;
+      }
       const resolved = await resolveManuscriptUrls(manuscript);
       res.json(ok(resolved));
     } catch (error) {
@@ -147,6 +155,12 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
   // Mangaka submits
   router.patch("/:manuscriptId/submit", authenticate, requireSystemMangaka, checkMangakaMember, async (req, res) => {
     try {
+      const existing = await service.getById(req.params.manuscriptId as string);
+      if (existing.seriesId !== req.params.seriesId) {
+        res.status(404).json(fail("Manuscript not found in this series", "NOT_FOUND"));
+        return;
+      }
+
       const manuscript = await service.submitManuscript(req.params.manuscriptId as string);
       if (!manuscript) {
         res.status(404).json(fail("Manuscript not found", "NOT_FOUND"));
@@ -168,6 +182,12 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
     try {
       const action = req.body.action; // 'start', 'approve', 'request_revision'
       const manuscriptId = req.params.manuscriptId as string;
+      const existing = await service.getById(manuscriptId);
+      if (existing.seriesId !== req.params.seriesId) {
+        res.status(404).json(fail("Manuscript not found in this series", "NOT_FOUND"));
+        return;
+      }
+
       let manuscript;
       switch (action) {
         case "start":
