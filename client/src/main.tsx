@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { ClerkProvider } from "@clerk/react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 
@@ -10,10 +11,12 @@ const app = <App clerkConfigured={Boolean(clerkPublishableKey)} />;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {clerkPublishableKey ? (
-      <ClerkProvider publishableKey={clerkPublishableKey}>{app}</ClerkProvider>
-    ) : (
-      app
-    )}
+    <BrowserRouter>
+      {clerkPublishableKey ? (
+        <ClerkProvider publishableKey={clerkPublishableKey}>{app}</ClerkProvider>
+      ) : (
+        app
+      )}
+    </BrowserRouter>
   </StrictMode>
 );
