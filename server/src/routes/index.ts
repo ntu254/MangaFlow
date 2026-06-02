@@ -6,6 +6,7 @@ import {
 import { createMongoUserRepository } from "../modules/auth/auth.repository.js";
 import { createAuthRouter } from "../modules/auth/auth.routes.js";
 import type { UserRepository } from "../modules/auth/auth.service.js";
+import { createAdminRouter } from "../modules/admin/admin.routes.js";
 import { healthRouter } from "../modules/health/health.routes.js";
 
 export type ApiRouterDependencies = {
@@ -24,6 +25,13 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/auth",
     createAuthRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository()
+    })
+  );
+  router.use(
+    "/admin",
+    createAdminRouter({
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository()
     })

@@ -49,6 +49,10 @@ The first role assignment story is `MF-002`. It should let admins review pending
 users, assign a valid `systemRole`, suspend users, and reactivate users without
 introducing series-level permissions.
 
+For MVP bootstrap, the first admin is created by manual MongoDB seed/update
+outside the application runtime. MangaFlow does not expose a self-service
+first-admin endpoint.
+
 ## Redirect Rules
 
 After Clerk login, the client calls `/api/auth/me` and redirects by internal

@@ -69,7 +69,50 @@ export function createMongoUserRepository(): UserRepository {
       );
 
       return user ? serializeUser(user) : null;
+    },
+
+    async listUsersForRoleReview(filters) {
+      const query = {
+        ...(filters.role === "pending" ? { systemRole: null } : {}),
+        ...(filters.status ? { status: filters.status } : {})
+      };
+
+      const users = await UserModel.find(query).sort({ updatedAt: -1 }).limit(50);
+      return users.map((user) => serializeUser(user));
+    },
+
+    async findById(id: string) {
+      const user = await UserModel.findById(id);
+      return user ? serializeUser(user) : null;
+    },
+
+    async assignSystemRole(userId, role) {
+      const user = await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            systemRole: role,
+            requestedSystemRole: null
+          }
+        },
+        { new: true }
+      );
+
+      return user ? serializeUser(user) : null;
+    },
+
+    async updateUserStatus(userId, status) {
+      const user = await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            status
+          }
+        },
+        { new: true }
+      );
+
+      return user ? serializeUser(user) : null;
     }
   };
 }
-

@@ -29,10 +29,6 @@ Required deterministic fixtures:
 
 ## Commands
 
-Add exact commands after implementation.
-
-Expected minimum:
-
 ```text
 npm run test --workspace server
 npm run test --workspace client
@@ -41,6 +37,33 @@ npm run test:quick
 
 ## Acceptance Evidence
 
-Add results after implementation. Do not mark implemented until durable proof
-has at least unit, integration, and platform evidence.
+Implemented deterministic proof:
 
+- `npm run test --workspace server` passed.
+  - Role assignment service rejects non-admin actors.
+  - Active admins can list pending users.
+  - Active admins can assign `systemRole` and clear `requestedSystemRole`.
+  - Active admins can suspend and reactivate users.
+  - Invalid role input returns `INVALID_ROLE`.
+  - Admin routes return `403 ADMIN_REQUIRED` for non-admin callers.
+  - Admin routes list pending users, assign roles, update status, and reject
+    invalid role input.
+- `npm run test --workspace client` passed.
+  - Admin role review helper identifies pending requested-role users.
+  - Admin role review route helper returns `/app/admin/users/role-review`.
+- `npm run test:quick` passed.
+  - Root typecheck, tests, and build all pass.
+
+Deferred proof:
+
+- Browser E2E for pending user -> admin assignment -> role dashboard redirect is
+  deferred until a live Clerk browser session and seeded first admin are
+  available.
+- Persistent audit-log storage is deferred; this slice defines audit-worthy
+  events but does not introduce an audit collection.
+
+Durable proof status for this slice:
+
+```text
+scripts/bin/harness-cli story update --id MF-002 --status implemented --unit 1 --integration 1 --e2e 0 --platform 1
+```

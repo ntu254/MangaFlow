@@ -47,8 +47,7 @@ Lane:
 
 ## Work Phases
 
-1. Confirm whether the first admin user is seeded manually, by env allowlist, or
-   through a fixture-only test path.
+1. Record first-admin bootstrap decision.
 2. Update product docs with accepted role assignment behavior if needed.
 3. Add tests for admin-only role/status changes.
 4. Implement backend role assignment service and routes.
@@ -60,9 +59,8 @@ Lane:
 
 Pause for human confirmation if:
 
-- The first-admin bootstrap path is ambiguous.
+- A self-service first-admin bootstrap path becomes necessary.
 - The story would let any non-admin assign roles.
 - Existing users would need a destructive migration.
 - Validation cannot prove forbidden access for non-admin users.
 - The work expands into full series-level permissions.
-

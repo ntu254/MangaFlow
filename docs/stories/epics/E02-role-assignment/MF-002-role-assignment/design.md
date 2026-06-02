@@ -23,12 +23,12 @@ Business rules:
 - Suspended users cannot access protected product APIs.
 - Suspending a user does not delete their profile or role history.
 
-Open decision:
+First-admin bootstrap decision:
 
-- First-admin bootstrap strategy. Candidate options:
-  - Manually seed the first admin in MongoDB.
-  - Use an environment allowlist for one bootstrap Clerk ID.
-  - Keep first-admin creation out of app code and document manual setup.
+- The first admin is created by manual MongoDB seed/update outside the
+  application runtime.
+- `MF-002` must not expose a self-service first-admin bootstrap endpoint.
+- See `docs/decisions/0009-first-admin-bootstrap.md`.
 
 ## Application Flow
 
@@ -125,4 +125,3 @@ Audit records:
 2. Delay all role assignment until a full admin dashboard exists. Rejected
    because pending users need a controlled activation path before workflow
    stories can be useful.
-

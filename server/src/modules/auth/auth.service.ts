@@ -55,6 +55,13 @@ export type UserRepository = {
     clerkId: string,
     input: SafeOnboardingInput
   ): Promise<AuthUser | null>;
+  listUsersForRoleReview?(filters: {
+    role?: "pending";
+    status?: UserStatus;
+  }): Promise<AuthUser[]>;
+  findById?(id: string): Promise<AuthUser | null>;
+  assignSystemRole?(userId: string, role: SystemRole): Promise<AuthUser | null>;
+  updateUserStatus?(userId: string, status: UserStatus): Promise<AuthUser | null>;
 };
 
 export type AuthRedirectState = {
@@ -155,4 +162,3 @@ export function createAuthService(userRepository: UserRepository) {
     }
   };
 }
-
