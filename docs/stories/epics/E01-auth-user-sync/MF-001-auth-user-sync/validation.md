@@ -27,37 +27,55 @@ Required deterministic fixtures:
 - Clerk subject `clerk_suspended_001`.
 - User email/profile payloads for each subject.
 
-Preferred integration strategy:
+Accepted integration strategy:
 
 - Mock the Clerk verifier at the backend boundary for deterministic tests.
-- Use a disposable Mongo test database or repository-level fake only if the
-  selected strategy is documented before implementation.
+- Use repository-level fakes for auth service behavior in this slice while
+  keeping runtime Mongoose/MongoDB wiring in place. Live/disposable Mongo proof
+  is deferred until the database test harness exists.
 
 ## Commands
-
-Add exact commands after implementation scripts exist.
-
-Expected minimum:
 
 ```text
 npm run typecheck
 npm run build
 npm run test:quick
-```
-
-Expected additions during implementation:
-
-```text
 npm run test --workspace server
 npm run test --workspace client
 ```
 
 ## Acceptance Evidence
 
-Add results after verification.
+Implemented deterministic proof:
 
-Before marking implemented, update durable proof status with:
+- `npm run test --workspace server` passed.
+  - Auth service syncs Clerk profiles idempotently.
+  - Redirect mapping covers pending, role-bearing, and suspended users.
+  - Onboarding can request `MANGAKA` without assigning `systemRole`.
+  - Onboarding rejects privileged role requests.
+  - Auth routes cover missing token `401`, invalid token `401`, and sync-user
+    success envelope.
+- `npm run test --workspace client` passed.
+  - Client redirect helper covers signed-out, pending, role-bearing, and
+    suspended states.
+- `npm run test:quick` passed.
+  - Root typecheck, tests, and build all pass.
+- HTTP smoke passed on local dev ports:
+  - `GET http://localhost:5001/api/health` returned success envelope.
+  - `GET http://localhost:5001/api/auth/me` without token returned `401`.
+  - `GET http://localhost:5174` returned Vite HTML.
+
+Deferred proof:
+
+- Live Clerk sign-in E2E is not run because no Clerk project keys were provided.
+- Live/disposable Mongo integration is deferred until database test
+  infrastructure exists; this slice uses repository-level fakes per decision
+  `0008-auth-user-sync-boundary`.
+- Sync/onboarding audit records are deferred to the audit/role administration
+  story; operational auth verification failures are logged without token data.
+
+Durable proof status for this slice:
 
 ```text
-scripts/bin/harness-cli story update --id MF-001 --status implemented --unit 1 --integration 1 --e2e 1 --platform 1
+scripts/bin/harness-cli story update --id MF-001 --status implemented --unit 1 --integration 1 --e2e 0 --platform 1
 ```

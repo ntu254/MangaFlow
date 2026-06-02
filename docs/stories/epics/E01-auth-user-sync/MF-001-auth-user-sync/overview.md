@@ -54,11 +54,12 @@ MangaFlow has an authenticated identity foundation:
 - AI service authorization.
 - Production Vercel/Railway deployment.
 
-## Open Decisions Before Implementation
+## Decisions Before Implementation
 
-- Choose the persistence shape for users without roles: nullable `systemRole`
-  or explicit pending role/status.
-- Decide whether onboarding can only request a role or can set a non-privileged
-  role directly.
-- Decide whether integration tests use an in-memory MongoDB substitute, a local
-  MongoDB service, or repository-level mocks for the first auth slice.
+- Users without roles are stored with `systemRole: null`.
+- Onboarding can request `MANGAKA` or `ASSISTANT`, but it cannot assign a role.
+- Integration tests mock the Clerk verifier at the backend boundary and use
+  repository-level fakes for auth service behavior. Runtime code still wires
+  Mongoose and MongoDB for the real application path.
+
+See `docs/decisions/0008-auth-user-sync-boundary.md`.

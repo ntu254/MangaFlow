@@ -31,6 +31,7 @@ The internal user record needs:
 - `fullName`
 - `avatarUrl`
 - `systemRole`
+- `requestedSystemRole`
 - `status`
 - timestamps
 
@@ -52,9 +53,11 @@ Accepted `status` values:
 The product requires a state where a signed-in user exists but does not yet have
 an assigned system role. That user is redirected to onboarding.
 
-The persistence shape is an open implementation decision for the Auth/User Sync
-story: either make `systemRole` nullable or introduce an explicit pending role
-state. The implementation must not allow self-service privilege escalation.
+For `MF-001`, pending users are stored with `systemRole: null`.
+`requestedSystemRole` may store a requested non-privileged role during
+onboarding, but it does not grant product permissions. Only `MANGAKA` and
+`ASSISTANT` can be requested through onboarding. `ADMIN`, `EDITOR`, and `BOARD`
+assignment is deferred to admin/role management stories.
 
 ## Auth API
 
@@ -91,6 +94,7 @@ After login, the client calls `/api/auth/me`.
   accepted sync path.
 - Suspended users cannot access protected product APIs.
 - Users cannot assign themselves admin or privileged roles.
+- Onboarding role requests never grant permissions by themselves.
 - Role assignment and series-level permissions require separate stories unless
   explicitly added to a high-risk packet.
 

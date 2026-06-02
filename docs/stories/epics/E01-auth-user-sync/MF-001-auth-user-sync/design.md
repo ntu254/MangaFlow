@@ -14,6 +14,7 @@ Required fields:
 - `fullName`
 - `avatarUrl`
 - `systemRole`
+- `requestedSystemRole`
 - `status`
 - `createdAt`
 - `updatedAt`
@@ -31,10 +32,11 @@ Status values:
 - `ACTIVE`
 - `SUSPENDED`
 
-Open data decision:
+Pending role decision:
 
-- Users without an assigned role must exist safely. Decide between nullable
-  `systemRole` and an explicit pending role/status before implementation.
+- Users without an assigned role are stored with `systemRole: null`.
+- `requestedSystemRole` can hold a requested role of `MANGAKA` or `ASSISTANT`.
+- Requested roles do not grant permissions.
 
 Business rules:
 
@@ -43,7 +45,7 @@ Business rules:
 - User sync is idempotent by `clerkId`.
 - Clerk owns authentication; MangaFlow owns product role/status.
 - Suspended users cannot access protected APIs.
-- Onboarding must not grant unauthorized privilege.
+- Onboarding must not grant unauthorized privilege or assign `systemRole`.
 
 ## Application Flow
 
@@ -174,8 +176,10 @@ Audit records:
 2. Create internal users only through admin invite.
 3. Allow users to self-select roles during onboarding.
 
-Current preferred direction:
+Accepted direction:
 
 - Keep Clerk as identity provider.
 - Keep MangaFlow roles/status in MongoDB.
 - Do not allow self-service privilege escalation.
+- Store pending users with `systemRole: null`.
+- Let onboarding collect a requested non-privileged role without assigning it.
