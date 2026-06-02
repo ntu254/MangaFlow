@@ -38,6 +38,17 @@ membership that controls what they can do inside one series.
 - Board members can vote on eligible series. The board chair finalizes board
   decisions.
 
+## Role Assignment Boundary
+
+Users cannot grant themselves system roles. After `MF-001`, signed-in users
+without an assigned role remain pending with `systemRole: null`. Onboarding may
+record a requested role, but role assignment must happen through an admin-owned
+flow.
+
+The first role assignment story is `MF-002`. It should let admins review pending
+users, assign a valid `systemRole`, suspend users, and reactivate users without
+introducing series-level permissions.
+
 ## Redirect Rules
 
 After Clerk login, the client calls `/api/auth/me` and redirects by internal

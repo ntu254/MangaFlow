@@ -63,11 +63,22 @@ Implemented deterministic proof:
 - HTTP smoke passed on local dev ports:
   - `GET http://localhost:5001/api/health` returned success envelope.
   - `GET http://localhost:5001/api/auth/me` without token returned `401`.
+  - `GET http://localhost:5001/api/auth/me` with malformed bearer token
+    returned `401`.
   - `GET http://localhost:5174` returned Vite HTML.
+  - `GET http://localhost:5174/sign-in` returned Vite HTML.
+  - Vite served `src/main.tsx` with `ClerkProvider` and `src/App.tsx` with
+    Clerk sign-in UI imports.
+- Runtime env smoke after adding real keys:
+  - `client/.env` has `VITE_API_BASE_URL` and `VITE_CLERK_PUBLISHABLE_KEY` set.
+  - `server/.env` has `PORT`, `CORS_ORIGIN`, `AI_SERVICE_URL`,
+    `MONGODB_URI`, and `CLERK_SECRET_KEY` set.
+  - Secrets were checked only for presence and were not printed.
 
 Deferred proof:
 
-- Live Clerk sign-in E2E is not run because no Clerk project keys were provided.
+- Live Clerk sign-in E2E is not run because no browser login session or valid
+  Clerk session token was available to the agent.
 - Live/disposable Mongo integration is deferred until database test
   infrastructure exists; this slice uses repository-level fakes per decision
   `0008-auth-user-sync-boundary`.
