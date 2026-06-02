@@ -330,10 +330,15 @@ export function ChapterPagesPage() {
                   </Button>
                 </div>
 
-                {/* Workspace annotation redirect placeholder */}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => alert("Workspace Annotation editor coming soon in EPIC-08!")}>
-                  <span className="text-white text-xs font-semibold px-3 py-1.5 bg-primary rounded-md shadow">Open Workspace</span>
-                </div>
+                <Link
+                  to={`/app/mangaka/pages/${page.id}/workspace`}
+                  className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={`Open workspace for page ${page.pageNumber}`}
+                >
+                  <span className="text-white text-xs font-semibold px-3 py-1.5 bg-primary rounded-md shadow">
+                    Open Workspace
+                  </span>
+                </Link>
               </div>
               
               <div className="p-3 flex items-center justify-between border-t bg-background">

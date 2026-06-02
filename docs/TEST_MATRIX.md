@@ -28,6 +28,7 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-007 | Chapter & Page Management CRUD: Mangakas manage chapters/pages with series-scope RBAC, page file upload, status validation, and deletion proof | yes | yes | no | yes | implemented | `docs/stories/epics/E06-chapter-page-management/MF-007-chapter-page-management.md` |
 | MF-008 | File Upload & Cloudflare R2: multipart uploads store originals/variants, create FileAsset metadata, and fall back to local filesystem storage when S3 is unavailable | yes | yes | no | yes | implemented | `docs/stories/epics/E07-file-upload-cloudflare-r2/MF-008-file-upload-cloudflare-r2/validation.md` |
 | MF-009 | Region Management API: page-scoped rectangular Regions can be created/listed/fetched/updated/deleted with normalized coordinates and series RBAC | yes | yes | no | yes | implemented | `docs/stories/epics/E08-annotation-region/MF-009-region-management-api/validation.md` |
+| MF-010 | Page Workspace Region UI: page cards open a workspace that displays, creates, and deletes normalized rectangular Regions | yes | yes | no | yes | implemented | `docs/stories/epics/E08-annotation-region/MF-010-page-workspace-region-ui.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
 
 ## Evidence Rules

@@ -24,6 +24,7 @@ import { CreateSeriesPage } from "@/features/series/routes/CreateSeriesPage";
 import { SeriesDetailPage } from "@/features/series/routes/SeriesDetailPage";
 import { EditorReviewPage } from "@/features/manuscript/routes/EditorReviewPage";
 import { ChapterPagesPage } from "@/features/page/routes/ChapterPagesPage";
+import { PageWorkspacePage } from "@/features/page/routes/PageWorkspacePage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -219,6 +220,7 @@ function AuthenticatedApp() {
               <Route path="/app/mangaka/series/new" element={<CreateSeriesPage />} />
               <Route path="/app/mangaka/series/:seriesId" element={<SeriesDetailPage />} />
               <Route path="/app/mangaka/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+              <Route path="/app/mangaka/pages/:pageId/workspace" element={<PageWorkspacePage />} />
             </Routes>
           </main>
         </div>

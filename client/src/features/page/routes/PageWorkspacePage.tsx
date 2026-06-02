@@ -1,0 +1,460 @@
+import { useAuth } from "@clerk/react";
+import {
+  ArrowLeft,
+  Crosshair,
+  Loader2,
+  MousePointer2,
+  RefreshCw,
+  Save,
+  Trash
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { getPage, type Page } from "@/features/page/api/page";
+import {
+  createRegion,
+  deleteRegion,
+  listRegions,
+  regionTypes,
+  type Region,
+  type RegionType
+} from "@/features/region/api/region";
+import {
+  createNormalizedRegionBox,
+  regionBoxToStyle,
+  type NormalizedRegionBox,
+  type Point
+} from "@/features/region/lib/region-workspace";
+
+const regionColorByType: Record<RegionType, string> = {
+  BACKGROUND: "#9065d5",
+  INKING: "#2f243a",
+  SCREENTONE: "#ffc95e",
+  CLEANUP: "#ff7196",
+  EFFECT: "#ff9971",
+  BUBBLE: "#e560bc",
+  OTHER: "#5f5270"
+};
+
+type LoadState =
+  | { status: "loading" }
+  | { status: "ready"; page: Page; regions: Region[] }
+  | { status: "error"; message: string };
+
+function RegionOverlay({
+  region,
+  selected,
+  onSelect
+}: {
+  region: Region;
+  selected: boolean;
+  onSelect: (region: Region) => void;
+}) {
+  const color = regionColorByType[region.type];
+
+  return (
+    <button
+      type="button"
+      aria-label={`${region.type} region`}
+      className="absolute rounded-[3px] border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      style={{
+        ...regionBoxToStyle(region),
+        borderColor: color,
+        backgroundColor: selected ? `${color}40` : `${color}20`,
+        boxShadow: selected ? `0 0 0 2px white, 0 0 0 5px ${color}` : "0 8px 20px rgba(47,36,58,0.12)"
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(region);
+      }}
+    >
+      <span
+        className="absolute left-1 top-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+        style={{ backgroundColor: color }}
+      >
+        {region.type}
+      </span>
+    </button>
+  );
+}
+
+function EmptyWorkspaceState({ chapterId }: { chapterId?: string }) {
+  return (
+    <div className="container max-w-5xl py-8">
+      <div className="rounded-lg border bg-card p-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Page workspace unavailable</h1>
+        <p className="mt-2 text-sm text-muted-foreground">The requested page could not be loaded.</p>
+        {chapterId ? (
+          <Link to={`/app/mangaka/chapters/${chapterId}/pages`} className="mt-4 inline-flex">
+            <Button variant="outline">
+              <ArrowLeft /> Back to pages
+            </Button>
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function PageWorkspacePage() {
+  const { pageId } = useParams<{ pageId: string }>();
+  const { getToken } = useAuth();
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [selectedType, setSelectedType] = useState<RegionType>("BUBBLE");
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+  const [draftBox, setDraftBox] = useState<NormalizedRegionBox | null>(null);
+  const [dragStart, setDragStart] = useState<Point | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const loadWorkspace = useCallback(async () => {
+    if (!pageId) return;
+
+    try {
+      setState({ status: "loading" });
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const [page, regions] = await Promise.all([
+        getPage(token, pageId),
+        listRegions(token, pageId)
+      ]);
+
+      setState({ status: "ready", page, regions });
+      setSelectedRegionId(regions[0]?.id ?? null);
+    } catch (error) {
+      setState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Failed to load page workspace"
+      });
+    }
+  }, [getToken, pageId]);
+
+  useEffect(() => {
+    void loadWorkspace();
+  }, [loadWorkspace]);
+
+  function getCanvasRect() {
+    return canvasRef.current?.getBoundingClientRect() ?? null;
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (state.status !== "ready") return;
+    const rect = getCanvasRect();
+    if (!rect) return;
+
+    const start = { clientX: event.clientX, clientY: event.clientY };
+    setDragStart(start);
+    setDraftBox(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragStart) return;
+    const rect = getCanvasRect();
+    if (!rect) return;
+
+    const nextBox = createNormalizedRegionBox(
+      dragStart,
+      { clientX: event.clientX, clientY: event.clientY },
+      rect,
+      0
+    );
+    setDraftBox(nextBox);
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragStart) return;
+    const rect = getCanvasRect();
+    if (rect) {
+      setDraftBox(
+        createNormalizedRegionBox(
+          dragStart,
+          { clientX: event.clientX, clientY: event.clientY },
+          rect
+        )
+      );
+    }
+    setDragStart(null);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  async function handleSaveDraft() {
+    if (state.status !== "ready" || !pageId || !draftBox) return;
+
+    try {
+      setSaving(true);
+      setActionError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const region = await createRegion(token, pageId, {
+        type: selectedType,
+        ...draftBox
+      });
+      setState({
+        status: "ready",
+        page: state.page,
+        regions: [region, ...state.regions]
+      });
+      setSelectedRegionId(region.id);
+      setDraftBox(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Failed to save region");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteRegion(regionId: string) {
+    if (state.status !== "ready") return;
+    const confirmed = window.confirm("Delete this region?");
+    if (!confirmed) return;
+
+    try {
+      setActionError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      await deleteRegion(token, regionId);
+      const remaining = state.regions.filter((region) => region.id !== regionId);
+      setState({ status: "ready", page: state.page, regions: remaining });
+      setSelectedRegionId(remaining[0]?.id ?? null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Failed to delete region");
+    }
+  }
+
+  if (state.status === "loading") {
+    return (
+      <div className="container max-w-7xl py-8">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Loading page workspace
+        </div>
+      </div>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className="container max-w-5xl py-8">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {state.message}
+        </div>
+      </div>
+    );
+  }
+
+  if (!state.page) {
+    return <EmptyWorkspaceState />;
+  }
+
+  const { page, regions } = state;
+  const selectedRegion = regions.find((region) => region.id === selectedRegionId) ?? null;
+  const imageUrl = page.processedFileUrl ?? page.previewUrl ?? page.originalFileUrl;
+
+  return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-[#fff9fb]">
+      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="min-w-0">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <Link
+                to={`/app/mangaka/chapters/${page.chapterId}/pages`}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+              >
+                <ArrowLeft className="size-4" /> Back to chapter pages
+              </Link>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#2f243a]">
+                Page {page.pageNumber} Workspace
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{page.status}</Badge>
+              <Button variant="outline" onClick={() => void loadWorkspace()}>
+                <RefreshCw /> Refresh
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#eadff6] bg-[#f7f3ff] p-3 shadow-sm">
+            <div
+              ref={canvasRef}
+              className="relative mx-auto aspect-[3/4] max-h-[calc(100vh-11rem)] touch-none select-none overflow-hidden rounded-md bg-white shadow-inner"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={() => {
+                setDragStart(null);
+              }}
+            >
+              <img
+                src={imageUrl}
+                alt={`Page ${page.pageNumber}`}
+                className="h-full w-full object-contain"
+                draggable={false}
+              />
+
+              <div className="absolute inset-0">
+                {regions.map((region) => (
+                  <RegionOverlay
+                    key={region.id}
+                    region={region}
+                    selected={region.id === selectedRegionId}
+                    onSelect={(nextRegion) => setSelectedRegionId(nextRegion.id)}
+                  />
+                ))}
+
+                {draftBox ? (
+                  <div
+                    className="absolute rounded-[3px] border-2 border-dashed border-[#9065d5] bg-[#9065d5]/20"
+                    style={regionBoxToStyle(draftBox)}
+                  >
+                    <span className="absolute left-1 top-1 rounded-sm bg-[#9065d5] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      Draft
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside className="grid content-start gap-4">
+          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[#f8f1ff] p-2 text-[#9065d5]">
+                <Crosshair className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold tracking-tight">Region tool</h2>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  Drag across the page to mark a rectangular work area.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Type</span>
+              <div className="grid grid-cols-2 gap-2">
+                {regionTypes.map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    size="sm"
+                    variant={selectedType === type ? "default" : "outline"}
+                    onClick={() => setSelectedType(type)}
+                    className="justify-start"
+                  >
+                    <span
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: regionColorByType[type] }}
+                      aria-hidden="true"
+                    />
+                    {type}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              {draftBox ? (
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+                  <dt>x</dt>
+                  <dd className="text-right text-foreground">{draftBox.x}</dd>
+                  <dt>y</dt>
+                  <dd className="text-right text-foreground">{draftBox.y}</dd>
+                  <dt>width</dt>
+                  <dd className="text-right text-foreground">{draftBox.width}</dd>
+                  <dt>height</dt>
+                  <dd className="text-right text-foreground">{draftBox.height}</dd>
+                </dl>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <MousePointer2 className="size-4" />
+                  No draft region selected
+                </div>
+              )}
+            </div>
+
+            {actionError ? (
+              <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                {actionError}
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex gap-2">
+              <Button onClick={() => void handleSaveDraft()} disabled={!draftBox || saving}>
+                {saving ? <Loader2 className="animate-spin" /> : <Save />}
+                Save region
+              </Button>
+              <Button variant="outline" onClick={() => setDraftBox(null)} disabled={!draftBox || saving}>
+                Clear
+              </Button>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold tracking-tight">Regions</h2>
+              <Badge variant="secondary">{regions.length}</Badge>
+            </div>
+
+            {regions.length === 0 ? (
+              <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                No regions yet. Drag on the page to create the first one.
+              </p>
+            ) : (
+              <div className="grid gap-2">
+                {regions.map((region) => {
+                  const isSelected = selectedRegion?.id === region.id;
+                  return (
+                    <div
+                      key={region.id}
+                      className={`rounded-md border p-3 transition-colors ${
+                        isSelected ? "border-[#9065d5] bg-[#f8f1ff]" : "bg-white"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between text-left"
+                        onClick={() => setSelectedRegionId(region.id)}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          <span
+                            className="size-2 rounded-full"
+                            style={{ backgroundColor: regionColorByType[region.type] }}
+                            aria-hidden="true"
+                          />
+                          {region.type}
+                        </span>
+                        <Badge variant={region.source === "AI" ? "default" : "outline"}>{region.source}</Badge>
+                      </button>
+                      <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted-foreground">
+                        <span>x {region.x}</span>
+                        <span>y {region.y}</span>
+                        <span>w {region.width}</span>
+                        <span>h {region.height}</span>
+                      </div>
+                      <Button
+                        className="mt-3 w-full"
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => void handleDeleteRegion(region.id)}
+                      >
+                        <Trash /> Delete
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </aside>
+      </div>
+    </div>
+  );
+}
