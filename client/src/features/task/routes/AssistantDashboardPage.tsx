@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/react";
 import { BriefcaseBusiness, Loader2, Play, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { listTasks, startTask, type Task } from "@/features/task/api/task";
@@ -123,7 +124,12 @@ export function AssistantDashboardPage() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-semibold text-[#2f243a]">{task.title}</h2>
+                      <Link
+                        to={`/app/assistant/tasks/${task.id}`}
+                        className="text-base font-semibold text-[#2f243a] hover:text-primary"
+                      >
+                        {task.title}
+                      </Link>
                       <Badge variant="outline">{task.status}</Badge>
                       <span className={`rounded-sm px-2 py-0.5 text-xs font-semibold ${priorityClassName[task.priority]}`}>
                         {task.priority}
@@ -145,6 +151,9 @@ export function AssistantDashboardPage() {
                     {startingTaskId === task.id ? <Loader2 className="animate-spin" /> : <Play />}
                     {task.status === "TODO" ? "Start" : "Started"}
                   </Button>
+                  <Link to={`/app/assistant/tasks/${task.id}`}>
+                    <Button variant="outline">Open</Button>
+                  </Link>
                 </div>
               </article>
             ))}

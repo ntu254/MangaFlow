@@ -26,6 +26,7 @@ import { EditorReviewPage } from "@/features/manuscript/routes/EditorReviewPage"
 import { ChapterPagesPage } from "@/features/page/routes/ChapterPagesPage";
 import { PageWorkspacePage } from "@/features/page/routes/PageWorkspacePage";
 import { AssistantDashboardPage } from "@/features/task/routes/AssistantDashboardPage";
+import { AssistantTaskDetailPage } from "@/features/task/routes/AssistantTaskDetailPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -265,6 +266,8 @@ function AuthenticatedApp() {
           <main className="flex-1">
             <Routes>
               <Route path="/app/assistant/dashboard" element={<AssistantDashboardPage />} />
+              <Route path="/app/assistant/tasks" element={<AssistantDashboardPage />} />
+              <Route path="/app/assistant/tasks/:taskId" element={<AssistantTaskDetailPage />} />
             </Routes>
           </main>
         </div>

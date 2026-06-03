@@ -34,4 +34,13 @@ npm run test:quick
 
 ## Acceptance Evidence
 
-Pending implementation and verification.
+Implemented and verified:
+
+- `npm run typecheck --workspace server` passed.
+- `npm run test --workspace server` passed: 22 files, 79 tests.
+- `.\scripts\bin\harness-cli.exe story verify MF-015` passed.
+- `npm run test:quick` passed: client/server typecheck, server tests 22
+  files/79 tests, client tests 7 files/24 tests, client/server build. Vite
+  emitted the existing chunk-size warning.
+
+E2E remains deferred until Assistant submission UI exists.
