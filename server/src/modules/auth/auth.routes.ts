@@ -2,7 +2,11 @@ import { Router } from "express";
 import { z } from "zod";
 import { env } from "../../config/env.config.js";
 import { fail, ok } from "../../shared/responses/api-response.js";
-import { signAccessToken, signRefreshToken, verifyRefreshToken, type RefreshJwtPayload } from "../../infrastructure/jwt/index.js";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../infrastructure/jwt/index.js";
+import {
+  exchangeGoogleCode,
+  getGoogleAuthUrl
+} from "../../infrastructure/google/index.js";
 import {
   requireAuth,
   type AuthenticatedRequest,
@@ -54,6 +58,10 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required")
 });
 
+const googleCallbackSchema = z.object({
+  code: z.string().min(1, "Code is required")
+});
+
 export function createAuthRouter(dependencies: AuthRouteDependencies) {
   const router = Router();
   const service = createAuthService(dependencies.userRepository);
@@ -87,6 +95,68 @@ export function createAuthRouter(dependencies: AuthRouteDependencies) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
+      next(error);
+    }
+  });
+
+  router.get("/google", (_req, res) => {
+    if (!env.googleClientId) {
+      res.status(503).json(fail("Google OAuth is not configured", "OAUTH_NOT_CONFIGURED"));
+      return;
+    }
+
+    const redirectUri = `${env.appUrl}/oauth/callback`;
+    res.redirect(getGoogleAuthUrl(env.googleClientId, redirectUri));
+  });
+
+  router.post("/google/callback", async (req, res, next) => {
+    try {
+      if (!env.googleClientId || !env.googleClientSecret) {
+        res.status(503).json(fail("Google OAuth is not configured", "OAUTH_NOT_CONFIGURED"));
+        return;
+      }
+
+      const parsed = googleCallbackSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(fail("Invalid input parameters", "BAD_REQUEST"));
+        return;
+      }
+
+      const redirectUri = `${env.appUrl}/oauth/callback`;
+      const googleProfile = await exchangeGoogleCode(
+        parsed.data.code,
+        env.googleClientId,
+        env.googleClientSecret,
+        redirectUri
+      );
+
+      if (!googleProfile) {
+        res.status(401).json(fail("Invalid Google authorization code", "AUTH_INVALID"));
+        return;
+      }
+
+      const user = await service.syncUserFromProfile({
+        clerkId: googleProfile.sub,
+        email: googleProfile.email,
+        fullName: googleProfile.fullName,
+        avatarUrl: googleProfile.avatarUrl
+      });
+
+      if (user.status === "SUSPENDED") {
+        res.status(403).json(fail("Account suspended", "ACCOUNT_SUSPENDED"));
+        return;
+      }
+
+      const { accessToken, refreshToken } = await generateTokens(user, sessionRepository);
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: env.nodeEnv === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      res.json(ok({ token: accessToken, ...authPayload(user, service) }));
+    } catch (error) {
       next(error);
     }
   });
@@ -187,6 +257,40 @@ export function createAuthRouter(dependencies: AuthRouteDependencies) {
 
       res.json(ok(authPayload(user, service)));
     } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/complete-onboarding", authenticate, async (req, res, next) => {
+    try {
+      const authRequest = req as AuthenticatedRequest;
+      const profile = authRequest.user;
+      if (!profile) {
+        res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
+        return;
+      }
+
+      const user = await service.completeOnboarding(profile.id, req.body);
+      if (!user) {
+        res.status(404).json(fail("User not found", "USER_NOT_FOUND"));
+        return;
+      }
+
+      const accessToken = signAccessToken({
+        sub: user.id,
+        systemRole: user.systemRole,
+        status: user.status,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+      });
+
+      res.json(ok({ token: accessToken, ...authPayload(user, service) }));
+    } catch (error) {
+      if (error instanceof AuthServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
       next(error);
     }
   });

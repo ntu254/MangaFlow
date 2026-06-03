@@ -121,7 +121,7 @@ export function createMongoUserRepository(): UserRepository {
           },
           $setOnInsert: {
             passwordHash: "NOPASSWORD_MOCKED_SYNC",
-            systemRole: "MANGAKA",
+            systemRole: null,
             status: "ACTIVE"
           }
         },
@@ -132,14 +132,16 @@ export function createMongoUserRepository(): UserRepository {
 
     async updateOnboarding(clerkId, input) {
       if (!mongoose.Types.ObjectId.isValid(clerkId)) return null;
+      const update: any = {};
+      if (input.fullName !== undefined) update.fullName = input.fullName;
+      if (input.avatarUrl !== undefined) update.avatarUrl = input.avatarUrl;
+      if (input.requestedSystemRole !== undefined) {
+        update.systemRole = input.requestedSystemRole;
+      }
+
       const user = await UserModel.findByIdAndUpdate(
         clerkId,
-        {
-          $set: {
-            fullName: input.fullName,
-            avatarUrl: input.avatarUrl
-          }
-        },
+        { $set: update },
         { returnDocument: "after" }
       );
       return user ? serializeUser(user) : null;

@@ -68,6 +68,8 @@ export const env = {
   refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN ?? "7d",
   bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS ?? "10", 10),
   appUrl: process.env.APP_URL ?? "http://localhost:5173",
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   aiServiceUrl: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
   s3Provider,
   s3Endpoint,

@@ -9,7 +9,7 @@ export type UserDocument = {
   passwordHash: string;
   fullName: string;
   avatarUrl: string | null;
-  systemRole: SystemRole;
+  systemRole: SystemRole | null;
   status: UserStatus;
   lastLoginAt?: Date;
   createdAt: Date;
@@ -39,7 +39,7 @@ const userSchema = new Schema<UserDocument>(
     systemRole: {
       type: String,
       enum: ["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD"],
-      required: true,
+      default: null,
       index: true
     },
     status: {

@@ -162,7 +162,7 @@ export function createAuthService(userRepository: UserRepository) {
       }
 
       const requested = parsed.data.requestedSystemRole;
-      if (requested && requested !== "MANGAKA" && requested !== "ASSISTANT") {
+      if (requested && requested !== "MANGAKA" && requested !== "ASSISTANT" && requested !== "EDITOR") {
         throw new AuthServiceError(
           "ONBOARDING_ROLE_FORBIDDEN",
           "Requested role cannot be self-assigned",
