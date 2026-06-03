@@ -35,7 +35,9 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-014 | Task Assignment UI: Mangaka can create region Tasks in Page Workspace, and Assistants can view/start assigned Tasks from dashboard | yes | yes | no | yes | implemented | `docs/stories/epics/E09-task-assignment/MF-014-task-assignment-ui/validation.md` |
 | MF-015 | Assistant Submission API Foundation: assigned Assistants can create immutable versioned Submissions and authorized users can list/detail them | yes | yes | no | yes | implemented | `docs/stories/epics/E10-assistant-submission/MF-015-assistant-submission-api-foundation/validation.md` |
 | MF-016 | Assistant Submission UI: Assistants can view assigned task detail with page/region preview and submit result URLs | yes | yes | no | yes | implemented | `docs/stories/epics/E10-assistant-submission/MF-016-assistant-submission-ui/validation.md` |
+| MF-017 | Review & Comment API Foundation: Comment model, basic CRUD endpoints, and transition endpoints (/mark-fixed, /verify-fixed, /resolve, /reopen) with series RBAC enforced | yes | yes | no | yes | planned | `docs/stories/epics/E11-review-comment/MF-017-review-comment-api-foundation/validation.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
+
 
 ## Evidence Rules
 
