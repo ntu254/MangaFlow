@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -15,8 +15,10 @@ import {
   Badge,
   Card,
   ConfirmationDialog,
+  EmptyState,
   MetricCard,
-  Screen
+  Screen,
+  StateBanner
 } from "./src/components/Primitives";
 import {
   boardSeries,
@@ -28,11 +30,13 @@ import {
   urgentReviews
 } from "./src/data/seedData";
 import { colors, radii, shadow, spacing } from "./src/theme";
+import { roleFromUser, useMobileApiData } from "./src/hooks/useMobileApiData";
 import type {
   BoardTab,
   CommentItem,
   EditorTab,
   MobileRole,
+  NotificationItem,
   RankingItem,
   ReviewItem,
   SeriesSummary
@@ -148,6 +152,15 @@ function ReviewCard({
 }
 
 function CommentQueue({ comments }: { comments: CommentItem[] }) {
+  if (!comments.length) {
+    return (
+      <EmptyState
+        title="No comments"
+        message="Comment workflows will appear after target comment API data is available."
+      />
+    );
+  }
+
   return (
     <View style={styles.stack}>
       {comments.map((comment) => (
@@ -166,17 +179,23 @@ function CommentQueue({ comments }: { comments: CommentItem[] }) {
 
 function EditorHome({
   unreadCount,
+  series,
+  comments,
+  status,
   onAction
 }: {
   unreadCount: number;
+  series: SeriesSummary[];
+  comments: CommentItem[];
+  status?: ReactNode;
   onAction: (title: string, message: string, confirmLabel: string) => void;
 }) {
   return (
-    <Screen title="Editor Home" subtitle="Tantou Editor" unreadCount={unreadCount}>
+    <Screen title="Editor Home" subtitle="Tantou Editor" unreadCount={unreadCount} status={status}>
       <View style={styles.metricGrid}>
-        <MetricCard label="Assigned Series" value={editorSeries.length} />
+        <MetricCard label="Assigned Series" value={series.length} />
         <MetricCard label="Manuscripts Waiting" value={1} color={colors.pinkPurple} />
-        <MetricCard label="Open Comments" value={editorComments.length} color={colors.rosePink} />
+        <MetricCard label="Open Comments" value={comments.length} color={colors.rosePink} />
         <MetricCard label="Deadline Risk" value={2} color={colors.coral} />
       </View>
       <Text style={styles.sectionTitle}>Urgent Queue</Text>
@@ -187,41 +206,58 @@ function EditorHome({
   );
 }
 
-function EditorSeries() {
+function EditorSeries({
+  series,
+  status
+}: {
+  series: SeriesSummary[];
+  status?: ReactNode;
+}) {
   return (
-    <Screen title="Assigned Series" subtitle="Tantou Editor">
-      {editorSeries.map((series) => (
-        <SeriesCard key={series.id} series={series} />
-      ))}
+    <Screen title="Assigned Series" subtitle="Tantou Editor" status={status}>
+      {series.length ? (
+        series.map((item) => <SeriesCard key={item.id} series={item} />)
+      ) : (
+        <EmptyState
+          title="No assigned series"
+          message="Series from /api/series will appear here after the token role can access them."
+        />
+      )}
     </Screen>
   );
 }
 
 function EditorReviews({
+  comments,
+  status,
   onAction
 }: {
+  comments: CommentItem[];
+  status?: ReactNode;
   onAction: (title: string, message: string, confirmLabel: string) => void;
 }) {
   return (
-    <Screen title="Review Queue" subtitle="Manuscripts, pages, comments">
+    <Screen title="Review Queue" subtitle="Manuscripts, pages, comments" status={status}>
       {urgentReviews.map((review) => (
         <ReviewCard item={review} key={review.id} onAction={onAction} />
       ))}
       <Text style={styles.sectionTitle}>Comment Queue</Text>
-      <CommentQueue comments={editorComments} />
+      <CommentQueue comments={comments} />
     </Screen>
   );
 }
 
 function EditorPublication({
+  status,
   onAction
 }: {
+  status?: ReactNode;
   onAction: (title: string, message: string, confirmLabel: string) => void;
 }) {
   const ready = canApprovePublication(publicationReadiness);
 
   return (
-    <Screen title="Publication" subtitle="Readiness checklist">
+    <Screen title="Publication" subtitle="Readiness checklist" status={status}>
       <Card style={{ backgroundColor: colors.bgPanel }}>
         <Text style={styles.cardTitle}>Paper Moon Arcade · Chapter 7</Text>
         <Text style={styles.bodyText}>
@@ -263,31 +299,48 @@ function EditorPublication({
   );
 }
 
-function BoardHome({ unreadCount }: { unreadCount: number }) {
+function BoardHome({
+  unreadCount,
+  series,
+  status
+}: {
+  unreadCount: number;
+  series: SeriesSummary[];
+  status?: ReactNode;
+}) {
   return (
-    <Screen title="Board Home" subtitle="Editorial Board" unreadCount={unreadCount}>
+    <Screen title="Board Home" subtitle="Editorial Board" unreadCount={unreadCount} status={status}>
       <View style={styles.metricGrid}>
-        <MetricCard label="Pending Approvals" value={boardSeries.length} />
+        <MetricCard label="Pending Approvals" value={series.length} />
         <MetricCard label="Votes Required" value={3} color={colors.pinkPurple} />
         <MetricCard label="At-Risk Series" value={1} color={colors.rosePink} />
         <MetricCard label="Ranking Period" value="W23" color={colors.coral} />
       </View>
       <Text style={styles.sectionTitle}>Approval Queue</Text>
-      {boardSeries.map((series) => (
-        <SeriesCard key={series.id} series={series} />
-      ))}
+      {series.length ? (
+        series.map((item) => <SeriesCard key={item.id} series={item} />)
+      ) : (
+        <EmptyState
+          title="No board approvals"
+          message="Board queue needs a server list endpoint for BOARD_REVIEW series."
+        />
+      )}
     </Screen>
   );
 }
 
 function BoardApprovals({
+  series,
+  status,
   onAction
 }: {
+  series: SeriesSummary[];
+  status?: ReactNode;
   onAction: (title: string, message: string, confirmLabel: string) => void;
 }) {
   return (
-    <Screen title="Approvals" subtitle="Summary-based board review">
-      {boardSeries.map((series) => (
+    <Screen title="Approvals" subtitle="Summary-based board review" status={status}>
+      {series.length ? series.map((series) => (
         <Card key={series.id}>
           <View style={styles.rowBetween}>
             <View style={styles.stack}>
@@ -326,7 +379,12 @@ function BoardApprovals({
             />
           </View>
         </Card>
-      ))}
+      )) : (
+        <EmptyState
+          title="No approval items"
+          message="When the server exposes board review series, this screen will render the direct API data."
+        />
+      )}
     </Screen>
   );
 }
@@ -354,21 +412,30 @@ function RankingCard({ item }: { item: RankingItem }) {
 }
 
 function BoardRanking({
+  rankingItems,
+  status,
   onAction
 }: {
+  rankingItems: RankingItem[];
+  status?: ReactNode;
   onAction: (title: string, message: string, confirmLabel: string) => void;
 }) {
   return (
-    <Screen title="Ranking" subtitle="Period 2026-W23">
+    <Screen title="Ranking" subtitle="Period 2026-W23" status={status}>
       <Card style={{ backgroundColor: colors.bgPanel }}>
         <Text style={styles.cardTitle}>Formula</Text>
         <Text style={styles.bodyText}>
           finalScore = voteCount * 0.7 + normalizedReaderScore * 0.3
         </Text>
       </Card>
-      {rankings.map((ranking) => (
-        <RankingCard item={ranking} key={ranking.id} />
-      ))}
+      {rankingItems.length ? (
+        rankingItems.map((ranking) => <RankingCard item={ranking} key={ranking.id} />)
+      ) : (
+        <EmptyState
+          title="No rankings"
+          message="Rankings from /api/rankings?period=2026-W23 will appear here."
+        />
+      )}
       <ActionButton
         label="Mark At Risk"
         onPress={() =>
@@ -385,12 +452,14 @@ function BoardRanking({
 }
 
 function BoardDecisions({
+  status,
   onAction
 }: {
+  status?: ReactNode;
   onAction: (title: string, message: string, confirmLabel: string) => void;
 }) {
   return (
-    <Screen title="Decisions" subtitle="Chair tie-break and history">
+    <Screen title="Decisions" subtitle="Chair tie-break and history" status={status}>
       <Card style={{ borderColor: colors.rosePink }}>
         <View style={styles.rowBetween}>
           <Text style={styles.cardTitle}>Chair tie-break required</Text>
@@ -425,38 +494,53 @@ function BoardDecisions({
 
 function ProfileScreen({
   role,
-  unreadCount
+  unreadCount,
+  userName,
+  userEmail,
+  roleSeriesCount,
+  rankingCount,
+  profileNotifications,
+  status
 }: {
   role: MobileRole;
   unreadCount: number;
+  userName?: string;
+  userEmail?: string;
+  roleSeriesCount: number;
+  rankingCount: number;
+  profileNotifications: NotificationItem[];
+  status?: ReactNode;
 }) {
   const isEditor = role === "EDITOR";
   const profile = {
-    name: isEditor ? "Tantou Editor" : "Editorial Board",
-    handle: isEditor ? "editor@mangaflow.local" : "board@mangaflow.local",
+    name: userName || (isEditor ? "Tantou Editor" : "Editorial Board"),
+    handle: userEmail || (isEditor ? "editor@mangaflow.local" : "board@mangaflow.local"),
     scope: isEditor ? "Assigned series review" : "Governance and ranking",
-    primaryMetric: isEditor ? `${editorSeries.length} assigned series` : `${boardSeries.length} approvals`,
-    secondaryMetric: isEditor ? `${editorComments.length} open comments` : `${rankings.length} ranking items`
+    primaryLabel: isEditor ? "Assigned series" : "Approvals",
+    secondaryLabel: isEditor ? "Open comments" : "Ranking items",
+    secondaryValue: isEditor ? editorComments.length : rankingCount
   };
 
   return (
-    <Screen title="Profile" subtitle={profile.name} unreadCount={unreadCount}>
+    <Screen title="Profile" subtitle={profile.name} unreadCount={unreadCount} status={status}>
       <Card style={styles.profileCard}>
         <View style={styles.profileAvatar}>
-          <Ionicons name="person" size={34} color={colors.primary} />
+          <Ionicons name="person" size={26} color={colors.primary} />
         </View>
-        <Text style={styles.profileName}>{profile.name}</Text>
-        <Text style={styles.metaText}>{profile.handle}</Text>
-        <Badge label={profile.scope} tone="default" />
+        <View style={styles.profileDetails}>
+          <Text style={styles.profileName}>{profile.name}</Text>
+          <Text style={styles.metaText}>{profile.handle}</Text>
+          <Badge label={profile.scope} tone="default" />
+        </View>
       </Card>
 
       <View style={styles.metricGrid}>
-        <MetricCard label="Primary Scope" value={profile.primaryMetric} />
-        <MetricCard label="Current Signals" value={profile.secondaryMetric} color={colors.pinkPurple} />
+        <MetricCard label={profile.primaryLabel} value={roleSeriesCount} />
+        <MetricCard label={profile.secondaryLabel} value={profile.secondaryValue} color={colors.pinkPurple} />
       </View>
 
       <Text style={styles.sectionTitle}>Recent Alerts</Text>
-      {notifications.slice(0, 2).map((notification) => (
+      {profileNotifications.length ? profileNotifications.slice(0, 2).map((notification) => (
         <Card key={notification.id}>
           <View style={styles.rowBetween}>
             <Text style={styles.cardTitle}>{notification.title}</Text>
@@ -467,7 +551,12 @@ function ProfileScreen({
           </View>
           <Text style={styles.bodyText}>{notification.message}</Text>
         </Card>
-      ))}
+      )) : (
+        <EmptyState
+          title="No alerts"
+          message="Notifications from /api/notifications will appear here."
+        />
+      )}
     </Screen>
   );
 }
@@ -547,16 +636,50 @@ export default function App() {
   const [role, setRoleState] = useState<MobileRole>("EDITOR");
   const [editorTab, setEditorTab] = useState<EditorTab>("Home");
   const [boardTab, setBoardTab] = useState<BoardTab>("Home");
+  const apiData = useMobileApiData();
   const [dialog, setDialog] = useState<{
     title: string;
     message: string;
     confirmLabel: string;
   } | null>(null);
 
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => notification.unread).length,
-    []
+  const usingSeedData = apiData.source === "seed";
+  const editorSeriesData = usingSeedData ? editorSeries : apiData.editorSeries;
+  const boardSeriesData = usingSeedData ? boardSeries : apiData.boardSeries;
+  const rankingData = usingSeedData ? rankings : apiData.rankings;
+  const notificationData = usingSeedData ? notifications : apiData.notifications;
+  const commentData = editorComments;
+
+  const unreadCount = useMemo(() => {
+    if (typeof apiData.unreadCount === "number") return apiData.unreadCount;
+    return notificationData.filter((notification) => notification.unread).length;
+  }, [apiData.unreadCount, notificationData]);
+
+  const statusBanner = apiData.isLoading ? (
+    <StateBanner
+      title="Dang dong bo API"
+      message="Mobile dang lay user, notifications, series va rankings tu server."
+      tone="info"
+    />
+  ) : apiData.error ? (
+    <StateBanner
+      title={apiData.isUnauthorized ? "Can dang nhap lai" : "Dang dung du lieu demo"}
+      message={apiData.error}
+      tone={apiData.isUnauthorized ? "danger" : "warning"}
+      onRetry={apiData.refresh}
+    />
+  ) : (
+    <StateBanner
+      title="Du lieu API dang hoat dong"
+      message="Man hinh nay dang doc truc tiep tu MangaFlow server."
+      tone="success"
+      onRetry={apiData.refresh}
+    />
   );
+
+  const resolvedRole = roleFromUser(apiData.user, role);
+  const profileName = apiData.user?.fullName;
+  const profileEmail = apiData.user?.email;
 
   function setRole(nextRole: MobileRole) {
     setRoleState(nextRole);
@@ -572,28 +695,56 @@ export default function App() {
   if (role === "EDITOR") {
     content =
       editorTab === "Home" ? (
-        <EditorHome unreadCount={unreadCount} onAction={openDialog} />
+        <EditorHome
+          unreadCount={unreadCount}
+          series={editorSeriesData}
+          comments={commentData}
+          status={statusBanner}
+          onAction={openDialog}
+        />
       ) : editorTab === "Series" ? (
-        <EditorSeries />
+        <EditorSeries series={editorSeriesData} status={statusBanner} />
       ) : editorTab === "Reviews" ? (
-        <EditorReviews onAction={openDialog} />
+        <EditorReviews comments={commentData} status={statusBanner} onAction={openDialog} />
       ) : editorTab === "Publication" ? (
-        <EditorPublication onAction={openDialog} />
+        <EditorPublication status={statusBanner} onAction={openDialog} />
       ) : (
-        <ProfileScreen role={role} unreadCount={unreadCount} />
+        <ProfileScreen
+          role={resolvedRole}
+          unreadCount={unreadCount}
+          userName={profileName}
+          userEmail={profileEmail}
+          roleSeriesCount={editorSeriesData.length}
+          rankingCount={rankingData.length}
+          profileNotifications={notificationData}
+          status={statusBanner}
+        />
       );
   } else {
     content =
       boardTab === "Home" ? (
-        <BoardHome unreadCount={unreadCount} />
+        <BoardHome unreadCount={unreadCount} series={boardSeriesData} status={statusBanner} />
       ) : boardTab === "Approvals" ? (
-        <BoardApprovals onAction={openDialog} />
+        <BoardApprovals series={boardSeriesData} status={statusBanner} onAction={openDialog} />
       ) : boardTab === "Ranking" ? (
-        <BoardRanking onAction={openDialog} />
+        <BoardRanking
+          rankingItems={rankingData}
+          status={statusBanner}
+          onAction={openDialog}
+        />
       ) : boardTab === "Decisions" ? (
-        <BoardDecisions onAction={openDialog} />
+        <BoardDecisions status={statusBanner} onAction={openDialog} />
       ) : (
-        <ProfileScreen role={role} unreadCount={unreadCount} />
+        <ProfileScreen
+          role={resolvedRole}
+          unreadCount={unreadCount}
+          userName={profileName}
+          userEmail={profileEmail}
+          roleSeriesCount={boardSeriesData.length}
+          rankingCount={rankingData.length}
+          profileNotifications={notificationData}
+          status={statusBanner}
+        />
       );
   }
 
@@ -632,55 +783,56 @@ const styles = StyleSheet.create({
     flex: 1
   },
   stack: {
-    gap: spacing.md
+    gap: spacing.sm
   },
   rowBetween: {
     alignItems: "flex-start",
     flexDirection: "row",
-    gap: spacing.md,
+    gap: spacing.sm,
     justifyContent: "space-between"
   },
   metricGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.md
+    gap: spacing.sm
   },
   cardTitle: {
     color: colors.textPrimary,
     flexShrink: 1,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
+    lineHeight: 20,
     letterSpacing: 0
   },
   sectionTitle: {
     color: colors.textPrimary,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
-    marginTop: spacing.sm
+    marginTop: spacing.xs
   },
   bodyText: {
     color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: spacing.md
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: spacing.sm
   },
   metaText: {
     color: colors.textMuted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    lineHeight: 18
+    lineHeight: 17
   },
   inlineMeta: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.md,
-    marginTop: spacing.md
+    gap: spacing.sm,
+    marginTop: spacing.sm
   },
   progressTrack: {
     backgroundColor: colors.bgSoft,
     borderRadius: 999,
-    height: 9,
-    marginTop: spacing.lg,
+    height: 7,
+    marginTop: spacing.md,
     overflow: "hidden"
   },
   progressFill: {
@@ -691,15 +843,15 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.md,
-    marginTop: spacing.lg
+    gap: spacing.sm,
+    marginTop: spacing.md
   },
   roleSwitch: {
     backgroundColor: colors.bgMain,
     flexDirection: "row",
     gap: spacing.sm,
-    padding: spacing.lg,
-    paddingBottom: spacing.sm
+    padding: spacing.md,
+    paddingBottom: spacing.xs
   },
   tabs: {
     alignItems: "center",
@@ -722,7 +874,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.48)",
     borderColor: "rgba(234, 223, 246, 0)",
     borderWidth: 1,
-    borderRadius: radii.lg,
+    borderRadius: radii.sm,
     flex: 1,
     gap: 3,
     justifyContent: "center",
@@ -775,7 +927,8 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     alignItems: "center",
-    gap: spacing.sm
+    flexDirection: "row",
+    gap: spacing.md
   },
   profileAvatar: {
     alignItems: "center",
@@ -783,33 +936,38 @@ const styles = StyleSheet.create({
     borderColor: colors.borderDefault,
     borderRadius: 999,
     borderWidth: 1,
-    height: 72,
+    height: 54,
     justifyContent: "center",
-    width: 72
+    width: 54
+  },
+  profileDetails: {
+    flex: 1,
+    gap: spacing.xs
   },
   profileName: {
     color: colors.textPrimary,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
+    lineHeight: 24,
     letterSpacing: 0
   },
   rankBubble: {
     alignItems: "center",
     backgroundColor: colors.bgCanvas,
     borderRadius: 999,
-    height: 48,
+    height: 40,
     justifyContent: "center",
-    width: 48
+    width: 40
   },
   rankText: {
     color: colors.primary,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "900"
   },
   scoreText: {
     color: colors.textPrimary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "900",
-    marginTop: spacing.md
+    marginTop: spacing.sm
   }
 });

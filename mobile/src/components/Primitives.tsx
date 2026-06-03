@@ -16,12 +16,14 @@ export function Screen({
   children,
   title,
   subtitle,
-  unreadCount
+  unreadCount,
+  status
 }: {
   children: ReactNode;
   title: string;
   subtitle: string;
   unreadCount?: number;
+  status?: ReactNode;
 }) {
   return (
     <View style={styles.screen}>
@@ -35,6 +37,7 @@ export function Screen({
           {unreadCount ? <Text style={styles.bellBadge}>{unreadCount}</Text> : null}
         </View>
       </View>
+      {status}
       {children}
     </View>
   );
@@ -59,9 +62,18 @@ export function MetricCard({
   value: string | number;
   color?: string;
 }) {
+  const isLongValue = typeof value === "string" && value.length > 8;
+
   return (
     <Card style={styles.metricCard}>
-      <Text style={[styles.metricValue, { color }]}>{value}</Text>
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.82}
+        numberOfLines={isLongValue ? 2 : 1}
+        style={[styles.metricValue, isLongValue ? styles.metricValueLong : null, { color }]}
+      >
+        {value}
+      </Text>
       <Text style={styles.metricLabel}>{label}</Text>
     </Card>
   );
@@ -132,6 +144,56 @@ export function ActionButton({
   );
 }
 
+export function StateBanner({
+  title,
+  message,
+  tone = "info",
+  onRetry
+}: {
+  title: string;
+  message: string;
+  tone?: "info" | "warning" | "danger" | "success";
+  onRetry?: () => void;
+}) {
+  const toneStyle = {
+    info: { backgroundColor: colors.bgCanvas, borderColor: colors.borderDefault },
+    warning: { backgroundColor: colors.bgPanel, borderColor: colors.softYellow },
+    danger: { backgroundColor: "#fff1f2", borderColor: colors.rosePink },
+    success: { backgroundColor: "#fbffe8", borderColor: colors.pastelLime }
+  }[tone];
+
+  return (
+    <View style={[styles.stateBanner, toneStyle]}>
+      <View style={styles.stateText}>
+        <Text style={styles.stateTitle}>{title}</Text>
+        <Text style={styles.stateMessage}>{message}</Text>
+      </View>
+      {onRetry ? (
+        <Pressable accessibilityRole="button" onPress={onRetry} style={styles.stateRetry}>
+          <Ionicons name="refresh" size={17} color={colors.primary} />
+          <Text style={styles.stateRetryText}>Retry</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+export function EmptyState({
+  title,
+  message
+}: {
+  title: string;
+  message: string;
+}) {
+  return (
+    <Card style={styles.emptyCard}>
+      <Ionicons name="file-tray-outline" size={28} color={colors.textMuted} />
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyMessage}>{message}</Text>
+    </Card>
+  );
+}
+
 export function ConfirmationDialog({
   visible,
   title,
@@ -165,7 +227,7 @@ export function ConfirmationDialog({
 
 export const styles = StyleSheet.create({
   screen: {
-    gap: spacing.lg,
+    gap: spacing.md,
     padding: spacing.lg,
     paddingBottom: 112
   },
@@ -183,8 +245,9 @@ export const styles = StyleSheet.create({
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
+    lineHeight: 31,
     letterSpacing: 0
   },
   bell: {
@@ -193,10 +256,10 @@ export const styles = StyleSheet.create({
     borderColor: colors.borderDefault,
     borderRadius: 999,
     borderWidth: 1,
-    height: 48,
+    height: 44,
     justifyContent: "center",
     position: "relative",
-    width: 48
+    width: 44
   },
   bellBadge: {
     backgroundColor: colors.rosePink,
@@ -215,43 +278,56 @@ export const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.bgCard,
     borderColor: colors.borderDefault,
-    borderRadius: radii.lg,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    padding: spacing.lg,
-    ...shadow
+    padding: spacing.md,
+    shadowColor: colors.pinkPurple,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.055,
+    shadowRadius: 12,
+    elevation: 2
   },
   metricCard: {
     flex: 1,
-    minWidth: 148
+    minHeight: 104,
+    minWidth: 132,
+    paddingVertical: spacing.md
   },
   metricValue: {
-    fontSize: 26,
-    fontWeight: "800"
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: 0,
+    lineHeight: 29
+  },
+  metricValueLong: {
+    fontSize: 18,
+    lineHeight: 22
   },
   metricLabel: {
     color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
     marginTop: spacing.xs
   },
   badge: {
     alignSelf: "flex-start",
     borderRadius: 999,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
     overflow: "hidden",
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5
   },
   button: {
     alignItems: "center",
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     flexDirection: "row",
     gap: spacing.sm,
     justifyContent: "center",
-    minHeight: 46,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
   },
   buttonDisabled: {
     opacity: 0.45
@@ -259,6 +335,60 @@ export const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontWeight: "800"
+  },
+  stateBanner: {
+    alignItems: "center",
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    padding: spacing.sm
+  },
+  stateText: {
+    flex: 1,
+    gap: spacing.xs
+  },
+  stateTitle: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  stateMessage: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  stateRetry: {
+    alignItems: "center",
+    backgroundColor: colors.bgCard,
+    borderColor: colors.borderDefault,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
+    minHeight: 34,
+    paddingHorizontal: spacing.sm
+  },
+  stateRetryText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  emptyCard: {
+    alignItems: "center",
+    gap: spacing.sm
+  },
+  emptyTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  emptyMessage: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center"
   },
   modalBackdrop: {
     alignItems: "center",
