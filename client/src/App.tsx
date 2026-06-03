@@ -139,18 +139,18 @@ function AuthenticatedApp() {
 
   return (
     <Routes>
-      <Route path="/app/onboarding" element={
+      <Route path="onboarding" element={
         <Suspense fallback={<LoadingScreen />}>
           <OnboardingPage />
         </Suspense>
       } />
-      <Route path="/app/blocked" element={
+      <Route path="blocked" element={
         <Suspense fallback={<LoadingScreen />}>
           <BlockedPage />
         </Suspense>
       } />
 
-      <Route path="/app/admin/*" element={
+      <Route path="admin/*" element={
         <RoleGuard
           systemRole={effectiveClaims.systemRole}
           status={effectiveClaims.status}
@@ -162,9 +162,9 @@ function AuthenticatedApp() {
           >
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
-                <Route path="/dashboard" element={<AdminDashboardPage />} />
-                <Route path="/role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
-                <Route path="/task-rates" element={<AdminTaskRatesPage />} />
+                <Route path="dashboard" element={<AdminDashboardPage />} />
+                <Route path="role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
+                <Route path="task-rates" element={<AdminTaskRatesPage />} />
                 <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
               </Routes>
             </Suspense>
@@ -172,7 +172,7 @@ function AuthenticatedApp() {
         </RoleGuard>
       } />
 
-      <Route path="/app/mangaka/*" element={
+      <Route path="mangaka/*" element={
         <RoleGuard
           systemRole={effectiveClaims.systemRole}
           status={effectiveClaims.status}
@@ -184,16 +184,16 @@ function AuthenticatedApp() {
           >
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
-                <Route path="/dashboard" element={<MangakaDashboardPage />} />
-                <Route path="/series" element={<SeriesListPage />} />
-                <Route path="/series/new" element={<CreateSeriesPage />} />
-                <Route path="/series/:seriesId" element={<SeriesDetailPage />} />
-                <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
-                <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
-                <Route path="/tasks" element={<MangakaTaskListPage />} />
-                <Route path="/submissions" element={<MangakaSubmissionsPage />} />
-                <Route path="/ranking" element={<MangakaRankingPage />} />
-                <Route path="/payroll" element={<MangakaPayrollPage />} />
+                <Route path="dashboard" element={<MangakaDashboardPage />} />
+                <Route path="series" element={<SeriesListPage />} />
+                <Route path="series/new" element={<CreateSeriesPage />} />
+                <Route path="series/:seriesId" element={<SeriesDetailPage />} />
+                <Route path="chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+                <Route path="pages/:pageId/workspace" element={<PageWorkspacePage />} />
+                <Route path="tasks" element={<MangakaTaskListPage />} />
+                <Route path="submissions" element={<MangakaSubmissionsPage />} />
+                <Route path="ranking" element={<MangakaRankingPage />} />
+                <Route path="payroll" element={<MangakaPayrollPage />} />
                 <Route path="*" element={<Navigate to="/app/mangaka/dashboard" replace />} />
               </Routes>
             </Suspense>
@@ -201,7 +201,7 @@ function AuthenticatedApp() {
         </RoleGuard>
       } />
 
-      <Route path="/app/editor/*" element={
+      <Route path="editor/*" element={
         <RoleGuard
           systemRole={effectiveClaims.systemRole}
           status={effectiveClaims.status}
@@ -213,12 +213,12 @@ function AuthenticatedApp() {
           >
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
-                <Route path="/dashboard" element={<EditorDashboardPage />} />
-                <Route path="/series" element={<EditorAssignedSeriesPage />} />
-                <Route path="/series/:seriesId" element={<SeriesDetailPage />} />
-                <Route path="/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
-                <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
-                <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+                <Route path="dashboard" element={<EditorDashboardPage />} />
+                <Route path="series" element={<EditorAssignedSeriesPage />} />
+                <Route path="series/:seriesId" element={<SeriesDetailPage />} />
+                <Route path="series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
+                <Route path="chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+                <Route path="pages/:pageId/workspace" element={<PageWorkspacePage />} />
                 <Route path="*" element={<Navigate to="/app/editor/dashboard" replace />} />
               </Routes>
             </Suspense>
@@ -226,7 +226,7 @@ function AuthenticatedApp() {
         </RoleGuard>
       } />
 
-      <Route path="/app/assistant/*" element={
+      <Route path="assistant/*" element={
         <RoleGuard
           systemRole={effectiveClaims.systemRole}
           status={effectiveClaims.status}
@@ -238,10 +238,10 @@ function AuthenticatedApp() {
           >
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
-                <Route path="/dashboard" element={<AssistantDashboardPage />} />
-                <Route path="/tasks" element={<AssistantTaskListPage />} />
-                <Route path="/tasks/:taskId" element={<AssistantTaskDetailPage />} />
-                <Route path="/earnings" element={<AssistantEarningsPage />} />
+                <Route path="dashboard" element={<AssistantDashboardPage />} />
+                <Route path="tasks" element={<AssistantTaskListPage />} />
+                <Route path="tasks/:taskId" element={<AssistantTaskDetailPage />} />
+                <Route path="earnings" element={<AssistantEarningsPage />} />
                 <Route path="*" element={<Navigate to="/app/assistant/dashboard" replace />} />
               </Routes>
             </Suspense>
@@ -249,7 +249,7 @@ function AuthenticatedApp() {
         </RoleGuard>
       } />
 
-      <Route path="/app/board/*" element={
+      <Route path="board/*" element={
         <RoleGuard
           systemRole={effectiveClaims.systemRole}
           status={effectiveClaims.status}
@@ -262,10 +262,10 @@ function AuthenticatedApp() {
             <div className="min-h-full bg-slate-950 -m-6 p-6">
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
-                  <Route path="/dashboard" element={<BoardDashboardPage />} />
-                  <Route path="/series/:seriesId/review" element={<BoardSeriesReviewPage />} />
-                  <Route path="/ranking/import" element={<ImportRankingPage />} />
-                  <Route path="/ranking" element={<BoardRankingPage />} />
+                  <Route path="dashboard" element={<BoardDashboardPage />} />
+                  <Route path="series/:seriesId/review" element={<BoardSeriesReviewPage />} />
+                  <Route path="ranking/import" element={<ImportRankingPage />} />
+                  <Route path="ranking" element={<BoardRankingPage />} />
                   <Route path="*" element={<NotFoundPage homePath="/app/board/dashboard" />} />
                 </Routes>
               </Suspense>

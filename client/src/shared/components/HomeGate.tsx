@@ -46,57 +46,56 @@ export function HomeGate() {
         const token = await getToken({ template: "mangaflow" });
         if (!token) return;
 
-        // 1. Try reading claims from JWT
+        // 1. Fast path: JWT claims
         const payload = decodeJwtPayload(token);
-        const systemRole = payload?.systemRole as SystemRole | null | undefined;
-        const status = (payload?.status as UserStatus) ?? "ACTIVE";
+        const jwtRole = payload?.systemRole as SystemRole | null | undefined;
+        const jwtStatus = (payload?.status as UserStatus) ?? "ACTIVE";
 
-        if (systemRole) {
+        if (jwtRole) {
           if (!cancelled) {
             setDestination(resolveAuthRoute({
               isSignedIn: true,
-              user: { systemRole, status }
+              user: { systemRole: jwtRole, status: jwtStatus }
             }));
           }
           return;
         }
 
-        // 2. JWT missing systemRole — fetch from /auth/me
+        // 2. Fetch from DB via /auth/me
         const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
         if (meResponse.ok) {
           const meBody = await meResponse.json();
-          if (meBody.success && meBody.data?.systemRole) {
+          if (meBody.success && meBody.data?.user?.systemRole) {
             if (!cancelled) {
               setDestination(resolveAuthRoute({
                 isSignedIn: true,
-                user: { systemRole: meBody.data.systemRole, status: meBody.data.status ?? "ACTIVE" }
+                user: { systemRole: meBody.data.user.systemRole, status: meBody.data.user.status ?? "ACTIVE" }
               }));
             }
             return;
           }
         }
 
-        // 3. No claims available — sync-user to create local user
-        const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {
+        // 3. User not in DB yet — sync-user to create local record
+        const syncResponse = await fetch(`${apiBaseUrl}/auth/sync-user`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json"
           }
         });
-        const body = await response.json();
+        const syncBody = await syncResponse.json();
 
         if (cancelled) return;
 
-        if (response.ok && body.success) {
-          const redirect = resolveAuthRoute({
+        if (syncResponse.ok && syncBody.success) {
+          setDestination(resolveAuthRoute({
             isSignedIn: true,
-            user: body.data.user
-          });
-          setDestination(redirect);
+            user: syncBody.data.user
+          }));
         } else {
           setDestination("/app/onboarding");
         }

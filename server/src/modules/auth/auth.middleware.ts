@@ -33,8 +33,7 @@ export function createClerkAuthVerifier(): AuthVerifier {
       try {
         const verified = await verifyToken(token, {
           secretKey: env.clerkSecretKey,
-          authorizedParties: [env.corsOrigin],
-          audience: "mangaflow-api"
+          authorizedParties: [env.corsOrigin]
         });
 
         const clerkId = verified.sub;
@@ -47,7 +46,7 @@ export function createClerkAuthVerifier(): AuthVerifier {
           status
         };
       } catch (error) {
-        console.warn("Clerk JWT verification failed");
+        console.warn("Clerk JWT verification failed:", error);
         return null;
       }
     },
@@ -62,8 +61,7 @@ export function createClerkAuthVerifier(): AuthVerifier {
 
         const verified = await verifyToken(token, {
           secretKey: env.clerkSecretKey,
-          authorizedParties: [env.corsOrigin],
-          audience: "mangaflow-api"
+          authorizedParties: [env.corsOrigin]
         });
         const clerkId = verified.sub;
 

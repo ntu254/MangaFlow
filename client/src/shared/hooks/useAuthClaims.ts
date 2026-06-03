@@ -54,21 +54,18 @@ export function useAuthClaims(): UseAuthClaimsResult {
         return;
       }
 
-      // 1. Try reading claims from JWT payload
+      // 1. Fast path: try JWT claims
       const payload = decodeJwtPayload(token);
-      const systemRole = payload?.systemRole as SystemRole | null | undefined;
-      const status = payload?.status as UserStatus | undefined;
+      const jwtSystemRole = payload?.systemRole as SystemRole | null | undefined;
+      const jwtStatus = payload?.status as UserStatus | undefined;
 
-      if (systemRole) {
-        setClaims({
-          systemRole,
-          status: status ?? "ACTIVE"
-        });
+      if (jwtSystemRole) {
+        setClaims({ systemRole: jwtSystemRole, status: jwtStatus ?? "ACTIVE" });
         setIsLoading(false);
         return;
       }
 
-      // 2. JWT missing systemRole — fetch from /auth/me
+      // 2. Slow path: fetch from DB via /auth/me
       const response = await fetch(`${apiBaseUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -85,7 +82,7 @@ export function useAuthClaims(): UseAuthClaimsResult {
         }
       }
 
-      // 3. /auth/me failed — user might not be synced yet
+      // 3. /auth/me failed (404 = user not synced yet)
       setClaims({ systemRole: null, status: "ACTIVE" });
     } catch (err) {
       console.warn("[useAuthClaims] Failed to load claims:", err);

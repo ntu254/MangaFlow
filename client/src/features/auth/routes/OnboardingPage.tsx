@@ -66,7 +66,7 @@ export function OnboardingPage() {
         return;
       }
 
-      const response = await fetch(`${apiBaseUrl}/auth/onboarding`, {
+      const response = await fetch(`${apiBaseUrl}/auth/complete-onboarding`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
