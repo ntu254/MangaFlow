@@ -5,6 +5,15 @@ function parsePort(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseCorsOrigins(value: string | undefined) {
+  return (value ?? "http://localhost:5173")
+    .split(",")
+    .map(origin => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+}
+
+const corsOrigins = parseCorsOrigins(process.env.CORS_ORIGIN);
+
 const storageProvider = process.env.NODE_ENV === "test"
   ? "local"
   : (process.env.STORAGE_PROVIDER ?? process.env.S3_PROVIDER ?? "local");
@@ -50,7 +59,8 @@ if (storageProvider === "r2" || storageProvider === "cloudflare-r2") {
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: parsePort(process.env.PORT, 5000),
-  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  corsOrigin: corsOrigins[0],
+  corsOrigins,
   mongodbUri: process.env.MONGODB_URI ?? "",
   clerkSecretKey: process.env.CLERK_SECRET_KEY ?? "",
   aiServiceUrl: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
