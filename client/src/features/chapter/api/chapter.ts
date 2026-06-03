@@ -82,3 +82,27 @@ export async function deleteChapter(token: string, chapterId: string): Promise<b
   if (!json.success) throw new Error(json.error?.message || "Failed to delete chapter");
   return json.data.deleted;
 }
+
+export async function approveChapter(token: string, chapterId: string): Promise<Chapter> {
+  const res = await fetch(`${apiBaseUrl}/chapters/${chapterId}/approve`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "Failed to approve chapter");
+  return json.data;
+}
+
+export async function requestChapterRevision(token: string, chapterId: string): Promise<Chapter> {
+  const res = await fetch(`${apiBaseUrl}/chapters/${chapterId}/request-revision`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "Failed to request chapter revision");
+  return json.data;
+}

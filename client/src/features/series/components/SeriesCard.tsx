@@ -3,8 +3,10 @@ import type { Series } from "../api/series";
 import { Badge } from "@/components/ui/badge";
 
 export function SeriesCard({ series }: { series: Series }) {
+  const isEditor = window.location.pathname.startsWith("/app/editor");
+  const rolePath = isEditor ? "editor" : "mangaka";
   return (
-    <Link to={`/app/mangaka/series/${series.id}`} className="group block">
+    <Link to={`/app/${rolePath}/series/${series.id}`} className="group block">
       <div className="border border-border rounded-xl p-4 transition-all hover:border-primary/50 hover:shadow-md bg-card">
         <div className="aspect-[3/4] w-full bg-muted rounded-md mb-4 overflow-hidden flex items-center justify-center relative">
           {series.coverUrl ? (

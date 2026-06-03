@@ -17,6 +17,10 @@ export function createSeriesRouter(dependencies: SeriesRouteDependencies) {
   const service = createSeriesService(dependencies.seriesRepository);
   const authenticate = requireAuth(dependencies.authVerifier);
   const checkMangaka = requireSystemRole([SYSTEM_ROLES.MANGAKA], dependencies.userRepository);
+  const checkCanViewSeries = requireSystemRole(
+    [SYSTEM_ROLES.MANGAKA, SYSTEM_ROLES.EDITOR, SYSTEM_ROLES.ASSISTANT],
+    dependencies.userRepository
+  );
   const checkOwner = requireSeriesRole([SERIES_MEMBER_ROLES.OWNER_MANGAKA], dependencies.seriesRepository);
   const checkMember = requireSeriesRole(
     [SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA, SERIES_MEMBER_ROLES.EDITOR, SERIES_MEMBER_ROLES.ASSISTANT], 
@@ -44,13 +48,13 @@ export function createSeriesRouter(dependencies: SeriesRouteDependencies) {
     }
   });
 
-  router.get("/", authenticate, checkMangaka, async (req, res) => {
+  router.get("/", authenticate, checkCanViewSeries, async (req, res) => {
     const user = (req as RoleAuthorizedRequest).localUser;
     const list = await service.listUserSeries(user.id);
     res.json(ok(list));
   });
 
-  router.get("/:seriesId", authenticate, checkMangaka, checkMember, async (req, res) => {
+  router.get("/:seriesId", authenticate, checkCanViewSeries, checkMember, async (req, res) => {
     try {
       const series = await service.getSeriesById(req.params.seriesId as string);
       res.json(ok(series));

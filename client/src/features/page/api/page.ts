@@ -78,3 +78,27 @@ export async function deletePage(token: string, pageId: string): Promise<boolean
   if (!json.success) throw new Error(json.message || "Failed to delete page");
   return json.data.deleted;
 }
+
+export async function editorApprovePage(token: string, pageId: string): Promise<Page> {
+  const res = await fetch(`${apiBaseUrl}/pages/${pageId}/editor-approve`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "Failed to approve page");
+  return json.data;
+}
+
+export async function requestPageRevision(token: string, pageId: string): Promise<Page> {
+  const res = await fetch(`${apiBaseUrl}/pages/${pageId}/request-revision`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "Failed to request page revision");
+  return json.data;
+}

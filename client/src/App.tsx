@@ -27,9 +27,11 @@ import { ChapterPagesPage } from "@/features/page/routes/ChapterPagesPage";
 import { PageWorkspacePage } from "@/features/page/routes/PageWorkspacePage";
 import { AssistantDashboardPage } from "@/features/task/routes/AssistantDashboardPage";
 import { AssistantTaskDetailPage } from "@/features/task/routes/AssistantTaskDetailPage";
+import { EditorDashboardPage } from "@/features/dashboard/routes/EditorDashboardPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+
 
 const workflowSteps = [
   "Series",
@@ -243,8 +245,10 @@ function AuthenticatedApp() {
           </header>
           <main className="flex-1">
             <Routes>
-              {/* Other editor routes like dashboard can go here */}
+              <Route path="/app/editor/dashboard" element={<EditorDashboardPage />} />
               <Route path="/app/editor/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
+              <Route path="/app/editor/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+              <Route path="/app/editor/pages/:pageId/workspace" element={<PageWorkspacePage />} />
             </Routes>
           </main>
         </div>

@@ -38,6 +38,7 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-017 | Review & Comment API Foundation: Comment model, basic CRUD endpoints, and transition endpoints (/mark-fixed, /verify-fixed, /resolve, /reopen) with series RBAC enforced | yes | yes | no | yes | implemented | `docs/stories/epics/E11-review-comment/MF-017-review-comment-api-foundation/validation.md` |
 | MF-018 | Page Workspace Comment Panel UI: Comment panel in right sidebar displays comments and action logs, allows comments to be submitted, and handles role-based transitions | yes | yes | no | yes | implemented | `docs/stories/epics/E11-review-comment/MF-018-page-workspace-comment-panel-ui/validation.md` |
 | MF-019 | Editor Approval API Foundation: endpoints for manuscript, chapter, page approval and revision requests, validation blocking approval with unresolved comments | yes | yes | no | yes | implemented | `docs/stories/epics/E12-editor-approval-workflow/MF-019-editor-approval-api-foundation/validation.md` |
+| MF-020 | Editor Approval Workflow UI: Editor Dashboard, dynamic chapter page review, page workspace approval/revision request panels | yes | yes | no | yes | implemented | `docs/stories/epics/E12-editor-approval-workflow/MF-020-editor-approval-ui/validation.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
 
 

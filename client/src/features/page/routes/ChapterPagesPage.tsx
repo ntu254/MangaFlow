@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@clerk/react";
-import { getChapter, type Chapter } from "@/features/chapter/api/chapter";
+import { getChapter, approveChapter, requestChapterRevision, type Chapter } from "@/features/chapter/api/chapter";
 import { listPages, createPage, deletePage, type Page } from "../api/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,48 @@ export function ChapterPagesPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isEditor = window.location.pathname.startsWith("/app/editor");
+  const rolePath = isEditor ? "editor" : "mangaka";
+
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function handleApproveChapter() {
+    if (!chapterId) return;
+    try {
+      setActionLoading(true);
+      setActionError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const updated = await approveChapter(token, chapterId);
+      setChapter(updated);
+      alert("Chapter approved successfully!");
+    } catch (err: any) {
+      console.error(err);
+      setActionError(err.message || "Failed to approve chapter");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleRequestChapterRevision() {
+    if (!chapterId) return;
+    try {
+      setActionLoading(true);
+      setActionError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const updated = await requestChapterRevision(token, chapterId);
+      setChapter(updated);
+      alert("Chapter revision requested successfully!");
+    } catch (err: any) {
+      console.error(err);
+      setActionError(err.message || "Failed to request chapter revision");
+    } finally {
+      setActionLoading(false);
+    }
+  }
 
   const loadData = useCallback(async () => {
     if (!chapterId) return;
@@ -185,16 +227,24 @@ export function ChapterPagesPage() {
     );
   }
 
+  const backLink = isEditor ? "/app/editor/dashboard" : `/app/mangaka/series/${chapter.seriesId}`;
+
   return (
     <div className="container py-8 max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <Link 
-          to={`/app/mangaka/series/${chapter.seriesId}`} 
+          to={backLink} 
           className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
         >
-          <ChevronLeft className="w-4 h-4" /> Back to Series Detail
+          <ChevronLeft className="w-4 h-4" /> {isEditor ? "Back to Dashboard" : "Back to Series Detail"}
         </Link>
       </div>
+
+      {actionError && (
+        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md mb-6">
+          {actionError}
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
@@ -204,100 +254,118 @@ export function ChapterPagesPage() {
           </p>
         </div>
 
-        <Dialog open={addDialogOpen} onOpenChange={(open) => {
-          if (!open && !submitLoading) {
-            selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
-            setSelectedFiles([]);
-          }
-          setAddDialogOpen(open);
-        }}>
-          <DialogTrigger>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add Pages
+        {isEditor ? (
+          <div className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={handleRequestChapterRevision} 
+              disabled={actionLoading || (chapter.status !== "READY_FOR_EDITOR" && chapter.status !== "EDITOR_REVIEW")}
+            >
+              Request Revision
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Upload Chapter Pages</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddPages} className="space-y-6 mt-4">
-              {submitError && (
-                <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md">
-                  {submitError}
-                </div>
-              )}
-
-              <div 
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                  dragActive ? "border-primary bg-primary/5" : "border-muted hover:border-primary/50"
-                }`}
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input 
-                  ref={fileInputRef}
-                  type="file" 
-                  multiple 
-                  accept="image/png, image/jpeg, image/webp" 
-                  className="hidden" 
-                  onChange={handleFileChange}
-                />
-                <UploadCloud className="w-12 h-12 mx-auto mb-4 text-muted-foreground/80" />
-                <h3 className="font-semibold text-lg mb-1">Drag & drop page images here</h3>
-                <p className="text-sm text-muted-foreground mb-2">or click to browse from your device</p>
-                <p className="text-xs text-muted-foreground/60">Supports PNG, JPG, and WEBP. Max 50MB per file.</p>
-              </div>
-
-              {selectedFiles.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">Selected Pages ({selectedFiles.length})</h4>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[240px] overflow-y-auto p-1 border rounded-lg bg-muted/30">
-                    {selectedFiles.map(({ file, preview }, idx) => (
-                      <div key={idx} className="relative aspect-[3/4] rounded-md overflow-hidden bg-card border group">
-                        <img src={preview} alt={file.name} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button 
-                            type="button"
-                            size="icon" 
-                            variant="destructive" 
-                            className="w-7 h-7 rounded-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeFile(idx);
-                            }}
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 px-1 text-[9px] text-white truncate text-center">
-                          Page {pages.length + idx + 1}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full flex items-center justify-center gap-2" 
-                disabled={submitLoading || selectedFiles.length === 0}
-              >
-                {submitLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Uploading & Processing ({selectedFiles.length} pages)...
-                  </>
-                ) : (
-                  `Upload ${selectedFiles.length} Page${selectedFiles.length > 1 ? "s" : ""}`
-                )}
+            <Button 
+              onClick={handleApproveChapter} 
+              disabled={actionLoading || (chapter.status !== "READY_FOR_EDITOR" && chapter.status !== "EDITOR_REVIEW")}
+            >
+              Approve Chapter
+            </Button>
+          </div>
+        ) : (
+          <Dialog open={addDialogOpen} onOpenChange={(open) => {
+            if (!open && !submitLoading) {
+              selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
+              setSelectedFiles([]);
+            }
+            setAddDialogOpen(open);
+          }}>
+            <DialogTrigger>
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add Pages
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Upload Chapter Pages</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddPages} className="space-y-6 mt-4">
+                {submitError && (
+                  <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md">
+                    {submitError}
+                  </div>
+                )}
+
+                <div 
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    dragActive ? "border-primary bg-primary/5" : "border-muted hover:border-primary/50"
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    multiple 
+                    accept="image/png, image/jpeg, image/webp" 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                  />
+                  <UploadCloud className="w-12 h-12 mx-auto mb-4 text-muted-foreground/80" />
+                  <h3 className="font-semibold text-lg mb-1">Drag & drop page images here</h3>
+                  <p className="text-sm text-muted-foreground mb-2">or click to browse from your device</p>
+                  <p className="text-xs text-muted-foreground/60">Supports PNG, JPG, and WEBP. Max 50MB per file.</p>
+                </div>
+
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Selected Pages ({selectedFiles.length})</h4>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[240px] overflow-y-auto p-1 border rounded-lg bg-muted/30">
+                      {selectedFiles.map(({ file, preview }, idx) => (
+                        <div key={idx} className="relative aspect-[3/4] rounded-md overflow-hidden bg-card border group">
+                          <img src={preview} alt={file.name} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button 
+                              type="button"
+                              size="icon" 
+                              variant="destructive" 
+                              className="w-7 h-7 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFile(idx);
+                              }}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 px-1 text-[9px] text-white truncate text-center">
+                            Page {pages.length + idx + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full flex items-center justify-center gap-2" 
+                  disabled={submitLoading || selectedFiles.length === 0}
+                >
+                  {submitLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading & Processing ({selectedFiles.length} pages)...
+                    </>
+                  ) : (
+                    `Upload ${selectedFiles.length} Page${selectedFiles.length > 1 ? "s" : ""}`
+                  )}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {pages.length > 0 ? (
@@ -316,22 +384,24 @@ export function ChapterPagesPage() {
                 )}
                 
                 {/* Delete button overlay on hover */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <Button 
-                    size="icon" 
-                    variant="destructive" 
-                    className="w-8 h-8 rounded-full shadow-md"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePage(page.id);
-                    }}
-                  >
-                    <Trash className="w-4 h-4" />
-                  </Button>
-                </div>
+                {!isEditor && (
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <Button 
+                      size="icon" 
+                      variant="destructive" 
+                      className="w-8 h-8 rounded-full shadow-md"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePage(page.id);
+                      }}
+                    >
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
 
                 <Link
-                  to={`/app/mangaka/pages/${page.id}/workspace`}
+                  to={`/app/${rolePath}/pages/${page.id}/workspace`}
                   className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label={`Open workspace for page ${page.pageNumber}`}
                 >
@@ -354,8 +424,10 @@ export function ChapterPagesPage() {
         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-xl">
           <ImageIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
           <h3 className="font-medium text-lg mb-1">No Pages Uploaded</h3>
-          <p className="text-sm max-w-xs mx-auto mb-6">Start by adding page images to this chapter.</p>
-          <Button onClick={() => setAddDialogOpen(true)}>Add First Page</Button>
+          <p className="text-sm max-w-xs mx-auto mb-6">
+            {isEditor ? "No pages have been uploaded to this chapter yet." : "Start by adding page images to this chapter."}
+          </p>
+          {!isEditor && <Button onClick={() => setAddDialogOpen(true)}>Add First Page</Button>}
         </div>
       )}
     </div>
