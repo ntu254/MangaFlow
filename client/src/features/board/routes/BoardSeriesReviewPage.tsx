@@ -48,12 +48,15 @@ export function BoardSeriesReviewPage() {
   const [selectedVote, setSelectedVote] = useState<"APPROVE" | "REJECT" | "NEEDS_REVISION" | "">("");
   const [reason, setReason] = useState("");
   const [submittingVote, setSubmittingVote] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
 
   // Decision state
   const [finalizing, setFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const [tieBreakDecision, setTieBreakDecision] = useState<"APPROVED" | "REJECTED" | "NEEDS_REVISION" | "">("");
   const [tieBreakReason, setTieBreakReason] = useState("");
   const [submittingTieBreak, setSubmittingTieBreak] = useState(false);
+  const [tieBreakError, setTieBreakError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!seriesId) return;
@@ -85,7 +88,7 @@ export function BoardSeriesReviewPage() {
       setVoteSummary(summary);
 
       // Prefill user vote if exists
-      const loggedInMember = members.find(m => m.userId === userRes.data?.user?.id);
+      const loggedInMember = members.find(m => m.userId === user?.id);
       if (loggedInMember) {
         const userVote = voteList.find(v => v.boardMemberId === loggedInMember.id);
         if (userVote) {
@@ -110,13 +113,14 @@ export function BoardSeriesReviewPage() {
     if (!seriesId || !selectedVote) return;
     try {
       setSubmittingVote(true);
+      setVoteError(null);
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await submitBoardVote(token, seriesId, selectedVote, reason);
       await loadData();
     } catch (err: any) {
-      alert(err.message || "Failed to submit vote");
+      setVoteError(err.message || "Failed to submit vote");
     } finally {
       setSubmittingVote(false);
     }
@@ -126,13 +130,14 @@ export function BoardSeriesReviewPage() {
     if (!seriesId) return;
     try {
       setFinalizing(true);
+      setFinalizeError(null);
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await finalizeBoardDecision(token, seriesId);
       await loadData();
     } catch (err: any) {
-      alert(err.message || "Failed to finalize decision");
+      setFinalizeError(err.message || "Failed to finalize decision");
     } finally {
       setFinalizing(false);
     }
@@ -143,13 +148,14 @@ export function BoardSeriesReviewPage() {
     if (!seriesId || !tieBreakDecision || !tieBreakReason.trim()) return;
     try {
       setSubmittingTieBreak(true);
+      setTieBreakError(null);
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await tieBreakBoardDecision(token, seriesId, tieBreakDecision, tieBreakReason);
       await loadData();
     } catch (err: any) {
-      alert(err.message || "Failed to submit tie-break decision");
+      setTieBreakError(err.message || "Failed to submit tie-break decision");
     } finally {
       setSubmittingTieBreak(false);
     }
@@ -440,6 +446,11 @@ export function BoardSeriesReviewPage() {
               <section className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-sm space-y-4">
                 <h3 className="font-bold text-white text-base">Cast Your Vote</h3>
                 <form onSubmit={handleVoteSubmit} className="space-y-4">
+                  {voteError && (
+                    <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md">
+                      {voteError}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <label className="text-xs text-slate-450 block font-semibold">Your Recommendation</label>
                     <div className="grid grid-cols-3 gap-2">
@@ -520,6 +531,11 @@ export function BoardSeriesReviewPage() {
                     </div>
 
                     <form onSubmit={handleTieBreakSubmit} className="space-y-4">
+                      {tieBreakError && (
+                        <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md">
+                          {tieBreakError}
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <label className="text-xs text-slate-450 block font-semibold">Final Decision Decision</label>
                         <div className="grid grid-cols-3 gap-2">
@@ -584,6 +600,11 @@ export function BoardSeriesReviewPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {finalizeError && (
+                      <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-md">
+                        {finalizeError}
+                      </div>
+                    )}
                     <p className="text-xs text-slate-400 leading-relaxed">
                       Evaluate the voting metrics and finalize the decision based on majority rule.
                     </p>

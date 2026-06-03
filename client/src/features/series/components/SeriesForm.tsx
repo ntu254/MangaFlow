@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 type SeriesFormProps = {
   initialData?: {
@@ -44,34 +47,31 @@ export function SeriesForm({ initialData, onSubmit, isLoading }: SeriesFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="title">
+        <Label htmlFor="title">
           Title <span className="text-destructive">*</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="title"
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Manga Title"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="description">
-          Description
-        </label>
-        <textarea
+        <Label htmlFor="description">Description</Label>
+        <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="What is this series about?"
+          className="min-h-[120px]"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none">Genres</label>
+        <Label>Genres</Label>
         <div className="flex flex-wrap gap-2 pt-2">
           {GENRE_OPTIONS.map((g) => (
             <button
@@ -91,9 +91,7 @@ export function SeriesForm({ initialData, onSubmit, isLoading }: SeriesFormProps
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none" htmlFor="publicationType">
-          Publication Type
-        </label>
+        <Label htmlFor="publicationType">Publication Type</Label>
         <select
           id="publicationType"
           value={publicationType}

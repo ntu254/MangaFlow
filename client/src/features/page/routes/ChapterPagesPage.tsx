@@ -397,8 +397,9 @@ export function ChapterPagesPage() {
                       className="w-8 h-8 rounded-full shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeletePage(page.id);
+                        setDeleteTargetId(page.id);
                       }}
+                      aria-label={`Delete page ${page.pageNumber}`}
                     >
                       <Trash className="w-4 h-4" />
                     </Button>
@@ -435,6 +436,19 @@ export function ChapterPagesPage() {
           {!isEditor && <Button onClick={() => setAddDialogOpen(true)}>Add First Page</Button>}
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        title="Delete Page"
+        description="Are you sure you want to delete this page? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteTargetId) handleDeletePage(deleteTargetId);
+          setDeleteTargetId(null);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

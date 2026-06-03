@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPage, editorApprovePage, requestPageRevision, type Page } from "@/features/page/api/page";
 import { CommentPanel } from "@/features/comment/components/CommentPanel";
+import { useToast } from "@/shared/components/feedback/Toast";
+import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 import {
   createAnnotation,
   deleteAnnotation,
@@ -164,6 +166,7 @@ export function PageWorkspacePage() {
   const { pageId } = useParams<{ pageId: string }>();
   const { getToken } = useAuth();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const isEditor = window.location.pathname.startsWith("/app/editor");
   const rolePath = isEditor ? "editor" : "mangaka";
@@ -190,6 +193,7 @@ export function PageWorkspacePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; systemRole: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "region" | "annotation" | "task"; id: string } | null>(null);
 
   async function handleApprovePage() {
     if (!pageId) return;
@@ -200,7 +204,7 @@ export function PageWorkspacePage() {
       if (!token) throw new Error("Not authenticated");
       const updated = await editorApprovePage(token, pageId);
       setState(prev => prev.status === "ready" ? { ...prev, page: updated } : prev);
-      alert("Page approved successfully!");
+      toast("Page approved successfully!", "success");
     } catch (err: any) {
       console.error(err);
       setActionError(err.message || "Failed to approve page");
@@ -218,7 +222,7 @@ export function PageWorkspacePage() {
       if (!token) throw new Error("Not authenticated");
       const updated = await requestPageRevision(token, pageId);
       setState(prev => prev.status === "ready" ? { ...prev, page: updated } : prev);
-      alert("Page revision requested successfully!");
+      toast("Page revision requested successfully!", "success");
     } catch (err: any) {
       console.error(err);
       setActionError(err.message || "Failed to request page revision");
@@ -358,8 +362,6 @@ export function PageWorkspacePage() {
 
   async function handleDeleteRegion(regionId: string) {
     if (state.status !== "ready") return;
-    const confirmed = window.confirm("Delete this region?");
-    if (!confirmed) return;
 
     try {
       setActionError(null);
@@ -397,8 +399,6 @@ export function PageWorkspacePage() {
 
   async function handleDeleteAnnotation(annotationId: string) {
     if (state.status !== "ready") return;
-    const confirmed = window.confirm("Delete this annotation?");
-    if (!confirmed) return;
 
     try {
       setActionError(null);
@@ -452,8 +452,6 @@ export function PageWorkspacePage() {
 
   async function handleDeleteTask(taskId: string) {
     if (state.status !== "ready") return;
-    const confirmed = window.confirm("Delete this task?");
-    if (!confirmed) return;
 
     try {
       setDeletingTaskId(taskId);
@@ -768,7 +766,7 @@ export function PageWorkspacePage() {
                               className="mt-3 w-full"
                               size="sm"
                               variant="destructive"
-                              onClick={() => void handleDeleteRegion(region.id)}
+                              onClick={() => setConfirmDelete({ type: "region", id: region.id })}
                             >
                               <Trash /> Delete
                             </Button>
@@ -944,7 +942,7 @@ export function PageWorkspacePage() {
                               className="mt-3 w-full"
                               size="sm"
                               variant="destructive"
-                              onClick={() => void handleDeleteTask(task.id)}
+                              onClick={() => setConfirmDelete({ type: "task", id: task.id })}
                               disabled={deletingTaskId === task.id}
                             >
                               {deletingTaskId === task.id ? <Loader2 className="animate-spin" /> : <Trash />}
@@ -1024,7 +1022,7 @@ export function PageWorkspacePage() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => void handleDeleteAnnotation(annotation.id)}
+                              onClick={() => setConfirmDelete({ type: "annotation", id: annotation.id })}
                             >
                               <Trash /> Delete
                             </Button>
@@ -1079,6 +1077,22 @@ export function PageWorkspacePage() {
           </Tabs>
         </aside>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title={`Delete ${confirmDelete?.type === "region" ? "Region" : confirmDelete?.type === "annotation" ? "Annotation" : "Task"}`}
+        description={`Are you sure you want to delete this ${confirmDelete?.type}? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          if (confirmDelete.type === "region") handleDeleteRegion(confirmDelete.id);
+          else if (confirmDelete.type === "annotation") handleDeleteAnnotation(confirmDelete.id);
+          else handleDeleteTask(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

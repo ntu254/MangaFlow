@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@clerk/react";
 import { createChapter } from "../api/chapter";
 
@@ -70,35 +72,35 @@ export function CreateChapterDialog({
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Chapter Number</label>
-            <input 
-              type="number" 
-              className="w-full p-2 border rounded-md bg-background" 
-              value={chapterNumber} 
-              onChange={e => setChapterNumber(e.target.value)} 
+            <Label htmlFor="chapterNumber">Chapter Number</Label>
+            <Input
+              id="chapterNumber"
+              type="number"
+              value={chapterNumber}
+              onChange={e => setChapterNumber(e.target.value)}
               placeholder="e.g. 1"
               required
               min="1"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Title</label>
-            <input 
-              type="text" 
-              className="w-full p-2 border rounded-md bg-background" 
-              value={title} 
-              onChange={e => setTitle(e.target.value)} 
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
               placeholder="e.g. The Beginning of Flow"
               required
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Deadline (Optional)</label>
-            <input 
-              type="date" 
-              className="w-full p-2 border rounded-md bg-background" 
-              value={deadline} 
-              onChange={e => setDeadline(e.target.value)} 
+            <Label htmlFor="deadline">Deadline (Optional)</Label>
+            <Input
+              id="deadline"
+              type="date"
+              value={deadline}
+              onChange={e => setDeadline(e.target.value)}
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading || !title.trim() || !chapterNumber}>

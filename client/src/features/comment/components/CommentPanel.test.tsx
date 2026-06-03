@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CommentList } from "./CommentList";
 import { CommentItem } from "./CommentItem";
+import { ToastProvider } from "@/shared/components/feedback/Toast";
 import type { Comment } from "../api/comment";
 
 const mockComments: Comment[] = [
@@ -62,11 +63,13 @@ describe("Comment Components (List & Item)", () => {
 
   it("renders comment content, author, dates, and status badges", () => {
     const html = renderToStaticMarkup(
-      <CommentList
-        comments={mockComments}
-        currentUser={{ id: "currentUser", systemRole: "MANGAKA" }}
-        {...mockHandlers}
-      />
+      <ToastProvider>
+        <CommentList
+          comments={mockComments}
+          currentUser={{ id: "currentUser", systemRole: "MANGAKA" }}
+          {...mockHandlers}
+        />
+      </ToastProvider>
     );
 
     // Content
@@ -84,11 +87,13 @@ describe("Comment Components (List & Item)", () => {
 
   it("renders action log history correctly", () => {
     const html = renderToStaticMarkup(
-      <CommentList
-        comments={mockComments}
-        currentUser={{ id: "currentUser", systemRole: "MANGAKA" }}
-        {...mockHandlers}
-      />
+      <ToastProvider>
+        <CommentList
+          comments={mockComments}
+          currentUser={{ id: "currentUser", systemRole: "MANGAKA" }}
+          {...mockHandlers}
+        />
+      </ToastProvider>
     );
 
     // Fixed log
@@ -101,31 +106,37 @@ describe("Comment Components (List & Item)", () => {
     it("renders Mark Fixed button only for Assistant or Admin when status is OPEN", () => {
       // Assistant role
       const assistantHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[0]} // OPEN
-          currentUser={{ id: "user3", systemRole: "ASSISTANT" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[0]} // OPEN
+            currentUser={{ id: "user3", systemRole: "ASSISTANT" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(assistantHtml).toContain("Mark Fixed");
 
       // Admin role
       const adminHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[0]} // OPEN
-          currentUser={{ id: "user4", systemRole: "ADMIN" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[0]} // OPEN
+            currentUser={{ id: "user4", systemRole: "ADMIN" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(adminHtml).toContain("Mark Fixed");
 
       // Mangaka role (should NOT see Mark Fixed)
       const mangakaHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[0]} // OPEN
-          currentUser={{ id: "user1", systemRole: "MANGAKA" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[0]} // OPEN
+            currentUser={{ id: "user1", systemRole: "MANGAKA" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(mangakaHtml).not.toContain("Mark Fixed");
     });
@@ -133,31 +144,37 @@ describe("Comment Components (List & Item)", () => {
     it("renders Verify Fixed button only for Mangaka or Admin when status is FIXED_BY_ASSISTANT", () => {
       // Mangaka role
       const mangakaHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[1]} // FIXED_BY_ASSISTANT
-          currentUser={{ id: "user1", systemRole: "MANGAKA" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[1]} // FIXED_BY_ASSISTANT
+            currentUser={{ id: "user1", systemRole: "MANGAKA" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(mangakaHtml).toContain("Verify Fixed");
 
       // Admin role
       const adminHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[1]} // FIXED_BY_ASSISTANT
-          currentUser={{ id: "user4", systemRole: "ADMIN" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[1]} // FIXED_BY_ASSISTANT
+            currentUser={{ id: "user4", systemRole: "ADMIN" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(adminHtml).toContain("Verify Fixed");
 
       // Assistant role (should NOT see Verify Fixed)
       const assistantHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[1]} // FIXED_BY_ASSISTANT
-          currentUser={{ id: "user3", systemRole: "ASSISTANT" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[1]} // FIXED_BY_ASSISTANT
+            currentUser={{ id: "user3", systemRole: "ASSISTANT" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(assistantHtml).not.toContain("Verify Fixed");
     });
@@ -165,11 +182,13 @@ describe("Comment Components (List & Item)", () => {
     it("renders Resolve and Reopen buttons only for Editor or Admin when status is appropriate", () => {
       // Editor role on resolved comment should see Reopen
       const editorReopenHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[2]} // RESOLVED_BY_EDITOR
-          currentUser={{ id: "user4", systemRole: "EDITOR" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[2]} // RESOLVED_BY_EDITOR
+            currentUser={{ id: "user4", systemRole: "EDITOR" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(editorReopenHtml).toContain("Reopen");
       // Check that the resolve button (with blue-600 background style) is not present
@@ -177,22 +196,26 @@ describe("Comment Components (List & Item)", () => {
 
       // Editor role on open comment should see Resolve
       const editorResolveHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[0]} // OPEN
-          currentUser={{ id: "user4", systemRole: "EDITOR" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[0]} // OPEN
+            currentUser={{ id: "user4", systemRole: "EDITOR" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(editorResolveHtml).toContain("bg-blue-600"); // Resolve button classes
       expect(editorResolveHtml).not.toContain("Reopen"); // Not resolved yet
 
       // Assistant role should NOT see Resolve or Reopen
       const assistantHtml = renderToStaticMarkup(
-        <CommentItem
-          comment={mockComments[0]} // OPEN
-          currentUser={{ id: "user3", systemRole: "ASSISTANT" }}
-          {...mockHandlers}
-        />
+        <ToastProvider>
+          <CommentItem
+            comment={mockComments[0]} // OPEN
+            currentUser={{ id: "user3", systemRole: "ASSISTANT" }}
+            {...mockHandlers}
+          />
+        </ToastProvider>
       );
       expect(assistantHtml).not.toContain("bg-blue-600");
       expect(assistantHtml).not.toContain("Reopen");

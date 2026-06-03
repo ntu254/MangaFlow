@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import * as React from "react";
 import { ChapterPagesPage } from "./ChapterPagesPage";
+import { ToastProvider } from "@/shared/components/feedback/Toast";
 import type { Chapter } from "@/features/chapter/api/chapter";
 import type { Page } from "../api/page";
 
@@ -90,7 +91,9 @@ describe("ChapterPagesPage", () => {
 
     const html = renderToStaticMarkup(
       <MemoryRouter>
-        <ChapterPagesPage />
+        <ToastProvider>
+          <ChapterPagesPage />
+        </ToastProvider>
       </MemoryRouter>
     );
     expect(html).toContain("animate-pulse");
@@ -113,7 +116,9 @@ describe("ChapterPagesPage", () => {
 
     const html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/app/editor/chapters/ch1/pages"]}>
-        <ChapterPagesPage />
+        <ToastProvider>
+          <ChapterPagesPage />
+        </ToastProvider>
       </MemoryRouter>
     );
 
@@ -140,7 +145,9 @@ describe("ChapterPagesPage", () => {
 
     const html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/app/mangaka/chapters/ch1/pages"]}>
-        <ChapterPagesPage />
+        <ToastProvider>
+          <ChapterPagesPage />
+        </ToastProvider>
       </MemoryRouter>
     );
 

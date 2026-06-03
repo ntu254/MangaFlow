@@ -14,6 +14,7 @@ export function EditorReviewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!seriesId || !manuscriptId) return;
@@ -42,12 +43,13 @@ export function EditorReviewPage() {
     if (!seriesId || !manuscriptId) return;
     try {
       setActionLoading(true);
+      setActionError(null);
       const token = await getToken();
       if (!token) return;
       const updated = await reviewManuscript(token, seriesId, manuscriptId, action);
       setManuscript(updated);
     } catch (err: any) {
-      alert(err.message || "Action failed");
+      setActionError(err.message || "Action failed");
     } finally {
       setActionLoading(false);
     }
@@ -88,6 +90,12 @@ export function EditorReviewPage() {
           )}
         </div>
       </div>
+
+      {actionError && (
+        <div className="mb-6 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+          {actionError}
+        </div>
+      )}
 
       <div className="border rounded-xl bg-card overflow-hidden">
         <div className="p-4 border-b bg-muted/50">

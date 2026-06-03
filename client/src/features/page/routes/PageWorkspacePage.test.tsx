@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import * as React from "react";
 import { PageWorkspacePage } from "./PageWorkspacePage";
+import { ToastProvider } from "@/shared/components/feedback/Toast";
 import type { Page } from "@/features/page/api/page";
 import type { Region } from "@/features/region/api/region";
 import type { Annotation } from "@/features/annotation/api/annotation";
@@ -148,7 +149,9 @@ describe("PageWorkspacePage", () => {
 
     const html = renderToStaticMarkup(
       <MemoryRouter>
-        <PageWorkspacePage />
+        <ToastProvider>
+          <PageWorkspacePage />
+        </ToastProvider>
       </MemoryRouter>
     );
     expect(html).toContain("Loading page workspace");
@@ -162,14 +165,16 @@ describe("PageWorkspacePage", () => {
     });
 
     mockStateMap = {
-      0: { status: "ready", page: mockPage, regions: mockRegions, annotations: mockAnnotations, tasks: mockTasks },
-      21: { id: "user1", systemRole: "EDITOR" }
+      1: { status: "ready", page: mockPage, regions: mockRegions, annotations: mockAnnotations, tasks: mockTasks },
+      22: { id: "user1", systemRole: "EDITOR" }
     };
     mockStateIndex = 0;
 
     const html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/app/editor/pages/p1/workspace"]}>
-        <PageWorkspacePage />
+        <ToastProvider>
+          <PageWorkspacePage />
+        </ToastProvider>
       </MemoryRouter>
     );
 
@@ -188,14 +193,16 @@ describe("PageWorkspacePage", () => {
     });
 
     mockStateMap = {
-      0: { status: "ready", page: mockPage, regions: mockRegions, annotations: mockAnnotations, tasks: mockTasks },
-      21: { id: "user1", systemRole: "MANGAKA" }
+      1: { status: "ready", page: mockPage, regions: mockRegions, annotations: mockAnnotations, tasks: mockTasks },
+      22: { id: "user1", systemRole: "MANGAKA" }
     };
     mockStateIndex = 0;
 
     const html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/app/mangaka/pages/p1/workspace"]}>
-        <PageWorkspacePage />
+        <ToastProvider>
+          <PageWorkspacePage />
+        </ToastProvider>
       </MemoryRouter>
     );
 
