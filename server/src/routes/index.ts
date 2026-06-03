@@ -33,6 +33,7 @@ import { createCommentRouter } from "../modules/comment/comment.routes.js";
 import { createCommentService } from "../modules/comment/comment.service.js";
 import { createMongoBoardRepository, createBoardService, createBoardRouter, type BoardRepository } from "../modules/board/index.js";
 import { createMongoRankingRepository, createRankingService, createRankingRouter, type RankingRepository } from "../modules/ranking/index.js";
+import { createMongoPayrollRepository, createPayrollRouter, type PayrollRepository } from "../modules/payroll/index.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -49,6 +50,7 @@ export type ApiRouterDependencies = {
   commentRepository?: CommentRepository;
   boardRepository?: BoardRepository;
   rankingRepository?: RankingRepository;
+  payrollRepository?: PayrollRepository;
 };
 
 export const apiRouter = Router();
@@ -65,6 +67,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const boardService = createBoardService(boardRepo, dependencies.userRepository ?? createMongoUserRepository());
   const rankingRepo = dependencies.rankingRepository ?? createMongoRankingRepository();
   const rankingService = createRankingService(rankingRepo);
+  const taskRepo = dependencies.taskRepository ?? createMongoTaskRepository();
+  const payrollRepo = dependencies.payrollRepository ?? createMongoPayrollRepository();
 
   router.use("/health", healthRouter);
   router.use(
@@ -116,6 +120,16 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
     })
   );
   
+  router.use(
+    createPayrollRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      taskRepository: taskRepo,
+      payrollRepository: payrollRepo
+    })
+  );
+
   router.use(
     "/series/:seriesId/manuscripts",
     createManuscriptRouter({
@@ -180,7 +194,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
-      taskRepository: dependencies.taskRepository ?? createMongoTaskRepository(),
+      taskRepository: taskRepo,
       submissionRepository: dependencies.submissionRepository ?? createMongoSubmissionRepository()
     })
   );
@@ -193,7 +207,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
-      taskRepository: dependencies.taskRepository ?? createMongoTaskRepository(),
+      taskRepository: taskRepo,
       submissionRepository: dependencies.submissionRepository ?? createMongoSubmissionRepository(),
       commentRepository: dependencies.commentRepository ?? createMongoCommentRepository()
     })
@@ -208,7 +222,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
       regionRepository: dependencies.regionRepository ?? createMongoRegionRepository(),
-      taskRepository: dependencies.taskRepository ?? createMongoTaskRepository()
+      taskRepository: taskRepo
     })
   );
 

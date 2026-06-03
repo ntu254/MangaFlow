@@ -43,6 +43,8 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-022 | Board Voting Workflow UI: series-approvals, detailed review screen, vote actions, and tie-break control components | yes | yes | no | yes | implemented | `docs/stories/epics/E13-board-voting/MF-022-board-voting-ui/validation.md` |
 | MF-023 | Ranking API Foundation: Ranking model, importing reader/vote scores, calculation formula, warning/at-risk status endpoints | yes | yes | no | yes | implemented | `docs/stories/epics/E14-ranking/MF-023-ranking-api-foundation/validation.md` |
 | MF-024 | Ranking UI: Board ranking table, import reader/vote scores form, Mangaka ranking dashboard with status warnings | yes | yes | no | yes | implemented | `docs/stories/epics/E14-ranking/MF-024-ranking-ui/validation.md` |
+| MF-025 | UI Quality & Tech Debt Cleanup: fixed env var, stale closures, resolved any types, extracted shared API utilities, and standard error responses | yes | yes | no | yes | implemented | |
+| MF-026 | Payroll API Foundation: configured TaskRates (Admin), calculated/confirmed AssistantEarnings (Mangaka/Admin) and paid transitions (Admin) | yes | yes | no | yes | implemented | `docs/stories/epics/E15-payroll/MF-026-payroll-api-foundation/validation.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
 
 
