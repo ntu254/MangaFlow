@@ -36,6 +36,7 @@ import { MangakaRankingPage } from "@/features/ranking/routes/MangakaRankingPage
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 import { NotFoundPage } from "@/shared/components/feedback/NotFoundPage";
+import { LandingPage } from "@/features/landing";
 import { apiBaseUrl } from "@/shared/api";
 
 
@@ -192,11 +193,11 @@ function AuthenticatedApp() {
   }, [getToken, isLoaded, isSignedIn]);
 
   if (!isLoaded) {
-    return <PhaseZeroShell clerkConfigured />;
+    return <LandingPage clerkConfigured />;
   }
 
   if (!isSignedIn) {
-    return <PhaseZeroShell clerkConfigured />;
+    return <LandingPage clerkConfigured />;
   }
 
   const destination =
@@ -461,7 +462,7 @@ function AdminRoleReviewPage({
   }, [authState.status]);
 
   if (authState.status !== "ready") {
-    return <PhaseZeroShell clerkConfigured />;
+    return <LandingPage clerkConfigured />;
   }
 
   if (authState.user.systemRole !== "ADMIN") {
@@ -614,7 +615,7 @@ function App({ clerkConfigured }: AppProps) {
   const path = window.location.pathname;
 
   if (!clerkConfigured) {
-    return <PhaseZeroShell clerkConfigured={false} />;
+    return <LandingPage clerkConfigured={false} />;
   }
 
   if (path.startsWith("/sign-in")) {
