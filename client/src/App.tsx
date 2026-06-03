@@ -87,8 +87,8 @@ const MangakaDashboardPage = lazy(() =>
 const AdminDashboardPage = lazy(() =>
   import("@/features/dashboard/routes/AdminDashboardPage").then(m => ({ default: m.AdminDashboardPage }))
 );
-const AdminRoleReviewPage = lazy(() =>
-  import("@/features/admin/routes/AdminRoleReviewPage").then(m => ({ default: m.AdminRoleReviewPage }))
+const AdminUserManagementPage = lazy(() =>
+  import("@/features/admin/routes/AdminUserManagementPage").then(m => ({ default: m.AdminUserManagementPage }))
 );
 const AssistantTaskListPage = lazy(() =>
   import("@/features/task/routes/AssistantTaskListPage").then(m => ({ default: m.AssistantTaskListPage }))
@@ -134,7 +134,7 @@ function LoadingScreen() {
 }
 
 function AuthenticatedApp() {
-  const { getToken, isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const { claims, isLoading: claimsLoading } = useAuthClaims();
 
   if (!isLoaded) {
@@ -215,8 +215,8 @@ function AuthenticatedApp() {
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
                 <Route path="dashboard" element={<AdminDashboardPage />} />
-                <Route path="users" element={<AdminRoleReviewPage getToken={getToken} />} />
-                <Route path="users/role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
+                <Route path="users" element={<AdminUserManagementPage />} />
+                <Route path="users/role-review" element={<AdminUserManagementPage />} />
                 <Route path="series" element={<PlaceholderPage title="All Series" description="View and manage all series across the system." icon={BookOpen} />} />
                 <Route path="board/members" element={<PlaceholderPage title="Board Members" description="Manage Editorial Board members and Board Chair assignments." icon={Users} />} />
                 <Route path="task-rates" element={<AdminTaskRatesPage />} />

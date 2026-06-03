@@ -23,13 +23,7 @@ function createUser(overrides: Partial<AuthUser> = {}): AuthUser {
 function createUserRepository(user: AuthUser | null): UserRepository {
   return {
     async findById(id) {
-      return user?.id === id || user?.clerkId === id || `user_${user?.clerkId}` === id ? user : null;
-    },
-    async findByClerkId(clerkId) {
-      return user?.clerkId === clerkId ? user : null;
-    },
-    async upsertFromProfile() {
-      throw new Error("not needed in RBAC tests");
+      return user?.id === id ? user : null;
     },
     async updateOnboarding() {
       throw new Error("not needed in RBAC tests");
@@ -125,12 +119,6 @@ describe("RBAC middleware", () => {
     const failingUserRepository: UserRepository = {
       async findById() {
         throw new Error("Database connection lost");
-      },
-      async findByClerkId() {
-        throw new Error("Database connection lost");
-      },
-      async upsertFromProfile() {
-        throw new Error("not needed");
       },
       async updateOnboarding() {
         throw new Error("not needed");

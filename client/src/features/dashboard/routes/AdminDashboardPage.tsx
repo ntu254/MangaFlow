@@ -13,17 +13,15 @@ import {
 } from "lucide-react";
 import { apiBaseUrl } from "@/shared/api";
 import {
-  buildAdminRoleReviewUrl,
+  buildAdminUsersUrl,
 } from "@/features/auth/admin-flow";
-import type { AuthRouteUser } from "@/features/auth/auth-flow";
-
 type AdminStats = {
-  pendingReviews: number;
+  totalUsers: number;
 };
 
 export function AdminDashboardPage() {
   const { getToken } = useAuth();
-  const [stats, setStats] = useState<AdminStats>({ pendingReviews: 0 });
+  const [stats, setStats] = useState<AdminStats>({ totalUsers: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,16 +29,16 @@ export function AdminDashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
-      const response = await fetch(buildAdminRoleReviewUrl(apiBaseUrl), {
+      const response = await fetch(buildAdminUsersUrl(apiBaseUrl), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await response.json();
 
       if (response.ok && body.success) {
-        setStats({ pendingReviews: body.data.users.length });
+        setStats({ totalUsers: body.data.users.length });
       }
     } catch (err: any) {
       setError(err.message || "Failed to load admin data");
@@ -99,14 +97,9 @@ export function AdminDashboardPage() {
                 <div className="p-2 bg-[#ece5ff] rounded-lg text-[#9065d5]">
                   <Users className="size-5" />
                 </div>
-                {stats.pendingReviews > 0 && (
-                  <Badge className="bg-[#ff7196] text-white border-none">
-                    {stats.pendingReviews}
-                  </Badge>
-                )}
               </div>
-              <h3 className="font-bold text-[#2f243a] mb-1">Role Review</h3>
-              <p className="text-xs text-[#5f5270]">Approve or assign system roles to users</p>
+              <h3 className="font-bold text-[#2f243a] mb-1">User Management</h3>
+              <p className="text-xs text-[#5f5270]">{stats.totalUsers} registered users</p>
               <div className="mt-4 flex items-center gap-1 text-xs font-medium text-[#9065d5] group-hover:gap-2 transition-all">
                 Open <ArrowUpRight className="size-3.5" />
               </div>

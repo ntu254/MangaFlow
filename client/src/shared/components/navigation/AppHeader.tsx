@@ -67,7 +67,7 @@ function resolvePageTitle(pathname: string): string {
   if (/^tasks\/[^/]+\/?$/.test(relativePath)) return "Task Detail";
   if (/^ranking\/import$/.test(relativePath)) return "Import Ranking";
   if (/^series\/new$/.test(relativePath)) return "New Series";
-  if (/^users\/role-review$/.test(relativePath)) return "Role Review";
+  if (/^users\/role-review$/.test(relativePath)) return "User Management";
   const segments = relativePath.split("/").filter(Boolean);
   const key = segments.join("/") || "dashboard";
   return pageTitleMap[key] || key.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
