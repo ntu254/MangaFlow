@@ -93,7 +93,7 @@ export function AdminDashboardPage() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link to="/app/admin/role-review" className="block group">
+          <Link to="/app/admin/users" className="block group">
             <div className="bg-white border border-[#eadff6] rounded-2xl p-6 shadow-[0_2px_12px_rgba(144,101,213,0.04)] hover:border-[#9065d5]/30 hover:shadow-[0_8px_24px_rgba(144,101,213,0.1)] transition-all">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-[#ece5ff] rounded-lg text-[#9065d5]">

@@ -9,4 +9,5 @@ export { ConfirmDialog } from "./feedback/ConfirmDialog";
 export { LoadingState } from "./feedback/LoadingState";
 export { ErrorState } from "./feedback/ErrorState";
 export { NotFoundPage } from "./feedback/NotFoundPage";
+export { PlaceholderPage } from "./feedback/PlaceholderPage";
 export { ToastProvider, useToast } from "./feedback/Toast";
