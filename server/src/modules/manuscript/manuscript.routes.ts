@@ -214,5 +214,89 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
     }
   });
 
+  // POST /:manuscriptId/approve
+  router.post("/:manuscriptId/approve", authenticate, async (req, res) => {
+    try {
+      const manuscriptId = req.params.manuscriptId as string;
+      const manuscript = await service.getById(manuscriptId);
+      
+      const authReq = req as RoleAuthorizedRequest;
+      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      if (!user) {
+        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
+        return;
+      }
+
+      if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
+        if (user.systemRole !== SYSTEM_ROLES.EDITOR) {
+          res.status(403).json(fail("Only Editors or Admins can approve manuscripts", "FORBIDDEN"));
+          return;
+        }
+
+        const role = await dependencies.seriesRepository.getSeriesMemberRole(manuscript.seriesId, user.id);
+        if (role !== SERIES_MEMBER_ROLES.EDITOR) {
+          res.status(403).json(fail("Insufficient series role to approve manuscript", "FORBIDDEN"));
+          return;
+        }
+      }
+
+      const updated = await service.approveManuscript(manuscriptId);
+      if (!updated) {
+        res.status(404).json(fail("Manuscript not found", "NOT_FOUND"));
+        return;
+      }
+      const resolved = await resolveManuscriptUrls(updated);
+      res.json(ok(resolved));
+    } catch (error) {
+      if (error instanceof ManuscriptServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // POST /:manuscriptId/request-revision
+  router.post("/:manuscriptId/request-revision", authenticate, async (req, res) => {
+    try {
+      const manuscriptId = req.params.manuscriptId as string;
+      const manuscript = await service.getById(manuscriptId);
+      
+      const authReq = req as RoleAuthorizedRequest;
+      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      if (!user) {
+        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
+        return;
+      }
+
+      if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
+        if (user.systemRole !== SYSTEM_ROLES.EDITOR) {
+          res.status(403).json(fail("Only Editors or Admins can request manuscript revisions", "FORBIDDEN"));
+          return;
+        }
+
+        const role = await dependencies.seriesRepository.getSeriesMemberRole(manuscript.seriesId, user.id);
+        if (role !== SERIES_MEMBER_ROLES.EDITOR) {
+          res.status(403).json(fail("Insufficient series role to request manuscript revision", "FORBIDDEN"));
+          return;
+        }
+      }
+
+      const updated = await service.requestRevision(manuscriptId);
+      if (!updated) {
+        res.status(404).json(fail("Manuscript not found", "NOT_FOUND"));
+        return;
+      }
+      const resolved = await resolveManuscriptUrls(updated);
+      res.json(ok(resolved));
+    } catch (error) {
+      if (error instanceof ManuscriptServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
   return router;
 }

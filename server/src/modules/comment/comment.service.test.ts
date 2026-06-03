@@ -60,6 +60,14 @@ function createRepositories(seedComments: Comment[] = []) {
     },
     async deleteComment(commentId) {
       comments.delete(commentId);
+    },
+    async hasUnresolvedCommentsForPages(pageIds) {
+      return [...comments.values()].some(
+        (c) =>
+          ((c.pageId && pageIds.includes(c.pageId)) ||
+            (c.targetType === "PAGE" && pageIds.includes(c.targetId))) &&
+          c.status !== "RESOLVED_BY_EDITOR"
+      );
     }
   };
 

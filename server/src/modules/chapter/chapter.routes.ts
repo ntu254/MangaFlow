@@ -8,11 +8,16 @@ import type { ChapterRepository } from "./chapter.repository.js";
 import type { UserRepository } from "../auth/auth.service.js";
 import type { SeriesRepository } from "../series/series.service.js";
 
+import type { PageRepository } from "../page/page.repository.js";
+import type { CommentService } from "../comment/comment.service.js";
+
 export type ChapterRouteDependencies = {
   authVerifier: AuthVerifier;
   userRepository: UserRepository;
   seriesRepository: SeriesRepository;
   chapterRepository: ChapterRepository;
+  pageRepository?: PageRepository;
+  commentService?: CommentService;
 };
 
 export function createChapterRouter(dependencies: ChapterRouteDependencies) {
@@ -172,6 +177,89 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
         return;
       }
       throw error;
+    }
+  });
+
+  // POST /api/chapters/:chapterId/approve
+  router.post("/:chapterId/approve", authenticate, async (req, res) => {
+    try {
+      const chapterId = req.params.chapterId as string;
+      const chapter = await service.getById(chapterId);
+
+      const authReq = req as RoleAuthorizedRequest;
+      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      if (!user) {
+        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
+        return;
+      }
+
+      if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
+        if (user.systemRole !== SYSTEM_ROLES.EDITOR) {
+          res.status(403).json(fail("Only Editors or Admins can approve chapters", "FORBIDDEN"));
+          return;
+        }
+
+        const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
+        if (role !== SERIES_MEMBER_ROLES.EDITOR) {
+          res.status(403).json(fail("Insufficient series role to approve chapter", "FORBIDDEN"));
+          return;
+        }
+      }
+
+      if (!dependencies.pageRepository || !dependencies.commentService) {
+        res.status(500).json(fail("Page repository or comment service not configured", "INTERNAL_ERROR"));
+        return;
+      }
+
+      const updatedChapter = await service.editorApproveChapter(
+        chapterId,
+        dependencies.pageRepository,
+        dependencies.commentService
+      );
+      res.json(ok(updatedChapter));
+    } catch (error) {
+      if (error instanceof ChapterServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // POST /api/chapters/:chapterId/request-revision
+  router.post("/:chapterId/request-revision", authenticate, async (req, res) => {
+    try {
+      const chapterId = req.params.chapterId as string;
+      const chapter = await service.getById(chapterId);
+
+      const authReq = req as RoleAuthorizedRequest;
+      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      if (!user) {
+        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
+        return;
+      }
+
+      if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
+        if (user.systemRole !== SYSTEM_ROLES.EDITOR) {
+          res.status(403).json(fail("Only Editors or Admins can request chapter revisions", "FORBIDDEN"));
+          return;
+        }
+
+        const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
+        if (role !== SERIES_MEMBER_ROLES.EDITOR) {
+          res.status(403).json(fail("Insufficient series role to request chapter revision", "FORBIDDEN"));
+          return;
+        }
+      }
+
+      const updatedChapter = await service.requestChapterRevision(chapterId);
+      res.json(ok(updatedChapter));
+    } catch (error) {
+      if (error instanceof ChapterServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
     }
   });
 

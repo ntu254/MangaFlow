@@ -111,6 +111,21 @@ export function createPageService(repository: PageRepository) {
       return repository.deletePage(pageId);
     },
 
+    async editorApprovePage(pageId: string, commentService: { hasUnresolvedCommentsForPages(pageIds: string[]): Promise<boolean> }) {
+      const page = await this.getById(pageId);
+      
+      const hasUnresolved = await commentService.hasUnresolvedCommentsForPages([pageId]);
+      if (hasUnresolved) {
+        throw new PageServiceError("UNRESOLVED_COMMENTS", "Cannot approve page with unresolved comments", 400);
+      }
+
+      return this.updatePage(pageId, { status: "EDITOR_APPROVED" });
+    },
+
+    async requestPageRevision(pageId: string) {
+      return this.updatePage(pageId, { status: "NEEDS_REVISION" });
+    },
+
     validateStatusTransition(current: PageStatus, next: PageStatus) {
       // Detailed page state transition check from docs:
       // UPLOADED -> AI_PROCESSED -> REGION_MARKED -> TASK_ASSIGNED -> IN_PROGRESS -> SUBMITTED -> MANGAKA_APPROVED -> EDITOR_APPROVED -> READY_TO_PUBLISH

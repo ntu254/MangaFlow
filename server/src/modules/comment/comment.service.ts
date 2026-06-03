@@ -178,8 +178,13 @@ export function createCommentService(repository: CommentRepository) {
         resolvedBy: null,
         resolvedAt: null
       });
+    },
+
+    async hasUnresolvedCommentsForPages(pageIds: string[]): Promise<boolean> {
+      return repository.hasUnresolvedCommentsForPages(pageIds);
     }
   };
 }
+
 
 export type CommentService = ReturnType<typeof createCommentService>;

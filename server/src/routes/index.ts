@@ -30,6 +30,8 @@ import { createMongoSubmissionRepository, type SubmissionRepository } from "../m
 import { createSubmissionRouter } from "../modules/submission/submission.routes.js";
 import { createMongoCommentRepository, type CommentRepository } from "../modules/comment/comment.repository.js";
 import { createCommentRouter } from "../modules/comment/comment.routes.js";
+import { createCommentService } from "../modules/comment/comment.service.js";
+
 
 
 export type ApiRouterDependencies = {
@@ -53,6 +55,10 @@ apiRouter.use("/health", healthRouter);
 
 export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const router = Router();
+
+  const commentRepo = dependencies.commentRepository ?? createMongoCommentRepository();
+  const commentService = createCommentService(commentRepo);
+  const pageRepo = dependencies.pageRepository ?? createMongoPageRepository();
 
   router.use("/health", healthRouter);
   router.use(
@@ -90,12 +96,25 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   );
 
   router.use(
+    "/manuscripts",
+    createManuscriptRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository(),
+      fileRepository: dependencies.fileRepository
+    })
+  );
+
+  router.use(
     "/series/:seriesId/chapters",
     createChapterRouter({
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
-      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository()
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: pageRepo,
+      commentService
     })
   );
 
@@ -105,7 +124,9 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
-      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository()
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: pageRepo,
+      commentService
     })
   );
 
@@ -116,8 +137,9 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
-      pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
-      fileRepository: dependencies.fileRepository
+      pageRepository: pageRepo,
+      fileRepository: dependencies.fileRepository,
+      commentService
     })
   );
 
@@ -188,8 +210,9 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
-      pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
-      fileRepository: dependencies.fileRepository
+      pageRepository: pageRepo,
+      fileRepository: dependencies.fileRepository,
+      commentService
     })
   );
 

@@ -14,6 +14,7 @@ import { upload } from "../../shared/middleware/upload.middleware.js";
 import { storageService } from "../../infrastructure/storage/storage.service.js";
 import { storageKeyUtil } from "../../infrastructure/storage/storage-key.util.js";
 import { imageResizeService, ImageResizeService } from "../../infrastructure/image/image-resize.service.js";
+import type { CommentService } from "../comment/comment.service.js";
 
 export type PageRouteDependencies = {
   authVerifier: AuthVerifier;
@@ -22,6 +23,7 @@ export type PageRouteDependencies = {
   chapterRepository: ChapterRepository;
   pageRepository: PageRepository;
   fileRepository?: FileRepository;
+  commentService?: CommentService;
 };
 
 async function resolvePageUrls(page: Page): Promise<Page> {
@@ -259,6 +261,97 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       // 2. Delete page
       const deleted = await service.deletePage(pageId);
       res.json(ok({ deleted }));
+    } catch (error) {
+      if (error instanceof PageServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // POST /api/pages/:pageId/editor-approve
+  router.post("/:pageId/editor-approve", authenticate, async (req, res) => {
+    try {
+      const pageId = req.params.pageId as string;
+      const page = await service.getById(pageId);
+      const chapter = await dependencies.chapterRepository.findById(page.chapterId);
+      if (!chapter) {
+        res.status(404).json(fail("Associated chapter not found", "NOT_FOUND"));
+        return;
+      }
+
+      const authReq = req as RoleAuthorizedRequest;
+      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      if (!user) {
+        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
+        return;
+      }
+
+      if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
+        if (user.systemRole !== SYSTEM_ROLES.EDITOR) {
+          res.status(403).json(fail("Only Editors or Admins can approve pages", "FORBIDDEN"));
+          return;
+        }
+
+        const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
+        if (role !== SERIES_MEMBER_ROLES.EDITOR) {
+          res.status(403).json(fail("Insufficient series role to approve page", "FORBIDDEN"));
+          return;
+        }
+      }
+
+      if (!dependencies.commentService) {
+        res.status(500).json(fail("Comment service not configured", "INTERNAL_ERROR"));
+        return;
+      }
+
+      const updatedPage = await service.editorApprovePage(pageId, dependencies.commentService);
+      const resolved = await resolvePageUrls(updatedPage);
+      res.json(ok(resolved));
+    } catch (error) {
+      if (error instanceof PageServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // POST /api/pages/:pageId/request-revision
+  router.post("/:pageId/request-revision", authenticate, async (req, res) => {
+    try {
+      const pageId = req.params.pageId as string;
+      const page = await service.getById(pageId);
+      const chapter = await dependencies.chapterRepository.findById(page.chapterId);
+      if (!chapter) {
+        res.status(404).json(fail("Associated chapter not found", "NOT_FOUND"));
+        return;
+      }
+
+      const authReq = req as RoleAuthorizedRequest;
+      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      if (!user) {
+        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
+        return;
+      }
+
+      if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
+        if (user.systemRole !== SYSTEM_ROLES.EDITOR) {
+          res.status(403).json(fail("Only Editors or Admins can request page revisions", "FORBIDDEN"));
+          return;
+        }
+
+        const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
+        if (role !== SERIES_MEMBER_ROLES.EDITOR) {
+          res.status(403).json(fail("Insufficient series role to request page revision", "FORBIDDEN"));
+          return;
+        }
+      }
+
+      const updatedPage = await service.requestPageRevision(pageId);
+      const resolved = await resolvePageUrls(updatedPage);
+      res.json(ok(resolved));
     } catch (error) {
       if (error instanceof PageServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));

@@ -68,8 +68,23 @@ export function createMongoCommentRepository() {
     async deleteComment(commentId: string): Promise<void> {
       if (!mongoose.isValidObjectId(commentId)) return;
       await CommentModel.findByIdAndDelete(commentId);
+    },
+
+    async hasUnresolvedCommentsForPages(pageIds: string[]): Promise<boolean> {
+      const validPageIds = pageIds.filter(id => mongoose.isValidObjectId(id));
+      if (validPageIds.length === 0) return false;
+
+      const count = await CommentModel.countDocuments({
+        $or: [
+          { pageId: { $in: validPageIds } },
+          { targetType: "PAGE", targetId: { $in: validPageIds } }
+        ],
+        status: { $ne: "RESOLVED_BY_EDITOR" }
+      });
+      return count > 0;
     }
   };
 }
+
 
 export type CommentRepository = ReturnType<typeof createMongoCommentRepository>;

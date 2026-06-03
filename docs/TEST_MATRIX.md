@@ -36,8 +36,10 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-015 | Assistant Submission API Foundation: assigned Assistants can create immutable versioned Submissions and authorized users can list/detail them | yes | yes | no | yes | implemented | `docs/stories/epics/E10-assistant-submission/MF-015-assistant-submission-api-foundation/validation.md` |
 | MF-016 | Assistant Submission UI: Assistants can view assigned task detail with page/region preview and submit result URLs | yes | yes | no | yes | implemented | `docs/stories/epics/E10-assistant-submission/MF-016-assistant-submission-ui/validation.md` |
 | MF-017 | Review & Comment API Foundation: Comment model, basic CRUD endpoints, and transition endpoints (/mark-fixed, /verify-fixed, /resolve, /reopen) with series RBAC enforced | yes | yes | no | yes | implemented | `docs/stories/epics/E11-review-comment/MF-017-review-comment-api-foundation/validation.md` |
-| MF-018 | Page Workspace Comment Panel UI: Comment panel in right sidebar displays comments and action logs, allows comments to be submitted, and handles role-based transitions | yes | yes | no | yes | planned | `docs/stories/epics/E11-review-comment/MF-018-page-workspace-comment-panel-ui/validation.md` |
+| MF-018 | Page Workspace Comment Panel UI: Comment panel in right sidebar displays comments and action logs, allows comments to be submitted, and handles role-based transitions | yes | yes | no | yes | implemented | `docs/stories/epics/E11-review-comment/MF-018-page-workspace-comment-panel-ui/validation.md` |
+| MF-019 | Editor Approval API Foundation: endpoints for manuscript, chapter, page approval and revision requests, validation blocking approval with unresolved comments | yes | yes | no | yes | implemented | `docs/stories/epics/E12-editor-approval-workflow/MF-019-editor-approval-api-foundation/validation.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
+
 
 ## Evidence Rules
 

@@ -102,6 +102,30 @@ export function createChapterService(repository: ChapterRepository) {
       return repository.deleteChapter(chapterId);
     },
 
+    async editorApproveChapter(
+      chapterId: string,
+      pageRepository: { findPagesByChapter(chapterId: string): Promise<any[]> },
+      commentService: { hasUnresolvedCommentsForPages(pageIds: string[]): Promise<boolean> }
+    ) {
+      const chapter = await this.getById(chapterId);
+
+      const pages = await pageRepository.findPagesByChapter(chapterId);
+      const pageIds = pages.map(p => p.id);
+      
+      if (pageIds.length > 0) {
+        const hasUnresolved = await commentService.hasUnresolvedCommentsForPages(pageIds);
+        if (hasUnresolved) {
+          throw new ChapterServiceError("UNRESOLVED_COMMENTS", "Cannot approve chapter with unresolved comments on pages", 400);
+        }
+      }
+
+      return this.updateChapter(chapterId, { status: "READY_FOR_PUBLICATION" });
+    },
+
+    async requestChapterRevision(chapterId: string) {
+      return this.updateChapter(chapterId, { status: "IN_PROGRESS" });
+    },
+
     validateStatusTransition(current: ChapterStatus, next: ChapterStatus) {
       const allowedTransitions: Record<ChapterStatus, ChapterStatus[]> = {
         DRAFT: ["IN_PROGRESS"],
