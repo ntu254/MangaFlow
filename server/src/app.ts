@@ -1,8 +1,10 @@
 import cors from "cors";
 import express from "express";
+import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env.config.js";
 import { createApiRouter, type ApiRouterDependencies } from "./routes/index.js";
 import { fail } from "./shared/responses/api-response.js";
+import openapiSpec from "./docs/openapi.json" with { type: "json" };
 
 export function createApp(dependencies: ApiRouterDependencies = {}) {
   const app = express();
@@ -14,6 +16,11 @@ export function createApp(dependencies: ApiRouterDependencies = {}) {
   );
   app.use(express.json());
   app.use("/uploads", express.static("uploads"));
+
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+  app.get("/api/docs.json", (_req, res) => {
+    res.json(openapiSpec);
+  });
 
   app.use("/api", createApiRouter(dependencies));
 
