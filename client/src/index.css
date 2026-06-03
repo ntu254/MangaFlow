@@ -414,4 +414,12 @@ h1 {
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Clerk component overrides — belt + suspenders with appearance prop */
+.cl-rootBox [data-development-mode-notice],
+.cl-rootBox .cl-developmentModeNotice,
+.clerk-root [data-development-mode-notice],
+.cl-rootBox > div > div[data-banner] {
+  display: none !important;
+}
+
 
