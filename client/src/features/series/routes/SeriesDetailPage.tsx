@@ -90,13 +90,16 @@ export function SeriesDetailPage() {
     );
   }
 
+  const isEditor = window.location.pathname.includes("/editor");
+  const backPath = isEditor ? "/app/editor/series" : "/app/mangaka/series";
+
   if (error || !series) {
     return (
       <div className="container py-8 max-w-5xl">
         <div className="text-destructive font-medium bg-destructive/10 p-4 rounded-md mb-4">
           {error || "Series not found"}
         </div>
-        <Link to="/app/mangaka/series">
+        <Link to={backPath}>
           <Button variant="outline">&larr; Back to Series</Button>
         </Link>
       </div>
@@ -106,7 +109,7 @@ export function SeriesDetailPage() {
   return (
     <div className="container py-8 max-w-5xl">
       <div className="mb-6">
-        <Link to="/app/mangaka/series" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+        <Link to={backPath} className="text-sm text-muted-foreground hover:text-primary transition-colors">
           &larr; Back to Series
         </Link>
       </div>

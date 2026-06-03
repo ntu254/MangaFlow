@@ -3,7 +3,6 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import {
   SignIn,
   SignUp,
-  UserButton,
   useAuth,
 } from "@clerk/react";
 import { useAuthClaims } from "@/shared/hooks/useAuthClaims";
@@ -13,6 +12,9 @@ import { SYSTEM_ROLES } from "@/shared/constants/roles";
 import { NotFoundPage } from "@/shared/components/feedback/NotFoundPage";
 import { HomeGate } from "@/shared/components/HomeGate";
 import { apiBaseUrl } from "@/shared/api";
+import { AppShell } from "@/shared/components/layout/AppShell";
+import { RoleSidebar, sidebarConfig } from "@/shared/components/navigation/RoleSidebar";
+import { AppHeader } from "@/shared/components/navigation/AppHeader";
 import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
 
 const SeriesListPage = lazy(() =>
@@ -65,6 +67,18 @@ const AdminDashboardPage = lazy(() =>
 );
 const AdminRoleReviewPage = lazy(() =>
   import("@/features/admin/routes/AdminRoleReviewPage").then(m => ({ default: m.AdminRoleReviewPage }))
+);
+const AssistantTaskListPage = lazy(() =>
+  import("@/features/task/routes/AssistantTaskListPage").then(m => ({ default: m.AssistantTaskListPage }))
+);
+const MangakaTaskListPage = lazy(() =>
+  import("@/features/task/routes/MangakaTaskListPage").then(m => ({ default: m.MangakaTaskListPage }))
+);
+const MangakaSubmissionsPage = lazy(() =>
+  import("@/features/submission/routes/MangakaSubmissionsPage").then(m => ({ default: m.MangakaSubmissionsPage }))
+);
+const EditorAssignedSeriesPage = lazy(() =>
+  import("@/features/series/routes/EditorAssignedSeriesPage").then(m => ({ default: m.EditorAssignedSeriesPage }))
 );
 const OnboardingPage = lazy(() =>
   import("@/features/auth/routes/OnboardingPage").then(m => ({ default: m.OnboardingPage }))
@@ -177,17 +191,18 @@ function AuthenticatedApp() {
           status={effectiveClaims.status}
           allowedRoles={[SYSTEM_ROLES.ADMIN]}
         >
-          <div className="min-h-screen flex flex-col bg-background">
-            <main className="flex-1">
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
-                  <Route path="/dashboard" element={<AdminDashboardPage />} />
-                  <Route path="/role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
-                  <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
-                </Routes>
-              </Suspense>
-            </main>
-          </div>
+          <AppShell
+            sidebar={<RoleSidebar role="ADMIN" items={sidebarConfig.ADMIN} workspaceLabel="Admin Workspace" />}
+            header={<AppHeader breadcrumb={[{ label: "Admin" }]} />}
+          >
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/dashboard" element={<AdminDashboardPage />} />
+                <Route path="/role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
+                <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </AppShell>
         </RoleGuard>
       } />
 
@@ -197,29 +212,25 @@ function AuthenticatedApp() {
           status={effectiveClaims.status}
           allowedRoles={[SYSTEM_ROLES.MANGAKA]}
         >
-          <div className="min-h-screen flex flex-col bg-background">
-            <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-              <div className="flex-1 flex items-center gap-4">
-                <strong className="text-lg tracking-tight">MangaFlow</strong>
-                <span className="text-muted-foreground text-sm">Mangaka Workspace</span>
-              </div>
-              <UserButton />
-            </header>
-            <main className="flex-1">
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
-                  <Route path="/dashboard" element={<MangakaDashboardPage />} />
-                  <Route path="/series" element={<SeriesListPage />} />
-                  <Route path="/series/new" element={<CreateSeriesPage />} />
-                  <Route path="/series/:seriesId" element={<SeriesDetailPage />} />
-                  <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
-                  <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
-                  <Route path="/ranking" element={<MangakaRankingPage />} />
-                  <Route path="*" element={<NotFoundPage homePath="/app/mangaka/dashboard" />} />
-                </Routes>
-              </Suspense>
-            </main>
-          </div>
+          <AppShell
+            sidebar={<RoleSidebar role="MANGAKA" items={sidebarConfig.MANGAKA} workspaceLabel="Mangaka Workspace" />}
+            header={<AppHeader breadcrumb={[{ label: "Mangaka" }]} />}
+          >
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/dashboard" element={<MangakaDashboardPage />} />
+                <Route path="/series" element={<SeriesListPage />} />
+                <Route path="/series/new" element={<CreateSeriesPage />} />
+                <Route path="/series/:seriesId" element={<SeriesDetailPage />} />
+                <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+                <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+                <Route path="/tasks" element={<MangakaTaskListPage />} />
+                <Route path="/submissions" element={<MangakaSubmissionsPage />} />
+                <Route path="/ranking" element={<MangakaRankingPage />} />
+                <Route path="*" element={<Navigate to="/app/mangaka/dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </AppShell>
         </RoleGuard>
       } />
 
@@ -229,26 +240,22 @@ function AuthenticatedApp() {
           status={effectiveClaims.status}
           allowedRoles={[SYSTEM_ROLES.EDITOR]}
         >
-          <div className="min-h-screen flex flex-col bg-background">
-            <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-              <div className="flex-1 flex items-center gap-4">
-                <strong className="text-lg tracking-tight">MangaFlow</strong>
-                <span className="text-muted-foreground text-sm">Editor Workspace</span>
-              </div>
-              <UserButton />
-            </header>
-            <main className="flex-1">
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
-                  <Route path="/dashboard" element={<EditorDashboardPage />} />
-                  <Route path="/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
-                  <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
-                  <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
-                  <Route path="*" element={<NotFoundPage homePath="/app/editor/dashboard" />} />
-                </Routes>
-              </Suspense>
-            </main>
-          </div>
+          <AppShell
+            sidebar={<RoleSidebar role="EDITOR" items={sidebarConfig.EDITOR} workspaceLabel="Editor Workspace" />}
+            header={<AppHeader breadcrumb={[{ label: "Editor" }]} />}
+          >
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/dashboard" element={<EditorDashboardPage />} />
+                <Route path="/series" element={<EditorAssignedSeriesPage />} />
+                <Route path="/series/:seriesId" element={<SeriesDetailPage />} />
+                <Route path="/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
+                <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+                <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+                <Route path="*" element={<Navigate to="/app/editor/dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </AppShell>
         </RoleGuard>
       } />
 
@@ -258,24 +265,19 @@ function AuthenticatedApp() {
           status={effectiveClaims.status}
           allowedRoles={[SYSTEM_ROLES.ASSISTANT]}
         >
-          <div className="min-h-screen flex flex-col bg-background">
-            <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-              <div className="flex-1 flex items-center gap-4">
-                <strong className="text-lg tracking-tight">MangaFlow</strong>
-                <span className="text-muted-foreground text-sm">Assistant Workspace</span>
-              </div>
-              <UserButton />
-            </header>
-            <main className="flex-1">
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
-                  <Route path="/dashboard" element={<AssistantDashboardPage />} />
-                  <Route path="/tasks/:taskId" element={<AssistantTaskDetailPage />} />
-                  <Route path="*" element={<NotFoundPage homePath="/app/assistant/dashboard" />} />
-                </Routes>
-              </Suspense>
-            </main>
-          </div>
+          <AppShell
+            sidebar={<RoleSidebar role="ASSISTANT" items={sidebarConfig.ASSISTANT} workspaceLabel="Assistant Workspace" />}
+            header={<AppHeader breadcrumb={[{ label: "Assistant" }]} />}
+          >
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/dashboard" element={<AssistantDashboardPage />} />
+                <Route path="/tasks" element={<AssistantTaskListPage />} />
+                <Route path="/tasks/:taskId" element={<AssistantTaskDetailPage />} />
+                <Route path="*" element={<Navigate to="/app/assistant/dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </AppShell>
         </RoleGuard>
       } />
 
@@ -285,15 +287,11 @@ function AuthenticatedApp() {
           status={effectiveClaims.status}
           allowedRoles={[SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN]}
         >
-          <div className="min-h-screen flex flex-col bg-slate-950">
-            <header className="border-b bg-slate-900 border-slate-800/80 h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-              <div className="flex-1 flex items-center gap-4">
-                <strong className="text-lg tracking-tight text-white">MangaFlow</strong>
-                <span className="text-slate-400 text-sm">Board Workspace</span>
-              </div>
-              <UserButton />
-            </header>
-            <main className="flex-1 bg-slate-950">
+          <AppShell
+            sidebar={<RoleSidebar role="BOARD" items={sidebarConfig.BOARD} workspaceLabel="Board Workspace" dark />}
+            header={<AppHeader breadcrumb={[{ label: "Board" }]} />}
+          >
+            <div className="min-h-full bg-slate-950 -m-6 p-6">
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   <Route path="/dashboard" element={<BoardDashboardPage />} />
@@ -303,8 +301,8 @@ function AuthenticatedApp() {
                   <Route path="*" element={<NotFoundPage homePath="/app/board/dashboard" />} />
                 </Routes>
               </Suspense>
-            </main>
-          </div>
+            </div>
+          </AppShell>
         </RoleGuard>
       } />
 
