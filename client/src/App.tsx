@@ -16,7 +16,6 @@ import {
   Users,
   HardDrive,
   History,
-  Activity,
   Layers,
   FolderOpen,
   FileImage,
@@ -32,9 +31,9 @@ import {
   Bell,
   User,
   Settings,
-  BookOpen,
   ClipboardList,
   Send,
+  Shield,
   BarChart3,
 } from "lucide-react";
 import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
@@ -217,14 +216,12 @@ function AuthenticatedApp() {
                 <Route path="dashboard" element={<AdminDashboardPage />} />
                 <Route path="users" element={<AdminUserManagementPage />} />
                 <Route path="users/role-review" element={<AdminUserManagementPage />} />
-                <Route path="series" element={<PlaceholderPage title="All Series" description="View and manage all series across the system." icon={BookOpen} />} />
-                <Route path="board/members" element={<PlaceholderPage title="Board Members" description="Manage Editorial Board members and Board Chair assignments." icon={Users} />} />
+                <Route path="board/members" element={<PlaceholderPage title="Board Members" description="Manage Editorial Board members and Board Chair assignments." icon={Shield} />} />
                 <Route path="task-rates" element={<AdminTaskRatesPage />} />
-                <Route path="ranking" element={<PlaceholderPage title="Ranking" description="Monitor system-wide ranking metrics and adjust ranking parameters." icon={BarChart3} />} />
                 <Route path="payroll" element={<PlaceholderPage title="System Payroll" description="Overview of system-wide payouts, balances, and payroll disbursements." icon={Wallet} />} />
                 <Route path="storage" element={<PlaceholderPage title="Storage Management" description="Monitor file count, Cloudflare R2 / MinIO storage usage and bandwidth." icon={HardDrive} />} />
                 <Route path="audit-logs" element={<PlaceholderPage title="Audit Logs" description="View system-wide action logs, security histories, and change records." icon={History} />} />
-                <Route path="system-health" element={<PlaceholderPage title="System Health" description="Check API server, database replica sets, AI service, and storage health." icon={Activity} />} />
+                <Route path="settings" element={<PlaceholderPage title="Settings" description="Configure upload limits, notification triggers, and system preferences." icon={Settings} />} />
                 <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
               </Routes>
             </Suspense>

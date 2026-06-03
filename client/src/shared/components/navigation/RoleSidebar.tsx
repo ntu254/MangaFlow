@@ -171,14 +171,12 @@ export const sidebarConfig: Record<string, SidebarItem[]> = {
   ADMIN: [
     { label: "Dashboard", href: "/app/admin/dashboard", icon: LayoutDashboard },
     { label: "Users", href: "/app/admin/users", icon: Users },
-    { label: "Series", href: "/app/admin/series", icon: BookOpen },
-    { label: "Board Members", href: "/app/admin/board/members", icon: Users },
+    { label: "Board Members", href: "/app/admin/board/members", icon: Shield },
     { label: "Task Rates", href: "/app/admin/task-rates", icon: Coins },
     { label: "Payroll", href: "/app/admin/payroll", icon: Wallet },
-    { label: "Ranking", href: "/app/admin/ranking", icon: BarChart3 },
     { label: "Storage", href: "/app/admin/storage", icon: HardDrive },
     { label: "Audit Logs", href: "/app/admin/audit-logs", icon: History },
-    { label: "System Health", href: "/app/admin/system-health", icon: Activity },
+    { label: "Settings", href: "/app/admin/settings", icon: Settings },
   ],
   MANGAKA: [
     { label: "Dashboard", href: "/app/mangaka/dashboard", icon: LayoutDashboard },
