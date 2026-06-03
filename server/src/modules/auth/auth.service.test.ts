@@ -1,119 +1,119 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import bcrypt from "bcryptjs";
 import {
   createAuthService,
-  type UserProfile,
+  type AuthUser,
   type UserRepository
 } from "./auth.service.js";
 
-function createMemoryUserRepository(): UserRepository {
-  const users = new Map<string, Awaited<ReturnType<UserRepository["upsertFromProfile"]>>>();
+const now = "2026-06-03T00:00:00.000Z";
+
+async function createHash(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+function createTestUser(id: string, email: string, systemRole: any, status: any = "ACTIVE"): AuthUser {
+  return {
+    id,
+    email,
+    fullName: `Test ${id}`,
+    avatarUrl: null,
+    systemRole,
+    status,
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function createMemoryUserRepository(usersList: { user: AuthUser; passwordHash: string }[]): UserRepository {
+  const users = new Map(usersList.map((item) => [item.user.id, item.user]));
+  const withPassword = new Map(usersList.map((item) => [item.user.email, item]));
 
   return {
-    async findByClerkId(clerkId) {
-      return users.get(clerkId) ?? null;
+    async findById(id) {
+      return users.get(id) ?? null;
     },
-    async upsertFromProfile(profile) {
-      const existing = users.get(profile.clerkId);
-      const now = new Date("2026-06-02T00:00:00.000Z").toISOString();
-      const user = {
-        id: existing?.id ?? `user_${profile.clerkId}`,
-        clerkId: profile.clerkId,
-        email: profile.email,
-        fullName: profile.fullName,
-        avatarUrl: profile.avatarUrl,
-        systemRole: existing?.systemRole ?? null,
-        requestedSystemRole: existing?.requestedSystemRole ?? null,
-        status: existing?.status ?? "ACTIVE",
-        createdAt: existing?.createdAt ?? now,
-        updatedAt: now
-      } as const;
-      users.set(profile.clerkId, user);
-      return user;
-    },
-    async updateOnboarding(clerkId, input) {
-      const existing = users.get(clerkId);
-      if (!existing) {
-        return null;
-      }
-      const updated = {
-        ...existing,
-        ...input,
-        requestedSystemRole: input.requestedSystemRole ?? existing.requestedSystemRole,
-        systemRole: existing.systemRole,
-        updatedAt: new Date("2026-06-02T00:00:00.000Z").toISOString()
-      };
-      users.set(clerkId, updated);
-      return updated;
+    async findByEmailWithPassword(email) {
+      return withPassword.get(email) ?? null;
     }
   };
 }
 
-const clerkProfile: UserProfile = {
-  clerkId: "clerk_pending_001",
-  email: "pending@example.com",
-  fullName: "Pending User",
-  avatarUrl: "https://img.example.com/avatar.png"
-};
-
 describe("auth service", () => {
-  it("syncs Clerk profile into a pending internal user idempotently", async () => {
-    const service = createAuthService(createMemoryUserRepository());
+  it("authenticates a user with correct credentials and rejects invalid ones", async () => {
+    const passwordHash = await createHash("password123");
+    const activeUser = createTestUser("user1", "user1@example.com", "MANGAKA", "ACTIVE");
+    const suspendedUser = createTestUser("user2", "user2@example.com", "EDITOR", "SUSPENDED");
 
-    const first = await service.syncUserFromProfile(clerkProfile);
-    const second = await service.syncUserFromProfile({
-      ...clerkProfile,
-      fullName: "Updated User"
+    const repo = createMemoryUserRepository([
+      { user: activeUser, passwordHash },
+      { user: suspendedUser, passwordHash }
+    ]);
+    const service = createAuthService(repo);
+
+    // 1. Success authentication
+    const auth1 = await service.authenticate("user1@example.com", "password123");
+    expect(auth1.id).toBe("user1");
+    expect(auth1.systemRole).toBe("MANGAKA");
+
+    // 2. Invalid password
+    await expect(service.authenticate("user1@example.com", "wrongpass")).rejects.toMatchObject({
+      code: "AUTH_FAILED",
+      statusCode: 401
     });
 
-    expect(first.systemRole).toBeNull();
-    expect(second.id).toBe(first.id);
-    expect(second.fullName).toBe("Updated User");
+    // 3. Non-existent email
+    await expect(service.authenticate("nonexistent@example.com", "password123")).rejects.toMatchObject({
+      code: "AUTH_FAILED",
+      statusCode: 401
+    });
+
+    // 4. Suspended account
+    await expect(service.authenticate("user2@example.com", "password123")).rejects.toMatchObject({
+      code: "ACCOUNT_SUSPENDED",
+      statusCode: 403
+    });
+  });
+
+  it("retrieves current user by ID", async () => {
+    const activeUser = createTestUser("user1", "user1@example.com", "BOARD", "ACTIVE");
+    const repo = createMemoryUserRepository([{ user: activeUser, passwordHash: "hash" }]);
+    const service = createAuthService(repo);
+
+    const user = await service.getCurrentUser("user1");
+    expect(user).not.toBeNull();
+    expect(user?.email).toBe("user1@example.com");
+
+    const missing = await service.getCurrentUser("nonexistent");
+    expect(missing).toBeNull();
   });
 
   it("maps user role and status to redirect state", () => {
-    const service = createAuthService(createMemoryUserRepository());
+    const repo = createMemoryUserRepository([]);
+    const service = createAuthService(repo);
 
-    expect(service.getAuthRedirectState({ systemRole: null, status: "ACTIVE" })).toEqual({
-      onboardingRequired: true,
+    // 1. Admin redirect
+    expect(service.getAuthRedirectState({ systemRole: "ADMIN", status: "ACTIVE" })).toEqual({
       blocked: false,
-      redirectTo: "/app/onboarding"
+      redirectTo: "/app/admin/dashboard"
     });
+
+    // 2. Editor redirect
     expect(service.getAuthRedirectState({ systemRole: "EDITOR", status: "ACTIVE" })).toEqual({
-      onboardingRequired: false,
       blocked: false,
       redirectTo: "/app/editor/dashboard"
     });
+
+    // 3. Suspended user redirect
     expect(service.getAuthRedirectState({ systemRole: "MANGAKA", status: "SUSPENDED" })).toEqual({
-      onboardingRequired: false,
+      blocked: true,
+      redirectTo: "/app/blocked"
+    });
+
+    // 4. No role redirect
+    expect(service.getAuthRedirectState({ systemRole: null, status: "ACTIVE" })).toEqual({
       blocked: true,
       redirectTo: "/app/blocked"
     });
   });
-
-  it("lets onboarding request a non-privileged role without assigning systemRole", async () => {
-    const service = createAuthService(createMemoryUserRepository());
-    await service.syncUserFromProfile(clerkProfile);
-
-    const user = await service.completeOnboarding("clerk_pending_001", {
-      fullName: "Pending Mangaka",
-      requestedSystemRole: "MANGAKA"
-    });
-
-    expect(user.requestedSystemRole).toBe("MANGAKA");
-    expect(user.systemRole).toBeNull();
-  });
-
-  it("rejects privileged role requests during onboarding", async () => {
-    const service = createAuthService(createMemoryUserRepository());
-    await service.syncUserFromProfile(clerkProfile);
-
-    await expect(
-      service.completeOnboarding("clerk_pending_001", {
-        requestedSystemRole: "ADMIN"
-      })
-    ).rejects.toMatchObject({
-      code: "ONBOARDING_ROLE_FORBIDDEN"
-    });
-  });
 });
-

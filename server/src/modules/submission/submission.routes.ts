@@ -17,12 +17,12 @@ export type SubmissionRouteDependencies = {
   submissionRepository: SubmissionRepository;
 };
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
-async function resolveUser(dependencies: SubmissionRouteDependencies, clerkId: string) {
-  const user = await dependencies.userRepository.findByClerkId(clerkId);
+async function resolveUser(dependencies: SubmissionRouteDependencies, userId: string) {
+  const user = await dependencies.userRepository.findById(userId);
   if (!user) {
     throw new SubmissionServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -97,7 +97,7 @@ export function createSubmissionRouter(dependencies: SubmissionRouteDependencies
 
   router.get("/submissions", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       if (user.systemRole === SYSTEM_ROLES.ADMIN) {
         res.json(ok(await service.listAll()));
         return;
@@ -116,7 +116,7 @@ export function createSubmissionRouter(dependencies: SubmissionRouteDependencies
   router.get("/tasks/:taskId/submissions", authenticate, async (req, res) => {
     try {
       const task = await getTaskOrThrow(dependencies, req.params.taskId as string);
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertReadAccess(dependencies, user, task);
       res.json(ok(await service.listForTask(task.id)));
     } catch (error) {
@@ -127,7 +127,7 @@ export function createSubmissionRouter(dependencies: SubmissionRouteDependencies
   router.post("/tasks/:taskId/submissions", authenticate, async (req, res) => {
     try {
       const task = await getTaskOrThrow(dependencies, req.params.taskId as string);
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertCreateAccess(dependencies, user, task);
       const submission = await service.createSubmission({
         taskId: task.id,
@@ -146,7 +146,7 @@ export function createSubmissionRouter(dependencies: SubmissionRouteDependencies
     try {
       const submission = await service.getById(req.params.submissionId as string);
       const task = await getTaskOrThrow(dependencies, submission.taskId);
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertReadAccess(dependencies, user, task);
       res.json(ok(submission));
     } catch (error) {

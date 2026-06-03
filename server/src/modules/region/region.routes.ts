@@ -24,8 +24,8 @@ const writeSeriesRoles = [
   SERIES_MEMBER_ROLES.EDITOR
 ] as const;
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
 async function resolvePageScope(dependencies: RegionRouteDependencies, pageId: string) {
@@ -40,8 +40,8 @@ async function resolvePageScope(dependencies: RegionRouteDependencies, pageId: s
   return { page, chapter };
 }
 
-async function resolveAuthorizedUser(dependencies: RegionRouteDependencies, clerkId: string) {
-  return dependencies.userRepository.findByClerkId(clerkId);
+async function resolveAuthorizedUser(dependencies: RegionRouteDependencies, userId: string) {
+  return dependencies.userRepository.findById(userId);
 }
 
 async function assertReadAccess(dependencies: RegionRouteDependencies, clerkId: string, seriesId: string) {
@@ -104,7 +104,7 @@ export function createRegionRouter(dependencies: RegionRouteDependencies) {
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertReadAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      await assertReadAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       const regions = await service.listByPage(scope.page.id);
       res.json(ok(regions));
     } catch (error) {
@@ -119,7 +119,7 @@ export function createRegionRouter(dependencies: RegionRouteDependencies) {
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      const user = await assertWriteAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      const user = await assertWriteAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       const region = await service.createRegion({
         pageId: scope.page.id,
         taskId: req.body.taskId,
@@ -147,7 +147,7 @@ export function createRegionRouter(dependencies: RegionRouteDependencies) {
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertReadAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      await assertReadAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       res.json(ok(region));
     } catch (error) {
       sendRegionError(res, error);
@@ -162,7 +162,7 @@ export function createRegionRouter(dependencies: RegionRouteDependencies) {
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertWriteAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      await assertWriteAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       const updated = await service.updateRegion(current.id, {
         taskId: req.body.taskId,
         type: req.body.type,
@@ -188,7 +188,7 @@ export function createRegionRouter(dependencies: RegionRouteDependencies) {
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertWriteAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      await assertWriteAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       const deleted = await service.deleteRegion(current.id);
       res.json(ok({ deleted }));
     } catch (error) {

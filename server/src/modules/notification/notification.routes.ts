@@ -23,9 +23,9 @@ export function createNotificationRouter(dependencies: NotificationRouteDependen
     );
 
   async function resolveUserId(req: AuthenticatedRequest): Promise<string | null> {
-    const clerkId = req.auth?.clerkId;
-    if (!clerkId) return null;
-    const user = await dependencies.userRepository.findByClerkId(clerkId);
+    const userId = req.user?.id;
+    if (!userId) return null;
+    const user = await dependencies.userRepository.findById(userId);
     return user?.id ?? null;
   }
 

@@ -26,8 +26,8 @@ const createSeriesRoles = [
   SERIES_MEMBER_ROLES.EDITOR
 ] as const;
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
 async function resolvePageScope(dependencies: AnnotationRouteDependencies, pageId: string) {
@@ -40,8 +40,8 @@ async function resolvePageScope(dependencies: AnnotationRouteDependencies, pageI
   return { page, chapter };
 }
 
-async function resolveUser(dependencies: AnnotationRouteDependencies, clerkId: string) {
-  const user = await dependencies.userRepository.findByClerkId(clerkId);
+async function resolveUser(dependencies: AnnotationRouteDependencies, userId: string) {
+  const user = await dependencies.userRepository.findById(userId);
   if (!user) {
     throw new AnnotationServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -133,7 +133,7 @@ export function createAnnotationRouter(dependencies: AnnotationRouteDependencies
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertReadAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      await assertReadAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       const annotations = await service.listByPage(scope.page.id);
       res.json(ok(annotations));
     } catch (error) {
@@ -148,7 +148,7 @@ export function createAnnotationRouter(dependencies: AnnotationRouteDependencies
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      const user = await assertCreateAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      const user = await assertCreateAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       await assertRegionOnPage(dependencies, req.body.regionId, scope.page.id);
 
       const annotation = await service.createAnnotation({
@@ -179,7 +179,7 @@ export function createAnnotationRouter(dependencies: AnnotationRouteDependencies
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertReadAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId);
+      await assertReadAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId);
       res.json(ok(annotation));
     } catch (error) {
       sendAnnotationError(res, error);
@@ -194,7 +194,7 @@ export function createAnnotationRouter(dependencies: AnnotationRouteDependencies
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertMutationAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId, current);
+      await assertMutationAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId, current);
       await assertRegionOnPage(dependencies, req.body.regionId, current.pageId);
 
       const updated = await service.updateAnnotation(current.id, {
@@ -221,7 +221,7 @@ export function createAnnotationRouter(dependencies: AnnotationRouteDependencies
         res.status(404).json(fail("Page not found", "NOT_FOUND"));
         return;
       }
-      await assertMutationAccess(dependencies, getClerkId(req as AuthenticatedRequest), scope.chapter.seriesId, current);
+      await assertMutationAccess(dependencies, getUserId(req as AuthenticatedRequest), scope.chapter.seriesId, current);
       const deleted = await service.deleteAnnotation(current.id);
       res.json(ok({ deleted }));
     } catch (error) {

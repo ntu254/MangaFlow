@@ -10,7 +10,6 @@ export type JwtPayload = {
   email?: string;
   fullName?: string;
   avatarUrl?: string | null;
-  clerkId?: string; // Kept for backwards compatibility mapping
 };
 
 export type RefreshJwtPayload = {

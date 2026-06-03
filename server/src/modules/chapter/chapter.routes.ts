@@ -81,7 +81,7 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
       
       // Load user and check series membership
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -115,7 +115,7 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
       const chapter = await service.getById(chapterId);
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -154,7 +154,7 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
       const chapter = await service.getById(chapterId);
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -187,7 +187,7 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
       const chapter = await service.getById(chapterId);
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -233,7 +233,7 @@ export function createChapterRouter(dependencies: ChapterRouteDependencies) {
       const chapter = await service.getById(chapterId);
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;

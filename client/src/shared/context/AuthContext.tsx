@@ -4,7 +4,6 @@ import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
 
 type AuthUser = {
   id: string;
-  clerkId: string;
   email: string;
   fullName: string;
   avatarUrl: string | null;
@@ -38,7 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         setUser({
           id: userData.id,
-          clerkId: userData.clerkId,
           email: userData.email,
           fullName: userData.fullName,
           avatarUrl: userData.avatarUrl,
@@ -77,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(token);
     const authedUser: AuthUser = {
       id: userData.id,
-      clerkId: userData.clerkId,
       email: userData.email,
       fullName: userData.fullName,
       avatarUrl: userData.avatarUrl,

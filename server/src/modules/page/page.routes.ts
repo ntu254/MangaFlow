@@ -170,7 +170,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       }
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -204,7 +204,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       }
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -282,7 +282,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       }
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;
@@ -330,7 +330,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       }
 
       const authReq = req as RoleAuthorizedRequest;
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
+      const user = await dependencies.userRepository.findById(authReq.user!.id);
       if (!user) {
         res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
         return;

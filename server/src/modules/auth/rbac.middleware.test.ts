@@ -1,4 +1,4 @@
-﻿import type { NextFunction, Response } from "express";
+import type { NextFunction, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthenticatedRequest } from "./auth.middleware.js";
 import { requireSeriesRole, requireSystemRole, type RoleAuthorizedRequest } from "./rbac.middleware.js";
@@ -10,12 +10,10 @@ const now = "2026-06-03T00:00:00.000Z";
 function createUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return {
     id: overrides.id ?? "user_mangaka",
-    clerkId: overrides.clerkId ?? "clerk_mangaka",
     email: overrides.email ?? "mangaka@example.com",
     fullName: overrides.fullName ?? "Mangaka",
     avatarUrl: overrides.avatarUrl ?? null,
     systemRole: overrides.systemRole ?? "MANGAKA",
-    requestedSystemRole: overrides.requestedSystemRole ?? null,
     status: overrides.status ?? "ACTIVE",
     createdAt: now,
     updatedAt: now
@@ -24,6 +22,9 @@ function createUser(overrides: Partial<AuthUser> = {}): AuthUser {
 
 function createUserRepository(user: AuthUser | null): UserRepository {
   return {
+    async findById(id) {
+      return user?.id === id || user?.clerkId === id || `user_${user?.clerkId}` === id ? user : null;
+    },
     async findByClerkId(clerkId) {
       return user?.clerkId === clerkId ? user : null;
     },
@@ -74,8 +75,8 @@ describe("RBAC middleware", () => {
   it("binds localUser for allowed active system roles", async () => {
     const user = createUser({ systemRole: "MANGAKA" });
     const req = {
-      auth: { clerkId: user.clerkId, systemRole: user.systemRole, status: user.status }
-    } as AuthenticatedRequest;
+      user: { id: user.id, systemRole: user.systemRole, status: user.status, email: user.email, fullName: user.fullName, avatarUrl: user.avatarUrl }
+    } as unknown as AuthenticatedRequest;
     const res = createResponse();
     const next: NextFunction = vi.fn();
 
@@ -94,7 +95,7 @@ describe("RBAC middleware", () => {
 
     const unsyncedRes = createResponse();
     await requireSystemRole(["MANGAKA"], createUserRepository(null))(
-      { auth: { clerkId: "missing", systemRole: "MANGAKA", status: "ACTIVE" } } as AuthenticatedRequest,
+      { user: { id: "missing", systemRole: "MANGAKA", status: "ACTIVE", email: "missing@example.com", fullName: "Missing", avatarUrl: null } } as unknown as AuthenticatedRequest,
       unsyncedRes,
       vi.fn()
     );
@@ -103,7 +104,7 @@ describe("RBAC middleware", () => {
 
     const suspendedRes = createResponse();
     await requireSystemRole(["MANGAKA"], createUserRepository(createUser({ status: "SUSPENDED" })))(
-      { auth: { clerkId: "clerk_mangaka", systemRole: "MANGAKA", status: "SUSPENDED" } } as AuthenticatedRequest,
+      { user: { id: "user_mangaka", systemRole: "MANGAKA", status: "SUSPENDED", email: "m@ex.com", fullName: "Mangaka", avatarUrl: null } } as unknown as AuthenticatedRequest,
       suspendedRes,
       vi.fn()
     );
@@ -112,7 +113,7 @@ describe("RBAC middleware", () => {
 
     const wrongRoleRes = createResponse();
     await requireSystemRole(["EDITOR"], createUserRepository(createUser({ systemRole: "MANGAKA" })))(
-      { auth: { clerkId: "clerk_mangaka", systemRole: "MANGAKA", status: "ACTIVE" } } as AuthenticatedRequest,
+      { user: { id: "user_mangaka", systemRole: "MANGAKA", status: "ACTIVE", email: "m@ex.com", fullName: "Mangaka", avatarUrl: null } } as unknown as AuthenticatedRequest,
       wrongRoleRes,
       vi.fn()
     );
@@ -122,6 +123,9 @@ describe("RBAC middleware", () => {
 
   it("returns 500 when database lookup fails", async () => {
     const failingUserRepository: UserRepository = {
+      async findById() {
+        throw new Error("Database connection lost");
+      },
       async findByClerkId() {
         throw new Error("Database connection lost");
       },
@@ -134,8 +138,8 @@ describe("RBAC middleware", () => {
     };
 
     const req = {
-      auth: { clerkId: "clerk_mangaka", systemRole: "MANGAKA", status: "ACTIVE" }
-    } as AuthenticatedRequest;
+      user: { id: "user_mangaka", systemRole: "MANGAKA", status: "ACTIVE", email: "m@ex.com", fullName: "Mangaka", avatarUrl: null }
+    } as unknown as AuthenticatedRequest;
     const res = createResponse();
     const next: NextFunction = vi.fn();
 

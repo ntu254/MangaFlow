@@ -30,8 +30,8 @@ const createSeriesRoles = [
 
 const taskTypes = new Set<TaskType>(["BACKGROUND", "INKING", "SCREENTONE", "CLEANUP", "EFFECT", "OTHER"]);
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
 function toNumberOrUndefined(value: unknown) {
@@ -43,8 +43,8 @@ function mapRegionTypeToTaskType(type: RegionType): TaskType {
   return type === "BUBBLE" ? "OTHER" : type;
 }
 
-async function resolveUser(dependencies: TaskRouteDependencies, clerkId: string) {
-  const user = await dependencies.userRepository.findByClerkId(clerkId);
+async function resolveUser(dependencies: TaskRouteDependencies, userId: string) {
+  const user = await dependencies.userRepository.findById(userId);
   if (!user) {
     throw new TaskServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -189,7 +189,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
 
   router.get("/tasks", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const tasks = await listTasksForUser(dependencies, service, user);
       res.json(ok(tasks));
     } catch (error) {
@@ -199,7 +199,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
 
   router.post("/tasks", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const scope = await resolveCreateScope(dependencies, { pageId: req.body.pageId, regionId: req.body.regionId });
       await assertCreateAccess(dependencies, user, scope.chapter.seriesId);
       await assertAssistantAssignee(dependencies, req.body.assignedTo, scope.chapter.seriesId);
@@ -217,7 +217,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
         res.status(404).json(fail("Region not found", "REGION_NOT_FOUND"));
         return;
       }
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const scope = await resolveCreateScope(dependencies, { pageId: region.pageId, regionId: region.id });
       await assertCreateAccess(dependencies, user, scope.chapter.seriesId);
       await assertAssistantAssignee(dependencies, req.body.assignedTo, scope.chapter.seriesId);
@@ -238,7 +238,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
         res.status(404).json(fail("Page not found", "PAGE_NOT_FOUND"));
         return;
       }
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertReadAccess(dependencies, user, task, scope.chapter.seriesId);
       res.json(ok(task));
     } catch (error) {
@@ -254,7 +254,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
         res.status(404).json(fail("Page not found", "PAGE_NOT_FOUND"));
         return;
       }
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertUpdateAccess(dependencies, user, scope.chapter.seriesId);
       if (req.body.assignedTo !== undefined) {
         await assertAssistantAssignee(dependencies, req.body.assignedTo, scope.chapter.seriesId);
@@ -285,7 +285,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
         res.status(404).json(fail("Page not found", "PAGE_NOT_FOUND"));
         return;
       }
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertDeleteAccess(dependencies, user, scope.chapter.seriesId);
       const deleted = await service.deleteTask(current.id);
       res.json(ok({ deleted }));
@@ -296,7 +296,7 @@ export function createTaskRouter(dependencies: TaskRouteDependencies) {
 
   router.post("/tasks/:taskId/start", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       if (user.systemRole !== SYSTEM_ROLES.ASSISTANT) {
         throw new TaskServiceError("FORBIDDEN", "Only Assistants can start tasks", 403);
       }

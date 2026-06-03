@@ -72,7 +72,25 @@ apiRouter.use("/health", healthRouter);
 export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const router = Router();
 
-  const userRepo = dependencies.userRepository ?? createMongoUserRepository();
+  const baseUserRepo = dependencies.userRepository ?? createMongoUserRepository();
+  const userRepo: UserRepository = {
+    ...baseUserRepo,
+    async findById(id: string) {
+      if (baseUserRepo.findById) {
+        try {
+          const u = await baseUserRepo.findById(id);
+          if (u) return u;
+        } catch {}
+      }
+      if ((baseUserRepo as any).findByClerkId) {
+        try {
+          const u = await (baseUserRepo as any).findByClerkId(id);
+          if (u) return u;
+        } catch {}
+      }
+      return null;
+    }
+  };
   const authVerifier = dependencies.authVerifier ?? createJwtAuthVerifier(userRepo);
   const sessionRepo = dependencies.sessionRepository ?? createSessionRepository();
 

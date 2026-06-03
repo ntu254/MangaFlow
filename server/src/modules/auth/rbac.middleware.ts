@@ -12,24 +12,24 @@ export type RoleAuthorizedRequest = AuthenticatedRequest & {
 
 export function requireSystemRole(roles: SystemRole[], userRepository?: UserRepository) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.auth) {
+    if (!req.user) {
       res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
       return;
     }
 
-    if (req.auth.status !== "ACTIVE") {
+    if (req.user.status !== "ACTIVE") {
       res.status(403).json(fail("Account is not active", "FORBIDDEN"));
       return;
     }
 
-    if (!req.auth.systemRole || !roles.includes(req.auth.systemRole as SystemRole)) {
+    if (!req.user.systemRole || !roles.includes(req.user.systemRole as SystemRole)) {
       res.status(403).json(fail("Insufficient system role", "FORBIDDEN"));
       return;
     }
 
     if (userRepository) {
       try {
-        const user = await userRepository.findByClerkId(req.auth.clerkId);
+        const user = await userRepository.findById(req.user.id);
         if (!user) {
           res.status(401).json(fail("User not found in database", "USER_NOT_SYNCED"));
           return;

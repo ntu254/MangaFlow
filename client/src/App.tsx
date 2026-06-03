@@ -12,7 +12,6 @@ import { RoleSidebar, sidebarConfig } from "@/shared/components/navigation/RoleS
 import { AppHeader } from "@/shared/components/navigation/AppHeader";
 import { PlaceholderPage } from "@/shared/components/feedback/PlaceholderPage";
 import { SignInPage } from "@/features/auth/routes/SignInPage";
-import { OAuthCallback } from "@/features/auth/routes/OAuthCallback";
 import {
   Users,
   HardDrive,
@@ -106,9 +105,6 @@ const NotificationsPage = lazy(() =>
 const EditorAssignedSeriesPage = lazy(() =>
   import("@/features/series/routes/EditorAssignedSeriesPage").then(m => ({ default: m.EditorAssignedSeriesPage }))
 );
-const OnboardingPage = lazy(() =>
-  import("@/features/auth/routes/OnboardingPage").then(m => ({ default: m.OnboardingPage }))
-);
 const BlockedPage = lazy(() =>
   import("@/features/auth/routes/BlockedPage").then(m => ({ default: m.BlockedPage }))
 );
@@ -161,11 +157,6 @@ function AuthenticatedApp() {
 
   return (
     <Routes>
-      <Route path="onboarding" element={
-        <Suspense fallback={<LoadingScreen />}>
-          <OnboardingPage />
-        </Suspense>
-      } />
       <Route path="blocked" element={
         <Suspense fallback={<LoadingScreen />}>
           <BlockedPage />
@@ -381,7 +372,6 @@ function AuthenticatedApp() {
 function App() {
   return (
     <Routes>
-      <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/sign-in" element={<SignInPage />} />
       <Route path="/" element={<HomeGate />} />
       <Route path="/app/*" element={<AuthenticatedApp />} />

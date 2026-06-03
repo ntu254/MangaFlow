@@ -32,12 +32,12 @@ class AiRouteError extends Error {
   }
 }
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
-async function resolveUser(dependencies: AiRouteDependencies, clerkId: string) {
-  const user = await dependencies.userRepository.findByClerkId(clerkId);
+async function resolveUser(dependencies: AiRouteDependencies, userId: string) {
+  const user = await dependencies.userRepository.findById(userId);
   if (!user) {
     throw new AiRouteError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -89,7 +89,7 @@ export function createAiRouter(dependencies: AiRouteDependencies) {
   // POST /api/pages/:pageId/ai/bubble-detect
   router.post("/pages/:pageId/ai/bubble-detect", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const pageId = req.params.pageId as string;
 
       const page = await dependencies.pageRepository.findById(pageId);
@@ -157,7 +157,7 @@ export function createAiRouter(dependencies: AiRouteDependencies) {
   // POST /api/pages/:pageId/ai/bubble-process
   router.post("/pages/:pageId/ai/bubble-process", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const pageId = req.params.pageId as string;
 
       const page = await dependencies.pageRepository.findById(pageId);
@@ -242,7 +242,7 @@ export function createAiRouter(dependencies: AiRouteDependencies) {
   // POST /api/chapters/:chapterId/ai/batch-bubble-process
   router.post("/chapters/:chapterId/ai/batch-bubble-process", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const chapterId = req.params.chapterId as string;
 
       const chapter = await dependencies.chapterRepository.findById(chapterId);

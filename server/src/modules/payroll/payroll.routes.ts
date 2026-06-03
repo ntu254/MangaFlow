@@ -19,12 +19,12 @@ export type PayrollRouteDependencies = {
 
 const payrollSeriesRoles = new Set<string>([SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA]);
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
-async function resolveUser(dependencies: PayrollRouteDependencies, clerkId: string) {
-  const user = await dependencies.userRepository.findByClerkId(clerkId);
+async function resolveUser(dependencies: PayrollRouteDependencies, userId: string) {
+  const user = await dependencies.userRepository.findById(userId);
   if (!user) {
     throw new PayrollServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -101,7 +101,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.post("/task-rates", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       assertAdmin(user);
       const rate = await service.createTaskRate(req.body);
       res.status(201).json(ok(rate));
@@ -120,7 +120,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.patch("/task-rates/:taskRateId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       assertAdmin(user);
       res.json(ok(await service.updateTaskRate(req.params.taskRateId as string, req.body)));
     } catch (error) {
@@ -130,7 +130,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.delete("/task-rates/:taskRateId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       assertAdmin(user);
       res.json(ok(await service.deactivateTaskRate(req.params.taskRateId as string)));
     } catch (error) {
@@ -140,7 +140,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.get("/payroll/me", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       res.json(ok(await service.listEarningsForAssistant(user.id)));
     } catch (error) {
       sendPayrollError(res, error);
@@ -149,7 +149,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.get("/payroll", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       assertAdmin(user);
       res.json(ok(await service.listEarnings()));
     } catch (error) {
@@ -159,7 +159,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.get("/payroll/series/:seriesId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const seriesId = req.params.seriesId as string;
       await assertSeriesPayrollAccess(dependencies, user, seriesId);
       res.json(ok(await service.listEarningsForSeries(seriesId)));
@@ -170,7 +170,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.get("/payroll/assistants/:assistantId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const assistantId = req.params.assistantId as string;
       const earnings = await service.listEarningsForAssistant(assistantId);
       if (user.systemRole !== SYSTEM_ROLES.ADMIN && user.id !== assistantId) {
@@ -185,7 +185,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.get("/payroll/monthly", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       if (![SYSTEM_ROLES.ADMIN, SYSTEM_ROLES.MANGAKA].includes(user.systemRole as any)) {
         throw new PayrollServiceError("FORBIDDEN", "Mangaka or Admin role required", 403);
       }
@@ -197,7 +197,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.post("/payroll/tasks/:taskId/calculate", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertTaskPayrollAccess(dependencies, user, req.params.taskId as string);
       res.status(201).json(ok(await service.calculateTaskEarning(req.params.taskId as string)));
     } catch (error) {
@@ -207,7 +207,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.post("/payroll/tasks/:taskId/confirm", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertTaskPayrollAccess(dependencies, user, req.params.taskId as string);
       res.json(ok(await service.confirmTaskEarning(req.params.taskId as string)));
     } catch (error) {
@@ -217,7 +217,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
 
   router.post("/payroll/:earningId/mark-paid", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       assertAdmin(user);
       res.json(ok(await service.markPaid(req.params.earningId as string)));
     } catch (error) {

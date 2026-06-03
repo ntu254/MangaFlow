@@ -19,14 +19,6 @@ export type AuthenticatedRequest = Request & {
     fullName: string;
     avatarUrl: string | null;
   };
-  auth?: {
-    clerkId: string;
-    systemRole: string | null;
-    status: string;
-    email: string;
-    fullName: string;
-    avatarUrl: string | null;
-  };
 };
 
 function getBearerToken(req: Request) {
@@ -85,26 +77,16 @@ export function requireAuth(authVerifier: AuthVerifier) {
       return;
     }
 
-    const userId = payload.sub ?? payload.clerkId;
+    const userId = payload.sub ?? (payload as any).clerkId;
     if (!userId) {
       res.status(401).json(fail("Invalid token payload", "AUTH_INVALID"));
       return;
     }
 
-    // Attach req.user for compatibility
+    // Attach req.user
     req.user = {
       id: userId,
       _id: userId,
-      systemRole: payload.systemRole ?? null,
-      status: payload.status ?? "ACTIVE",
-      email: payload.email ?? "",
-      fullName: payload.fullName ?? "",
-      avatarUrl: payload.avatarUrl ?? null,
-    };
-
-    // Attach req.auth for legacy compatibility
-    req.auth = {
-      clerkId: userId,
       systemRole: payload.systemRole ?? null,
       status: payload.status ?? "ACTIVE",
       email: payload.email ?? "",

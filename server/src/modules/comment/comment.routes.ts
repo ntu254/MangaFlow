@@ -25,12 +25,12 @@ export type CommentRouteDependencies = {
   commentRepository: CommentRepository;
 };
 
-function getClerkId(req: AuthenticatedRequest) {
-  return req.auth!.clerkId;
+function getUserId(req: AuthenticatedRequest) {
+  return req.user!.id;
 }
 
-async function resolveUser(dependencies: CommentRouteDependencies, clerkId: string) {
-  const user = await dependencies.userRepository.findByClerkId(clerkId);
+async function resolveUser(dependencies: CommentRouteDependencies, userId: string) {
+  const user = await dependencies.userRepository.findById(userId);
   if (!user) {
     throw new CommentServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -143,7 +143,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.post("/comments", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertCreateAccess(dependencies, user, req.body.targetType as string, req.body.targetId as string);
 
       const comment = await service.createComment({
@@ -162,7 +162,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.get("/comments/target/:targetType/:targetId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       await assertReadAccess(dependencies, user, req.params.targetType as string, req.params.targetId as string);
 
       const comments = await service.listForTarget(
@@ -177,7 +177,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.get("/comments/:commentId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const comment = await service.getById(req.params.commentId as string);
       await assertReadAccess(dependencies, user, comment.targetType, comment.targetId);
       res.json(ok(comment));
@@ -188,7 +188,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.patch("/comments/:commentId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const isAdmin = user.systemRole === SYSTEM_ROLES.ADMIN;
       const updated = await service.updateComment(
         req.params.commentId as string,
@@ -204,7 +204,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.delete("/comments/:commentId", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const isAdmin = user.systemRole === SYSTEM_ROLES.ADMIN;
       await service.deleteComment(req.params.commentId as string, user.id, isAdmin);
       res.json(ok({ deleted: true }));
@@ -215,7 +215,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.post("/comments/:commentId/mark-fixed", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const comment = await service.getById(req.params.commentId as string);
 
       if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
@@ -234,7 +234,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.post("/comments/:commentId/verify-fixed", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const comment = await service.getById(req.params.commentId as string);
 
       if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
@@ -257,7 +257,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.post("/comments/:commentId/resolve", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const comment = await service.getById(req.params.commentId as string);
 
       if (user.systemRole !== SYSTEM_ROLES.ADMIN) {
@@ -280,7 +280,7 @@ export function createCommentRouter(dependencies: CommentRouteDependencies) {
 
   router.post("/comments/:commentId/reopen", authenticate, async (req, res) => {
     try {
-      const user = await resolveUser(dependencies, getClerkId(req as AuthenticatedRequest));
+      const user = await resolveUser(dependencies, getUserId(req as AuthenticatedRequest));
       const comment = await service.getById(req.params.commentId as string);
 
       if (user.systemRole !== SYSTEM_ROLES.ADMIN) {

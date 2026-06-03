@@ -11,7 +11,6 @@ function serializeUser(document: UserDocument & { _id: unknown }): AuthUser {
   const idStr = String(document._id);
   return {
     id: idStr,
-    clerkId: idStr, // compatibility mapping clerkId -> MongoDB ID
     email: document.email,
     fullName: document.fullName,
     avatarUrl: document.avatarUrl,
@@ -25,12 +24,6 @@ function serializeUser(document: UserDocument & { _id: unknown }): AuthUser {
 
 export function createMongoUserRepository(): UserRepository {
   return {
-    async findByClerkId(clerkId) {
-      if (!mongoose.Types.ObjectId.isValid(clerkId)) return null;
-      const user = await UserModel.findById(clerkId);
-      return user ? serializeUser(user) : null;
-    },
-
     async findById(id) {
       if (!mongoose.Types.ObjectId.isValid(id)) return null;
       const user = await UserModel.findById(id);
@@ -105,43 +98,6 @@ export function createMongoUserRepository(): UserRepository {
       const user = await UserModel.findByIdAndUpdate(
         userId,
         { $set: { status } },
-        { returnDocument: "after" }
-      );
-      return user ? serializeUser(user) : null;
-    },
-
-    // Legacy / test compatibility implementations
-    async upsertFromProfile(profile) {
-      const user = await UserModel.findOneAndUpdate(
-        { email: profile.email },
-        {
-          $set: {
-            fullName: profile.fullName,
-            avatarUrl: profile.avatarUrl
-          },
-          $setOnInsert: {
-            passwordHash: "NOPASSWORD_MOCKED_SYNC",
-            systemRole: null,
-            status: "ACTIVE"
-          }
-        },
-        { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
-      );
-      return serializeUser(user);
-    },
-
-    async updateOnboarding(clerkId, input) {
-      if (!mongoose.Types.ObjectId.isValid(clerkId)) return null;
-      const update: any = {};
-      if (input.fullName !== undefined) update.fullName = input.fullName;
-      if (input.avatarUrl !== undefined) update.avatarUrl = input.avatarUrl;
-      if (input.requestedSystemRole !== undefined) {
-        update.systemRole = input.requestedSystemRole;
-      }
-
-      const user = await UserModel.findByIdAndUpdate(
-        clerkId,
-        { $set: update },
         { returnDocument: "after" }
       );
       return user ? serializeUser(user) : null;

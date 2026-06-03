@@ -70,8 +70,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       response.status === 401 &&
       !url.includes("/auth/refresh") &&
       !url.includes("/auth/logout") &&
-      !url.includes("/auth/login") &&
-      !url.includes("/auth/google");
+      !url.includes("/auth/login");
 
     if (isRefreshable401) {
       if (!isRefreshing) {
@@ -137,7 +136,6 @@ export async function parseApiResponse<T>(response: Response, fallbackMessage: s
 
 export type CurrentUser = {
   id: string;
-  clerkId: string;
   email: string;
   fullName: string;
   avatarUrl: string | null;

@@ -14,7 +14,6 @@ import type { GetTokenFn } from "@/shared/api";
 
 type RoleReviewUser = {
   id: string;
-  clerkId: string;
   email: string;
   fullName: string;
   systemRole: string | null;

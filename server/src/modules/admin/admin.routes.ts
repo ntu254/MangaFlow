@@ -59,17 +59,15 @@ export function createAdminRouter(dependencies: AdminRouteDependencies) {
   const { userRepository } = dependencies;
 
   async function getActor(req: AuthenticatedRequest) {
-    const profile = req.auth;
+    const profile = req.user;
     if (!profile) {
       return null;
     }
     if (profile.systemRole !== "ADMIN" || profile.status !== "ACTIVE") {
       return null;
     }
-    const id = profile.clerkId;
-    const user = userRepository.findById ? await userRepository.findById(id) : null;
-    if (user) return user;
-    return userRepository.findByClerkId(id);
+    const id = profile.id;
+    return userRepository.findById(id);
   }
 
   // GET /admin/users — List all users (or filter by role review)
