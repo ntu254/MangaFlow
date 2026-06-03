@@ -3,7 +3,7 @@
 ## Proof Strategy
 
 MF-009 is done when Region domain validation and route authorization are proven
-without relying on live Clerk/Mongo/R2 fixtures.
+without relying on live Google OAuth/Mongo/R2 fixtures.
 
 ## Test Plan
 

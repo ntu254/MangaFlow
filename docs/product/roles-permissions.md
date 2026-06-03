@@ -55,7 +55,7 @@ first-admin endpoint.
 
 ## Redirect Rules
 
-After Clerk login, the client calls `/api/auth/me` and redirects by internal
+After Google sign in, the client calls `/api/auth/me` and redirects by internal
 role:
 
 | Role | Redirect |
@@ -70,6 +70,6 @@ Users without an assigned role go to `/app/onboarding`.
 
 ## Permission Non-Goals for Phase 0
 
-Phase 0 foundation scaffolding must not implement Clerk auth, role checks,
-series permissions, or onboarding. Those require their own story packets and
-validation.
+Phase 0 foundation scaffolding must not implement Google OAuth + JWT auth,
+role checks, series permissions, or onboarding. Those require their own story
+packets and validation.

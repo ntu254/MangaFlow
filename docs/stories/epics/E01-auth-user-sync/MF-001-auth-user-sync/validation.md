@@ -10,26 +10,26 @@ minimal client auth state boundary.
 
 | Layer | Cases |
 | --- | --- |
-| Unit | Role/status parsing; redirect mapping; Clerk claim to internal user DTO; API success/error envelope helpers; onboarding input validation. |
-| Integration | Missing token returns `401`; invalid token returns `401`; valid token with no local user follows accepted sync behavior; sync is idempotent by `clerkId`; suspended user returns `403`; `/api/auth/me` returns standard envelope. |
+| Unit | Role/status parsing; redirect mapping; Google OAuth profile to internal user DTO; API success/error envelope helpers; onboarding input validation. |
+| Integration | Missing token returns `401`; invalid token returns `401`; valid token with no local user follows accepted sync behavior; sync is idempotent by `clerkId` (Google `sub`); suspended user returns `403`; `/api/auth/me` returns standard envelope. |
 | E2E | Signed-out user sees public auth route; signed-in user without role lands on onboarding; role-bearing user redirects to the correct app dashboard placeholder. |
 | Platform | `npm run typecheck`; `npm run build`; backend health still passes; auth routes boot with required env validation. |
-| Performance | Auth middleware does not duplicate Clerk verification or database reads in one request path. |
+| Performance | Auth middleware does not duplicate JWT verification or database reads in one request path. |
 | Logs/Audit | Auth failures are logged without token leakage; sync/onboarding audit events are emitted or explicitly deferred with a follow-up story. |
 
 ## Fixtures
 
 Required deterministic fixtures:
 
-- Clerk subject `clerk_admin_001`.
-- Clerk subject `clerk_mangaka_001`.
-- Clerk subject `clerk_pending_001`.
-- Clerk subject `clerk_suspended_001`.
+- OAuth subject `google_admin_001`.
+- OAuth subject `google_mangaka_001`.
+- OAuth subject `google_pending_001`.
+- OAuth subject `google_suspended_001`.
 - User email/profile payloads for each subject.
 
 Accepted integration strategy:
 
-- Mock the Clerk verifier at the backend boundary for deterministic tests.
+- Mock the JWT verifier at the backend boundary for deterministic tests.
 - Use repository-level fakes for auth service behavior in this slice while
   keeping runtime Mongoose/MongoDB wiring in place. Live/disposable Mongo proof
   is deferred until the database test harness exists.
@@ -49,7 +49,7 @@ npm run test --workspace client
 Implemented deterministic proof:
 
 - `npm run test --workspace server` passed.
-  - Auth service syncs Clerk profiles idempotently.
+  - Auth service syncs Google OAuth profiles idempotently.
   - Redirect mapping covers pending, role-bearing, and suspended users.
   - Onboarding can request `MANGAKA` without assigning `systemRole`.
   - Onboarding rejects privileged role requests.
@@ -67,18 +67,18 @@ Implemented deterministic proof:
     returned `401`.
   - `GET http://localhost:5174` returned Vite HTML.
   - `GET http://localhost:5174/sign-in` returned Vite HTML.
-  - Vite served `src/main.tsx` with `ClerkProvider` and `src/App.tsx` with
-    Clerk sign-in UI imports.
+  - Vite served `src/main.tsx` with `AuthProvider` and `src/App.tsx` with
+    custom sign-in UI imports.
 - Runtime env smoke after adding real keys:
-  - `client/.env` has `VITE_API_BASE_URL` and `VITE_CLERK_PUBLISHABLE_KEY` set.
+  - `client/.env` has `VITE_API_BASE_URL` set.
   - `server/.env` has `PORT`, `CORS_ORIGIN`, `AI_SERVICE_URL`,
-    `MONGODB_URI`, and `CLERK_SECRET_KEY` set.
+    `MONGODB_URI`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `APP_URL` set.
   - Secrets were checked only for presence and were not printed.
 
 Deferred proof:
 
-- Live Clerk sign-in E2E is not run because no browser login session or valid
-  Clerk session token was available to the agent.
+- Live Google OAuth sign-in E2E is not run because no browser login session or valid
+  Google OAuth session token was available to the agent.
 - Live/disposable Mongo integration is deferred until database test
   infrastructure exists; this slice uses repository-level fakes per decision
   `0008-auth-user-sync-boundary`.

@@ -92,9 +92,9 @@ Worker prompts must include:
 
 Current primary surfaces:
 
-- `client/`: React + Vite + TypeScript + Clerk + Tailwind/shadcn browser app.
-- `server/`: Express + TypeScript modular monolith with Mongo/Mongoose, Clerk
-  auth, RBAC, storage, upload, and domain routes.
+- `client/`: React + Vite + TypeScript + Google OAuth + JWT + Tailwind/shadcn browser app.
+- `server/`: Express + TypeScript modular monolith with Mongo/Mongoose, custom
+  JWT auth, RBAC, storage, upload, and domain routes.
 - `ai-service/`: FastAPI service, currently a thin health surface.
 - `docs/`, `scripts/bin/harness-cli.exe`, and `harness.db`: Harness docs,
   durable story/proof/trace state, and workflow records.
@@ -112,7 +112,7 @@ Validation gaps to watch:
 - `MF-004`, `MF-006`, and `MF-007` are marked implemented but have weak or
   missing proof compared with later stories.
 - Browser E2E is still mostly deferred.
-- Live provider proof for Clerk, Mongo fixtures, R2/MinIO, and AI processing is
+- Live provider proof for Google OAuth, Mongo fixtures, R2/MinIO, and AI processing is
   not broadly established.
 - Do not print environment secrets while debugging.
 

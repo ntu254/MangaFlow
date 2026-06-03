@@ -6,7 +6,7 @@ Frontend sử dụng:
 
 React Router
 
-\+ Clerk Protected Route
+\+ Auth Guard (JWT-based)
 
 \+ Role-Based Route Guard
 
@@ -53,8 +53,8 @@ Mục tiêu:
 | **Path**      | **Screen**        | **Access** |
 |---------------|-------------------|------------|
 | /             | Landing Page      | Public     |
-| /sign-in/\*   | Clerk Sign In     | Public     |
-| /sign-up/\*   | Clerk Sign Up     | Public     |
+| /sign-in      | Sign In (Google)  | Public     |
+| /sign-up      | Sign Up (Google)  | Public     |
 | /unauthorized | Unauthorized Page | Public     |
 | /not-found    | Not Found Page    | Public     |
 
@@ -86,7 +86,7 @@ Hiển thị khi route không tồn tại.
 
 ## 4. Auth Redirect Rule
 
-Sau khi login bằng Clerk, frontend gọi:
+Sau khi login bằng Google, frontend gọi:
 
 /api/auth/me
 
@@ -1438,11 +1438,11 @@ Một số route có thể dùng chung giữa nhiều role, nhưng được ki�
 
 Checks:
 
-- User is signed in with Clerk.
+- User is signed in with Google OAuth.
 
-- Clerk session exists.
+- JWT access token exists and is valid.
 
-- Token is valid.
+- Token is not expired.
 
 Pseudo flow:
 
@@ -1450,7 +1450,7 @@ User opens protected route
 
 ↓
 
-Check Clerk auth
+Check auth (useAuth hook)
 
 ↓
 

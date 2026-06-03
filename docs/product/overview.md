@@ -35,7 +35,7 @@ status tracking with one role-aware workspace.
 
 The MVP proves one complete production flow:
 
-1. User signs in with Clerk.
+1. User signs in with Google.
 2. Mangaka creates a series.
 3. Mangaka uploads a manuscript.
 4. Editor reviews the manuscript.

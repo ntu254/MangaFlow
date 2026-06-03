@@ -7,7 +7,7 @@ MangaFlow currently has only Phase 0 foundation behavior:
 - `client/` renders a minimal Vite shell.
 - `server/` exposes `GET /api/health`.
 - `ai-service/` exposes `GET /health`.
-- There is no Clerk integration.
+- There is no Google OAuth integration.
 - There is no MongoDB connection or internal user model.
 - There are no protected routes, route guards, or authenticated API endpoints.
 
@@ -15,10 +15,10 @@ MangaFlow currently has only Phase 0 foundation behavior:
 
 MangaFlow has an authenticated identity foundation:
 
-- The client can initialize Clerk and represent signed-in, signed-out, and
+- The client can initialize Google OAuth and represent signed-in, signed-out, and
   onboarding-pending states.
-- The backend can verify Clerk session tokens.
-- The backend can idempotently sync a Clerk user into an internal MongoDB user
+- The backend can verify JWT tokens issued after Google OAuth sign-in.
+- The backend can idempotently sync a Google OAuth user into an internal MongoDB user
   record.
 - `GET /api/auth/me` returns the current internal user and onboarding/redirect
   state through the standard API response envelope.
@@ -58,7 +58,7 @@ MangaFlow has an authenticated identity foundation:
 
 - Users without roles are stored with `systemRole: null`.
 - Onboarding can request `MANGAKA` or `ASSISTANT`, but it cannot assign a role.
-- Integration tests mock the Clerk verifier at the backend boundary and use
+- Integration tests mock the JWT verifier at the backend boundary and use
   repository-level fakes for auth service behavior. Runtime code still wires
   Mongoose and MongoDB for the real application path.
 

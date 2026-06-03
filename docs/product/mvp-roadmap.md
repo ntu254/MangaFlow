@@ -34,8 +34,8 @@ surface scaffolding. Prove only build and health smoke behavior.
 
 ### Phase 1 - Auth and Roles
 
-Wire Clerk, internal user sync, onboarding, system roles, series memberships,
-and route/API guards.
+Wire Google OAuth + JWT, internal user sync, onboarding, system roles, series
+memberships, and route/API guards.
 
 ### Phase 2 - Core Manga Data
 

@@ -18,7 +18,7 @@ In scope:
 
 Out of scope:
 
-- Full Clerk mobile credential setup.
+- Full Google OAuth mobile credential setup.
 - Native push notification provider setup.
 - Device farm, EAS build, or store distribution.
 - Desktop-level canvas annotation.

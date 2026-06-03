@@ -88,7 +88,7 @@ management, or AI batch processing.
 | **Layer**         | **Recommendation**                   | **Reason**                                                                |
 |-------------------|--------------------------------------|---------------------------------------------------------------------------|
 | Mobile Framework  | React Native + Expo + TypeScript     | Good for fast MVP, shared React knowledge, easier deployment and testing. |
-| Authentication    | Clerk mobile authentication          | Consistent with web authentication strategy.                              |
+| Authentication    | JWT + Google OAuth                   | Consistent with web authentication strategy.                              |
 | Data Fetching     | TanStack Query                       | Caching, mutation handling, loading states, optimistic updates.           |
 | Styling           | NativeWind or themed component layer | Can reuse Tailwind-like design tokens.                                    |
 | Backend           | Same Express API on Railway          | No separate mobile backend required for MVP.                              |
@@ -425,7 +425,7 @@ users do not access detailed manga pages in MVP mobile.
 
 | **Rule**       | **Specification**                                                                      |
 |----------------|----------------------------------------------------------------------------------------|
-| Authentication | All protected mobile API requests use Clerk token.                                     |
+| Authentication | All protected mobile API requests use JWT token.                                       |
 | Editor Access  | Editor only accesses assigned series and related review items.                         |
 | Board Access   | Board sees series summary, ranking, votes, decisions; not detailed manga pages in MVP. |
 | Board Chair    | Only BOARD_CHAIR can see and execute tie-break actions.                                |

@@ -2,7 +2,7 @@
 
 ## Current Behavior
 
-The system syncs user roles from Clerk but does not enforce RBAC natively on the backend (except inside specific routes manually). The frontend manually conditionally renders based on roles but lacks a robust declarative guard component.
+The system syncs user roles from Google OAuth but does not enforce RBAC natively on the backend (except inside specific routes manually). The frontend manually conditionally renders based on roles but lacks a robust declarative guard component.
 
 ## Target Behavior
 

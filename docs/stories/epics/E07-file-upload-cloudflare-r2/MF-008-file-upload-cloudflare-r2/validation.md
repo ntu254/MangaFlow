@@ -68,7 +68,7 @@ Result:
 ## Deferred Proof
 
 - No browser E2E upload was recorded for this story because it needs an active
-  authenticated Mangaka, a Series, and a Chapter fixture in the local Clerk/Mongo
+  authenticated Mangaka, a Series, and a Chapter fixture in the local Google OAuth/Mongo
   environment.
 - Live R2/MinIO connectivity is not asserted in automated tests; the validated
   contract is S3-compatible configuration plus local fallback behavior.

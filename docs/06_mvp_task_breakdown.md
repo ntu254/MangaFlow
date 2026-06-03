@@ -4,7 +4,7 @@
 
 MVP tập trung hoàn thiện workflow chính:
 
-Login bằng Clerk
+Login bằng Google OAuth + JWT
 
 ↓
 
@@ -179,7 +179,8 @@ server/
 
 │ ├── storage/
 
-│ ├── clerk/
+│ ├── jwt/
+│ ├── google/
 
 │ └── ai/
 
@@ -313,47 +314,47 @@ Acceptance Criteria:
 
 ### Goal
 
-Tích hợp Clerk login và sync user vào MongoDB.
+Tích hợp Google OAuth + JWT login và sync user vào MongoDB.
 
-#### TASK-02.1 — Setup Clerk frontend
+#### TASK-02.1 — Setup auth frontend
 
 **Priority:** Must Have
 
 Checklist:
 
-- Install Clerk React SDK.
+- Install useAuth hook from @/shared/hooks/useAuth.
 
-- Add ClerkProvider.
+- Add AuthProvider.
 
 - Setup .env:
 
-VITE_CLERK_PUBLISHABLE_KEY=
+VITE_API_BASE_URL=
 
-- Create sign-in route.
+- Create sign-in route (Google OAuth redirect).
 
-- Create sign-up route.
+- Create sign-up route (Google OAuth redirect).
 
 Acceptance Criteria:
 
-- User có thể sign in.
+- User có thể sign in with Google.
 
-- User có thể sign up.
+- User có thể sign up with Google.
 
 - Sau login redirect vào /app.
 
-#### TASK-02.2 — Setup Clerk backend middleware
+#### TASK-02.2 — Setup JWT backend middleware
 
 **Priority:** Must Have
 
 Checklist:
 
-- Install Clerk Express SDK.
+- Setup JWT sign/verify utilities.
 
-- Setup CLERK_SECRET_KEY.
+- Setup JWT_SECRET.
 
 - Create requireAuth middleware.
 
-- Attach clerkId vào request.
+- Attach user info vào request.
 
 Acceptance Criteria:
 
@@ -399,7 +400,7 @@ Acceptance Criteria:
 
 Behavior:
 
-- Lấy user từ Clerk token.
+- Lấy user từ Google OAuth ID token.
 
 - Nếu user chưa tồn tại, tạo user local.
 
@@ -2476,7 +2477,7 @@ Acceptance Criteria:
 
 - Vercel build thành công.
 
-- Clerk env đúng.
+- Auth env đúng.
 
 - API URL đúng.
 
@@ -2522,7 +2523,7 @@ Acceptance Criteria:
 
 - Mỗi role có user test.
 
-- User có thể login hoặc map qua Clerk email.
+- User có thể login hoặc map qua Google email.
 
 #### TASK-20.2 — Create seed series
 
@@ -2586,7 +2587,7 @@ Acceptance Criteria:
 
 3\. MongoDB connection
 
-4\. Clerk integration
+4\. Google OAuth + JWT integration
 
 5\. User sync
 
@@ -2678,7 +2679,7 @@ develop
 
 feature/project-setup
 
-feature/auth-clerk
+feature/auth-google
 
 feature/user-role-rbac
 
@@ -2738,11 +2739,11 @@ Connect MongoDB Atlas.
 
 ### Task 5
 
-Setup Clerk frontend login.
+Setup Google OAuth frontend login.
 
 ### Task 6
 
-Setup Clerk backend auth middleware.
+Setup JWT backend auth middleware.
 
 ### Task 7
 
@@ -2764,7 +2765,7 @@ Create Mangaka My Series screen.
 
 MVP được xem là hoàn thành khi:
 
-1.  User login bằng Clerk được.
+1.  User login bằng Google OAuth được.
 
 2.  User có role và được redirect đúng dashboard.
 

@@ -14,13 +14,13 @@ https://mangaflow-api.railway.app/api
 
 ### 1.2. Authentication
 
-Hệ thống sử dụng Clerk.
+Hệ thống sử dụng Google OAuth + JWT.
 
 Frontend gửi request kèm Bearer token:
 
-Authorization: Bearer \<clerk_session_token\>
+Authorization: Bearer \<jwt_access_token\>
 
-Backend verify token bằng Clerk middleware, sau đó map clerkId sang User trong MongoDB.
+Backend verify token bằng JwtAuthVerifier, sau đó map Google OAuth `sub` sang User trong MongoDB (lưu trong trường `clerkId`).
 
 ### 1.3. Standard Success Response
 
@@ -94,12 +94,12 @@ GET /api/tasks?page=1&limit=20&status=TODO&sortBy=createdAt&sortOrder=desc
 
 ### 2.1. Purpose
 
-Auth API dùng để đồng bộ Clerk user vào database nội bộ và lấy thông tin user hiện tại.
+Auth API dùng để đồng bộ Google OAuth user vào database nội bộ và lấy thông tin user hiện tại.
 
 | **Method** | **Endpoint**              | **Access**    | **Description**                           |
 |------------|---------------------------|---------------|-------------------------------------------|
 | GET        | /auth/me                  | Authenticated | Lấy thông tin user hiện tại               |
-| POST       | /auth/sync-user           | Authenticated | Sync Clerk user vào MongoDB               |
+| POST       | /auth/sync-user           | Authenticated | Sync Google OAuth user vào MongoDB        |
 | POST       | /auth/complete-onboarding | Authenticated | Hoàn tất onboarding nếu user chưa có role |
 | GET        | /auth/permissions         | Authenticated | Lấy danh sách quyền của user hiện tại     |
 

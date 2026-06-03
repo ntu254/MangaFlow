@@ -7,7 +7,7 @@ When updating durable proof status, use numeric booleans:
 | --- | --- |
 | Unit | Backend RBAC middleware tests cover system-role and series-role allow/deny behavior. Frontend RoleGuard tests cover allowed, missing, unassigned, and disallowed users. |
 | Integration | Existing protected route tests exercise RBAC through Series, Manuscript, Chapter, Page, and Admin APIs. |
-| E2E | Browser E2E remains deferred until reusable Clerk/Mongo fixtures exist. |
+| E2E | Browser E2E remains deferred until reusable Google OAuth/Mongo fixtures exist. |
 | Platform | Typecheck/test/build commands run locally. |
 | Release | Verify Mangakas can still access their Series. |
 

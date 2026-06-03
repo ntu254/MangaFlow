@@ -3,7 +3,7 @@ Table of Contents
 ## 1 MangaFlow — Manga Creation Workflow and Publishing Management System
 
 **Version:** SPEC v1.0
-**Stack:** MERN + ShadCN/ui + Clerk + FastAPI AI Service
+**Stack:** MERN + ShadCN/ui + Google OAuth + JWT + FastAPI AI Service
 **Architecture:** Modular Monolith + Domain Driven Modules + Feature-Based Frontend
 **Frontend Deploy:** Vercel
 **Backend Deploy:** Railway
@@ -96,7 +96,7 @@ In the manga production process, Mangaka, Assistants, Editors, and Editorial Boa
 
 - Zustand or Redux Toolkit
 
-- Clerk React SDK
+- Custom auth hook (useAuth)
 
 - Canvas/SVG overlay for page annotation
 
@@ -114,7 +114,7 @@ In the manga production process, Mangaka, Assistants, Editors, and Editorial Boa
 
 - Mongoose
 
-- Clerk Express SDK
+- Custom auth middleware (jwt + Google OAuth)
 
 - Modular Monolith architecture
 
@@ -176,18 +176,18 @@ Deploy: Railway
 │
 ┌──────┼──────────┬──────────────┬──────────────┐
 ▼ ▼ ▼ ▼ ▼
-Clerk MongoDB Cloudflare R2 AI Service Notification
-Auth Atlas M0 + MinIO Dev Railway System
+Google MongoDB Cloudflare R2 AI Service Notification
+Auth M0 + MinIO Dev Railway System
 
 ### 4.3 3.3. Communication Flow
 
 React Client
 │
-│ Clerk Login
+│ Google OAuth Sign In
 ▼
-Clerk Auth
+Custom Google OAuth + JWT
 │
-│ Session Token / JWT
+│ JWT Access Token
 ▼
 Express Backend
 │
@@ -279,7 +279,8 @@ server/
 │ │ ├── socket/
 │ │ ├── storage/
 │ │ ├── ai/
-│ │ └── clerk/
+│ │ ├── jwt/
+│ │ └── google/
 │ │
 │ ├── config/
 │ └── app.ts
@@ -292,7 +293,7 @@ server/
 
 | Module        | Responsibility                                       |
 | ------------- | ---------------------------------------------------- |
-| auth          | Clerk verification, sync user, auth middleware       |
+| auth          | JWT verification, sync user, auth middleware         |
 | user          | User profile, role, status                           |
 | series        | Series profile and lifecycle                         |
 | series-member | Series-level role management                         |
@@ -388,11 +389,11 @@ Recommended tone:
 
 #### 7.3.1 Auth Layout
 
-- Sign in.
+- Sign in (Google OAuth redirect).
 
-- Sign up.
+- Sign up (Google OAuth redirect).
 
-- Clerk auth callback.
+- OAuth callback.
 
 #### 7.3.2 Dashboard Layout
 
@@ -1984,11 +1985,11 @@ Realtime Socket.IO can be added later.
 
 ### 23.1 22.1. Authentication
 
-- Clerk handles login and session.
+- Google OAuth handles login and identity.
 
-- Backend verifies Clerk session.
+- Backend verifies JWT access token.
 
-- Backend syncs Clerk user into local database.
+- Backend syncs Google user into local database.
 
 - Frontend role cannot be trusted.
 
@@ -2046,7 +2047,6 @@ Realtime Socket.IO can be added later.
 
 ### 24.1 23.1. Client
 
-VITE_CLERK_PUBLISHABLE_KEY=
 VITE_API_BASE_URL=
 
 ### 24.2 23.2. Backend
@@ -2055,8 +2055,10 @@ NODE_ENV=
 PORT=
 MONGODB_URI=
 
-CLERK_SECRET_KEY=
-CLERK_PUBLISHABLE_KEY=
+JWT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+APP_URL=
 
 CLIENT_URL=
 
@@ -2160,7 +2162,7 @@ mongodb: MongoDB Atlas or local Docker
 
 ### 27.1 26.1. Included in MVP
 
-- Clerk login.
+- Google OAuth login + JWT.
 
 - User sync.
 
@@ -2256,7 +2258,7 @@ mongodb: MongoDB Atlas or local Docker
 
 - Setup MongoDB Atlas.
 
-- Setup Clerk.
+- Setup Google OAuth + JWT.
 
 - Setup protected routes.
 
@@ -2266,7 +2268,7 @@ mongodb: MongoDB Atlas or local Docker
 
 ### 28.2 Milestone 2 — User, Role, SeriesMember
 
-- Sync Clerk user.
+- Sync Google OAuth user.
 
 - Internal user profile.
 

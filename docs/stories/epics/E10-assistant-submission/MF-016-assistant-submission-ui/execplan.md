@@ -51,5 +51,5 @@ Pause for human confirmation if:
 
 - Submission UI requires binary upload to satisfy this story.
 - Backend API shape must change.
-- Authenticated rendered E2E becomes mandatory but no Clerk fixture/browser is
+- Authenticated rendered E2E becomes mandatory but no Google OAuth fixture/browser is
   available.

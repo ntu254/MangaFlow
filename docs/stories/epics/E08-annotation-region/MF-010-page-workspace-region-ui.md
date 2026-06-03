@@ -70,5 +70,5 @@ MF-009 Region API.
   `http://127.0.0.1:5174/`.
 
 Browser plugin was not available as a callable tool in this session, so
-authenticated rendered E2E remains deferred until a Clerk-backed browser fixture
+authenticated rendered E2E remains deferred until a Google OAuth-backed browser fixture
 is available.

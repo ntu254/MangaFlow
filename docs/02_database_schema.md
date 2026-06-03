@@ -4,7 +4,7 @@ Table of Contents
 
 1	MangaFlow — Manga Creation Workflow and Publishing Management System
 Version: SPEC v1.0
-Stack: MERN + ShadCN/ui + Clerk + FastAPI AI Service
+Stack: MERN + ShadCN/ui + Google OAuth + JWT + FastAPI AI Service
 Architecture: Modular Monolith + Domain Driven Modules + Feature-Based Frontend
 Frontend Deploy: Vercel
 Backend Deploy: Railway
@@ -56,7 +56,7 @@ Tailwind CSS
 React Router
 TanStack Query
 Zustand or Redux Toolkit
-Clerk React SDK
+Custom auth hook (useAuth)
 Canvas/SVG overlay for page annotation
 Deploy on Vercel
 3.2	2.2. Backend
@@ -65,7 +65,7 @@ Express.js
 TypeScript
 MongoDB
 Mongoose
-Clerk Express SDK
+Custom auth middleware (jwt + Google OAuth)
 Modular Monolith architecture
 Domain Driven Modules
 Deploy on Railway
@@ -102,16 +102,16 @@ Deploy: Railway
         │
  ┌──────┼──────────┬──────────────┬──────────────┐
  ▼      ▼          ▼              ▼              ▼
-Clerk   MongoDB    Cloudflare R2  AI Service     Notification
-Auth    Atlas M0   + MinIO Dev    Railway        System
+Google   MongoDB    Cloudflare R2  AI Service     Notification
+Auth     Atlas M0  + MinIO Dev    Railway        System
 4.3	3.3. Communication Flow
 React Client
    │
-   │ Clerk Login
+   │ Google OAuth Sign In
    ▼
-Clerk Auth
+Custom Google OAuth + JWT
    │
-   │ Session Token / JWT
+   │ JWT Access Token
    ▼
 Express Backend
    │
@@ -208,7 +208,8 @@ server/
 │   │   ├── socket/
 │   │   ├── storage/
 │   │   ├── ai/
-│   │   └── clerk/
+│   │   ├── jwt/
+│   │   └── google/
 │   │
 │   ├── config/
 │   └── app.ts
@@ -220,7 +221,7 @@ server/
 Module
 Responsibility
 auth
-Clerk verification, sync user, auth middleware
+JWT verification, sync user, auth middleware
 user
 User profile, role, status
 series
@@ -322,7 +323,7 @@ No overly bright white blocks in dark mode.
 7.3.1	Auth Layout
 Sign in.
 Sign up.
-Clerk auth callback.
+OAuth callback (Google redirect).
 7.3.2	Dashboard Layout
 Sidebar by role.
 Header.
@@ -1755,9 +1756,9 @@ Realtime Socket.IO can be added later.
 
 23	22. Security Requirements
 23.1	22.1. Authentication
-Clerk handles login and session.
-Backend verifies Clerk session.
-Backend syncs Clerk user into local database.
+Google OAuth handles login and identity.
+Backend verifies JWT access token.
+Backend syncs Google user into local database.
 Frontend role cannot be trusted.
 23.2	22.2. Authorization
 Role-based access control.
@@ -1787,15 +1788,16 @@ Publication changed.
 
 24	23. Environment Variables
 24.1	23.1. Client
-VITE_CLERK_PUBLISHABLE_KEY=
 VITE_API_BASE_URL=
 24.2	23.2. Backend
 NODE_ENV=
 PORT=
 MONGODB_URI=
 
-CLERK_SECRET_KEY=
-CLERK_PUBLISHABLE_KEY=
+JWT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+APP_URL=
 
 CLIENT_URL=
 
@@ -1862,7 +1864,7 @@ Keep frontend feature-based.
 
 27	26. MVP Scope
 27.1	26.1. Included in MVP
-Clerk login.
+Google OAuth login + JWT.
 User sync.
 Role management.
 Series creation.
@@ -1911,12 +1913,12 @@ Setup monorepo.
 Setup React + Vite + ShadCN/ui.
 Setup Express TypeScript.
 Setup MongoDB Atlas.
-Setup Clerk.
+Setup Google OAuth + JWT.
 Setup protected routes.
 Setup Railway backend deploy.
 Setup Vercel frontend deploy.
 28.2	Milestone 2 — User, Role, SeriesMember
-Sync Clerk user.
+Sync Google OAuth user.
 Internal user profile.
 System role.
 SeriesMember role.

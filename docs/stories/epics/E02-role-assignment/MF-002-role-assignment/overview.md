@@ -2,7 +2,7 @@
 
 ## Current Behavior
 
-`MF-001` can create or refresh an internal user from Clerk. New users are stored
+`MF-001` can create or refresh an internal user from Google OAuth. New users are stored
 with `systemRole: null`, and onboarding can record `requestedSystemRole` as
 `MANGAKA` or `ASSISTANT`.
 

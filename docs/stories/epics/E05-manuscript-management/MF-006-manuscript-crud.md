@@ -41,7 +41,7 @@ Provide Mangaka with the ability to upload and submit manuscripts, and Editor to
 - [x] Manuscript submit/review actions reject manuscript IDs outside the route series.
 
 ## Review Notes
-Backend typecheck and tests pass. Frontend rendering remains covered by build/typecheck, with browser E2E deferred until reusable Clerk/Mongo fixtures exist.
+Backend typecheck and tests pass. Frontend rendering remains covered by build/typecheck, with browser E2E deferred until reusable Google OAuth/Mongo fixtures exist.
 
 ## Validation Evidence
 

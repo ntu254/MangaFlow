@@ -26,7 +26,7 @@ Mục tiêu:
 
 - Middleware dùng chung đặt trong shared/.
 
-- Tích hợp bên ngoài như database, storage, Clerk, AI service đặt trong infrastructure/.
+- Tích hợp bên ngoài như database, storage, JWT + Google OAuth, AI service đặt trong infrastructure/.
 
 ## 2. Root Backend Structure
 
@@ -48,7 +48,7 @@ server/
 
 │ │ ├── cors.config.ts
 
-│ │ ├── clerk.config.ts
+│ │ ├── jwt.config.ts
 
 │ │ ├── database.config.ts
 
@@ -114,7 +114,7 @@ server/
 
 │ │ ├── database/
 
-│ │ ├── clerk/
+│ │ ├── google/
 
 │ │ ├── storage/
 
@@ -370,7 +370,7 @@ config/
 
 ├── cors.config.ts
 
-├── clerk.config.ts
+├── jwt.config.ts
 
 ├── database.config.ts
 
@@ -398,9 +398,13 @@ CLIENT_URL=
 
 MONGODB_URI=
 
-CLERK_SECRET_KEY=
+JWT_SECRET=
 
-CLERK_PUBLISHABLE_KEY=
+GOOGLE_CLIENT_ID=
+
+GOOGLE_CLIENT_SECRET=
+
+APP_URL=
 
 S3_PROVIDER=
 
@@ -474,13 +478,23 @@ infrastructure/
 
 │
 
-├── clerk/
+├── jwt/
 
-│ ├── clerk.client.ts
+│ ├── jwt.client.ts
 
-│ ├── clerk.middleware.ts
+│ ├── jwt.middleware.ts
 
-│ └── clerk.types.ts
+│ └── jwt.types.ts
+
+│
+
+├── google/
+
+│ ├── google.client.ts
+
+│ ├── google.types.ts
+
+│ └── google.verifier.ts
 
 │
 
@@ -548,27 +562,45 @@ Trách nhiệm:
 
 - Dùng cho /api/health/database.
 
-### 6.2. Clerk Infrastructure
+### 6.2. JWT Infrastructure
 
-#### clerk.client.ts
-
-Trách nhiệm:
-
-- Tạo Clerk client.
-
-- Lấy thông tin Clerk user nếu cần.
-
-#### clerk.middleware.ts
+#### jwt.client.ts
 
 Trách nhiệm:
 
-- Verify Clerk auth.
+- Tạo JWT sign/verify utilities.
 
-- Attach clerkId vào request.
+- Sign access and refresh tokens.
+
+#### jwt.middleware.ts
+
+Trách nhiệm:
+
+- Verify JWT access token.
+
+- Attach user info vào request.
 
 - Dùng trong requireAuth.
 
-### 6.3. Storage Infrastructure
+### 6.3. Google OAuth Infrastructure
+
+#### google.client.ts
+
+Trách nhiệm:
+
+- Validate Google OAuth ID token.
+
+- Extract `sub`, email, name, avatar.
+
+#### google.verifier.ts
+
+Trách nhiệm:
+
+- Server-side token exchange with Google.
+
+- Verify token signature and audience.
+
+### 6.4. Storage Infrastructure
 
 #### s3.client.ts
 
@@ -812,7 +844,7 @@ modules/auth/
 
 Auth module xử lý:
 
-- Sync Clerk user vào MongoDB.
+- Sync Google OAuth user vào MongoDB.
 
 - Lấy current user.
 
@@ -834,7 +866,7 @@ GET /api/auth/permissions
 
 getCurrentUser()
 
-syncUserFromClerk()
+syncUserFromProfile()
 
 completeOnboarding()
 
@@ -842,7 +874,7 @@ getUserPermissions()
 
 ### 8.4. Ghi chú
 
-Auth không lưu password vì login dùng Clerk.
+Auth không lưu password vì login dùng Google OAuth.
 
 ## 9. User Module
 
@@ -2874,7 +2906,7 @@ checkFullSystemHealth()
 
 Trách nhiệm:
 
-- Verify Clerk token.
+- Verify JWT access token.
 
 - Lấy local user.
 
@@ -3296,7 +3328,7 @@ Examples:
 
 | **Module**   | **Priority** | **Purpose**                  |
 |--------------|--------------|------------------------------|
-| auth         | Must         | Clerk sync, current user     |
+| auth         | Must         | JWT verify, sync user        |
 | user         | Must         | User profile, role           |
 | series       | Must         | Series + member              |
 | manuscript   | Must         | Initial manuscript           |

@@ -22,7 +22,7 @@ Create `server/src/modules/comment/comment.validation.ts` using Zod to validate:
 
 ## Step 4: Routing & Controller
 - Create `server/src/modules/comment/comment.controller.ts` to coordinate HTTP requests, invoke the service, and map standard responses.
-- Create `server/src/modules/comment/comment.routes.ts` to define the routes, attach Clerk identity middleware, and map validation guards.
+- Create `server/src/modules/comment/comment.routes.ts` to define the routes, attach auth middleware, and map validation guards.
 
 ## Step 5: Route Registration
 Mount the comment router under `/api/comments` inside `server/src/app.ts`.

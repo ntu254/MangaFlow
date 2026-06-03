@@ -3,7 +3,7 @@
 ## Core Workflow
 
 ```text
-Clerk login
+Google sign in
   -> create series
   -> upload manuscript
   -> editor manuscript review

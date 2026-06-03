@@ -633,21 +633,21 @@ Sign In
 
 ### Route
 
-/sign-in/\*
+/sign-in
 
 ### Provider
 
-Clerk.
+Google OAuth.
 
 ### Layout
 
 Left: Branding / illustration
 
-Right: Clerk SignIn component
+Right: Sign in with Google button
 
 ### Notes
 
-- Không custom auth logic.
+- Server-side token exchange with Google.
 
 - Sau login redirect theo role.
 
@@ -655,11 +655,11 @@ Right: Clerk SignIn component
 
 ### Route
 
-/sign-up/\*
+/sign-up
 
 ### Provider
 
-Clerk.
+Google OAuth.
 
 ### Layout
 

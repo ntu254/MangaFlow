@@ -38,7 +38,7 @@ models, storage providers, AI processing, or production workflow behavior.
 - `ai-service/` contains a FastAPI health placeholder that matches the future
   AI service boundary.
 - Environment example files exist and no secrets are committed.
-- No Clerk, MongoDB, R2, MinIO, domain CRUD, role guard, route guard, or AI model
+- No Google OAuth + JWT, MongoDB, R2, MinIO, domain CRUD, role guard, route guard, or AI model
   behavior is implemented in this story.
 
 ## Design Notes

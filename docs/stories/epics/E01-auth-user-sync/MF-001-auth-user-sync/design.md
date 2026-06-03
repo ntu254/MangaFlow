@@ -42,8 +42,8 @@ Business rules:
 
 - `clerkId` is unique.
 - `email` is required.
-- User sync is idempotent by `clerkId`.
-- Clerk owns authentication; MangaFlow owns product role/status.
+- User sync is idempotent by `clerkId` (stores Google OAuth `sub`).
+- Google OAuth handles authentication; MangaFlow owns product role/status.
 - Suspended users cannot access protected APIs.
 - Onboarding must not grant unauthorized privilege or assign `systemRole`.
 
@@ -51,20 +51,20 @@ Business rules:
 
 Commands:
 
-- `syncUserFromClerk(clerkClaims)`
+- `syncUserFromProfile(googleProfile)`
 - `completeOnboarding(userId, input)`
 
 Queries:
 
-- `getCurrentUser(clerkSubject)`
+- `getCurrentUser(googleSubject)`
 - `getAuthRedirectState(user)`
 
 Flow:
 
-1. Client signs in with Clerk.
+1. Client signs in with Google OAuth.
 2. Client calls `/api/auth/me`.
-3. Backend verifies the Clerk token.
-4. Backend finds internal user by `clerkId`.
+3. Backend verifies the JWT from the `Authorization` header.
+4. Backend finds internal user by `clerkId` (Google OAuth `sub`).
 5. If allowed by story design, backend creates or refreshes the internal user
    through sync.
 6. Backend returns current user and onboarding/redirect state.
@@ -74,14 +74,14 @@ Flow:
 Authenticated request header:
 
 ```text
-Authorization: Bearer <clerk_session_token>
+Authorization: Bearer <jwt_token>
 ```
 
 Endpoints in scope:
 
 ```text
 GET /api/auth/me
-POST /api/auth/sync-user
+POST /api/auth/google/callback
 POST /api/auth/complete-onboarding
 ```
 
@@ -135,22 +135,24 @@ Required indexes:
 Migration/seed:
 
 - No destructive migration.
-- Seed or fixture users must use deterministic Clerk IDs in tests.
+- Seed or fixture users must use deterministic Google OAuth sub IDs in tests.
 
 ## UI / Platform Impact
 
 Client surfaces:
 
-- Clerk provider setup.
-- Public sign-in/sign-up routes.
+- Auth provider setup (`AuthContext` + `localStorage`).
+- Public sign-in route (`/sign-in`).
 - `/app` redirect behavior.
 - `/app/onboarding` placeholder or minimal onboarding surface.
 - Blocked/suspended account state.
 
 Platform/env:
 
-- `VITE_CLERK_PUBLISHABLE_KEY`
-- `CLERK_SECRET_KEY`
+- `JWT_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `APP_URL`
 - `MONGODB_URI`
 - Existing `VITE_API_BASE_URL`
 
@@ -172,13 +174,13 @@ Audit records:
 
 ## Alternatives Considered
 
-1. Store all user profile/role data in Clerk metadata.
+1. Store all user profile/role data in Google OAuth metadata.
 2. Create internal users only through admin invite.
 3. Allow users to self-select roles during onboarding.
 
 Accepted direction:
 
-- Keep Clerk as identity provider.
+- Keep Google OAuth as identity provider.
 - Keep MangaFlow roles/status in MongoDB.
 - Do not allow self-service privilege escalation.
 - Store pending users with `systemRole: null`.

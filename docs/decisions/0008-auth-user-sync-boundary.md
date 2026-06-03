@@ -13,11 +13,12 @@ implementation:
 
 - How to persist a signed-in user who does not yet have a MangaFlow role.
 - Whether onboarding can assign a role or only request one.
-- How to test Clerk and MongoDB boundaries without requiring live credentials.
+- How to test Google OAuth and MongoDB boundaries without requiring live
+  credentials.
 
 The implementation must not allow self-service privilege escalation, must keep
-Clerk as the identity provider, and must keep MangaFlow roles/status in the
-internal database.
+Google OAuth as the identity provider, and must keep MangaFlow roles/status in
+the internal database.
 
 ## Decision
 
@@ -29,7 +30,7 @@ requested role, but it does not assign `systemRole`. Requested roles are limited
 to `MANGAKA` and `ASSISTANT`; `ADMIN`, `EDITOR`, and `BOARD` cannot be requested
 or self-assigned through onboarding.
 
-The first auth slice uses deterministic tests that mock the Clerk verifier at
+The first auth slice uses deterministic tests that mock the JWT verifier at
 the backend boundary and use repository-level fakes for auth service tests.
 Runtime code still wires the Mongoose user model and MongoDB connection for the
 real application path.
@@ -41,7 +42,7 @@ real application path.
 2. Let onboarding assign non-admin roles directly. Rejected for this slice
    because even non-admin roles unlock product workflows and should be assigned
    intentionally in a later role/admin story.
-3. Require live Clerk and MongoDB for integration tests. Rejected because it
+3. Require live auth (Google OAuth + JWT) and MongoDB for integration tests. Rejected because it
    would make the first auth proof depend on external credentials and services.
 
 ## Consequences

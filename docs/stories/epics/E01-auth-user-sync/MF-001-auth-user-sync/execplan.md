@@ -2,15 +2,15 @@
 
 ## Goal
 
-Create the first authenticated MangaFlow slice with Clerk verification,
+Create the first authenticated MangaFlow slice with Google OAuth + JWT verification,
 internal user sync, current-user API, and client redirect/onboarding state.
 
 ## Scope
 
 In scope:
 
-- Clerk client setup.
-- Clerk backend verification.
+- Auth client setup (Google OAuth + JWT).
+- Backend JWT verification + Google OAuth token exchange.
 - MongoDB connection for the user collection.
 - User model/repository/service for auth sync.
 - `GET /api/auth/me`.
@@ -57,9 +57,9 @@ Lane:
 1. Resolve open decisions for pending role persistence and onboarding role
    assignment.
 2. Add or update product docs if the decisions change the contract.
-3. Define deterministic Clerk/Mongo test strategy.
+3. Define deterministic Google OAuth/Mongo test strategy.
 4. Implement backend auth boundary and user sync.
-5. Implement client Clerk provider and redirect/onboarding shell.
+5. Implement client Auth provider (`AuthContext`) and redirect/onboarding shell.
 6. Add validation for unit, integration, and minimal E2E or browser smoke.
 7. Update story evidence, durable Harness proof, and trace.
 
@@ -68,7 +68,7 @@ Lane:
 Pause for human confirmation if:
 
 - The onboarding flow would let users assign their own privileged role.
-- A live Clerk project or production credentials are required for tests.
+- Live Google OAuth credentials or production secrets are required for tests.
 - The story needs a database migration that can delete or rewrite existing
   data.
 - Validation cannot cover missing/invalid token, suspended user, and sync

@@ -54,7 +54,7 @@ Deferred proof:
 
 - Browser click-through E2E for assigning a pending user from the UI is deferred
   because `agent-browser` is not available in PATH and the agent cannot reuse
-  the live Clerk browser session token.
+  the live browser session token.
 
 Durable proof status for this slice:
 

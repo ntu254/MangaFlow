@@ -13,8 +13,8 @@ records instead of extending a monolithic spec.
 - `overview.md` - product purpose, users, MVP outcome, and non-goals.
 - `architecture.md` - selected stack, runtime surfaces, deployment targets, and
   local boundaries.
-- `auth-user-sync.md` - Clerk identity boundary, local user sync, onboarding,
-  and auth API rules.
+- `auth-user-sync.md` - Google OAuth identity boundary, local user sync,
+  onboarding, and auth API rules.
 - `roles-permissions.md` - system roles, series roles, and access rules.
 - `workflow.md` - core manga production workflow and state rules.
 - `api-storage-data.md` - API conventions, data domains, file storage, and AI

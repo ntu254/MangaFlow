@@ -9,14 +9,14 @@
 
 ## Authentication Header
 
-Authenticated requests send a Clerk session token:
+Authenticated requests send a JWT access token:
 
 ```text
-Authorization: Bearer <clerk_session_token>
+Authorization: Bearer <jwt_access_token>
 ```
 
-The backend verifies the token, maps the Clerk identity to an internal user,
-and enforces product permissions before running domain behavior.
+The backend verifies the JWT, maps the Google OAuth identity to an internal
+user, and enforces product permissions before running domain behavior.
 
 ## Standard Success Response
 

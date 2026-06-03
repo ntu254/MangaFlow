@@ -60,4 +60,4 @@ When updating durable proof status, use numeric booleans:
 - `npm run test --workspace server` passes: 8 server source test files, 27 tests.
 - Added `server/src/modules/series/series.service.test.ts`.
 - Added `server/src/modules/series/series.routes.test.ts`.
-- Browser E2E remains deferred until reusable Clerk/Mongo demo fixtures exist.
+- Browser E2E remains deferred until reusable Google OAuth/Mongo demo fixtures exist.

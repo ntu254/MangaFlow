@@ -11,7 +11,7 @@ prove route/component contracts, and the Harness story verifier passes.
 | --- | --- |
 | Unit | Submission API client lists, creates, fetches, and surfaces errors. |
 | Integration | Client typecheck/build covers Assistant route composition and Task/Page/Region/Submission API contracts. |
-| E2E | Deferred until authenticated Clerk fixture or callable browser plugin exists. |
+| E2E | Deferred until authenticated Google OAuth fixture or callable browser plugin exists. |
 | Platform | Vite production build succeeds. |
 | Performance | Not applicable for this compact UI slice. |
 | Logs/Audit | Not applicable; no new server behavior. |
@@ -19,7 +19,7 @@ prove route/component contracts, and the Harness story verifier passes.
 ## Fixtures
 
 - Mocked `fetch` responses for client API tests.
-- Existing dev server/Clerk environment for manual rendered proof when
+- Existing dev server/Google OAuth environment for manual rendered proof when
   available.
 
 ## Commands
@@ -45,5 +45,5 @@ Implemented and verified:
   files/79 tests, client tests 8 files/28 tests, client/server build. Vite
   emitted the existing chunk-size warning.
 
-Authenticated rendered E2E/screenshot proof remains deferred until Clerk
+Authenticated rendered E2E/screenshot proof remains deferred until Google OAuth
 fixtures or a callable browser plugin are available.

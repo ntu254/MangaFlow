@@ -20,7 +20,7 @@ bootstrap endpoint in `MF-002`.
 
 The expected manual setup is:
 
-1. Sign in once with Clerk so `POST /api/auth/sync-user` creates the internal
+1. Sign in once with Google so `POST /api/auth/sync-user` creates the internal
    user.
 2. Update that user's `systemRole` to `ADMIN` directly in MongoDB through a
    trusted operator path.
@@ -28,7 +28,7 @@ The expected manual setup is:
 
 ## Alternatives Considered
 
-1. Environment allowlist for a bootstrap Clerk ID. Deferred because it adds a
+1. Environment allowlist for a bootstrap Google User ID. Deferred because it adds a
    privileged runtime branch that needs its own expiry/removal controls.
 2. First signed-in user becomes admin. Rejected because it is unsafe in shared
    or deployed environments.

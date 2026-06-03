@@ -2,23 +2,25 @@
 
 ## Purpose
 
-MangaFlow uses Clerk for authentication and an internal MongoDB user record for
-product identity, role, status, memberships, and workflow ownership.
+MangaFlow uses Google OAuth + JWT for authentication and an internal MongoDB
+user record for product identity, role, status, memberships, and workflow
+ownership.
 
-Clerk is the identity provider. MangaFlow is the authorization and product
-profile system.
+Google OAuth is the identity provider. MangaFlow is the authorization and
+product profile system.
 
 ## Identity Boundary
 
-- The browser signs users in with Clerk.
-- The browser sends a Clerk session token in authenticated API requests:
+- The browser signs users in with Google OAuth (server-side token exchange).
+- The browser sends a JWT access token in authenticated API requests:
 
 ```text
-Authorization: Bearer <clerk_session_token>
+Authorization: Bearer <jwt_access_token>
 ```
 
-- The backend verifies the token with Clerk middleware or a Clerk verifier.
-- The backend maps the verified Clerk subject to an internal user by `clerkId`.
+- The backend verifies the token with JWT auth middleware.
+- The backend maps the verified Google OAuth `sub` to an internal user by
+  `clerkId` (field stores Google `sub` ID).
 - The backend never stores passwords.
 - Frontend guards are UX helpers only; backend authorization remains required.
 
@@ -64,7 +66,7 @@ assignment is deferred to admin/role management stories.
 | Method | Path | Access | Purpose |
 | --- | --- | --- | --- |
 | `GET` | `/api/auth/me` | Authenticated | Return the current internal user and role/onboarding state. |
-| `POST` | `/api/auth/sync-user` | Authenticated | Idempotently create or refresh the internal user from Clerk claims. |
+| `POST` | `/api/auth/sync-user` | Authenticated | Idempotently create or refresh the internal user from Google OAuth profile. |
 | `POST` | `/api/auth/complete-onboarding` | Authenticated | Complete allowed onboarding fields without granting unauthorized roles. |
 | `GET` | `/api/auth/permissions` | Authenticated | Return permissions after the role system is implemented. |
 

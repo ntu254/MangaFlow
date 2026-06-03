@@ -19,7 +19,7 @@ Do not mark a row implemented until tests or validation evidence exist.
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | US-000 | Foundation scaffold: product docs, npm workspace client/server, backend health smoke, AI service placeholder | no | no | no | yes | implemented | `docs/stories/epics/E00-phase-0-foundation/US-000-foundation-scaffold.md` |
-| MF-001 | Auth/User Sync: Clerk identity boundary, internal user sync, current-user API, onboarding redirect state | yes | yes | no | yes | implemented | `docs/stories/epics/E01-auth-user-sync/MF-001-auth-user-sync/validation.md` |
+| MF-001 | Auth/User Sync: Google OAuth identity boundary, internal user sync, current-user API, onboarding redirect state | yes | yes | no | yes | implemented | `docs/stories/epics/E01-auth-user-sync/MF-001-auth-user-sync/validation.md` |
 | MF-002 | Role Assignment: admin reviews requested roles and assigns/suspends/reactivates users safely | yes | yes | no | yes | implemented | `docs/stories/epics/E02-role-assignment/MF-002-role-assignment/validation.md` |
 | MF-024 | Mobile MVP: Expo React Native companion app for Tantou Editor and Editorial Board review, voting, ranking, readiness, and notifications | yes | no | no | yes | implemented | `docs/stories/epics/E03-mobile-mvp/MF-003-mobile-editor-board-mvp/validation.md` |
 | MF-003 | Admin Role Review UI: admin can review pending users and trigger role/status actions from the browser | yes | yes | no | yes | implemented | `docs/stories/epics/E02-role-assignment/MF-003-admin-role-review-ui/validation.md` |

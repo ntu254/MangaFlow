@@ -3,7 +3,7 @@
 ## Proof Strategy
 
 MF-013 is done when Task domain validation and route authorization are proven
-without relying on live Clerk/Mongo fixtures.
+without relying on live Google OAuth/Mongo fixtures.
 
 ## Test Plan
 

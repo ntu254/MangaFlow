@@ -12,7 +12,7 @@ dashboard can list and start assigned Tasks.
 | --- | --- |
 | Unit | Task API client builds correct requests and surfaces API errors. |
 | Integration | Client build validates route and component type contracts. |
-| E2E | Deferred until authenticated Clerk fixtures or callable browser plugin exist. |
+| E2E | Deferred until authenticated Google OAuth fixtures or callable browser plugin exist. |
 | Platform | Vite production build succeeds. |
 | Performance | Not applicable for this compact UI slice. |
 | Logs/Audit | Not applicable; no new server behavior. |
@@ -20,7 +20,7 @@ dashboard can list and start assigned Tasks.
 ## Fixtures
 
 - Mocked `fetch` responses for client API tests.
-- Existing Clerk-authenticated dev server for manual/browser proof when
+- Existing Google OAuth-authenticated dev server for manual/browser proof when
   available.
 
 ## Commands
@@ -45,7 +45,7 @@ Implemented and verified:
 - `npm run test:quick` passed: server tests 20 files/73 tests, client tests
   7 files/24 tests, client/server typecheck, client/server build.
 
-Rendered authenticated E2E/screenshot proof remains deferred until Clerk
+Rendered authenticated E2E/screenshot proof remains deferred until Google OAuth
 fixtures or a callable browser plugin are available. An unauthenticated
 Playwright screenshot smoke was attempted against
 `http://127.0.0.1:5174/app/assistant/dashboard`, but the local Playwright

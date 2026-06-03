@@ -25,6 +25,6 @@ Implement the Comment Panel UI in the Page Workspace sidebar. When a user select
 
 ## Non-Goals
 
-- E2E browser tests (deferred until Clerk authentication is mocked in E2E).
+- E2E browser tests (deferred until Google OAuth authentication is mocked in E2E).
 - Real-time WebSockets synchronization of comments (polling or react-query cache invalidation is sufficient).
 - Notification list integration.

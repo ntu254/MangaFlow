@@ -44,7 +44,7 @@ Authorization flow:
 
 1. Resolve Page.
 2. Resolve Chapter from Page.
-3. Resolve caller internal user from verified Clerk auth.
+3. Resolve caller internal user from verified Google OAuth auth.
 4. Allow Admin globally.
 5. Otherwise check caller series membership against the Chapter `seriesId`.
 

@@ -4,9 +4,9 @@
 
 | Surface | Stack | Target |
 | --- | --- | --- |
-| Browser client | React, Vite, TypeScript, React Router, TanStack Query, ShadCN/ui, Tailwind CSS, Clerk React SDK | Vercel |
+| Browser client | React, Vite, TypeScript, React Router, TanStack Query, ShadCN/ui, Tailwind CSS, Custom auth hook (useAuth) | Vercel |
 | Mobile client | React Native, Expo, TypeScript | Expo/EAS or companion mobile distribution |
-| Backend API | Node.js, Express, TypeScript, MongoDB, Mongoose, Clerk Express SDK | Railway |
+| Backend API | Node.js, Express, TypeScript, MongoDB, Mongoose, Custom auth middleware (jwt + google) | Railway |
 | AI service | Python, FastAPI, YOLO11, OpenCV | Separate Railway service |
 | Database | MongoDB Atlas M0 | Production database |
 | Object storage | Cloudflare R2 in production, MinIO in local development | S3-compatible private storage |
@@ -37,9 +37,9 @@ docs/stories/
 
 - The browser client never talks directly to MongoDB, Cloudflare R2, MinIO, or
   the AI service.
-- Clerk authenticates users. The client sends a Clerk session token to the
-  backend.
-- The backend verifies Clerk tokens, maps Clerk identities to internal users,
+- Google OAuth + JWT authenticates users. The client sends a JWT access token to
+  the backend.
+- The backend verifies JWT tokens, maps Google OAuth identities to internal users,
   enforces role and series permissions, and owns all business mutations.
 - The backend owns signed file URL generation and storage metadata.
 - The backend calls the AI service for page/bubble processing and maps AI
@@ -77,7 +77,7 @@ resolution, publication readiness, board approval, voting, ranking, at-risk
 decisions, and notifications. Full page annotation, batch upload, layer
 management, and AI batch processing remain desktop-first for MVP.
 
-The mobile client sends Clerk-backed bearer tokens to the same backend API. It
+The mobile client sends JWT-backed bearer tokens to the same backend API. It
 must not send trusted role or permission decisions; backend authorization stays
 the source of truth.
 

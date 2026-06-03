@@ -21,11 +21,11 @@ transitions, and the client routing effect after assignment.
 
 Required deterministic fixtures:
 
-- Admin actor: `clerk_admin_001`.
-- Pending target: `clerk_pending_001`.
-- Mangaka target: `clerk_mangaka_001`.
-- Suspended target: `clerk_suspended_001`.
-- Non-admin actor: `clerk_assistant_001`.
+- Admin actor: `user_admin_001`.
+- Pending target: `user_pending_001`.
+- Mangaka target: `user_mangaka_001`.
+- Suspended target: `user_suspended_001`.
+- Non-admin actor: `user_assistant_001`.
 
 ## Commands
 
@@ -55,7 +55,7 @@ Implemented deterministic proof:
   - Root typecheck, tests, and build all pass.
 - Live local seed smoke passed:
   - MongoDB `users` collection initially had one active pending user after
-    Clerk sign-in and sync.
+    Google OAuth sign-in and sync.
   - That user was manually seeded to `systemRole: "ADMIN"` in MongoDB.
   - After seed, MongoDB had `admins: 1` and `pending: 0`.
   - `GET /api/admin/users?role=pending` without a token returned `401`.
@@ -65,7 +65,7 @@ Deferred proof:
 
 - Browser E2E for pending user -> admin assignment -> role dashboard redirect is
   deferred until the app exposes a role-review UI or the agent can reuse a live
-  Clerk session token from the browser.
+  session token from the browser.
 - Persistent audit-log storage is deferred; this slice defines audit-worthy
   events but does not introduce an audit collection.
 

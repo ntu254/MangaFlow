@@ -12,7 +12,7 @@ backend remains the permission source of truth.
 ## Application Flow
 
 The mobile app starts at a role landing screen. In production it will derive the
-role from Clerk-backed `/api/auth/me`; the initial MVP shell includes
+role from Google OAuth-backed `/api/auth/me`; the initial MVP shell includes
 deterministic seeded data so the screen and navigation contract can be validated
 before provider credentials exist.
 

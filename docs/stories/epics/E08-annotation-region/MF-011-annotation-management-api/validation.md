@@ -3,7 +3,7 @@
 ## Proof Strategy
 
 MF-011 is done when Annotation domain validation and route authorization are
-proven without relying on live Clerk/Mongo fixtures.
+proven without relying on live Google OAuth/Mongo fixtures.
 
 ## Test Plan
 

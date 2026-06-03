@@ -72,5 +72,5 @@ Implemented proof files:
 - `client/src/features/annotation/api/annotation.test.ts`
 
 Browser plugin was not available as a callable tool in this session, so
-authenticated rendered E2E remains deferred until a Clerk-backed browser fixture
+authenticated rendered E2E remains deferred until a Google OAuth-backed browser fixture
 is available.

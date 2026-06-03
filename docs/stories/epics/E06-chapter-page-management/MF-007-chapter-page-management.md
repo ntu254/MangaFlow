@@ -46,7 +46,7 @@ Provide Mangakas with the ability to manage Chapters and Pages within their Seri
 - [x] Page detail/list/delete routes enforce series membership.
 
 ## Review Notes
-Backend typecheck and tests pass. Frontend rendering remains covered by build/typecheck, with browser E2E deferred until reusable Clerk/Mongo fixtures exist.
+Backend typecheck and tests pass. Frontend rendering remains covered by build/typecheck, with browser E2E deferred until reusable Google OAuth/Mongo fixtures exist.
 
 ## Validation Evidence
 
