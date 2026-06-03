@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { apiBaseUrl } from "@/shared/api";
-import { getAuthToken, fetchCurrentUser } from "@/shared/api/client";
+import { fetchCurrentUser, getStoredToken, setAuthToken, apiBaseUrl } from "@/shared/api/client";
 import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
 
 type AuthUser = {
@@ -20,34 +19,8 @@ type AuthContextValue = {
   user: AuthUser | null;
   signOut: () => void;
   refreshUser: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ user: AuthUser; auth: { redirectTo: string } }>;
 };
-
-const TOKEN_KEY = "mangaflow_auth_token";
-
-function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function storeToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-function removeToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-function isTokenExpired(token: string): boolean {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    const exp = payload.exp as number | undefined;
-    if (!exp) return true;
-    return Date.now() >= exp * 1000;
-  } catch {
-    return true;
-  }
-}
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -56,26 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   const getToken = useCallback(async (_opts?: { template?: string; skipCache?: boolean }): Promise<string | null> => {
-    const token = getStoredToken();
-    if (!token) return null;
-    if (isTokenExpired(token)) {
-      removeToken();
-      setUser(null);
-      return null;
-    }
-    return token;
+    return getStoredToken();
   }, []);
 
   const loadUser = useCallback(async () => {
     try {
-      const token = getStoredToken();
-      if (!token || isTokenExpired(token)) {
-        removeToken();
-        setUser(null);
-        setIsLoaded(true);
-        return;
-      }
-      const userData = await fetchCurrentUser(token);
+      const userData = await fetchCurrentUser();
       if (userData) {
         setUser({
           id: userData.id,
@@ -87,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           status: userData.status as UserStatus,
         });
       } else {
-        removeToken();
         setUser(null);
       }
     } catch {
@@ -101,8 +59,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void loadUser();
   }, [loadUser]);
 
-  const signOut = useCallback(() => {
-    removeToken();
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await fetch(`${apiBaseUrl}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || "Failed to log in");
+    }
+
+    const { token, user: userData, auth } = json.data;
+    setAuthToken(token);
+    const authedUser: AuthUser = {
+      id: userData.id,
+      clerkId: userData.clerkId,
+      email: userData.email,
+      fullName: userData.fullName,
+      avatarUrl: userData.avatarUrl,
+      systemRole: userData.systemRole as SystemRole | null,
+      status: userData.status as UserStatus,
+    };
+    setUser(authedUser);
+
+    return { user: authedUser, auth };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      await fetch(`${apiBaseUrl}/auth/logout`, { method: "POST", credentials: "include" });
+    } catch (e) {
+      // ignore
+    }
+    setAuthToken(null);
     setUser(null);
     window.location.href = "/";
   }, []);
@@ -118,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     signOut,
     refreshUser,
+    login,
   };
 
   return (
@@ -134,9 +128,3 @@ export function useAuthContext(): AuthContextValue {
   }
   return ctx;
 }
-
-export function setAuthToken(token: string): void {
-  storeToken(token);
-}
-
-export { getStoredToken, removeToken };

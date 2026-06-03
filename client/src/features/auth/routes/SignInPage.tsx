@@ -1,11 +1,45 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { getGoogleAuthUrl } from "@/shared/api/auth";
-import { Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Sparkles, Loader2, AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 export function SignInPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await login(email, password);
+      // Success redirect based on backend role-mapping redirection path
+      navigate(res.auth.redirectTo, { replace: true });
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#fff9fb] via-[#f8f1ff] to-[#fff7ec]">
+      {/* Dynamic ambient background blobs */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute left-[10%] top-[15%] size-[500px] rounded-full bg-[#9065d5]/[0.07] blur-[100px]" />
         <div className="absolute right-[5%] top-[40%] size-[400px] rounded-full bg-[#e560bc]/[0.06] blur-[100px]" />
@@ -19,6 +53,8 @@ export function SignInPage() {
         className="w-full max-w-md mx-4"
       >
         <div className="bg-white border border-[#eadff6] rounded-2xl p-8 sm:p-10 shadow-[0_20px_60px_rgba(144,101,213,0.12)]">
+          
+          {/* Logo / Title area */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -35,7 +71,7 @@ export function SignInPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               className="mt-5 font-bold text-[#2f243a]"
-              style={{ fontSize: "1.25rem" }}
+              style={{ fontSize: "1.75rem", lineHeight: "2.25rem" }}
             >
               Welcome to{" "}
               <span className="bg-gradient-to-r from-[#9065d5] via-[#e560bc] to-[#ff7196] bg-clip-text text-transparent">
@@ -53,36 +89,103 @@ export function SignInPage() {
             </motion.p>
           </motion.div>
 
-          <motion.div
+          {/* Form area */}
+          <motion.form
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-8"
+            onSubmit={handleSubmit}
+            className="mt-8 space-y-5"
           >
-            <a href={getGoogleAuthUrl()} className="block">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full gap-3 border-[#eadff6] text-[#2f243a] hover:bg-[#f8f1ff] hover:border-[#9065d5]/50"
-              >
-                <svg className="size-5 shrink-0" viewBox="0 0 48 48">
-                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
-                  <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
-                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
-                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
-                </svg>
-                Sign in with Google
-              </Button>
-            </a>
-          </motion.div>
+            {/* Error alerts */}
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: -10 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -10 }}
+                  className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-100 text-red-700 rounded-xl text-xs"
+                >
+                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
+            {/* Email field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-semibold text-[#5f5270]">
+                Email Address
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#8a7a99]" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@mangaflow.local"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  className="pl-10 pr-4 py-2 border-[#eadff6] hover:border-[#9065d5]/50 focus:border-[#9065d5] focus:ring-[#9065d5]/10 rounded-xl text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password field */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password" className="text-xs font-semibold text-[#5f5270]">
+                  Password
+                </Label>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#8a7a99]" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="pl-10 pr-10 py-2 border-[#eadff6] hover:border-[#9065d5]/50 focus:border-[#9065d5] focus:ring-[#9065d5]/10 rounded-xl text-sm"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8a7a99] hover:text-[#9065d5]"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full mt-6 bg-gradient-to-r from-[#9065d5] to-[#e560bc] hover:from-[#7c54be] hover:to-[#ce4fa5] text-white font-bold py-2 px-4 rounded-xl shadow-lg shadow-[#9065d5]/20 hover:shadow-xl hover:shadow-[#9065d5]/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </motion.form>
+
+          {/* Footer branding details */}
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-center text-xs text-[#8a7a99] mt-6"
+            className="text-center text-xs text-[#8a7a99] mt-8"
           >
-            By signing in, you agree to our Terms of Service and Privacy Policy.
+            MangaFlow production suite. Authorized access only.
           </motion.p>
         </div>
       </motion.div>

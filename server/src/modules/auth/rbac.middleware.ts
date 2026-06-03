@@ -22,7 +22,7 @@ export function requireSystemRole(roles: SystemRole[], userRepository?: UserRepo
       return;
     }
 
-    if (!req.auth.systemRole || !roles.includes(req.auth.systemRole)) {
+    if (!req.auth.systemRole || !roles.includes(req.auth.systemRole as SystemRole)) {
       res.status(403).json(fail("Insufficient system role", "FORBIDDEN"));
       return;
     }

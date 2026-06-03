@@ -63,7 +63,7 @@ export function BoardSeriesReviewPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       // Fetch user profile
@@ -114,7 +114,7 @@ export function BoardSeriesReviewPage() {
     try {
       setSubmittingVote(true);
       setVoteError(null);
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await submitBoardVote(token, seriesId, selectedVote, reason);
@@ -131,7 +131,7 @@ export function BoardSeriesReviewPage() {
     try {
       setFinalizing(true);
       setFinalizeError(null);
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await finalizeBoardDecision(token, seriesId);
@@ -149,7 +149,7 @@ export function BoardSeriesReviewPage() {
     try {
       setSubmittingTieBreak(true);
       setTieBreakError(null);
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await tieBreakBoardDecision(token, seriesId, tieBreakDecision, tieBreakReason);

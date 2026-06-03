@@ -1,11 +1,13 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import {
   createJwtAuthVerifier,
   type AuthVerifier
 } from "../modules/auth/auth.middleware.js";
 import { createMongoUserRepository } from "../modules/auth/auth.repository.js";
+import { createSessionRepository } from "../modules/auth/session.repository.js";
 import { createAuthRouter } from "../modules/auth/auth.routes.js";
 import type { UserRepository } from "../modules/auth/auth.service.js";
+import type { SessionRepository } from "../modules/auth/session.repository.js";
 import { createAdminRouter } from "../modules/admin/admin.routes.js";
 import { healthRouter } from "../modules/health/health.routes.js";
 import { createMongoSeriesRepository } from "../modules/series/series.repository.js";
@@ -45,6 +47,7 @@ import {
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
   userRepository?: UserRepository;
+  sessionRepository?: SessionRepository;
   seriesRepository?: SeriesRepository;
   manuscriptRepository?: ManuscriptRepository;
   chapterRepository?: ChapterRepository;
@@ -69,11 +72,15 @@ apiRouter.use("/health", healthRouter);
 export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const router = Router();
 
+  const userRepo = dependencies.userRepository ?? createMongoUserRepository();
+  const authVerifier = dependencies.authVerifier ?? createJwtAuthVerifier(userRepo);
+  const sessionRepo = dependencies.sessionRepository ?? createSessionRepository();
+
   const commentRepo = dependencies.commentRepository ?? createMongoCommentRepository();
   const commentService = createCommentService(commentRepo);
   const pageRepo = dependencies.pageRepository ?? createMongoPageRepository();
   const boardRepo = dependencies.boardRepository ?? createMongoBoardRepository();
-  const boardService = createBoardService(boardRepo, dependencies.userRepository ?? createMongoUserRepository());
+  const boardService = createBoardService(boardRepo, userRepo);
   const rankingRepo = dependencies.rankingRepository ?? createMongoRankingRepository();
   const rankingService = createRankingService(rankingRepo);
   const taskRepo = dependencies.taskRepository ?? createMongoTaskRepository();
@@ -84,22 +91,23 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/auth",
     createAuthRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository()
+      authVerifier,
+      userRepository: userRepo,
+      sessionRepository: sessionRepo
     })
   );
   router.use(
     "/admin",
     createAdminRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository()
+      authVerifier,
+      userRepository: userRepo
     })
   );
   router.use(
     "/series",
     createSeriesRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository()
     })
   );
@@ -107,24 +115,24 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/board",
     createBoardRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       boardService
     })
   );
 
   router.use(
     createRankingRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       rankingService
     })
   );
   
   router.use(
     createPayrollRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       taskRepository: taskRepo,
       payrollRepository: payrollRepo
@@ -133,8 +141,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
 
   router.use(
     createAiRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: pageRepo,
@@ -147,8 +155,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const notifService = createNotificationService(notifRepo);
   router.use(
     createNotificationRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       notificationService: notifService
     })
   );
@@ -156,8 +164,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/series/:seriesId/manuscripts",
     createManuscriptRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository(),
       fileRepository: dependencies.fileRepository
@@ -167,8 +175,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/manuscripts",
     createManuscriptRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository(),
       fileRepository: dependencies.fileRepository
@@ -178,8 +186,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/series/:seriesId/chapters",
     createChapterRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: pageRepo,
@@ -190,8 +198,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/chapters",
     createChapterRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: pageRepo,
@@ -202,8 +210,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/chapters/:chapterId/pages",
     createPageRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: pageRepo,
@@ -214,8 +222,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
 
   router.use(
     createSubmissionRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       taskRepository: taskRepo,
       submissionRepository: dependencies.submissionRepository ?? createMongoSubmissionRepository()
@@ -224,8 +232,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
 
   router.use(
     createCommentRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       manuscriptRepository: dependencies.manuscriptRepository ?? createMongoManuscriptRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
@@ -236,11 +244,10 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
     })
   );
 
-
   router.use(
     createTaskRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
@@ -251,8 +258,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
 
   router.use(
     createRegionRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
@@ -262,8 +269,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
 
   router.use(
     createAnnotationRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
@@ -275,8 +282,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/pages",
     createPageRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      authVerifier,
+      userRepository: userRepo,
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: pageRepo,
@@ -290,11 +297,10 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   router.use(
     "/files",
     createFileRouter({
-      authVerifier: dependencies.authVerifier ?? createJwtAuthVerifier(),
+      authVerifier,
       fileService
     })
   );
 
   return router;
 }
-

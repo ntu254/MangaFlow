@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 
 function parsePort(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -62,9 +62,11 @@ export const env = {
   corsOrigin: corsOrigins[0],
   corsOrigins,
   mongodbUri: process.env.MONGODB_URI ?? "",
-  jwtSecret: process.env.JWT_SECRET ?? "",
-  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  jwtAccessSecret: process.env.JWT_ACCESS_SECRET ?? process.env.JWT_SECRET ?? "access-secret",
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET ?? "refresh-secret",
+  accessTokenExpiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN ?? "15m",
+  refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN ?? "7d",
+  bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS ?? "10", 10),
   appUrl: process.env.APP_URL ?? "http://localhost:5173",
   aiServiceUrl: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
   s3Provider,

@@ -1,5 +1,5 @@
 import { apiBaseUrl } from "@/shared/api/client";
-import { setAuthToken } from "@/shared/context/AuthContext";
+import { setAuthToken } from "@/shared/api/client";
 
 export async function exchangeGoogleCode(code: string): Promise<string | null> {
   try {

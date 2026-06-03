@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env.config.js";
 import { createApiRouter, type ApiRouterDependencies } from "./routes/index.js";
@@ -11,9 +12,11 @@ export function createApp(dependencies: ApiRouterDependencies = {}) {
 
   app.use(
     cors({
-      origin: env.corsOrigins
+      origin: env.corsOrigins,
+      credentials: true
     })
   );
+  app.use(cookieParser());
   app.use(express.json());
   app.use("/uploads", express.static("uploads"));
 

@@ -1,8 +1,8 @@
-﻿import { Router } from "express";
+import { Router } from "express";
+import { z } from "zod";
 import { env } from "../../config/env.config.js";
 import { fail, ok } from "../../shared/responses/api-response.js";
-import { signJwt } from "../../infrastructure/jwt/index.js";
-import { getGoogleAuthUrl, exchangeGoogleCode } from "../../infrastructure/google/index.js";
+import { signAccessToken, signRefreshToken, verifyRefreshToken, type RefreshJwtPayload } from "../../infrastructure/jwt/index.js";
 import {
   requireAuth,
   type AuthenticatedRequest,
@@ -14,133 +14,203 @@ import {
   type AuthUser,
   type UserRepository
 } from "./auth.service.js";
+import type { SessionRepository } from "./session.repository.js";
 
 export type AuthRouteDependencies = {
   authVerifier: AuthVerifier;
   userRepository: UserRepository;
+  sessionRepository: SessionRepository;
 };
 
 function authPayload(user: AuthUser, service: ReturnType<typeof createAuthService>) {
   return { user, auth: service.getAuthRedirectState(user) };
 }
 
-function forbiddenIfSuspended(user: AuthUser) {
-  return user.status === "SUSPENDED";
+async function generateTokens(user: AuthUser, sessionRepo: SessionRepository) {
+  const accessToken = signAccessToken({
+    sub: user.id,
+    systemRole: user.systemRole,
+    status: user.status,
+    email: user.email,
+    fullName: user.fullName,
+    avatarUrl: user.avatarUrl,
+  });
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+  const session = await sessionRepo.createSession(user.id, expiresAt);
+
+  const refreshToken = signRefreshToken({
+    jti: session._id,
+    sub: user.id,
+  });
+
+  return { accessToken, refreshToken };
 }
 
-function generateToken(user: AuthUser): string {
-  return signJwt(
-    {
-      sub: user.clerkId,
-      systemRole: user.systemRole,
-      status: user.status,
-      email: user.email,
-      fullName: user.fullName,
-      avatarUrl: user.avatarUrl,
-    },
-    env.jwtSecret
-  );
-}
+const loginSchema = z.object({
+  email: z.string().trim().email("Invalid email address"),
+  password: z.string().min(1, "Password is required")
+});
 
 export function createAuthRouter(dependencies: AuthRouteDependencies) {
   const router = Router();
   const service = createAuthService(dependencies.userRepository);
   const authenticate = requireAuth(dependencies.authVerifier);
+  const { sessionRepository } = dependencies;
 
-  // GET /auth/google — redirect user to Google OAuth consent screen
-  router.get("/google", (_req, res) => {
-    const redirectUri = `${env.appUrl}/oauth/callback`;
-    const authUrl = getGoogleAuthUrl(env.googleClientId, redirectUri);
-    res.redirect(authUrl);
-  });
-
-  // POST /auth/google/callback — exchange Google code for JWT
-  router.post("/google/callback", async (req, res) => {
-    const { code } = req.body;
-    if (!code || typeof code !== "string") {
-      res.status(400).json(fail("Authorization code is required", "AUTH_INVALID"));
-      return;
-    }
-    const redirectUri = `${env.appUrl}/oauth/callback`;
-    const profile = await exchangeGoogleCode(code, env.googleClientId, env.googleClientSecret, redirectUri);
-    if (!profile) {
-      res.status(401).json(fail("Failed to verify Google token", "AUTH_INVALID"));
-      return;
-    }
-    const user = await service.syncUserFromProfile({
-      clerkId: profile.sub,
-      email: profile.email,
-      fullName: profile.fullName,
-      avatarUrl: profile.avatarUrl,
-    });
-    if (forbiddenIfSuspended(user)) {
-      res.status(403).json(fail("Account suspended", "ACCOUNT_SUSPENDED"));
-      return;
-    }
-    const token = generateToken(user);
-    res.json(ok({ token, ...authPayload(user, service) }));
-  });
-
-  // GET /auth/me — current user from DB
-  router.get("/me", authenticate, async (req, res) => {
-    const profile = (req as AuthenticatedRequest).auth;
-    if (!profile) {
-      res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
-      return;
-    }
-    const user = await service.getCurrentUser(profile.clerkId);
-    if (!user) {
-      res.status(404).json(fail("User not synced", "USER_NOT_SYNCED"));
-      return;
-    }
-    if (forbiddenIfSuspended(user)) {
-      res.status(403).json(fail("Account suspended", "ACCOUNT_SUSPENDED"));
-      return;
-    }
-    res.json(ok(authPayload(user, service)));
-  });
-
-  // POST /auth/sync-user — upsert user from JWT profile (deprecated, kept for backward compat)
-  router.post("/sync-user", authenticate, async (req, res) => {
-    console.warn("[DEPRECATION] POST /auth/sync-user called — use JWT claims instead");
-    const profile = (req as AuthenticatedRequest).auth;
-    if (!profile) {
-      res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
-      return;
-    }
-    const user = await service.syncUserFromProfile({
-      clerkId: profile.clerkId,
-      email: profile.email,
-      fullName: profile.fullName,
-      avatarUrl: profile.avatarUrl,
-    });
-    if (forbiddenIfSuspended(user)) {
-      res.status(403).json(fail("Account suspended", "ACCOUNT_SUSPENDED"));
-      return;
-    }
-    res.json(ok({ token: generateToken(user), ...authPayload(user, service) }));
-  });
-
-  // POST /auth/complete-onboarding — set role after onboarding
-  router.post("/complete-onboarding", authenticate, async (req, res) => {
-    const profile = (req as AuthenticatedRequest).auth;
-    if (!profile) {
-      res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
-      return;
-    }
+  // POST /auth/login — password-based login
+  router.post("/login", async (req, res, next) => {
     try {
-      const user = await service.completeOnboarding(profile.clerkId, req.body);
-      const token = generateToken(user);
-      res.json(ok({ token, ...authPayload(user, service) }));
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(fail("Invalid input parameters", "BAD_REQUEST"));
+        return;
+      }
+
+      const { email, password } = parsed.data;
+      const user = await service.authenticate(email, password);
+
+      const { accessToken, refreshToken } = await generateTokens(user, sessionRepository);
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: env.nodeEnv === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      res.json(ok({ token: accessToken, ...authPayload(user, service) }));
     } catch (error) {
       if (error instanceof AuthServiceError) {
         res.status(error.statusCode).json(fail(error.message, error.code));
         return;
       }
-      throw error;
+      next(error);
+    }
+  });
+
+  // POST /auth/refresh — refresh access token (compatible with client)
+  router.post("/refresh", async (req, res, next) => {
+    try {
+      const token = req.cookies?.refreshToken;
+      if (!token) {
+        res.status(401).json(fail("No refresh token provided", "AUTH_REQUIRED"));
+        return;
+      }
+
+      const payload = verifyRefreshToken(token);
+      if (!payload || !payload.jti) {
+        res.status(401).json(fail("Invalid refresh token", "AUTH_INVALID"));
+        return;
+      }
+
+      const session = await sessionRepository.findValidSession(payload.jti);
+      if (!session) {
+        res.clearCookie("refreshToken");
+        res.status(401).json(fail("Session expired or revoked", "AUTH_INVALID"));
+        return;
+      }
+
+      const user = await service.getCurrentUser(payload.sub);
+      if (!user) {
+        res.clearCookie("refreshToken");
+        res.status(401).json(fail("User session not found", "AUTH_INVALID"));
+        return;
+      }
+
+      if (user.status === "SUSPENDED") {
+        res.clearCookie("refreshToken");
+        res.status(403).json(fail("Account suspended", "ACCOUNT_SUSPENDED"));
+        return;
+      }
+
+      const accessToken = signAccessToken({
+        sub: user.id,
+        systemRole: user.systemRole,
+        status: user.status,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+      });
+
+      res.json(ok({ token: accessToken, ...authPayload(user, service) }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // POST /auth/refresh-token — alias for compatibility
+  router.post("/refresh-token", async (req, res, next) => {
+    req.url = "/refresh";
+    next();
+  });
+
+  // POST /auth/logout — logout and revoke session
+  router.post("/logout", async (req, res, next) => {
+    try {
+      const token = req.cookies?.refreshToken;
+      if (token) {
+        const payload = verifyRefreshToken(token);
+        if (payload?.jti) {
+          await sessionRepository.revokeSession(payload.jti);
+        }
+      }
+      res.clearCookie("refreshToken");
+      res.json(ok({ success: true }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // GET /auth/me — current user profile from DB
+  router.get("/me", authenticate, async (req, res, next) => {
+    try {
+      const authRequest = req as AuthenticatedRequest;
+      const profile = authRequest.user;
+      if (!profile) {
+        res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
+        return;
+      }
+
+      const user = await service.getCurrentUser(profile.id);
+      if (!user) {
+        res.status(404).json(fail("User not found", "USER_NOT_FOUND"));
+        return;
+      }
+
+      if (user.status === "SUSPENDED") {
+        res.status(403).json(fail("Account suspended", "ACCOUNT_SUSPENDED"));
+        return;
+      }
+
+      res.json(ok(authPayload(user, service)));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // POST /auth/sync-user — legacy endpoint for test compatibility
+  router.post("/sync-user", authenticate, async (req, res, next) => {
+    try {
+      const authRequest = req as AuthenticatedRequest;
+      const profile = authRequest.user;
+      if (!profile) {
+        res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
+        return;
+      }
+      const user = await service.syncUserFromProfile({
+        clerkId: profile.id,
+        email: profile.email,
+        fullName: profile.fullName,
+        avatarUrl: profile.avatarUrl
+      });
+      res.json(ok(authPayload(user, service)));
+    } catch (error) {
+      next(error);
     }
   });
 
   return router;
 }
-

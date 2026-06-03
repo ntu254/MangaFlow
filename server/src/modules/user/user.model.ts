@@ -1,34 +1,32 @@
 import { model, Schema } from "mongoose";
 import type {
-  RequestedSystemRole,
   SystemRole,
   UserStatus
 } from "../auth/auth.service.js";
 
 export type UserDocument = {
-  clerkId: string;
   email: string;
+  passwordHash: string;
   fullName: string;
   avatarUrl: string | null;
-  systemRole: SystemRole | null;
-  requestedSystemRole: RequestedSystemRole | null;
+  systemRole: SystemRole;
   status: UserStatus;
+  lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
 
 const userSchema = new Schema<UserDocument>(
   {
-    clerkId: {
+    email: {
       type: String,
       required: true,
       unique: true,
       index: true
     },
-    email: {
+    passwordHash: {
       type: String,
-      required: true,
-      index: true
+      required: true
     },
     fullName: {
       type: String,
@@ -40,20 +38,18 @@ const userSchema = new Schema<UserDocument>(
     },
     systemRole: {
       type: String,
-      enum: ["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD", null],
-      default: null,
+      enum: ["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD"],
+      required: true,
       index: true
-    },
-    requestedSystemRole: {
-      type: String,
-      enum: ["MANGAKA", "ASSISTANT", null],
-      default: null
     },
     status: {
       type: String,
       enum: ["ACTIVE", "SUSPENDED"],
       default: "ACTIVE",
       index: true
+    },
+    lastLoginAt: {
+      type: Date
     }
   },
   {
@@ -62,4 +58,3 @@ const userSchema = new Schema<UserDocument>(
 );
 
 export const UserModel = model<UserDocument>("User", userSchema);
-
