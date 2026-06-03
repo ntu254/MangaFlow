@@ -1,6 +1,6 @@
 import { useEffect, useState, Suspense, lazy } from "react";
 import { useAuth } from "@clerk/react";
-import { resolveAuthRoute } from "@/features/auth/auth-flow";
+import { resolveAuthRoute, type SystemRole, type UserStatus } from "@/features/auth/auth-flow";
 import { apiBaseUrl } from "@/shared/api";
 
 const LandingPage = lazy(() =>
@@ -18,6 +18,18 @@ function LoadingScreen() {
   );
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1];
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
 export function HomeGate() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const [destination, setDestination] = useState<string | null>(null);
@@ -25,7 +37,7 @@ export function HomeGate() {
   useEffect(() => {
     let cancelled = false;
 
-    async function syncAndRedirect() {
+    async function resolveDestination() {
       if (!isLoaded || !isSignedIn) {
         return;
       }
@@ -34,6 +46,40 @@ export function HomeGate() {
         const token = await getToken({ template: "mangaflow" });
         if (!token) return;
 
+        // 1. Try reading claims from JWT
+        const payload = decodeJwtPayload(token);
+        const systemRole = payload?.systemRole as SystemRole | null | undefined;
+        const status = (payload?.status as UserStatus) ?? "ACTIVE";
+
+        if (systemRole) {
+          if (!cancelled) {
+            setDestination(resolveAuthRoute({
+              isSignedIn: true,
+              user: { systemRole, status }
+            }));
+          }
+          return;
+        }
+
+        // 2. JWT missing systemRole — fetch from /auth/me
+        const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (meResponse.ok) {
+          const meBody = await meResponse.json();
+          if (meBody.success && meBody.data?.systemRole) {
+            if (!cancelled) {
+              setDestination(resolveAuthRoute({
+                isSignedIn: true,
+                user: { systemRole: meBody.data.systemRole, status: meBody.data.status ?? "ACTIVE" }
+              }));
+            }
+            return;
+          }
+        }
+
+        // 3. No claims available — sync-user to create local user
         const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {
           method: "POST",
           headers: {
@@ -61,7 +107,7 @@ export function HomeGate() {
       }
     }
 
-    void syncAndRedirect();
+    void resolveDestination();
 
     return () => {
       cancelled = true;

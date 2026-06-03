@@ -31,6 +31,9 @@ export type AssistantEarning = {
   status: EarningStatus;
   createdAt: string;
   updatedAt: string;
+  assistantName?: string;
+  taskTitle?: string;
+  seriesTitle?: string;
 };
 
 export type CreateTaskRateInput = {

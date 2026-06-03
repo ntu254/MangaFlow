@@ -7,6 +7,7 @@ import {
   Shield,
   ClipboardList,
   Send,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 
@@ -73,10 +74,12 @@ export const sidebarConfig: Record<string, SidebarItem[]> = {
     { label: "Tasks", href: "/app/mangaka/tasks", icon: ClipboardList },
     { label: "Submissions", href: "/app/mangaka/submissions", icon: Send },
     { label: "Ranking", href: "/app/mangaka/ranking", icon: BarChart3 },
+    { label: "Payroll", href: "/app/mangaka/payroll", icon: Coins },
   ],
   ASSISTANT: [
     { label: "Dashboard", href: "/app/assistant/dashboard", icon: LayoutDashboard },
     { label: "My Tasks", href: "/app/assistant/tasks", icon: ClipboardList },
+    { label: "Earnings", href: "/app/assistant/earnings", icon: Coins },
   ],
   EDITOR: [
     { label: "Dashboard", href: "/app/editor/dashboard", icon: LayoutDashboard },
@@ -90,5 +93,6 @@ export const sidebarConfig: Record<string, SidebarItem[]> = {
   ADMIN: [
     { label: "Dashboard", href: "/app/admin/dashboard", icon: LayoutDashboard },
     { label: "Role Review", href: "/app/admin/role-review", icon: Shield },
+    { label: "Task Rates", href: "/app/admin/task-rates", icon: Coins },
   ],
 };

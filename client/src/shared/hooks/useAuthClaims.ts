@@ -1,5 +1,6 @@
 import { useAuth } from "@clerk/react";
 import { useState, useEffect, useCallback } from "react";
+import { apiBaseUrl } from "@/shared/api";
 import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
 
 type AuthClaims = {
@@ -11,7 +12,6 @@ type UseAuthClaimsResult = {
   claims: AuthClaims | null;
   isLoading: boolean;
   error: string | null;
-  needsFallback: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -33,7 +33,6 @@ export function useAuthClaims(): UseAuthClaimsResult {
   const [claims, setClaims] = useState<AuthClaims | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [needsFallback, setNeedsFallback] = useState(false);
 
   const loadClaims = useCallback(async (skipCache = false) => {
     if (!isLoaded || !isSignedIn) {
@@ -51,29 +50,45 @@ export function useAuthClaims(): UseAuthClaimsResult {
       });
 
       if (!token) {
-        setNeedsFallback(true);
         setIsLoading(false);
         return;
       }
 
+      // 1. Try reading claims from JWT payload
       const payload = decodeJwtPayload(token);
-      if (!payload) {
-        setNeedsFallback(true);
+      const systemRole = payload?.systemRole as SystemRole | null | undefined;
+      const status = payload?.status as UserStatus | undefined;
+
+      if (systemRole) {
+        setClaims({
+          systemRole,
+          status: status ?? "ACTIVE"
+        });
         setIsLoading(false);
         return;
       }
 
-      const systemRole = payload.systemRole as SystemRole | null | undefined;
-      const status = payload.status as UserStatus | undefined;
-
-      setClaims({
-        systemRole: systemRole ?? null,
-        status: status ?? "ACTIVE"
+      // 2. JWT missing systemRole — fetch from /auth/me
+      const response = await fetch(`${apiBaseUrl}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      setNeedsFallback(false);
+
+      if (response.ok) {
+        const body = await response.json();
+        if (body.success && body.data) {
+          setClaims({
+            systemRole: body.data.systemRole ?? null,
+            status: body.data.status ?? "ACTIVE"
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 3. /auth/me failed — user might not be synced yet
+      setClaims({ systemRole: null, status: "ACTIVE" });
     } catch (err) {
-      console.warn("[useAuthClaims] Failed to decode JWT:", err);
-      setNeedsFallback(true);
+      console.warn("[useAuthClaims] Failed to load claims:", err);
       setError(err instanceof Error ? err.message : "Failed to load claims");
     } finally {
       setIsLoading(false);
@@ -88,5 +103,5 @@ export function useAuthClaims(): UseAuthClaimsResult {
     await loadClaims(true);
   }, [loadClaims]);
 
-  return { claims, isLoading, error, needsFallback, refresh };
+  return { claims, isLoading, error, refresh };
 }

@@ -22,12 +22,12 @@ function serializeTaskRate(document: TaskRateDocument & { _id: unknown }): TaskR
   };
 }
 
-function serializeAssistantEarning(document: AssistantEarningDocument & { _id: unknown }): AssistantEarning {
+function serializeAssistantEarning(document: any): AssistantEarning {
   return {
     id: String(document._id),
-    assistantId: String(document.assistantId),
-    taskId: String(document.taskId),
-    seriesId: String(document.seriesId),
+    assistantId: String(document.assistantId?._id || document.assistantId),
+    taskId: String(document.taskId?._id || document.taskId),
+    seriesId: String(document.seriesId?._id || document.seriesId),
     taskType: document.taskType,
     basePayment: document.basePayment,
     bonusRate: document.bonusRate,
@@ -38,7 +38,10 @@ function serializeAssistantEarning(document: AssistantEarningDocument & { _id: u
     timingStatus: document.timingStatus,
     status: document.status,
     createdAt: document.createdAt.toISOString(),
-    updatedAt: document.updatedAt.toISOString()
+    updatedAt: document.updatedAt.toISOString(),
+    assistantName: document.assistantId && typeof document.assistantId === "object" ? document.assistantId.fullName : undefined,
+    taskTitle: document.taskId && typeof document.taskId === "object" ? document.taskId.title : undefined,
+    seriesTitle: document.seriesId && typeof document.seriesId === "object" ? document.seriesId.title : undefined
   };
 }
 
@@ -85,42 +88,42 @@ export function createMongoPayrollRepository() {
         { taskId: input.taskId },
         { $set: input },
         { upsert: true, returnDocument: "after" }
-      );
+      ).populate("assistantId taskId seriesId");
       return serializeAssistantEarning(earning);
     },
 
     async findEarningById(earningId: string): Promise<AssistantEarning | null> {
       if (!mongoose.isValidObjectId(earningId)) return null;
-      const earning = await AssistantEarningModel.findById(earningId);
+      const earning = await AssistantEarningModel.findById(earningId).populate("assistantId taskId seriesId");
       return earning ? serializeAssistantEarning(earning) : null;
     },
 
     async findEarningByTaskId(taskId: string): Promise<AssistantEarning | null> {
       if (!mongoose.isValidObjectId(taskId)) return null;
-      const earning = await AssistantEarningModel.findOne({ taskId });
+      const earning = await AssistantEarningModel.findOne({ taskId }).populate("assistantId taskId seriesId");
       return earning ? serializeAssistantEarning(earning) : null;
     },
 
     async findEarnings(): Promise<AssistantEarning[]> {
-      const earnings = await AssistantEarningModel.find().sort({ createdAt: -1 }).limit(200);
+      const earnings = await AssistantEarningModel.find().populate("assistantId taskId seriesId").sort({ createdAt: -1 }).limit(200);
       return earnings.map(serializeAssistantEarning);
     },
 
     async findEarningsByAssistant(assistantId: string): Promise<AssistantEarning[]> {
       if (!mongoose.isValidObjectId(assistantId)) return [];
-      const earnings = await AssistantEarningModel.find({ assistantId }).sort({ createdAt: -1 }).limit(200);
+      const earnings = await AssistantEarningModel.find({ assistantId }).populate("assistantId taskId seriesId").sort({ createdAt: -1 }).limit(200);
       return earnings.map(serializeAssistantEarning);
     },
 
     async findEarningsBySeries(seriesId: string): Promise<AssistantEarning[]> {
       if (!mongoose.isValidObjectId(seriesId)) return [];
-      const earnings = await AssistantEarningModel.find({ seriesId }).sort({ createdAt: -1 }).limit(200);
+      const earnings = await AssistantEarningModel.find({ seriesId }).populate("assistantId taskId seriesId").sort({ createdAt: -1 }).limit(200);
       return earnings.map(serializeAssistantEarning);
     },
 
     async updateEarning(earningId: string, input: UpdateAssistantEarningRecord): Promise<AssistantEarning | null> {
       if (!mongoose.isValidObjectId(earningId)) return null;
-      const earning = await AssistantEarningModel.findByIdAndUpdate(earningId, { $set: input }, { returnDocument: "after" });
+      const earning = await AssistantEarningModel.findByIdAndUpdate(earningId, { $set: input }, { returnDocument: "after" }).populate("assistantId taskId seriesId");
       return earning ? serializeAssistantEarning(earning) : null;
     }
   };

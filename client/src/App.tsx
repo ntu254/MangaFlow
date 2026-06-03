@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy } from "react";
 import {
   SignIn,
   SignUp,
@@ -11,7 +11,6 @@ import { RoleRedirect } from "@/features/auth/RoleRedirect";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 import { NotFoundPage } from "@/shared/components/feedback/NotFoundPage";
 import { HomeGate } from "@/shared/components/HomeGate";
-import { apiBaseUrl } from "@/shared/api";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { RoleSidebar, sidebarConfig } from "@/shared/components/navigation/RoleSidebar";
 import { AppHeader } from "@/shared/components/navigation/AppHeader";
@@ -86,6 +85,15 @@ const OnboardingPage = lazy(() =>
 const BlockedPage = lazy(() =>
   import("@/features/auth/routes/BlockedPage").then(m => ({ default: m.BlockedPage }))
 );
+const AssistantEarningsPage = lazy(() =>
+  import("@/features/payroll").then(m => ({ default: m.AssistantEarningsPage }))
+);
+const MangakaPayrollPage = lazy(() =>
+  import("@/features/payroll").then(m => ({ default: m.MangakaPayrollPage }))
+);
+const AdminTaskRatesPage = lazy(() =>
+  import("@/features/payroll").then(m => ({ default: m.AdminTaskRatesPage }))
+);
 
 const LazyLandingPage = lazy(() =>
   import("@/features/landing").then(m => ({ default: m.LandingPage }))
@@ -108,50 +116,7 @@ function LoadingScreen() {
 
 function AuthenticatedApp() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
-  const { claims, isLoading: claimsLoading, needsFallback, refresh } = useAuthClaims();
-  const [fallbackUser, setFallbackUser] = useState<{
-    systemRole: SystemRole | null;
-    status: UserStatus;
-  } | null>(null);
-
-  // Fallback: if JWT claims missing, call sync-user
-  useEffect(() => {
-    if (!needsFallback || !isSignedIn) return;
-
-    let cancelled = false;
-
-    async function syncUser() {
-      try {
-        const token = await getToken({ template: "mangaflow" });
-        if (!token) return;
-
-        const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        });
-        const body = await response.json();
-
-        if (cancelled) return;
-
-        if (response.ok && body.success) {
-          setFallbackUser({
-            systemRole: body.data.user.systemRole,
-            status: body.data.user.status
-          });
-          // Refresh JWT claims after sync
-          await refresh();
-        }
-      } catch (err) {
-        console.warn("[Auth] Fallback sync failed:", err);
-      }
-    }
-
-    void syncUser();
-    return () => { cancelled = true; };
-  }, [needsFallback, isSignedIn, getToken, refresh]);
+  const { claims, isLoading: claimsLoading } = useAuthClaims();
 
   if (!isLoaded) {
     return <LoadingScreen />;
@@ -165,8 +130,8 @@ function AuthenticatedApp() {
     return <LoadingScreen />;
   }
 
-  // Use claims from JWT, fallback to sync response
-  const effectiveClaims = claims ?? fallbackUser;
+  // Read role/status directly from JWT claims
+  const effectiveClaims = claims;
 
   if (!effectiveClaims) {
     return <LoadingScreen />;
@@ -199,6 +164,7 @@ function AuthenticatedApp() {
               <Routes>
                 <Route path="/dashboard" element={<AdminDashboardPage />} />
                 <Route path="/role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
+                <Route path="/task-rates" element={<AdminTaskRatesPage />} />
                 <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
               </Routes>
             </Suspense>
@@ -227,6 +193,7 @@ function AuthenticatedApp() {
                 <Route path="/tasks" element={<MangakaTaskListPage />} />
                 <Route path="/submissions" element={<MangakaSubmissionsPage />} />
                 <Route path="/ranking" element={<MangakaRankingPage />} />
+                <Route path="/payroll" element={<MangakaPayrollPage />} />
                 <Route path="*" element={<Navigate to="/app/mangaka/dashboard" replace />} />
               </Routes>
             </Suspense>
@@ -274,6 +241,7 @@ function AuthenticatedApp() {
                 <Route path="/dashboard" element={<AssistantDashboardPage />} />
                 <Route path="/tasks" element={<AssistantTaskListPage />} />
                 <Route path="/tasks/:taskId" element={<AssistantTaskDetailPage />} />
+                <Route path="/earnings" element={<AssistantEarningsPage />} />
                 <Route path="*" element={<Navigate to="/app/assistant/dashboard" replace />} />
               </Routes>
             </Suspense>
