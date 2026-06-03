@@ -64,7 +64,7 @@ export function createMongoPageRepository() {
       const page = await PageModel.findByIdAndUpdate(
         pageId,
         { $set: updateData },
-        { new: true }
+        { returnDocument: "after" }
       );
       return page ? serializePage(page) : null;
     },

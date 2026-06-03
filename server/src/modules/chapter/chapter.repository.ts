@@ -51,7 +51,7 @@ export function createMongoChapterRepository() {
       const chapter = await ChapterModel.findByIdAndUpdate(
         chapterId,
         { $set: updateData },
-        { new: true }
+        { returnDocument: "after" }
       );
       return chapter ? serializeChapter(chapter) : null;
     },

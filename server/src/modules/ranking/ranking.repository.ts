@@ -52,7 +52,7 @@ export function createMongoRankingRepository() {
             createdBy: new mongoose.Types.ObjectId(data.createdBy)
           }
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       );
       return serializeRanking(doc);
     },
@@ -82,7 +82,7 @@ export function createMongoRankingRepository() {
 
     async updateRankingStatus(id: string, status: RankingStatus): Promise<Ranking | null> {
       if (!mongoose.isValidObjectId(id)) return null;
-      const doc = await RankingModel.findByIdAndUpdate(id, { $set: { status } }, { new: true });
+      const doc = await RankingModel.findByIdAndUpdate(id, { $set: { status } }, { returnDocument: "after" });
       return doc ? serializeRanking(doc) : null;
     },
 

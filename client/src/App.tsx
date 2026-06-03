@@ -130,6 +130,17 @@ function PhaseZeroShell({ clerkConfigured }: AppProps) {
   );
 }
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#fff9fb] via-[#f8f1ff] to-[#fff7ec]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="size-10 animate-spin rounded-full border-4 border-[#eadff6] border-t-[#9065d5]" />
+        <p className="text-sm text-[#5f5270]">Loading MangaFlow...</p>
+      </div>
+    </div>
+  );
+}
+
 function AuthenticatedApp() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const [state, setState] = useState<AuthSyncState>({ status: "idle" });
@@ -193,7 +204,7 @@ function AuthenticatedApp() {
   }, [getToken, isLoaded, isSignedIn]);
 
   if (!isLoaded) {
-    return <LandingPage clerkConfigured />;
+    return <LoadingScreen />;
   }
 
   if (!isSignedIn) {
@@ -462,7 +473,7 @@ function AdminRoleReviewPage({
   }, [authState.status]);
 
   if (authState.status !== "ready") {
-    return <LandingPage clerkConfigured />;
+    return <LoadingScreen />;
   }
 
   if (authState.user.systemRole !== "ADMIN") {

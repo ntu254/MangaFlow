@@ -133,7 +133,7 @@ export function createMongoBoardRepository() {
             reason 
           } 
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       );
       return serializeBoardVote(doc);
     },

@@ -66,7 +66,7 @@ export function createMongoAnnotationRepository() {
       if (data.comment !== undefined) updateData.comment = data.comment;
       if (data.status !== undefined) updateData.status = data.status;
 
-      const annotation = await AnnotationModel.findByIdAndUpdate(annotationId, { $set: updateData }, { new: true });
+      const annotation = await AnnotationModel.findByIdAndUpdate(annotationId, { $set: updateData }, { returnDocument: "after" });
       return annotation ? serializeAnnotation(annotation) : null;
     },
 

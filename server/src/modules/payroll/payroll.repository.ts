@@ -72,7 +72,7 @@ export function createMongoPayrollRepository() {
       if (input.rate !== undefined) update.rate = input.rate;
       if (input.currency !== undefined) update.currency = input.currency;
       if (input.isActive !== undefined) update.isActive = input.isActive;
-      const rate = await TaskRateModel.findByIdAndUpdate(taskRateId, { $set: update }, { new: true });
+      const rate = await TaskRateModel.findByIdAndUpdate(taskRateId, { $set: update }, { returnDocument: "after" });
       return rate ? serializeTaskRate(rate) : null;
     },
 
@@ -84,7 +84,7 @@ export function createMongoPayrollRepository() {
       const earning = await AssistantEarningModel.findOneAndUpdate(
         { taskId: input.taskId },
         { $set: input },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       );
       return serializeAssistantEarning(earning);
     },
@@ -120,7 +120,7 @@ export function createMongoPayrollRepository() {
 
     async updateEarning(earningId: string, input: UpdateAssistantEarningRecord): Promise<AssistantEarning | null> {
       if (!mongoose.isValidObjectId(earningId)) return null;
-      const earning = await AssistantEarningModel.findByIdAndUpdate(earningId, { $set: input }, { new: true });
+      const earning = await AssistantEarningModel.findByIdAndUpdate(earningId, { $set: input }, { returnDocument: "after" });
       return earning ? serializeAssistantEarning(earning) : null;
     }
   };

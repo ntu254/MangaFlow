@@ -90,7 +90,7 @@ export function createMongoSeriesRepository(): SeriesRepository {
       const series = await SeriesModel.findByIdAndUpdate(
         seriesId,
         { $set: data },
-        { new: true }
+        { returnDocument: "after" }
       );
       
       return series ? serializeSeries(series) : null;

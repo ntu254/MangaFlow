@@ -93,7 +93,7 @@ export function createMongoTaskRepository() {
       if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
       if (data.submittedAt !== undefined) updateData.submittedAt = data.submittedAt;
 
-      const task = await TaskModel.findByIdAndUpdate(taskId, { $set: updateData }, { new: true });
+      const task = await TaskModel.findByIdAndUpdate(taskId, { $set: updateData }, { returnDocument: "after" });
       return task ? serializeTask(task) : null;
     },
 

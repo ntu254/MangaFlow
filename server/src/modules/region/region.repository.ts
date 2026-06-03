@@ -74,7 +74,7 @@ export function createMongoRegionRepository(): RegionRepository {
       if (data.height !== undefined) updateData.height = data.height;
       if (data.confidence !== undefined) updateData.confidence = data.confidence;
 
-      const region = await RegionModel.findByIdAndUpdate(regionId, { $set: updateData }, { new: true });
+      const region = await RegionModel.findByIdAndUpdate(regionId, { $set: updateData }, { returnDocument: "after" });
       return region ? serializeRegion(region) : null;
     },
 

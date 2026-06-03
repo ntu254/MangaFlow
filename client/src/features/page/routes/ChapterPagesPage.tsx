@@ -309,12 +309,12 @@ export function ChapterPagesPage() {
               {batchAiLoading ? "Processing…" : "Batch AI"}
             </Button>
             <Dialog open={addDialogOpen} onOpenChange={(open) => {
-            if (!open && !submitLoading) {
-              selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
-              setSelectedFiles([]);
-            }
-            setAddDialogOpen(open);
-          }}>
+              if (!open && !submitLoading) {
+                selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
+                setSelectedFiles([]);
+              }
+              setAddDialogOpen(open);
+            }}>
             <DialogTrigger>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Add Pages

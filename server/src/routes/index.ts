@@ -35,6 +35,12 @@ import { createMongoBoardRepository, createBoardService, createBoardRouter, type
 import { createMongoRankingRepository, createRankingService, createRankingRouter, type RankingRepository } from "../modules/ranking/index.js";
 import { createMongoPayrollRepository, createPayrollRouter, type PayrollRepository } from "../modules/payroll/index.js";
 import { createAiRouter } from "../modules/ai/ai.routes.js";
+import {
+  createMongoNotificationRepository,
+  createNotificationRouter,
+  createNotificationService,
+  type NotificationRepository
+} from "../modules/notification/index.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -52,6 +58,7 @@ export type ApiRouterDependencies = {
   boardRepository?: BoardRepository;
   rankingRepository?: RankingRepository;
   payrollRepository?: PayrollRepository;
+  notificationRepository?: NotificationRepository;
   aiServiceUrl?: string;
 };
 
@@ -142,6 +149,16 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       pageRepository: pageRepo,
       regionRepository: regionRepo,
       aiServiceUrl: dependencies.aiServiceUrl
+    })
+  );
+
+  const notifRepo = dependencies.notificationRepository ?? createMongoNotificationRepository();
+  const notifService = createNotificationService(notifRepo);
+  router.use(
+    createNotificationRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      notificationService: notifService
     })
   );
 

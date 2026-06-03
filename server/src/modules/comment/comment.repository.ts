@@ -57,7 +57,7 @@ export function createMongoCommentRepository() {
       const comment = await CommentModel.findByIdAndUpdate(
         commentId,
         { $set: updates },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!comment) {
         throw new Error("Comment not found for update");

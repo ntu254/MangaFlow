@@ -50,7 +50,7 @@ export function createMongoManuscriptRepository() {
       const manuscript = await ManuscriptModel.findByIdAndUpdate(
         manuscriptId,
         { $set: { status } },
-        { new: true }
+        { returnDocument: "after" }
       );
       return manuscript ? serializeManuscript(manuscript) : null;
     }
