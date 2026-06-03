@@ -44,9 +44,12 @@ const admin = createAuthUser("clerk_payroll_admin", adminId, "ADMIN");
 const stranger = createAuthUser("clerk_payroll_stranger", strangerId, "MANGAKA");
 const users = [owner, assistant, admin, stranger];
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
       return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
@@ -247,8 +250,9 @@ function createPayrollRepository(seedRates: TaskRate[] = []) {
 
 function createPayrollApp(clerkId: string, roleByUserId: Record<string, string | null>, seedRates: TaskRate[] = []) {
   const { repository, taskRates, earnings } = createPayrollRepository(seedRates);
+  const user = users.find(u => u.clerkId === clerkId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     taskRepository: createTaskRepository(),
@@ -326,7 +330,7 @@ describe("payroll routes", () => {
     const earningId = calc.body.data.id;
 
     const assistantApp = createApp({
-      authVerifier: createVerifier(assistant.clerkId),
+      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole),
       userRepository: createUserRepository(),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       taskRepository: createTaskRepository(),
@@ -335,7 +339,7 @@ describe("payroll routes", () => {
 
     // Reuse the same repository through a fresh app because Clerk user differs.
     const adminApp = createApp({
-      authVerifier: createVerifier(admin.clerkId),
+      authVerifier: createVerifier(admin.clerkId, admin.systemRole),
       userRepository: createUserRepository(),
       seriesRepository: createSeriesRepository({}),
       taskRepository: createTaskRepository(),

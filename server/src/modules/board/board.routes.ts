@@ -33,7 +33,7 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
     const seriesId = req.params.seriesId as string;
     const { vote, reason } = req.body;
     try {
-      const boardVote = await dependencies.boardService.submitVote(user.id, seriesId, vote, reason);
+      const boardVote = await dependencies.boardService.submitVote(user!.id, seriesId, vote, reason);
       res.json(ok(boardVote));
     } catch (error) {
       if (error instanceof BoardServiceError) {
@@ -91,7 +91,7 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
     const user = (req as RoleAuthorizedRequest).localUser;
     const seriesId = req.params.seriesId as string;
     try {
-      const decision = await dependencies.boardService.finalizeDecision(seriesId, user.id);
+      const decision = await dependencies.boardService.finalizeDecision(seriesId, user!.id);
       res.json(ok(decision));
     } catch (error) {
       if (error instanceof BoardServiceError) {
@@ -108,7 +108,7 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
     const seriesId = req.params.seriesId as string;
     const { decision, reason } = req.body;
     try {
-      const boardDecision = await dependencies.boardService.finalizeTieBreak(seriesId, user.id, decision, reason);
+      const boardDecision = await dependencies.boardService.finalizeTieBreak(seriesId, user!.id, decision, reason);
       res.json(ok(boardDecision));
     } catch (error) {
       if (error instanceof BoardServiceError) {

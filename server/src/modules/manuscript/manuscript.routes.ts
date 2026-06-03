@@ -95,7 +95,7 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
         title: req.body.title,
         description: req.body.description,
         fileUrls
-      }, user.id);
+      }, user!.id);
 
       // Register uploaded files as FileAsset metadata
       for (let i = 0; i < files.length; i++) {
@@ -110,7 +110,7 @@ export function createManuscriptRouter(dependencies: ManuscriptRouteDependencies
           mimeType: file.mimetype,
           fileSize: file.size,
           versionNumber: 1,
-          uploadedBy: user.id
+          uploadedBy: user!.id
         });
       }
 

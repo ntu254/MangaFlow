@@ -41,9 +41,12 @@ const stranger = createAuthUser("clerk_submission_stranger", strangerId, "MANGAK
 const admin = createAuthUser("clerk_submission_admin", adminId, "ADMIN");
 const users = [owner, editor, assistant, stranger, admin];
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
       return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
@@ -220,8 +223,9 @@ function createSubmissionApp(
 ) {
   const { repository: taskRepository, tasks } = createTaskRepository(seedTasks);
   const { repository: submissionRepository, submissions } = createSubmissionRepository(seedSubmissions);
+  const user = users.find(u => u.clerkId === clerkId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     taskRepository,

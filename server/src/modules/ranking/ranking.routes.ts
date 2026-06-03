@@ -42,7 +42,7 @@ export function createRankingRouter(dependencies: RankingRouteDependencies) {
     const { period, items } = req.body;
     const user = (req as RoleAuthorizedRequest).localUser;
     try {
-      const rankings = await dependencies.rankingService.importAndCalculateRankings(user.id, period, items);
+      const rankings = await dependencies.rankingService.importAndCalculateRankings(user!.id, period, items);
       res.json(ok(rankings));
     } catch (error) {
       if (error instanceof RankingServiceError) {

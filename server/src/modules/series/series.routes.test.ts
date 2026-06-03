@@ -50,6 +50,9 @@ function createVerifier(clerkId: string, systemRole: SystemRole | null = null, s
         systemRole,
         status
       };
+    },
+    async verifyWithProfile() {
+      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
     }
   };
 }

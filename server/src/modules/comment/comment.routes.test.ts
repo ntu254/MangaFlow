@@ -47,9 +47,12 @@ const strangerAssistant = createAuthUser("clerk_comment_stranger_assistant", str
 const users = [owner, editor, assistant, stranger, admin, strangerAssistant];
 
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
       return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
@@ -227,8 +230,9 @@ function createCommentApp(
   seedComments: Comment[] = []
 ) {
   const { repository: commentRepository, comments } = createCommentRepository(seedComments);
+  const user = users.find(u => u.clerkId === clerkId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     manuscriptRepository: createManuscriptRepository(),

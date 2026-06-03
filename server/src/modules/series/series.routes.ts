@@ -36,7 +36,7 @@ export function createSeriesRouter(dependencies: SeriesRouteDependencies) {
         description: req.body.description,
         genre: req.body.genre,
         publicationType: req.body.publicationType,
-        ownerId: user.id
+        ownerId: user!.id
       });
       res.status(201).json(ok(series));
     } catch (error) {
@@ -50,7 +50,7 @@ export function createSeriesRouter(dependencies: SeriesRouteDependencies) {
 
   router.get("/", authenticate, checkCanViewSeries, async (req, res) => {
     const user = (req as RoleAuthorizedRequest).localUser;
-    const list = await service.listUserSeries(user.id);
+    const list = await service.listUserSeries(user!.id);
     res.json(ok(list));
   });
 
@@ -91,7 +91,7 @@ export function createSeriesRouter(dependencies: SeriesRouteDependencies) {
     const user = (req as RoleAuthorizedRequest).localUser;
 
     try {
-      await service.deleteSeries(req.params.seriesId as string, user.id);
+      await service.deleteSeries(req.params.seriesId as string, user!.id);
       res.json(ok({ success: true }));
     } catch (error) {
       if (error instanceof SeriesServiceError) {

@@ -68,7 +68,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       const user = authReq.localUser;
 
       // Check series role (Mangaka owner/co-creator)
-      const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
+      const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user!.id);
       const allowedRoles = [SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA];
       if (!role || !allowedRoles.includes(role as any)) {
         res.status(403).json(fail("Insufficient series role to upload pages", "FORBIDDEN"));
@@ -142,7 +142,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
           width,
           height,
           versionNumber: 1,
-          uploadedBy: user.id
+          uploadedBy: user!.id
         });
 
         const resolvedPage = await resolvePageUrls(page);
@@ -243,7 +243,7 @@ export function createPageRouter(dependencies: PageRouteDependencies) {
       const authReq = req as RoleAuthorizedRequest;
       const user = authReq.localUser;
 
-      const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user.id);
+      const role = await dependencies.seriesRepository.getSeriesMemberRole(chapter.seriesId, user!.id);
       const allowedRoles = [SERIES_MEMBER_ROLES.OWNER_MANGAKA, SERIES_MEMBER_ROLES.CO_MANGAKA];
       if (!role || !allowedRoles.includes(role as any)) {
         res.status(403).json(fail("Only Mangaka owners can delete pages", "FORBIDDEN"));

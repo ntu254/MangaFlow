@@ -38,6 +38,9 @@ function createVerifier(clerkId = "clerk_mangaka_001", systemRole: SystemRole | 
         systemRole,
         status
       };
+    },
+    async verifyWithProfile() {
+      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
     }
   };
 }

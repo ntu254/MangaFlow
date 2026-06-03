@@ -31,9 +31,12 @@ function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): Au
 const user1 = createAuthUser("clerk_notif_user1", userId1, "MANGAKA");
 const user2 = createAuthUser("clerk_notif_user2", userId2, "ASSISTANT");
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
       return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
@@ -72,6 +75,8 @@ function makeNotif(overrides: Partial<Notification> & { id: string; userId: stri
     updatedAt: now
   };
 }
+
+const allUsers = [user1, user2];
 
 function createNotificationRepository(initial: Notification[]): NotificationRepository {
   let store = [...initial];

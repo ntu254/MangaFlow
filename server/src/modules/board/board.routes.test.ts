@@ -71,6 +71,9 @@ function createVerifier(clerkId: string): AuthVerifier {
         systemRole: user?.systemRole ?? null,
         status: user?.status ?? "ACTIVE"
       };
+    },
+    async verifyWithProfile() {
+      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
     }
   };
 }

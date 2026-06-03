@@ -41,9 +41,12 @@ const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
 const admin = createAuthUser("clerk_admin", adminId, "ADMIN");
 const users = [mangaka, editor, assistant, admin];
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
       return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
@@ -261,6 +264,11 @@ describe("Editor Approval API Integration Tests", () => {
     [adminId]: "ADMIN"
   };
 
+  function verifierFor(clerkId: string) {
+    const user = users.find(u => u.clerkId === clerkId);
+    return createVerifier(clerkId, user?.systemRole ?? null);
+  }
+
   const sharedDeps = {
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId)
@@ -270,7 +278,7 @@ describe("Editor Approval API Integration Tests", () => {
     it("allows Admin to approve and request revision", async () => {
       const manuscriptRepo = createManuscriptRepository([testManuscript]);
       const app = createApp({
-        authVerifier: createVerifier(admin.clerkId),
+        authVerifier: verifierFor(admin.clerkId),
         manuscriptRepository: manuscriptRepo.repository,
         ...sharedDeps
       });
@@ -296,7 +304,7 @@ describe("Editor Approval API Integration Tests", () => {
     it("allows Series Editor to approve", async () => {
       const manuscriptRepo = createManuscriptRepository([testManuscript]);
       const app = createApp({
-        authVerifier: createVerifier(editor.clerkId),
+        authVerifier: verifierFor(editor.clerkId),
         manuscriptRepository: manuscriptRepo.repository,
         ...sharedDeps
       });
@@ -311,7 +319,7 @@ describe("Editor Approval API Integration Tests", () => {
     it("rejects non-editors and non-admins with 403", async () => {
       const manuscriptRepo = createManuscriptRepository([testManuscript]);
       const app = createApp({
-        authVerifier: createVerifier(mangaka.clerkId),
+        authVerifier: verifierFor(mangaka.clerkId),
         manuscriptRepository: manuscriptRepo.repository,
         ...sharedDeps
       });
@@ -328,7 +336,7 @@ describe("Editor Approval API Integration Tests", () => {
       const pageRepo = createPageRepository([testPage]);
       const commentRepo = createCommentRepository([]);
       const app = createApp({
-        authVerifier: createVerifier(editor.clerkId),
+        authVerifier: verifierFor(editor.clerkId),
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
         chapterRepository: createChapterRepository([testChapter]).repository,
@@ -367,7 +375,7 @@ describe("Editor Approval API Integration Tests", () => {
       };
       const commentRepo = createCommentRepository([unresolvedComment]);
       const app = createApp({
-        authVerifier: createVerifier(editor.clerkId),
+        authVerifier: verifierFor(editor.clerkId),
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
         chapterRepository: createChapterRepository([testChapter]).repository,
@@ -388,7 +396,7 @@ describe("Editor Approval API Integration Tests", () => {
       const pageRepo = createPageRepository([testPage]);
       const commentRepo = createCommentRepository([]);
       const app = createApp({
-        authVerifier: createVerifier(editor.clerkId),
+        authVerifier: verifierFor(editor.clerkId),
         chapterRepository: chapterRepo.repository,
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
@@ -428,7 +436,7 @@ describe("Editor Approval API Integration Tests", () => {
       };
       const commentRepo = createCommentRepository([unresolvedComment]);
       const app = createApp({
-        authVerifier: createVerifier(editor.clerkId),
+        authVerifier: verifierFor(editor.clerkId),
         chapterRepository: chapterRepo.repository,
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,

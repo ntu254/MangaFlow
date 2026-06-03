@@ -42,9 +42,12 @@ const admin = createAuthUser("clerk_admin", adminId, "ADMIN");
 const stranger = createAuthUser("clerk_stranger", strangerId, "MANGAKA");
 const users = [owner, assistant, admin, stranger];
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
       return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
@@ -199,8 +202,9 @@ function createRegionRepository() {
 }
 
 function createAiApp(clerkId: string, roleByUserId: Record<string, string | null>, regionRepo = createRegionRepository()) {
+  const user = users.find(u => u.clerkId === clerkId);
   return createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     chapterRepository: createChapterRepository(),

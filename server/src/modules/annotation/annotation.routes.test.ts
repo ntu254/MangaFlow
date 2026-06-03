@@ -43,15 +43,13 @@ const editor = createAuthUser("clerk_editor_annotation", editorId, "EDITOR");
 const assistant = createAuthUser("clerk_assistant_annotation", assistantId, "ASSISTANT");
 const stranger = createAuthUser("clerk_stranger_annotation", strangerId, "MANGAKA");
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return {
-        clerkId,
-        email: `${clerkId}@example.com`,
-        fullName: clerkId,
-        avatarUrl: null
-      };
+      return { clerkId, systemRole, status: "ACTIVE" as const };
+    },
+    async verifyWithProfile() {
+      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
     }
   };
 }
@@ -304,8 +302,9 @@ function createAnnotationApp(
   regions: Region[] = [createRegion()]
 ) {
   const { repository, annotations } = createAnnotationRepository(seed);
+  const user = [owner, editor, assistant, stranger].find(u => u.clerkId === clerkId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
     userRepository: createUserRepository([owner, editor, assistant, stranger]),
     seriesRepository: createSeriesRepository(roleByUserId),
     chapterRepository: createChapterRepository(),
