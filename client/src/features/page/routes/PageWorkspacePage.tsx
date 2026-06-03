@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/react";
 import {
   ArrowLeft,
   Crosshair,
+  MessageSquare,
   Loader2,
   MousePointer2,
   RefreshCw,
@@ -13,6 +14,13 @@ import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getPage, type Page } from "@/features/page/api/page";
+import {
+  createAnnotation,
+  deleteAnnotation,
+  listAnnotations,
+  updateAnnotation,
+  type Annotation
+} from "@/features/annotation/api/annotation";
 import {
   createRegion,
   deleteRegion,
@@ -28,6 +36,8 @@ import {
   type Point
 } from "@/features/region/lib/region-workspace";
 
+type WorkspaceToolMode = "REGION" | "ANNOTATION";
+
 const regionColorByType: Record<RegionType, string> = {
   BACKGROUND: "#9065d5",
   INKING: "#2f243a",
@@ -40,7 +50,7 @@ const regionColorByType: Record<RegionType, string> = {
 
 type LoadState =
   | { status: "loading" }
-  | { status: "ready"; page: Page; regions: Region[] }
+  | { status: "ready"; page: Page; regions: Region[]; annotations: Annotation[] }
   | { status: "error"; message: string };
 
 function RegionOverlay({
@@ -80,6 +90,43 @@ function RegionOverlay({
   );
 }
 
+function AnnotationOverlay({
+  annotation,
+  selected,
+  onSelect
+}: {
+  annotation: Annotation;
+  selected: boolean;
+  onSelect: (annotation: Annotation) => void;
+}) {
+  const color = annotation.status === "RESOLVED" ? "#8a7a99" : "#ff7196";
+
+  return (
+    <button
+      type="button"
+      aria-label={`${annotation.status.toLowerCase()} annotation`}
+      className="absolute rounded-[3px] border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      style={{
+        ...regionBoxToStyle(annotation),
+        borderColor: color,
+        backgroundColor: selected ? `${color}35` : `${color}18`,
+        boxShadow: selected ? `0 0 0 2px white, 0 0 0 5px ${color}` : "0 8px 20px rgba(47,36,58,0.10)"
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(annotation);
+      }}
+    >
+      <span
+        className="absolute right-1 top-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+        style={{ backgroundColor: color }}
+      >
+        {annotation.status}
+      </span>
+    </button>
+  );
+}
+
 function EmptyWorkspaceState({ chapterId }: { chapterId?: string }) {
   return (
     <div className="container max-w-5xl py-8">
@@ -104,8 +151,11 @@ export function PageWorkspacePage() {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [toolMode, setToolMode] = useState<WorkspaceToolMode>("REGION");
   const [selectedType, setSelectedType] = useState<RegionType>("BUBBLE");
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [annotationComment, setAnnotationComment] = useState("");
   const [draftBox, setDraftBox] = useState<NormalizedRegionBox | null>(null);
   const [dragStart, setDragStart] = useState<Point | null>(null);
   const [saving, setSaving] = useState(false);
@@ -119,13 +169,15 @@ export function PageWorkspacePage() {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
-      const [page, regions] = await Promise.all([
+      const [page, regions, annotations] = await Promise.all([
         getPage(token, pageId),
-        listRegions(token, pageId)
+        listRegions(token, pageId),
+        listAnnotations(token, pageId)
       ]);
 
-      setState({ status: "ready", page, regions });
+      setState({ status: "ready", page, regions, annotations });
       setSelectedRegionId(regions[0]?.id ?? null);
+      setSelectedAnnotationId(annotations[0]?.id ?? null);
     } catch (error) {
       setState({
         status: "error",
@@ -191,14 +243,30 @@ export function PageWorkspacePage() {
       setActionError(null);
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
-      const region = await createRegion(token, pageId, {
-        type: selectedType,
-        ...draftBox
-      });
+      if (toolMode === "ANNOTATION") {
+        const annotation = await createAnnotation(token, pageId, {
+          ...draftBox,
+          regionId: selectedRegionId ?? undefined,
+          comment: annotationComment.trim() || undefined
+        });
+        setState({
+          status: "ready",
+          page: state.page,
+          regions: state.regions,
+          annotations: [annotation, ...state.annotations]
+        });
+        setSelectedAnnotationId(annotation.id);
+        setAnnotationComment("");
+        setDraftBox(null);
+        return;
+      }
+
+      const region = await createRegion(token, pageId, { type: selectedType, ...draftBox });
       setState({
         status: "ready",
         page: state.page,
-        regions: [region, ...state.regions]
+        regions: [region, ...state.regions],
+        annotations: state.annotations
       });
       setSelectedRegionId(region.id);
       setDraftBox(null);
@@ -220,10 +288,48 @@ export function PageWorkspacePage() {
       if (!token) throw new Error("Not authenticated");
       await deleteRegion(token, regionId);
       const remaining = state.regions.filter((region) => region.id !== regionId);
-      setState({ status: "ready", page: state.page, regions: remaining });
+      setState({ status: "ready", page: state.page, regions: remaining, annotations: state.annotations });
       setSelectedRegionId(remaining[0]?.id ?? null);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Failed to delete region");
+    }
+  }
+
+  async function handleUpdateAnnotationStatus(annotationId: string, status: "OPEN" | "RESOLVED") {
+    if (state.status !== "ready") return;
+
+    try {
+      setActionError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const updated = await updateAnnotation(token, annotationId, { status });
+      setState({
+        status: "ready",
+        page: state.page,
+        regions: state.regions,
+        annotations: state.annotations.map((annotation) => (annotation.id === annotationId ? updated : annotation))
+      });
+      setSelectedAnnotationId(updated.id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Failed to update annotation");
+    }
+  }
+
+  async function handleDeleteAnnotation(annotationId: string) {
+    if (state.status !== "ready") return;
+    const confirmed = window.confirm("Delete this annotation?");
+    if (!confirmed) return;
+
+    try {
+      setActionError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      await deleteAnnotation(token, annotationId);
+      const remaining = state.annotations.filter((annotation) => annotation.id !== annotationId);
+      setState({ status: "ready", page: state.page, regions: state.regions, annotations: remaining });
+      setSelectedAnnotationId(remaining[0]?.id ?? null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Failed to delete annotation");
     }
   }
 
@@ -252,8 +358,9 @@ export function PageWorkspacePage() {
     return <EmptyWorkspaceState />;
   }
 
-  const { page, regions } = state;
+  const { page, regions, annotations } = state;
   const selectedRegion = regions.find((region) => region.id === selectedRegionId) ?? null;
+  const selectedAnnotation = annotations.find((annotation) => annotation.id === selectedAnnotationId) ?? null;
   const imageUrl = page.processedFileUrl ?? page.previewUrl ?? page.originalFileUrl;
 
   return (
@@ -308,6 +415,15 @@ export function PageWorkspacePage() {
                   />
                 ))}
 
+                {annotations.map((annotation) => (
+                  <AnnotationOverlay
+                    key={annotation.id}
+                    annotation={annotation}
+                    selected={annotation.id === selectedAnnotationId}
+                    onSelect={(nextAnnotation) => setSelectedAnnotationId(nextAnnotation.id)}
+                  />
+                ))}
+
                 {draftBox ? (
                   <div
                     className="absolute rounded-[3px] border-2 border-dashed border-[#9065d5] bg-[#9065d5]/20"
@@ -327,16 +443,40 @@ export function PageWorkspacePage() {
           <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-[#f8f1ff] p-2 text-[#9065d5]">
-                <Crosshair className="size-5" />
+                {toolMode === "REGION" ? <Crosshair className="size-5" /> : <MessageSquare className="size-5" />}
               </div>
               <div>
-                <h2 className="text-base font-semibold tracking-tight">Region tool</h2>
+                <h2 className="text-base font-semibold tracking-tight">Workspace tool</h2>
                 <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                  Drag across the page to mark a rectangular work area.
+                  Drag across the page to create a region or review annotation.
                 </p>
               </div>
             </div>
 
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={toolMode === "REGION" ? "default" : "outline"}
+                onClick={() => {
+                  setToolMode("REGION");
+                  setDraftBox(null);
+                }}
+              >
+                <Crosshair /> Region
+              </Button>
+              <Button
+                type="button"
+                variant={toolMode === "ANNOTATION" ? "default" : "outline"}
+                onClick={() => {
+                  setToolMode("ANNOTATION");
+                  setDraftBox(null);
+                }}
+              >
+                <MessageSquare /> Annotation
+              </Button>
+            </div>
+
+            {toolMode === "REGION" ? (
             <div className="mt-4 grid gap-2">
               <span className="text-xs font-semibold uppercase text-muted-foreground">Type</span>
               <div className="grid grid-cols-2 gap-2">
@@ -359,6 +499,21 @@ export function PageWorkspacePage() {
                 ))}
               </div>
             </div>
+            ) : (
+              <div className="mt-4 grid gap-2">
+                <span className="text-xs font-semibold uppercase text-muted-foreground">Review comment</span>
+                <textarea
+                  value={annotationComment}
+                  onChange={(event) => setAnnotationComment(event.target.value)}
+                  className="min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  placeholder="Dialogue bubble needs revision"
+                  maxLength={1000}
+                />
+                <p className="text-xs text-muted-foreground">
+                  New annotations can optionally link to the selected Region.
+                </p>
+              </div>
+            )}
 
             <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
               {draftBox ? (
@@ -389,7 +544,7 @@ export function PageWorkspacePage() {
             <div className="mt-4 flex gap-2">
               <Button onClick={() => void handleSaveDraft()} disabled={!draftBox || saving}>
                 {saving ? <Loader2 className="animate-spin" /> : <Save />}
-                Save region
+                Save {toolMode === "REGION" ? "region" : "annotation"}
               </Button>
               <Button variant="outline" onClick={() => setDraftBox(null)} disabled={!draftBox || saving}>
                 Clear
@@ -447,6 +602,84 @@ export function PageWorkspacePage() {
                       >
                         <Trash /> Delete
                       </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold tracking-tight">Annotations</h2>
+              <Badge variant="secondary">{annotations.length}</Badge>
+            </div>
+
+            {annotations.length === 0 ? (
+              <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                No annotations yet. Switch to Annotation mode and drag on the page.
+              </p>
+            ) : (
+              <div className="grid gap-2">
+                {annotations.map((annotation) => {
+                  const isSelected = selectedAnnotation?.id === annotation.id;
+                  return (
+                    <div
+                      key={annotation.id}
+                      className={`rounded-md border p-3 transition-colors ${
+                        isSelected ? "border-[#ff7196] bg-[#fff3f8]" : "bg-white"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between text-left"
+                        onClick={() => setSelectedAnnotationId(annotation.id)}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          <span
+                            className="size-2 rounded-full"
+                            style={{ backgroundColor: annotation.status === "RESOLVED" ? "#8a7a99" : "#ff7196" }}
+                            aria-hidden="true"
+                          />
+                          Annotation
+                        </span>
+                        <Badge variant={annotation.status === "RESOLVED" ? "secondary" : "outline"}>
+                          {annotation.status}
+                        </Badge>
+                      </button>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {annotation.comment || "No comment"}
+                      </p>
+                      {annotation.regionId ? (
+                        <p className="mt-1 text-[11px] text-muted-foreground">Linked region: {annotation.regionId}</p>
+                      ) : null}
+                      <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted-foreground">
+                        <span>x {annotation.x}</span>
+                        <span>y {annotation.y}</span>
+                        <span>w {annotation.width}</span>
+                        <span>h {annotation.height}</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            void handleUpdateAnnotationStatus(
+                              annotation.id,
+                              annotation.status === "RESOLVED" ? "OPEN" : "RESOLVED"
+                            )
+                          }
+                        >
+                          {annotation.status === "RESOLVED" ? "Reopen" : "Resolve"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => void handleDeleteAnnotation(annotation.id)}
+                        >
+                          <Trash /> Delete
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}

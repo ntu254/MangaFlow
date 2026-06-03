@@ -22,6 +22,8 @@ import { createFileService } from "../modules/file/file.service.js";
 import { createFileRouter } from "../modules/file/file.routes.js";
 import { createMongoRegionRepository, type RegionRepository } from "../modules/region/region.repository.js";
 import { createRegionRouter } from "../modules/region/region.routes.js";
+import { createMongoAnnotationRepository, type AnnotationRepository } from "../modules/annotation/annotation.repository.js";
+import { createAnnotationRouter } from "../modules/annotation/annotation.routes.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -32,6 +34,7 @@ export type ApiRouterDependencies = {
   pageRepository?: PageRepository;
   fileRepository?: FileRepository;
   regionRepository?: RegionRepository;
+  annotationRepository?: AnnotationRepository;
 };
 
 export const apiRouter = Router();
@@ -116,6 +119,18 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
       regionRepository: dependencies.regionRepository ?? createMongoRegionRepository()
+    })
+  );
+
+  router.use(
+    createAnnotationRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
+      regionRepository: dependencies.regionRepository ?? createMongoRegionRepository(),
+      annotationRepository: dependencies.annotationRepository ?? createMongoAnnotationRepository()
     })
   );
 
