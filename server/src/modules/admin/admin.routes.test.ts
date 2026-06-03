@@ -83,15 +83,17 @@ function createRepository(seed: AuthUser[]): UserRepository {
   };
 }
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
         clerkId,
-        email: `${clerkId}@example.com`,
-        fullName: clerkId,
-        avatarUrl: null
+        systemRole,
+        status
       };
+    },
+    async verifyWithProfile() {
+      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
     }
   };
 }
@@ -103,7 +105,7 @@ const pending = createUser("clerk_pending_001", null, "ACTIVE", "MANGAKA");
 describe("admin role assignment routes", () => {
   it("returns 403 for non-admin callers", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_assistant_001"),
+      authVerifier: createVerifier("clerk_assistant_001", "ASSISTANT"),
       userRepository: createRepository([admin, assistant, pending])
     });
 
@@ -120,7 +122,7 @@ describe("admin role assignment routes", () => {
 
   it("lets admins list pending users", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001"),
+      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
       userRepository: createRepository([admin, assistant, pending])
     });
 
@@ -138,7 +140,7 @@ describe("admin role assignment routes", () => {
 
   it("lets admins assign roles", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001"),
+      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
       userRepository: createRepository([admin, pending])
     });
 
@@ -157,7 +159,7 @@ describe("admin role assignment routes", () => {
 
   it("lets admins suspend users", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001"),
+      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
       userRepository: createRepository([admin, assistant])
     });
 
@@ -172,7 +174,7 @@ describe("admin role assignment routes", () => {
 
   it("rejects invalid role input", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001"),
+      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
       userRepository: createRepository([admin, pending])
     });
 

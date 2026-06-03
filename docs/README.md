@@ -8,6 +8,8 @@ future user-provided spec.
 - `HARNESS.md`: how humans and agents collaborate.
 - `FEATURE_INTAKE.md`: how prompts become tiny, normal, or high-risk work.
 - `ARCHITECTURE.md`: architecture discovery and boundary rules.
+- `MULTI_AGENT_TASK_LOOP.md`: how to coordinate sub-agents, plugins, skills,
+  implementation, validation, and Harness proof for MangaFlow tasks.
 - `TEST_MATRIX.md`: legacy proof map; current proof status is queried with
   `scripts/bin/harness-cli query matrix`.
 - `HARNESS_BACKLOG.md`: legacy improvement list; current improvement records

@@ -1,15 +1,16 @@
-import { createClerkClient, verifyToken } from "@clerk/backend";
+import { verifyToken } from "@clerk/backend";
 import type { NextFunction, Request, Response } from "express";
 import { env } from "../../config/env.config.js";
 import { fail } from "../../shared/responses/api-response.js";
-import type { ClerkUserProfile } from "./auth.service.js";
+import type { ClerkJwtPayload, ClerkUserProfile } from "./auth.service.js";
 
 export type AuthVerifier = {
-  verify(token: string): Promise<ClerkUserProfile | null>;
+  verify(token: string): Promise<ClerkJwtPayload | null>;
+  verifyWithProfile(token: string): Promise<ClerkUserProfile | null>;
 };
 
 export type AuthenticatedRequest = Request & {
-  auth?: ClerkUserProfile;
+  auth?: ClerkJwtPayload;
 };
 
 function getBearerToken(req: Request) {
@@ -30,6 +31,34 @@ export function createClerkAuthVerifier(): AuthVerifier {
       }
 
       try {
+        const verified = await verifyToken(token, {
+          secretKey: env.clerkSecretKey,
+          authorizedParties: [env.corsOrigin]
+        });
+
+        const clerkId = verified.sub;
+        const systemRole = (verified as any).systemRole ?? null;
+        const status = (verified as any).status ?? "ACTIVE";
+
+        return {
+          clerkId,
+          systemRole,
+          status
+        };
+      } catch (error) {
+        console.warn("Clerk JWT verification failed:", error);
+        return null;
+      }
+    },
+
+    async verifyWithProfile(token) {
+      if (!env.clerkSecretKey) {
+        return null;
+      }
+
+      try {
+        const { createClerkClient } = await import("@clerk/backend");
+
         const verified = await verifyToken(token, {
           secretKey: env.clerkSecretKey,
           authorizedParties: [env.corsOrigin]
@@ -59,7 +88,7 @@ export function createClerkAuthVerifier(): AuthVerifier {
           avatarUrl: user.imageUrl ?? null
         };
       } catch (error) {
-        console.warn("Clerk token verification failed");
+        console.warn("Clerk token verification with profile failed");
         return null;
       }
     }
@@ -81,14 +110,13 @@ export function requireAuth(authVerifier: AuthVerifier) {
       return;
     }
 
-    const profile = await authVerifier.verify(token);
-    if (!profile) {
+    const payload = await authVerifier.verify(token);
+    if (!payload) {
       res.status(401).json(fail("Invalid authentication token", "AUTH_INVALID"));
       return;
     }
 
-    req.auth = profile;
+    req.auth = payload;
     next();
   };
 }
-

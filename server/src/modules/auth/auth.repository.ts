@@ -44,7 +44,7 @@ export function createMongoUserRepository(): UserRepository {
           }
         },
         {
-          new: true,
+          returnDocument: "after",
           upsert: true,
           setDefaultsOnInsert: true
         }
@@ -65,7 +65,7 @@ export function createMongoUserRepository(): UserRepository {
       const user = await UserModel.findOneAndUpdate(
         { clerkId },
         { $set: update },
-        { new: true }
+        { returnDocument: "after" }
       );
 
       return user ? serializeUser(user) : null;
@@ -95,7 +95,7 @@ export function createMongoUserRepository(): UserRepository {
             requestedSystemRole: null
           }
         },
-        { new: true }
+        { returnDocument: "after" }
       );
 
       return user ? serializeUser(user) : null;
@@ -109,7 +109,7 @@ export function createMongoUserRepository(): UserRepository {
             status
           }
         },
-        { new: true }
+        { returnDocument: "after" }
       );
 
       return user ? serializeUser(user) : null;

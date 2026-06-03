@@ -23,6 +23,17 @@ export type ClerkUserProfile = {
   avatarUrl: string | null;
 };
 
+export type JwtPublicMetadata = {
+  systemRole: SystemRole | null;
+  status: UserStatus;
+};
+
+export type ClerkJwtPayload = {
+  clerkId: string;
+  systemRole: SystemRole | null;
+  status: UserStatus;
+};
+
 export type AuthUser = {
   id: string;
   clerkId: string;
