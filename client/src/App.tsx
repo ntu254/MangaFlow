@@ -25,6 +25,7 @@ import { SeriesDetailPage } from "@/features/series/routes/SeriesDetailPage";
 import { EditorReviewPage } from "@/features/manuscript/routes/EditorReviewPage";
 import { ChapterPagesPage } from "@/features/page/routes/ChapterPagesPage";
 import { PageWorkspacePage } from "@/features/page/routes/PageWorkspacePage";
+import { AssistantDashboardPage } from "@/features/task/routes/AssistantDashboardPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -243,6 +244,27 @@ function AuthenticatedApp() {
             <Routes>
               {/* Other editor routes like dashboard can go here */}
               <Route path="/app/editor/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
+            </Routes>
+          </main>
+        </div>
+      </RoleGuard>
+    );
+  }
+
+  if (path.startsWith("/app/assistant")) {
+    return (
+      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.ASSISTANT]}>
+        <div className="min-h-screen flex flex-col bg-background">
+          <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+            <div className="flex-1 flex items-center gap-4">
+              <strong className="text-lg tracking-tight">MangaFlow</strong>
+              <span className="text-muted-foreground text-sm">Assistant Workspace</span>
+            </div>
+            <UserButton />
+          </header>
+          <main className="flex-1">
+            <Routes>
+              <Route path="/app/assistant/dashboard" element={<AssistantDashboardPage />} />
             </Routes>
           </main>
         </div>

@@ -32,6 +32,7 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-011 | Annotation Management API: page-scoped rectangular Annotations can be created/listed/fetched/updated/deleted with series RBAC and creator/editor/admin mutation rules | yes | yes | no | yes | implemented | `docs/stories/epics/E08-annotation-region/MF-011-annotation-management-api/validation.md` |
 | MF-012 | Page Workspace Annotation UI: workspace loads, creates, resolves/reopens, and deletes page Annotations against the MF-011 API | yes | yes | no | yes | implemented | `docs/stories/epics/E08-annotation-region/MF-012-page-workspace-annotation-ui.md` |
 | MF-013 | Task Assignment API Foundation: Mangaka/Editor/Admin can create page/region Tasks, assigned Assistants can list/detail/start TODO Tasks | yes | yes | no | yes | implemented | `docs/stories/epics/E09-task-assignment/MF-013-task-assignment-api-foundation/validation.md` |
+| MF-014 | Task Assignment UI: Mangaka can create region Tasks in Page Workspace, and Assistants can view/start assigned Tasks from dashboard | yes | yes | no | yes | implemented | `docs/stories/epics/E09-task-assignment/MF-014-task-assignment-ui/validation.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
 
 ## Evidence Rules
