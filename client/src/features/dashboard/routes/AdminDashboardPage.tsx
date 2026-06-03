@@ -31,7 +31,7 @@ export function AdminDashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       const response = await fetch(buildAdminRoleReviewUrl(apiBaseUrl), {

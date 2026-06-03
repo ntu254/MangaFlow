@@ -33,7 +33,7 @@ export function AssistantDashboardPage() {
   const loadTasks = useCallback(async () => {
     try {
       setState({ status: "loading" });
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const tasks = await listTasks(token);
       setState({ status: "ready", tasks });
@@ -55,7 +55,7 @@ export function AssistantDashboardPage() {
     try {
       setStartingTaskId(taskId);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const updated = await startTask(token, taskId);
       setState({

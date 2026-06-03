@@ -26,7 +26,7 @@ export function CreateChapterDialog({
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) return;
 
       const num = Number(chapterNumber);

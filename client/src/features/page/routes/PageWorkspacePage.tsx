@@ -207,7 +207,7 @@ export function PageWorkspacePage() {
     try {
       setActionLoading(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const updated = await editorApprovePage(token, pageId);
       setState(prev => prev.status === "ready" ? { ...prev, page: updated } : prev);
@@ -225,7 +225,7 @@ export function PageWorkspacePage() {
     try {
       setActionLoading(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const updated = await requestPageRevision(token, pageId);
       setState(prev => prev.status === "ready" ? { ...prev, page: updated } : prev);
@@ -244,7 +244,7 @@ export function PageWorkspacePage() {
 
     try {
       setState({ status: "loading" });
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       const [page, regions, annotations, allTasks, userResponse] = await Promise.all([
@@ -284,7 +284,7 @@ export function PageWorkspacePage() {
       setAiDetecting(true);
       setAiError(null);
       setAiResult(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const result = await runAIBubbleDetect(token, pageId);
       const count: number = result?.data?.count ?? result?.count ?? 0;
@@ -305,7 +305,7 @@ export function PageWorkspacePage() {
     try {
       setAiProcessing(true);
       setAiError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const result = await runAIBubbleProcess(token, pageId);
       const processedUrl: string | undefined = result?.data?.processedFileUrl ?? result?.processedFileUrl;
@@ -373,7 +373,7 @@ export function PageWorkspacePage() {
     try {
       setSaving(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       if (toolMode === "ANNOTATION") {
         const annotation = await createAnnotation(token, pageId, {
@@ -416,7 +416,7 @@ export function PageWorkspacePage() {
 
     try {
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       await deleteRegion(token, regionId);
       const remaining = state.regions.filter((region) => region.id !== regionId);
@@ -432,7 +432,7 @@ export function PageWorkspacePage() {
 
     try {
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const updated = await updateAnnotation(token, annotationId, { status });
       setState({
@@ -453,7 +453,7 @@ export function PageWorkspacePage() {
 
     try {
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       await deleteAnnotation(token, annotationId);
       const remaining = state.annotations.filter((annotation) => annotation.id !== annotationId);
@@ -470,7 +470,7 @@ export function PageWorkspacePage() {
     try {
       setAssigningTask(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const task = await createTaskFromRegion(token, selectedRegion.id, {
         assignedTo: taskAssigneeId.trim(),
@@ -507,7 +507,7 @@ export function PageWorkspacePage() {
     try {
       setDeletingTaskId(taskId);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       await deleteTask(token, taskId);
       setState({

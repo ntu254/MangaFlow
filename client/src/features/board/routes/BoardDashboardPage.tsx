@@ -27,7 +27,7 @@ export function BoardDashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       // 1. Fetch current user to determine board registration

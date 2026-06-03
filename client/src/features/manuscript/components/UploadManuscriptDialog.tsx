@@ -51,7 +51,7 @@ export function UploadManuscriptDialog({ seriesId, onUploadSuccess }: { seriesId
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) return;
 
       const formData = new FormData();

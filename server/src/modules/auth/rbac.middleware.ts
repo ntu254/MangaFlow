@@ -1,44 +1,47 @@
 import type { NextFunction, Request, Response } from "express";
 import { fail } from "../../shared/responses/api-response.js";
 import type { AuthenticatedRequest } from "./auth.middleware.js";
-import type { UserRepository, AuthUser, SystemRole } from "./auth.service.js";
+import type { AuthUser, SystemRole, UserRepository } from "./auth.service.js";
 import type { SeriesRepository } from "../series/series.service.js";
 import type { SeriesMemberRole } from "../../shared/constants/roles.js";
 
 export type RoleAuthorizedRequest = AuthenticatedRequest & {
-  localUser: AuthUser;
+  localUser?: AuthUser;
   seriesRole?: SeriesMemberRole;
 };
 
-export function requireSystemRole(roles: SystemRole[], userRepository: UserRepository) {
+export function requireSystemRole(roles: SystemRole[], userRepository?: UserRepository) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.auth) {
       res.status(401).json(fail("Authentication required", "AUTH_REQUIRED"));
       return;
     }
 
-    try {
-      const user = await userRepository.findByClerkId(req.auth.clerkId);
-      if (!user) {
-        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
-        return;
-      }
-
-      if (user.status === "SUSPENDED") {
-        res.status(403).json(fail("Account suspended", "FORBIDDEN"));
-        return;
-      }
-
-      if (!user.systemRole || !roles.includes(user.systemRole)) {
-        res.status(403).json(fail("Insufficient system role", "FORBIDDEN"));
-        return;
-      }
-
-      (req as RoleAuthorizedRequest).localUser = user;
-      next();
-    } catch (err) {
-      res.status(500).json(fail("Internal server error during authorization", "INTERNAL_ERROR"));
+    if (req.auth.status !== "ACTIVE") {
+      res.status(403).json(fail("Account is not active", "FORBIDDEN"));
+      return;
     }
+
+    if (!req.auth.systemRole || !roles.includes(req.auth.systemRole)) {
+      res.status(403).json(fail("Insufficient system role", "FORBIDDEN"));
+      return;
+    }
+
+    if (userRepository) {
+      try {
+        const user = await userRepository.findByClerkId(req.auth.clerkId);
+        if (!user) {
+          res.status(401).json(fail("User not found in database", "USER_NOT_SYNCED"));
+          return;
+        }
+        (req as RoleAuthorizedRequest).localUser = user;
+      } catch {
+        res.status(500).json(fail("Failed to verify user in database", "INTERNAL_ERROR"));
+        return;
+      }
+    }
+
+    next();
   };
 }
 

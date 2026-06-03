@@ -10,13 +10,15 @@ import {
   buildAdminUserStatusUrl,
 } from "@/features/auth/admin-flow";
 import { apiBaseUrl } from "@/shared/api";
-import type { AuthRouteUser } from "@/features/auth/auth-flow";
+import type { GetTokenFn } from "@/shared/api";
 
-type RoleReviewUser = AuthRouteUser & {
+type RoleReviewUser = {
   id: string;
   clerkId: string;
   email: string;
   fullName: string;
+  systemRole: string | null;
+  status: string;
   requestedSystemRole: "MANGAKA" | "ASSISTANT" | null;
 };
 
@@ -26,17 +28,16 @@ type AdminReviewState =
   | { status: "error"; message: string };
 
 type AdminRoleReviewPageProps = {
-  authState: { status: "ready"; user: AuthRouteUser; redirectTo: string } | { status: "idle" | "loading" } | { status: "error"; message: string };
-  getToken: () => Promise<string | null>;
+  getToken: GetTokenFn;
 };
 
-export function AdminRoleReviewPage({ authState, getToken }: AdminRoleReviewPageProps) {
+export function AdminRoleReviewPage({ getToken }: AdminRoleReviewPageProps) {
   const [state, setState] = useState<AdminReviewState>({ status: "loading" });
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   async function fetchPendingUsers() {
     setState({ status: "loading" });
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
 
     if (!token) {
       setState({ status: "error", message: "Authentication token unavailable." });
@@ -58,7 +59,7 @@ export function AdminRoleReviewPage({ authState, getToken }: AdminRoleReviewPage
 
   async function updateRole(userId: string, systemRole: string) {
     setBusyUserId(userId);
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
 
     if (!token) {
       setState({ status: "error", message: "Authentication token unavailable." });
@@ -88,7 +89,7 @@ export function AdminRoleReviewPage({ authState, getToken }: AdminRoleReviewPage
 
   async function updateStatus(userId: string, status: "ACTIVE" | "SUSPENDED") {
     setBusyUserId(userId);
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
 
     if (!token) {
       setState({ status: "error", message: "Authentication token unavailable." });
@@ -117,10 +118,8 @@ export function AdminRoleReviewPage({ authState, getToken }: AdminRoleReviewPage
   }
 
   useEffect(() => {
-    if (authState.status === "ready" && authState.user.systemRole === "ADMIN") {
-      void fetchPendingUsers();
-    }
-  }, [authState.status]);
+    void fetchPendingUsers();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#fff9fb] pb-12">

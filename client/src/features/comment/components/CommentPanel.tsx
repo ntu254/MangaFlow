@@ -43,7 +43,7 @@ export function CommentPanel({
     try {
       setLoading(true);
       setError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const list = await getCommentsForTarget(token, targetType, targetId);
       setComments(list);
@@ -60,7 +60,7 @@ export function CommentPanel({
 
   const handleAddComment = async (content: string) => {
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const newComment = await createComment(token, {
         targetType,
@@ -77,28 +77,28 @@ export function CommentPanel({
   };
 
   const handleMarkFixed = async (commentId: string) => {
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
     if (!token) throw new Error("Not authenticated");
     const updated = await markFixed(token, commentId);
     setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
   };
 
   const handleVerifyFixed = async (commentId: string) => {
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
     if (!token) throw new Error("Not authenticated");
     const updated = await verifyFixed(token, commentId);
     setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
   };
 
   const handleResolve = async (commentId: string) => {
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
     if (!token) throw new Error("Not authenticated");
     const updated = await resolveComment(token, commentId);
     setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
   };
 
   const handleReopen = async (commentId: string, reason: string) => {
-    const token = await getToken();
+    const token = await getToken({ template: "mangaflow" });
     if (!token) throw new Error("Not authenticated");
     const updated = await reopenComment(token, commentId, reason);
     setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));

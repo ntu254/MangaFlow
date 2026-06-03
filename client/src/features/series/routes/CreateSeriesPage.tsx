@@ -15,7 +15,7 @@ export function CreateSeriesPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const series = await createSeries(token, data);
       navigate(`/app/mangaka/series/${series.id}`);

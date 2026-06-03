@@ -53,7 +53,7 @@ export function AssistantTaskDetailPage() {
 
     try {
       setState({ status: "loading" });
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       const task = await getTask(token, taskId);
@@ -81,7 +81,7 @@ export function AssistantTaskDetailPage() {
     try {
       setSubmitting(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const submission = await createTaskSubmission(token, state.task.id, {
         fileUrl: fileUrl.trim(),

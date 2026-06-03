@@ -40,6 +40,11 @@ export function createAdminRouter(dependencies: AdminRouteDependencies) {
       return null;
     }
 
+    // Fast path: check JWT claims for admin role
+    if (profile.systemRole !== "ADMIN" || profile.status !== "ACTIVE") {
+      return null;
+    }
+
     return dependencies.userRepository.findByClerkId(profile.clerkId);
   }
 

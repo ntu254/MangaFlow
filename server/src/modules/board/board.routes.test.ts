@@ -63,9 +63,14 @@ const assistantUser = createAuthUser("clerk_assistant", assistantId, "ASSISTANT"
 const users = [chairUser, memberUser, inactiveUser, adminUser, mangakaUser, assistantUser];
 
 function createVerifier(clerkId: string): AuthVerifier {
+  const user = users.find(u => u.clerkId === clerkId);
   return {
     async verify() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return {
+        clerkId,
+        systemRole: user?.systemRole ?? null,
+        status: user?.status ?? "ACTIVE"
+      };
     }
   };
 }

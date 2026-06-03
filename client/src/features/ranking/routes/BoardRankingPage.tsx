@@ -30,7 +30,7 @@ export function BoardRankingPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       const [seriesList, rankingList] = await Promise.all([
@@ -59,7 +59,7 @@ export function BoardRankingPage() {
   const handleStatusChange = async (rankingId: string, status: "WARNING" | "AT_RISK") => {
     try {
       setIsUpdating(rankingId);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       if (status === "WARNING") {

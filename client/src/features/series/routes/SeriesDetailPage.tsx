@@ -25,7 +25,7 @@ export function SeriesDetailPage() {
   const loadRankings = useCallback(async () => {
     if (!seriesId) return;
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) return;
       const data = await fetchSeriesRankings(token, seriesId);
       setRankings(data);
@@ -37,7 +37,7 @@ export function SeriesDetailPage() {
   const loadManuscripts = useCallback(async () => {
     if (!seriesId) return;
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) return;
       const data = await listManuscripts(token, seriesId);
       setManuscripts(data);
@@ -49,7 +49,7 @@ export function SeriesDetailPage() {
   const loadChapters = useCallback(async () => {
     if (!seriesId) return;
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) return;
       const data = await listChapters(token, seriesId);
       setChapters(data);
@@ -62,7 +62,7 @@ export function SeriesDetailPage() {
     if (!seriesId) return;
     try {
       setIsLoading(true);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const data = await fetchSeriesById(token, seriesId);
       setSeries(data);

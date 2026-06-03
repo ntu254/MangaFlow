@@ -34,7 +34,7 @@ export function ImportRankingPage() {
     async function loadSeries() {
       try {
         setIsLoading(true);
-        const token = await getToken();
+        const token = await getToken({ template: "mangaflow" });
         if (!token) throw new Error("Not authenticated");
         const list = await fetchSeriesList(token);
         setSeriesList(list);
@@ -114,7 +114,7 @@ export function ImportRankingPage() {
 
     try {
       setIsSaving(true);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       await importRankings(token, period, items);

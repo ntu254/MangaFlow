@@ -31,7 +31,7 @@ export function HomeGate() {
       }
 
       try {
-        const token = await getToken();
+        const token = await getToken({ template: "mangaflow" });
         if (!token) return;
 
         const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {

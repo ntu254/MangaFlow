@@ -51,6 +51,13 @@ const validVerifier: AuthVerifier = {
   async verify() {
     return {
       clerkId: "clerk_pending_001",
+      systemRole: null,
+      status: "ACTIVE"
+    };
+  },
+  async verifyWithProfile() {
+    return {
+      clerkId: "clerk_pending_001",
       email: "pending@example.com",
       fullName: "Pending User",
       avatarUrl: "https://img.example.com/avatar.png"
@@ -75,6 +82,9 @@ describe("auth routes", () => {
     const app = createApp({
       authVerifier: {
         async verify() {
+          return null;
+        },
+        async verifyWithProfile() {
           return null;
         }
       },

@@ -74,7 +74,7 @@ describe("RBAC middleware", () => {
   it("binds localUser for allowed active system roles", async () => {
     const user = createUser({ systemRole: "MANGAKA" });
     const req = {
-      auth: { clerkId: user.clerkId }
+      auth: { clerkId: user.clerkId, systemRole: user.systemRole, status: user.status }
     } as AuthenticatedRequest;
     const res = createResponse();
     const next: NextFunction = vi.fn();
@@ -94,7 +94,7 @@ describe("RBAC middleware", () => {
 
     const unsyncedRes = createResponse();
     await requireSystemRole(["MANGAKA"], createUserRepository(null))(
-      { auth: { clerkId: "missing" } } as AuthenticatedRequest,
+      { auth: { clerkId: "missing", systemRole: "MANGAKA", status: "ACTIVE" } } as AuthenticatedRequest,
       unsyncedRes,
       vi.fn()
     );
@@ -103,7 +103,7 @@ describe("RBAC middleware", () => {
 
     const suspendedRes = createResponse();
     await requireSystemRole(["MANGAKA"], createUserRepository(createUser({ status: "SUSPENDED" })))(
-      { auth: { clerkId: "clerk_mangaka" } } as AuthenticatedRequest,
+      { auth: { clerkId: "clerk_mangaka", systemRole: "MANGAKA", status: "SUSPENDED" } } as AuthenticatedRequest,
       suspendedRes,
       vi.fn()
     );
@@ -112,12 +112,38 @@ describe("RBAC middleware", () => {
 
     const wrongRoleRes = createResponse();
     await requireSystemRole(["EDITOR"], createUserRepository(createUser({ systemRole: "MANGAKA" })))(
-      { auth: { clerkId: "clerk_mangaka" } } as AuthenticatedRequest,
+      { auth: { clerkId: "clerk_mangaka", systemRole: "MANGAKA", status: "ACTIVE" } } as AuthenticatedRequest,
       wrongRoleRes,
       vi.fn()
     );
     expect(wrongRoleRes.status).toHaveBeenCalledWith(403);
     expect(wrongRoleRes.json).toHaveBeenCalledWith(expect.objectContaining({ code: "FORBIDDEN" }));
+  });
+
+  it("returns 500 when database lookup fails", async () => {
+    const failingUserRepository: UserRepository = {
+      async findByClerkId() {
+        throw new Error("Database connection lost");
+      },
+      async upsertFromClerk() {
+        throw new Error("not needed");
+      },
+      async updateOnboarding() {
+        throw new Error("not needed");
+      }
+    };
+
+    const req = {
+      auth: { clerkId: "clerk_mangaka", systemRole: "MANGAKA", status: "ACTIVE" }
+    } as AuthenticatedRequest;
+    const res = createResponse();
+    const next: NextFunction = vi.fn();
+
+    await requireSystemRole(["MANGAKA"], failingUserRepository)(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: "INTERNAL_ERROR" }));
+    expect(next).not.toHaveBeenCalled();
   });
 
   it("enforces series role only after localUser has been bound", async () => {

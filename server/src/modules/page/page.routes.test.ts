@@ -4,7 +4,7 @@ import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
-import type { AuthUser, SystemRole, UserRepository } from "../auth/auth.service.js";
+import type { AuthUser, SystemRole, UserRepository, UserStatus } from "../auth/auth.service.js";
 import type { ChapterRepository } from "../chapter/chapter.repository.js";
 import type { Chapter } from "../chapter/chapter.service.js";
 import type { CreateFileAssetInput, FileAsset } from "../file/file.types.js";
@@ -30,14 +30,13 @@ afterEach(() => {
   fs.rmSync(uploadRoot, { recursive: true, force: true });
 });
 
-function createVerifier(clerkId = "clerk_mangaka_001"): AuthVerifier {
+function createVerifier(clerkId = "clerk_mangaka_001", systemRole: SystemRole | null = "MANGAKA", status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
         clerkId,
-        email: `${clerkId}@example.com`,
-        fullName: clerkId,
-        avatarUrl: null
+        systemRole,
+        status
       };
     }
   };
@@ -356,7 +355,7 @@ describe("page upload routes", () => {
       updatedAt: now
     });
     const app = createApp({
-      authVerifier: createVerifier(assistant.clerkId),
+      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       chapterRepository: createChapterRepository(),

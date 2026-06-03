@@ -14,7 +14,7 @@ export function SeriesListPage() {
   useEffect(() => {
     async function load() {
       try {
-        const token = await getToken();
+        const token = await getToken({ template: "mangaflow" });
         if (!token) throw new Error("Not authenticated");
         const data = await fetchSeriesList(token);
         setSeriesList(data);

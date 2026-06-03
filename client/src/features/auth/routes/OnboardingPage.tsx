@@ -59,7 +59,7 @@ export function OnboardingPage() {
     setError(null);
 
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) {
         setError("Not authenticated");
         setIsSubmitting(false);

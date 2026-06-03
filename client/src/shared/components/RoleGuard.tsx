@@ -1,10 +1,11 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import type { SystemRole } from "../constants/roles";
-import type { AuthRouteUser } from "@/features/auth/auth-flow";
+import type { UserStatus } from "@/features/auth/auth-flow";
 
 export type RoleGuardProps = {
-  user: AuthRouteUser | null;
+  systemRole: SystemRole | null;
+  status: UserStatus;
   allowedRoles: SystemRole[];
   children: React.ReactNode;
 };
@@ -21,9 +22,13 @@ function getRoleHomePath(role: SystemRole | null): string {
   }
 }
 
-export function RoleGuard({ user, allowedRoles, children }: RoleGuardProps) {
-  if (!user || !user.systemRole || !allowedRoles.includes(user.systemRole as SystemRole)) {
-    return <Navigate to={getRoleHomePath(user?.systemRole ?? null)} replace />;
+export function RoleGuard({ systemRole, status, allowedRoles, children }: RoleGuardProps) {
+  if (status === "SUSPENDED") {
+    return <Navigate to="/app/blocked" replace />;
+  }
+
+  if (!systemRole || !allowedRoles.includes(systemRole)) {
+    return <Navigate to={getRoleHomePath(systemRole)} replace />;
   }
 
   return <>{children}</>;

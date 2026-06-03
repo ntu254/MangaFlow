@@ -2,7 +2,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
-import type { AuthUser, SystemRole, UserRepository } from "../auth/auth.service.js";
+import type { AuthUser, SystemRole, UserRepository, UserStatus } from "../auth/auth.service.js";
 import type { Chapter, CreateChapterInput, UpdateChapterInput } from "./chapter.service.js";
 import type { ChapterRepository } from "./chapter.repository.js";
 import type { Series, SeriesRepository } from "../series/series.service.js";
@@ -32,14 +32,13 @@ const mangaka = createAuthUser("clerk_mangaka", ownerId, "MANGAKA");
 const editor = createAuthUser("clerk_editor", editorId, "EDITOR");
 const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
         clerkId,
-        email: `${clerkId}@example.com`,
-        fullName: clerkId,
-        avatarUrl: null
+        systemRole,
+        status
       };
     }
   };
@@ -173,7 +172,7 @@ describe("chapter routes", () => {
   it("lets Mangaka owners create, list, update, and delete draft chapters", async () => {
     const { repository, chapters } = createChapterRepository();
     const app = createApp({
-      authVerifier: createVerifier(mangaka.clerkId),
+      authVerifier: createVerifier(mangaka.clerkId, mangaka.systemRole, mangaka.status),
       userRepository: createUserRepository([mangaka]),
       seriesRepository: createSeriesRepository({ [ownerId]: "OWNER_MANGAKA" }),
       chapterRepository: repository
@@ -220,7 +219,7 @@ describe("chapter routes", () => {
   it("allows Editors to update but not delete chapters", async () => {
     const chapter = createChapter({ id: "chapter_editor" });
     const app = createApp({
-      authVerifier: createVerifier(editor.clerkId),
+      authVerifier: createVerifier(editor.clerkId, editor.systemRole, editor.status),
       userRepository: createUserRepository([editor]),
       seriesRepository: createSeriesRepository({ [editorId]: "EDITOR" }),
       chapterRepository: createChapterRepository([chapter]).repository
@@ -244,7 +243,7 @@ describe("chapter routes", () => {
 
   it("rejects assistants from creating chapters and non-members from listing", async () => {
     const assistantApp = createApp({
-      authVerifier: createVerifier(assistant.clerkId),
+      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       chapterRepository: createChapterRepository().repository
@@ -259,7 +258,7 @@ describe("chapter routes", () => {
 
     const stranger = createAuthUser("clerk_stranger", "507f1f77bcf86cd799439035", "MANGAKA");
     const strangerApp = createApp({
-      authVerifier: createVerifier(stranger.clerkId),
+      authVerifier: createVerifier(stranger.clerkId, stranger.systemRole, stranger.status),
       userRepository: createUserRepository([stranger]),
       seriesRepository: createSeriesRepository({ [stranger.id]: null }),
       chapterRepository: createChapterRepository([createChapter()]).repository

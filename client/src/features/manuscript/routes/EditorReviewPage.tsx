@@ -20,7 +20,7 @@ export function EditorReviewPage() {
     if (!seriesId || !manuscriptId) return;
     try {
       setIsLoading(true);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const [seriesData, manuscriptData] = await Promise.all([
         fetchSeriesById(token, seriesId),
@@ -44,7 +44,7 @@ export function EditorReviewPage() {
     try {
       setActionLoading(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) return;
       const updated = await reviewManuscript(token, seriesId, manuscriptId, action);
       setManuscript(updated);

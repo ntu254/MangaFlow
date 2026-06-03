@@ -41,7 +41,7 @@ export function ChapterPagesPage() {
     try {
       setActionLoading(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const updated = await approveChapter(token, chapterId);
       setChapter(updated);
@@ -58,7 +58,7 @@ export function ChapterPagesPage() {
     if (!chapterId) return;
     try {
       setBatchAiLoading(true);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       toast("Running AI bubble processing on all pages…", "info");
       await runBatchAIBubbleProcess(token, chapterId);
@@ -79,7 +79,7 @@ export function ChapterPagesPage() {
     try {
       setActionLoading(true);
       setActionError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
       const updated = await requestChapterRevision(token, chapterId);
       setChapter(updated);
@@ -96,7 +96,7 @@ export function ChapterPagesPage() {
     if (!chapterId) return;
     try {
       setIsLoading(true);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       const chData = await getChapter(token, chapterId);
@@ -168,7 +168,7 @@ export function ChapterPagesPage() {
     setSubmitError(null);
 
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       const formData = new FormData();
@@ -198,7 +198,7 @@ export function ChapterPagesPage() {
 
   async function handleDeletePage(pageId: string) {
     try {
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       await deletePage(token, pageId);

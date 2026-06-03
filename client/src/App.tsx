@@ -1,19 +1,19 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import {
   SignIn,
   SignUp,
   UserButton,
   useAuth,
 } from "@clerk/react";
-import { useNavigate } from "react-router-dom";
-import { resolveAuthRoute, type AuthRouteUser } from "@/features/auth/auth-flow";
+import { useAuthClaims } from "@/shared/hooks/useAuthClaims";
 import { RoleGuard } from "@/shared/components/RoleGuard";
+import { RoleRedirect } from "@/features/auth/RoleRedirect";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 import { NotFoundPage } from "@/shared/components/feedback/NotFoundPage";
 import { HomeGate } from "@/shared/components/HomeGate";
 import { apiBaseUrl } from "@/shared/api";
-import { useState } from "react";
+import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
 
 const SeriesListPage = lazy(() =>
   import("@/features/series/routes/SeriesListPage").then(m => ({ default: m.SeriesListPage }))
@@ -81,11 +81,6 @@ type AppProps = {
   clerkConfigured: boolean;
 };
 
-type AuthSyncState =
-  | { status: "idle" | "loading" }
-  | { status: "ready"; user: AuthRouteUser; redirectTo: string }
-  | { status: "error"; message: string };
-
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#fff9fb] via-[#f8f1ff] to-[#fff7ec]">
@@ -99,25 +94,22 @@ function LoadingScreen() {
 
 function AuthenticatedApp() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
-  const navigate = useNavigate();
-  const [state, setState] = useState<AuthSyncState>({ status: "idle" });
+  const { claims, isLoading: claimsLoading, needsFallback, refresh } = useAuthClaims();
+  const [fallbackUser, setFallbackUser] = useState<{
+    systemRole: SystemRole | null;
+    status: UserStatus;
+  } | null>(null);
 
+  // Fallback: if JWT claims missing, call sync-user
   useEffect(() => {
+    if (!needsFallback || !isSignedIn) return;
+
     let cancelled = false;
 
     async function syncUser() {
-      if (!isLoaded || !isSignedIn) {
-        return;
-      }
-
-      setState({ status: "loading" });
       try {
-        const token = await getToken();
-
-        if (!token) {
-          setState({ status: "error", message: "Authentication token unavailable." });
-          return;
-        }
+        const token = await getToken({ template: "mangaflow" });
+        if (!token) return;
 
         const response = await fetch(`${apiBaseUrl}/auth/sync-user`, {
           method: "POST",
@@ -128,36 +120,24 @@ function AuthenticatedApp() {
         });
         const body = await response.json();
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
-        if (!response.ok || !body.success) {
-          setState({ status: "error", message: body.message ?? "Auth sync failed." });
-          return;
-        }
-
-        setState({
-          status: "ready",
-          user: body.data.user,
-          redirectTo: body.data.auth.redirectTo
-        });
-      } catch (err: any) {
-        if (!cancelled) {
-          setState({ 
-            status: "error", 
-            message: `Failed to connect to backend API: ${err.message}. Please ensure the server is running and CORS matches.` 
+        if (response.ok && body.success) {
+          setFallbackUser({
+            systemRole: body.data.user.systemRole,
+            status: body.data.user.status
           });
+          // Refresh JWT claims after sync
+          await refresh();
         }
+      } catch (err) {
+        console.warn("[Auth] Fallback sync failed:", err);
       }
     }
 
     void syncUser();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken, isLoaded, isSignedIn]);
+    return () => { cancelled = true; };
+  }, [needsFallback, isSignedIn, getToken, refresh]);
 
   if (!isLoaded) {
     return <LoadingScreen />;
@@ -167,11 +147,16 @@ function AuthenticatedApp() {
     return <Navigate to="/" replace />;
   }
 
-  if (state.status !== "ready") {
+  if (claimsLoading) {
     return <LoadingScreen />;
   }
 
-  const destination = resolveAuthRoute({ isSignedIn: true, user: state.user });
+  // Use claims from JWT, fallback to sync response
+  const effectiveClaims = claims ?? fallbackUser;
+
+  if (!effectiveClaims) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Routes>
@@ -187,13 +172,17 @@ function AuthenticatedApp() {
       } />
 
       <Route path="/app/admin/*" element={
-        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.ADMIN]}>
+        <RoleGuard
+          systemRole={effectiveClaims.systemRole}
+          status={effectiveClaims.status}
+          allowedRoles={[SYSTEM_ROLES.ADMIN]}
+        >
           <div className="min-h-screen flex flex-col bg-background">
             <main className="flex-1">
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   <Route path="/dashboard" element={<AdminDashboardPage />} />
-                  <Route path="/role-review" element={<AdminRoleReviewPage authState={state} getToken={getToken} />} />
+                  <Route path="/role-review" element={<AdminRoleReviewPage getToken={getToken} />} />
                   <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
                 </Routes>
               </Suspense>
@@ -203,7 +192,11 @@ function AuthenticatedApp() {
       } />
 
       <Route path="/app/mangaka/*" element={
-        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.MANGAKA]}>
+        <RoleGuard
+          systemRole={effectiveClaims.systemRole}
+          status={effectiveClaims.status}
+          allowedRoles={[SYSTEM_ROLES.MANGAKA]}
+        >
           <div className="min-h-screen flex flex-col bg-background">
             <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
               <div className="flex-1 flex items-center gap-4">
@@ -231,7 +224,11 @@ function AuthenticatedApp() {
       } />
 
       <Route path="/app/editor/*" element={
-        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.EDITOR]}>
+        <RoleGuard
+          systemRole={effectiveClaims.systemRole}
+          status={effectiveClaims.status}
+          allowedRoles={[SYSTEM_ROLES.EDITOR]}
+        >
           <div className="min-h-screen flex flex-col bg-background">
             <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
               <div className="flex-1 flex items-center gap-4">
@@ -256,7 +253,11 @@ function AuthenticatedApp() {
       } />
 
       <Route path="/app/assistant/*" element={
-        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.ASSISTANT]}>
+        <RoleGuard
+          systemRole={effectiveClaims.systemRole}
+          status={effectiveClaims.status}
+          allowedRoles={[SYSTEM_ROLES.ASSISTANT]}
+        >
           <div className="min-h-screen flex flex-col bg-background">
             <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
               <div className="flex-1 flex items-center gap-4">
@@ -279,7 +280,11 @@ function AuthenticatedApp() {
       } />
 
       <Route path="/app/board/*" element={
-        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN]}>
+        <RoleGuard
+          systemRole={effectiveClaims.systemRole}
+          status={effectiveClaims.status}
+          allowedRoles={[SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN]}
+        >
           <div className="min-h-screen flex flex-col bg-slate-950">
             <header className="border-b bg-slate-900 border-slate-800/80 h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
               <div className="flex-1 flex items-center gap-4">
@@ -303,7 +308,7 @@ function AuthenticatedApp() {
         </RoleGuard>
       } />
 
-      <Route path="*" element={<Navigate to={destination} replace />} />
+      <Route path="*" element={<RoleRedirect />} />
     </Routes>
   );
 }

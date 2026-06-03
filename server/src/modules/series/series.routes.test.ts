@@ -42,14 +42,13 @@ function createSeries(overrides: Partial<Series> = {}): Series {
   };
 }
 
-function createVerifier(clerkId: string): AuthVerifier {
+function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
         clerkId,
-        email: `${clerkId}@example.com`,
-        fullName: clerkId,
-        avatarUrl: null
+        systemRole,
+        status
       };
     }
   };
@@ -129,7 +128,7 @@ describe("series routes", () => {
     const owner = createAuthUser("clerk_owner");
     const { repository } = createSeriesRepository();
     const app = createApp({
-      authVerifier: createVerifier(owner.clerkId),
+      authVerifier: createVerifier(owner.clerkId, owner.systemRole, owner.status),
       userRepository: createUserRepository([owner]),
       seriesRepository: repository
     });
@@ -167,7 +166,7 @@ describe("series routes", () => {
   it("rejects series creation for users without the Mangaka system role", async () => {
     const assistant = createAuthUser("clerk_assistant", "ASSISTANT");
     const app = createApp({
-      authVerifier: createVerifier(assistant.clerkId),
+      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository().repository
     });
@@ -194,7 +193,7 @@ describe("series routes", () => {
     const series = createSeries({ id: "series_draft", ownerId: owner.id });
     const { repository, seriesById } = createSeriesRepository([series]);
     const app = createApp({
-      authVerifier: createVerifier(owner.clerkId),
+      authVerifier: createVerifier(owner.clerkId, owner.systemRole, owner.status),
       userRepository: createUserRepository([owner]),
       seriesRepository: repository
     });
@@ -225,7 +224,7 @@ describe("series routes", () => {
     const stranger = createAuthUser("clerk_stranger");
     const series = createSeries({ id: "series_private", ownerId: owner.id });
     const app = createApp({
-      authVerifier: createVerifier(stranger.clerkId),
+      authVerifier: createVerifier(stranger.clerkId, stranger.systemRole, stranger.status),
       userRepository: createUserRepository([owner, stranger]),
       seriesRepository: createSeriesRepository([series]).repository
     });

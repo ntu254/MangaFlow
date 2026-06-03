@@ -32,7 +32,7 @@ export function EditorDashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
       // 1. Fetch assigned Series
