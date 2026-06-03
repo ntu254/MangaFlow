@@ -77,7 +77,7 @@ export function requireAuth(authVerifier: AuthVerifier) {
       return;
     }
 
-    const userId = payload.sub ?? (payload as any).clerkId;
+    const userId = payload.sub;
     if (!userId) {
       res.status(401).json(fail("Invalid token payload", "AUTH_INVALID"));
       return;

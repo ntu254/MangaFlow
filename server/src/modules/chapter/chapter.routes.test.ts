@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -13,56 +13,44 @@ const ownerId = "507f1f77bcf86cd799439032";
 const editorId = "507f1f77bcf86cd799439033";
 const assistantId = "507f1f77bcf86cd799439034";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const mangaka = createAuthUser("clerk_mangaka", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
+const mangaka = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole,
         status
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(users: AuthUser[]): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      return created;
-    },
-    async updateOnboarding() {
-      throw new Error("not needed in chapter route tests");
+    async findById(id) {
+      return byId.get(id) ?? null;
     }
   };
 }
@@ -175,7 +163,7 @@ describe("chapter routes", () => {
   it("lets Mangaka owners create, list, update, and delete draft chapters", async () => {
     const { repository, chapters } = createChapterRepository();
     const app = createApp({
-      authVerifier: createVerifier(mangaka.clerkId, mangaka.systemRole, mangaka.status),
+      authVerifier: createVerifier(mangaka.id, mangaka.systemRole, mangaka.status),
       userRepository: createUserRepository([mangaka]),
       seriesRepository: createSeriesRepository({ [ownerId]: "OWNER_MANGAKA" }),
       chapterRepository: repository
@@ -222,7 +210,7 @@ describe("chapter routes", () => {
   it("allows Editors to update but not delete chapters", async () => {
     const chapter = createChapter({ id: "chapter_editor" });
     const app = createApp({
-      authVerifier: createVerifier(editor.clerkId, editor.systemRole, editor.status),
+      authVerifier: createVerifier(editor.id, editor.systemRole, editor.status),
       userRepository: createUserRepository([editor]),
       seriesRepository: createSeriesRepository({ [editorId]: "EDITOR" }),
       chapterRepository: createChapterRepository([chapter]).repository
@@ -246,7 +234,7 @@ describe("chapter routes", () => {
 
   it("rejects assistants from creating chapters and non-members from listing", async () => {
     const assistantApp = createApp({
-      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
+      authVerifier: createVerifier(assistant.id, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       chapterRepository: createChapterRepository().repository
@@ -259,9 +247,9 @@ describe("chapter routes", () => {
 
     expect(createResponse.status).toBe(403);
 
-    const stranger = createAuthUser("clerk_stranger", "507f1f77bcf86cd799439035", "MANGAKA");
+    const stranger = createAuthUser("507f1f77bcf86cd799439035", "MANGAKA");
     const strangerApp = createApp({
-      authVerifier: createVerifier(stranger.clerkId, stranger.systemRole, stranger.status),
+      authVerifier: createVerifier(stranger.id, stranger.systemRole, stranger.status),
       userRepository: createUserRepository([stranger]),
       seriesRepository: createSeriesRepository({ [stranger.id]: null }),
       chapterRepository: createChapterRepository([createChapter()]).repository

@@ -32,6 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadUser = useCallback(async () => {
+    // Only attempt to fetch user profile if we have a stored token
+    const token = getStoredToken();
+    if (!token) {
+      setUser(null);
+      setIsLoaded(true);
+      return;
+    }
     try {
       const userData = await fetchCurrentUser();
       if (userData) {
@@ -45,9 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       } else {
         setUser(null);
+        setAuthToken(null); // clear invalid/expired token
       }
     } catch {
       setUser(null);
+      setAuthToken(null);
     } finally {
       setIsLoaded(true);
     }

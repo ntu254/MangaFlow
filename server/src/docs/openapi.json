@@ -22,7 +22,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Clerk JWT token from the `mangaflow` template"
+        "description": "JWT token from the auth server"
       }
     },
     "schemas": {
@@ -1540,7 +1540,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Sync user from Clerk (deprecated)",
+        "summary": "Sync user from JWT profile (deprecated)",
         "deprecated": true,
         "responses": {
           "200": {

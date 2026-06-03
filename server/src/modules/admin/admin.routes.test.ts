@@ -1,25 +1,22 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
 import type { AuthUser, SystemRole, UserRepository, UserStatus } from "../auth/auth.service.js";
 
 function createUser(
-  clerkId: string,
+  id: string,
   systemRole: SystemRole | null,
-  status: UserStatus,
-  requestedSystemRole: "MANGAKA" | "ASSISTANT" | null = null
+  status: UserStatus
 ): AuthUser {
   const now = "2026-06-02T00:00:00.000Z";
 
   return {
-    id: `user_${clerkId}`,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    id,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole,
     status,
     createdAt: now,
     updatedAt: now
@@ -28,25 +25,10 @@ function createUser(
 
 function createRepository(seed: AuthUser[]): UserRepository {
   const users = new Map(seed.map((user) => [user.id, user]));
-  const byClerkId = new Map(seed.map((user) => [user.clerkId, user.id]));
 
   return {
-    async findByClerkId(clerkId) {
-      const id = byClerkId.get(clerkId);
-      return id ? users.get(id) ?? null : null;
-    },
-    async upsertFromProfile(profile) {
-      const existingId = byClerkId.get(profile.clerkId);
-      if (existingId) {
-        return users.get(existingId)!;
-      }
-      const user = createUser(profile.clerkId, null, "ACTIVE");
-      users.set(user.id, user);
-      byClerkId.set(user.clerkId, user.id);
-      return user;
-    },
-    async updateOnboarding() {
-      throw new Error("not needed in admin route tests");
+    async findById(id) {
+      return users.get(id) ?? null;
     },
     async listUsersForRoleReview(filters) {
       return [...users.values()].filter((user) => {
@@ -59,15 +41,12 @@ function createRepository(seed: AuthUser[]): UserRepository {
         return true;
       });
     },
-    async findById(id) {
-      return users.get(id) ?? null;
-    },
     async assignSystemRole(userId, role) {
       const user = users.get(userId);
       if (!user) {
         return null;
       }
-      const updated = { ...user, systemRole: role, requestedSystemRole: null };
+      const updated = { ...user, systemRole: role };
       users.set(userId, updated);
       return updated;
     },
@@ -83,29 +62,29 @@ function createRepository(seed: AuthUser[]): UserRepository {
   };
 }
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole,
         status
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
-const admin = createUser("clerk_admin_001", "ADMIN", "ACTIVE");
-const assistant = createUser("clerk_assistant_001", "ASSISTANT", "ACTIVE");
-const pending = createUser("clerk_pending_001", null, "ACTIVE", "MANGAKA");
+const admin = createUser("admin_001", "ADMIN", "ACTIVE");
+const assistant = createUser("assistant_001", "ASSISTANT", "ACTIVE");
+const pending = createUser("pending_001", null, "ACTIVE");
 
 describe("admin role assignment routes", () => {
   it("returns 403 for non-admin callers", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_assistant_001", "ASSISTANT"),
+      authVerifier: createVerifier(assistant.id, "ASSISTANT"),
       userRepository: createRepository([admin, assistant, pending])
     });
 
@@ -122,7 +101,7 @@ describe("admin role assignment routes", () => {
 
   it("lets admins list pending users", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
+      authVerifier: createVerifier(admin.id, "ADMIN"),
       userRepository: createRepository([admin, assistant, pending])
     });
 
@@ -133,14 +112,13 @@ describe("admin role assignment routes", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.users).toHaveLength(1);
     expect(response.body.data.users[0]).toMatchObject({
-      clerkId: "clerk_pending_001",
-      requestedSystemRole: "MANGAKA"
+      id: pending.id
     });
   });
 
   it("lets admins assign roles", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
+      authVerifier: createVerifier(admin.id, "ADMIN"),
       userRepository: createRepository([admin, pending])
     });
 
@@ -152,14 +130,13 @@ describe("admin role assignment routes", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.user).toMatchObject({
       id: pending.id,
-      systemRole: "MANGAKA",
-      requestedSystemRole: null
+      systemRole: "MANGAKA"
     });
   });
 
   it("lets admins suspend users", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
+      authVerifier: createVerifier(admin.id, "ADMIN"),
       userRepository: createRepository([admin, assistant])
     });
 
@@ -174,7 +151,7 @@ describe("admin role assignment routes", () => {
 
   it("rejects invalid role input", async () => {
     const app = createApp({
-      authVerifier: createVerifier("clerk_admin_001", "ADMIN"),
+      authVerifier: createVerifier(admin.id, "ADMIN"),
       userRepository: createRepository([admin, pending])
     });
 

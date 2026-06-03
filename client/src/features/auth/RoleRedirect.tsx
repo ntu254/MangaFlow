@@ -28,7 +28,7 @@ export function RoleRedirect() {
   }
 
   if (!claims) {
-    return <Navigate to="/app/onboarding" replace />;
+    return <Navigate to="/app/blocked" replace />;
   }
 
   if (claims.status === "SUSPENDED") {
@@ -36,8 +36,8 @@ export function RoleRedirect() {
   }
 
   if (!claims.systemRole) {
-    return <Navigate to="/app/onboarding" replace />;
+    return <Navigate to="/app/blocked" replace />;
   }
 
-  return <Navigate to={roleRoutes[claims.systemRole] ?? "/app/onboarding"} replace />;
+  return <Navigate to={roleRoutes[claims.systemRole] ?? "/app/blocked"} replace />;
 }

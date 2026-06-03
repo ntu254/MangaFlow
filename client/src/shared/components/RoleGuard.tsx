@@ -11,14 +11,14 @@ export type RoleGuardProps = {
 };
 
 function getRoleHomePath(role: SystemRole | null): string {
-  if (!role) return "/app/onboarding";
+  if (!role) return "/app/blocked";
   switch (role) {
     case "ADMIN": return "/app/admin/dashboard";
     case "MANGAKA": return "/app/mangaka/dashboard";
     case "ASSISTANT": return "/app/assistant/dashboard";
     case "EDITOR": return "/app/editor/dashboard";
     case "BOARD": return "/app/board/dashboard";
-    default: return "/app/onboarding";
+    default: return "/app/blocked";
   }
 }
 

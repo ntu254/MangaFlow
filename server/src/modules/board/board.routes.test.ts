@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -38,61 +38,50 @@ const adminId = "507f1f77bcf86cd799439054";
 const mangakaId = "507f1f77bcf86cd799439055";
 const assistantId = "507f1f77bcf86cd799439056";
 
-function createAuthUser(clerkId: string, id: string, systemRole: "BOARD" | "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR"): AuthUser {
+function createAuthUser(id: string, systemRole: "BOARD" | "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR"): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const chairUser = createAuthUser("clerk_chair", chairId, "BOARD");
-const memberUser = createAuthUser("clerk_member", memberId, "BOARD");
-const inactiveUser = createAuthUser("clerk_inactive", inactiveId, "BOARD");
-const adminUser = createAuthUser("clerk_admin", adminId, "ADMIN");
-const mangakaUser = createAuthUser("clerk_mangaka", mangakaId, "MANGAKA");
-const assistantUser = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
+const chairUser = createAuthUser(chairId, "BOARD");
+const memberUser = createAuthUser(memberId, "BOARD");
+const inactiveUser = createAuthUser(inactiveId, "BOARD");
+const adminUser = createAuthUser(adminId, "ADMIN");
+const mangakaUser = createAuthUser(mangakaId, "MANGAKA");
+const assistantUser = createAuthUser(assistantId, "ASSISTANT");
 
 const users = [chairUser, memberUser, inactiveUser, adminUser, mangakaUser, assistantUser];
 
-function createVerifier(clerkId: string): AuthVerifier {
-  const user = users.find(u => u.clerkId === clerkId);
+function createVerifier(id: string): AuthVerifier {
+  const user = users.find(u => u.id === id);
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole: user?.systemRole ?? null,
         status: user?.status ?? "ACTIVE"
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((u) => [u.clerkId, u]));
   const byId = new Map(users.map((u) => [u.id, u]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
     async findById(id) {
       return byId.get(id) ?? null;
-    },
-    async upsertFromProfile() { throw new Error("Not implemented"); },
-    async updateOnboarding() { throw new Error("Not implemented"); },
-    async listUsersForRoleReview() { return []; },
-    async assignSystemRole() { throw new Error("Not implemented"); },
-    async updateUserStatus() { throw new Error("Not implemented"); }
+    }
   };
 }
 
@@ -184,14 +173,14 @@ function createBoardRepository(
 }
 
 function createBoardApp(
-  clerkId: string,
+  userId: string,
   seedMembers: BoardMember[] = [],
   seedVotes: BoardVote[] = [],
   seedDecisions: BoardDecision[] = []
 ) {
   const { repository: boardRepository } = createBoardRepository(seedMembers, seedVotes, seedDecisions);
   const app = createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(userId),
     userRepository: createUserRepository(),
     boardRepository
   });
@@ -205,7 +194,7 @@ describe("board routes integration tests", () => {
   const defaultMembers = [memberChair, memberRegular, memberInactive];
 
   it("GET /api/board/members - returns board members for BOARD/ADMIN users", async () => {
-    const { app } = createBoardApp(memberUser.clerkId, defaultMembers);
+    const { app } = createBoardApp(memberUser.id, defaultMembers);
 
     const response = await request(app)
       .get("/api/board/members")
@@ -222,7 +211,7 @@ describe("board routes integration tests", () => {
   });
 
   it("GET /api/board/members - denies access to MANGAKA role", async () => {
-    const { app } = createBoardApp(mangakaUser.clerkId, defaultMembers);
+    const { app } = createBoardApp(mangakaUser.id, defaultMembers);
 
     const response = await request(app)
       .get("/api/board/members")
@@ -234,7 +223,7 @@ describe("board routes integration tests", () => {
 
   it("POST /api/board/:seriesId/votes - submits vote for active board member", async () => {
     const findSpy = vi.spyOn(SeriesModel, "findById").mockResolvedValue({ id: seriesId } as any);
-    const { app } = createBoardApp(memberUser.clerkId, defaultMembers);
+    const { app } = createBoardApp(memberUser.id, defaultMembers);
 
     const response = await request(app)
       .post(`/api/board/${seriesId}/votes`)
@@ -255,7 +244,7 @@ describe("board routes integration tests", () => {
 
   it("POST /api/board/:seriesId/votes - denies vote for inactive board member", async () => {
     const findSpy = vi.spyOn(SeriesModel, "findById").mockResolvedValue({ id: seriesId } as any);
-    const { app } = createBoardApp(inactiveUser.clerkId, defaultMembers);
+    const { app } = createBoardApp(inactiveUser.id, defaultMembers);
 
     const response = await request(app)
       .post(`/api/board/${seriesId}/votes`)
@@ -273,7 +262,7 @@ describe("board routes integration tests", () => {
     const vote: BoardVote = { id: "v1", seriesId, boardMemberId: "bm_member", vote: "APPROVE", createdAt: now, updatedAt: now };
 
     // 1. BOARD user -> succeeds
-    const appBoard = createBoardApp(memberUser.clerkId, defaultMembers, [vote]).app;
+    const appBoard = createBoardApp(memberUser.id, defaultMembers, [vote]).app;
     const resBoard = await request(appBoard)
       .get(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid");
@@ -281,14 +270,14 @@ describe("board routes integration tests", () => {
     expect(resBoard.body.data).toHaveLength(1);
 
     // 2. Mangaka Owner -> succeeds
-    const appOwner = createBoardApp(mangakaUser.clerkId, defaultMembers, [vote]).app;
+    const appOwner = createBoardApp(mangakaUser.id, defaultMembers, [vote]).app;
     const resOwner = await request(appOwner)
       .get(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid");
     expect(resOwner.status).toBe(200);
 
     // 3. Assistant Stranger -> denies
-    const appStranger = createBoardApp(assistantUser.clerkId, defaultMembers, [vote]).app;
+    const appStranger = createBoardApp(assistantUser.id, defaultMembers, [vote]).app;
     const resStranger = await request(appStranger)
       .get(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid");
@@ -303,7 +292,7 @@ describe("board routes integration tests", () => {
       { id: "v2", seriesId, boardMemberId: "bm2", vote: "APPROVE", createdAt: now, updatedAt: now },
       { id: "v3", seriesId, boardMemberId: "bm3", vote: "REJECT", createdAt: now, updatedAt: now }
     ];
-    const { app } = createBoardApp(memberUser.clerkId, defaultMembers, votes);
+    const { app } = createBoardApp(memberUser.id, defaultMembers, votes);
 
     const response = await request(app)
       .get(`/api/board/${seriesId}/votes/summary`)
@@ -326,7 +315,7 @@ describe("board routes integration tests", () => {
       { id: "v3", seriesId, boardMemberId: "bm3", vote: "REJECT", createdAt: now, updatedAt: now }
     ];
 
-    const appChair = createBoardApp(chairUser.clerkId, defaultMembers, votesApprove).app;
+    const appChair = createBoardApp(chairUser.id, defaultMembers, votesApprove).app;
     const resFinalize = await request(appChair)
       .post(`/api/board/${seriesId}/decisions/finalize`)
       .set("Authorization", "Bearer valid");
@@ -340,7 +329,7 @@ describe("board routes integration tests", () => {
       { id: "v1", seriesId, boardMemberId: "bm1", vote: "APPROVE", createdAt: now, updatedAt: now },
       { id: "v2", seriesId, boardMemberId: "bm2", vote: "REJECT", createdAt: now, updatedAt: now }
     ];
-    const appTie = createBoardApp(chairUser.clerkId, defaultMembers, votesTie).app;
+    const appTie = createBoardApp(chairUser.id, defaultMembers, votesTie).app;
     const resTie = await request(appTie)
       .post(`/api/board/${seriesId}/decisions/finalize`)
       .set("Authorization", "Bearer valid");
@@ -356,7 +345,7 @@ describe("board routes integration tests", () => {
     ];
 
     // 1. Board Chair -> succeeds
-    const appChair = createBoardApp(chairUser.clerkId, defaultMembers, votesTie).app;
+    const appChair = createBoardApp(chairUser.id, defaultMembers, votesTie).app;
     const resChair = await request(appChair)
       .post(`/api/board/${seriesId}/decisions/tie-break`)
       .set("Authorization", "Bearer valid")
@@ -371,7 +360,7 @@ describe("board routes integration tests", () => {
     });
 
     // 2. Regular member -> denies (403)
-    const appMember = createBoardApp(memberUser.clerkId, defaultMembers, votesTie).app;
+    const appMember = createBoardApp(memberUser.id, defaultMembers, votesTie).app;
     const resMember = await request(appMember)
       .post(`/api/board/${seriesId}/decisions/tie-break`)
       .set("Authorization", "Bearer valid")

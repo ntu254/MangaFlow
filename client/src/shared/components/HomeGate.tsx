@@ -60,7 +60,7 @@ export function HomeGate() {
         return;
       } catch {
         if (!cancelled) {
-          setDestination("/app/onboarding");
+          setDestination("/app/blocked");
         }
       }
     }

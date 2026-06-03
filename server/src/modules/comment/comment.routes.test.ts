@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -23,59 +23,42 @@ const strangerId = "507f1f77bcf86cd799439397";
 const adminId = "507f1f77bcf86cd799439398";
 const strangerAssistantId = "507f1f77bcf86cd799439399";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_comment_owner", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_comment_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_comment_assistant", assistantId, "ASSISTANT");
-const stranger = createAuthUser("clerk_comment_stranger", strangerId, "MANGAKA");
-const admin = createAuthUser("clerk_comment_admin", adminId, "ADMIN");
-const strangerAssistant = createAuthUser("clerk_comment_stranger_assistant", strangerAssistantId, "ASSISTANT");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const stranger = createAuthUser(strangerId, "MANGAKA");
+const admin = createAuthUser(adminId, "ADMIN");
+const strangerAssistant = createAuthUser(strangerAssistantId, "ASSISTANT");
 const users = [owner, editor, assistant, stranger, admin, strangerAssistant];
 
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
   const byId = new Map(users.map((user) => [user.id, user]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      byId.set(created.id, created);
-      return created;
-    },
-    async updateOnboarding() {
-      throw new Error("not needed in comment route tests");
-    },
     async findById(userId) {
       return byId.get(userId) ?? null;
     }
@@ -225,14 +208,14 @@ function createCommentRepository(seed: Comment[] = []) {
 }
 
 function createCommentApp(
-  clerkId: string,
+  userId: string,
   roleByUserId: Record<string, string | null>,
   seedComments: Comment[] = []
 ) {
   const { repository: commentRepository, comments } = createCommentRepository(seedComments);
-  const user = users.find(u => u.clerkId === clerkId);
+  const user = users.find(u => u.id === userId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     manuscriptRepository: createManuscriptRepository(),
@@ -247,7 +230,7 @@ function createCommentApp(
 
 describe("comment routes integration tests", () => {
   it("allows series members to create and read comments", async () => {
-    const { app } = createCommentApp(owner.clerkId, {
+    const { app } = createCommentApp(owner.id, {
       [ownerId]: "OWNER_MANGAKA",
       [assistantId]: "ASSISTANT"
     });
@@ -279,7 +262,7 @@ describe("comment routes integration tests", () => {
   });
 
   it("denies access to non-series-members", async () => {
-    const { app } = createCommentApp(stranger.clerkId, { [strangerId]: null });
+    const { app } = createCommentApp(stranger.id, { [strangerId]: null });
 
     const createResponse = await request(app)
       .post("/api/comments")
@@ -296,7 +279,7 @@ describe("comment routes integration tests", () => {
   it("allows only creator or admin to edit or delete comment", async () => {
     const existing = createTestComment({ id: "c1", createdBy: ownerId });
     const { app, comments } = createCommentApp(
-      assistant.clerkId,
+      assistant.id,
       { [assistantId]: "ASSISTANT", [ownerId]: "OWNER_MANGAKA" },
       [existing]
     );
@@ -310,7 +293,7 @@ describe("comment routes integration tests", () => {
 
     // Creator edits own comment -> 200
     const creatorApp = createCommentApp(
-      owner.clerkId,
+      owner.id,
       { [assistantId]: "ASSISTANT", [ownerId]: "OWNER_MANGAKA" },
       [existing]
     ).app;
@@ -330,7 +313,7 @@ describe("comment routes integration tests", () => {
   it("handles mark-fixed endpoint permissions", async () => {
     const existing = createTestComment({ id: "c1", targetType: "TASK", targetId: "task_1", status: "OPEN" });
     const { app } = createCommentApp(
-      assistant.clerkId,
+      assistant.id,
       { [assistantId]: "ASSISTANT", [ownerId]: "OWNER_MANGAKA" },
       [existing]
     );
@@ -344,7 +327,7 @@ describe("comment routes integration tests", () => {
 
     // Stranger assistant cannot mark fixed
     const strangerApp = createCommentApp(
-      strangerAssistant.clerkId,
+      strangerAssistant.id,
       { [strangerAssistant.id]: "ASSISTANT" },
       [existing]
     ).app;
@@ -358,7 +341,7 @@ describe("comment routes integration tests", () => {
   it("handles verify-fixed endpoint permissions", async () => {
     const existing = createTestComment({ id: "c1", status: "FIXED_BY_ASSISTANT" });
     const { app } = createCommentApp(
-      owner.clerkId,
+      owner.id,
       { [ownerId]: "OWNER_MANGAKA" },
       [existing]
     );
@@ -373,7 +356,7 @@ describe("comment routes integration tests", () => {
   it("handles resolve and reopen endpoints permissions", async () => {
     const existing = createTestComment({ id: "c1", status: "OPEN" });
     const { app } = createCommentApp(
-      editor.clerkId,
+      editor.id,
       { [editorId]: "EDITOR" },
       [existing]
     );

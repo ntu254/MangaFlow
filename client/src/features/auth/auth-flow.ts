@@ -25,7 +25,7 @@ export function resolveAuthRoute(input: AuthRouteInput) {
   }
 
   if (!input.user) {
-    return "/app/onboarding";
+    return "/app/blocked";
   }
 
   if (input.user.status === "SUSPENDED") {
@@ -33,7 +33,7 @@ export function resolveAuthRoute(input: AuthRouteInput) {
   }
 
   if (!input.user.systemRole) {
-    return "/app/onboarding";
+    return "/app/blocked";
   }
 
   return roleRoutes[input.user.systemRole];

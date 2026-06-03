@@ -51,8 +51,8 @@ async function resolveUser(dependencies: AnnotationRouteDependencies, userId: st
   return user;
 }
 
-async function assertReadAccess(dependencies: AnnotationRouteDependencies, clerkId: string, seriesId: string) {
-  const user = await resolveUser(dependencies, clerkId);
+async function assertReadAccess(dependencies: AnnotationRouteDependencies, userId: string, seriesId: string) {
+  const user = await resolveUser(dependencies, userId);
   if (user.systemRole === SYSTEM_ROLES.ADMIN) return user;
 
   const role = await dependencies.seriesRepository.getSeriesMemberRole(seriesId, user.id);
@@ -62,8 +62,8 @@ async function assertReadAccess(dependencies: AnnotationRouteDependencies, clerk
   return user;
 }
 
-async function assertCreateAccess(dependencies: AnnotationRouteDependencies, clerkId: string, seriesId: string) {
-  const user = await resolveUser(dependencies, clerkId);
+async function assertCreateAccess(dependencies: AnnotationRouteDependencies, userId: string, seriesId: string) {
+  const user = await resolveUser(dependencies, userId);
   if (user.systemRole === SYSTEM_ROLES.ADMIN) return user;
 
   if (![SYSTEM_ROLES.MANGAKA, SYSTEM_ROLES.EDITOR].includes(user.systemRole as any)) {
@@ -79,11 +79,11 @@ async function assertCreateAccess(dependencies: AnnotationRouteDependencies, cle
 
 async function assertMutationAccess(
   dependencies: AnnotationRouteDependencies,
-  clerkId: string,
+  userId: string,
   seriesId: string,
   annotation: Annotation
 ) {
-  const user = await resolveUser(dependencies, clerkId);
+  const user = await resolveUser(dependencies, userId);
   if (user.systemRole === SYSTEM_ROLES.ADMIN) return user;
   if (annotation.createdBy === user.id) return user;
 

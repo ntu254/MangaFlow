@@ -70,7 +70,8 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       response.status === 401 &&
       !url.includes("/auth/refresh") &&
       !url.includes("/auth/logout") &&
-      !url.includes("/auth/login");
+      !url.includes("/auth/login") &&
+      !url.includes("/auth/me");
 
     if (isRefreshable401) {
       if (!isRefreshing) {

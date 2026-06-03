@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -23,53 +23,41 @@ const editorId = "507f1f77bcf86cd799439195";
 const assistantId = "507f1f77bcf86cd799439196";
 const strangerId = "507f1f77bcf86cd799439197";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_owner_annotation", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_editor_annotation", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_assistant_annotation", assistantId, "ASSISTANT");
-const stranger = createAuthUser("clerk_stranger_annotation", strangerId, "MANGAKA");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const stranger = createAuthUser(strangerId, "MANGAKA");
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(users: AuthUser[]): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      return created;
-    },
-    async updateOnboarding() {
-      throw new Error("not needed in annotation route tests");
+    async findById(id) {
+      return byId.get(id) ?? null;
     }
   };
 }
@@ -296,15 +284,15 @@ function createAnnotationRepository(seed: Annotation[] = []) {
 }
 
 function createAnnotationApp(
-  clerkId: string,
+  userId: string,
   roleByUserId: Record<string, string | null>,
   seed: Annotation[] = [],
   regions: Region[] = [createRegion()]
 ) {
   const { repository, annotations } = createAnnotationRepository(seed);
-  const user = [owner, editor, assistant, stranger].find(u => u.clerkId === clerkId);
+  const user = [owner, editor, assistant, stranger].find(u => u.id === userId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository([owner, editor, assistant, stranger]),
     seriesRepository: createSeriesRepository(roleByUserId),
     chapterRepository: createChapterRepository(),
@@ -317,7 +305,7 @@ function createAnnotationApp(
 
 describe("annotation routes", () => {
   it("lets owner Mangaka create, list, fetch, update, and delete own page annotations", async () => {
-    const { app, annotations } = createAnnotationApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" });
+    const { app, annotations } = createAnnotationApp(owner.id, { [ownerId]: "OWNER_MANGAKA" });
 
     const createResponse = await request(app)
       .post(`/api/pages/${pageId}/annotations`)
@@ -372,7 +360,7 @@ describe("annotation routes", () => {
 
   it("allows assigned editors to update annotations they did not create", async () => {
     const seed = [createAnnotation({ id: "annotation_editor_update", createdBy: ownerId })];
-    const { app } = createAnnotationApp(editor.clerkId, { [editorId]: "EDITOR" }, seed);
+    const { app } = createAnnotationApp(editor.id, { [editorId]: "EDITOR" }, seed);
 
     const response = await request(app)
       .patch("/api/annotations/annotation_editor_update")
@@ -385,7 +373,7 @@ describe("annotation routes", () => {
 
   it("allows assistants to read but not create or mutate annotations", async () => {
     const seed = [createAnnotation({ id: "annotation_assistant_read" })];
-    const { app } = createAnnotationApp(assistant.clerkId, { [assistantId]: "ASSISTANT" }, seed);
+    const { app } = createAnnotationApp(assistant.id, { [assistantId]: "ASSISTANT" }, seed);
 
     const listResponse = await request(app)
       .get(`/api/pages/${pageId}/annotations`)
@@ -407,14 +395,14 @@ describe("annotation routes", () => {
   });
 
   it("rejects non-members and invalid region/page links", async () => {
-    const strangerApp = createAnnotationApp(stranger.clerkId, { [strangerId]: null }, [createAnnotation()]).app;
+    const strangerApp = createAnnotationApp(stranger.id, { [strangerId]: null }, [createAnnotation()]).app;
     const readResponse = await request(strangerApp)
       .get(`/api/pages/${pageId}/annotations`)
       .set("Authorization", "Bearer valid");
     expect(readResponse.status).toBe(403);
 
     const ownerApp = createAnnotationApp(
-      owner.clerkId,
+      owner.id,
       { [ownerId]: "OWNER_MANGAKA" },
       [],
       [createRegion({ id: "other_page_region", pageId: otherPageId })]

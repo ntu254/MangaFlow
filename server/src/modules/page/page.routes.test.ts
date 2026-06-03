@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
@@ -30,52 +30,40 @@ afterEach(() => {
   fs.rmSync(uploadRoot, { recursive: true, force: true });
 });
 
-function createVerifier(clerkId = "clerk_mangaka_001", systemRole: SystemRole | null = "MANGAKA", status: UserStatus = "ACTIVE"): AuthVerifier {
+function createVerifier(id = userId, systemRole: SystemRole | null = "MANGAKA", status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole,
         status
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
-function createUser(id: string, clerkId: string, systemRole: SystemRole): AuthUser {
+function createUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-function createUserRepository(users: AuthUser[] = [createUser(userId, "clerk_mangaka_001", "MANGAKA")]): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+function createUserRepository(users: AuthUser[] = [createUser(userId, "MANGAKA")]): UserRepository {
+  const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createUser(`user_${profile.clerkId}`, profile.clerkId, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      return created;
-    },
-    async updateOnboarding() {
-      throw new Error("not needed in page route tests");
+    async findById(id) {
+      return byId.get(id) ?? null;
     }
   };
 }
@@ -343,7 +331,7 @@ describe("page upload routes", () => {
   });
 
   it("rejects page upload and delete for non-owner series members", async () => {
-    const assistant = createUser(assistantId, "clerk_assistant_001", "ASSISTANT");
+    const assistant = createUser(assistantId, "ASSISTANT");
     const { repository: pageRepository, pages } = createPageRepository();
     pages.push({
       id: "page_assistant_blocked",
@@ -358,7 +346,7 @@ describe("page upload routes", () => {
       updatedAt: now
     });
     const app = createApp({
-      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
+      authVerifier: createVerifier(assistant.id, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       chapterRepository: createChapterRepository(),

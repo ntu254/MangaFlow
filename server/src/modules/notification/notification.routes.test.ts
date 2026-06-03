@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -13,49 +13,37 @@ const notifId1 = "507f1f77bcf86cd799439bb1";
 const notifId2 = "507f1f77bcf86cd799439bb2";
 const notifId3 = "507f1f77bcf86cd799439bb3";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const user1 = createAuthUser("clerk_notif_user1", userId1, "MANGAKA");
-const user2 = createAuthUser("clerk_notif_user2", userId2, "ASSISTANT");
+const user1 = createAuthUser(userId1, "MANGAKA");
+const user2 = createAuthUser(userId2, "ASSISTANT");
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
   const users = [user1, user2];
-  const byClerkId = new Map(users.map((u) => [u.clerkId, u]));
   const byId = new Map(users.map((u) => [u.id, u]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      return byClerkId.get(profile.clerkId) ?? createAuthUser(profile.clerkId, `gen_${profile.clerkId}`, "MANGAKA");
-    },
-    async updateOnboarding() {
-      throw new Error("not needed");
-    },
     async findById(id) {
       return byId.get(id) ?? null;
     }
@@ -127,7 +115,7 @@ describe("GET /api/notifications â€” unauthenticated", () => {
   it("returns 401 when no token provided", async () => {
     const notifRepo = createNotificationRepository([]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -143,7 +131,7 @@ describe("GET /api/notifications â€” user-scoped", () => {
       makeNotif({ id: notifId2, userId: userId2, title: "For user2" })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -166,7 +154,7 @@ describe("GET /api/notifications/unread-count", () => {
       makeNotif({ id: notifId3, userId: userId2, isRead: false })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -184,7 +172,7 @@ describe("PATCH /api/notifications/:id/read", () => {
       makeNotif({ id: notifId1, userId: userId1, isRead: false })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -200,7 +188,7 @@ describe("PATCH /api/notifications/:id/read", () => {
       makeNotif({ id: notifId2, userId: userId2, isRead: false })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -219,7 +207,7 @@ describe("PATCH /api/notifications/read-all", () => {
       makeNotif({ id: notifId3, userId: userId2, isRead: false })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -240,7 +228,7 @@ describe("DELETE /api/notifications/:id", () => {
       makeNotif({ id: notifId1, userId: userId1 })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });
@@ -256,7 +244,7 @@ describe("DELETE /api/notifications/:id", () => {
       makeNotif({ id: notifId2, userId: userId2 })
     ]);
     const app = createApp({
-      authVerifier: createVerifier("clerk_notif_user1"),
+      authVerifier: createVerifier(user1.id),
       userRepository: createUserRepository(),
       notificationRepository: notifRepo
     });

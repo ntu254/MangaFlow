@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -23,56 +23,39 @@ const assistantId = "507f1f77bcf86cd799439493";
 const adminId = "507f1f77bcf86cd799439494";
 const strangerId = "507f1f77bcf86cd799439495";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_payroll_owner", ownerId, "MANGAKA");
-const assistant = createAuthUser("clerk_payroll_assistant", assistantId, "ASSISTANT");
-const admin = createAuthUser("clerk_payroll_admin", adminId, "ADMIN");
-const stranger = createAuthUser("clerk_payroll_stranger", strangerId, "MANGAKA");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const admin = createAuthUser(adminId, "ADMIN");
+const stranger = createAuthUser(strangerId, "MANGAKA");
 const users = [owner, assistant, admin, stranger];
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
   const byId = new Map(users.map((user) => [user.id, user]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      byId.set(created.id, created);
-      return created;
-    },
-    async updateOnboarding() {
-      throw new Error("not needed in payroll route tests");
-    },
     async findById(userId) {
       return byId.get(userId) ?? null;
     }
@@ -248,11 +231,11 @@ function createPayrollRepository(seedRates: TaskRate[] = []) {
   return { repository, taskRates, earnings };
 }
 
-function createPayrollApp(clerkId: string, roleByUserId: Record<string, string | null>, seedRates: TaskRate[] = []) {
+function createPayrollApp(userId: string, roleByUserId: Record<string, string | null>, seedRates: TaskRate[] = []) {
   const { repository, taskRates, earnings } = createPayrollRepository(seedRates);
-  const user = users.find(u => u.clerkId === clerkId);
+  const user = users.find(u => u.id === userId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     taskRepository: createTaskRepository(),
@@ -263,7 +246,7 @@ function createPayrollApp(clerkId: string, roleByUserId: Record<string, string |
 
 describe("payroll routes", () => {
   it("lets admins manage task rates", async () => {
-    const { app } = createPayrollApp(admin.clerkId, {});
+    const { app } = createPayrollApp(admin.id, {});
 
     const createResponse = await request(app)
       .post("/api/task-rates")
@@ -286,7 +269,7 @@ describe("payroll routes", () => {
   });
 
   it("lets Mangaka calculate and confirm series task earnings", async () => {
-    const { app } = createPayrollApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" }, [
+    const { app } = createPayrollApp(owner.id, { [ownerId]: "OWNER_MANGAKA" }, [
       {
         id: "rate_1",
         taskType: "CLEANUP",
@@ -322,7 +305,7 @@ describe("payroll routes", () => {
   });
 
   it("lets assistants view their own earnings and admins mark confirmed earnings paid", async () => {
-    const ownerFlow = createPayrollApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" }, [
+    const ownerFlow = createPayrollApp(owner.id, { [ownerId]: "OWNER_MANGAKA" }, [
       { id: "rate_1", taskType: "CLEANUP", rate: 100, currency: "POINT", isActive: true, createdAt: now, updatedAt: now }
     ]);
     const calc = await request(ownerFlow.app).post("/api/payroll/tasks/task_1/calculate").set("Authorization", "Bearer valid");
@@ -330,16 +313,16 @@ describe("payroll routes", () => {
     const earningId = calc.body.data.id;
 
     const assistantApp = createApp({
-      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole),
+      authVerifier: createVerifier(assistant.id, assistant.systemRole),
       userRepository: createUserRepository(),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       taskRepository: createTaskRepository(),
       payrollRepository: ownerFlow.repository
     });
 
-    // Reuse the same repository through a fresh app because Clerk user differs.
+    // Reuse the same repository through a fresh app because auth user differs.
     const adminApp = createApp({
-      authVerifier: createVerifier(admin.clerkId, admin.systemRole),
+      authVerifier: createVerifier(admin.id, admin.systemRole),
       userRepository: createUserRepository(),
       seriesRepository: createSeriesRepository({}),
       taskRepository: createTaskRepository(),
@@ -352,14 +335,14 @@ describe("payroll routes", () => {
   });
 
   it("rejects unauthorized payroll actions", async () => {
-    const assistantApp = createPayrollApp(assistant.clerkId, { [assistantId]: "ASSISTANT" }).app;
+    const assistantApp = createPayrollApp(assistant.id, { [assistantId]: "ASSISTANT" }).app;
     const createRate = await request(assistantApp)
       .post("/api/task-rates")
       .set("Authorization", "Bearer valid")
       .send({ taskType: "CLEANUP", rate: 40 });
     expect(createRate.status).toBe(403);
 
-    const strangerApp = createPayrollApp(stranger.clerkId, { [strangerId]: null }).app;
+    const strangerApp = createPayrollApp(stranger.id, { [strangerId]: null }).app;
     const calculate = await request(strangerApp).post("/api/payroll/tasks/task_1/calculate").set("Authorization", "Bearer valid");
     expect(calculate.status).toBe(403);
   });

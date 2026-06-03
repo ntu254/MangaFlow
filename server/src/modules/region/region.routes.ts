@@ -44,8 +44,8 @@ async function resolveAuthorizedUser(dependencies: RegionRouteDependencies, user
   return dependencies.userRepository.findById(userId);
 }
 
-async function assertReadAccess(dependencies: RegionRouteDependencies, clerkId: string, seriesId: string) {
-  const user = await resolveAuthorizedUser(dependencies, clerkId);
+async function assertReadAccess(dependencies: RegionRouteDependencies, userId: string, seriesId: string) {
+  const user = await resolveAuthorizedUser(dependencies, userId);
   if (!user) {
     throw new RegionServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }
@@ -62,8 +62,8 @@ async function assertReadAccess(dependencies: RegionRouteDependencies, clerkId: 
   return user;
 }
 
-async function assertWriteAccess(dependencies: RegionRouteDependencies, clerkId: string, seriesId: string) {
-  const user = await resolveAuthorizedUser(dependencies, clerkId);
+async function assertWriteAccess(dependencies: RegionRouteDependencies, userId: string, seriesId: string) {
+  const user = await resolveAuthorizedUser(dependencies, userId);
   if (!user) {
     throw new RegionServiceError("USER_NOT_SYNCED", "User not synced", 401);
   }

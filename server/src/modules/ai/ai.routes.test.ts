@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -21,52 +21,41 @@ const strangerId = "stranger_1";
 const chapterId = "chapter_1";
 const pageId = "page_1";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_owner", ownerId, "MANGAKA");
-const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
-const admin = createAuthUser("clerk_admin", adminId, "ADMIN");
-const stranger = createAuthUser("clerk_stranger", strangerId, "MANGAKA");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const admin = createAuthUser(adminId, "ADMIN");
+const stranger = createAuthUser(strangerId, "MANGAKA");
 const users = [owner, assistant, admin, stranger];
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile() {
-      throw new Error("not needed");
-    },
-    async updateOnboarding() {
-      throw new Error("not needed");
-    },
     async findById(userId) {
-      return users.find(u => u.id === userId) ?? null;
+      return byId.get(userId) ?? null;
     }
   };
 }
@@ -201,10 +190,10 @@ function createRegionRepository() {
   };
 }
 
-function createAiApp(clerkId: string, roleByUserId: Record<string, string | null>, regionRepo = createRegionRepository()) {
-  const user = users.find(u => u.clerkId === clerkId);
+function createAiApp(userId: string, roleByUserId: Record<string, string | null>, regionRepo = createRegionRepository()) {
+  const user = users.find(u => u.id === userId);
   return createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     chapterRepository: createChapterRepository(),
@@ -234,7 +223,7 @@ describe("AI Integration Routes", () => {
       json: async () => ({ status: "ok" })
     } as Response);
 
-    const app = createAiApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" });
+    const app = createAiApp(owner.id, { [ownerId]: "OWNER_MANGAKA" });
     const response = await request(app)
       .get("/api/ai/health")
       .set("Authorization", "Bearer valid");
@@ -259,7 +248,7 @@ describe("AI Integration Routes", () => {
     // Seed an old AI region to verify it gets cleaned up
     await regionRepo.createRegion({ pageId, type: "BUBBLE", source: "AI", x: 0.1, y: 0.1, width: 0.1, height: 0.1, createdBy: ownerId });
 
-    const app = createAiApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" }, regionRepo);
+    const app = createAiApp(owner.id, { [ownerId]: "OWNER_MANGAKA" }, regionRepo);
     const response = await request(app)
       .post(`/api/pages/${pageId}/ai/bubble-detect`)
       .set("Authorization", "Bearer valid");
@@ -296,7 +285,7 @@ describe("AI Integration Routes", () => {
       })
     } as Response);
 
-    const app = createAiApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" });
+    const app = createAiApp(owner.id, { [ownerId]: "OWNER_MANGAKA" });
     const response = await request(app)
       .post(`/api/pages/${pageId}/ai/bubble-process`)
       .set("Authorization", "Bearer valid");
@@ -321,7 +310,7 @@ describe("AI Integration Routes", () => {
       })
     } as Response);
 
-    const app = createAiApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" });
+    const app = createAiApp(owner.id, { [ownerId]: "OWNER_MANGAKA" });
     const response = await request(app)
       .post(`/api/chapters/${chapterId}/ai/batch-bubble-process`)
       .set("Authorization", "Bearer valid");
@@ -335,7 +324,7 @@ describe("AI Integration Routes", () => {
   });
 
   it("denies access to unauthorized system and series roles", async () => {
-    const app = createAiApp(assistant.clerkId, { [assistantId]: "ASSISTANT" });
+    const app = createAiApp(assistant.id, { [assistantId]: "ASSISTANT" });
     const response = await request(app)
       .post(`/api/pages/${pageId}/ai/bubble-detect`)
       .set("Authorization", "Bearer valid");
