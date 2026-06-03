@@ -32,4 +32,26 @@ npm run test:quick
 
 ## Acceptance Evidence
 
-Add command results after implementation.
+2026-06-03:
+
+- `npm run typecheck --workspace server` passed.
+- `npm run test --workspace server` passed: 20 test files, 73 tests.
+- `.\scripts\bin\harness-cli.exe story verify MF-013` passed.
+- `npm run test:quick` passed: client/server typecheck, server tests
+  20 files/73 tests, client tests 6 files/21 tests, client build, server build.
+
+Implemented proof files:
+
+- `server/src/modules/task/task.service.test.ts`
+- `server/src/modules/task/task.routes.test.ts`
+
+Coverage notes:
+
+- Unit proof covers required fields, task type/priority/status validation,
+  non-negative money values, due date parsing, `TODO -> IN_PROGRESS`, deletion
+  status gates, metadata updates, and not-found behavior.
+- Route proof covers owner Mangaka create/list/detail/update/delete, assigned
+  Assistant list/detail/start, assigned Editor create-from-region, `BUBBLE`
+  Region defaulting to `OTHER` Task type, non-member rejection, and invalid
+  assignee rejection.
+- E2E remains deferred because task assignment UI is not part of MF-013.
