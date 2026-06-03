@@ -21,6 +21,7 @@ Do not mark a row implemented until tests or validation evidence exist.
 | US-000 | Foundation scaffold: product docs, npm workspace client/server, backend health smoke, AI service placeholder | no | no | no | yes | implemented | `docs/stories/epics/E00-phase-0-foundation/US-000-foundation-scaffold.md` |
 | MF-001 | Auth/User Sync: Clerk identity boundary, internal user sync, current-user API, onboarding redirect state | yes | yes | no | yes | implemented | `docs/stories/epics/E01-auth-user-sync/MF-001-auth-user-sync/validation.md` |
 | MF-002 | Role Assignment: admin reviews requested roles and assigns/suspends/reactivates users safely | yes | yes | no | yes | implemented | `docs/stories/epics/E02-role-assignment/MF-002-role-assignment/validation.md` |
+| MF-024 | Mobile MVP: Expo React Native companion app for Tantou Editor and Editorial Board review, voting, ranking, readiness, and notifications | yes | no | no | yes | implemented | `docs/stories/epics/E03-mobile-mvp/MF-003-mobile-editor-board-mvp/validation.md` |
 | MF-003 | Admin Role Review UI: admin can review pending users and trigger role/status actions from the browser | yes | yes | no | yes | implemented | `docs/stories/epics/E02-role-assignment/MF-003-admin-role-review-ui/validation.md` |
 | MF-004 | Series Management: Mangakas can create/list/update/delete draft Series with owner SeriesMember access enforced | yes | yes | no | yes | implemented | `docs/stories/epics/E04-series-management/MF-004-series-management.md` |
 | MF-005 | Role & Permission System: backend RBAC middlewares and frontend RoleGuard enforce allowed system/series roles | yes | yes | no | yes | implemented | `docs/stories/epics/E03-role-and-permission-system/validation.md` |
@@ -49,7 +50,6 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-028 | Sidebar Layout Wiring: Enable AppShell + RoleSidebar + AppHeader for all 5 role layouts | yes | yes | no | no | implemented | `docs/stories/epics/E17-sidebar-layout-wiring/MF-028-sidebar-layout-wiring/overview.md` |
 | MF-029 | Missing UI Pages: Build TaskList, Submissions, and AssignedSeries pages for Assistant/Mangaka/Editor roles | yes | yes | no | no | implemented | `docs/stories/epics/E18-missing-ui-pages/MF-029-missing-ui-pages/overview.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
-
 
 ## Evidence Rules
 

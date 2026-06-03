@@ -14,8 +14,13 @@ scripts/bin/harness-cli.exe
 # Application dependencies and build output.
 node_modules/
 client/node_modules/
+mobile/node_modules/
 server/node_modules/
+mobile/.expo/
 client/dist/
+mobile/dist/
+mobile/build/
+mobile/web-build/
 server/dist/
 *.tsbuildinfo
 
@@ -30,6 +35,7 @@ __pycache__/
 .env.*
 !.env.example
 !client/.env.example
+!mobile/.env.example
 !server/.env.example
 !ai-service/.env.example
 
