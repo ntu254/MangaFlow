@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
+  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -44,7 +45,7 @@ const editorTabs: EditorTab[] = [
   "Series",
   "Reviews",
   "Publication",
-  "Notifications"
+  "Profile"
 ];
 
 const boardTabs: BoardTab[] = [
@@ -52,7 +53,7 @@ const boardTabs: BoardTab[] = [
   "Approvals",
   "Ranking",
   "Decisions",
-  "Notifications"
+  "Profile"
 ];
 
 const tabIcons = {
@@ -60,7 +61,7 @@ const tabIcons = {
   Series: "albums-outline",
   Reviews: "chatbubbles-outline",
   Publication: "calendar-outline",
-  Notifications: "notifications-outline",
+  Profile: "person-circle-outline",
   Approvals: "checkmark-done-outline",
   Ranking: "stats-chart-outline",
   Decisions: "shield-checkmark-outline"
@@ -422,10 +423,40 @@ function BoardDecisions({
   );
 }
 
-function NotificationsScreen() {
+function ProfileScreen({
+  role,
+  unreadCount
+}: {
+  role: MobileRole;
+  unreadCount: number;
+}) {
+  const isEditor = role === "EDITOR";
+  const profile = {
+    name: isEditor ? "Tantou Editor" : "Editorial Board",
+    handle: isEditor ? "editor@mangaflow.local" : "board@mangaflow.local",
+    scope: isEditor ? "Assigned series review" : "Governance and ranking",
+    primaryMetric: isEditor ? `${editorSeries.length} assigned series` : `${boardSeries.length} approvals`,
+    secondaryMetric: isEditor ? `${editorComments.length} open comments` : `${rankings.length} ranking items`
+  };
+
   return (
-    <Screen title="Notifications" subtitle="Priority alerts">
-      {notifications.map((notification) => (
+    <Screen title="Profile" subtitle={profile.name} unreadCount={unreadCount}>
+      <Card style={styles.profileCard}>
+        <View style={styles.profileAvatar}>
+          <Ionicons name="person" size={34} color={colors.primary} />
+        </View>
+        <Text style={styles.profileName}>{profile.name}</Text>
+        <Text style={styles.metaText}>{profile.handle}</Text>
+        <Badge label={profile.scope} tone="default" />
+      </Card>
+
+      <View style={styles.metricGrid}>
+        <MetricCard label="Primary Scope" value={profile.primaryMetric} />
+        <MetricCard label="Current Signals" value={profile.secondaryMetric} color={colors.pinkPurple} />
+      </View>
+
+      <Text style={styles.sectionTitle}>Recent Alerts</Text>
+      {notifications.slice(0, 2).map((notification) => (
         <Card key={notification.id}>
           <View style={styles.rowBetween}>
             <Text style={styles.cardTitle}>{notification.title}</Text>
@@ -465,11 +496,13 @@ function RoleSwitch({
 function BottomTabs({
   role,
   tab,
-  setTab
+  setTab,
+  unreadCount
 }: {
   role: MobileRole;
   tab: string;
   setTab: (tab: string) => void;
+  unreadCount: number;
 }) {
   const tabs = role === "EDITOR" ? editorTabs : boardTabs;
 
@@ -478,19 +511,32 @@ function BottomTabs({
       {tabs.map((item) => {
         const active = item === tab;
         return (
-          <Text
+          <Pressable
             accessibilityRole="button"
+            accessibilityState={{ selected: active }}
             key={item}
             onPress={() => setTab(item)}
             style={[styles.tabItem, active ? styles.tabItemActive : null]}
           >
-            <Ionicons
-              name={tabIcons[item]}
-              size={18}
-              color={(active ? colors.primary : colors.textMuted) as ColorValue}
-            />{" "}
-            {item}
-          </Text>
+            <View style={styles.tabIconWrap}>
+              <Ionicons
+                name={tabIcons[item]}
+                size={20}
+                color={(active ? colors.primary : colors.textMuted) as ColorValue}
+              />
+              {item === "Profile" && unreadCount > 0 ? (
+                <Text style={styles.tabBadge}>{unreadCount}</Text>
+              ) : null}
+            </View>
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
+              numberOfLines={1}
+              style={[styles.tabLabel, active ? styles.tabLabelActive : null]}
+            >
+              {item}
+            </Text>
+          </Pressable>
         );
       })}
     </View>
@@ -534,7 +580,7 @@ export default function App() {
       ) : editorTab === "Publication" ? (
         <EditorPublication onAction={openDialog} />
       ) : (
-        <NotificationsScreen />
+        <ProfileScreen role={role} unreadCount={unreadCount} />
       );
   } else {
     content =
@@ -547,7 +593,7 @@ export default function App() {
       ) : boardTab === "Decisions" ? (
         <BoardDecisions onAction={openDialog} />
       ) : (
-        <NotificationsScreen />
+        <ProfileScreen role={role} unreadCount={unreadCount} />
       );
   }
 
@@ -559,6 +605,7 @@ export default function App() {
       <BottomTabs
         role={role}
         tab={role === "EDITOR" ? editorTab : boardTab}
+        unreadCount={unreadCount}
         setTab={(nextTab) => {
           if (role === "EDITOR") {
             setEditorTab(nextTab as EditorTab);
@@ -655,37 +702,96 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm
   },
   tabs: {
-    backgroundColor: colors.bgSidebar,
+    alignItems: "center",
+    backgroundColor: "rgba(248, 241, 255, 0.96)",
     borderColor: colors.borderDefault,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    bottom: 0,
+    bottom: spacing.md,
     flexDirection: "row",
-    gap: spacing.xs,
-    justifyContent: "space-between",
-    left: 0,
-    padding: spacing.sm,
+    gap: 6,
+    justifyContent: "center",
+    left: spacing.md,
+    padding: 6,
     position: "absolute",
-    right: 0,
+    right: spacing.md,
     ...shadow
   },
   tabItem: {
     alignItems: "center",
-    borderRadius: radii.md,
-    color: colors.textMuted,
+    backgroundColor: "rgba(255, 255, 255, 0.48)",
+    borderColor: "rgba(234, 223, 246, 0)",
+    borderWidth: 1,
+    borderRadius: radii.lg,
     flex: 1,
-    fontSize: 11,
-    fontWeight: "800",
-    minHeight: 54,
-    overflow: "hidden",
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.sm,
-    textAlign: "center"
+    gap: 3,
+    justifyContent: "center",
+    minHeight: 58,
+    minWidth: 0,
+    overflow: "visible",
+    paddingHorizontal: 4,
+    paddingVertical: 7
   },
   tabItemActive: {
     backgroundColor: colors.bgCard,
+    borderColor: colors.borderDefault,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4
+  },
+  tabIconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 22,
+    position: "relative"
+  },
+  tabLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0,
+    lineHeight: 12,
+    textAlign: "center"
+  },
+  tabLabelActive: {
     color: colors.primary
+  },
+  tabBadge: {
+    backgroundColor: colors.rosePink,
+    borderRadius: 999,
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "900",
+    lineHeight: 12,
+    minWidth: 15,
+    overflow: "hidden",
+    paddingHorizontal: 4,
+    position: "absolute",
+    right: -12,
+    textAlign: "center",
+    top: -5
+  },
+  profileCard: {
+    alignItems: "center",
+    gap: spacing.sm
+  },
+  profileAvatar: {
+    alignItems: "center",
+    backgroundColor: colors.bgCanvas,
+    borderColor: colors.borderDefault,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 72,
+    justifyContent: "center",
+    width: 72
+  },
+  profileName: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 0
   },
   rankBubble: {
     alignItems: "center",

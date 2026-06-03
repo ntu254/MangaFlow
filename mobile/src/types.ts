@@ -1,7 +1,7 @@
 export type MobileRole = "EDITOR" | "BOARD";
 
-export type EditorTab = "Home" | "Series" | "Reviews" | "Publication" | "Notifications";
-export type BoardTab = "Home" | "Approvals" | "Ranking" | "Decisions" | "Notifications";
+export type EditorTab = "Home" | "Series" | "Reviews" | "Publication" | "Profile";
+export type BoardTab = "Home" | "Approvals" | "Ranking" | "Decisions" | "Profile";
 export type MobileTab = EditorTab | BoardTab;
 
 export type SeriesStatus =
