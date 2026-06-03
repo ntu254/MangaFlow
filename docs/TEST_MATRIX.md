@@ -45,6 +45,9 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-024 | Ranking UI: Board ranking table, import reader/vote scores form, Mangaka ranking dashboard with status warnings | yes | yes | no | yes | implemented | `docs/stories/epics/E14-ranking/MF-024-ranking-ui/validation.md` |
 | MF-025 | UI Quality & Tech Debt Cleanup: fixed env var, stale closures, resolved any types, extracted shared API utilities, and standard error responses | yes | yes | no | yes | implemented | |
 | MF-026 | Payroll API Foundation: configured TaskRates (Admin), calculated/confirmed AssistantEarnings (Mangaka/Admin) and paid transitions (Admin) | yes | yes | no | yes | implemented | `docs/stories/epics/E15-payroll/MF-026-payroll-api-foundation/validation.md` |
+| MF-027 | AI Bubble Integration (EPIC-16) | yes | yes | no | no | implemented | `docs/stories/epics/E16-ai-bubble-integration/MF-027-ai-bubble-integration/overview.md` |
+| MF-028 | Sidebar Layout Wiring: Enable AppShell + RoleSidebar + AppHeader for all 5 role layouts | yes | yes | no | no | implemented | `docs/stories/epics/E17-sidebar-layout-wiring/MF-028-sidebar-layout-wiring/overview.md` |
+| MF-029 | Missing UI Pages: Build TaskList, Submissions, and AssignedSeries pages for Assistant/Mangaka/Editor roles | yes | yes | no | no | implemented | `docs/stories/epics/E18-missing-ui-pages/MF-029-missing-ui-pages/overview.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
 
 
