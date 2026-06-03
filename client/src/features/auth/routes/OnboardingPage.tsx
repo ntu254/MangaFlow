@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiBaseUrl } from "@/shared/api";
+import { setAuthToken } from "@/shared/api/client";
 import {
   BookOpen,
   PencilLine,
@@ -83,6 +84,10 @@ export function OnboardingPage() {
         setError(body.message || "Failed to complete onboarding");
         setIsSubmitting(false);
         return;
+      }
+
+      if (body.data.token) {
+        setAuthToken(body.data.token);
       }
 
       const destination = resolveAuthRoute({

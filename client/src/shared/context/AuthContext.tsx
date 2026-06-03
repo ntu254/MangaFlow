@@ -97,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setAuthToken(null);
     setUser(null);
-    window.location.href = "/";
   }, []);
 
   const refreshUser = useCallback(async () => {

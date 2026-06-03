@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import { exchangeGoogleCode } from "@/shared/api/auth";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 function LoadingScreen() {
   return (
@@ -33,6 +34,7 @@ function ErrorPage() {
 export function OAuthCallback() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +52,8 @@ export function OAuthCallback() {
       if (cancelled) return;
 
       if (token) {
+        await refreshUser();
+        if (cancelled) return;
         setStatus("success");
       } else {
         setStatus("error");
@@ -61,7 +65,7 @@ export function OAuthCallback() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams]);
+  }, [refreshUser, searchParams]);
 
   if (status === "success") {
     return <Navigate to="/" replace />;

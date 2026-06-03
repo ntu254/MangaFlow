@@ -70,9 +70,10 @@ export function useAuthClaims(): UseAuthClaimsResult {
       if (response.ok) {
         const body = await response.json();
         if (body.success && body.data) {
+          const user = body.data.user ?? body.data;
           setClaims({
-            systemRole: body.data.systemRole ?? null,
-            status: body.data.status ?? "ACTIVE"
+            systemRole: user.systemRole ?? null,
+            status: user.status ?? "ACTIVE"
           });
           setIsLoading(false);
           return;

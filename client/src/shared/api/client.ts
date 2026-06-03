@@ -22,6 +22,24 @@ function addRefreshSubscriber(cb: (token: string) => void) {
   refreshSubscribers.push(cb);
 }
 
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshRes = await originalFetch(`${apiBaseUrl}/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!refreshRes.ok) {
+    return null;
+  }
+
+  const data = await refreshRes.json().catch(() => null);
+  const token = data?.success && data.data?.token ? data.data.token : null;
+  if (token) {
+    setAuthToken(token);
+  }
+  return token;
+}
+
 // Intercept window.fetch globally
 const originalFetch = window.fetch;
 
@@ -46,35 +64,35 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
   try {
     const response = await originalFetch(input, modifiedInit);
 
-    // If 401 and not an auth endpoint, try to refresh
-    if (response.status === 401 && !url.includes("/auth/refresh") && !url.includes("/auth/logout")) {
+    // If 401 and not a login/logout endpoint, try to restore the access token
+    // from the refresh cookie. Do not hard-navigate here; callers decide UI flow.
+    const isRefreshable401 =
+      response.status === 401 &&
+      !url.includes("/auth/refresh") &&
+      !url.includes("/auth/logout") &&
+      !url.includes("/auth/login") &&
+      !url.includes("/auth/google");
+
+    if (isRefreshable401) {
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-          const refreshRes = await originalFetch(`${apiBaseUrl}/auth/refresh`, {
-            method: "POST",
-            credentials: "include",
-          });
-          
-          if (refreshRes.ok) {
-            const data = await refreshRes.json();
-            if (data.success && data.data?.token) {
-              setAuthToken(data.data.token);
-              onRefreshed(data.data.token);
-              // Retry the original request
-              const retryHeaders = new Headers(modifiedInit.headers || {});
-              retryHeaders.set("Authorization", `Bearer ${data.data.token}`);
-              return originalFetch(input, { ...modifiedInit, headers: retryHeaders });
-            }
+          const token = await refreshAccessToken();
+          if (token) {
+            onRefreshed(token);
+            // Retry the original request
+            const retryHeaders = new Headers(modifiedInit.headers || {});
+            retryHeaders.set("Authorization", `Bearer ${token}`);
+            return originalFetch(input, { ...modifiedInit, headers: retryHeaders });
           }
           // Refresh failed
           setAuthToken(null);
           onRefreshed(""); // empty string means failure
-          window.location.href = "/";
+          return response;
         } catch (err) {
           setAuthToken(null);
           onRefreshed("");
-          window.location.href = "/";
+          return response;
         } finally {
           isRefreshing = false;
         }
@@ -127,8 +145,10 @@ export type CurrentUser = {
   status: string;
 };
 
-export async function fetchCurrentUser(): Promise<CurrentUser | null> {
-  const response = await window.fetch(`${apiBaseUrl}/auth/me`);
+export async function fetchCurrentUser(token?: string): Promise<CurrentUser | null> {
+  const response = await window.fetch(`${apiBaseUrl}/auth/me`, token ? {
+    headers: { Authorization: `Bearer ${token}` }
+  } : undefined);
   const json = await response.json().catch(() => ({ success: false }));
   if (json && json.success && json.data) {
     return json.data.user;

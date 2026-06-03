@@ -1,7 +1,7 @@
 import { useEffect, useState, Suspense, lazy } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { resolveAuthRoute, type SystemRole, type UserStatus } from "@/features/auth/auth-flow";
-import { apiBaseUrl } from "@/shared/api";
 
 const LandingPage = lazy(() =>
   import("@/features/landing").then(m => ({ default: m.LandingPage }))
@@ -78,7 +78,7 @@ export function HomeGate() {
 
   if (isSignedIn) {
     if (destination) {
-      window.location.href = destination;
+      return <Navigate to={destination} replace />;
     }
     return <LoadingScreen />;
   }
