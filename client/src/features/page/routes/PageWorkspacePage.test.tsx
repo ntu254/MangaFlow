@@ -182,7 +182,7 @@ describe("PageWorkspacePage", () => {
     expect(html).toContain("Request Revision");
     expect(html).not.toContain("Workspace tool"); // tool Mode selection
     expect(html).not.toContain("Assign task"); // task form button
-    expect(html).not.toContain("Delete"); // delete button for tasks or regions
+    expect(html).not.toContain("mt-3 w-full"); // delete buttons inside region/task cards are not rendered for Editor
   });
 
   it("renders Mangaka layout, rendering editing tools, task forms, delete buttons, and hiding page approval controls", () => {
