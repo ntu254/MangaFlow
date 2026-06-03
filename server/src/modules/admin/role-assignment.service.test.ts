@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import {
   AdminRoleAssignmentError,
   createRoleAssignmentService
@@ -36,7 +36,7 @@ function createRoleRepository(seed: AuthUser[]): UserRepository {
       const id = byClerkId.get(clerkId);
       return id ? users.get(id) ?? null : null;
     },
-    async upsertFromClerk() {
+    async upsertFromProfile() {
       throw new Error("not needed in role assignment tests");
     },
     async updateOnboarding() {
@@ -165,4 +165,5 @@ describe("role assignment service", () => {
     });
   });
 });
+
 

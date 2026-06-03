@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { fetchSeriesById, type Series } from "../api/series";
 import { listManuscripts, type Manuscript } from "@/features/manuscript/api/manuscript";
 import { listChapters, type Chapter } from "@/features/chapter/api/chapter";

@@ -26,7 +26,7 @@ vi.mock("react", async (importOriginal) => {
 });
 
 // Mock Clerk
-vi.mock("@clerk/react", () => ({
+vi.mock("@/shared/hooks/useAuth", () => ({
   useAuth: () => ({
     getToken: () => Promise.resolve("mock-token")
   })

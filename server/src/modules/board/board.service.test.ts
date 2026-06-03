@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+﻿import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createBoardService, BoardServiceError } from "./board.service.js";
 import type { BoardRepository, BoardMember, BoardVote, BoardDecision } from "./board.repository.js";
 import type { UserRepository, AuthUser } from "../auth/auth.service.js";
@@ -113,7 +113,7 @@ function createRepositories(
     async findByClerkId(clerkId) {
       return [...users.values()].find((u) => u.clerkId === clerkId) ?? null;
     },
-    async upsertFromClerk() { throw new Error("Not implemented"); },
+    async upsertFromProfile() { throw new Error("Not implemented"); },
     async updateOnboarding() { throw new Error("Not implemented"); },
     async listUsersForRoleReview() { return []; },
     async assignSystemRole() { throw new Error("Not implemented"); },
@@ -345,3 +345,4 @@ describe("board service unit tests", () => {
     expect(dec.reason).toBe("Casting chair tie break");
   });
 });
+

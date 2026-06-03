@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { fetchSeriesList, type Series } from "@/features/series/api/series";
 import { fetchBoardMembers, fetchBoardVoteSummary, fetchCurrentUser, type BoardMember, type VoteSummary, type CurrentUser } from "../api/board";
 import { Button } from "@/components/ui/button";

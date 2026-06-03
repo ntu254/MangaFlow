@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 export const systemRoleSchema = z.enum([
   "ADMIN",
@@ -16,7 +16,7 @@ export type SystemRole = z.infer<typeof systemRoleSchema>;
 export type UserStatus = z.infer<typeof userStatusSchema>;
 export type RequestedSystemRole = z.infer<typeof requestedSystemRoleSchema>;
 
-export type ClerkUserProfile = {
+export type UserProfile = {
   clerkId: string;
   email: string;
   fullName: string;
@@ -61,7 +61,7 @@ export type SafeOnboardingInput = {
 
 export type UserRepository = {
   findByClerkId(clerkId: string): Promise<AuthUser | null>;
-  upsertFromClerk(profile: ClerkUserProfile): Promise<AuthUser>;
+  upsertFromProfile(profile: UserProfile): Promise<AuthUser>;
   updateOnboarding(
     clerkId: string,
     input: SafeOnboardingInput
@@ -111,8 +111,8 @@ export function createAuthService(userRepository: UserRepository) {
       return userRepository.findByClerkId(clerkId);
     },
 
-    async syncUserFromClerk(profile: ClerkUserProfile) {
-      return userRepository.upsertFromClerk(profile);
+    async syncUserFromProfile(profile: UserProfile) {
+      return userRepository.upsertFromProfile(profile);
     },
 
     async completeOnboarding(clerkId: string, input: OnboardingInput) {
@@ -173,3 +173,5 @@ export function createAuthService(userRepository: UserRepository) {
     }
   };
 }
+
+

@@ -1,13 +1,8 @@
 import { motion } from "framer-motion";
-import { SignInButton, SignUpButton, Show } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 
-interface LandingHeroProps {
-  clerkConfigured: boolean;
-}
-
-export function LandingHero({ clerkConfigured }: LandingHeroProps) {
+export function LandingHero() {
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-28 md:pt-36">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -58,32 +53,20 @@ export function LandingHero({ clerkConfigured }: LandingHeroProps) {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
-            {clerkConfigured ? (
-              <Show when="signed-out">
-                <SignUpButton mode="modal">
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-[#9065d5] px-8 text-white shadow-[0_8px_24px_rgba(144,101,213,0.3)] hover:bg-[#7f55c7] hover:shadow-[0_12px_32px_rgba(144,101,213,0.4)]"
-                  >
-                    Get Started Free
-                    <ArrowRight className="size-4" />
-                  </Button>
-                </SignUpButton>
-                <SignInButton mode="modal">
-                  <Button variant="outline" size="lg" className="border-[#eadff6] px-8 text-[#5f5270] hover:bg-[#f8f1ff] hover:text-[#9065d5]">
-                    Sign in
-                  </Button>
-                </SignInButton>
-              </Show>
-            ) : null}
-            <Show when="signed-in">
-              <a href="/app/mangaka/series">
-                <Button size="lg" className="gap-2 bg-[#9065d5] px-8 text-white hover:bg-[#7f55c7]">
-                  Go to Dashboard
-                  <ArrowRight className="size-4" />
-                </Button>
-              </a>
-            </Show>
+            <a href="/sign-in">
+              <Button
+                size="lg"
+                className="gap-2 bg-[#9065d5] px-8 text-white shadow-[0_8px_24px_rgba(144,101,213,0.3)] hover:bg-[#7f55c7] hover:shadow-[0_12px_32px_rgba(144,101,213,0.4)]"
+              >
+                Get Started Free
+                <ArrowRight className="size-4" />
+              </Button>
+            </a>
+            <a href="/sign-in">
+              <Button variant="outline" size="lg" className="border-[#eadff6] px-8 text-[#5f5270] hover:bg-[#f8f1ff] hover:text-[#9065d5]">
+                Sign in
+              </Button>
+            </a>
           </motion.div>
         </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { fetchSeriesList, type Series } from "@/features/series/api/series";
 import { fetchSeriesRankings, type Ranking } from "../api/ranking";
 import { Badge } from "@/components/ui/badge";

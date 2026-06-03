@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { getChapter, approveChapter, requestChapterRevision, type Chapter } from "@/features/chapter/api/chapter";
 import { listPages, createPage, deletePage, runBatchAIBubbleProcess, type Page } from "../api/page";
 import { Button } from "@/components/ui/button";

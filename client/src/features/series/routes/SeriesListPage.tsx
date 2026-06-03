@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { SeriesCard } from "../components/SeriesCard";
 import { fetchSeriesList, type Series } from "../api/series";
 import { Button } from "@/components/ui/button";

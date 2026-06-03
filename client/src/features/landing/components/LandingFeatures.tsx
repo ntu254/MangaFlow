@@ -54,7 +54,7 @@ const features = [
     icon: Shield,
     title: "Secure Auth & Roles",
     description:
-      "Role-based access control with Clerk — Mangaka, Editor, Assistant, and Board each get their own workspace.",
+      "Role-based access control — Mangaka, Editor, Assistant, and Board each get their own workspace.",
     color: "#9065d5",
     bg: "bg-[#9065d5]/[0.06]",
   },

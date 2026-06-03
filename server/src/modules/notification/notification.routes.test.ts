@@ -1,4 +1,4 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -50,7 +50,7 @@ function createUserRepository(): UserRepository {
     async findByClerkId(clerkId) {
       return byClerkId.get(clerkId) ?? null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       return byClerkId.get(profile.clerkId) ?? createAuthUser(profile.clerkId, `gen_${profile.clerkId}`, "MANGAKA");
     },
     async updateOnboarding() {
@@ -121,9 +121,9 @@ function createNotificationRepository(initial: Notification[]): NotificationRepo
   };
 }
 
-// ─── Tests ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("GET /api/notifications — unauthenticated", () => {
+describe("GET /api/notifications â€” unauthenticated", () => {
   it("returns 401 when no token provided", async () => {
     const notifRepo = createNotificationRepository([]);
     const app = createApp({
@@ -136,7 +136,7 @@ describe("GET /api/notifications — unauthenticated", () => {
   });
 });
 
-describe("GET /api/notifications — user-scoped", () => {
+describe("GET /api/notifications â€” user-scoped", () => {
   it("returns only the current user's notifications", async () => {
     const notifRepo = createNotificationRepository([
       makeNotif({ id: notifId1, userId: userId1, title: "For user1" }),
@@ -266,3 +266,4 @@ describe("DELETE /api/notifications/:id", () => {
     expect(res.status).toBe(404);
   });
 });
+

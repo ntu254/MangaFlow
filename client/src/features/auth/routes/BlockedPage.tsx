@@ -1,9 +1,9 @@
-import { useAuth, useClerk } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ShieldAlert } from "lucide-react";
 
 export function BlockedPage() {
-  const { signOut } = useClerk();
+  const { signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-[#fff9fb] flex items-center justify-center px-6">
@@ -22,7 +22,7 @@ export function BlockedPage() {
 
         <div className="space-y-3">
           <Button
-            onClick={() => signOut({ redirectUrl: "/" })}
+            onClick={signOut}
             variant="outline"
             className="w-full border-[#eadff6] text-[#5f5270] hover:bg-[#f8f1ff]"
           >

@@ -1,10 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
-import {
-  SignIn,
-  SignUp,
-  useAuth,
-} from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { useAuthClaims } from "@/shared/hooks/useAuthClaims";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { RoleRedirect } from "@/features/auth/RoleRedirect";
@@ -15,6 +11,8 @@ import { AppShell } from "@/shared/components/layout/AppShell";
 import { RoleSidebar, sidebarConfig } from "@/shared/components/navigation/RoleSidebar";
 import { AppHeader } from "@/shared/components/navigation/AppHeader";
 import { PlaceholderPage } from "@/shared/components/feedback/PlaceholderPage";
+import { SignInPage } from "@/features/auth/routes/SignInPage";
+import { OAuthCallback } from "@/features/auth/routes/OAuthCallback";
 import {
   Users,
   HardDrive,
@@ -128,10 +126,6 @@ const LazyLandingPage = lazy(() =>
   import("@/features/landing").then(m => ({ default: m.LandingPage }))
 );
 
-type AppProps = {
-  clerkConfigured: boolean;
-};
-
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#fff9fb] via-[#f8f1ff] to-[#fff7ec]">
@@ -159,7 +153,6 @@ function AuthenticatedApp() {
     return <LoadingScreen />;
   }
 
-  // Read role/status directly from JWT claims
   const effectiveClaims = claims;
 
   if (!effectiveClaims) {
@@ -385,19 +378,11 @@ function AuthenticatedApp() {
   );
 }
 
-function App({ clerkConfigured }: AppProps) {
-  if (!clerkConfigured) {
-    return (
-      <Suspense fallback={<LoadingScreen />}>
-        <LazyLandingPage clerkConfigured={false} />
-      </Suspense>
-    );
-  }
-
+function App() {
   return (
     <Routes>
-      <Route path="/sign-in/*" element={<SignIn />} />
-      <Route path="/sign-up/*" element={<SignUp />} />
+      <Route path="/oauth/callback" element={<OAuthCallback />} />
+      <Route path="/sign-in" element={<SignInPage />} />
       <Route path="/" element={<HomeGate />} />
       <Route path="/app/*" element={<AuthenticatedApp />} />
       <Route path="*" element={<NotFoundPage homePath="/" />} />

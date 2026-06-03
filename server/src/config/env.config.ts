@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 
 function parsePort(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -52,7 +52,10 @@ export const env = {
   port: parsePort(process.env.PORT, 5000),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   mongodbUri: process.env.MONGODB_URI ?? "",
-  clerkSecretKey: process.env.CLERK_SECRET_KEY ?? "",
+  jwtSecret: process.env.JWT_SECRET ?? "",
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  appUrl: process.env.APP_URL ?? "http://localhost:5173",
   aiServiceUrl: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
   s3Provider,
   s3Endpoint,
@@ -62,4 +65,6 @@ export const env = {
   s3SecretKey,
   s3ForcePathStyle
 };
+
+
 

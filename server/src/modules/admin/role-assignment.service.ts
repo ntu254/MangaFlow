@@ -1,10 +1,7 @@
-import { createClerkClient } from "@clerk/backend";
-import { env } from "../../config/env.config.js";
-import {
+﻿import {
   systemRoleSchema,
   userStatusSchema,
   type AuthUser,
-  type SystemRole,
   type UserRepository,
   type UserStatus
 } from "../auth/auth.service.js";
@@ -39,28 +36,6 @@ function assertActiveAdmin(actor: AuthUser) {
       "Admin role is required",
       403
     );
-  }
-}
-
-async function syncClerkMetadata(
-  clerkId: string,
-  systemRole: SystemRole | null,
-  status: UserStatus
-) {
-  if (!env.clerkSecretKey) return;
-
-  try {
-    const clerkClient = createClerkClient({
-      secretKey: env.clerkSecretKey
-    });
-    await clerkClient.users.updateUserMetadata(clerkId, {
-      publicMetadata: {
-        systemRole,
-        status
-      }
-    });
-  } catch (error) {
-    console.warn(`[Clerk Sync] Failed to sync metadata for ${clerkId}:`, error);
   }
 }
 
@@ -109,9 +84,6 @@ export function createRoleAssignmentService(userRepository: UserRepository) {
         );
       }
 
-      // Sync to Clerk publicMetadata
-      await syncClerkMetadata(updated.clerkId, parsed.data, updated.status);
-
       return updated;
     },
 
@@ -145,10 +117,8 @@ export function createRoleAssignmentService(userRepository: UserRepository) {
         );
       }
 
-      // Sync to Clerk publicMetadata
-      await syncClerkMetadata(updated.clerkId, updated.systemRole, parsed.data);
-
       return updated;
     }
   };
 }
+

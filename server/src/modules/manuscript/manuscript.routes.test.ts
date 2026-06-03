@@ -1,4 +1,4 @@
-import fs from "node:fs";
+﻿import fs from "node:fs";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
@@ -68,7 +68,7 @@ function createUserRepository(users: AuthUser[]): UserRepository {
     async findByClerkId(clerkId) {
       return byClerkId.get(clerkId) ?? null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       const existing = byClerkId.get(profile.clerkId);
       if (existing) return existing;
       const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
@@ -362,3 +362,4 @@ describe("manuscript routes", () => {
     });
   });
 });
+

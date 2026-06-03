@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { useState, useEffect, useCallback } from "react";
 import { apiBaseUrl } from "@/shared/api";
 import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
@@ -44,10 +44,7 @@ export function useAuthClaims(): UseAuthClaimsResult {
       setIsLoading(true);
       setError(null);
 
-      const token = await getToken({
-        template: "mangaflow",
-        skipCache
-      });
+      const token = await getToken();
 
       if (!token) {
         setIsLoading(false);

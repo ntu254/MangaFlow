@@ -1,17 +1,17 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "./auth.middleware.js";
 import type { UserRepository } from "./auth.service.js";
 
 function createRepository(): UserRepository {
-  const users = new Map<string, Awaited<ReturnType<UserRepository["upsertFromClerk"]>>>();
+  const users = new Map<string, Awaited<ReturnType<UserRepository["upsertFromProfile"]>>>();
 
   return {
     async findByClerkId(clerkId) {
       return users.get(clerkId) ?? null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       const now = new Date("2026-06-02T00:00:00.000Z").toISOString();
       const existing = users.get(profile.clerkId);
       const user = {
@@ -126,3 +126,4 @@ describe("auth routes", () => {
     });
   });
 });
+

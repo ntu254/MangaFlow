@@ -1,4 +1,4 @@
-import type { NextFunction, Response } from "express";
+﻿import type { NextFunction, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 import type { AuthenticatedRequest } from "./auth.middleware.js";
 import { requireSeriesRole, requireSystemRole, type RoleAuthorizedRequest } from "./rbac.middleware.js";
@@ -27,7 +27,7 @@ function createUserRepository(user: AuthUser | null): UserRepository {
     async findByClerkId(clerkId) {
       return user?.clerkId === clerkId ? user : null;
     },
-    async upsertFromClerk() {
+    async upsertFromProfile() {
       throw new Error("not needed in RBAC tests");
     },
     async updateOnboarding() {
@@ -125,7 +125,7 @@ describe("RBAC middleware", () => {
       async findByClerkId() {
         throw new Error("Database connection lost");
       },
-      async upsertFromClerk() {
+      async upsertFromProfile() {
         throw new Error("not needed");
       },
       async updateOnboarding() {
@@ -185,3 +185,4 @@ describe("RBAC middleware", () => {
     expect(deniedRes.json).toHaveBeenCalledWith(expect.objectContaining({ code: "FORBIDDEN" }));
   });
 });
+

@@ -1,5 +1,5 @@
 import { useEffect, useState, Suspense, lazy } from "react";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { resolveAuthRoute, type SystemRole, type UserStatus } from "@/features/auth/auth-flow";
 import { apiBaseUrl } from "@/shared/api";
 
@@ -43,62 +43,21 @@ export function HomeGate() {
       }
 
       try {
-        const token = await getToken({ template: "mangaflow" });
+        const token = await getToken();
         if (!token) return;
 
-        // 1. Fast path: JWT claims
+        // 1. Fast path: JWT claims (handles null role → onboarding)
         const payload = decodeJwtPayload(token);
-        const jwtRole = payload?.systemRole as SystemRole | null | undefined;
-        const jwtStatus = (payload?.status as UserStatus) ?? "ACTIVE";
-
-        if (jwtRole) {
-          if (!cancelled) {
-            setDestination(resolveAuthRoute({
-              isSignedIn: true,
-              user: { systemRole: jwtRole, status: jwtStatus }
-            }));
-          }
-          return;
-        }
-
-        // 2. Fetch from DB via /auth/me
-        const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (meResponse.ok) {
-          const meBody = await meResponse.json();
-          if (meBody.success && meBody.data?.user?.systemRole) {
-            if (!cancelled) {
-              setDestination(resolveAuthRoute({
-                isSignedIn: true,
-                user: { systemRole: meBody.data.user.systemRole, status: meBody.data.user.status ?? "ACTIVE" }
-              }));
-            }
-            return;
-          }
-        }
-
-        // 3. User not in DB yet — sync-user to create local record
-        const syncResponse = await fetch(`${apiBaseUrl}/auth/sync-user`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        });
-        const syncBody = await syncResponse.json();
-
-        if (cancelled) return;
-
-        if (syncResponse.ok && syncBody.success) {
+        if (!cancelled) {
           setDestination(resolveAuthRoute({
             isSignedIn: true,
-            user: syncBody.data.user
+            user: {
+              systemRole: (payload?.systemRole as SystemRole | null) ?? null,
+              status: (payload?.status as UserStatus) ?? "ACTIVE"
+            }
           }));
-        } else {
-          setDestination("/app/onboarding");
         }
+        return;
       } catch {
         if (!cancelled) {
           setDestination("/app/onboarding");
@@ -126,7 +85,7 @@ export function HomeGate() {
 
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <LandingPage clerkConfigured />
+      <LandingPage />
     </Suspense>
   );
 }

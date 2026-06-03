@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { UserButton, useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
+import { UserAvatar } from "@/shared/components/auth/UserAvatar";
 import {
   Search,
   Bell,
@@ -96,7 +97,7 @@ export function AppHeader({ breadcrumb, actions, searchPlaceholder = "Search ser
     if (!isSignedIn) return;
     try {
       setIsLoading(true);
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) return;
 
       const [count, list] = await Promise.all([
@@ -318,7 +319,7 @@ export function AppHeader({ breadcrumb, actions, searchPlaceholder = "Search ser
           )}
         </div>
 
-        <UserButton />
+        <UserAvatar />
       </div>
     </header>
   );

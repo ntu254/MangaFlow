@@ -1,6 +1,6 @@
-import type {
+﻿import type {
   AuthUser,
-  ClerkUserProfile,
+  UserProfile,
   SafeOnboardingInput,
   UserRepository
 } from "./auth.service.js";
@@ -28,7 +28,7 @@ export function createMongoUserRepository(): UserRepository {
       return user ? serializeUser(user) : null;
     },
 
-    async upsertFromClerk(profile: ClerkUserProfile) {
+    async upsertFromProfile(profile: UserProfile) {
       const user = await UserModel.findOneAndUpdate(
         { clerkId: profile.clerkId },
         {
@@ -116,3 +116,4 @@ export function createMongoUserRepository(): UserRepository {
     }
   };
 }
+

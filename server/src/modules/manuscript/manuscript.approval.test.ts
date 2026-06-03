@@ -1,4 +1,4 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -58,7 +58,7 @@ function createUserRepository(): UserRepository {
     async findByClerkId(clerkId) {
       return byClerkId.get(clerkId) ?? null;
     },
-    async upsertFromClerk() {
+    async upsertFromProfile() {
       throw new Error("not needed");
     },
     async updateOnboarding() {
@@ -451,3 +451,4 @@ describe("Editor Approval API Integration Tests", () => {
     });
   });
 });
+

@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { useCallback, useEffect, useState } from "react";
 import { Settings, CheckCircle2, AlertCircle, Plus, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";

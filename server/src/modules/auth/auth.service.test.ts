@@ -1,18 +1,18 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import {
   createAuthService,
-  type ClerkUserProfile,
+  type UserProfile,
   type UserRepository
 } from "./auth.service.js";
 
 function createMemoryUserRepository(): UserRepository {
-  const users = new Map<string, Awaited<ReturnType<UserRepository["upsertFromClerk"]>>>();
+  const users = new Map<string, Awaited<ReturnType<UserRepository["upsertFromProfile"]>>>();
 
   return {
     async findByClerkId(clerkId) {
       return users.get(clerkId) ?? null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       const existing = users.get(profile.clerkId);
       const now = new Date("2026-06-02T00:00:00.000Z").toISOString();
       const user = {
@@ -48,7 +48,7 @@ function createMemoryUserRepository(): UserRepository {
   };
 }
 
-const clerkProfile: ClerkUserProfile = {
+const clerkProfile: UserProfile = {
   clerkId: "clerk_pending_001",
   email: "pending@example.com",
   fullName: "Pending User",
@@ -59,8 +59,8 @@ describe("auth service", () => {
   it("syncs Clerk profile into a pending internal user idempotently", async () => {
     const service = createAuthService(createMemoryUserRepository());
 
-    const first = await service.syncUserFromClerk(clerkProfile);
-    const second = await service.syncUserFromClerk({
+    const first = await service.syncUserFromProfile(clerkProfile);
+    const second = await service.syncUserFromProfile({
       ...clerkProfile,
       fullName: "Updated User"
     });
@@ -92,7 +92,7 @@ describe("auth service", () => {
 
   it("lets onboarding request a non-privileged role without assigning systemRole", async () => {
     const service = createAuthService(createMemoryUserRepository());
-    await service.syncUserFromClerk(clerkProfile);
+    await service.syncUserFromProfile(clerkProfile);
 
     const user = await service.completeOnboarding("clerk_pending_001", {
       fullName: "Pending Mangaka",
@@ -105,7 +105,7 @@ describe("auth service", () => {
 
   it("rejects privileged role requests during onboarding", async () => {
     const service = createAuthService(createMemoryUserRepository());
-    await service.syncUserFromClerk(clerkProfile);
+    await service.syncUserFromProfile(clerkProfile);
 
     await expect(
       service.completeOnboarding("clerk_pending_001", {
@@ -116,3 +116,4 @@ describe("auth service", () => {
     });
   });
 });
+

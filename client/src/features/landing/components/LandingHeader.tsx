@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { SignInButton, SignUpButton, UserButton, Show } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-
-interface LandingHeaderProps {
-  clerkConfigured: boolean;
-}
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -14,7 +9,7 @@ const navLinks = [
   { label: "Pricing", href: "#cta" },
 ];
 
-export function LandingHeader({ clerkConfigured }: LandingHeaderProps) {
+export function LandingHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -54,23 +49,16 @@ export function LandingHeader({ clerkConfigured }: LandingHeaderProps) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          {clerkConfigured ? (
-            <Show when="signed-out">
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm">
-                  Sign in
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm" className="bg-[#9065d5] text-white hover:bg-[#7f55c7]">
-                  Get Started
-                </Button>
-              </SignUpButton>
-            </Show>
-          ) : null}
-          <Show when="signed-in">
-            <UserButton />
-          </Show>
+          <a href="/sign-in">
+            <Button variant="ghost" size="sm">
+              Sign in
+            </Button>
+          </a>
+          <a href="/sign-in">
+            <Button size="sm" className="bg-[#9065d5] text-white hover:bg-[#7f55c7]">
+              Get Started
+            </Button>
+          </a>
         </div>
 
         <button
@@ -101,20 +89,18 @@ export function LandingHeader({ clerkConfigured }: LandingHeaderProps) {
               </a>
             ))}
           </nav>
-          {clerkConfigured ? (
-            <div className="flex flex-col gap-2">
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm" className="w-full">
-                  Sign in
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm" className="w-full bg-[#9065d5] text-white hover:bg-[#7f55c7]">
-                  Get Started
-                </Button>
-              </SignUpButton>
-            </div>
-          ) : null}
+          <div className="flex flex-col gap-2">
+            <a href="/sign-in">
+              <Button variant="ghost" size="sm" className="w-full">
+                Sign in
+              </Button>
+            </a>
+            <a href="/sign-in">
+              <Button size="sm" className="w-full bg-[#9065d5] text-white hover:bg-[#7f55c7]">
+                Get Started
+              </Button>
+            </a>
+          </div>
         </motion.div>
       )}
     </motion.header>

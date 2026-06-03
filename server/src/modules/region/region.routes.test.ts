@@ -1,4 +1,4 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -58,7 +58,7 @@ function createUserRepository(users: AuthUser[]): UserRepository {
     async findByClerkId(clerkId) {
       return byClerkId.get(clerkId) ?? null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       const existing = byClerkId.get(profile.clerkId);
       if (existing) return existing;
       const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
@@ -348,3 +348,4 @@ describe("region routes", () => {
     expect(response.body.code).toBe("FORBIDDEN");
   });
 });
+

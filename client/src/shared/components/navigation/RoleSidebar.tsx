@@ -1,6 +1,6 @@
-import { NavLink } from "react-router-dom";
+﻿import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useClerk, useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { apiBaseUrl } from "@/shared/api";
 import {
@@ -49,8 +49,7 @@ type RoleSidebarProps = {
 };
 
 export function RoleSidebar({ role, items: initialItems, workspaceLabel, dark }: RoleSidebarProps) {
-  const { signOut } = useClerk();
-  const { getToken } = useAuth();
+  const { signOut, getToken } = useAuth();
   const [items, setItems] = useState<SidebarItem[]>(initialItems);
 
   // Sync state if initialItems change
@@ -65,7 +64,7 @@ export function RoleSidebar({ role, items: initialItems, workspaceLabel, dark }:
     let active = true;
     async function checkBoardChair() {
       try {
-        const token = await getToken({ template: "mangaflow" });
+        const token = await getToken();
         if (!token) return;
 
         // Fetch current user details
@@ -152,7 +151,7 @@ export function RoleSidebar({ role, items: initialItems, workspaceLabel, dark }:
       {/* Bottom Area (Logout only) */}
       <div className={cn("p-3 border-t mt-auto", dark ? "border-slate-800/80" : "border-mf-border")}>
         <button
-          onClick={() => void signOut()}
+          onClick={signOut}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left",
             dark
@@ -225,3 +224,4 @@ export const sidebarConfig: Record<string, SidebarItem[]> = {
     { label: "Payroll", href: "/app/board/payroll", icon: Wallet },
   ],
 };
+

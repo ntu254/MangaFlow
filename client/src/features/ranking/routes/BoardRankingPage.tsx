@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { fetchSeriesList, type Series } from "@/features/series/api/series";
 import { fetchRankings, markRankingWarning, markRankingAtRisk, type Ranking } from "../api/ranking";
 import { Button } from "@/components/ui/button";

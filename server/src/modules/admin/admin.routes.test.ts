@@ -1,4 +1,4 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -35,7 +35,7 @@ function createRepository(seed: AuthUser[]): UserRepository {
       const id = byClerkId.get(clerkId);
       return id ? users.get(id) ?? null : null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       const existingId = byClerkId.get(profile.clerkId);
       if (existingId) {
         return users.get(existingId)!;
@@ -187,4 +187,5 @@ describe("admin role assignment routes", () => {
     expect(response.body.code).toBe("INVALID_ROLE");
   });
 });
+
 

@@ -1,4 +1,4 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -88,7 +88,7 @@ function createUserRepository(): UserRepository {
     async findById(id) {
       return byId.get(id) ?? null;
     },
-    async upsertFromClerk() { throw new Error("Not implemented"); },
+    async upsertFromProfile() { throw new Error("Not implemented"); },
     async updateOnboarding() { throw new Error("Not implemented"); },
     async listUsersForRoleReview() { return []; },
     async assignSystemRole() { throw new Error("Not implemented"); },
@@ -380,3 +380,4 @@ describe("board routes integration tests", () => {
     expect(resMember.status).toBe(403);
   });
 });
+

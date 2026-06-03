@@ -1,4 +1,4 @@
-import fs from "node:fs";
+﻿import fs from "node:fs";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
@@ -67,7 +67,7 @@ function createUserRepository(users: AuthUser[] = [createUser(userId, "clerk_man
     async findByClerkId(clerkId) {
       return byClerkId.get(clerkId) ?? null;
     },
-    async upsertFromClerk(profile) {
+    async upsertFromProfile(profile) {
       const existing = byClerkId.get(profile.clerkId);
       if (existing) return existing;
       const created = createUser(`user_${profile.clerkId}`, profile.clerkId, "MANGAKA");
@@ -381,3 +381,4 @@ describe("page upload routes", () => {
     expect(deleteResponse.status).toBe(403);
   });
 });
+

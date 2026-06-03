@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/shared/hooks/useAuth";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ export function OnboardingPage() {
     setError(null);
 
     try {
-      const token = await getToken({ template: "mangaflow" });
+      const token = await getToken();
       if (!token) {
         setError("Not authenticated");
         setIsSubmitting(false);

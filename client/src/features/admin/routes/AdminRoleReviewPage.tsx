@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { UserButton } from "@clerk/react";
+import { UserAvatar } from "@/shared/components/auth/UserAvatar";
 import { Ban, RefreshCw, RotateCcw, UserCheck, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,7 +137,7 @@ export function AdminRoleReviewPage({ getToken }: AdminRoleReviewPageProps) {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <UserButton />
+            <UserAvatar />
             <Button variant="outline" onClick={fetchPendingUsers} className="border-[#eadff6] text-[#5f5270] hover:bg-[#f8f1ff]">
               <RefreshCw className="mr-2 h-4 w-4" /> Refresh
             </Button>
