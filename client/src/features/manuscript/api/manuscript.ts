@@ -9,7 +9,7 @@ export type Manuscript = {
   fileUrls: string[];
   previewUrls?: string[];
   currentVersion: number;
-  status: "DRAFT" | "SUBMITTED" | "EDITOR_REVIEW" | "REVISION_REQUESTED" | "APPROVED" | "REJECTED";
+  status: "DRAFT" | "SUBMITTED" | "EDITOR_REVIEW" | "REVISION_REQUESTED" | "BOARD_REVIEW" | "APPROVED" | "REJECTED";
   createdAt: string;
   updatedAt: string;
 };

@@ -31,8 +31,7 @@ import { createSubmissionRouter } from "../modules/submission/submission.routes.
 import { createMongoCommentRepository, type CommentRepository } from "../modules/comment/comment.repository.js";
 import { createCommentRouter } from "../modules/comment/comment.routes.js";
 import { createCommentService } from "../modules/comment/comment.service.js";
-
-
+import { createMongoBoardRepository, createBoardService, createBoardRouter, type BoardRepository } from "../modules/board/index.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -47,6 +46,7 @@ export type ApiRouterDependencies = {
   taskRepository?: TaskRepository;
   submissionRepository?: SubmissionRepository;
   commentRepository?: CommentRepository;
+  boardRepository?: BoardRepository;
 };
 
 export const apiRouter = Router();
@@ -59,6 +59,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const commentRepo = dependencies.commentRepository ?? createMongoCommentRepository();
   const commentService = createCommentService(commentRepo);
   const pageRepo = dependencies.pageRepository ?? createMongoPageRepository();
+  const boardRepo = dependencies.boardRepository ?? createMongoBoardRepository();
+  const boardService = createBoardService(boardRepo, dependencies.userRepository ?? createMongoUserRepository());
 
   router.use("/health", healthRouter);
   router.use(
@@ -81,6 +83,24 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository()
+    })
+  );
+
+  router.use(
+    "/board",
+    createBoardRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      boardService
+    })
+  );
+
+  router.use(
+    "/series",
+    createBoardRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      boardService
     })
   );
   

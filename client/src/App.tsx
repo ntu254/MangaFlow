@@ -28,6 +28,8 @@ import { PageWorkspacePage } from "@/features/page/routes/PageWorkspacePage";
 import { AssistantDashboardPage } from "@/features/task/routes/AssistantDashboardPage";
 import { AssistantTaskDetailPage } from "@/features/task/routes/AssistantTaskDetailPage";
 import { EditorDashboardPage } from "@/features/dashboard/routes/EditorDashboardPage";
+import { BoardDashboardPage } from "@/features/board/routes/BoardDashboardPage";
+import { BoardSeriesReviewPage } from "@/features/board/routes/BoardSeriesReviewPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -272,6 +274,28 @@ function AuthenticatedApp() {
               <Route path="/app/assistant/dashboard" element={<AssistantDashboardPage />} />
               <Route path="/app/assistant/tasks" element={<AssistantDashboardPage />} />
               <Route path="/app/assistant/tasks/:taskId" element={<AssistantTaskDetailPage />} />
+            </Routes>
+          </main>
+        </div>
+      </RoleGuard>
+    );
+  }
+
+  if (path.startsWith("/app/board")) {
+    return (
+      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN]}>
+        <div className="min-h-screen flex flex-col bg-slate-950">
+          <header className="border-b bg-slate-900 border-slate-800/80 h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+            <div className="flex-1 flex items-center gap-4">
+              <strong className="text-lg tracking-tight text-white">MangaFlow</strong>
+              <span className="text-slate-400 text-sm">Board Workspace</span>
+            </div>
+            <UserButton />
+          </header>
+          <main className="flex-1 bg-slate-950">
+            <Routes>
+              <Route path="/app/board/dashboard" element={<BoardDashboardPage />} />
+              <Route path="/app/board/series/:seriesId/review" element={<BoardSeriesReviewPage />} />
             </Routes>
           </main>
         </div>
