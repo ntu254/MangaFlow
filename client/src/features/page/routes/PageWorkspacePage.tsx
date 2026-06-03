@@ -14,7 +14,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPage, type Page } from "@/features/page/api/page";
+import { CommentPanel } from "@/features/comment/components/CommentPanel";
 import {
   createAnnotation,
   deleteAnnotation,
@@ -181,6 +183,7 @@ export function PageWorkspacePage() {
   const [assigningTask, setAssigningTask] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; systemRole: string } | null>(null);
 
   const loadWorkspace = useCallback(async () => {
     if (!pageId) return;
@@ -190,12 +193,21 @@ export function PageWorkspacePage() {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
-      const [page, regions, annotations, allTasks] = await Promise.all([
+      const [page, regions, annotations, allTasks, userResponse] = await Promise.all([
         getPage(token, pageId),
         listRegions(token, pageId),
         listAnnotations(token, pageId),
-        listTasks(token)
+        listTasks(token),
+        fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api"}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }).then(res => res.json().catch(() => ({ success: false })))
       ]);
+
+      if (userResponse && userResponse.success && userResponse.data) {
+        setCurrentUser(userResponse.data.user);
+      }
 
       setState({ status: "ready", page, regions, annotations, tasks: allTasks.filter((task) => task.pageId === pageId) });
       setSelectedRegionId(regions[0]?.id ?? null);
@@ -528,424 +540,473 @@ export function PageWorkspacePage() {
         </section>
 
         <aside className="grid content-start gap-4">
-          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-[#f8f1ff] p-2 text-[#9065d5]">
-                {toolMode === "REGION" ? <Crosshair className="size-5" /> : <MessageSquare className="size-5" />}
-              </div>
-              <div>
-                <h2 className="text-base font-semibold tracking-tight">Workspace tool</h2>
-                <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                  Drag across the page to create a region or review annotation.
-                </p>
-              </div>
-            </div>
+          <Tabs defaultValue="workspace" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="workspace">Workspace</TabsTrigger>
+              <TabsTrigger value="comments">Comments</TabsTrigger>
+            </TabsList>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={toolMode === "REGION" ? "default" : "outline"}
-                onClick={() => {
-                  setToolMode("REGION");
-                  setDraftBox(null);
-                }}
-              >
-                <Crosshair /> Region
-              </Button>
-              <Button
-                type="button"
-                variant={toolMode === "ANNOTATION" ? "default" : "outline"}
-                onClick={() => {
-                  setToolMode("ANNOTATION");
-                  setDraftBox(null);
-                }}
-              >
-                <MessageSquare /> Annotation
-              </Button>
-            </div>
-
-            {toolMode === "REGION" ? (
-            <div className="mt-4 grid gap-2">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">Type</span>
-              <div className="grid grid-cols-2 gap-2">
-                {regionTypes.map((type) => (
-                  <Button
-                    key={type}
-                    type="button"
-                    size="sm"
-                    variant={selectedType === type ? "default" : "outline"}
-                    onClick={() => setSelectedType(type)}
-                    className="justify-start"
-                  >
-                    <span
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: regionColorByType[type] }}
-                      aria-hidden="true"
-                    />
-                    {type}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            ) : (
-              <div className="mt-4 grid gap-2">
-                <span className="text-xs font-semibold uppercase text-muted-foreground">Review comment</span>
-                <textarea
-                  value={annotationComment}
-                  onChange={(event) => setAnnotationComment(event.target.value)}
-                  className="min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  placeholder="Dialogue bubble needs revision"
-                  maxLength={1000}
-                />
-                <p className="text-xs text-muted-foreground">
-                  New annotations can optionally link to the selected Region.
-                </p>
-              </div>
-            )}
-
-            <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-              {draftBox ? (
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
-                  <dt>x</dt>
-                  <dd className="text-right text-foreground">{draftBox.x}</dd>
-                  <dt>y</dt>
-                  <dd className="text-right text-foreground">{draftBox.y}</dd>
-                  <dt>width</dt>
-                  <dd className="text-right text-foreground">{draftBox.width}</dd>
-                  <dt>height</dt>
-                  <dd className="text-right text-foreground">{draftBox.height}</dd>
-                </dl>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <MousePointer2 className="size-4" />
-                  No draft region selected
+            <TabsContent value="workspace" className="space-y-4 outline-none">
+              <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-[#f8f1ff] p-2 text-[#9065d5]">
+                    {toolMode === "REGION" ? <Crosshair className="size-5" /> : <MessageSquare className="size-5" />}
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold tracking-tight">Workspace tool</h2>
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                      Drag across the page to create a region or review annotation.
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {actionError ? (
-              <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
-                {actionError}
-              </div>
-            ) : null}
-
-            <div className="mt-4 flex gap-2">
-              <Button onClick={() => void handleSaveDraft()} disabled={!draftBox || saving}>
-                {saving ? <Loader2 className="animate-spin" /> : <Save />}
-                Save {toolMode === "REGION" ? "region" : "annotation"}
-              </Button>
-              <Button variant="outline" onClick={() => setDraftBox(null)} disabled={!draftBox || saving}>
-                Clear
-              </Button>
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold tracking-tight">Regions</h2>
-              <Badge variant="secondary">{regions.length}</Badge>
-            </div>
-
-            {regions.length === 0 ? (
-              <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                No regions yet. Drag on the page to create the first one.
-              </p>
-            ) : (
-              <div className="grid gap-2">
-                {regions.map((region) => {
-                  const isSelected = selectedRegion?.id === region.id;
-                  return (
-                    <div
-                      key={region.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        isSelected ? "border-[#9065d5] bg-[#f8f1ff]" : "bg-white"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between text-left"
-                        onClick={() => setSelectedRegionId(region.id)}
-                      >
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ backgroundColor: regionColorByType[region.type] }}
-                            aria-hidden="true"
-                          />
-                          {region.type}
-                        </span>
-                        <Badge variant={region.source === "AI" ? "default" : "outline"}>{region.source}</Badge>
-                      </button>
-                      <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted-foreground">
-                        <span>x {region.x}</span>
-                        <span>y {region.y}</span>
-                        <span>w {region.width}</span>
-                        <span>h {region.height}</span>
-                      </div>
-                      <Button
-                        className="mt-3 w-full"
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => void handleDeleteRegion(region.id)}
-                      >
-                        <Trash /> Delete
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold tracking-tight">Tasks</h2>
-              <Badge variant="secondary">{tasks.length}</Badge>
-            </div>
-
-            <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <BriefcaseBusiness className="size-4" />
-                {selectedRegion ? `Assign selected ${selectedRegion.type} region` : "Select a region before assigning work"}
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                Assistant user id
-                <input
-                  value={taskAssigneeId}
-                  onChange={(event) => setTaskAssigneeId(event.target.value)}
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  placeholder="507f1f77bcf86cd799439296"
-                />
-              </label>
-
-              <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                Title
-                <input
-                  value={taskTitle}
-                  onChange={(event) => setTaskTitle(event.target.value)}
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  placeholder="Ink selected panel"
-                  maxLength={160}
-                />
-              </label>
-
-              <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                Description
-                <textarea
-                  value={taskDescription}
-                  onChange={(event) => setTaskDescription(event.target.value)}
-                  className="min-h-20 rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  placeholder="Clean edges and prepare final ink layer"
-                  maxLength={1000}
-                />
-              </label>
-
-              <div className="grid grid-cols-2 gap-2">
-                <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                  Type
-                  <select
-                    value={taskType}
-                    onChange={(event) => setTaskType(event.target.value as TaskType)}
-                    className="rounded-lg border border-input bg-background px-2 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={toolMode === "REGION" ? "default" : "outline"}
+                    onClick={() => {
+                      setToolMode("REGION");
+                      setDraftBox(null);
+                    }}
                   >
-                    {taskTypes.map((type) => (
-                      <option key={type} value={type}>
+                    <Crosshair /> Region
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={toolMode === "ANNOTATION" ? "default" : "outline"}
+                    onClick={() => {
+                      setToolMode("ANNOTATION");
+                      setDraftBox(null);
+                    }}
+                  >
+                    <MessageSquare /> Annotation
+                  </Button>
+                </div>
+
+                {toolMode === "REGION" ? (
+                <div className="mt-4 grid gap-2">
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">Type</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {regionTypes.map((type) => (
+                      <Button
+                        key={type}
+                        type="button"
+                        size="sm"
+                        variant={selectedType === type ? "default" : "outline"}
+                        onClick={() => setSelectedType(type)}
+                        className="justify-start"
+                      >
+                        <span
+                          className="size-2 rounded-full"
+                          style={{ backgroundColor: regionColorByType[type] }}
+                          aria-hidden="true"
+                        />
                         {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                  Priority
-                  <select
-                    value={taskPriority}
-                    onChange={(event) => setTaskPriority(event.target.value as TaskPriority)}
-                    className="rounded-lg border border-input bg-background px-2 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    {taskPriorities.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                Due date
-                <input
-                  type="date"
-                  value={taskDueDate}
-                  onChange={(event) => setTaskDueDate(event.target.value)}
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                />
-              </label>
-
-              <div className="grid grid-cols-2 gap-2">
-                <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                  Base rate
-                  <input
-                    type="number"
-                    min="0"
-                    value={taskBaseRate}
-                    onChange={(event) => setTaskBaseRate(event.target.value)}
-                    className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
-                  Bonus
-                  <input
-                    type="number"
-                    min="0"
-                    value={taskBonusAmount}
-                    onChange={(event) => setTaskBonusAmount(event.target.value)}
-                    className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  />
-                </label>
-              </div>
-
-              <Button
-                onClick={() => void handleCreateRegionTask()}
-                disabled={
-                  !selectedRegion ||
-                  assigningTask ||
-                  !taskAssigneeId.trim() ||
-                  !taskTitle.trim() ||
-                  !taskDescription.trim()
-                }
-              >
-                {assigningTask ? <Loader2 className="animate-spin" /> : <Save />}
-                Assign task
-              </Button>
-            </div>
-
-            <div className="mt-4 grid gap-2">
-              {tasks.length === 0 ? (
-                <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                  No tasks created for this page yet.
-                </p>
-              ) : (
-                tasks.map((task) => {
-                  const isSelectedRegionTask = selectedRegionTasks.some((item) => item.id === task.id);
-                  return (
-                    <div
-                      key={task.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        isSelectedRegionTask ? "border-[#9065d5] bg-[#f8f1ff]" : "bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-sm font-medium text-[#2f243a]">{task.title}</h3>
-                          <p className="mt-1 text-xs text-muted-foreground">{task.assignedTo}</p>
-                        </div>
-                        <Badge variant={task.status === "TODO" ? "outline" : "secondary"}>{task.status}</Badge>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{task.description}</p>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>{task.type}</span>
-                        <span>{task.priority}</span>
-                        {task.dueDate ? <span>Due {new Date(task.dueDate).toLocaleDateString()}</span> : null}
-                        {task.regionId ? <span>Region {task.regionId}</span> : null}
-                      </div>
-                      <Button
-                        className="mt-3 w-full"
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => void handleDeleteTask(task.id)}
-                        disabled={deletingTaskId === task.id}
-                      >
-                        {deletingTaskId === task.id ? <Loader2 className="animate-spin" /> : <Trash />}
-                        Delete
                       </Button>
+                    ))}
+                  </div>
+                </div>
+                ) : (
+                  <div className="mt-4 grid gap-2">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">Review comment</span>
+                    <textarea
+                      value={annotationComment}
+                      onChange={(event) => setAnnotationComment(event.target.value)}
+                      className="min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      placeholder="Dialogue bubble needs revision"
+                      maxLength={1000}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      New annotations can optionally link to the selected Region.
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  {draftBox ? (
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <dt>x</dt>
+                      <dd className="text-right text-foreground">{draftBox.x}</dd>
+                      <dt>y</dt>
+                      <dd className="text-right text-foreground">{draftBox.y}</dd>
+                      <dt>width</dt>
+                      <dd className="text-right text-foreground">{draftBox.width}</dd>
+                      <dt>height</dt>
+                      <dd className="text-right text-foreground">{draftBox.height}</dd>
+                    </dl>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <MousePointer2 className="size-4" />
+                      No draft region selected
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
+                  )}
+                </div>
 
-          <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold tracking-tight">Annotations</h2>
-              <Badge variant="secondary">{annotations.length}</Badge>
-            </div>
+                {actionError ? (
+                  <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                    {actionError}
+                  </div>
+                ) : null}
 
-            {annotations.length === 0 ? (
-              <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                No annotations yet. Switch to Annotation mode and drag on the page.
-              </p>
-            ) : (
-              <div className="grid gap-2">
-                {annotations.map((annotation) => {
-                  const isSelected = selectedAnnotation?.id === annotation.id;
-                  return (
-                    <div
-                      key={annotation.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        isSelected ? "border-[#ff7196] bg-[#fff3f8]" : "bg-white"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between text-left"
-                        onClick={() => setSelectedAnnotationId(annotation.id)}
+                <div className="mt-4 flex gap-2">
+                  <Button onClick={() => void handleSaveDraft()} disabled={!draftBox || saving}>
+                    {saving ? <Loader2 className="animate-spin" /> : <Save />}
+                    Save {toolMode === "REGION" ? "region" : "annotation"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setDraftBox(null)} disabled={!draftBox || saving}>
+                    Clear
+                  </Button>
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-base font-semibold tracking-tight">Regions</h2>
+                  <Badge variant="secondary">{regions.length}</Badge>
+                </div>
+
+                {regions.length === 0 ? (
+                  <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                    No regions yet. Drag on the page to create the first one.
+                  </p>
+                ) : (
+                  <div className="grid gap-2">
+                    {regions.map((region) => {
+                      const isSelected = selectedRegion?.id === region.id;
+                      return (
+                        <div
+                          key={region.id}
+                          className={`rounded-md border p-3 transition-colors ${
+                            isSelected ? "border-[#9065d5] bg-[#f8f1ff]" : "bg-white"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            className="flex w-full items-center justify-between text-left"
+                            onClick={() => setSelectedRegionId(region.id)}
+                          >
+                            <span className="flex items-center gap-2 text-sm font-medium">
+                              <span
+                                className="size-2 rounded-full"
+                                style={{ backgroundColor: regionColorByType[region.type] }}
+                                aria-hidden="true"
+                              />
+                              {region.type}
+                            </span>
+                            <Badge variant={region.source === "AI" ? "default" : "outline"}>{region.source}</Badge>
+                          </button>
+                          <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted-foreground">
+                            <span>x {region.x}</span>
+                            <span>y {region.y}</span>
+                            <span>w {region.width}</span>
+                            <span>h {region.height}</span>
+                          </div>
+                          <Button
+                            className="mt-3 w-full"
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => void handleDeleteRegion(region.id)}
+                          >
+                            <Trash /> Delete
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-base font-semibold tracking-tight">Tasks</h2>
+                  <Badge variant="secondary">{tasks.length}</Badge>
+                </div>
+
+                <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <BriefcaseBusiness className="size-4" />
+                    {selectedRegion ? `Assign selected ${selectedRegion.type} region` : "Select a region before assigning work"}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Assistant user id
+                    <input
+                      value={taskAssigneeId}
+                      onChange={(event) => setTaskAssigneeId(event.target.value)}
+                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      placeholder="507f1f77bcf86cd799439296"
+                    />
+                  </label>
+
+                  <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Title
+                    <input
+                      value={taskTitle}
+                      onChange={(event) => setTaskTitle(event.target.value)}
+                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      placeholder="Ink selected panel"
+                      maxLength={160}
+                    />
+                  </label>
+
+                  <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Description
+                    <textarea
+                      value={taskDescription}
+                      onChange={(event) => setTaskDescription(event.target.value)}
+                      className="min-h-20 rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      placeholder="Clean edges and prepare final ink layer"
+                      maxLength={1000}
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Type
+                      <select
+                        value={taskType}
+                        onChange={(event) => setTaskType(event.target.value as TaskType)}
+                        className="rounded-lg border border-input bg-background px-2 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                       >
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ backgroundColor: annotation.status === "RESOLVED" ? "#8a7a99" : "#ff7196" }}
-                            aria-hidden="true"
-                          />
-                          Annotation
-                        </span>
-                        <Badge variant={annotation.status === "RESOLVED" ? "secondary" : "outline"}>
-                          {annotation.status}
-                        </Badge>
-                      </button>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {annotation.comment || "No comment"}
+                        {taskTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Priority
+                      <select
+                        value={taskPriority}
+                        onChange={(event) => setTaskPriority(event.target.value as TaskPriority)}
+                        className="rounded-lg border border-input bg-background px-2 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        {taskPriorities.map((priority) => (
+                          <option key={priority} value={priority}>
+                            {priority}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Due date
+                    <input
+                      type="date"
+                      value={taskDueDate}
+                      onChange={(event) => setTaskDueDate(event.target.value)}
+                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Base rate
+                      <input
+                        type="number"
+                        min="0"
+                        value={taskBaseRate}
+                        onChange={(event) => setTaskBaseRate(event.target.value)}
+                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Bonus
+                      <input
+                        type="number"
+                        min="0"
+                        value={taskBonusAmount}
+                        onChange={(event) => setTaskBonusAmount(event.target.value)}
+                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      />
+                    </label>
+                  </div>
+
+                  <Button
+                    onClick={() => void handleCreateRegionTask()}
+                    disabled={
+                      !selectedRegion ||
+                      assigningTask ||
+                      !taskAssigneeId.trim() ||
+                      !taskTitle.trim() ||
+                      !taskDescription.trim()
+                    }
+                  >
+                    {assigningTask ? <Loader2 className="animate-spin" /> : <Save />}
+                    Assign task
+                  </Button>
+                </div>
+
+                <div className="mt-4 grid gap-2">
+                  {tasks.length === 0 ? (
+                    <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                      No tasks created for this page yet.
+                    </p>
+                  ) : (
+                    tasks.map((task) => {
+                      const isSelectedRegionTask = selectedRegionTasks.some((item) => item.id === task.id);
+                      return (
+                        <div
+                          key={task.id}
+                          className={`rounded-md border p-3 transition-colors ${
+                            isSelectedRegionTask ? "border-[#9065d5] bg-[#f8f1ff]" : "bg-white"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="text-sm font-medium text-[#2f243a]">{task.title}</h3>
+                              <p className="mt-1 text-xs text-muted-foreground">{task.assignedTo}</p>
+                            </div>
+                            <Badge variant={task.status === "TODO" ? "outline" : "secondary"}>{task.status}</Badge>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">{task.description}</p>
+                          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                            <span>{task.type}</span>
+                            <span>{task.priority}</span>
+                            {task.dueDate ? <span>Due {new Date(task.dueDate).toLocaleDateString()}</span> : null}
+                            {task.regionId ? <span>Region {task.regionId}</span> : null}
+                          </div>
+                          <Button
+                            className="mt-3 w-full"
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => void handleDeleteTask(task.id)}
+                            disabled={deletingTaskId === task.id}
+                          >
+                            {deletingTaskId === task.id ? <Loader2 className="animate-spin" /> : <Trash />}
+                            Delete
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-base font-semibold tracking-tight">Annotations</h2>
+                  <Badge variant="secondary">{annotations.length}</Badge>
+                </div>
+
+                {annotations.length === 0 ? (
+                  <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                    No annotations yet. Switch to Annotation mode and drag on the page.
+                  </p>
+                ) : (
+                  <div className="grid gap-2">
+                    {annotations.map((annotation) => {
+                      const isSelected = selectedAnnotation?.id === annotation.id;
+                      return (
+                        <div
+                          key={annotation.id}
+                          className={`rounded-md border p-3 transition-colors ${
+                            isSelected ? "border-[#ff7196] bg-[#fff3f8]" : "bg-white"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            className="flex w-full items-center justify-between text-left"
+                            onClick={() => setSelectedAnnotationId(annotation.id)}
+                          >
+                            <span className="flex items-center gap-2 text-sm font-medium">
+                              <span
+                                className="size-2 rounded-full"
+                                style={{ backgroundColor: annotation.status === "RESOLVED" ? "#8a7a99" : "#ff7196" }}
+                                aria-hidden="true"
+                              />
+                              Annotation
+                            </span>
+                            <Badge variant={annotation.status === "RESOLVED" ? "secondary" : "outline"}>
+                              {annotation.status}
+                            </Badge>
+                          </button>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {annotation.comment || "No comment"}
+                          </p>
+                          {annotation.regionId ? (
+                            <p className="mt-1 text-[11px] text-muted-foreground">Linked region: {annotation.regionId}</p>
+                          ) : null}
+                          <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted-foreground">
+                            <span>x {annotation.x}</span>
+                            <span>y {annotation.y}</span>
+                            <span>w {annotation.width}</span>
+                            <span>h {annotation.height}</span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                void handleUpdateAnnotationStatus(
+                                  annotation.id,
+                                  annotation.status === "RESOLVED" ? "OPEN" : "RESOLVED"
+                                )
+                              }
+                            >
+                              {annotation.status === "RESOLVED" ? "Reopen" : "Resolve"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => void handleDeleteAnnotation(annotation.id)}
+                            >
+                              <Trash /> Delete
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </TabsContent>
+
+            <TabsContent value="comments" className="outline-none">
+              <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+                <Tabs defaultValue="page" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4 bg-[#f1ebf8]">
+                    <TabsTrigger value="page">Page</TabsTrigger>
+                    <TabsTrigger value="annotation" disabled={!selectedAnnotationId}>
+                      Annotation
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="page" className="outline-none">
+                    {pageId && (
+                      <CommentPanel
+                        targetType="PAGE"
+                        targetId={pageId}
+                        pageId={pageId}
+                        currentUser={currentUser}
+                      />
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="annotation" className="outline-none">
+                    {pageId && selectedAnnotationId ? (
+                      <CommentPanel
+                        targetType="PAGE"
+                        targetId={pageId}
+                        pageId={pageId}
+                        annotationId={selectedAnnotationId}
+                        currentUser={currentUser}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Select an annotation on the page to view/post comments.
                       </p>
-                      {annotation.regionId ? (
-                        <p className="mt-1 text-[11px] text-muted-foreground">Linked region: {annotation.regionId}</p>
-                      ) : null}
-                      <div className="mt-2 grid grid-cols-4 gap-1 text-[11px] text-muted-foreground">
-                        <span>x {annotation.x}</span>
-                        <span>y {annotation.y}</span>
-                        <span>w {annotation.width}</span>
-                        <span>h {annotation.height}</span>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            void handleUpdateAnnotationStatus(
-                              annotation.id,
-                              annotation.status === "RESOLVED" ? "OPEN" : "RESOLVED"
-                            )
-                          }
-                        >
-                          {annotation.status === "RESOLVED" ? "Reopen" : "Resolve"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => void handleDeleteAnnotation(annotation.id)}
-                        >
-                          <Trash /> Delete
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </section>
+            </TabsContent>
+          </Tabs>
         </aside>
       </div>
     </div>
