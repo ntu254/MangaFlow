@@ -26,6 +26,8 @@ import { createMongoAnnotationRepository, type AnnotationRepository } from "../m
 import { createAnnotationRouter } from "../modules/annotation/annotation.routes.js";
 import { createMongoTaskRepository, type TaskRepository } from "../modules/task/task.repository.js";
 import { createTaskRouter } from "../modules/task/task.routes.js";
+import { createMongoSubmissionRepository, type SubmissionRepository } from "../modules/submission/submission.repository.js";
+import { createSubmissionRouter } from "../modules/submission/submission.routes.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -38,6 +40,7 @@ export type ApiRouterDependencies = {
   regionRepository?: RegionRepository;
   annotationRepository?: AnnotationRepository;
   taskRepository?: TaskRepository;
+  submissionRepository?: SubmissionRepository;
 };
 
 export const apiRouter = Router();
@@ -111,6 +114,16 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
       pageRepository: dependencies.pageRepository ?? createMongoPageRepository(),
       fileRepository: dependencies.fileRepository
+    })
+  );
+
+  router.use(
+    createSubmissionRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      taskRepository: dependencies.taskRepository ?? createMongoTaskRepository(),
+      submissionRepository: dependencies.submissionRepository ?? createMongoSubmissionRepository()
     })
   );
 

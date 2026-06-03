@@ -66,6 +66,15 @@ export async function listTasks(token: string): Promise<Task[]> {
   return parseApiResponse<Task[]>(response, "Failed to list tasks");
 }
 
+export async function getTask(token: string, taskId: string): Promise<Task> {
+  const response = await fetch(`${apiBaseUrl}/tasks/${taskId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return parseApiResponse<Task>(response, "Failed to fetch task");
+}
+
 export async function createTaskFromRegion(
   token: string,
   regionId: string,

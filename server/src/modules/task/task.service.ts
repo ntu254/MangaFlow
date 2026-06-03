@@ -51,6 +51,7 @@ export type UpdateTaskInput = {
   bonusAmount?: number;
   dueDate?: string | null;
   status?: TaskStatus;
+  submittedAt?: string;
 };
 
 export class TaskServiceError extends Error {
@@ -167,6 +168,7 @@ export function createTaskService(repository: TaskRepository) {
       if (input.baseRate !== undefined) update.baseRate = normalizeMoney(input.baseRate, "Base rate");
       if (input.bonusAmount !== undefined) update.bonusAmount = normalizeMoney(input.bonusAmount, "Bonus amount");
       if (input.dueDate !== undefined) update.dueDate = normalizeDueDate(input.dueDate);
+      if (input.submittedAt !== undefined) update.submittedAt = normalizeDueDate(input.submittedAt) ?? undefined;
 
       const updated = await repository.updateTask(taskId, update);
       if (!updated) {

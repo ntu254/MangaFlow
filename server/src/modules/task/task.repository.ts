@@ -91,6 +91,7 @@ export function createMongoTaskRepository() {
       if (data.baseRate !== undefined) updateData.baseRate = data.baseRate;
       if (data.bonusAmount !== undefined) updateData.bonusAmount = data.bonusAmount;
       if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+      if (data.submittedAt !== undefined) updateData.submittedAt = data.submittedAt;
 
       const task = await TaskModel.findByIdAndUpdate(taskId, { $set: updateData }, { new: true });
       return task ? serializeTask(task) : null;
