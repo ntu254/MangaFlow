@@ -22,6 +22,8 @@ records instead of extending a monolithic spec.
 - `ui-direction.md` - current UI direction, design tokens, layout rules, and
   responsive expectations.
 - `mvp-roadmap.md` - MVP epics and Harness-aligned delivery phases.
+- `../09_mobile_app_spec.md` - accepted mobile companion app scope for Tantou
+  Editor and Editorial Board.
 
 ## Update Rule
 
