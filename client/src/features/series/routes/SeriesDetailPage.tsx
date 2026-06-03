@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadManuscriptDialog } from "@/features/manuscript/components/UploadManuscriptDialog";
 import { CreateChapterDialog } from "@/features/chapter/components/CreateChapterDialog";
+import { fetchSeriesRankings, type Ranking } from "@/features/ranking/api/ranking";
+import { AlertTriangle, ShieldAlert } from "lucide-react";
 
 export function SeriesDetailPage() {
   const { seriesId } = useParams<{ seriesId: string }>();
@@ -16,8 +18,21 @@ export function SeriesDetailPage() {
   const [series, setSeries] = useState<Series | null>(null);
   const [manuscripts, setManuscripts] = useState<Manuscript[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [rankings, setRankings] = useState<Ranking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const loadRankings = useCallback(async () => {
+    if (!seriesId) return;
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const data = await fetchSeriesRankings(token, seriesId);
+      setRankings(data);
+    } catch (err: any) {
+      console.error("Failed to load rankings", err);
+    }
+  }, [seriesId, getToken]);
 
   const loadManuscripts = useCallback(async () => {
     if (!seriesId) return;
@@ -53,6 +68,7 @@ export function SeriesDetailPage() {
       setSeries(data);
       await loadManuscripts();
       await loadChapters();
+      await loadRankings();
     } catch (err: any) {
       setError(err.message || "Failed to load series details");
     } finally {
@@ -142,6 +158,7 @@ export function SeriesDetailPage() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="manuscripts">Manuscripts</TabsTrigger>
               <TabsTrigger value="chapters">Chapters</TabsTrigger>
+              <TabsTrigger value="rankings">Rankings</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="border rounded-xl p-6 bg-card">
               <h3 className="text-lg font-semibold mb-2">Overview</h3>
@@ -202,6 +219,92 @@ export function SeriesDetailPage() {
               ) : (
                 <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
                   <p>No chapters created yet.</p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="rankings" className="border rounded-xl p-6 bg-card space-y-6">
+              <h3 className="text-lg font-semibold">Ranking History</h3>
+              
+              {/* Warnings check */}
+              {rankings.some(r => r.status === "WARNING" || r.status === "AT_RISK") && (
+                <div className="space-y-3">
+                  {rankings.some(r => r.status === "AT_RISK") && (
+                    <div className="flex gap-2.5 items-start p-4 border border-red-500/35 bg-red-950/20 text-red-400 rounded-xl text-sm font-medium">
+                      <ShieldAlert className="size-5 shrink-0 text-red-400" />
+                      <div>
+                        <strong className="font-semibold block mb-0.5">CRITICAL: Series AT-RISK</strong>
+                        This series has been marked as AT_RISK. An Editorial Board review is pending to decide on final publication status.
+                      </div>
+                    </div>
+                  )}
+                  {rankings.some(r => r.status === "WARNING" && !rankings.some(x => x.id === r.id && x.status === "AT_RISK")) && (
+                    <div className="flex gap-2.5 items-start p-4 border border-amber-500/35 bg-amber-950/20 text-amber-300 rounded-xl text-sm font-medium">
+                      <AlertTriangle className="size-5 shrink-0 text-amber-400" />
+                      <div>
+                        <strong className="font-semibold block mb-0.5">Warning Alert Triggered</strong>
+                        This series is currently flagged under WARNING. Please monitor popularity rankings and reader scores to prevent dropping into critical risk levels.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {rankings.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b text-muted-foreground font-medium">
+                        <th className="py-2.5 px-3">Period</th>
+                        <th className="py-2.5 px-3">Rank</th>
+                        <th className="py-2.5 px-3 text-right">Final Score</th>
+                        <th className="py-2.5 px-3 text-right">Votes</th>
+                        <th className="py-2.5 px-3 text-right">Reader Score</th>
+                        <th className="py-2.5 px-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {rankings.map(r => (
+                        <tr key={r.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-3 font-semibold">{r.period}</td>
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-sm">#{r.rank}</span>
+                            {r.previousRank && (
+                              <span className="text-[10px] text-muted-foreground ml-2">
+                                (was #{r.previousRank})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right font-semibold text-slate-700 dark:text-slate-300">
+                            {r.finalScore.toFixed(1)}
+                          </td>
+                          <td className="py-3 px-3 text-right text-muted-foreground">
+                            {r.voteCount.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3 text-right text-muted-foreground">
+                            {r.readerScore.toFixed(1)}/10
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <Badge
+                              className={
+                                r.status === "NORMAL"
+                                  ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/20"
+                                  : r.status === "WARNING"
+                                    ? "bg-amber-950/40 text-amber-400 border border-amber-500/20"
+                                    : "bg-rose-950/40 text-rose-400 border border-rose-500/20 font-bold"
+                              }
+                            >
+                              {r.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <p>No ranking history recorded yet.</p>
                 </div>
               )}
             </TabsContent>

@@ -41,6 +41,8 @@ Do not mark a row implemented until tests or validation evidence exist.
 | MF-020 | Editor Approval Workflow UI: Editor Dashboard, dynamic chapter page review, page workspace approval/revision request panels | yes | yes | no | yes | implemented | `docs/stories/epics/E12-editor-approval-workflow/MF-020-editor-approval-ui/validation.md` |
 | MF-021 | Board Voting API Foundation: BoardMember, BoardVote, BoardDecision models, voting, finalize, and tie-break endpoints | yes | yes | no | yes | implemented | `docs/stories/epics/E13-board-voting/MF-021-board-voting-api-foundation/validation.md` |
 | MF-022 | Board Voting Workflow UI: series-approvals, detailed review screen, vote actions, and tie-break control components | yes | yes | no | yes | implemented | `docs/stories/epics/E13-board-voting/MF-022-board-voting-ui/validation.md` |
+| MF-023 | Ranking API Foundation: Ranking model, importing reader/vote scores, calculation formula, warning/at-risk status endpoints | yes | yes | no | yes | implemented | `docs/stories/epics/E14-ranking/MF-023-ranking-api-foundation/validation.md` |
+| MF-024 | Ranking UI: Board ranking table, import reader/vote scores form, Mangaka ranking dashboard with status warnings | no | no | no | no | planned | `docs/stories/epics/E14-ranking/MF-024-ranking-ui/validation.md` |
 | US-019 | Multi-Agent Task Loop: agents follow Harness docs first, coordinate sub-agents/plugins/skills, validate proof, and record durable state | no | yes | no | yes | implemented | `docs/stories/US-019-multi-agent-task-loop.md` |
 
 

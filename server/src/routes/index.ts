@@ -32,6 +32,7 @@ import { createMongoCommentRepository, type CommentRepository } from "../modules
 import { createCommentRouter } from "../modules/comment/comment.routes.js";
 import { createCommentService } from "../modules/comment/comment.service.js";
 import { createMongoBoardRepository, createBoardService, createBoardRouter, type BoardRepository } from "../modules/board/index.js";
+import { createMongoRankingRepository, createRankingService, createRankingRouter, type RankingRepository } from "../modules/ranking/index.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -47,6 +48,7 @@ export type ApiRouterDependencies = {
   submissionRepository?: SubmissionRepository;
   commentRepository?: CommentRepository;
   boardRepository?: BoardRepository;
+  rankingRepository?: RankingRepository;
 };
 
 export const apiRouter = Router();
@@ -61,6 +63,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const pageRepo = dependencies.pageRepository ?? createMongoPageRepository();
   const boardRepo = dependencies.boardRepository ?? createMongoBoardRepository();
   const boardService = createBoardService(boardRepo, dependencies.userRepository ?? createMongoUserRepository());
+  const rankingRepo = dependencies.rankingRepository ?? createMongoRankingRepository();
+  const rankingService = createRankingService(rankingRepo);
 
   router.use("/health", healthRouter);
   router.use(
@@ -101,6 +105,14 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),
       boardService
+    })
+  );
+
+  router.use(
+    createRankingRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      rankingService
     })
   );
   
