@@ -30,6 +30,9 @@ import { AssistantTaskDetailPage } from "@/features/task/routes/AssistantTaskDet
 import { EditorDashboardPage } from "@/features/dashboard/routes/EditorDashboardPage";
 import { BoardDashboardPage } from "@/features/board/routes/BoardDashboardPage";
 import { BoardSeriesReviewPage } from "@/features/board/routes/BoardSeriesReviewPage";
+import { BoardRankingPage } from "@/features/ranking/routes/BoardRankingPage";
+import { ImportRankingPage } from "@/features/ranking/routes/ImportRankingPage";
+import { MangakaRankingPage } from "@/features/ranking/routes/MangakaRankingPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
@@ -227,6 +230,7 @@ function AuthenticatedApp() {
               <Route path="/app/mangaka/series/:seriesId" element={<SeriesDetailPage />} />
               <Route path="/app/mangaka/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
               <Route path="/app/mangaka/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+              <Route path="/app/mangaka/ranking" element={<MangakaRankingPage />} />
             </Routes>
           </main>
         </div>
@@ -296,6 +300,8 @@ function AuthenticatedApp() {
             <Routes>
               <Route path="/app/board/dashboard" element={<BoardDashboardPage />} />
               <Route path="/app/board/series/:seriesId/review" element={<BoardSeriesReviewPage />} />
+              <Route path="/app/board/ranking/import" element={<ImportRankingPage />} />
+              <Route path="/app/board/ranking" element={<BoardRankingPage />} />
             </Routes>
           </main>
         </div>
