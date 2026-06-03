@@ -91,3 +91,33 @@ export async function requestPageRevision(token: string, pageId: string): Promis
   });
   return parseApiResponse<Page>(res, "Failed to request page revision");
 }
+
+export async function runAIBubbleDetect(token: string, pageId: string): Promise<any> {
+  const res = await fetch(`${apiBaseUrl}/pages/${pageId}/ai/bubble-detect`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return parseApiResponse<any>(res, "Failed to run AI bubble detection");
+}
+
+export async function runAIBubbleProcess(token: string, pageId: string): Promise<any> {
+  const res = await fetch(`${apiBaseUrl}/pages/${pageId}/ai/bubble-process`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return parseApiResponse<any>(res, "Failed to run AI bubble processing");
+}
+
+export async function runBatchAIBubbleProcess(token: string, chapterId: string): Promise<any> {
+  const res = await fetch(`${apiBaseUrl}/chapters/${chapterId}/ai/batch-bubble-process`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return parseApiResponse<any>(res, "Failed to run batch AI bubble processing");
+}

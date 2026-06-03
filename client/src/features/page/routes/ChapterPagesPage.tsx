@@ -2,11 +2,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { getChapter, approveChapter, requestChapterRevision, type Chapter } from "@/features/chapter/api/chapter";
-import { listPages, createPage, deletePage, type Page } from "../api/page";
+import { listPages, createPage, deletePage, runBatchAIBubbleProcess, type Page } from "../api/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Trash, Plus, ChevronLeft, Image as ImageIcon, UploadCloud, X, Loader2 } from "lucide-react";
+import { Trash, Plus, ChevronLeft, Image as ImageIcon, UploadCloud, X, Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/shared/components/feedback/Toast";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 
@@ -34,6 +34,7 @@ export function ChapterPagesPage() {
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [batchAiLoading, setBatchAiLoading] = useState(false);
 
   async function handleApproveChapter() {
     if (!chapterId) return;
@@ -50,6 +51,26 @@ export function ChapterPagesPage() {
       setActionError(err.message || "Failed to approve chapter");
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function handleBatchAI() {
+    if (!chapterId) return;
+    try {
+      setBatchAiLoading(true);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      toast("Running AI bubble processing on all pages…", "info");
+      await runBatchAIBubbleProcess(token, chapterId);
+      toast("Batch AI processing complete!", "success");
+      // Refresh page list to reflect updated statuses
+      const pgData = await listPages(token, chapterId);
+      setPages(pgData);
+    } catch (err: any) {
+      console.error(err);
+      toast(err.message || "Batch AI processing failed", "error");
+    } finally {
+      setBatchAiLoading(false);
     }
   }
 
@@ -276,7 +297,18 @@ export function ChapterPagesPage() {
             </Button>
           </div>
         ) : (
-          <Dialog open={addDialogOpen} onOpenChange={(open) => {
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              id="btn-batch-ai"
+              variant="outline"
+              onClick={() => void handleBatchAI()}
+              disabled={batchAiLoading || pages.length === 0}
+              className="flex items-center gap-2"
+            >
+              {batchAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {batchAiLoading ? "Processing…" : "Batch AI"}
+            </Button>
+            <Dialog open={addDialogOpen} onOpenChange={(open) => {
             if (!open && !submitLoading) {
               selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
               setSelectedFiles([]);
@@ -370,6 +402,7 @@ export function ChapterPagesPage() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 

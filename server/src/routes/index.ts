@@ -34,6 +34,7 @@ import { createCommentService } from "../modules/comment/comment.service.js";
 import { createMongoBoardRepository, createBoardService, createBoardRouter, type BoardRepository } from "../modules/board/index.js";
 import { createMongoRankingRepository, createRankingService, createRankingRouter, type RankingRepository } from "../modules/ranking/index.js";
 import { createMongoPayrollRepository, createPayrollRouter, type PayrollRepository } from "../modules/payroll/index.js";
+import { createAiRouter } from "../modules/ai/ai.routes.js";
 
 export type ApiRouterDependencies = {
   authVerifier?: AuthVerifier;
@@ -51,6 +52,7 @@ export type ApiRouterDependencies = {
   boardRepository?: BoardRepository;
   rankingRepository?: RankingRepository;
   payrollRepository?: PayrollRepository;
+  aiServiceUrl?: string;
 };
 
 export const apiRouter = Router();
@@ -69,6 +71,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   const rankingService = createRankingService(rankingRepo);
   const taskRepo = dependencies.taskRepository ?? createMongoTaskRepository();
   const payrollRepo = dependencies.payrollRepository ?? createMongoPayrollRepository();
+  const regionRepo = dependencies.regionRepository ?? createMongoRegionRepository();
 
   router.use("/health", healthRouter);
   router.use(
@@ -127,6 +130,18 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
       seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
       taskRepository: taskRepo,
       payrollRepository: payrollRepo
+    })
+  );
+
+  router.use(
+    createAiRouter({
+      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
+      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
+      seriesRepository: dependencies.seriesRepository ?? createMongoSeriesRepository(),
+      chapterRepository: dependencies.chapterRepository ?? createMongoChapterRepository(),
+      pageRepository: pageRepo,
+      regionRepository: regionRepo,
+      aiServiceUrl: dependencies.aiServiceUrl
     })
   );
 

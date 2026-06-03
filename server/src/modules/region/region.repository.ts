@@ -21,7 +21,16 @@ function serializeRegion(document: RegionDocument & { _id: unknown }): Region {
   };
 }
 
-export function createMongoRegionRepository() {
+export interface RegionRepository {
+  createRegion(data: CreateRegionInput): Promise<Region>;
+  findByPage(pageId: string): Promise<Region[]>;
+  findById(regionId: string): Promise<Region | null>;
+  updateRegion(regionId: string, data: UpdateRegionInput): Promise<Region | null>;
+  deleteRegion(regionId: string): Promise<boolean>;
+  deleteByPageAndSource?(pageId: string, source: "MANUAL" | "AI"): Promise<number>;
+}
+
+export function createMongoRegionRepository(): RegionRepository {
   return {
     async createRegion(data: CreateRegionInput): Promise<Region> {
       const region = await RegionModel.create({
@@ -73,9 +82,13 @@ export function createMongoRegionRepository() {
       if (!mongoose.isValidObjectId(regionId)) return false;
       const result = await RegionModel.deleteOne({ _id: regionId });
       return result.deletedCount > 0;
+    },
+
+    async deleteByPageAndSource(pageId: string, source: "MANUAL" | "AI"): Promise<number> {
+      if (!mongoose.isValidObjectId(pageId)) return 0;
+      const result = await RegionModel.deleteMany({ pageId, source });
+      return result.deletedCount;
     }
   };
 }
-
-export type RegionRepository = ReturnType<typeof createMongoRegionRepository>;
 

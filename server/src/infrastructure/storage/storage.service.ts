@@ -141,6 +141,39 @@ export class StorageService {
     }
   }
 
+  async getFile(key: string): Promise<Buffer> {
+    if (this.useLocalFallback || key.startsWith("http://") || key.startsWith("https://")) {
+      const cleanKey = this.extractKeyFromUrl(key);
+      const localPath = this.getLocalPath(cleanKey);
+      if (!fs.existsSync(localPath)) {
+        throw new Error(`File not found: ${localPath}`);
+      }
+      return fs.readFileSync(localPath);
+    }
+
+    try {
+      const response = await s3Client!.send(
+        new GetObjectCommand({
+          Bucket: env.s3Bucket,
+          Key: key,
+        })
+      );
+      if (!response.Body) {
+        throw new Error("Empty response body from S3");
+      }
+      const bytes = await response.Body.transformToByteArray();
+      return Buffer.from(bytes);
+    } catch (error: any) {
+      console.error(`S3 GetObject failed for key ${key}: ${error.message}. Trying local fallback.`);
+      const cleanKey = this.extractKeyFromUrl(key);
+      const localPath = this.getLocalPath(cleanKey);
+      if (fs.existsSync(localPath)) {
+        return fs.readFileSync(localPath);
+      }
+      throw error;
+    }
+  }
+
   private extractKeyFromUrl(urlOrKey: string): string {
     if (urlOrKey.startsWith("http://") || urlOrKey.startsWith("https://")) {
       const prefix = `/uploads/`;

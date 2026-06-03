@@ -8,14 +8,17 @@ import {
   MousePointer2,
   RefreshCw,
   Save,
-  Trash
+  Trash,
+  Sparkles,
+  ScanSearch,
+  Eraser
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getPage, editorApprovePage, requestPageRevision, type Page } from "@/features/page/api/page";
+import { getPage, editorApprovePage, requestPageRevision, runAIBubbleDetect, runAIBubbleProcess, type Page } from "@/features/page/api/page";
 import { CommentPanel } from "@/features/comment/components/CommentPanel";
 import { useToast } from "@/shared/components/feedback/Toast";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
@@ -194,6 +197,10 @@ export function PageWorkspacePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; systemRole: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: "region" | "annotation" | "task"; id: string } | null>(null);
+  const [aiDetecting, setAiDetecting] = useState(false);
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [aiResult, setAiResult] = useState<{ detectCount?: number; processedUrl?: string } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   async function handleApprovePage() {
     if (!pageId) return;
@@ -230,6 +237,7 @@ export function PageWorkspacePage() {
       setActionLoading(false);
     }
   }
+
 
   const loadWorkspace = useCallback(async () => {
     if (!pageId) return;
@@ -269,6 +277,49 @@ export function PageWorkspacePage() {
   useEffect(() => {
     void loadWorkspace();
   }, [loadWorkspace]);
+
+  async function handleAIDetect() {
+    if (!pageId) return;
+    try {
+      setAiDetecting(true);
+      setAiError(null);
+      setAiResult(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const result = await runAIBubbleDetect(token, pageId);
+      const count: number = result?.data?.count ?? result?.count ?? 0;
+      setAiResult({ detectCount: count });
+      toast(`AI detected ${count} bubble region${count !== 1 ? "s" : ""}.`, "success");
+      // Reload regions to show newly created AI regions
+      await loadWorkspace();
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.message || "AI bubble detection failed");
+    } finally {
+      setAiDetecting(false);
+    }
+  }
+
+  async function handleAIProcess() {
+    if (!pageId) return;
+    try {
+      setAiProcessing(true);
+      setAiError(null);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const result = await runAIBubbleProcess(token, pageId);
+      const processedUrl: string | undefined = result?.data?.processedFileUrl ?? result?.processedFileUrl;
+      setAiResult(prev => ({ ...prev, processedUrl }));
+      toast("AI bubble whitening complete. Page processed.", "success");
+      // Reload workspace so the processedFileUrl is reflected in the canvas
+      await loadWorkspace();
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.message || "AI bubble processing failed");
+    } finally {
+      setAiProcessing(false);
+    }
+  }
 
   function getCanvasRect() {
     return canvasRef.current?.getBoundingClientRect() ?? null;
@@ -599,8 +650,9 @@ export function PageWorkspacePage() {
 
         <aside className="grid content-start gap-4">
           <Tabs defaultValue="workspace" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className={`grid w-full mb-4 ${!isEditor ? "grid-cols-3" : "grid-cols-2"}`}>
               <TabsTrigger value="workspace">Workspace</TabsTrigger>
+              {!isEditor && <TabsTrigger value="ai" id="tab-ai-tools"><Sparkles className="size-3.5 mr-1" />AI</TabsTrigger>}
               <TabsTrigger value="comments">Comments</TabsTrigger>
             </TabsList>
 
@@ -1034,6 +1086,77 @@ export function PageWorkspacePage() {
                 )}
               </section>
             </TabsContent>
+
+            {!isEditor && (
+              <TabsContent value="ai" className="space-y-4 outline-none">
+                <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="rounded-lg bg-[#f8f1ff] p-2 text-[#9065d5]">
+                      <Sparkles className="size-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold tracking-tight">AI Bubble Tools</h2>
+                      <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                        Auto-detect speech bubbles and whiten them using AI.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <Button
+                      id="btn-ai-detect"
+                      className="w-full justify-start gap-2"
+                      variant="outline"
+                      onClick={() => void handleAIDetect()}
+                      disabled={aiDetecting || aiProcessing}
+                    >
+                      {aiDetecting ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <ScanSearch className="size-4" />
+                      )}
+                      {aiDetecting ? "Detecting bubbles…" : "Detect Bubbles"}
+                    </Button>
+
+                    <Button
+                      id="btn-ai-process"
+                      className="w-full justify-start gap-2"
+                      onClick={() => void handleAIProcess()}
+                      disabled={aiDetecting || aiProcessing}
+                    >
+                      {aiProcessing ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Eraser className="size-4" />
+                      )}
+                      {aiProcessing ? "Whitening bubbles…" : "Whiten Bubbles"}
+                    </Button>
+                  </div>
+
+                  {aiError && (
+                    <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                      {aiError}
+                    </div>
+                  )}
+
+                  {aiResult && !aiError && (
+                    <div className="mt-3 rounded-md border border-[#eadff6] bg-[#f8f1ff] p-3 text-xs text-[#2f243a] space-y-1">
+                      {aiResult.detectCount !== undefined && (
+                        <p>✓ Detected <strong>{aiResult.detectCount}</strong> bubble region{aiResult.detectCount !== 1 ? "s" : ""}.</p>
+                      )}
+                      {aiResult.processedUrl && (
+                        <p>✓ Processed image ready — canvas updated.</p>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="mt-4 text-[11px] text-muted-foreground leading-4">
+                    <strong>Detect</strong> scans the page and saves bubble regions (source: AI).<br />
+                    <strong>Whiten</strong> applies inpainting to produce a clean processed image.
+                  </p>
+                </section>
+              </TabsContent>
+            )}
 
             <TabsContent value="comments" className="outline-none">
               <section className="rounded-lg border border-[#eadff6] bg-white p-4 shadow-sm">

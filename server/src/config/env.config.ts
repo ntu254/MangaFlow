@@ -53,6 +53,7 @@ export const env = {
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   mongodbUri: process.env.MONGODB_URI ?? "",
   clerkSecretKey: process.env.CLERK_SECRET_KEY ?? "",
+  aiServiceUrl: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
   s3Provider,
   s3Endpoint,
   s3Region,
