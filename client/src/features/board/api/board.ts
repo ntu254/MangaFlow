@@ -1,4 +1,9 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse, fetchCurrentUser } from "@/shared/api";
+import type { CurrentUser } from "@/shared/api";
+
+export type { CurrentUser };
+
+export { fetchCurrentUser };
 
 export type BoardMemberRole = "BOARD_MEMBER" | "BOARD_CHAIR";
 export type BoardMemberStatus = "ACTIVE" | "INACTIVE";
@@ -50,14 +55,6 @@ export type VoteSummary = {
   needsRevision: number;
   totalVotes: number;
 };
-
-async function parseApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
-  const json = await response.json();
-  if (!response.ok || !json.success) {
-    throw new Error(json.message || fallbackMessage);
-  }
-  return json.data;
-}
 
 export async function fetchBoardMembers(token: string): Promise<BoardMember[]> {
   const response = await fetch(`${apiBaseUrl}/board/members`, {

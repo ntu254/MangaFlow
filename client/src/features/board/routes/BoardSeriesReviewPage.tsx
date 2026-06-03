@@ -7,12 +7,14 @@ import {
   fetchBoardMembers,
   fetchBoardVotesForSeries,
   fetchBoardVoteSummary,
+  fetchCurrentUser,
   submitBoardVote,
   finalizeBoardDecision,
   tieBreakBoardDecision,
   type BoardMember,
   type BoardVote,
-  type VoteSummary
+  type VoteSummary,
+  type CurrentUser
 } from "../api/board";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +39,7 @@ export function BoardSeriesReviewPage() {
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
   const [votes, setVotes] = useState<BoardVote[]>([]);
   const [voteSummary, setVoteSummary] = useState<VoteSummary | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +64,9 @@ export function BoardSeriesReviewPage() {
       if (!token) throw new Error("Not authenticated");
 
       // Fetch user profile
-      const userRes = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api"}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => res.json().catch(() => ({ success: false })));
-
-      if (userRes && userRes.success && userRes.data) {
-        setCurrentUser(userRes.data.user);
+      const user = await fetchCurrentUser(token);
+      if (user) {
+        setCurrentUser(user);
       }
 
       // Fetch dependencies

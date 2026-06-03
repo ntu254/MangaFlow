@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash, Plus, ChevronLeft, Image as ImageIcon, UploadCloud, X, Loader2 } from "lucide-react";
+import { useToast } from "@/shared/components/feedback/Toast";
+import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 
 export function ChapterPagesPage() {
   const { chapterId } = useParams<{ chapterId: string }>();
   const { getToken } = useAuth();
+  const { toast } = useToast();
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
@@ -41,7 +44,7 @@ export function ChapterPagesPage() {
       if (!token) throw new Error("Not authenticated");
       const updated = await approveChapter(token, chapterId);
       setChapter(updated);
-      alert("Chapter approved successfully!");
+      toast("Chapter approved successfully!", "success");
     } catch (err: any) {
       console.error(err);
       setActionError(err.message || "Failed to approve chapter");
@@ -59,7 +62,7 @@ export function ChapterPagesPage() {
       if (!token) throw new Error("Not authenticated");
       const updated = await requestChapterRevision(token, chapterId);
       setChapter(updated);
-      alert("Chapter revision requested successfully!");
+      toast("Chapter revision requested successfully!", "success");
     } catch (err: any) {
       console.error(err);
       setActionError(err.message || "Failed to request chapter revision");
@@ -170,17 +173,19 @@ export function ChapterPagesPage() {
     }
   }
 
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
   async function handleDeletePage(pageId: string) {
-    if (!confirm("Are you sure you want to delete this page?")) return;
     try {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
       await deletePage(token, pageId);
       setPages(prev => prev.filter(p => p.id !== pageId));
+      toast("Page deleted successfully!", "success");
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to delete page");
+      toast(err.message || "Failed to delete page", "error");
     }
   }
 

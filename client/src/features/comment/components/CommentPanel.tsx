@@ -14,6 +14,7 @@ import {
   type Comment,
   type CommentTargetType
 } from "../api/comment";
+import { useToast } from "@/shared/components/feedback/Toast";
 
 interface CommentPanelProps {
   targetType: CommentTargetType;
@@ -34,6 +35,7 @@ export function CommentPanel({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchComments = useCallback(async () => {
     if (!targetId) return;
@@ -69,7 +71,7 @@ export function CommentPanel({
       });
       setComments((prev) => [newComment, ...prev]);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add comment");
+      toast(err instanceof Error ? err.message : "Failed to add comment", "error");
       throw err;
     }
   };

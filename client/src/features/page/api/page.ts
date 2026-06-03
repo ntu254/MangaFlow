@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export type PageStatus = 
   | "UPLOADED"
@@ -40,9 +40,7 @@ export async function createPage(
     },
     body: formData
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to create page");
-  return json.data;
+  return parseApiResponse<Page | Page[]>(res, "Failed to create page");
 }
 
 export async function listPages(token: string, chapterId: string): Promise<Page[]> {
@@ -51,9 +49,7 @@ export async function listPages(token: string, chapterId: string): Promise<Page[
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to list pages");
-  return json.data;
+  return parseApiResponse<Page[]>(res, "Failed to list pages");
 }
 
 export async function getPage(token: string, pageId: string): Promise<Page> {
@@ -62,9 +58,7 @@ export async function getPage(token: string, pageId: string): Promise<Page> {
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to fetch page");
-  return json.data;
+  return parseApiResponse<Page>(res, "Failed to fetch page");
 }
 
 export async function deletePage(token: string, pageId: string): Promise<boolean> {
@@ -74,9 +68,8 @@ export async function deletePage(token: string, pageId: string): Promise<boolean
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to delete page");
-  return json.data.deleted;
+  const data = await parseApiResponse<{ deleted: boolean }>(res, "Failed to delete page");
+  return data.deleted;
 }
 
 export async function editorApprovePage(token: string, pageId: string): Promise<Page> {
@@ -86,9 +79,7 @@ export async function editorApprovePage(token: string, pageId: string): Promise<
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to approve page");
-  return json.data;
+  return parseApiResponse<Page>(res, "Failed to approve page");
 }
 
 export async function requestPageRevision(token: string, pageId: string): Promise<Page> {
@@ -98,7 +89,5 @@ export async function requestPageRevision(token: string, pageId: string): Promis
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to request page revision");
-  return json.data;
+  return parseApiResponse<Page>(res, "Failed to request page revision");
 }

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ReopenDialog } from "./ReopenDialog";
 import type { Comment } from "../api/comment";
 import { Check, CheckCircle2, RotateCcw, ShieldCheck, Loader2 } from "lucide-react";
+import { useToast } from "@/shared/components/feedback/Toast";
 
 interface CommentItemProps {
   comment: Comment;
@@ -24,6 +25,7 @@ export function CommentItem({
 }: CommentItemProps) {
   const [reopenOpen, setReopenOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
+  const { toast } = useToast();
 
   const role = currentUser?.systemRole ?? "";
   const isAdmin = role === "ADMIN";
@@ -43,7 +45,7 @@ export function CommentItem({
       await actionFn();
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Action failed");
+      toast(err instanceof Error ? err.message : "Action failed", "error");
     } finally {
       setTransitioning(false);
     }

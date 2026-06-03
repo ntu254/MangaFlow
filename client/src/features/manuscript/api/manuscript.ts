@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export type Manuscript = {
   id: string;
@@ -26,9 +26,7 @@ export async function createManuscript(
     },
     body: formData
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to create manuscript");
-  return json.data;
+  return parseApiResponse<Manuscript>(res, "Failed to create manuscript");
 }
 
 export async function listManuscripts(token: string, seriesId: string): Promise<Manuscript[]> {
@@ -37,9 +35,7 @@ export async function listManuscripts(token: string, seriesId: string): Promise<
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to list manuscripts");
-  return json.data;
+  return parseApiResponse<Manuscript[]>(res, "Failed to list manuscripts");
 }
 
 export async function getManuscript(token: string, seriesId: string, manuscriptId: string): Promise<Manuscript> {
@@ -48,9 +44,7 @@ export async function getManuscript(token: string, seriesId: string, manuscriptI
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to fetch manuscript");
-  return json.data;
+  return parseApiResponse<Manuscript>(res, "Failed to fetch manuscript");
 }
 
 export async function submitManuscript(token: string, seriesId: string, manuscriptId: string): Promise<Manuscript> {
@@ -60,9 +54,7 @@ export async function submitManuscript(token: string, seriesId: string, manuscri
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to submit manuscript");
-  return json.data;
+  return parseApiResponse<Manuscript>(res, "Failed to submit manuscript");
 }
 
 export async function reviewManuscript(
@@ -79,7 +71,5 @@ export async function reviewManuscript(
     },
     body: JSON.stringify({ action }),
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to review manuscript");
-  return json.data;
+  return parseApiResponse<Manuscript>(res, "Failed to review manuscript");
 }

@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export type AnnotationStatus = "OPEN" | "RESOLVED";
 export type AnnotationType = "RECTANGLE";
@@ -40,14 +40,6 @@ export type UpdateAnnotationPayload = {
   regionId?: string | null;
   status?: AnnotationStatus;
 };
-
-async function parseApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
-  const json = await response.json();
-  if (!response.ok || !json.success) {
-    throw new Error(json.message || fallbackMessage);
-  }
-  return json.data;
-}
 
 export async function listAnnotations(token: string, pageId: string): Promise<Annotation[]> {
   const response = await fetch(`${apiBaseUrl}/pages/${pageId}/annotations`, {

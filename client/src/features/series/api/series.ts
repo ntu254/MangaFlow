@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export type Series = {
   id: string;
@@ -22,22 +22,16 @@ export type CreateSeriesInput = {
 };
 
 export async function fetchSeriesList(token: string): Promise<Series[]> {
-  const response = await fetch(`${API_URL}/series`, {
+  const response = await fetch(`${apiBaseUrl}/series`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch series list");
-  }
-
-  const json = await response.json();
-  return json.data;
+  return parseApiResponse<Series[]>(response, "Failed to fetch series list");
 }
 
 export async function createSeries(token: string, input: CreateSeriesInput): Promise<Series> {
-  const response = await fetch(`${API_URL}/series`, {
+  const response = await fetch(`${apiBaseUrl}/series`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,27 +39,14 @@ export async function createSeries(token: string, input: CreateSeriesInput): Pro
     },
     body: JSON.stringify(input)
   });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || "Failed to create series");
-  }
-
-  const json = await response.json();
-  return json.data;
+  return parseApiResponse<Series>(response, "Failed to create series");
 }
 
 export async function fetchSeriesById(token: string, seriesId: string): Promise<Series> {
-  const response = await fetch(`${API_URL}/series/${seriesId}`, {
+  const response = await fetch(`${apiBaseUrl}/series/${seriesId}`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch series details");
-  }
-
-  const json = await response.json();
-  return json.data;
+  return parseApiResponse<Series>(response, "Failed to fetch series details");
 }

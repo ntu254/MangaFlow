@@ -74,7 +74,7 @@ export function SeriesDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [seriesId, getToken, loadManuscripts, loadChapters]);
+  }, [seriesId, getToken, loadManuscripts, loadChapters, loadRankings]);
 
   useEffect(() => {
     load();

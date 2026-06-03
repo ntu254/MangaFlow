@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export type ChapterStatus = "DRAFT" | "IN_PROGRESS" | "READY_FOR_EDITOR" | "EDITOR_REVIEW" | "READY_FOR_PUBLICATION" | "PUBLISHED";
 
@@ -26,9 +26,7 @@ export async function createChapter(
     },
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to create chapter");
-  return json.data;
+  return parseApiResponse<Chapter>(res, "Failed to create chapter");
 }
 
 export async function listChapters(token: string, seriesId: string): Promise<Chapter[]> {
@@ -37,9 +35,7 @@ export async function listChapters(token: string, seriesId: string): Promise<Cha
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to list chapters");
-  return json.data;
+  return parseApiResponse<Chapter[]>(res, "Failed to list chapters");
 }
 
 export async function getChapter(token: string, chapterId: string): Promise<Chapter> {
@@ -48,9 +44,7 @@ export async function getChapter(token: string, chapterId: string): Promise<Chap
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to fetch chapter");
-  return json.data;
+  return parseApiResponse<Chapter>(res, "Failed to fetch chapter");
 }
 
 export async function updateChapter(
@@ -66,9 +60,7 @@ export async function updateChapter(
     },
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to update chapter");
-  return json.data;
+  return parseApiResponse<Chapter>(res, "Failed to update chapter");
 }
 
 export async function deleteChapter(token: string, chapterId: string): Promise<boolean> {
@@ -79,7 +71,7 @@ export async function deleteChapter(token: string, chapterId: string): Promise<b
     },
   });
   const json = await res.json();
-  if (!json.success) throw new Error(json.error?.message || "Failed to delete chapter");
+  if (!res.ok || !json.success) throw new Error(json.message || "Failed to delete chapter");
   return json.data.deleted;
 }
 
@@ -90,9 +82,7 @@ export async function approveChapter(token: string, chapterId: string): Promise<
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to approve chapter");
-  return json.data;
+  return parseApiResponse<Chapter>(res, "Failed to approve chapter");
 }
 
 export async function requestChapterRevision(token: string, chapterId: string): Promise<Chapter> {
@@ -102,7 +92,5 @@ export async function requestChapterRevision(token: string, chapterId: string): 
       Authorization: `Bearer ${token}`,
     },
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message || "Failed to request chapter revision");
-  return json.data;
+  return parseApiResponse<Chapter>(res, "Failed to request chapter revision");
 }

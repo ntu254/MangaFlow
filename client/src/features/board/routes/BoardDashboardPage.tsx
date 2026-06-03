@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { fetchSeriesList, type Series } from "@/features/series/api/series";
-import { fetchBoardMembers, fetchBoardVoteSummary, type BoardMember, type VoteSummary } from "../api/board";
+import { fetchBoardMembers, fetchBoardVoteSummary, fetchCurrentUser, type BoardMember, type VoteSummary, type CurrentUser } from "../api/board";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,7 +19,7 @@ export function BoardDashboardPage() {
   const { getToken } = useAuth();
   const [seriesList, setSeriesList] = useState<(Series & { voteSummary?: VoteSummary })[]>([]);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,12 +31,9 @@ export function BoardDashboardPage() {
       if (!token) throw new Error("Not authenticated");
 
       // 1. Fetch current user to determine board registration
-      const userRes = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api"}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => res.json().catch(() => ({ success: false })));
-
-      if (userRes && userRes.success && userRes.data) {
-        setCurrentUser(userRes.data.user);
+      const user = await fetchCurrentUser(token);
+      if (user) {
+        setCurrentUser(user);
       }
 
       // 2. Fetch all series and board members

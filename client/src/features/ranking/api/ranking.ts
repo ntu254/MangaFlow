@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export type RankingStatus = "NORMAL" | "WARNING" | "AT_RISK";
 
@@ -17,14 +17,6 @@ export type Ranking = {
   createdAt: string;
   updatedAt: string;
 };
-
-async function parseApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
-  const json = await response.json();
-  if (!response.ok || !json.success) {
-    throw new Error(json.message || fallbackMessage);
-  }
-  return json.data;
-}
 
 export async function fetchRankings(token: string, period: string): Promise<Ranking[]> {
   const response = await fetch(`${apiBaseUrl}/rankings?period=${encodeURIComponent(period)}`, {

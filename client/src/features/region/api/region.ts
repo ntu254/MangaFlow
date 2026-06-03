@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export const regionTypes = [
   "BACKGROUND",
@@ -41,14 +41,6 @@ export type CreateRegionPayload = {
   shape?: RegionShape;
   confidence?: number;
 };
-
-async function parseApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
-  const json = await response.json();
-  if (!response.ok || !json.success) {
-    throw new Error(json.message || fallbackMessage);
-  }
-  return json.data;
-}
 
 export async function listRegions(token: string, pageId: string): Promise<Region[]> {
   const response = await fetch(`${apiBaseUrl}/pages/${pageId}/regions`, {

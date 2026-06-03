@@ -35,7 +35,8 @@ import { ImportRankingPage } from "@/features/ranking/routes/ImportRankingPage";
 import { MangakaRankingPage } from "@/features/ranking/routes/MangakaRankingPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { NotFoundPage } from "@/shared/components/feedback/NotFoundPage";
+import { apiBaseUrl } from "@/shared/api";
 
 
 const workflowSteps = [
@@ -231,6 +232,7 @@ function AuthenticatedApp() {
               <Route path="/app/mangaka/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
               <Route path="/app/mangaka/pages/:pageId/workspace" element={<PageWorkspacePage />} />
               <Route path="/app/mangaka/ranking" element={<MangakaRankingPage />} />
+              <Route path="*" element={<NotFoundPage homePath="/app/mangaka/series" />} />
             </Routes>
           </main>
         </div>
@@ -255,6 +257,7 @@ function AuthenticatedApp() {
               <Route path="/app/editor/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
               <Route path="/app/editor/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
               <Route path="/app/editor/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+              <Route path="*" element={<NotFoundPage homePath="/app/editor/dashboard" />} />
             </Routes>
           </main>
         </div>
@@ -276,8 +279,8 @@ function AuthenticatedApp() {
           <main className="flex-1">
             <Routes>
               <Route path="/app/assistant/dashboard" element={<AssistantDashboardPage />} />
-              <Route path="/app/assistant/tasks" element={<AssistantDashboardPage />} />
               <Route path="/app/assistant/tasks/:taskId" element={<AssistantTaskDetailPage />} />
+              <Route path="*" element={<NotFoundPage homePath="/app/assistant/dashboard" />} />
             </Routes>
           </main>
         </div>
@@ -302,6 +305,7 @@ function AuthenticatedApp() {
               <Route path="/app/board/series/:seriesId/review" element={<BoardSeriesReviewPage />} />
               <Route path="/app/board/ranking/import" element={<ImportRankingPage />} />
               <Route path="/app/board/ranking" element={<BoardRankingPage />} />
+              <Route path="*" element={<NotFoundPage homePath="/app/board/dashboard" />} />
             </Routes>
           </main>
         </div>

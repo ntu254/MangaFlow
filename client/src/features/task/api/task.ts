@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 
 export const taskTypes = ["BACKGROUND", "INKING", "SCREENTONE", "CLEANUP", "EFFECT", "OTHER"] as const;
 export const taskPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
@@ -48,14 +48,6 @@ export type CreateTaskFromRegionPayload = {
   baseRate?: number;
   bonusAmount?: number;
 };
-
-async function parseApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
-  const json = await response.json();
-  if (!response.ok || !json.success) {
-    throw new Error(json.message || fallbackMessage);
-  }
-  return json.data;
-}
 
 export async function listTasks(token: string): Promise<Task[]> {
   const response = await fetch(`${apiBaseUrl}/tasks`, {
