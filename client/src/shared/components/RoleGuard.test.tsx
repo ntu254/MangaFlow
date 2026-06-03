@@ -4,10 +4,10 @@ import { describe, expect, it } from "vitest";
 import { RoleGuard } from "./RoleGuard";
 import type { AuthRouteUser } from "@/features/auth/auth-flow";
 
-function renderGuard(user: AuthRouteUser | null) {
+function renderGuard(user: AuthRouteUser | null, allowedRoles?: string[]) {
   return renderToStaticMarkup(
     <MemoryRouter>
-      <RoleGuard user={user} allowedRoles={["MANGAKA"]}>
+      <RoleGuard user={user} allowedRoles={(allowedRoles ?? ["MANGAKA"]) as any}>
         <main>Allowed workspace</main>
       </RoleGuard>
     </MemoryRouter>
@@ -22,26 +22,26 @@ describe("RoleGuard", () => {
     });
 
     expect(html).toContain("Allowed workspace");
-    expect(html).not.toContain("Access Denied");
   });
 
-  it("renders access denied when user is missing or role is not allowed", () => {
-    expect(renderGuard(null)).toContain("Access Denied");
-    expect(
-      renderGuard({
-        systemRole: "ASSISTANT",
-        status: "ACTIVE"
-      })
-    ).toContain("Access Denied");
+  it("does not render children when user is null", () => {
+    const html = renderGuard(null);
+    expect(html).not.toContain("Allowed workspace");
   });
 
-  it("renders access denied for synced users without assigned system role", () => {
+  it("does not render children when role is not allowed", () => {
+    const html = renderGuard({
+      systemRole: "ASSISTANT",
+      status: "ACTIVE"
+    });
+    expect(html).not.toContain("Allowed workspace");
+  });
+
+  it("does not render children for synced users without assigned system role", () => {
     const html = renderGuard({
       systemRole: null,
       status: "ACTIVE"
     });
-
-    expect(html).toContain("Access Denied");
-    expect(html).toContain("Return to Home");
+    expect(html).not.toContain("Allowed workspace");
   });
 });

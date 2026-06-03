@@ -33,16 +33,15 @@ export async function listNotifications(
   const res = await fetch(`${apiBaseUrl}/notifications${query}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  const json = await parseApiResponse<Notification[]>(res);
-  return json;
+  return parseApiResponse<Notification[]>(res, "Failed to list notifications");
 }
 
 export async function getUnreadCount(token: string): Promise<number> {
   const res = await fetch(`${apiBaseUrl}/notifications/unread-count`, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  const json = await parseApiResponse<{ count: number }>(res);
-  return json.count;
+  const data = await parseApiResponse<{ count: number }>(res, "Failed to get unread count");
+  return data.count;
 }
 
 export async function markNotificationRead(token: string, id: string): Promise<Notification> {
@@ -50,7 +49,7 @@ export async function markNotificationRead(token: string, id: string): Promise<N
     method: "PATCH",
     headers: { Authorization: `Bearer ${token}` }
   });
-  return parseApiResponse<Notification>(res);
+  return parseApiResponse<Notification>(res, "Failed to mark notification as read");
 }
 
 export async function markAllNotificationsRead(token: string): Promise<void> {
@@ -58,7 +57,7 @@ export async function markAllNotificationsRead(token: string): Promise<void> {
     method: "PATCH",
     headers: { Authorization: `Bearer ${token}` }
   });
-  await parseApiResponse<null>(res);
+  await parseApiResponse<null>(res, "Failed to mark all notifications as read");
 }
 
 export async function deleteNotification(token: string, id: string): Promise<void> {
@@ -66,5 +65,5 @@ export async function deleteNotification(token: string, id: string): Promise<voi
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` }
   });
-  await parseApiResponse<{ deleted: boolean }>(res);
+  await parseApiResponse<{ deleted: boolean }>(res, "Failed to delete notification");
 }

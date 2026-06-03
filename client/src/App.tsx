@@ -1,54 +1,81 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Suspense, lazy, useEffect } from "react";
 import {
-  Show,
   SignIn,
-  SignInButton,
   SignUp,
-  SignUpButton,
   UserButton,
-  useAuth
+  useAuth,
 } from "@clerk/react";
-import { Ban, RefreshCw, RotateCcw, UserCheck } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  assignableSystemRoles,
-  buildAdminRoleReviewUrl,
-  buildAdminUserRoleUrl,
-  buildAdminUserStatusUrl,
-  getAdminRoleReviewRoute
-} from "@/features/auth/admin-flow";
+import { useNavigate } from "react-router-dom";
 import { resolveAuthRoute, type AuthRouteUser } from "@/features/auth/auth-flow";
-import { SeriesListPage } from "@/features/series/routes/SeriesListPage";
-import { CreateSeriesPage } from "@/features/series/routes/CreateSeriesPage";
-import { SeriesDetailPage } from "@/features/series/routes/SeriesDetailPage";
-import { EditorReviewPage } from "@/features/manuscript/routes/EditorReviewPage";
-import { ChapterPagesPage } from "@/features/page/routes/ChapterPagesPage";
-import { PageWorkspacePage } from "@/features/page/routes/PageWorkspacePage";
-import { AssistantDashboardPage } from "@/features/task/routes/AssistantDashboardPage";
-import { AssistantTaskDetailPage } from "@/features/task/routes/AssistantTaskDetailPage";
-import { EditorDashboardPage } from "@/features/dashboard/routes/EditorDashboardPage";
-import { BoardDashboardPage } from "@/features/board/routes/BoardDashboardPage";
-import { BoardSeriesReviewPage } from "@/features/board/routes/BoardSeriesReviewPage";
-import { BoardRankingPage } from "@/features/ranking/routes/BoardRankingPage";
-import { ImportRankingPage } from "@/features/ranking/routes/ImportRankingPage";
-import { MangakaRankingPage } from "@/features/ranking/routes/MangakaRankingPage";
 import { RoleGuard } from "@/shared/components/RoleGuard";
 import { SYSTEM_ROLES } from "@/shared/constants/roles";
 import { NotFoundPage } from "@/shared/components/feedback/NotFoundPage";
-import { LandingPage } from "@/features/landing";
+import { HomeGate } from "@/shared/components/HomeGate";
 import { apiBaseUrl } from "@/shared/api";
+import { useState } from "react";
 
+const SeriesListPage = lazy(() =>
+  import("@/features/series/routes/SeriesListPage").then(m => ({ default: m.SeriesListPage }))
+);
+const CreateSeriesPage = lazy(() =>
+  import("@/features/series/routes/CreateSeriesPage").then(m => ({ default: m.CreateSeriesPage }))
+);
+const SeriesDetailPage = lazy(() =>
+  import("@/features/series/routes/SeriesDetailPage").then(m => ({ default: m.SeriesDetailPage }))
+);
+const EditorReviewPage = lazy(() =>
+  import("@/features/manuscript/routes/EditorReviewPage").then(m => ({ default: m.EditorReviewPage }))
+);
+const ChapterPagesPage = lazy(() =>
+  import("@/features/page/routes/ChapterPagesPage").then(m => ({ default: m.ChapterPagesPage }))
+);
+const PageWorkspacePage = lazy(() =>
+  import("@/features/page/routes/PageWorkspacePage").then(m => ({ default: m.PageWorkspacePage }))
+);
+const AssistantDashboardPage = lazy(() =>
+  import("@/features/task/routes/AssistantDashboardPage").then(m => ({ default: m.AssistantDashboardPage }))
+);
+const AssistantTaskDetailPage = lazy(() =>
+  import("@/features/task/routes/AssistantTaskDetailPage").then(m => ({ default: m.AssistantTaskDetailPage }))
+);
+const EditorDashboardPage = lazy(() =>
+  import("@/features/dashboard/routes/EditorDashboardPage").then(m => ({ default: m.EditorDashboardPage }))
+);
+const BoardDashboardPage = lazy(() =>
+  import("@/features/board/routes/BoardDashboardPage").then(m => ({ default: m.BoardDashboardPage }))
+);
+const BoardSeriesReviewPage = lazy(() =>
+  import("@/features/board/routes/BoardSeriesReviewPage").then(m => ({ default: m.BoardSeriesReviewPage }))
+);
+const BoardRankingPage = lazy(() =>
+  import("@/features/ranking/routes/BoardRankingPage").then(m => ({ default: m.BoardRankingPage }))
+);
+const ImportRankingPage = lazy(() =>
+  import("@/features/ranking/routes/ImportRankingPage").then(m => ({ default: m.ImportRankingPage }))
+);
+const MangakaRankingPage = lazy(() =>
+  import("@/features/ranking/routes/MangakaRankingPage").then(m => ({ default: m.MangakaRankingPage }))
+);
+const MangakaDashboardPage = lazy(() =>
+  import("@/features/dashboard/routes/MangakaDashboardPage").then(m => ({ default: m.MangakaDashboardPage }))
+);
+const AdminDashboardPage = lazy(() =>
+  import("@/features/dashboard/routes/AdminDashboardPage").then(m => ({ default: m.AdminDashboardPage }))
+);
+const AdminRoleReviewPage = lazy(() =>
+  import("@/features/admin/routes/AdminRoleReviewPage").then(m => ({ default: m.AdminRoleReviewPage }))
+);
+const OnboardingPage = lazy(() =>
+  import("@/features/auth/routes/OnboardingPage").then(m => ({ default: m.OnboardingPage }))
+);
+const BlockedPage = lazy(() =>
+  import("@/features/auth/routes/BlockedPage").then(m => ({ default: m.BlockedPage }))
+);
 
-const workflowSteps = [
-  "Series",
-  "Manuscript",
-  "Pages",
-  "Tasks",
-  "Review",
-  "Board",
-  "Payroll"
-];
+const LazyLandingPage = lazy(() =>
+  import("@/features/landing").then(m => ({ default: m.LandingPage }))
+);
 
 type AppProps = {
   clerkConfigured: boolean;
@@ -58,77 +85,6 @@ type AuthSyncState =
   | { status: "idle" | "loading" }
   | { status: "ready"; user: AuthRouteUser; redirectTo: string }
   | { status: "error"; message: string };
-
-type RoleReviewUser = AuthRouteUser & {
-  id: string;
-  clerkId: string;
-  email: string;
-  fullName: string;
-  requestedSystemRole: "MANGAKA" | "ASSISTANT" | null;
-};
-
-type AdminReviewState =
-  | { status: "loading" }
-  | { status: "ready"; users: RoleReviewUser[] }
-  | { status: "error"; message: string };
-
-function PhaseZeroShell({ clerkConfigured }: AppProps) {
-  return (
-    <main className="app-shell">
-      <section className="hero-panel" aria-labelledby="page-title">
-        <div>
-          <p className="eyebrow">Manga production workspace</p>
-          <h1 id="page-title">MangaFlow</h1>
-          <p className="summary">
-            A buildable Phase 0 shell for the manga workflow product contract.
-          </p>
-        </div>
-
-        <div className="status-card" aria-label="Service status">
-          <span className="status-dot" aria-hidden="true" />
-          <div>
-            <p className="status-label">API health</p>
-            <a href={`${apiBaseUrl}/health`}>{apiBaseUrl}/health</a>
-          </div>
-        </div>
-      </section>
-
-      <section className="auth-panel" aria-label="Authentication status">
-        <div>
-          <p className="status-label">Auth foundation</p>
-          <h2>{clerkConfigured ? "Clerk ready" : "Clerk key required"}</h2>
-          <p>
-            {clerkConfigured
-              ? "Sign in to sync your Clerk identity with MangaFlow."
-              : "Set VITE_CLERK_PUBLISHABLE_KEY to enable Clerk on the client."}
-          </p>
-        </div>
-        {clerkConfigured ? (
-          <div className="auth-actions">
-            <SignInButton mode="modal">
-              <Button>Sign in</Button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <Button variant="outline">Sign up</Button>
-            </SignUpButton>
-            <Show when="signed-in">
-              <UserButton />
-            </Show>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="workflow-strip" aria-label="MVP workflow">
-        {workflowSteps.map((step, index) => (
-          <div className="workflow-step" key={step}>
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <strong>{step}</strong>
-          </div>
-        ))}
-      </section>
-    </main>
-  );
-}
 
 function LoadingScreen() {
   return (
@@ -143,8 +99,8 @@ function LoadingScreen() {
 
 function AuthenticatedApp() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
+  const navigate = useNavigate();
   const [state, setState] = useState<AuthSyncState>({ status: "idle" });
-  const path = window.location.pathname;
 
   useEffect(() => {
     let cancelled = false;
@@ -208,436 +164,168 @@ function AuthenticatedApp() {
   }
 
   if (!isSignedIn) {
-    return <LandingPage clerkConfigured />;
+    return <Navigate to="/" replace />;
   }
 
-  const destination =
-    state.status === "ready"
-      ? resolveAuthRoute({ isSignedIn: true, user: state.user })
-      : "/app/onboarding";
-
-  if (path.startsWith("/app/admin")) {
-    return (
-      <AdminRoleReviewPage
-        authState={state}
-        getToken={getToken}
-      />
-    );
-  }
-
-  if (path.startsWith("/app/mangaka")) {
-    return (
-      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.MANGAKA]}>
-        <div className="min-h-screen flex flex-col bg-background">
-          <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-            <div className="flex-1 flex items-center gap-4">
-              <strong className="text-lg tracking-tight">MangaFlow</strong>
-              <span className="text-muted-foreground text-sm">Mangaka Workspace</span>
-            </div>
-            <UserButton />
-          </header>
-          <main className="flex-1">
-            <Routes>
-              <Route path="/app/mangaka/series" element={<SeriesListPage />} />
-              <Route path="/app/mangaka/series/new" element={<CreateSeriesPage />} />
-              <Route path="/app/mangaka/series/:seriesId" element={<SeriesDetailPage />} />
-              <Route path="/app/mangaka/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
-              <Route path="/app/mangaka/pages/:pageId/workspace" element={<PageWorkspacePage />} />
-              <Route path="/app/mangaka/ranking" element={<MangakaRankingPage />} />
-              <Route path="*" element={<NotFoundPage homePath="/app/mangaka/series" />} />
-            </Routes>
-          </main>
-        </div>
-      </RoleGuard>
-    );
-  }
-
-  if (path.startsWith("/app/editor")) {
-    return (
-      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.EDITOR]}>
-        <div className="min-h-screen flex flex-col bg-background">
-          <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-            <div className="flex-1 flex items-center gap-4">
-              <strong className="text-lg tracking-tight">MangaFlow</strong>
-              <span className="text-muted-foreground text-sm">Editor Workspace</span>
-            </div>
-            <UserButton />
-          </header>
-          <main className="flex-1">
-            <Routes>
-              <Route path="/app/editor/dashboard" element={<EditorDashboardPage />} />
-              <Route path="/app/editor/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
-              <Route path="/app/editor/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
-              <Route path="/app/editor/pages/:pageId/workspace" element={<PageWorkspacePage />} />
-              <Route path="*" element={<NotFoundPage homePath="/app/editor/dashboard" />} />
-            </Routes>
-          </main>
-        </div>
-      </RoleGuard>
-    );
-  }
-
-  if (path.startsWith("/app/assistant")) {
-    return (
-      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.ASSISTANT]}>
-        <div className="min-h-screen flex flex-col bg-background">
-          <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-            <div className="flex-1 flex items-center gap-4">
-              <strong className="text-lg tracking-tight">MangaFlow</strong>
-              <span className="text-muted-foreground text-sm">Assistant Workspace</span>
-            </div>
-            <UserButton />
-          </header>
-          <main className="flex-1">
-            <Routes>
-              <Route path="/app/assistant/dashboard" element={<AssistantDashboardPage />} />
-              <Route path="/app/assistant/tasks/:taskId" element={<AssistantTaskDetailPage />} />
-              <Route path="*" element={<NotFoundPage homePath="/app/assistant/dashboard" />} />
-            </Routes>
-          </main>
-        </div>
-      </RoleGuard>
-    );
-  }
-
-  if (path.startsWith("/app/board")) {
-    return (
-      <RoleGuard user={state.status === "ready" ? state.user : null} allowedRoles={[SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN]}>
-        <div className="min-h-screen flex flex-col bg-slate-950">
-          <header className="border-b bg-slate-900 border-slate-800/80 h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
-            <div className="flex-1 flex items-center gap-4">
-              <strong className="text-lg tracking-tight text-white">MangaFlow</strong>
-              <span className="text-slate-400 text-sm">Board Workspace</span>
-            </div>
-            <UserButton />
-          </header>
-          <main className="flex-1 bg-slate-950">
-            <Routes>
-              <Route path="/app/board/dashboard" element={<BoardDashboardPage />} />
-              <Route path="/app/board/series/:seriesId/review" element={<BoardSeriesReviewPage />} />
-              <Route path="/app/board/ranking/import" element={<ImportRankingPage />} />
-              <Route path="/app/board/ranking" element={<BoardRankingPage />} />
-              <Route path="*" element={<NotFoundPage homePath="/app/board/dashboard" />} />
-            </Routes>
-          </main>
-        </div>
-      </RoleGuard>
-    );
-  }
-
-  return (
-    <main className="app-shell">
-      <section className="hero-panel" aria-labelledby="page-title">
-        <div>
-          <p className="eyebrow">Authenticated workspace</p>
-          <h1 id="page-title">MangaFlow</h1>
-          <p className="summary">
-            Your Clerk identity is connected to the MangaFlow auth boundary.
-          </p>
-        </div>
-        <div className="status-card" aria-label="User menu">
-          <UserButton />
-          <div>
-            <p className="status-label">Next route</p>
-            <a href={destination}>{destination}</a>
-          </div>
-        </div>
-      </section>
-
-      <section className="auth-panel" aria-label="Auth sync result">
-        <div>
-          <p className="status-label">User sync</p>
-          <h2>
-            {state.status === "ready"
-              ? state.user.systemRole ?? "Onboarding required"
-              : "Syncing profile"}
-          </h2>
-          <p>
-            {state.status === "error"
-              ? state.message
-              : state.status === "ready"
-                ? `Backend redirect state: ${state.redirectTo}`
-                : "Fetching your internal MangaFlow user record."}
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            window.location.href = destination;
-          }}
-        >
-          Continue
-        </Button>
-      </section>
-    </main>
-  );
-}
-
-function AdminRoleReviewPage({
-  authState,
-  getToken
-}: {
-  authState: AuthSyncState;
-  getToken: () => Promise<string | null>;
-}) {
-  const [state, setState] = useState<AdminReviewState>({ status: "loading" });
-  const [busyUserId, setBusyUserId] = useState<string | null>(null);
-
-  async function fetchPendingUsers() {
-    setState({ status: "loading" });
-    const token = await getToken();
-
-    if (!token) {
-      setState({ status: "error", message: "Authentication token unavailable." });
-      return;
-    }
-
-    const response = await fetch(buildAdminRoleReviewUrl(apiBaseUrl), {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    const body = await response.json();
-
-    if (!response.ok || !body.success) {
-      setState({ status: "error", message: body.message ?? "Role review failed." });
-      return;
-    }
-
-    setState({ status: "ready", users: body.data.users });
-  }
-
-  async function updateRole(userId: string, systemRole: string) {
-    setBusyUserId(userId);
-    const token = await getToken();
-
-    if (!token) {
-      setState({ status: "error", message: "Authentication token unavailable." });
-      setBusyUserId(null);
-      return;
-    }
-
-    const response = await fetch(buildAdminUserRoleUrl(apiBaseUrl, userId), {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ systemRole })
-    });
-    const body = await response.json();
-
-    if (!response.ok || !body.success) {
-      setState({ status: "error", message: body.message ?? "Role update failed." });
-      setBusyUserId(null);
-      return;
-    }
-
-    await fetchPendingUsers();
-    setBusyUserId(null);
-  }
-
-  async function updateStatus(userId: string, status: "ACTIVE" | "SUSPENDED") {
-    setBusyUserId(userId);
-    const token = await getToken();
-
-    if (!token) {
-      setState({ status: "error", message: "Authentication token unavailable." });
-      setBusyUserId(null);
-      return;
-    }
-
-    const response = await fetch(buildAdminUserStatusUrl(apiBaseUrl, userId), {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ status })
-    });
-    const body = await response.json();
-
-    if (!response.ok || !body.success) {
-      setState({ status: "error", message: body.message ?? "Status update failed." });
-      setBusyUserId(null);
-      return;
-    }
-
-    await fetchPendingUsers();
-    setBusyUserId(null);
-  }
-
-  useEffect(() => {
-    if (authState.status === "ready" && authState.user.systemRole === "ADMIN") {
-      void fetchPendingUsers();
-    }
-  }, [authState.status]);
-
-  if (authState.status !== "ready") {
+  if (state.status !== "ready") {
     return <LoadingScreen />;
   }
 
-  if (authState.user.systemRole !== "ADMIN") {
-    return (
-      <main className="app-shell">
-        <section className="auth-panel" aria-label="Admin access">
-          <div>
-            <p className="status-label">Admin</p>
-            <h2>Access unavailable</h2>
-            <p>Current role: {authState.user.systemRole ?? "Pending"}</p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.location.href = authState.redirectTo;
-            }}
-          >
-            Continue
-          </Button>
-        </section>
-      </main>
-    );
-  }
+  const destination = resolveAuthRoute({ isSignedIn: true, user: state.user });
 
   return (
-    <main className="app-shell admin-shell">
-      <section className="hero-panel compact-hero" aria-labelledby="admin-title">
-        <div>
-          <p className="eyebrow">Admin workspace</p>
-          <h1 id="admin-title">Role review</h1>
-          <p className="summary">
-            Pending users awaiting system-role assignment.
-          </p>
-        </div>
-        <div className="status-card" aria-label="Admin user menu">
-          <UserButton />
-          <div>
-            <p className="status-label">Signed in</p>
-            <strong>ADMIN</strong>
-          </div>
-        </div>
-      </section>
+    <Routes>
+      <Route path="/app/onboarding" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <OnboardingPage />
+        </Suspense>
+      } />
+      <Route path="/app/blocked" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <BlockedPage />
+        </Suspense>
+      } />
 
-      <section className="admin-panel" aria-label="Pending role requests">
-        <div className="admin-panel-header">
-          <div>
-            <p className="status-label">Pending users</p>
-            <h2>
-              {state.status === "ready"
-                ? `${state.users.length} waiting`
-                : "Loading"}
-            </h2>
+      <Route path="/app/admin/*" element={
+        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.ADMIN]}>
+          <div className="min-h-screen flex flex-col bg-background">
+            <main className="flex-1">
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/dashboard" element={<AdminDashboardPage />} />
+                  <Route path="/role-review" element={<AdminRoleReviewPage authState={state} getToken={getToken} />} />
+                  <Route path="*" element={<Navigate to="/app/admin/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </main>
           </div>
-          <Button variant="outline" onClick={fetchPendingUsers}>
-            <RefreshCw aria-hidden="true" />
-            Refresh
-          </Button>
-        </div>
+        </RoleGuard>
+      } />
 
-        {state.status === "error" ? (
-          <p className="admin-error">{state.message}</p>
-        ) : null}
-
-        {state.status === "ready" && state.users.length === 0 ? (
-          <div className="admin-empty">
-            <UserCheck aria-hidden="true" />
-            <span>No pending role requests</span>
+      <Route path="/app/mangaka/*" element={
+        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.MANGAKA]}>
+          <div className="min-h-screen flex flex-col bg-background">
+            <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+              <div className="flex-1 flex items-center gap-4">
+                <strong className="text-lg tracking-tight">MangaFlow</strong>
+                <span className="text-muted-foreground text-sm">Mangaka Workspace</span>
+              </div>
+              <UserButton />
+            </header>
+            <main className="flex-1">
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/dashboard" element={<MangakaDashboardPage />} />
+                  <Route path="/series" element={<SeriesListPage />} />
+                  <Route path="/series/new" element={<CreateSeriesPage />} />
+                  <Route path="/series/:seriesId" element={<SeriesDetailPage />} />
+                  <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+                  <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+                  <Route path="/ranking" element={<MangakaRankingPage />} />
+                  <Route path="*" element={<NotFoundPage homePath="/app/mangaka/dashboard" />} />
+                </Routes>
+              </Suspense>
+            </main>
           </div>
-        ) : null}
+        </RoleGuard>
+      } />
 
-        {state.status === "ready" && state.users.length > 0 ? (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Request</th>
-                  <th>Status</th>
-                  <th>Role</th>
-                  <th>Account</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <strong>{user.fullName}</strong>
-                      <span>{user.email}</span>
-                    </td>
-                    <td>{user.requestedSystemRole ?? "None"}</td>
-                    <td>{user.status}</td>
-                    <td>
-                      <div className="role-actions">
-                        {assignableSystemRoles.map((role) => (
-                          <Button
-                            key={role}
-                            size="sm"
-                            variant={
-                              role === user.requestedSystemRole ? "default" : "outline"
-                            }
-                            disabled={busyUserId === user.id}
-                            onClick={() => {
-                              void updateRole(user.id, role);
-                            }}
-                          >
-                            <UserCheck aria-hidden="true" />
-                            {role}
-                          </Button>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="account-actions">
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={busyUserId === user.id}
-                          onClick={() => {
-                            void updateStatus(user.id, "SUSPENDED");
-                          }}
-                        >
-                          <Ban aria-hidden="true" />
-                          Suspend
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busyUserId === user.id}
-                          onClick={() => {
-                            void updateStatus(user.id, "ACTIVE");
-                          }}
-                        >
-                          <RotateCcw aria-hidden="true" />
-                          Active
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Route path="/app/editor/*" element={
+        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.EDITOR]}>
+          <div className="min-h-screen flex flex-col bg-background">
+            <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+              <div className="flex-1 flex items-center gap-4">
+                <strong className="text-lg tracking-tight">MangaFlow</strong>
+                <span className="text-muted-foreground text-sm">Editor Workspace</span>
+              </div>
+              <UserButton />
+            </header>
+            <main className="flex-1">
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/dashboard" element={<EditorDashboardPage />} />
+                  <Route path="/series/:seriesId/manuscripts/:manuscriptId/review" element={<EditorReviewPage />} />
+                  <Route path="/chapters/:chapterId/pages" element={<ChapterPagesPage />} />
+                  <Route path="/pages/:pageId/workspace" element={<PageWorkspacePage />} />
+                  <Route path="*" element={<NotFoundPage homePath="/app/editor/dashboard" />} />
+                </Routes>
+              </Suspense>
+            </main>
           </div>
-        ) : null}
-      </section>
-    </main>
+        </RoleGuard>
+      } />
+
+      <Route path="/app/assistant/*" element={
+        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.ASSISTANT]}>
+          <div className="min-h-screen flex flex-col bg-background">
+            <header className="border-b bg-card h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+              <div className="flex-1 flex items-center gap-4">
+                <strong className="text-lg tracking-tight">MangaFlow</strong>
+                <span className="text-muted-foreground text-sm">Assistant Workspace</span>
+              </div>
+              <UserButton />
+            </header>
+            <main className="flex-1">
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/dashboard" element={<AssistantDashboardPage />} />
+                  <Route path="/tasks/:taskId" element={<AssistantTaskDetailPage />} />
+                  <Route path="*" element={<NotFoundPage homePath="/app/assistant/dashboard" />} />
+                </Routes>
+              </Suspense>
+            </main>
+          </div>
+        </RoleGuard>
+      } />
+
+      <Route path="/app/board/*" element={
+        <RoleGuard user={state.user} allowedRoles={[SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN]}>
+          <div className="min-h-screen flex flex-col bg-slate-950">
+            <header className="border-b bg-slate-900 border-slate-800/80 h-14 flex items-center px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+              <div className="flex-1 flex items-center gap-4">
+                <strong className="text-lg tracking-tight text-white">MangaFlow</strong>
+                <span className="text-slate-400 text-sm">Board Workspace</span>
+              </div>
+              <UserButton />
+            </header>
+            <main className="flex-1 bg-slate-950">
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/dashboard" element={<BoardDashboardPage />} />
+                  <Route path="/series/:seriesId/review" element={<BoardSeriesReviewPage />} />
+                  <Route path="/ranking/import" element={<ImportRankingPage />} />
+                  <Route path="/ranking" element={<BoardRankingPage />} />
+                  <Route path="*" element={<NotFoundPage homePath="/app/board/dashboard" />} />
+                </Routes>
+              </Suspense>
+            </main>
+          </div>
+        </RoleGuard>
+      } />
+
+      <Route path="*" element={<Navigate to={destination} replace />} />
+    </Routes>
   );
 }
 
 function App({ clerkConfigured }: AppProps) {
-  const path = window.location.pathname;
-
   if (!clerkConfigured) {
-    return <LandingPage clerkConfigured={false} />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <LazyLandingPage clerkConfigured={false} />
+      </Suspense>
+    );
   }
 
-  if (path.startsWith("/sign-in")) {
-    return <SignIn />;
-  }
-
-  if (path.startsWith("/sign-up")) {
-    return <SignUp />;
-  }
-
-  return <AuthenticatedApp />;
+  return (
+    <Routes>
+      <Route path="/sign-in/*" element={<SignIn />} />
+      <Route path="/sign-up/*" element={<SignUp />} />
+      <Route path="/" element={<HomeGate />} />
+      <Route path="/app/*" element={<AuthenticatedApp />} />
+      <Route path="*" element={<NotFoundPage homePath="/" />} />
+    </Routes>
+  );
 }
 
 export default App;

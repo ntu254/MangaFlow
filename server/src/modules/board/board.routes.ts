@@ -76,7 +76,7 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
   });
 
   // 4. Get Vote Summary
-  router.get("/:seriesId/votes/summary", authenticate, async (req, res) => {
+  router.get("/:seriesId/votes/summary", authenticate, requireSystemRole([SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
     const seriesId = req.params.seriesId as string;
     try {
       const summary = await dependencies.boardService.getVoteSummary(seriesId);
@@ -87,16 +87,10 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
   });
 
   // 5. Finalize Decision
-  router.post("/:seriesId/decisions/finalize", authenticate, async (req, res) => {
-    const authReq = req as RoleAuthorizedRequest;
+  router.post("/:seriesId/decisions/finalize", authenticate, requireSystemRole([SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
+    const user = (req as RoleAuthorizedRequest).localUser;
     const seriesId = req.params.seriesId as string;
     try {
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
-      if (!user) {
-        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
-        return;
-      }
-
       const decision = await dependencies.boardService.finalizeDecision(seriesId, user.id);
       res.json(ok(decision));
     } catch (error) {
@@ -109,17 +103,11 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
   });
 
   // 6. Tie-break Decision
-  router.post("/:seriesId/decisions/tie-break", authenticate, async (req, res) => {
-    const authReq = req as RoleAuthorizedRequest;
+  router.post("/:seriesId/decisions/tie-break", authenticate, requireSystemRole([SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
+    const user = (req as RoleAuthorizedRequest).localUser;
     const seriesId = req.params.seriesId as string;
     const { decision, reason } = req.body;
     try {
-      const user = await dependencies.userRepository.findByClerkId(authReq.auth!.clerkId);
-      if (!user) {
-        res.status(401).json(fail("User not synced", "USER_NOT_SYNCED"));
-        return;
-      }
-
       const boardDecision = await dependencies.boardService.finalizeTieBreak(seriesId, user.id, decision, reason);
       res.json(ok(boardDecision));
     } catch (error) {

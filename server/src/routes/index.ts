@@ -114,15 +114,6 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}) {
   );
 
   router.use(
-    "/series",
-    createBoardRouter({
-      authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
-      userRepository: dependencies.userRepository ?? createMongoUserRepository(),
-      boardService
-    })
-  );
-
-  router.use(
     createRankingRouter({
       authVerifier: dependencies.authVerifier ?? createClerkAuthVerifier(),
       userRepository: dependencies.userRepository ?? createMongoUserRepository(),

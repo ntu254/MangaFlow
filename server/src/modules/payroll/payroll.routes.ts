@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { fail, ok } from "../../shared/responses/api-response.js";
 import { SERIES_MEMBER_ROLES, SYSTEM_ROLES } from "../../shared/constants/roles.js";
 import { requireAuth, type AuthenticatedRequest, type AuthVerifier } from "../auth/auth.middleware.js";
+import { requireSystemRole, type RoleAuthorizedRequest } from "../auth/rbac.middleware.js";
 import type { AuthUser, UserRepository } from "../auth/auth.service.js";
 import type { SeriesRepository } from "../series/series.service.js";
 import type { TaskRepository } from "../task/task.repository.js";
@@ -90,7 +91,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
   const authenticate = requireAuth(dependencies.authVerifier);
   const service = createPayrollService(dependencies.payrollRepository, dependencies.taskRepository, dependencies.seriesRepository);
 
-  router.get("/task-rates", authenticate, async (_req, res) => {
+  router.get("/task-rates", authenticate, requireSystemRole([SYSTEM_ROLES.ADMIN, SYSTEM_ROLES.MANGAKA, SYSTEM_ROLES.ASSISTANT, SYSTEM_ROLES.EDITOR], dependencies.userRepository), async (_req, res) => {
     try {
       res.json(ok(await service.listTaskRates()));
     } catch (error) {
@@ -109,7 +110,7 @@ export function createPayrollRouter(dependencies: PayrollRouteDependencies) {
     }
   });
 
-  router.get("/task-rates/:taskRateId", authenticate, async (req, res) => {
+  router.get("/task-rates/:taskRateId", authenticate, requireSystemRole([SYSTEM_ROLES.ADMIN, SYSTEM_ROLES.MANGAKA, SYSTEM_ROLES.ASSISTANT, SYSTEM_ROLES.EDITOR], dependencies.userRepository), async (req, res) => {
     try {
       res.json(ok(await service.getTaskRate(req.params.taskRateId as string)));
     } catch (error) {

@@ -224,12 +224,12 @@ describe("board routes integration tests", () => {
     expect(response.body.success).toBe(false);
   });
 
-  it("POST /api/series/:seriesId/votes - submits vote for active board member", async () => {
+  it("POST /api/board/:seriesId/votes - submits vote for active board member", async () => {
     const findSpy = vi.spyOn(SeriesModel, "findById").mockResolvedValue({ id: seriesId } as any);
     const { app } = createBoardApp(memberUser.clerkId, defaultMembers);
 
     const response = await request(app)
-      .post(`/api/series/${seriesId}/votes`)
+      .post(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid")
       .send({ vote: "APPROVE", reason: "Superb plot" });
 
@@ -245,12 +245,12 @@ describe("board routes integration tests", () => {
     findSpy.mockRestore();
   });
 
-  it("POST /api/series/:seriesId/votes - denies vote for inactive board member", async () => {
+  it("POST /api/board/:seriesId/votes - denies vote for inactive board member", async () => {
     const findSpy = vi.spyOn(SeriesModel, "findById").mockResolvedValue({ id: seriesId } as any);
     const { app } = createBoardApp(inactiveUser.clerkId, defaultMembers);
 
     const response = await request(app)
-      .post(`/api/series/${seriesId}/votes`)
+      .post(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid")
       .send({ vote: "APPROVE" });
 
@@ -260,14 +260,14 @@ describe("board routes integration tests", () => {
     findSpy.mockRestore();
   });
 
-  it("GET /api/series/:seriesId/votes - allows BOARD and Series Owner, denies strangers", async () => {
+  it("GET /api/board/:seriesId/votes - allows BOARD and Series Owner, denies strangers", async () => {
     const findSpy = vi.spyOn(SeriesModel, "findById").mockResolvedValue({ id: seriesId, ownerId: mangakaId } as any);
     const vote: BoardVote = { id: "v1", seriesId, boardMemberId: "bm_member", vote: "APPROVE", createdAt: now, updatedAt: now };
 
     // 1. BOARD user -> succeeds
     const appBoard = createBoardApp(memberUser.clerkId, defaultMembers, [vote]).app;
     const resBoard = await request(appBoard)
-      .get(`/api/series/${seriesId}/votes`)
+      .get(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid");
     expect(resBoard.status).toBe(200);
     expect(resBoard.body.data).toHaveLength(1);
@@ -275,30 +275,30 @@ describe("board routes integration tests", () => {
     // 2. Mangaka Owner -> succeeds
     const appOwner = createBoardApp(mangakaUser.clerkId, defaultMembers, [vote]).app;
     const resOwner = await request(appOwner)
-      .get(`/api/series/${seriesId}/votes`)
+      .get(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid");
     expect(resOwner.status).toBe(200);
 
     // 3. Assistant Stranger -> denies
     const appStranger = createBoardApp(assistantUser.clerkId, defaultMembers, [vote]).app;
     const resStranger = await request(appStranger)
-      .get(`/api/series/${seriesId}/votes`)
+      .get(`/api/board/${seriesId}/votes`)
       .set("Authorization", "Bearer valid");
     expect(resStranger.status).toBe(403);
 
     findSpy.mockRestore();
   });
 
-  it("GET /api/series/:seriesId/votes/summary - returns vote summary", async () => {
+  it("GET /api/board/:seriesId/votes/summary - returns vote summary", async () => {
     const votes: BoardVote[] = [
       { id: "v1", seriesId, boardMemberId: "bm1", vote: "APPROVE", createdAt: now, updatedAt: now },
       { id: "v2", seriesId, boardMemberId: "bm2", vote: "APPROVE", createdAt: now, updatedAt: now },
       { id: "v3", seriesId, boardMemberId: "bm3", vote: "REJECT", createdAt: now, updatedAt: now }
     ];
-    const { app } = createBoardApp(mangakaUser.clerkId, defaultMembers, votes);
+    const { app } = createBoardApp(memberUser.clerkId, defaultMembers, votes);
 
     const response = await request(app)
-      .get(`/api/series/${seriesId}/votes/summary`)
+      .get(`/api/board/${seriesId}/votes/summary`)
       .set("Authorization", "Bearer valid");
 
     expect(response.status).toBe(200);
@@ -310,7 +310,7 @@ describe("board routes integration tests", () => {
     });
   });
 
-  it("POST /api/series/:seriesId/decisions/finalize - handles majority decision and tie scenario", async () => {
+  it("POST /api/board/:seriesId/decisions/finalize - handles majority decision and tie scenario", async () => {
     // Scenario A: Majority exists
     const votesApprove: BoardVote[] = [
       { id: "v1", seriesId, boardMemberId: "bm1", vote: "APPROVE", createdAt: now, updatedAt: now },
@@ -320,7 +320,7 @@ describe("board routes integration tests", () => {
 
     const appChair = createBoardApp(chairUser.clerkId, defaultMembers, votesApprove).app;
     const resFinalize = await request(appChair)
-      .post(`/api/series/${seriesId}/decisions/finalize`)
+      .post(`/api/board/${seriesId}/decisions/finalize`)
       .set("Authorization", "Bearer valid");
 
     expect(resFinalize.status).toBe(200);
@@ -334,14 +334,14 @@ describe("board routes integration tests", () => {
     ];
     const appTie = createBoardApp(chairUser.clerkId, defaultMembers, votesTie).app;
     const resTie = await request(appTie)
-      .post(`/api/series/${seriesId}/decisions/finalize`)
+      .post(`/api/board/${seriesId}/decisions/finalize`)
       .set("Authorization", "Bearer valid");
 
     expect(resTie.status).toBe(400);
     expect(resTie.body.code).toBe("TIE_BREAK_REQUIRED");
   });
 
-  it("POST /api/series/:seriesId/decisions/tie-break - lets Board Chair tie-break, denies others", async () => {
+  it("POST /api/board/:seriesId/decisions/tie-break - lets Board Chair tie-break, denies others", async () => {
     const votesTie: BoardVote[] = [
       { id: "v1", seriesId, boardMemberId: "bm1", vote: "APPROVE", createdAt: now, updatedAt: now },
       { id: "v2", seriesId, boardMemberId: "bm2", vote: "REJECT", createdAt: now, updatedAt: now }
@@ -350,7 +350,7 @@ describe("board routes integration tests", () => {
     // 1. Board Chair -> succeeds
     const appChair = createBoardApp(chairUser.clerkId, defaultMembers, votesTie).app;
     const resChair = await request(appChair)
-      .post(`/api/series/${seriesId}/decisions/tie-break`)
+      .post(`/api/board/${seriesId}/decisions/tie-break`)
       .set("Authorization", "Bearer valid")
       .send({ decision: "REJECTED", reason: "Tie break casting vote" });
 
@@ -365,7 +365,7 @@ describe("board routes integration tests", () => {
     // 2. Regular member -> denies (403)
     const appMember = createBoardApp(memberUser.clerkId, defaultMembers, votesTie).app;
     const resMember = await request(appMember)
-      .post(`/api/series/${seriesId}/decisions/tie-break`)
+      .post(`/api/board/${seriesId}/decisions/tie-break`)
       .set("Authorization", "Bearer valid")
       .send({ decision: "APPROVED", reason: "Trying to hijack" });
 
