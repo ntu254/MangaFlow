@@ -3,7 +3,27 @@ import type { Series, SeriesRepository, UpdateSeriesInput } from "./series.servi
 import { SeriesModel, type SeriesDocument } from "./series.model.js";
 import { SeriesMemberModel } from "./series-member.model.js";
 
-function serializeSeries(document: SeriesDocument & { _id: unknown }): Series {
+function serializeSeries(document: any): Series {
+  const serializeUserField = (field: any) => {
+    if (!field) return undefined;
+    if (field && typeof field === "object" && field._id) {
+      return {
+        id: String(field._id),
+        fullName: field.fullName,
+        email: field.email
+      };
+    }
+    return undefined;
+  };
+
+  const getUserIdString = (field: any) => {
+    if (!field) return "";
+    if (field && typeof field === "object" && field._id) {
+      return String(field._id);
+    }
+    return String(field);
+  };
+
   return {
     id: String(document._id),
     title: document.title,
@@ -11,7 +31,8 @@ function serializeSeries(document: SeriesDocument & { _id: unknown }): Series {
     description: document.description,
     genre: document.genre,
     coverUrl: document.coverUrl,
-    ownerId: String(document.ownerId),
+    ownerId: getUserIdString(document.ownerId),
+    ownerUserInfo: serializeUserField(document.ownerId),
     status: document.status,
     publicationType: document.publicationType,
     createdAt: document.createdAt.toISOString(),
@@ -54,7 +75,8 @@ export function createMongoSeriesRepository(): SeriesRepository {
         );
 
         await session.commitTransaction();
-        return serializeSeries(series);
+        const populated = await SeriesModel.findById(series._id).populate("ownerId");
+        return serializeSeries(populated || series);
       } catch (error) {
         await session.abortTransaction();
         throw error;
@@ -65,12 +87,12 @@ export function createMongoSeriesRepository(): SeriesRepository {
 
     async findSeriesById(seriesId: string) {
       if (!mongoose.isValidObjectId(seriesId)) return null;
-      const series = await SeriesModel.findById(seriesId);
+      const series = await SeriesModel.findById(seriesId).populate("ownerId");
       return series ? serializeSeries(series) : null;
     },
 
     async findSeriesBySlug(slug: string) {
-      const series = await SeriesModel.findOne({ slug });
+      const series = await SeriesModel.findOne({ slug }).populate("ownerId");
       return series ? serializeSeries(series) : null;
     },
 
@@ -80,7 +102,7 @@ export function createMongoSeriesRepository(): SeriesRepository {
       const memberships = await SeriesMemberModel.find({ userId, status: "ACTIVE" });
       const seriesIds = memberships.map(m => m.seriesId);
 
-      const seriesList = await SeriesModel.find({ _id: { $in: seriesIds } }).sort({ updatedAt: -1 });
+      const seriesList = await SeriesModel.find({ _id: { $in: seriesIds } }).populate("ownerId").sort({ updatedAt: -1 });
       return seriesList.map(serializeSeries);
     },
 
@@ -91,7 +113,7 @@ export function createMongoSeriesRepository(): SeriesRepository {
         seriesId,
         { $set: data },
         { returnDocument: "after" }
-      );
+      ).populate("ownerId");
       
       return series ? serializeSeries(series) : null;
     },

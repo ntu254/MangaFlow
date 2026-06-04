@@ -19,6 +19,10 @@ export interface BoardMember {
   status: BoardMemberStatus;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    fullName: string;
+    email: string;
+  };
 }
 
 export interface BoardVote {
@@ -47,15 +51,22 @@ export interface BoardDecision {
   updatedAt: string;
 }
 
-function serializeBoardMember(doc: BoardMemberDocument & { _id: unknown }): BoardMember {
-  return {
+function serializeBoardMember(doc: any): BoardMember {
+  const serialized: BoardMember = {
     id: String(doc._id),
-    userId: String(doc.userId),
+    userId: doc.userId && doc.userId._id ? String(doc.userId._id) : String(doc.userId),
     role: doc.role,
     status: doc.status,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString()
   };
+  if (doc.userId && typeof doc.userId === "object" && doc.userId.email) {
+    serialized.user = {
+      fullName: doc.userId.fullName,
+      email: doc.userId.email
+    };
+  }
+  return serialized;
 }
 
 function serializeBoardVote(doc: BoardVoteDocument & { _id: unknown }): BoardVote {
@@ -96,23 +107,24 @@ export function createMongoBoardRepository() {
         role,
         status
       });
-      return serializeBoardMember(doc);
+      const populated = await BoardMemberModel.findById(doc._id).populate("userId");
+      return serializeBoardMember(populated || doc);
     },
 
     async findBoardMemberById(id: string): Promise<BoardMember | null> {
       if (!mongoose.isValidObjectId(id)) return null;
-      const doc = await BoardMemberModel.findById(id);
+      const doc = await BoardMemberModel.findById(id).populate("userId");
       return doc ? serializeBoardMember(doc) : null;
     },
 
     async findBoardMemberByUserId(userId: string): Promise<BoardMember | null> {
       if (!mongoose.isValidObjectId(userId)) return null;
-      const doc = await BoardMemberModel.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+      const doc = await BoardMemberModel.findOne({ userId: new mongoose.Types.ObjectId(userId) }).populate("userId");
       return doc ? serializeBoardMember(doc) : null;
     },
 
     async listBoardMembers(): Promise<BoardMember[]> {
-      const docs = await BoardMemberModel.find().sort({ createdAt: 1 });
+      const docs = await BoardMemberModel.find().populate("userId").sort({ createdAt: 1 });
       return docs.map(serializeBoardMember);
     },
 

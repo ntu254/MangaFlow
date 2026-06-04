@@ -8,6 +8,11 @@ export type Series = {
   genre: string[];
   coverUrl: string | null;
   ownerId: string;
+  ownerUserInfo?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
   status: string;
   publicationType: string | null;
   createdAt: string;

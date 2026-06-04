@@ -244,7 +244,9 @@ export function BoardSeriesReviewPage() {
             <section className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-sm space-y-4">
               <div>
                 <h1 className="text-2xl font-black text-white">{series.title}</h1>
-                <p className="text-xs text-slate-400 mt-1">Series Owner ID: {series.ownerId}</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Series Owner: {series.ownerUserInfo?.fullName || series.ownerUserInfo?.email || series.ownerId}
+                </p>
               </div>
               <p className="text-sm text-slate-300 leading-relaxed">
                 {series.description || "No description provided."}
@@ -349,7 +351,7 @@ export function BoardSeriesReviewPage() {
                           <strong className="text-xs text-slate-200">
                             {currentUser && member.userId === currentUser.id
                               ? "You"
-                              : `Board Member (${member.userId.slice(-6)})`}
+                              : member.user?.fullName || member.user?.email || `Board Member (${member.userId.slice(-6)})`}
                           </strong>
                           <span className="text-[10px] text-slate-500 ml-2">
                             ({member.role === "BOARD_CHAIR" ? "Chair" : "Member"})

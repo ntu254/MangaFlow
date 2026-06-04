@@ -978,7 +978,9 @@ export function PageWorkspacePage() {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <h3 className="text-sm font-medium text-[#2f243a]">{task.title}</h3>
-                              <p className="mt-1 text-xs text-muted-foreground">{task.assignedTo}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {task.assignedToUserInfo?.fullName || task.assignedToUserInfo?.email || task.assignedTo}
+                              </p>
                             </div>
                             <Badge variant={task.status === "TODO" ? "outline" : "secondary"}>{task.status}</Badge>
                           </div>

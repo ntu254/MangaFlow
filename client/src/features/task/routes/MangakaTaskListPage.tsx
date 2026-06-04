@@ -162,7 +162,7 @@ export function MangakaTaskListPage() {
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>Type: {task.type}</span>
-                      <span>Assigned to: {task.assignedTo}</span>
+                      <span>Assigned to: {task.assignedToUserInfo?.fullName || task.assignedToUserInfo?.email || task.assignedTo}</span>
                       {task.dueDate && <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>}
                     </div>
                   </div>

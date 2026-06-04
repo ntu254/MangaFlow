@@ -1,6 +1,12 @@
 import type { CommentRepository } from "./comment.repository.js";
 import type { CommentStatus, CommentTargetType } from "./comment.model.js";
 
+export type CommentUser = {
+  id: string;
+  fullName: string;
+  email: string;
+};
+
 export type Comment = {
   id: string;
   targetType: CommentTargetType;
@@ -9,14 +15,19 @@ export type Comment = {
   annotationId?: string;
   content: string;
   createdBy: string;
+  createdByUserInfo?: CommentUser;
   status: CommentStatus;
   fixedBy?: string;
+  fixedByUserInfo?: CommentUser;
   fixedAt?: string;
   verifiedBy?: string;
+  verifiedByUserInfo?: CommentUser;
   verifiedAt?: string;
   resolvedBy?: string;
+  resolvedByUserInfo?: CommentUser;
   resolvedAt?: string;
   reopenedBy?: string;
+  reopenedByUserInfo?: CommentUser;
   reopenedAt?: string;
   reopenReason?: string;
   createdAt: string;

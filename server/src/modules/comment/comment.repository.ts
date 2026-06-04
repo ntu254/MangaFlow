@@ -2,7 +2,27 @@ import mongoose from "mongoose";
 import { CommentModel, type CommentDocument, type CommentTargetType } from "./comment.model.js";
 import type { CreateCommentRecord, Comment, UpdateCommentRecord } from "./comment.service.js";
 
-function serializeComment(document: CommentDocument & { _id: unknown }): Comment {
+function serializeComment(document: any): Comment {
+  const serializeUserField = (field: any) => {
+    if (!field) return undefined;
+    if (field && typeof field === "object" && field._id) {
+      return {
+        id: String(field._id),
+        fullName: field.fullName,
+        email: field.email
+      };
+    }
+    return undefined;
+  };
+
+  const getUserIdString = (field: any) => {
+    if (!field) return "";
+    if (field && typeof field === "object" && field._id) {
+      return String(field._id);
+    }
+    return String(field);
+  };
+
   return {
     id: String(document._id),
     targetType: document.targetType,
@@ -10,15 +30,20 @@ function serializeComment(document: CommentDocument & { _id: unknown }): Comment
     pageId: document.pageId ? String(document.pageId) : undefined,
     annotationId: document.annotationId ? String(document.annotationId) : undefined,
     content: document.content,
-    createdBy: String(document.createdBy),
+    createdBy: getUserIdString(document.createdBy),
+    createdByUserInfo: serializeUserField(document.createdBy),
     status: document.status,
-    fixedBy: document.fixedBy ? String(document.fixedBy) : undefined,
+    fixedBy: document.fixedBy ? getUserIdString(document.fixedBy) : undefined,
+    fixedByUserInfo: serializeUserField(document.fixedBy),
     fixedAt: document.fixedAt?.toISOString(),
-    verifiedBy: document.verifiedBy ? String(document.verifiedBy) : undefined,
+    verifiedBy: document.verifiedBy ? getUserIdString(document.verifiedBy) : undefined,
+    verifiedByUserInfo: serializeUserField(document.verifiedBy),
     verifiedAt: document.verifiedAt?.toISOString(),
-    resolvedBy: document.resolvedBy ? String(document.resolvedBy) : undefined,
+    resolvedBy: document.resolvedBy ? getUserIdString(document.resolvedBy) : undefined,
+    resolvedByUserInfo: serializeUserField(document.resolvedBy),
     resolvedAt: document.resolvedAt?.toISOString(),
-    reopenedBy: document.reopenedBy ? String(document.reopenedBy) : undefined,
+    reopenedBy: document.reopenedBy ? getUserIdString(document.reopenedBy) : undefined,
+    reopenedByUserInfo: serializeUserField(document.reopenedBy),
     reopenedAt: document.reopenedAt?.toISOString(),
     reopenReason: document.reopenReason,
     createdAt: document.createdAt.toISOString(),
@@ -38,18 +63,35 @@ export function createMongoCommentRepository() {
         createdBy: data.createdBy,
         status: data.status
       });
-      return serializeComment(comment);
+      const populated = await CommentModel.findById(comment._id)
+        .populate("createdBy")
+        .populate("fixedBy")
+        .populate("verifiedBy")
+        .populate("resolvedBy")
+        .populate("reopenedBy");
+      return serializeComment(populated || comment);
     },
 
     async findById(commentId: string): Promise<Comment | null> {
       if (!mongoose.isValidObjectId(commentId)) return null;
-      const comment = await CommentModel.findById(commentId);
+      const comment = await CommentModel.findById(commentId)
+        .populate("createdBy")
+        .populate("fixedBy")
+        .populate("verifiedBy")
+        .populate("resolvedBy")
+        .populate("reopenedBy");
       return comment ? serializeComment(comment) : null;
     },
 
     async findByTarget(targetType: CommentTargetType, targetId: string): Promise<Comment[]> {
       if (!mongoose.isValidObjectId(targetId)) return [];
-      const comments = await CommentModel.find({ targetType, targetId }).sort({ createdAt: -1 });
+      const comments = await CommentModel.find({ targetType, targetId })
+        .populate("createdBy")
+        .populate("fixedBy")
+        .populate("verifiedBy")
+        .populate("resolvedBy")
+        .populate("reopenedBy")
+        .sort({ createdAt: -1 });
       return comments.map(serializeComment);
     },
 
@@ -58,7 +100,12 @@ export function createMongoCommentRepository() {
         commentId,
         { $set: updates },
         { returnDocument: "after" }
-      );
+      )
+        .populate("createdBy")
+        .populate("fixedBy")
+        .populate("verifiedBy")
+        .populate("resolvedBy")
+        .populate("reopenedBy");
       if (!comment) {
         throw new Error("Comment not found for update");
       }

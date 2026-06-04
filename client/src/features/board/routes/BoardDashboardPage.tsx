@@ -262,7 +262,7 @@ export function BoardDashboardPage() {
                       <p className="font-semibold text-slate-300">
                         {currentUser && member.userId === currentUser.id
                           ? "You"
-                          : `Board Member (${member.userId.slice(-6)})`}
+                          : member.user?.fullName || member.user?.email || `Board Member (${member.userId.slice(-6)})`}
                       </p>
                       <p className="text-[10px] text-slate-500">
                         Role: {member.role === "BOARD_CHAIR" ? "Chair" : "Member"}

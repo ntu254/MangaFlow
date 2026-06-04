@@ -66,8 +66,10 @@ export function CommentItem({
     }
   };
 
-  const formatUserId = (id: string) => {
+  const formatUserId = (id: string, userInfo?: { fullName: string; email: string }) => {
     if (currentUser && id === currentUser.id) return "You";
+    if (userInfo?.fullName) return userInfo.fullName;
+    if (userInfo?.email) return userInfo.email;
     return `User (${id.slice(-6)})`;
   };
 
@@ -81,7 +83,7 @@ export function CommentItem({
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-[#2f243a]">
-            {formatUserId(comment.createdBy)}
+            {formatUserId(comment.createdBy, comment.createdByUserInfo)}
           </span>
           <span className="text-xs text-muted-foreground">
             {formatDate(comment.createdAt)}
@@ -110,26 +112,26 @@ export function CommentItem({
           {comment.fixedBy && (
             <li className="flex items-center gap-1.5">
               <Check className="size-3 text-amber-500" />
-              <span>Marked fixed by {formatUserId(comment.fixedBy)} at {formatDate(comment.fixedAt)}</span>
+              <span>Marked fixed by {formatUserId(comment.fixedBy, comment.fixedByUserInfo)} at {formatDate(comment.fixedAt)}</span>
             </li>
           )}
           {comment.verifiedBy && (
             <li className="flex items-center gap-1.5">
               <CheckCircle2 className="size-3 text-emerald-500" />
-              <span>Verified fixed by {formatUserId(comment.verifiedBy)} at {formatDate(comment.verifiedAt)}</span>
+              <span>Verified fixed by {formatUserId(comment.verifiedBy, comment.verifiedByUserInfo)} at {formatDate(comment.verifiedAt)}</span>
             </li>
           )}
           {comment.resolvedBy && (
             <li className="flex items-center gap-1.5">
               <ShieldCheck className="size-3 text-blue-500" />
-              <span>Resolved by {formatUserId(comment.resolvedBy)} at {formatDate(comment.resolvedAt)}</span>
+              <span>Resolved by {formatUserId(comment.resolvedBy, comment.resolvedByUserInfo)} at {formatDate(comment.resolvedAt)}</span>
             </li>
           )}
           {comment.reopenedBy && (
             <li className="flex flex-col gap-0.5 border-l-2 border-destructive/30 pl-2 mt-1 py-0.5 bg-destructive/5 rounded-r">
               <div className="flex items-center gap-1.5">
                 <RotateCcw className="size-3 text-destructive" />
-                <span className="font-medium text-destructive">Reopened by {formatUserId(comment.reopenedBy)} at {formatDate(comment.reopenedAt)}</span>
+                <span className="font-medium text-destructive">Reopened by {formatUserId(comment.reopenedBy, comment.reopenedByUserInfo)} at {formatDate(comment.reopenedAt)}</span>
               </div>
               {comment.reopenReason && (
                 <p className="text-foreground text-xs italic mt-0.5">

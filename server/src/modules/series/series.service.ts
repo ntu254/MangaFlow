@@ -10,6 +10,7 @@ export type Series = {
   genre: string[];
   coverUrl: string | null;
   ownerId: string;
+  ownerUserInfo?: { id: string; fullName: string; email: string };
   status: SeriesStatus;
   publicationType: PublicationType | null;
   createdAt: string;

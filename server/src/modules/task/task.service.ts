@@ -8,7 +8,9 @@ export type Task = {
   pageId: string;
   regionId?: string;
   assignedBy: string;
+  assignedByUserInfo?: { id: string; fullName: string; email: string };
   assignedTo: string;
+  assignedToUserInfo?: { id: string; fullName: string; email: string };
   title: string;
   description: string;
   type: TaskType;

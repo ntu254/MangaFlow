@@ -272,7 +272,9 @@ export function MangakaPayrollPage() {
                       <TableRow key={t.id} className="border-b border-[#eadff6]/50">
                         <TableCell className="font-semibold text-xs text-[#2f243a]">{t.title}</TableCell>
                         <TableCell className="text-[10px] font-bold text-[#8a7a99] uppercase tracking-wider">{t.type}</TableCell>
-                        <TableCell className="text-xs text-[#5f5270] truncate max-w-[120px] font-mono" title={t.assignedTo}>{t.assignedTo}</TableCell>
+                        <TableCell className="text-xs text-[#5f5270]" title={t.assignedTo}>
+                          {t.assignedToUserInfo?.fullName || t.assignedToUserInfo?.email || t.assignedTo}
+                        </TableCell>
                         <TableCell className="text-right text-xs font-bold text-[#2f243a]">{t.baseRate.toLocaleString()} PTS</TableCell>
                         <TableCell className="text-center text-xs font-semibold text-[#5f5270]">Round {t.revisionRound}</TableCell>
                         <TableCell className="text-center">
@@ -328,7 +330,7 @@ export function MangakaPayrollPage() {
                     {state.earnings.map((e) => (
                       <TableRow key={e.id} className="border-b border-[#eadff6]/50">
                         <TableCell className="font-semibold text-xs text-[#2f243a]">
-                          {e.assistantName || <span className="font-mono text-xs text-muted-foreground">{e.assistantId.slice(-6)}</span>}
+                          {e.assistantName || "Unknown Assistant"}
                         </TableCell>
                         <TableCell className="max-w-[160px] truncate text-xs text-[#5f5270] font-medium" title={e.taskTitle}>
                           {e.taskTitle || "Unnamed Task"}

@@ -254,7 +254,7 @@ export function AdminPayrollPage() {
                     {filteredEarnings.map((e) => (
                       <TableRow key={e.id} className="border-b border-[#eadff6]/50">
                         <TableCell className="font-semibold text-xs text-[#2f243a]">
-                          {e.assistantName || <span className="font-mono text-xs text-muted-foreground">{e.assistantId.slice(-6)}</span>}
+                          {e.assistantName || "Unknown Assistant"}
                         </TableCell>
                         <TableCell className="font-medium text-xs text-[#5f5270]">{e.seriesTitle || "Private Series"}</TableCell>
                         <TableCell className="text-[10px] font-bold text-[#8a7a99] uppercase tracking-wider">{e.taskType}</TableCell>

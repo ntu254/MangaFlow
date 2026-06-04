@@ -6,15 +6,37 @@ function serializeDate(value?: Date) {
   return value ? value.toISOString() : undefined;
 }
 
-function serializeTask(document: TaskDocument & { _id: unknown }): Task {
+function serializeTask(document: any): Task {
+  const serializeUserField = (field: any) => {
+    if (!field) return undefined;
+    if (field && typeof field === "object" && field._id) {
+      return {
+        id: String(field._id),
+        fullName: field.fullName,
+        email: field.email
+      };
+    }
+    return undefined;
+  };
+
+  const getUserIdString = (field: any) => {
+    if (!field) return "";
+    if (field && typeof field === "object" && field._id) {
+      return String(field._id);
+    }
+    return String(field);
+  };
+
   return {
     id: String(document._id),
     seriesId: String(document.seriesId),
     chapterId: String(document.chapterId),
     pageId: String(document.pageId),
     regionId: document.regionId ? String(document.regionId) : undefined,
-    assignedBy: String(document.assignedBy),
-    assignedTo: String(document.assignedTo),
+    assignedBy: getUserIdString(document.assignedBy),
+    assignedByUserInfo: serializeUserField(document.assignedBy),
+    assignedTo: getUserIdString(document.assignedTo),
+    assignedToUserInfo: serializeUserField(document.assignedTo),
     title: document.title,
     description: document.description,
     type: document.type,
@@ -52,30 +74,31 @@ export function createMongoTaskRepository() {
         bonusAmount: data.bonusAmount ?? 0,
         dueDate: data.dueDate
       });
-      return serializeTask(task);
+      const populated = await TaskModel.findById(task._id).populate("assignedTo").populate("assignedBy");
+      return serializeTask(populated || task);
     },
 
     async findAll(): Promise<Task[]> {
-      const tasks = await TaskModel.find().sort({ createdAt: -1 }).limit(100);
+      const tasks = await TaskModel.find().populate("assignedTo").populate("assignedBy").sort({ createdAt: -1 }).limit(100);
       return tasks.map(serializeTask);
     },
 
     async findByAssignedTo(userId: string): Promise<Task[]> {
       if (!mongoose.isValidObjectId(userId)) return [];
-      const tasks = await TaskModel.find({ assignedTo: userId }).sort({ createdAt: -1 }).limit(100);
+      const tasks = await TaskModel.find({ assignedTo: userId }).populate("assignedTo").populate("assignedBy").sort({ createdAt: -1 }).limit(100);
       return tasks.map(serializeTask);
     },
 
     async findBySeriesIds(seriesIds: string[]): Promise<Task[]> {
       const validSeriesIds = seriesIds.filter((seriesId) => mongoose.isValidObjectId(seriesId));
       if (validSeriesIds.length === 0) return [];
-      const tasks = await TaskModel.find({ seriesId: { $in: validSeriesIds } }).sort({ createdAt: -1 }).limit(100);
+      const tasks = await TaskModel.find({ seriesId: { $in: validSeriesIds } }).populate("assignedTo").populate("assignedBy").sort({ createdAt: -1 }).limit(100);
       return tasks.map(serializeTask);
     },
 
     async findById(taskId: string): Promise<Task | null> {
       if (!mongoose.isValidObjectId(taskId)) return null;
-      const task = await TaskModel.findById(taskId);
+      const task = await TaskModel.findById(taskId).populate("assignedTo").populate("assignedBy");
       return task ? serializeTask(task) : null;
     },
 
@@ -93,7 +116,7 @@ export function createMongoTaskRepository() {
       if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
       if (data.submittedAt !== undefined) updateData.submittedAt = data.submittedAt;
 
-      const task = await TaskModel.findByIdAndUpdate(taskId, { $set: updateData }, { returnDocument: "after" });
+      const task = await TaskModel.findByIdAndUpdate(taskId, { $set: updateData }, { returnDocument: "after" }).populate("assignedTo").populate("assignedBy");
       return task ? serializeTask(task) : null;
     },
 
