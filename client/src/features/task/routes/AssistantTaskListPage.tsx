@@ -92,17 +92,27 @@ export function AssistantTaskListPage() {
   }, {} as Record<string, number>);
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#fff9fb]">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-[#fff9fb] pb-12">
+      <section className="bg-gradient-to-r from-[#f8f1ff] via-[#fff3f8] to-[#fff7ec] border-b border-[#eadff6] py-10 px-6 sm:px-12 mb-8">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#2f243a]">My Tasks</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{state.tasks.length} total tasks assigned to you.</p>
+            <Badge variant="outline" className="text-[#9065d5] border-[#eadff6] mb-2 bg-[#f8f1ff]">
+              Assistant Panel
+            </Badge>
+            <h1 className="text-4xl font-bold tracking-tight text-[#2f243a] mb-2">
+              My Tasks
+            </h1>
+            <p className="text-[#5f5270] max-w-xl text-sm sm:text-base">
+              {state.tasks.length} total tasks assigned to you.
+            </p>
           </div>
-          <Button variant="outline" onClick={() => void loadTasks()}>
-            <RefreshCw /> Refresh
+          <Button variant="outline" onClick={() => void loadTasks()} className="border-[#eadff6] bg-white hover:bg-[#f8f1ff]">
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
         </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-6 sm:px-12">
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">

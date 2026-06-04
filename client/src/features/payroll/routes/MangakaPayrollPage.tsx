@@ -178,13 +178,19 @@ export function MangakaPayrollPage() {
   const uncalculatedTasks = state.approvedTasks.filter(t => !earningTaskIds.has(t.id));
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#fff9fb]">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-[#fff9fb] pb-12">
+      <section className="bg-gradient-to-r from-[#f8f1ff] via-[#fff3f8] to-[#fff7ec] border-b border-[#eadff6] py-10 px-6 sm:px-12 mb-8">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#2f243a]">Series Payroll</h1>
-            <p className="mt-1.5 text-sm text-[#8a7a99]">Calculate assistant payout points, check deadlines, and authorize payouts.</p>
+            <Badge variant="outline" className="text-[#9065d5] border-[#eadff6] mb-2 bg-[#f8f1ff]">
+              Mangaka Panel
+            </Badge>
+            <h1 className="text-4xl font-bold tracking-tight text-[#2f243a] mb-2">
+              Series Payroll
+            </h1>
+            <p className="text-[#5f5270] max-w-xl text-sm sm:text-base">
+              Calculate assistant payout points, check deadlines, and authorize payouts.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <Select
@@ -200,11 +206,14 @@ export function MangakaPayrollPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={() => void loadData(state.selectedSeriesId)} className="border-[#eadff6] hover:bg-[#f8f1ff]">
+            <Button variant="outline" size="sm" onClick={() => void loadData(state.selectedSeriesId)} className="border-[#eadff6] bg-white hover:bg-[#f8f1ff] h-10 w-10 p-0 flex items-center justify-center">
               <RefreshCw className="size-4 text-[#5f5270]" />
             </Button>
           </div>
         </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-6 sm:px-12">
 
         {/* Stats Grid */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
