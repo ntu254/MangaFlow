@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPage, editorApprovePage, requestPageRevision, runAIBubbleDetect, runAIBubbleProcess, type Page } from "@/features/page/api/page";
+import { getChapter } from "@/features/chapter/api/chapter";
+import { fetchSeriesMembers } from "@/features/series/api/series";
 import { CommentPanel } from "@/features/comment/components/CommentPanel";
 import { useToast } from "@/shared/components/feedback/Toast";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
@@ -203,6 +205,7 @@ export function PageWorkspacePage() {
   const [aiResult, setAiResult] = useState<{ detectCount?: number; processedUrl?: string } | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<RegionType | "ALL">("ALL");
+  const [assistants, setAssistants] = useState<{ id: string; fullName: string; email: string }[]>([]);
 
   async function handleApprovePage() {
     if (!pageId) return;
@@ -249,8 +252,8 @@ export function PageWorkspacePage() {
       const token = await getToken({ template: "mangaflow" });
       if (!token) throw new Error("Not authenticated");
 
-      const [page, regions, annotations, allTasks, userResponse] = await Promise.all([
-        getPage(token, pageId),
+      const page = await getPage(token, pageId);
+      const [regions, annotations, allTasks, userResponse, chapter] = await Promise.all([
         listRegions(token, pageId),
         listAnnotations(token, pageId),
         listTasks(token),
@@ -258,7 +261,8 @@ export function PageWorkspacePage() {
           headers: {
             Authorization: `Bearer ${token}`
           }
-        }).then(res => res.json().catch(() => ({ success: false })))
+        }).then(res => res.json().catch(() => ({ success: false }))),
+        getChapter(token, page.chapterId)
       ]);
 
       if (userResponse && userResponse.success && userResponse.data) {
@@ -268,6 +272,20 @@ export function PageWorkspacePage() {
       setState({ status: "ready", page, regions, annotations, tasks: allTasks.filter((task) => task.pageId === pageId) });
       setSelectedRegionId(regions[0]?.id ?? null);
       setSelectedAnnotationId(annotations[0]?.id ?? null);
+
+      try {
+        const members = await fetchSeriesMembers(token, chapter.seriesId);
+        const assistantUsers = members
+          .filter((m) => m.userInfo?.systemRole === "ASSISTANT" && m.userInfo)
+          .map((m) => ({
+            id: m.userInfo!.id,
+            fullName: m.userInfo!.fullName,
+            email: m.userInfo!.email
+          }));
+        setAssistants(assistantUsers);
+      } catch (err) {
+        console.error("Failed to load series assistants", err);
+      }
     } catch (error) {
       setState({
         status: "error",
@@ -935,13 +953,29 @@ export function PageWorkspacePage() {
                       <div className="grid gap-2.5">
                         <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           Assign assistant
-                          <input
-                            value={taskAssigneeId}
-                            onChange={(event) => setTaskAssigneeId(event.target.value)}
-                            disabled={!selectedRegion}
-                            className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            placeholder="Assistant User ID"
-                          />
+                          {assistants.length > 0 ? (
+                            <select
+                              value={taskAssigneeId}
+                              onChange={(event) => setTaskAssigneeId(event.target.value)}
+                              disabled={!selectedRegion}
+                              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
+                            >
+                              <option value="">Select assistant...</option>
+                              {assistants.map((assistant) => (
+                                <option key={assistant.id} value={assistant.id}>
+                                  {assistant.fullName} ({assistant.email})
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              value={taskAssigneeId}
+                              onChange={(event) => setTaskAssigneeId(event.target.value)}
+                              disabled={!selectedRegion}
+                              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
+                              placeholder="Assistant User ID"
+                            />
+                          )}
                         </label>
 
                         <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

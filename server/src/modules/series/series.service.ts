@@ -58,6 +58,7 @@ export type SeriesRepository = {
   updateSeries(seriesId: string, data: UpdateSeriesInput): Promise<Series | null>;
   deleteSeries(seriesId: string): Promise<boolean>;
   getSeriesMemberRole(seriesId: string, userId: string): Promise<string | null>;
+  listSeriesMembers(seriesId: string): Promise<(SeriesMember & { userInfo?: { id: string; fullName: string; email: string; systemRole: string } })[]>;
 };
 
 export class SeriesServiceError extends Error {
@@ -136,6 +137,10 @@ export function createSeriesService(seriesRepository: SeriesRepository) {
       }
 
       return true;
+    },
+
+    async listSeriesMembers(seriesId: string) {
+      return seriesRepository.listSeriesMembers(seriesId);
     }
   };
 }

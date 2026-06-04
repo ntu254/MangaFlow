@@ -111,6 +111,9 @@ function createSeriesRepository(seed: Series[] = []) {
     async getSeriesMemberRole(seriesId, userId) {
       const series = seriesById.get(seriesId);
       return series?.ownerId === userId ? "OWNER_MANGAKA" : null;
+    },
+    async listSeriesMembers(seriesId) {
+      return [];
     }
   };
 

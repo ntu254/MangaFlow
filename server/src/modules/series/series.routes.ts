@@ -67,6 +67,15 @@ export function createSeriesRouter(dependencies: SeriesRouteDependencies) {
     }
   });
 
+  router.get("/:seriesId/members", authenticate, checkCanViewSeries, checkMember, async (req, res, next) => {
+    try {
+      const members = await service.listSeriesMembers(req.params.seriesId as string);
+      res.json(ok(members));
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.patch("/:seriesId", authenticate, checkMangaka, checkOwner, async (req, res) => {
     try {
       const input: UpdateSeriesInput = {

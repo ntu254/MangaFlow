@@ -62,6 +62,12 @@ vi.mock("@/features/region/api/region", () => ({
   listRegions: vi.fn(),
   regionTypes: ["BUBBLE", "PANEL", "ILLUSTRATION"]
 }));
+vi.mock("@/features/chapter/api/chapter", () => ({
+  getChapter: vi.fn().mockResolvedValue({ id: "ch1", seriesId: "s1" })
+}));
+vi.mock("@/features/series/api/series", () => ({
+  fetchSeriesMembers: vi.fn().mockResolvedValue([])
+}));
 vi.mock("@/features/task/api/task", () => ({
   createTaskFromRegion: vi.fn(),
   deleteTask: vi.fn(),

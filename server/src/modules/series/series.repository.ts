@@ -147,6 +147,26 @@ export function createMongoSeriesRepository(): SeriesRepository {
       if (!mongoose.isValidObjectId(seriesId) || !mongoose.isValidObjectId(userId)) return null;
       const member = await SeriesMemberModel.findOne({ seriesId, userId, status: "ACTIVE" });
       return member ? member.role : null;
+    },
+
+    async listSeriesMembers(seriesId: string) {
+      if (!mongoose.isValidObjectId(seriesId)) return [];
+      const members = await SeriesMemberModel.find({ seriesId, status: "ACTIVE" }).populate("userId");
+      return members.map((m: any) => ({
+        id: String(m._id),
+        seriesId: String(m.seriesId),
+        userId: m.userId && typeof m.userId === "object" ? String(m.userId._id) : String(m.userId),
+        role: m.role,
+        status: m.status,
+        createdAt: m.createdAt.toISOString(),
+        updatedAt: m.updatedAt.toISOString(),
+        userInfo: m.userId && typeof m.userId === "object" ? {
+          id: String(m.userId._id),
+          fullName: m.userId.fullName,
+          email: m.userId.email,
+          systemRole: m.userId.systemRole
+        } : undefined
+      }));
     }
   };
 }

@@ -55,3 +55,27 @@ export async function fetchSeriesById(token: string, seriesId: string): Promise<
   });
   return parseApiResponse<Series>(response, "Failed to fetch series details");
 }
+
+export type SeriesMember = {
+  id: string;
+  seriesId: string;
+  userId: string;
+  role: string;
+  status: string;
+  userInfo?: {
+    id: string;
+    fullName: string;
+    email: string;
+    systemRole: string;
+  };
+};
+
+export async function fetchSeriesMembers(token: string, seriesId: string): Promise<SeriesMember[]> {
+  const response = await fetch(`${apiBaseUrl}/series/${seriesId}/members`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return parseApiResponse<SeriesMember[]>(response, "Failed to fetch series members");
+}
+
