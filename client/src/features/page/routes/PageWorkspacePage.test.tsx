@@ -192,13 +192,14 @@ describe("PageWorkspacePage", () => {
       }
     });
 
+    // 1. Render Regions tab (default)
     mockStateMap = {
       1: { status: "ready", page: mockPage, regions: mockRegions, annotations: mockAnnotations, tasks: mockTasks },
       22: { id: "user1", systemRole: "MANGAKA" }
     };
     mockStateIndex = 0;
 
-    const html = renderToStaticMarkup(
+    let html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/app/mangaka/pages/p1/workspace"]}>
         <ToastProvider>
           <PageWorkspacePage />
@@ -209,7 +210,24 @@ describe("PageWorkspacePage", () => {
     expect(html).not.toContain("Approve Page");
     expect(html).not.toContain("Request Revision");
     expect(html).toContain("Workspace tool");
-    expect(html).toContain("Assign task");
     expect(html).toContain("Delete"); // delete button for tasks or regions is rendered
+
+    // 2. Render Task tab specifically
+    mockStateMap = {
+      1: { status: "ready", page: mockPage, regions: mockRegions, annotations: mockAnnotations, tasks: mockTasks },
+      2: "task",
+      22: { id: "user1", systemRole: "MANGAKA" }
+    };
+    mockStateIndex = 0;
+
+    html = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/app/mangaka/pages/p1/workspace"]}>
+        <ToastProvider>
+          <PageWorkspacePage />
+        </ToastProvider>
+      </MemoryRouter>
+    );
+
+    expect(html).toContain("Assign task");
   });
 });
