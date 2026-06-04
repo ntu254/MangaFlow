@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -22,59 +22,45 @@ const editorId = "507f1f77bcf86cd799439295";
 const assistantId = "507f1f77bcf86cd799439296";
 const strangerId = "507f1f77bcf86cd799439297";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_task_owner", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_task_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_task_assistant", assistantId, "ASSISTANT");
-const stranger = createAuthUser("clerk_task_stranger", strangerId, "MANGAKA");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const stranger = createAuthUser(strangerId, "MANGAKA");
 const users = [owner, editor, assistant, stranger];
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
   const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      byId.set(created.id, created);
-      return created;
+    async findById(userId) {
+      return byId.get(userId) ?? null;
     },
     async updateOnboarding() {
       throw new Error("not needed in task route tests");
-    },
-    async findById(userId) {
-      return byId.get(userId) ?? null;
     }
   };
 }
@@ -297,11 +283,11 @@ function createTaskRepository(seed: Task[] = []) {
   return { repository, tasks };
 }
 
-function createTaskApp(clerkId: string, roleByUserId: Record<string, string | null>, seed: Task[] = []) {
+function createTaskApp(userId: string, roleByUserId: Record<string, string | null>, seed: Task[] = []) {
   const { repository, tasks } = createTaskRepository(seed);
-  const user = users.find(u => u.clerkId === clerkId);
+  const user = users.find(u => u.id === userId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     chapterRepository: createChapterRepository(),
@@ -314,7 +300,7 @@ function createTaskApp(clerkId: string, roleByUserId: Record<string, string | nu
 
 describe("task routes", () => {
   it("lets owner Mangaka create, list, update, fetch, and delete a task", async () => {
-    const { app, tasks } = createTaskApp(owner.clerkId, {
+    const { app, tasks } = createTaskApp(owner.id, {
       [ownerId]: "OWNER_MANGAKA",
       [assistantId]: "ASSISTANT"
     });
@@ -367,7 +353,7 @@ describe("task routes", () => {
 
   it("lets assigned assistants list, fetch, and start their tasks only", async () => {
     const seed = [createTask({ id: "task_assigned", assignedTo: assistantId })];
-    const { app } = createTaskApp(assistant.clerkId, { [assistantId]: "ASSISTANT" }, seed);
+    const { app } = createTaskApp(assistant.id, { [assistantId]: "ASSISTANT" }, seed);
 
     const listResponse = await request(app).get("/api/tasks").set("Authorization", "Bearer valid");
     expect(listResponse.status).toBe(200);
@@ -379,7 +365,7 @@ describe("task routes", () => {
   });
 
   it("allows assigned editors to create tasks and region create-task maps bubble to OTHER", async () => {
-    const { app } = createTaskApp(editor.clerkId, {
+    const { app } = createTaskApp(editor.id, {
       [editorId]: "EDITOR",
       [assistantId]: "ASSISTANT"
     });
@@ -403,7 +389,7 @@ describe("task routes", () => {
   });
 
   it("rejects non-members and invalid assistant assignees", async () => {
-    const strangerApp = createTaskApp(stranger.clerkId, { [strangerId]: null }).app;
+    const strangerApp = createTaskApp(stranger.id, { [strangerId]: null }).app;
     const forbiddenResponse = await request(strangerApp)
       .post("/api/tasks")
       .set("Authorization", "Bearer valid")
@@ -416,7 +402,7 @@ describe("task routes", () => {
       });
     expect(forbiddenResponse.status).toBe(403);
 
-    const ownerApp = createTaskApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" }).app;
+    const ownerApp = createTaskApp(owner.id, { [ownerId]: "OWNER_MANGAKA" }).app;
     const invalidAssigneeResponse = await request(ownerApp)
       .post("/api/tasks")
       .set("Authorization", "Bearer valid")

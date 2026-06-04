@@ -1,15 +1,41 @@
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
 
-// In-memory access token storage
+const STORAGE_KEY = "mangaflow_auth_token";
+
+// In-memory access token storage (backed by localStorage for refresh persistence)
 let memoryToken: string | null = null;
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
 
+function loadFromStorage(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(token: string | null) {
+  try {
+    if (token) {
+      localStorage.setItem(STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
 export function setAuthToken(token: string | null) {
   memoryToken = token;
+  saveToStorage(token);
 }
 
 export function getStoredToken() {
+  if (!memoryToken) {
+    memoryToken = loadFromStorage();
+  }
   return memoryToken;
 }
 
@@ -41,82 +67,83 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 // Intercept window.fetch globally
-const originalFetch = window.fetch;
+const originalFetch = typeof window !== "undefined" ? window.fetch : (null as any);
 
-window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  // Always include credentials to send cookies (like RefreshToken)
-  const modifiedInit: RequestInit = {
-    ...init,
-    credentials: "include",
-  };
+if (typeof window !== "undefined" && originalFetch) {
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    // Always include credentials to send cookies (like RefreshToken)
+    const modifiedInit: RequestInit = {
+      ...init,
+      credentials: "include",
+    };
 
-  // Automatically attach Bearer token if we have one in memory
-  if (memoryToken) {
-    const headers = new Headers(modifiedInit.headers || {});
-    if (!headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${memoryToken}`);
-    }
-    modifiedInit.headers = headers;
-  }
-
-  const url = typeof input === "string" ? input : (input as Request).url || input.toString();
-
-  try {
-    const response = await originalFetch(input, modifiedInit);
-
-    // If 401 and not a login/logout endpoint, try to restore the access token
-    // from the refresh cookie. Do not hard-navigate here; callers decide UI flow.
-    const isRefreshable401 =
-      response.status === 401 &&
-      !url.includes("/auth/refresh") &&
-      !url.includes("/auth/logout") &&
-      !url.includes("/auth/login") &&
-      !url.includes("/auth/me");
-
-    if (isRefreshable401) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const token = await refreshAccessToken();
-          if (token) {
-            onRefreshed(token);
-            // Retry the original request
-            const retryHeaders = new Headers(modifiedInit.headers || {});
-            retryHeaders.set("Authorization", `Bearer ${token}`);
-            return originalFetch(input, { ...modifiedInit, headers: retryHeaders });
-          }
-          // Refresh failed
-          setAuthToken(null);
-          onRefreshed(""); // empty string means failure
-          return response;
-        } catch (err) {
-          setAuthToken(null);
-          onRefreshed("");
-          return response;
-        } finally {
-          isRefreshing = false;
-        }
-      } else {
-        // Wait for the ongoing refresh to complete
-        return new Promise<Response>((resolve) => {
-          addRefreshSubscriber((newToken) => {
-            if (newToken) {
-              const retryHeaders = new Headers(modifiedInit.headers || {});
-              retryHeaders.set("Authorization", `Bearer ${newToken}`);
-              resolve(originalFetch(input, { ...modifiedInit, headers: retryHeaders }));
-            } else {
-              resolve(response);
-            }
-          });
-        });
+    // Automatically attach Bearer token if we have one in memory
+    if (memoryToken) {
+      const headers = new Headers(modifiedInit.headers || {});
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${memoryToken}`);
       }
+      modifiedInit.headers = headers;
     }
 
-    return response;
-  } catch (error) {
-    throw error;
-  }
-};
+    const url = typeof input === "string" ? input : (input as Request).url || input.toString();
+
+    try {
+      const response = await originalFetch(input, modifiedInit);
+
+      // If 401 and not a login/logout endpoint, try to restore the access token
+      // from the refresh cookie. Do not hard-navigate here; callers decide UI flow.
+      const isRefreshable401 =
+        response.status === 401 &&
+        !url.includes("/auth/refresh") &&
+        !url.includes("/auth/logout") &&
+        !url.includes("/auth/login");
+
+      if (isRefreshable401) {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          try {
+            const token = await refreshAccessToken();
+            if (token) {
+              onRefreshed(token);
+              // Retry the original request
+              const retryHeaders = new Headers(modifiedInit.headers || {});
+              retryHeaders.set("Authorization", `Bearer ${token}`);
+              return originalFetch(input, { ...modifiedInit, headers: retryHeaders });
+            }
+            // Refresh failed
+            setAuthToken(null);
+            onRefreshed(""); // empty string means failure
+            return response;
+          } catch (err) {
+            setAuthToken(null);
+            onRefreshed("");
+            return response;
+          } finally {
+            isRefreshing = false;
+          }
+        } else {
+          // Wait for the ongoing refresh to complete
+          return new Promise<Response>((resolve) => {
+            addRefreshSubscriber((newToken) => {
+              if (newToken) {
+                const retryHeaders = new Headers(modifiedInit.headers || {});
+                retryHeaders.set("Authorization", `Bearer ${newToken}`);
+                resolve(originalFetch(input, { ...modifiedInit, headers: retryHeaders }));
+              } else {
+                resolve(response);
+              }
+            });
+          });
+        }
+      }
+
+      return response;
+    } catch (err) {
+      throw err;
+    }
+  };
+}
 
 export type GetTokenFn = (options?: { template?: string; skipCache?: boolean }) => Promise<string | null>;
 

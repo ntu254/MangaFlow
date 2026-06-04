@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -20,50 +20,41 @@ const editorId = "507f1f77bcf86cd799439095";
 const assistantId = "507f1f77bcf86cd799439096";
 const strangerId = "507f1f77bcf86cd799439097";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_owner", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
-const stranger = createAuthUser("clerk_stranger", strangerId, "MANGAKA");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const stranger = createAuthUser(strangerId, "MANGAKA");
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(users: AuthUser[]): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      return created;
+    async findById(id) {
+      return byId.get(id) ?? null;
     },
     async updateOnboarding() {
       throw new Error("not needed in region route tests");
@@ -227,11 +218,11 @@ function createRegionRepository(seed: Region[] = []) {
   return { repository, regions };
 }
 
-function createRegionApp(clerkId: string, roleByUserId: Record<string, string | null>, seed: Region[] = []) {
+function createRegionApp(userId: string, roleByUserId: Record<string, string | null>, seed: Region[] = []) {
   const { repository, regions } = createRegionRepository(seed);
-  const user = [owner, editor, assistant, stranger].find(u => u.clerkId === clerkId);
+  const user = [owner, editor, assistant, stranger].find(u => u.id === userId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository([owner, editor, assistant, stranger]),
     seriesRepository: createSeriesRepository(roleByUserId),
     chapterRepository: createChapterRepository(),
@@ -243,7 +234,7 @@ function createRegionApp(clerkId: string, roleByUserId: Record<string, string | 
 
 describe("region routes", () => {
   it("lets owner Mangaka create, list, update, fetch, and delete page regions", async () => {
-    const { app, regions } = createRegionApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" });
+    const { app, regions } = createRegionApp(owner.id, { [ownerId]: "OWNER_MANGAKA" });
 
     const createResponse = await request(app)
       .post(`/api/pages/${pageId}/regions`)
@@ -293,7 +284,7 @@ describe("region routes", () => {
   });
 
   it("allows editors to write regions and rejects invalid normalized boxes", async () => {
-    const { app } = createRegionApp(editor.clerkId, { [editorId]: "EDITOR" });
+    const { app } = createRegionApp(editor.id, { [editorId]: "EDITOR" });
 
     const validResponse = await request(app)
       .post(`/api/pages/${pageId}/regions`)
@@ -311,7 +302,7 @@ describe("region routes", () => {
 
   it("allows assistants to read but not mutate regions", async () => {
     const seed = [createRegion({ id: "region_assistant_read" })];
-    const { app } = createRegionApp(assistant.clerkId, { [assistantId]: "ASSISTANT" }, seed);
+    const { app } = createRegionApp(assistant.id, { [assistantId]: "ASSISTANT" }, seed);
 
     const listResponse = await request(app)
       .get(`/api/pages/${pageId}/regions`)
@@ -338,7 +329,7 @@ describe("region routes", () => {
   });
 
   it("rejects non-members from reading page regions", async () => {
-    const { app } = createRegionApp(stranger.clerkId, { [strangerId]: null }, [createRegion()]);
+    const { app } = createRegionApp(stranger.id, { [strangerId]: null }, [createRegion()]);
 
     const response = await request(app)
       .get(`/api/pages/${pageId}/regions`)

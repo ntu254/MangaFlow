@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -34,51 +34,45 @@ const adminId = "507f1f77bcf86cd799439052";
 const mangakaId = "507f1f77bcf86cd799439053";
 const assistantId = "507f1f77bcf86cd799439054";
 
-function createAuthUser(clerkId: string, id: string, systemRole: "BOARD" | "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR"): AuthUser {
+function createAuthUser(id: string, systemRole: "BOARD" | "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR"): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const boardUser = createAuthUser("clerk_board", boardId, "BOARD");
-const adminUser = createAuthUser("clerk_admin", adminId, "ADMIN");
-const mangakaUser = createAuthUser("clerk_mangaka", mangakaId, "MANGAKA");
-const assistantUser = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
+const boardUser = createAuthUser(boardId, "BOARD");
+const adminUser = createAuthUser(adminId, "ADMIN");
+const mangakaUser = createAuthUser(mangakaId, "MANGAKA");
+const assistantUser = createAuthUser(assistantId, "ASSISTANT");
 
 const users = [boardUser, adminUser, mangakaUser, assistantUser];
 
-function createVerifier(clerkId: string): AuthVerifier {
-  const user = users.find(u => u.clerkId === clerkId);
+function createVerifier(id: string): AuthVerifier {
+  const user = users.find(u => u.id === id);
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole: user?.systemRole ?? null,
         status: user?.status ?? "ACTIVE"
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: "test@example.com", fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((u) => [u.clerkId, u]));
   const byId = new Map(users.map((u) => [u.id, u]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
     async findById(id) {
       return byId.get(id) ?? null;
     },
@@ -151,10 +145,10 @@ function createMockRankingRepository(seedRankings: Ranking[] = []) {
   return { repository, rankings };
 }
 
-function createRankingApp(clerkId: string, seedRankings: Ranking[] = []) {
+function createRankingApp(userId: string, seedRankings: Ranking[] = []) {
   const { repository: rankingRepository } = createMockRankingRepository(seedRankings);
   const app = createApp({
-    authVerifier: createVerifier(clerkId),
+    authVerifier: createVerifier(userId),
     userRepository: createUserRepository(),
     rankingRepository
   });
@@ -165,7 +159,7 @@ describe("ranking routes integration tests", () => {
   it("POST /api/rankings/import - succeeds for BOARD/ADMIN and sets ranks, denies MANGAKA", async () => {
     // 1. Succeeds for BOARD
     vi.mocked(SeriesModel.find).mockResolvedValue([{ _id: seriesId }] as any);
-    const { app: appBoard } = createRankingApp(boardUser.clerkId);
+    const { app: appBoard } = createRankingApp(boardUser.id);
 
     const response = await request(appBoard)
       .post("/api/rankings/import")
@@ -188,7 +182,7 @@ describe("ranking routes integration tests", () => {
     });
 
     // 2. Denies MANGAKA
-    const { app: appMangaka } = createRankingApp(mangakaUser.clerkId);
+    const { app: appMangaka } = createRankingApp(mangakaUser.id);
     const resDeny = await request(appMangaka)
       .post("/api/rankings/import")
       .set("Authorization", "Bearer valid")
@@ -216,7 +210,7 @@ describe("ranking routes integration tests", () => {
     };
 
     // 1. BOARD succeeds
-    const { app: appBoard } = createRankingApp(boardUser.clerkId, [ranking]);
+    const { app: appBoard } = createRankingApp(boardUser.id, [ranking]);
     const response = await request(appBoard)
       .get("/api/rankings?period=2026-W22")
       .set("Authorization", "Bearer valid");
@@ -226,7 +220,7 @@ describe("ranking routes integration tests", () => {
     expect(response.body.data[0].seriesId).toBe(seriesId);
 
     // 2. MANGAKA denies
-    const { app: appMangaka } = createRankingApp(mangakaUser.clerkId, [ranking]);
+    const { app: appMangaka } = createRankingApp(mangakaUser.id, [ranking]);
     const resDeny = await request(appMangaka)
       .get("/api/rankings?period=2026-W22")
       .set("Authorization", "Bearer valid");
@@ -253,7 +247,7 @@ describe("ranking routes integration tests", () => {
     const existsSpy = vi.spyOn(SeriesModel, "exists").mockResolvedValue(true as any);
 
     // 1. Series Owner succeeds
-    const { app: appOwner } = createRankingApp(mangakaUser.clerkId, [ranking]);
+    const { app: appOwner } = createRankingApp(mangakaUser.id, [ranking]);
     const resOwner = await request(appOwner)
       .get(`/api/series/${seriesId}/rankings`)
       .set("Authorization", "Bearer valid");
@@ -261,14 +255,14 @@ describe("ranking routes integration tests", () => {
     expect(resOwner.body.data).toHaveLength(1);
 
     // 2. BOARD succeeds
-    const { app: appBoard } = createRankingApp(boardUser.clerkId, [ranking]);
+    const { app: appBoard } = createRankingApp(boardUser.id, [ranking]);
     const resBoard = await request(appBoard)
       .get(`/api/series/${seriesId}/rankings`)
       .set("Authorization", "Bearer valid");
     expect(resBoard.status).toBe(200);
 
     // 3. Stranger (assistant) is forbidden
-    const { app: appStranger } = createRankingApp(assistantUser.clerkId, [ranking]);
+    const { app: appStranger } = createRankingApp(assistantUser.id, [ranking]);
     const resStranger = await request(appStranger)
       .get(`/api/series/${seriesId}/rankings`)
       .set("Authorization", "Bearer valid");
@@ -294,7 +288,7 @@ describe("ranking routes integration tests", () => {
       updatedAt: now
     };
 
-    const { app } = createRankingApp(boardUser.clerkId, [ranking]);
+    const { app } = createRankingApp(boardUser.id, [ranking]);
 
     // 1. mark-warning
     const resWarning = await request(app)

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { UserAvatar } from "@/shared/components/auth/UserAvatar";
 import { Ban, RefreshCw, RotateCcw, KeyRound, Plus, ArrowLeft, Loader2, AlertCircle, Mail, Lock, UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,7 +186,6 @@ export function AdminUserManagementPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <UserAvatar />
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger render={<Button className="bg-[#9065d5] hover:bg-[#7c54be] text-white"><Plus className="size-4 mr-2" /> Create User</Button>} />
               <DialogContent className="sm:max-w-md">

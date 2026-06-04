@@ -33,7 +33,6 @@ import {
   Settings,
   ClipboardList,
   Send,
-  Shield,
   BarChart3,
 } from "lucide-react";
 import type { SystemRole, UserStatus } from "@/features/auth/auth-flow";
@@ -115,6 +114,12 @@ const MangakaPayrollPage = lazy(() =>
 );
 const AdminTaskRatesPage = lazy(() =>
   import("@/features/payroll").then(m => ({ default: m.AdminTaskRatesPage }))
+);
+const AdminPayrollPage = lazy(() =>
+  import("@/features/payroll").then(m => ({ default: m.AdminPayrollPage }))
+);
+const AdminBoardMembersPage = lazy(() =>
+  import("@/features/admin/routes/AdminBoardMembersPage").then(m => ({ default: m.AdminBoardMembersPage }))
 );
 
 const LazyLandingPage = lazy(() =>
@@ -216,9 +221,9 @@ function AuthenticatedApp() {
                 <Route path="dashboard" element={<AdminDashboardPage />} />
                 <Route path="users" element={<AdminUserManagementPage />} />
                 <Route path="users/role-review" element={<AdminUserManagementPage />} />
-                <Route path="board/members" element={<PlaceholderPage title="Board Members" description="Manage Editorial Board members and Board Chair assignments." icon={Shield} />} />
+                <Route path="board/members" element={<AdminBoardMembersPage />} />
                 <Route path="task-rates" element={<AdminTaskRatesPage />} />
-                <Route path="payroll" element={<PlaceholderPage title="System Payroll" description="Overview of system-wide payouts, balances, and payroll disbursements." icon={Wallet} />} />
+                <Route path="payroll" element={<AdminPayrollPage />} />
                 <Route path="storage" element={<PlaceholderPage title="Storage Management" description="Monitor file count, Cloudflare R2 / MinIO storage usage and bandwidth." icon={HardDrive} />} />
                 <Route path="audit-logs" element={<PlaceholderPage title="Audit Logs" description="View system-wide action logs, security histories, and change records." icon={History} />} />
                 <Route path="settings" element={<PlaceholderPage title="Settings" description="Configure upload limits, notification triggers, and system preferences." icon={Settings} />} />

@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -19,59 +19,45 @@ const assistantId = "507f1f77bcf86cd799439396";
 const strangerId = "507f1f77bcf86cd799439397";
 const adminId = "507f1f77bcf86cd799439398";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const owner = createAuthUser("clerk_submission_owner", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_submission_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_submission_assistant", assistantId, "ASSISTANT");
-const stranger = createAuthUser("clerk_submission_stranger", strangerId, "MANGAKA");
-const admin = createAuthUser("clerk_submission_admin", adminId, "ADMIN");
+const owner = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const stranger = createAuthUser(strangerId, "MANGAKA");
+const admin = createAuthUser(adminId, "ADMIN");
 const users = [owner, editor, assistant, stranger, admin];
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
   const byId = new Map(users.map((user) => [user.id, user]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      byId.set(created.id, created);
-      return created;
+    async findById(userId) {
+      return byId.get(userId) ?? null;
     },
     async updateOnboarding() {
       throw new Error("not needed in submission route tests");
-    },
-    async findById(userId) {
-      return byId.get(userId) ?? null;
     }
   };
 }
@@ -216,16 +202,16 @@ function createSubmissionRepository(seed: Submission[] = []) {
 }
 
 function createSubmissionApp(
-  clerkId: string,
+  userId: string,
   roleByUserId: Record<string, string | null>,
   seedTasks: Task[] = [createTask()],
   seedSubmissions: Submission[] = []
 ) {
   const { repository: taskRepository, tasks } = createTaskRepository(seedTasks);
   const { repository: submissionRepository, submissions } = createSubmissionRepository(seedSubmissions);
-  const user = users.find(u => u.clerkId === clerkId);
+  const user = users.find(u => u.id === userId);
   const app = createApp({
-    authVerifier: createVerifier(clerkId, user?.systemRole ?? null),
+    authVerifier: createVerifier(userId, user?.systemRole ?? null),
     userRepository: createUserRepository(),
     seriesRepository: createSeriesRepository(roleByUserId),
     taskRepository,
@@ -237,7 +223,7 @@ function createSubmissionApp(
 describe("submission routes", () => {
   it("lets assigned assistants create versioned submissions and list them by task", async () => {
     const { app, tasks, submissions } = createSubmissionApp(
-      assistant.clerkId,
+      assistant.id,
       { [assistantId]: "ASSISTANT", [ownerId]: "OWNER_MANGAKA" },
       [createTask({ id: "task_1", status: "IN_PROGRESS" })],
       [createSubmission({ id: "submission_existing", version: 1 })]
@@ -271,36 +257,36 @@ describe("submission routes", () => {
 
   it("lets series members and admins read visible submissions", async () => {
     const seed = [createSubmission({ id: "submission_1" })];
-    const ownerApp = createSubmissionApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" }, [createTask()], seed).app;
+    const ownerApp = createSubmissionApp(owner.id, { [ownerId]: "OWNER_MANGAKA" }, [createTask()], seed).app;
     const ownerList = await request(ownerApp).get("/api/submissions").set("Authorization", "Bearer valid");
     expect(ownerList.status).toBe(200);
     expect(ownerList.body.data).toHaveLength(1);
 
-    const editorApp = createSubmissionApp(editor.clerkId, { [editorId]: "EDITOR" }, [createTask()], seed).app;
+    const editorApp = createSubmissionApp(editor.id, { [editorId]: "EDITOR" }, [createTask()], seed).app;
     const detail = await request(editorApp).get("/api/submissions/submission_1").set("Authorization", "Bearer valid");
     expect(detail.status).toBe(200);
     expect(detail.body.data.id).toBe("submission_1");
 
-    const adminApp = createSubmissionApp(admin.clerkId, {}, [createTask()], seed).app;
+    const adminApp = createSubmissionApp(admin.id, {}, [createTask()], seed).app;
     const adminList = await request(adminApp).get("/api/submissions").set("Authorization", "Bearer valid");
     expect(adminList.status).toBe(200);
     expect(adminList.body.data).toHaveLength(1);
   });
 
   it("rejects non-assigned creators, non-members, and invalid task statuses", async () => {
-    const ownerApp = createSubmissionApp(owner.clerkId, { [ownerId]: "OWNER_MANGAKA" }).app;
+    const ownerApp = createSubmissionApp(owner.id, { [ownerId]: "OWNER_MANGAKA" }).app;
     const ownerCreate = await request(ownerApp)
       .post("/api/tasks/task_1/submissions")
       .set("Authorization", "Bearer valid")
       .send({ fileUrl: "storage://tasks/task_1/submissions/v1/result.png" });
     expect(ownerCreate.status).toBe(403);
 
-    const strangerApp = createSubmissionApp(stranger.clerkId, { [strangerId]: null }, [createTask()], [createSubmission()]).app;
+    const strangerApp = createSubmissionApp(stranger.id, { [strangerId]: null }, [createTask()], [createSubmission()]).app;
     const strangerRead = await request(strangerApp).get("/api/submissions/submission_1").set("Authorization", "Bearer valid");
     expect(strangerRead.status).toBe(403);
 
     const todoApp = createSubmissionApp(
-      assistant.clerkId,
+      assistant.id,
       { [assistantId]: "ASSISTANT" },
       [createTask({ status: "TODO" })]
     ).app;

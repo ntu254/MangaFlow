@@ -27,7 +27,68 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
     }
   });
 
-  // 2. Submit/Update Vote
+  // 2. Add Board Member (Admin only)
+  router.post("/members", authenticate, requireSystemRole([SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
+    const { userId, role } = req.body;
+    try {
+      const member = await dependencies.boardService.registerBoardMember(userId, role ?? "BOARD_MEMBER");
+      res.status(201).json(ok(member));
+    } catch (error) {
+      if (error instanceof BoardServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // 3. Update Board Member (Admin only)
+  router.patch("/members/:boardMemberId", authenticate, requireSystemRole([SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
+    const memberId = req.params.boardMemberId as string;
+    const { role, status } = req.body;
+    try {
+      const member = await dependencies.boardService.updateBoardMember(memberId, { role, status });
+      res.json(ok(member));
+    } catch (error) {
+      if (error instanceof BoardServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // 4. Remove Board Member (Admin only)
+  router.delete("/members/:boardMemberId", authenticate, requireSystemRole([SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
+    const memberId = req.params.boardMemberId as string;
+    try {
+      await dependencies.boardService.removeBoardMember(memberId);
+      res.json(ok({ success: true }));
+    } catch (error) {
+      if (error instanceof BoardServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // 5. Set Board Chair (Admin only)
+  router.post("/members/:boardMemberId/set-chair", authenticate, requireSystemRole([SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
+    const memberId = req.params.boardMemberId as string;
+    try {
+      const member = await dependencies.boardService.setBoardChair(memberId);
+      res.json(ok(member));
+    } catch (error) {
+      if (error instanceof BoardServiceError) {
+        res.status(error.statusCode).json(fail(error.message, error.code));
+        return;
+      }
+      res.status(500).json(fail(error instanceof Error ? error.message : "Internal Server Error", "INTERNAL_ERROR"));
+    }
+  });
+
+  // 6. Submit/Update Vote
   router.post("/:seriesId/votes", authenticate, requireSystemRole([SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
     const user = (req as RoleAuthorizedRequest).localUser;
     const seriesId = req.params.seriesId as string;
@@ -102,7 +163,7 @@ export function createBoardRouter(dependencies: BoardRouteDependencies) {
     }
   });
 
-  // 6. Tie-break Decision
+  // 10. Tie-break Decision
   router.post("/:seriesId/decisions/tie-break", authenticate, requireSystemRole([SYSTEM_ROLES.BOARD, SYSTEM_ROLES.ADMIN], dependencies.userRepository), async (req, res) => {
     const user = (req as RoleAuthorizedRequest).localUser;
     const seriesId = req.params.seriesId as string;

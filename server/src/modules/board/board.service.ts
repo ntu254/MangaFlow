@@ -184,6 +184,64 @@ export function createBoardService(boardRepository: BoardRepository, userReposit
       return boardDecision;
     },
 
+    async updateBoardMember(memberId: string, updates: { role?: BoardMemberRole; status?: BoardMemberStatus }): Promise<BoardMember> {
+      const member = await boardRepository.findBoardMemberById(memberId);
+      if (!member) {
+        throw new BoardServiceError("MEMBER_NOT_FOUND", "Board member not found", 404);
+      }
+
+      if (updates.role === "BOARD_CHAIR" && updates.role !== member.role) {
+        const members = await boardRepository.listBoardMembers();
+        const activeChair = members.find(m => m.role === "BOARD_CHAIR" && m.status === "ACTIVE" && m.id !== memberId);
+        if (activeChair) {
+          throw new BoardServiceError("CHAIR_ALREADY_EXISTS", "An active Board Chair already exists");
+        }
+      }
+
+      const updated = await boardRepository.updateBoardMember(memberId, updates);
+      if (!updated) {
+        throw new BoardServiceError("UPDATE_FAILED", "Failed to update board member", 500);
+      }
+      return updated;
+    },
+
+    async removeBoardMember(memberId: string): Promise<void> {
+      const member = await boardRepository.findBoardMemberById(memberId);
+      if (!member) {
+        throw new BoardServiceError("MEMBER_NOT_FOUND", "Board member not found", 404);
+      }
+
+      const activeCount = await boardRepository.countActiveBoardMembers();
+      if (activeCount <= 3) {
+        throw new BoardServiceError("MIN_BOARD_SIZE", "Board must have at least 3 active members");
+      }
+
+      const deleted = await boardRepository.deleteBoardMember(memberId);
+      if (!deleted) {
+        throw new BoardServiceError("DELETE_FAILED", "Failed to remove board member", 500);
+      }
+    },
+
+    async setBoardChair(memberId: string): Promise<BoardMember> {
+      const member = await boardRepository.findBoardMemberById(memberId);
+      if (!member) {
+        throw new BoardServiceError("MEMBER_NOT_FOUND", "Board member not found", 404);
+      }
+
+      const members = await boardRepository.listBoardMembers();
+      const currentChair = members.find(m => m.role === "BOARD_CHAIR" && m.status === "ACTIVE" && m.id !== memberId);
+
+      if (currentChair) {
+        await boardRepository.updateBoardMember(currentChair.id, { role: "BOARD_MEMBER" });
+      }
+
+      const updated = await boardRepository.updateBoardMember(memberId, { role: "BOARD_CHAIR", status: "ACTIVE" });
+      if (!updated) {
+        throw new BoardServiceError("UPDATE_FAILED", "Failed to set board chair", 500);
+      }
+      return updated;
+    },
+
     async finalizeTieBreak(
       seriesId: string, 
       decidedByUserId: string, 

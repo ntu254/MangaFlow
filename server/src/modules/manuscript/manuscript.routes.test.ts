@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
@@ -23,57 +23,47 @@ afterEach(() => {
 });
 
 function createAuthUser(
-  clerkId: string,
   id: string,
   systemRole: SystemRole,
   status: UserStatus = "ACTIVE"
 ): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status,
     createdAt: now,
     updatedAt: now
   };
 }
 
-const mangaka = createAuthUser("clerk_mangaka", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
+const mangaka = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole,
         status
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: "test@example.com", fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(users: AuthUser[]): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, `user_${profile.clerkId}`, "MANGAKA");
-      byClerkId.set(profile.clerkId, created);
-      return created;
+    async findById(id) {
+      return byId.get(id) ?? null;
     },
     async updateOnboarding() {
       throw new Error("not needed in manuscript route tests");
@@ -230,7 +220,7 @@ describe("manuscript routes", () => {
     const manuscriptRepository = createManuscriptRepository();
     const fileRepository = createFileRepository();
     const app = createApp({
-      authVerifier: createVerifier(mangaka.clerkId, mangaka.systemRole, mangaka.status),
+      authVerifier: createVerifier(mangaka.id, mangaka.systemRole, mangaka.status),
       userRepository: createUserRepository([mangaka]),
       seriesRepository: createSeriesRepository({ [ownerId]: "OWNER_MANGAKA" }),
       manuscriptRepository: manuscriptRepository.repository,
@@ -289,7 +279,7 @@ describe("manuscript routes", () => {
     };
 
     const mangakaApp = createApp({
-      authVerifier: createVerifier(mangaka.clerkId, mangaka.systemRole, mangaka.status),
+      authVerifier: createVerifier(mangaka.id, mangaka.systemRole, mangaka.status),
       ...sharedDependencies
     });
     const submitResponse = await request(mangakaApp)
@@ -300,7 +290,7 @@ describe("manuscript routes", () => {
     expect(submitResponse.body.data.status).toBe("SUBMITTED");
 
     const editorApp = createApp({
-      authVerifier: createVerifier(editor.clerkId, editor.systemRole, editor.status),
+      authVerifier: createVerifier(editor.id, editor.systemRole, editor.status),
       ...sharedDependencies
     });
     const startResponse = await request(editorApp)
@@ -322,7 +312,7 @@ describe("manuscript routes", () => {
 
   it("rejects wrong system role and wrong series role for protected manuscript actions", async () => {
     const assistantApp = createApp({
-      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
+      authVerifier: createVerifier(assistant.id, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository({ [assistantId]: "ASSISTANT" }),
       manuscriptRepository: createManuscriptRepository().repository,
@@ -344,7 +334,7 @@ describe("manuscript routes", () => {
     });
 
     const editorWithoutMembershipApp = createApp({
-      authVerifier: createVerifier(editor.clerkId, editor.systemRole, editor.status),
+      authVerifier: createVerifier(editor.id, editor.systemRole, editor.status),
       userRepository: createUserRepository([editor]),
       seriesRepository: createSeriesRepository({ [editorId]: null }),
       manuscriptRepository: createManuscriptRepository([createManuscript({ id: "manuscript_private", status: "SUBMITTED" })]).repository

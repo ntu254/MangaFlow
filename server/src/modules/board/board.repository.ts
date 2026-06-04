@@ -116,6 +116,26 @@ export function createMongoBoardRepository() {
       return docs.map(serializeBoardMember);
     },
 
+    async updateBoardMember(id: string, updates: { role?: BoardMemberRole; status?: BoardMemberStatus }): Promise<BoardMember | null> {
+      if (!mongoose.isValidObjectId(id)) return null;
+      const doc = await BoardMemberModel.findByIdAndUpdate(
+        id,
+        { $set: updates },
+        { new: true }
+      );
+      return doc ? serializeBoardMember(doc) : null;
+    },
+
+    async deleteBoardMember(id: string): Promise<boolean> {
+      if (!mongoose.isValidObjectId(id)) return false;
+      const result = await BoardMemberModel.deleteOne({ _id: id });
+      return result.deletedCount > 0;
+    },
+
+    async countActiveBoardMembers(): Promise<number> {
+      return BoardMemberModel.countDocuments({ status: "ACTIVE" });
+    },
+
     async createOrUpdateVote(
       seriesId: string, 
       boardMemberId: string, 

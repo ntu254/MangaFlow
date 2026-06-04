@@ -6,13 +6,13 @@ describe("resolveAuthRoute", () => {
     expect(resolveAuthRoute({ isSignedIn: false, user: null })).toBe("/sign-in");
   });
 
-  it("sends signed-in users without a role to onboarding", () => {
+  it("sends signed-in users without a role to blocked state", () => {
     expect(
       resolveAuthRoute({
         isSignedIn: true,
         user: { systemRole: null, status: "ACTIVE" }
       })
-    ).toBe("/app/onboarding");
+    ).toBe("/app/blocked");
   });
 
   it("sends role-bearing users to their dashboard", () => {

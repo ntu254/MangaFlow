@@ -100,6 +100,57 @@ export async function fetchBoardVoteSummary(token: string, seriesId: string): Pr
   return parseApiResponse<VoteSummary>(response, "Failed to fetch board vote summary");
 }
 
+export async function addBoardMember(
+  token: string,
+  userId: string,
+  role: BoardMemberRole = "BOARD_MEMBER"
+): Promise<BoardMember> {
+  const response = await fetch(`${apiBaseUrl}/board/members`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ userId, role })
+  });
+  return parseApiResponse<BoardMember>(response, "Failed to add board member");
+}
+
+export async function updateBoardMember(
+  token: string,
+  boardMemberId: string,
+  updates: { role?: BoardMemberRole; status?: BoardMemberStatus }
+): Promise<BoardMember> {
+  const response = await fetch(`${apiBaseUrl}/board/members/${boardMemberId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(updates)
+  });
+  return parseApiResponse<BoardMember>(response, "Failed to update board member");
+}
+
+export async function removeBoardMember(token: string, boardMemberId: string): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/board/members/${boardMemberId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    const body = await response.json();
+    throw new Error(body.message || "Failed to remove board member");
+  }
+}
+
+export async function setBoardChair(token: string, boardMemberId: string): Promise<BoardMember> {
+  const response = await fetch(`${apiBaseUrl}/board/members/${boardMemberId}/set-chair`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return parseApiResponse<BoardMember>(response, "Failed to set board chair");
+}
+
 export async function finalizeBoardDecision(token: string, seriesId: string): Promise<BoardDecision> {
   const response = await fetch(`${apiBaseUrl}/series/${seriesId}/decisions/finalize`, {
     method: "POST",

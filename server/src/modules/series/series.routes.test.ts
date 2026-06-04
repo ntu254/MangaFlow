@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -8,18 +8,16 @@ import type { Series, SeriesRepository, UpdateSeriesInput } from "./series.servi
 const now = "2026-06-03T00:00:00.000Z";
 
 function createAuthUser(
-  clerkId: string,
+  id: string,
   systemRole: SystemRole | null = "MANGAKA",
   status: UserStatus = "ACTIVE"
 ): AuthUser {
   return {
-    id: `user_${clerkId}`,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    id,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status,
     createdAt: now,
     updatedAt: now
@@ -34,7 +32,7 @@ function createSeries(overrides: Partial<Series> = {}): Series {
     description: overrides.description ?? "A manga production flow.",
     genre: overrides.genre ?? ["Drama"],
     coverUrl: overrides.coverUrl ?? null,
-    ownerId: overrides.ownerId ?? "user_clerk_owner",
+    ownerId: overrides.ownerId ?? "owner_id",
     status: overrides.status ?? "DRAFT",
     publicationType: overrides.publicationType ?? "WEEKLY",
     createdAt: now,
@@ -42,34 +40,27 @@ function createSeries(overrides: Partial<Series> = {}): Series {
   };
 }
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null, status: UserStatus = "ACTIVE"): AuthVerifier {
   return {
     async verify() {
       return {
-        clerkId,
+        sub: id,
         systemRole,
         status
       };
     },
     async verifyWithProfile() {
-      return { clerkId, email: "test@example.com", fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: "test@example.com", fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(users: AuthUser[]): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
 
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile(profile) {
-      const existing = byClerkId.get(profile.clerkId);
-      if (existing) return existing;
-      const created = createAuthUser(profile.clerkId, null);
-      byClerkId.set(profile.clerkId, created);
-      return created;
+    async findById(id) {
+      return byId.get(id) ?? null;
     },
     async updateOnboarding() {
       throw new Error("not needed in series route tests");
@@ -128,10 +119,10 @@ function createSeriesRepository(seed: Series[] = []) {
 
 describe("series routes", () => {
   it("lets Mangaka create and list their series", async () => {
-    const owner = createAuthUser("clerk_owner");
+    const owner = createAuthUser("owner_id");
     const { repository } = createSeriesRepository();
     const app = createApp({
-      authVerifier: createVerifier(owner.clerkId, owner.systemRole, owner.status),
+      authVerifier: createVerifier(owner.id, owner.systemRole, owner.status),
       userRepository: createUserRepository([owner]),
       seriesRepository: repository
     });
@@ -167,9 +158,9 @@ describe("series routes", () => {
   });
 
   it("rejects series creation for users without the Mangaka system role", async () => {
-    const assistant = createAuthUser("clerk_assistant", "ASSISTANT");
+    const assistant = createAuthUser("assistant_id", "ASSISTANT");
     const app = createApp({
-      authVerifier: createVerifier(assistant.clerkId, assistant.systemRole, assistant.status),
+      authVerifier: createVerifier(assistant.id, assistant.systemRole, assistant.status),
       userRepository: createUserRepository([assistant]),
       seriesRepository: createSeriesRepository().repository
     });
@@ -192,11 +183,11 @@ describe("series routes", () => {
   });
 
   it("allows owners to update and delete draft series", async () => {
-    const owner = createAuthUser("clerk_owner");
+    const owner = createAuthUser("owner_id");
     const series = createSeries({ id: "series_draft", ownerId: owner.id });
     const { repository, seriesById } = createSeriesRepository([series]);
     const app = createApp({
-      authVerifier: createVerifier(owner.clerkId, owner.systemRole, owner.status),
+      authVerifier: createVerifier(owner.id, owner.systemRole, owner.status),
       userRepository: createUserRepository([owner]),
       seriesRepository: repository
     });
@@ -223,11 +214,11 @@ describe("series routes", () => {
   });
 
   it("blocks non-members from viewing a series detail", async () => {
-    const owner = createAuthUser("clerk_owner");
-    const stranger = createAuthUser("clerk_stranger");
+    const owner = createAuthUser("owner_id");
+    const stranger = createAuthUser("stranger_id");
     const series = createSeries({ id: "series_private", ownerId: owner.id });
     const app = createApp({
-      authVerifier: createVerifier(stranger.clerkId, stranger.systemRole, stranger.status),
+      authVerifier: createVerifier(stranger.id, stranger.systemRole, stranger.status),
       userRepository: createUserRepository([owner, stranger]),
       seriesRepository: createSeriesRepository([series]).repository
     });

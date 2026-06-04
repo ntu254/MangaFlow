@@ -1,4 +1,4 @@
-﻿import request from "supertest";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
 import type { AuthVerifier } from "../auth/auth.middleware.js";
@@ -20,46 +20,41 @@ const editorId = "507f1f77bcf86cd799439a23";
 const assistantId = "507f1f77bcf86cd799439a24";
 const adminId = "507f1f77bcf86cd799439a25";
 
-function createAuthUser(clerkId: string, id: string, systemRole: SystemRole): AuthUser {
+function createAuthUser(id: string, systemRole: SystemRole): AuthUser {
   return {
     id,
-    clerkId,
-    email: `${clerkId}@example.com`,
-    fullName: clerkId,
+    email: `${id}@example.com`,
+    fullName: id,
     avatarUrl: null,
     systemRole,
-    requestedSystemRole: null,
     status: "ACTIVE",
     createdAt: now,
     updatedAt: now
   };
 }
 
-const mangaka = createAuthUser("clerk_mangaka", ownerId, "MANGAKA");
-const editor = createAuthUser("clerk_editor", editorId, "EDITOR");
-const assistant = createAuthUser("clerk_assistant", assistantId, "ASSISTANT");
-const admin = createAuthUser("clerk_admin", adminId, "ADMIN");
+const mangaka = createAuthUser(ownerId, "MANGAKA");
+const editor = createAuthUser(editorId, "EDITOR");
+const assistant = createAuthUser(assistantId, "ASSISTANT");
+const admin = createAuthUser(adminId, "ADMIN");
 const users = [mangaka, editor, assistant, admin];
 
-function createVerifier(clerkId: string, systemRole: SystemRole | null = null): AuthVerifier {
+function createVerifier(id: string, systemRole: SystemRole | null = null): AuthVerifier {
   return {
     async verify() {
-      return { clerkId, systemRole, status: "ACTIVE" as const };
+      return { sub: id, systemRole, status: "ACTIVE" as const };
     },
     async verifyWithProfile() {
-      return { clerkId, email: `${clerkId}@example.com`, fullName: clerkId, avatarUrl: null };
+      return { sub: id, email: `${id}@example.com`, fullName: id, avatarUrl: null };
     }
   };
 }
 
 function createUserRepository(): UserRepository {
-  const byClerkId = new Map(users.map((user) => [user.clerkId, user]));
+  const byId = new Map(users.map((user) => [user.id, user]));
   return {
-    async findByClerkId(clerkId) {
-      return byClerkId.get(clerkId) ?? null;
-    },
-    async upsertFromProfile() {
-      throw new Error("not needed");
+    async findById(id) {
+      return byId.get(id) ?? null;
     },
     async updateOnboarding() {
       throw new Error("not needed");
@@ -264,9 +259,9 @@ describe("Editor Approval API Integration Tests", () => {
     [adminId]: "ADMIN"
   };
 
-  function verifierFor(clerkId: string) {
-    const user = users.find(u => u.clerkId === clerkId);
-    return createVerifier(clerkId, user?.systemRole ?? null);
+  function verifierFor(userId: string) {
+    const user = users.find(u => u.id === userId);
+    return createVerifier(userId, user?.systemRole ?? null);
   }
 
   const sharedDeps = {
@@ -278,7 +273,7 @@ describe("Editor Approval API Integration Tests", () => {
     it("allows Admin to approve and request revision", async () => {
       const manuscriptRepo = createManuscriptRepository([testManuscript]);
       const app = createApp({
-        authVerifier: verifierFor(admin.clerkId),
+        authVerifier: verifierFor(admin.id),
         manuscriptRepository: manuscriptRepo.repository,
         ...sharedDeps
       });
@@ -304,7 +299,7 @@ describe("Editor Approval API Integration Tests", () => {
     it("allows Series Editor to approve", async () => {
       const manuscriptRepo = createManuscriptRepository([testManuscript]);
       const app = createApp({
-        authVerifier: verifierFor(editor.clerkId),
+        authVerifier: verifierFor(editor.id),
         manuscriptRepository: manuscriptRepo.repository,
         ...sharedDeps
       });
@@ -319,7 +314,7 @@ describe("Editor Approval API Integration Tests", () => {
     it("rejects non-editors and non-admins with 403", async () => {
       const manuscriptRepo = createManuscriptRepository([testManuscript]);
       const app = createApp({
-        authVerifier: verifierFor(mangaka.clerkId),
+        authVerifier: verifierFor(mangaka.id),
         manuscriptRepository: manuscriptRepo.repository,
         ...sharedDeps
       });
@@ -336,7 +331,7 @@ describe("Editor Approval API Integration Tests", () => {
       const pageRepo = createPageRepository([testPage]);
       const commentRepo = createCommentRepository([]);
       const app = createApp({
-        authVerifier: verifierFor(editor.clerkId),
+        authVerifier: verifierFor(editor.id),
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
         chapterRepository: createChapterRepository([testChapter]).repository,
@@ -375,7 +370,7 @@ describe("Editor Approval API Integration Tests", () => {
       };
       const commentRepo = createCommentRepository([unresolvedComment]);
       const app = createApp({
-        authVerifier: verifierFor(editor.clerkId),
+        authVerifier: verifierFor(editor.id),
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
         chapterRepository: createChapterRepository([testChapter]).repository,
@@ -396,7 +391,7 @@ describe("Editor Approval API Integration Tests", () => {
       const pageRepo = createPageRepository([testPage]);
       const commentRepo = createCommentRepository([]);
       const app = createApp({
-        authVerifier: verifierFor(editor.clerkId),
+        authVerifier: verifierFor(editor.id),
         chapterRepository: chapterRepo.repository,
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
@@ -436,7 +431,7 @@ describe("Editor Approval API Integration Tests", () => {
       };
       const commentRepo = createCommentRepository([unresolvedComment]);
       const app = createApp({
-        authVerifier: verifierFor(editor.clerkId),
+        authVerifier: verifierFor(editor.id),
         chapterRepository: chapterRepo.repository,
         pageRepository: pageRepo.repository,
         commentRepository: commentRepo,
