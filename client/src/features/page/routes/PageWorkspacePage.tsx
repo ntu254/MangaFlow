@@ -1,17 +1,10 @@
 import { useAuth } from "@/shared/hooks/useAuth";
 import {
   ArrowLeft,
-  BriefcaseBusiness,
-  Crosshair,
-  MessageSquare,
   Loader2,
-  MousePointer2,
   RefreshCw,
   Save,
-  Trash,
-  Sparkles,
-  ScanSearch,
-  Eraser
+  Sparkles
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -21,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPage, editorApprovePage, requestPageRevision, runAIBubbleDetect, runAIBubbleProcess, type Page } from "@/features/page/api/page";
 import { getChapter } from "@/features/chapter/api/chapter";
 import { fetchSeriesMembers } from "@/features/series/api/series";
-import { CommentPanel } from "@/features/comment/components/CommentPanel";
 import { useToast } from "@/shared/components/feedback/Toast";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 import {
@@ -35,7 +27,6 @@ import {
   createRegion,
   deleteRegion,
   listRegions,
-  regionTypes,
   type Region,
   type RegionType
 } from "@/features/region/api/region";
@@ -43,8 +34,6 @@ import {
   createTaskFromRegion,
   deleteTask,
   listTasks,
-  taskPriorities,
-  taskTypes,
   type Task,
   type TaskPriority,
   type TaskType
@@ -55,97 +44,16 @@ import {
   type NormalizedRegionBox,
   type Point
 } from "@/features/region/lib/region-workspace";
-
-type WorkspaceToolMode = "REGION" | "ANNOTATION";
-
-const regionColorByType: Record<RegionType, string> = {
-  BACKGROUND: "#9065d5",
-  INKING: "#2f243a",
-  SCREENTONE: "#ffc95e",
-  CLEANUP: "#ff7196",
-  EFFECT: "#ff9971",
-  BUBBLE: "#e560bc",
-  OTHER: "#5f5270"
-};
+import { RegionOverlay, AnnotationOverlay, regionColorByType } from "../components/RegionOverlay";
+import { RegionsTabContent, type WorkspaceToolMode } from "../components/RegionsTabContent";
+import { TaskTabContent } from "../components/TaskTabContent";
+import { CommentsTabContent } from "../components/CommentsTabContent";
+import { AiTabContent } from "../components/AiTabContent";
 
 type LoadState =
   | { status: "loading" }
   | { status: "ready"; page: Page; regions: Region[]; annotations: Annotation[]; tasks: Task[] }
   | { status: "error"; message: string };
-
-function RegionOverlay({
-  region,
-  selected,
-  onSelect
-}: {
-  region: Region;
-  selected: boolean;
-  onSelect: (region: Region) => void;
-}) {
-  const color = regionColorByType[region.type];
-
-  return (
-    <button
-      type="button"
-      aria-label={`${region.type} region`}
-      className="absolute rounded-[3px] border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-      style={{
-        ...regionBoxToStyle(region),
-        borderColor: color,
-        backgroundColor: selected ? `${color}40` : `${color}20`,
-        boxShadow: selected ? `0 0 0 2px white, 0 0 0 5px ${color}` : "0 8px 20px rgba(47,36,58,0.12)"
-      }}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect(region);
-      }}
-    >
-      <span
-        className="absolute left-1 top-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm"
-        style={{ backgroundColor: color }}
-      >
-        {region.type}
-      </span>
-    </button>
-  );
-}
-
-function AnnotationOverlay({
-  annotation,
-  selected,
-  onSelect
-}: {
-  annotation: Annotation;
-  selected: boolean;
-  onSelect: (annotation: Annotation) => void;
-}) {
-  const color = annotation.status === "RESOLVED" ? "#8a7a99" : "#ff7196";
-
-  return (
-    <button
-      type="button"
-      aria-label={`${annotation.status.toLowerCase()} annotation`}
-      className="absolute rounded-[3px] border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-      style={{
-        ...regionBoxToStyle(annotation),
-        borderColor: color,
-        backgroundColor: selected ? `${color}35` : `${color}18`,
-        boxShadow: selected ? `0 0 0 2px white, 0 0 0 5px ${color}` : "0 8px 20px rgba(47,36,58,0.10)"
-      }}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect(annotation);
-      }}
-    >
-      <span
-        className="absolute right-1 top-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm"
-        style={{ backgroundColor: color }}
-      >
-        {annotation.status}
-      </span>
-    </button>
-  );
-}
 
 function EmptyWorkspaceState({ chapterId }: { chapterId?: string }) {
   const isEditor = window.location.pathname.startsWith("/app/editor");
@@ -725,619 +633,100 @@ export function PageWorkspacePage() {
 
             <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-4">
               <TabsContent value="regions" className="space-y-4 outline-none m-0">
-                {!isEditor && (
-                  <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#2f243a]">Workspace tool</span>
-                      <span className="text-[10px] text-muted-foreground">Drag on the page to draw</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={toolMode === "REGION" ? "default" : "outline"}
-                        onClick={() => {
-                          setToolMode("REGION");
-                          setDraftBox(null);
-                        }}
-                        className="text-xs h-8 px-2"
-                      >
-                        <Crosshair className="size-3.5 mr-1" /> Region
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={toolMode === "ANNOTATION" ? "default" : "outline"}
-                        onClick={() => {
-                          setToolMode("ANNOTATION");
-                          setDraftBox(null);
-                        }}
-                        className="text-xs h-8 px-2"
-                      >
-                        <MessageSquare className="size-3.5 mr-1" /> Annotation
-                      </Button>
-                    </div>
-
-                    {toolMode === "REGION" ? (
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Type</span>
-                        <div className="flex flex-wrap gap-1">
-                          {regionTypes.map((type) => (
-                            <Button
-                              key={type}
-                              type="button"
-                              size="xs"
-                              variant={selectedType === type ? "default" : "outline"}
-                              onClick={() => setSelectedType(type)}
-                              className="text-[10px] h-7 px-2 font-medium"
-                            >
-                              <span
-                                className="size-1.5 rounded-full mr-1.5 shrink-0"
-                                style={{ backgroundColor: regionColorByType[type] }}
-                                aria-hidden="true"
-                              />
-                              {type}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Review Comment</span>
-                        <textarea
-                          value={annotationComment}
-                          onChange={(event) => setAnnotationComment(event.target.value)}
-                          className="w-full min-h-12 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs outline-none transition-colors focus-visible:border-ring"
-                          placeholder="Dialogue bubble needs revision"
-                          maxLength={1000}
-                        />
-                      </div>
-                    )}
-
-                    {draftBox ? (
-                      <div className="rounded-lg border bg-[#f8f1ff]/20 p-2.5 text-xs space-y-2">
-                        <div className="flex justify-between items-center text-[10px] font-mono text-[#5f5270]">
-                          <span>Draft Coordinates</span>
-                          <span>
-                            {Math.round(draftBox.x * 1000)}, {Math.round(draftBox.y * 1000)} &middot; {Math.round(draftBox.width * 1000)} &times; {Math.round(draftBox.height * 1000)}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={() => void handleSaveDraft()} disabled={saving} size="xs" className="flex-1 bg-[#9065d5] hover:bg-[#7f55c7] text-[10px] h-7">
-                            {saving ? <Loader2 className="animate-spin size-3 mr-1" /> : <Save className="size-3 mr-1" />} Save
-                          </Button>
-                          <Button variant="outline" size="xs" onClick={() => setDraftBox(null)} disabled={saving} className="flex-1 text-[10px] h-7">
-                            Clear
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="rounded-md border border-dashed p-2 text-[10px] text-muted-foreground flex items-center justify-center gap-1.5">
-                        <MousePointer2 className="size-3" />
-                        No draft region selected
-                      </div>
-                    )}
-                  </section>
-                )}
-
-                <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold text-[#2f243a]">Regions</h2>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{regions.length}</Badge>
-                  </div>
-
-                  {/* Type filters */}
-                  <div className="flex items-center gap-1 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
-                    <Button
-                      size="xs"
-                      variant={filterType === "ALL" ? "default" : "outline"}
-                      onClick={() => setFilterType("ALL")}
-                      className="text-[10px] h-6 px-2 rounded-full shrink-0 font-medium"
-                    >
-                      All
-                    </Button>
-                    {regionTypes.map((type) => (
-                      <Button
-                        key={type}
-                        size="xs"
-                        variant={filterType === type ? "default" : "outline"}
-                        onClick={() => setFilterType(type)}
-                        className="text-[10px] h-6 px-2 rounded-full shrink-0 font-medium"
-                      >
-                        <span
-                          className="size-1 rounded-full mr-1 shrink-0"
-                          style={{ backgroundColor: regionColorByType[type] }}
-                        />
-                        {type}
-                      </Button>
-                    ))}
-                  </div>
-
-                  {filteredRegions.length === 0 ? (
-                    <p className="rounded-md border border-dashed p-4 text-xs text-muted-foreground text-center">
-                      No regions match this filter.
-                    </p>
-                  ) : (
-                    <div className="grid gap-2">
-                      {filteredRegions.map((region) => {
-                        const index = regions.findIndex((r) => r.id === region.id);
-                        const isSelected = selectedRegion?.id === region.id;
-                        return (
-                          <div
-                            key={region.id}
-                            className={`rounded-lg border p-2.5 transition-all ${
-                              isSelected ? "border-[#9065d5] bg-[#f8f1ff]/40 shadow-sm" : "border-[#eadff6]/50 bg-white hover:bg-[#fffcfd]"
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-between text-left focus:outline-none"
-                              onClick={() => setSelectedRegionId(region.id)}
-                            >
-                              <span className="flex items-center gap-1.5 text-xs font-semibold text-[#2f243a]">
-                                <span
-                                  className="size-1.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: regionColorByType[region.type] }}
-                                  aria-hidden="true"
-                                />
-                                {region.type} #{index + 1}
-                                <span className="text-muted-foreground font-normal">&middot; {region.source}</span>
-                              </span>
-                            </button>
-
-                            {isSelected && (
-                              <div className="mt-2 space-y-2">
-                                <div className="text-[10px] font-mono text-[#5f5270]">
-                                  {Math.round(region.x * 1000)}, {Math.round(region.y * 1000)} &middot; {Math.round(region.width * 1000)} &times; {Math.round(region.height * 1000)}
-                                </div>
-                                <div className="flex gap-1.5">
-                                  <Button
-                                    size="xs"
-                                    variant="outline"
-                                    onClick={() => setActiveTab("task")}
-                                    className="text-[10px] h-6 flex-1 bg-white border-[#eadff6] text-[#5f5270] hover:bg-[#f8f1ff] py-0 px-2 font-medium"
-                                  >
-                                    Assign Task
-                                  </Button>
-                                  {!isEditor && (
-                                    <Button
-                                      size="xs"
-                                      variant="destructive"
-                                      onClick={() => setConfirmDelete({ type: "region", id: region.id })}
-                                      className="text-[10px] h-6 px-2 py-0"
-                                    >
-                                      <Trash className="size-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
+                <RegionsTabContent
+                  isEditor={isEditor}
+                  toolMode={toolMode}
+                  setToolMode={setToolMode}
+                  selectedType={selectedType}
+                  setSelectedType={setSelectedType}
+                  annotationComment={annotationComment}
+                  setAnnotationComment={setAnnotationComment}
+                  draftBox={draftBox}
+                  setDraftBox={setDraftBox}
+                  saving={saving}
+                  handleSaveDraft={handleSaveDraft}
+                  regions={regions}
+                  filteredRegions={filteredRegions}
+                  selectedRegionId={selectedRegionId}
+                  setSelectedRegionId={setSelectedRegionId}
+                  filterType={filterType}
+                  setFilterType={setFilterType}
+                  setActiveTab={setActiveTab}
+                  setConfirmDelete={(confirm) => {
+                    if (confirm) {
+                      setConfirmDelete({ type: "region", id: confirm.id });
+                    } else {
+                      setConfirmDelete(null);
+                    }
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="task" className="space-y-4 outline-none m-0">
-                <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold text-[#2f243a]">Assign Task</h2>
-                  </div>
-
-                  {!isEditor && (
-                    <>
-                      {selectedRegion ? (
-                        <div className="rounded-lg border border-[#eadff6]/60 bg-[#f8f1ff]/10 p-2.5 space-y-1">
-                          <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Selected region info</div>
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#2f243a]">
-                            <span
-                              className="size-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: regionColorByType[selectedRegion.type] }}
-                            />
-                            {selectedRegion.type} ({selectedRegion.source})
-                          </div>
-                          <div className="text-[10px] font-mono text-[#5f5270]">
-                            {Math.round(selectedRegion.x * 1000)}, {Math.round(selectedRegion.y * 1000)} &middot; {Math.round(selectedRegion.width * 1000)} &times; {Math.round(selectedRegion.height * 1000)}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-md border border-dashed p-4 text-xs text-muted-foreground text-center">
-                          <BriefcaseBusiness className="size-4 mx-auto mb-1 text-muted-foreground" />
-                          Please select a region from the Regions tab to assign a task.
-                        </div>
-                      )}
-
-                      <div className="grid gap-2.5">
-                        <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Assign assistant
-                          {assistants.length > 0 ? (
-                            <select
-                              value={taskAssigneeId}
-                              onChange={(event) => setTaskAssigneeId(event.target.value)}
-                              disabled={!selectedRegion}
-                              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            >
-                              <option value="">Select assistant...</option>
-                              {assistants.map((assistant) => (
-                                <option key={assistant.id} value={assistant.id}>
-                                  {assistant.fullName} ({assistant.email})
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              value={taskAssigneeId}
-                              onChange={(event) => setTaskAssigneeId(event.target.value)}
-                              disabled={!selectedRegion}
-                              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                              placeholder="Assistant User ID"
-                            />
-                          )}
-                        </label>
-
-                        <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Task title
-                          <input
-                            value={taskTitle}
-                            onChange={(event) => setTaskTitle(event.target.value)}
-                            disabled={!selectedRegion}
-                            className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            placeholder="e.g. Clean selected bubble"
-                            maxLength={160}
-                          />
-                        </label>
-
-                        <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Description
-                          <textarea
-                            value={taskDescription}
-                            onChange={(event) => setTaskDescription(event.target.value)}
-                            disabled={!selectedRegion}
-                            className="min-h-12 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            placeholder="Clean edges and prepare final ink layer"
-                            maxLength={1000}
-                          />
-                        </label>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Type
-                            <select
-                              value={taskType}
-                              onChange={(event) => setTaskType(event.target.value as TaskType)}
-                              disabled={!selectedRegion}
-                              className="rounded-md border border-input bg-background px-1.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            >
-                              {taskTypes.map((type) => (
-                                <option key={type} value={type}>
-                                  {type}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-
-                          <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Priority
-                            <select
-                              value={taskPriority}
-                              onChange={(event) => setTaskPriority(event.target.value as TaskPriority)}
-                              disabled={!selectedRegion}
-                              className="rounded-md border border-input bg-background px-1.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            >
-                              {taskPriorities.map((priority) => (
-                                <option key={priority} value={priority}>
-                                  {priority}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        </div>
-
-                        <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Due date
-                          <input
-                            type="date"
-                            value={taskDueDate}
-                            onChange={(event) => setTaskDueDate(event.target.value)}
-                            disabled={!selectedRegion}
-                            className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                          />
-                        </label>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Base rate
-                            <input
-                              type="number"
-                              min="0"
-                              value={taskBaseRate}
-                              onChange={(event) => setTaskBaseRate(event.target.value)}
-                              disabled={!selectedRegion}
-                              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            />
-                          </label>
-                          <label className="grid gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Bonus
-                            <input
-                              type="number"
-                              min="0"
-                              value={taskBonusAmount}
-                              onChange={(event) => setTaskBonusAmount(event.target.value)}
-                              disabled={!selectedRegion}
-                              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-normal normal-case text-foreground outline-none focus:border-ring"
-                            />
-                          </label>
-                        </div>
-
-                        <Button
-                          onClick={() => void handleCreateRegionTask()}
-                          disabled={
-                            !selectedRegion ||
-                            assigningTask ||
-                            !taskAssigneeId.trim() ||
-                            !taskTitle.trim() ||
-                            !taskDescription.trim()
-                          }
-                          className="mt-2 bg-[#9065d5] text-white hover:bg-[#7f55c7] text-xs h-8"
-                        >
-                          {assigningTask ? <Loader2 className="animate-spin size-3.5 mr-1" /> : <Save className="size-3.5 mr-1" />}
-                          Assign task
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </section>
-
-                <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold text-[#2f243a]">Tasks List</h2>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{tasks.length}</Badge>
-                  </div>
-
-                  <div className="grid gap-2">
-                    {tasks.length === 0 ? (
-                      <p className="rounded-md border border-dashed p-4 text-xs text-muted-foreground text-center">
-                        No tasks created for this page yet.
-                      </p>
-                    ) : (
-                      tasks.map((task) => {
-                        const isSelectedRegionTask = selectedRegionTasks.some((item) => item.id === task.id);
-                        return (
-                          <div
-                            key={task.id}
-                            className={`rounded-lg border p-2.5 transition-colors ${
-                              isSelectedRegionTask ? "border-[#9065d5] bg-[#f8f1ff]/30" : "bg-white"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <h3 className="text-xs font-semibold text-[#2f243a]">{task.title}</h3>
-                                <p className="mt-0.5 text-[9px] text-muted-foreground">
-                                  {task.assignedToUserInfo?.fullName || task.assignedToUserInfo?.email || task.assignedTo}
-                                </p>
-                              </div>
-                              <Badge variant={task.status === "TODO" ? "outline" : "secondary"} className="text-[9px] px-1.5 py-0 h-4">{task.status}</Badge>
-                            </div>
-                            <p className="mt-1.5 text-xs text-muted-foreground leading-normal">{task.description}</p>
-                            <div className="mt-2 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-[#5f5270] font-medium">
-                              <span>{task.type}</span>
-                              <span>&middot;</span>
-                              <span>{task.priority}</span>
-                              {task.dueDate ? (
-                                <>
-                                  <span>&middot;</span>
-                                  <span>Due {new Date(task.dueDate).toLocaleDateString()}</span>
-                                </>
-                              ) : null}
-                            </div>
-                            {!isEditor && (
-                              <Button
-                                className="mt-3 w-full text-xs h-7 py-0"
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => setConfirmDelete({ type: "task", id: task.id })}
-                                disabled={deletingTaskId === task.id}
-                              >
-                                {deletingTaskId === task.id ? <Loader2 className="animate-spin size-3 mr-1" /> : <Trash className="size-3 mr-1" />}
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </section>
+                <TaskTabContent
+                  isEditor={isEditor}
+                  selectedRegion={selectedRegion}
+                  taskAssigneeId={taskAssigneeId}
+                  setTaskAssigneeId={setTaskAssigneeId}
+                  assistants={assistants}
+                  taskTitle={taskTitle}
+                  setTaskTitle={setTaskTitle}
+                  taskDescription={taskDescription}
+                  setTaskDescription={setTaskDescription}
+                  taskType={taskType}
+                  setTaskType={setTaskType}
+                  taskPriority={taskPriority}
+                  setTaskPriority={setTaskPriority}
+                  taskDueDate={taskDueDate}
+                  setTaskDueDate={setTaskDueDate}
+                  taskBaseRate={taskBaseRate}
+                  setTaskBaseRate={setTaskBaseRate}
+                  taskBonusAmount={taskBonusAmount}
+                  setTaskBonusAmount={setTaskBonusAmount}
+                  assigningTask={assigningTask}
+                  handleCreateRegionTask={handleCreateRegionTask}
+                  tasks={tasks}
+                  selectedRegionTasks={selectedRegionTasks}
+                  deletingTaskId={deletingTaskId}
+                  setConfirmDelete={(confirm) => {
+                    if (confirm) {
+                      setConfirmDelete({ type: "task", id: confirm.id });
+                    } else {
+                      setConfirmDelete(null);
+                    }
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="comments" className="space-y-4 outline-none m-0">
-                <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold text-[#2f243a]">Review Annotations</h2>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{annotations.length}</Badge>
-                  </div>
-
-                  {annotations.length === 0 ? (
-                    <p className="rounded-md border border-dashed p-4 text-xs text-muted-foreground text-center">
-                      No annotations yet.
-                    </p>
-                  ) : (
-                    <div className="grid gap-2">
-                      {annotations.map((annotation) => {
-                        const isSelected = selectedAnnotation?.id === annotation.id;
-                        return (
-                          <div
-                            key={annotation.id}
-                            className={`rounded-lg border p-2.5 transition-colors ${
-                              isSelected ? "border-[#ff7196] bg-[#fff3f8]/50" : "bg-white"
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-between text-left focus:outline-none"
-                              onClick={() => setSelectedAnnotationId(annotation.id)}
-                            >
-                              <span className="flex items-center gap-1.5 text-xs font-semibold text-[#2f243a]">
-                                <span
-                                  className="size-1.5 rounded-full"
-                                  style={{ backgroundColor: annotation.status === "RESOLVED" ? "#8a7a99" : "#ff7196" }}
-                                  aria-hidden="true"
-                                />
-                                Annotation
-                              </span>
-                              <Badge variant={annotation.status === "RESOLVED" ? "secondary" : "outline"} className="text-[9px] px-1.5 py-0 h-4">
-                                {annotation.status}
-                              </Badge>
-                            </button>
-                            <p className="mt-1.5 text-xs text-[#5f5270] leading-normal">
-                              {annotation.comment || "No comment description"}
-                            </p>
-                            {annotation.regionId ? (
-                              <p className="mt-1 text-[9px] text-muted-foreground">Linked region: {annotation.regionId.slice(-4)}</p>
-                            ) : null}
-                            <div className="mt-1.5 font-mono text-[9px] text-muted-foreground">
-                              {Math.round(annotation.x * 1000)}, {Math.round(annotation.y * 1000)} &middot; {Math.round(annotation.width * 1000)} &times; {Math.round(annotation.height * 1000)}
-                            </div>
-                            <div className="mt-2 grid grid-cols-2 gap-2">
-                              <Button
-                                size="xs"
-                                variant="outline"
-                                className="h-6 text-[10px] py-0"
-                                onClick={() =>
-                                  void handleUpdateAnnotationStatus(
-                                    annotation.id,
-                                    annotation.status === "RESOLVED" ? "OPEN" : "RESOLVED"
-                                  )
-                                }
-                              >
-                                {annotation.status === "RESOLVED" ? "Reopen" : "Resolve"}
-                              </Button>
-                              <Button
-                                size="xs"
-                                variant="destructive"
-                                className="h-6 text-[10px] py-0"
-                                onClick={() => setConfirmDelete({ type: "annotation", id: annotation.id })}
-                              >
-                                <Trash className="size-2.5 mr-1" /> Delete
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-
-                <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm">
-                  <Tabs defaultValue="page" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-3 bg-[#f1ebf8]">
-                      <TabsTrigger value="page" className="text-xs py-1 h-7">Page</TabsTrigger>
-                      <TabsTrigger value="annotation" disabled={!selectedAnnotationId} className="text-xs py-1 h-7">
-                        Annotation
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="page" className="outline-none m-0">
-                      {pageId && (
-                        <CommentPanel
-                          targetType="PAGE"
-                          targetId={pageId}
-                          pageId={pageId}
-                          currentUser={currentUser}
-                        />
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="annotation" className="outline-none m-0">
-                      {pageId && selectedAnnotationId ? (
-                        <CommentPanel
-                          targetType="PAGE"
-                          targetId={pageId}
-                          pageId={pageId}
-                          annotationId={selectedAnnotationId}
-                          currentUser={currentUser}
-                        />
-                      ) : (
-                        <p className="text-[11px] text-muted-foreground text-center py-4">
-                          Select an annotation on the page to view/post comments.
-                        </p>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </section>
+                <CommentsTabContent
+                  annotations={annotations}
+                  selectedAnnotation={selectedAnnotation}
+                  selectedAnnotationId={selectedAnnotationId}
+                  setSelectedAnnotationId={setSelectedAnnotationId}
+                  handleUpdateAnnotationStatus={handleUpdateAnnotationStatus}
+                  setConfirmDelete={(confirm) => {
+                    if (confirm) {
+                      setConfirmDelete({ type: "annotation", id: confirm.id });
+                    } else {
+                      setConfirmDelete(null);
+                    }
+                  }}
+                  pageId={pageId}
+                  currentUser={currentUser}
+                />
               </TabsContent>
 
               {!isEditor && (
                 <TabsContent value="ai" className="space-y-4 outline-none m-0">
-                  <section className="rounded-lg border border-[#eadff6] bg-white p-3.5 shadow-sm space-y-3">
-                    <div className="flex items-start gap-3 mb-2">
-                      <div className="rounded-lg bg-[#f8f1ff] p-2 text-[#9065d5] shrink-0">
-                        <Sparkles className="size-5" />
-                      </div>
-                      <div>
-                        <h2 className="text-xs font-bold text-[#2f243a]">AI Bubble Tools</h2>
-                        <p className="mt-0.5 text-[10px] leading-normal text-muted-foreground">
-                          Auto-detect speech bubbles and whiten them using AI.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Button
-                        id="btn-ai-detect"
-                        className="w-full justify-start gap-2 h-9 text-xs"
-                        variant="outline"
-                        onClick={() => void handleAIDetect()}
-                        disabled={aiDetecting || aiProcessing}
-                      >
-                        {aiDetecting ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <ScanSearch className="size-4" />
-                        )}
-                        {aiDetecting ? "Detecting bubbles…" : "Detect Bubbles"}
-                      </Button>
-
-                      <Button
-                        id="btn-ai-process"
-                        className="w-full justify-start gap-2 h-9 text-xs bg-[#9065d5] text-white hover:bg-[#7f55c7]"
-                        onClick={() => void handleAIProcess()}
-                        disabled={aiDetecting || aiProcessing}
-                      >
-                        {aiProcessing ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Eraser className="size-4" />
-                        )}
-                        {aiProcessing ? "Whitening bubbles…" : "Whiten Bubbles"}
-                      </Button>
-                    </div>
-
-                    {aiError && (
-                      <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
-                        {aiError}
-                      </div>
-                    )}
-
-                    {aiResult && !aiError && (
-                      <div className="mt-2 rounded-md border border-[#eadff6] bg-[#f8f1ff] p-2.5 text-xs text-[#2f243a] space-y-1">
-                        {aiResult.detectCount !== undefined && (
-                          <p>✓ Detected <strong>{aiResult.detectCount}</strong> bubble region{aiResult.detectCount !== 1 ? "s" : ""}.</p>
-                        )}
-                        {aiResult.processedUrl && (
-                          <p>✓ Processed image ready — canvas updated.</p>
-                        )}
-                      </div>
-                    )}
-
-                    <p className="mt-2 text-[10px] text-muted-foreground leading-normal">
-                      <strong>Detect</strong> scans the page and saves bubble regions (source: AI).<br />
-                      <strong>Whiten</strong> applies inpainting to produce a clean processed image.
-                    </p>
-                  </section>
+                  <AiTabContent
+                    aiDetecting={aiDetecting}
+                    aiProcessing={aiProcessing}
+                    handleAIDetect={handleAIDetect}
+                    handleAIProcess={handleAIProcess}
+                    aiError={aiError}
+                    aiResult={aiResult}
+                  />
                 </TabsContent>
               )}
             </div>
