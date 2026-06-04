@@ -1,6 +1,7 @@
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useCallback, useEffect, useState } from "react";
-import { Settings, CheckCircle2, AlertCircle, Plus, Loader2, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Settings, CheckCircle2, AlertCircle, Plus, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -199,23 +200,32 @@ export function AdminTaskRatesPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#fff9fb]">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-[#fff9fb] pb-12">
+      <section className="bg-gradient-to-r from-[#f8f1ff] via-[#fff3f8] to-[#fff7ec] border-b border-[#eadff6] py-10 px-6 sm:px-12 mb-8">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#2f243a]">System Payroll & Rates</h1>
-            <p className="mt-1.5 text-sm text-[#8a7a99]">Manage global assistant task rates and disburse confirmed point payouts.</p>
+            <Link to="/app/admin/dashboard" className="inline-flex items-center gap-1 text-sm text-[#9065d5] hover:text-[#7f55c7] mb-3">
+              <ArrowLeft className="size-4" /> Back to Dashboard
+            </Link>
+            <h1 className="text-4xl font-bold tracking-tight text-[#2f243a] mb-2">
+              System Payroll & Rates
+            </h1>
+            <p className="text-[#5f5270] max-w-xl text-sm sm:text-base">
+              Manage global assistant task rates and disburse confirmed point payouts.
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={handleOpenCreate} className="bg-[#9065d5] hover:bg-[#7f55c7] text-white">
+          <div className="flex items-center gap-4">
+            <Button onClick={handleOpenCreate} className="bg-[#9065d5] hover:bg-[#7c54be] text-white">
               <Plus className="mr-2 size-4" /> Create Rate
             </Button>
-            <Button variant="outline" size="sm" onClick={() => void loadData()} className="border-[#eadff6] hover:bg-[#f8f1ff]">
-              <RefreshCw className="size-4 text-[#5f5270]" />
+            <Button variant="outline" onClick={() => void loadData()} className="border-[#eadff6] text-[#5f5270] hover:bg-[#f8f1ff]">
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
             </Button>
           </div>
         </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-6 sm:px-12">
 
         {/* Summary Grid */}
         {state.summary && (

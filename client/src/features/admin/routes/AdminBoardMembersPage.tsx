@@ -21,6 +21,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
   RefreshCw,
@@ -29,6 +30,9 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  Users,
+  UserCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { apiBaseUrl, parseApiResponse } from "@/shared/api";
 import {
@@ -253,10 +257,60 @@ export function AdminBoardMembersPage() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-6 sm:px-12">
+      <div className="max-w-6xl mx-auto px-6 sm:px-12 space-y-8">
         {state.error && (
-          <div className="bg-[#ffe7de] border border-[#ff7196]/30 p-4 rounded-xl text-[#e15f2f] text-sm mb-6">
+          <div className="bg-[#ffe7de] border border-[#ff7196]/30 p-4 rounded-xl text-[#e15f2f] text-sm">
             {state.error}
+          </div>
+        )}
+
+        {!state.isLoading && state.members.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Total Size</CardTitle>
+                <Users className="size-4 text-[#9065d5]" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[#2f243a]">{state.members.length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Board members</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Active Members</CardTitle>
+                <UserCheck className="size-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">{state.members.filter((m) => m.status === "ACTIVE").length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Currently active</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Inactive Members</CardTitle>
+                <ShieldAlert className="size-4 text-slate-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-600">{state.members.filter((m) => m.status === "INACTIVE").length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Temporarily inactive</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Board Chair</CardTitle>
+                <Crown className="size-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">
+                  {state.members.some((m) => m.role === "BOARD_CHAIR") ? "Assigned" : "Vacant"}
+                </div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Editorial leadership</p>
+              </CardContent>
+            </Card>
           </div>
         )}
 

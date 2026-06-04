@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Ban, RefreshCw, RotateCcw, KeyRound, Plus, ArrowLeft, Loader2, AlertCircle, Mail, Lock, UserIcon } from "lucide-react";
+import { Ban, RefreshCw, RotateCcw, KeyRound, Plus, ArrowLeft, Loader2, AlertCircle, Mail, Lock, UserIcon, Users, UserCheck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogTrigger,
@@ -249,7 +250,55 @@ export function AdminUserManagementPage() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-6 sm:px-12">
+      <div className="max-w-6xl mx-auto px-6 sm:px-12 space-y-8">
+        {state.status === "ready" && (
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Total Users</CardTitle>
+                <Users className="size-4 text-[#9065d5]" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[#2f243a]">{state.users.length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Registered accounts</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Active Users</CardTitle>
+                <UserCheck className="size-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">{state.users.filter((u) => u.status === "ACTIVE").length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Active in system</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Suspended</CardTitle>
+                <Ban className="size-4 text-rose-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-rose-600">{state.users.filter((u) => u.status === "SUSPENDED").length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Blocked accounts</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#eadff6] shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold tracking-wider text-[#8a7a99] uppercase">Administrators</CardTitle>
+                <ShieldCheck className="size-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{state.users.filter((u) => u.systemRole === "ADMIN").length}</div>
+                <p className="text-[11px] text-[#8a7a99] mt-1">Full control access</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <div className="bg-white border border-[#eadff6] rounded-2xl p-6 shadow-[0_2px_12px_rgba(144,101,213,0.04)]">
           <div className="flex items-center justify-between mb-6">
             <div>
