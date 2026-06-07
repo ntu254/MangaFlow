@@ -52,6 +52,21 @@ export const voteStatusUI: Record<string, StatusUiConfig> = {
   ABSTAIN: { label: "Abstain", tone: "neutral" },
 }
 
+export const commentStatusUI: Record<string, StatusUiConfig> = {
+  OPEN: { label: "Open", tone: "danger" },
+  FIXED_BY_ASSISTANT: { label: "Fixed by Assistant", tone: "primary" },
+  VERIFIED_BY_MANGAKA: { label: "Verified by Mangaka", tone: "secondary" },
+  RESOLVED_BY_EDITOR: { label: "Resolved by Editor", tone: "success" },
+}
+
+export const submissionStatusUI: Record<string, StatusUiConfig> = {
+  SUBMITTED: { label: "Submitted", tone: "secondary" },
+  MANGAKA_APPROVED: { label: "Mangaka Approved", tone: "success" },
+  EDITOR_APPROVED: { label: "Editor Approved", tone: "success" },
+  REVISION_REQUESTED: { label: "Revision Requested", tone: "warning" },
+  REJECTED: { label: "Rejected", tone: "danger" },
+}
+
 export function getStatusUi(status: string, mapping: Record<string, StatusUiConfig>): StatusUiConfig {
   return mapping[status] ?? { label: status, tone: "neutral" }
 }
