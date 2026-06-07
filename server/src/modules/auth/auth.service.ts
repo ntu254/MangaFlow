@@ -4,7 +4,6 @@ import type { SignOptions } from "jsonwebtoken"
 import { User, RefreshToken } from "./auth.model.js"
 import { config } from "../../shared/utils/env.js"
 import type { JwtPayload, TokenPair, AuthUser, UserRole } from "./auth.types.js"
-import { randomBytes } from "crypto"
 
 const SALT_ROUNDS = 12
 
@@ -21,8 +20,9 @@ function generateAccessToken(payload: JwtPayload): string {
 }
 
 function generateRefreshToken(): string {
-   const bytes = randomBytes(32)
-   return bytes.toString("hex")
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
 }
 
 export async function createTokenPair(userId: string, role: UserRole): Promise<TokenPair> {
