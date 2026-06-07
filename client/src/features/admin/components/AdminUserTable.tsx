@@ -1,4 +1,4 @@
-import { BarChart, Bar, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { BarChart, Bar, Cell, ResponsiveContainer, Tooltip, XAxis } from "recharts"
 
 const barData = [
   { day: "Mon", value: 40 }, { day: "Tue", value: 65 }, { day: "Wed", value: 55 },
@@ -16,8 +16,8 @@ const demoUsers = [
 export function AdminUserTable() {
   return (
     <div className="bg-surface-container-lowest rounded-lg border border-outline-variant/20 shadow-[0px_10px_30px_rgba(111,68,178,0.05)] overflow-hidden flex flex-col">
-      <div className="p-lg border-b border-surface-variant flex justify-between items-center bg-surface-bright">
-        <h3 className="text-title-lg font-title-lg text-on-surface flex items-center gap-sm">
+      <div className="p-md border-b border-surface-variant flex justify-between items-center bg-surface-bright">
+        <h3 className="text-title-md font-title-md text-on-surface flex items-center gap-sm">
           <span className="material-symbols-outlined text-primary">manage_accounts</span>
           User Management Preview
         </h3>
@@ -25,13 +25,13 @@ export function AdminUserTable() {
           <span className="material-symbols-outlined text-[20px]">person_add</span>
         </button>
       </div>
-      <div className="p-lg border-b border-surface-variant bg-surface-container-lowest">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-lg">
+      <div className="p-md border-b border-surface-variant bg-surface-container-lowest">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-md">
           <div>
-            <h4 className="text-title-lg font-title-lg text-on-surface">Task Completion Statistics</h4>
+            <h4 className="text-title-md font-title-md text-on-surface">Task Completion Statistics</h4>
             <div className="flex items-center gap-md mt-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-headline-md font-display text-primary">1,240</span>
+                <span className="text-headline-sm font-display text-primary">1,240</span>
                 <span className="text-label-sm font-label-sm text-on-surface-variant">Tasks Completed</span>
               </div>
               <span className="flex items-center gap-1 text-primary bg-primary-fixed/50 px-2 py-0.5 rounded-full">
@@ -48,14 +48,15 @@ export function AdminUserTable() {
             ))}
           </div>
         </div>
-        <div className="h-32 w-full">
+        <div className="h-36 w-full px-sm">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-              <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48}>
+            <BarChart data={barData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+              <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32}>
                 {barData.map((entry) => (
                   <Cell key={entry.day} fill={entry.highlight ? "#6750A4" : "#CAC4D0"} />
                 ))}
               </Bar>
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9E9E9E" }} dy={4} />
               <Tooltip
                 cursor={{ fill: "transparent" }}
                 content={({ active, payload }) => {
@@ -77,16 +78,16 @@ export function AdminUserTable() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-surface-container-low text-on-surface-variant text-label-md font-label-md border-b border-surface-variant">
-              <th className="py-md px-lg font-semibold">User</th>
-              <th className="py-md px-lg font-semibold">Role</th>
-              <th className="py-md px-lg font-semibold">Status</th>
-              <th className="py-md px-lg font-semibold text-right">Actions</th>
+              <th className="py-xs px-md font-semibold">User</th>
+              <th className="py-xs px-md font-semibold">Role</th>
+              <th className="py-xs px-md font-semibold">Status</th>
+              <th className="py-xs px-md font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="text-body-md font-body-md divide-y divide-surface-variant">
             {demoUsers.map((user) => (
               <tr key={user.name} className="hover:bg-surface-container-lowest transition-colors group">
-                <td className="px-lg py-1">
+                <td className="px-md py-0.5">
                   <div className="flex items-center gap-sm">
                     <div className={`w-8 h-8 rounded-full ${user.avatarBg} flex items-center justify-center font-bold text-label-sm`}>
                       {user.initials}
@@ -94,18 +95,18 @@ export function AdminUserTable() {
                     <span className="font-medium text-on-surface">{user.name}</span>
                   </div>
                 </td>
-                <td className="px-lg py-1">
+                <td className="px-md py-0.5">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm ${user.roleColor}`}>
                     {user.role}
                   </span>
                 </td>
-                <td className="px-lg py-1">
+                <td className="px-md py-0.5">
                   <div className="flex items-center gap-1.5">
                     <div className={`w-2 h-2 rounded-full ${user.statusColor}`} />
                     <span className="text-on-surface-variant">{user.status}</span>
                   </div>
                 </td>
-                <td className="px-lg text-right py-1">
+                <td className="px-md text-right py-0.5">
                   <button className="p-1.5 text-outline hover:text-primary rounded-full hover:bg-primary-fixed transition-colors">
                     <span className="material-symbols-outlined text-[20px]">more_vert</span>
                   </button>
