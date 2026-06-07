@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react"
+import { createContext, useContext, useEffect, type ReactNode } from "react"
 
 interface PageTitleValue {
   title: string
@@ -13,9 +13,13 @@ const PageTitleContext = createContext<PageTitleValue>({
 
 export function usePageTitle(title?: string, subtitle?: string) {
   const ctx = useContext(PageTitleContext)
-  if (title !== undefined) {
-    ctx.setTitle(title, subtitle)
-  }
+
+  useEffect(() => {
+    if (title !== undefined) {
+      ctx.setTitle(title, subtitle)
+    }
+  }, [ctx, subtitle, title])
+
   return ctx
 }
 
