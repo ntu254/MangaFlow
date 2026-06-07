@@ -22,7 +22,7 @@ export function DashboardLayout() {
   )
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background min-h-0">
+    <div className="flex h-screen max-h-screen w-full overflow-hidden bg-background min-h-0">
       <RoleSidebar
         isOpen={isMobileNavigationOpen}
         onClose={closeMobileNavigation}
