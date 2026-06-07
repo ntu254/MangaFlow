@@ -15,6 +15,13 @@ export const taskStatusUI: Record<string, StatusUiConfig> = {
   REJECTED: { label: "Rejected", tone: "danger" },
 }
 
+export const taskPriorityUI: Record<string, StatusUiConfig> = {
+  LOW: { label: "Low Priority", tone: "neutral" },
+  NORMAL: { label: "Normal Priority", tone: "primary" },
+  HIGH: { label: "High Priority", tone: "warning" },
+  URGENT: { label: "Urgent", tone: "danger" },
+}
+
 export const seriesStatusUI: Record<string, StatusUiConfig> = {
   DRAFT: { label: "Draft", tone: "neutral" },
   EDITOR_REVIEW: { label: "Editor Review", tone: "primary" },
