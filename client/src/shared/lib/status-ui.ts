@@ -17,8 +17,10 @@ export const taskStatusUI: Record<string, StatusUiConfig> = {
 
 export const seriesStatusUI: Record<string, StatusUiConfig> = {
   DRAFT: { label: "Draft", tone: "neutral" },
+  EDITOR_REVIEW: { label: "Editor Review", tone: "primary" },
   PENDING_REVIEW: { label: "Pending Review", tone: "primary" },
   APPROVED: { label: "Approved", tone: "success" },
+  REJECTED: { label: "Rejected", tone: "danger" },
   ONGOING: { label: "Ongoing", tone: "success" },
   AT_RISK: { label: "At Risk", tone: "warning" },
   HIATUS: { label: "Hiatus", tone: "warning" },
