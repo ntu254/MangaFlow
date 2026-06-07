@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
 import { config } from "./shared/utils/env.js"
 import authRoutes from "./modules/auth/auth.routes.js"
+import seriesRoutes from "./modules/series/series.routes.js"
 import { errorHandler } from "./shared/middleware/errorHandler.js"
 
 const app = express()
@@ -17,6 +18,7 @@ app.get("/api/health", (_req, res) => {
 })
 
 app.use("/api/auth", authRoutes)
+app.use("/api/series", seriesRoutes)
 
 app.use(errorHandler)
 
