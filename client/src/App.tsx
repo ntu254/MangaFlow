@@ -11,6 +11,7 @@ import { LoginPage } from "@/features/auth/pages/LoginPage"
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
 import { SeriesPage } from "@/features/series/pages/SeriesPage"
+import { WorkspacePage } from "@/features/workspace/pages/WorkspacePage"
 
 function AppHomeRedirect() {
   const { user, isLoading } = useAuth()
@@ -94,13 +95,7 @@ function App() {
             />
             <Route
               path="workspace/:chapterId"
-              element={
-                <RoutePlaceholderPage
-                  title="Chapter Workspace"
-                  description="Work with chapter pages, regions, tasks, and review context."
-                  icon="draw"
-                />
-              }
+              element={<WorkspacePage />}
             />
             <Route
               path="tasks"
