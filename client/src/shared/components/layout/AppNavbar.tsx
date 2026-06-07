@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "@/shared/components/auth/AuthProvider"
 import { MFButton } from "@/shared/components/ui/MFButton"
 
 interface NavItem {
@@ -15,6 +16,14 @@ const navItems: NavItem[] = [
 ]
 
 export function AppNavbar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await logout()
+    navigate("/login")
+  }
+
   return (
     <nav className="sticky top-0 z-50 border-b border-outline-variant bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
@@ -32,13 +41,18 @@ export function AppNavbar() {
             </Link>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <Link to="/admin">
-            <MFButton variant="ghost" size="sm">Admin</MFButton>
-          </Link>
-          <Link to="/login">
-            <MFButton variant="outline" size="sm">Logout</MFButton>
-          </Link>
+        <div className="flex items-center gap-3">
+          {user && (
+            <span className="text-label-sm text-on-surface-muted">
+              {user.name}
+            </span>
+          )}
+          {user?.role === "ADMIN" && (
+            <Link to="/admin">
+              <MFButton variant="ghost" size="sm">Admin</MFButton>
+            </Link>
+          )}
+          <MFButton variant="outline" size="sm" onClick={handleLogout}>Logout</MFButton>
         </div>
       </div>
     </nav>

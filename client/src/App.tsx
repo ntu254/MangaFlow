@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom"
+import { AuthProvider } from "@/shared/components/auth/AuthProvider"
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute"
 import { MarketingLayout } from "@/shared/components/layout/MarketingLayout"
 import { AuthLayout } from "@/shared/components/layout/AuthLayout"
 import { DashboardLayout } from "@/shared/components/layout/DashboardLayout"
@@ -17,26 +19,34 @@ import { WorkspacePage } from "@/features/workspace/pages/WorkspacePage"
 
 function App() {
   return (
-    <Routes>
-      <Route element={<MarketingLayout />}>
-        <Route path="/" element={<LandingPage />} />
-      </Route>
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-      </Route>
-      <Route element={<DashboardLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/series" element={<SeriesListPage />} />
-        <Route path="/series/:id" element={<SeriesDetailPage />} />
-        <Route path="/chapters/:id" element={<ChapterDetailPage />} />
-        <Route path="/tasks" element={<TaskListPage />} />
-        <Route path="/review" element={<ReviewPage />} />
-        <Route path="/board" element={<BoardPage />} />
-        <Route path="/workspace/:chapterId" element={<WorkspacePage />} />
-        <Route path="/admin" element={<AdminPage />} />
-      </Route>
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<LandingPage />} />
+        </Route>
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
+        <Route
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/series" element={<SeriesListPage />} />
+          <Route path="/series/:id" element={<SeriesDetailPage />} />
+          <Route path="/chapters/:id" element={<ChapterDetailPage />} />
+          <Route path="/tasks" element={<TaskListPage />} />
+          <Route path="/review" element={<ReviewPage />} />
+          <Route path="/board" element={<BoardPage />} />
+          <Route path="/workspace/:chapterId" element={<WorkspacePage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   )
 }
 
