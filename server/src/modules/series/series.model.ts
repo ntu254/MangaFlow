@@ -1,6 +1,17 @@
 import mongoose, { Schema, type Document } from "mongoose"
 
-export type SeriesStatus = "DRAFT" | "EDITOR_REVIEW" | "APPROVED" | "REJECTED" | "ONGOING" | "AT_RISK"
+export type SeriesStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "EDITOR_REVIEW"
+  | "REVISION_REQUESTED"
+  | "BOARD_REVIEW"
+  | "APPROVED"
+  | "ONGOING"
+  | "AT_RISK"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "REJECTED"
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 
 export interface SeriesDocument extends Document {

@@ -1,67 +1,64 @@
-import slugify from "slugify"
 import { AppError } from "../../shared/errors/AppError.js"
-import { Manuscript, Series, SeriesMember } from "./series.model.js"
-import type { CreateSeriesInput } from "./series.validation.js"
+import { createSeriesRepository, getSeriesById, submitSeriesRepository } from "./series.repository.js"
 
-async function createUniqueSlug(title: string): Promise<string> {
-  const baseSlug = slugify(title, { lower: true, strict: true, trim: true }) || "series"
-  let slug = baseSlug
-  let suffix = 2
+export interface CreateSeriesServiceInput {
+  title: string
+  synopsis: string
+  genres?: string[]
+  ownerId: string
+}
 
-  while (await Series.findOne({ slug })) {
-    slug = `${baseSlug}-${suffix}`
-    suffix += 1
+export async function createSeriesService(input: CreateSeriesServiceInput) {
+  if (!input.title?.trim() || !input.synopsis?.trim()) {
+    throw new AppError("Title and synopsis are required", 400)
   }
 
-  return slug
-}
-
-export async function createSeriesProposal(input: CreateSeriesInput, ownerId: string) {
-  const slug = await createUniqueSlug(input.title)
-  const series = await Series.create({
-    title: input.title,
-    slug,
-    synopsis: input.synopsis,
+  return createSeriesRepository({
+    title: input.title.trim(),
+    synopsis: input.synopsis.trim(),
     genres: input.genres,
-    ownerId,
-    status: "DRAFT",
+    ownerId: input.ownerId,
   })
-
-  await SeriesMember.create({
-    seriesId: series.id,
-    userId: ownerId,
-    role: "MANGAKA",
-    isActive: true,
-  })
-
-  return series
 }
 
-export async function submitSeriesProposal(seriesId: string, userId: string) {
-  const series = await Series.findById(seriesId)
+export async function submitSeriesService(seriesId: string, userId: string) {
+  const trimmed = seriesId.trim()
+  if (!trimmed) {
+    throw new AppError("Series id is required", 400)
+  }
+
+  let series
+  try {
+    series = await getSeriesById(trimmed)
+  } catch (error) {
+    throw new AppError("Series not found", 404)
+  }
+
   if (!series) {
     throw new AppError("Series not found", 404)
   }
 
-  if (String(series.ownerId) !== userId) {
-    throw new AppError("Only the owner Mangaka can submit this series", 403)
+  try {
+    return await submitSeriesRepository(trimmed, userId)
+  } catch (error) {
+    const message = String((error as Error).message ?? "")
+
+    if (message.includes("Only the owner Mangaka")) {
+      throw new AppError("Only the owner Mangaka can submit this series", 403)
+    }
+    if (message.includes("Only draft series")) {
+      throw new AppError("Only draft series can be submitted", 409)
+    }
+    if (message.includes("Initial manuscript")) {
+      throw new AppError("Initial manuscript is required before submit", 400)
+    }
+    if (message.includes("Required series fields")) {
+      throw new AppError("Required series fields must be completed before submit", 400)
+    }
+    if (message.includes("Series not found")) {
+      throw new AppError("Series not found", 404)
+    }
+
+    throw new AppError("Unable to submit series", 400)
   }
-
-  if (series.status !== "DRAFT") {
-    throw new AppError("Only draft series can be submitted", 409)
-  }
-
-  if (!series.title || !series.synopsis) {
-    throw new AppError("Required series fields must be completed before submit", 400)
-  }
-
-  const manuscript = await Manuscript.exists({ seriesId })
-  if (!manuscript) {
-    throw new AppError("Initial manuscript is required before submit", 400)
-  }
-
-  series.status = "EDITOR_REVIEW"
-  await series.save()
-
-  return series
 }

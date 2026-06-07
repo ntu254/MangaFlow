@@ -20,9 +20,9 @@ vi.mock("./series.model.js", () => ({
   },
 }))
 
-const { createSeriesProposal, submitSeriesProposal } = await import("./series.service.js")
+const { createSeriesService, submitSeriesService } = await import("./series.service.js")
 
-describe("series service", () => {
+describe("createSeriesService", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     seriesFindOne.mockResolvedValue(null)
@@ -34,15 +34,20 @@ describe("series service", () => {
       title: "Moon Ink",
       slug: "moon-ink",
       synopsis: "A studio drama.",
+      genres: ["Drama"],
       ownerId: "user-1",
       status: "DRAFT",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
     seriesCreate.mockResolvedValue(createdSeries)
 
-    const result = await createSeriesProposal(
-      { title: "Moon Ink", synopsis: "A studio drama.", genres: ["Drama"] },
-      "user-1",
-    )
+    const result = await createSeriesService({
+      title: "Moon Ink",
+      synopsis: "A studio drama.",
+      genres: ["Drama"],
+      ownerId: "user-1",
+    })
 
     expect(seriesCreate).toHaveBeenCalledWith({
       title: "Moon Ink",
@@ -58,7 +63,15 @@ describe("series service", () => {
       role: "MANGAKA",
       isActive: true,
     })
-    expect(result).toBe(createdSeries)
+    expect(result.id).toBe("series-1")
+    expect(result.slug).toBe("moon-ink")
+    expect(result.status).toBe("DRAFT")
+  })
+})
+
+describe("submitSeriesService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
   it("blocks submit when the series has no manuscript", async () => {
@@ -71,7 +84,7 @@ describe("series service", () => {
     })
     manuscriptExists.mockResolvedValue(null)
 
-    await expect(submitSeriesProposal("series-1", "user-1")).rejects.toMatchObject({
+    await expect(submitSeriesService("series-1", "user-1")).rejects.toMatchObject({
       message: "Initial manuscript is required before submit",
       statusCode: 400,
     })
@@ -90,10 +103,42 @@ describe("series service", () => {
     seriesFindById.mockResolvedValue(series)
     manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
 
-    const result = await submitSeriesProposal("series-1", "user-1")
+    const result = await submitSeriesService("series-1", "user-1")
 
     expect(series.status).toBe("EDITOR_REVIEW")
     expect(save).toHaveBeenCalled()
     expect(result).toBe(series)
+  })
+
+  it("blocks non-owner from submitting", async () => {
+    seriesFindById.mockResolvedValue({
+      id: "series-1",
+      ownerId: "owner-user",
+      status: "DRAFT",
+      title: "Moon Ink",
+      synopsis: "A studio drama.",
+    })
+    manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
+
+    await expect(submitSeriesService("series-1", "intruder")).rejects.toMatchObject({
+      message: "Only the owner Mangaka can submit this series",
+      statusCode: 403,
+    })
+  })
+
+  it("blocks submitting a series that is not in DRAFT", async () => {
+    seriesFindById.mockResolvedValue({
+      id: "series-1",
+      ownerId: "user-1",
+      status: "EDITOR_REVIEW",
+      title: "Moon Ink",
+      synopsis: "A studio drama.",
+    })
+    manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
+
+    await expect(submitSeriesService("series-1", "user-1")).rejects.toMatchObject({
+      message: "Only draft series can be submitted",
+      statusCode: 409,
+    })
   })
 })
