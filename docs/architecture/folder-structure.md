@@ -44,3 +44,12 @@ validation
 types
 constants
 ```
+
+The repository also contains a separate AI service surface:
+
+```txt
+ai-service/
+  app/
+  models/
+  tests/
+```

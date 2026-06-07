@@ -2,6 +2,10 @@
 
 > Contract scope: all MangaFlow frontend screens, shared UI components, marketing pages, workspace screens, dashboard screens, and feature-specific UI.
 
+> MVP boundary: production-only internal studio workflows. Public catalog,
+> personal library, chapter reader, and end-user reading-progress UI are out of
+> scope.
+
 ---
 
 # 1. Direction

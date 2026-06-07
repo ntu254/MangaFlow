@@ -43,3 +43,12 @@ Due date and priority must be visible.
 [ ] Empty task list state exists.
 [ ] Create Task Dialog uses shared form components.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `PageShell`, `MFCard`, `MFButton`, `MFBadge`, and task status mappings.
+- Status colors map through `status-ui.ts`.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Empty, loading, error, submitted, and revision states are represented.
+- UI review checklist passes.

@@ -1,5 +1,9 @@
 # ADR 0003 — Database Design
 
+## Status
+
+Accepted
+
 ## Decision
 
 Use MongoDB collections with Mongoose schemas.

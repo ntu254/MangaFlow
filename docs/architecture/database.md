@@ -1,5 +1,9 @@
 # Database Design
 
+Database collections support the production-only internal MVP. They do not
+model public catalog browsing, personal libraries, public chapter reading, or
+end-user reading progress.
+
 ## Core collections
 
 - User

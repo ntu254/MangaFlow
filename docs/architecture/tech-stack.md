@@ -1,5 +1,7 @@
 # Tech Stack
 
+This stack implements the accepted production-only MVP.
+
 ## Frontend
 
 - React

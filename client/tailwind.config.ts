@@ -1,0 +1,62 @@
+import type { Config } from "tailwindcss"
+
+export default {
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+      },
+      colors: {
+        background: "#fef7ff",
+        surface: "#fef7ff",
+        "surface-lowest": "#ffffff",
+        "surface-low": "#f9f1fb",
+        "surface-container": "#f3ebf6",
+        "surface-high": "#ede6f0",
+        "surface-highest": "#e7e0ea",
+        "on-surface": "#1d1a21",
+        "on-surface-muted": "#4a4452",
+        outline: "#7b7483",
+        "outline-variant": "#ccc3d4",
+        primary: "#9065d5",
+        "primary-deep": "#6f44b2",
+        "primary-container": "#ecdcff",
+        secondary: "#e560bc",
+        "secondary-deep": "#a52885",
+        "secondary-container": "#ffd8ec",
+        tertiary: "#ff7196",
+        "tertiary-deep": "#a72d53",
+        "tertiary-container": "#ffd9df",
+        coral: "#ff9971",
+        yellow: "#ffc95e",
+        lime: "#f9f871",
+        error: "#ba1a1a",
+        "error-container": "#ffdad6",
+      },
+      borderRadius: {
+        sm: "0.5rem",
+        md: "1rem",
+        lg: "1.5rem",
+        xl: "2rem",
+        "2xl": "2.5rem",
+        "3xl": "3rem",
+      },
+      boxShadow: {
+        ambient: "0px 10px 30px rgba(144, 101, 213, 0.08)",
+        card: "0px 12px 36px rgba(144, 101, 213, 0.10)",
+        dropdown: "0px 16px 44px rgba(29, 26, 33, 0.12)",
+        focus: "0 0 0 4px rgba(144, 101, 213, 0.16)",
+      },
+      spacing: {
+        xs: "4px",
+        sm: "8px",
+        md: "16px",
+        lg: "24px",
+        xl: "32px",
+        xxl: "48px",
+      },
+    },
+  },
+  plugins: [],
+} satisfies Config

@@ -18,7 +18,10 @@ MANGAKA
 ASSISTANT
 EDITOR
 BOARD
+BOARD_CHAIR
 ```
+
+Board Chair has Board permissions and resolves tie votes.
 
 ## Middleware
 

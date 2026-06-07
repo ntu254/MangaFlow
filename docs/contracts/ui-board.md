@@ -46,3 +46,12 @@ At-risk decisions require confirmation.
 [ ] Ranking table uses consistent badge/status UI.
 [ ] At-risk actions have confirmation.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `PageShell`, `MFCard`, `MFButton`, `MFBadge`, and board decision components.
+- Board Chair tie-break state is visually clear.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Ranking import and at-risk states are represented.
+- UI review checklist passes.

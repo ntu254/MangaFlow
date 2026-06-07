@@ -1,5 +1,9 @@
 # ADR 0001 — Tech Stack
 
+## Status
+
+Accepted
+
 ## Decision
 
 Use MERN stack:

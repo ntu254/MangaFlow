@@ -1,5 +1,11 @@
 # UI Contract: MangaFlow Main UI System
 
+## MVP Boundary
+
+MangaFlow UI supports the production-only internal MVP. It does not include
+public manga catalog, personal library, public chapter reader, or end-user
+reading-progress screens.
+
 ## Purpose
 
 This contract defines the shared UI rules for MangaFlow.
@@ -24,6 +30,20 @@ Feature screens composed from shared components
 - `../design/layout-patterns.md`
 - `../design/ui-do-dont.md`
 - `../validation/ui-review-checklist.md`
+
+---
+
+# UI Contract Map
+
+- `ui-main.md`
+- `ui-marketing.md`
+- `ui-dashboard.md`
+- `ui-series-chapter.md`
+- `ui-workspace.md`
+- `ui-task.md`
+- `ui-review.md`
+- `ui-board.md`
+- `ui-admin.md`
 
 ---
 

@@ -1,5 +1,9 @@
 # API Architecture
 
+The API supports the production-only internal MVP. It exposes production,
+review, board, ranking, payroll, AI, notification, and dashboard routes; it
+does not expose public catalog, library, reader, or reading-progress routes.
+
 Base URL:
 
 ```txt

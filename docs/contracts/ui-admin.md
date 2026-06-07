@@ -42,3 +42,12 @@ System health uses clear status badges.
 [ ] Danger actions confirm before applying.
 [ ] Empty/loading/error states exist.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `PageShell`, `MFCard`, `MFButton`, `MFBadge`, and shared admin dashboard components.
+- Admin UI does not imply Admin can override Board decisions.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Empty, loading, error, and confirmation states are represented.
+- UI review checklist passes.

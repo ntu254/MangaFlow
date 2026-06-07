@@ -17,6 +17,7 @@
 ## Rules
 
 - Store original file.
+- Private storage only.
 - Never expose drafts publicly.
 - Use signed URLs.
 - Do not store base64 image output in MongoDB.

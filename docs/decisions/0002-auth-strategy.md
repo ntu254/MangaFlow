@@ -1,5 +1,9 @@
 # ADR 0002 — Auth Strategy
 
+## Status
+
+Accepted
+
 ## Decision
 
 Do not use Clerk. Use custom auth with email/password, JWT access token, refresh token, and optional Google OAuth.

@@ -2,6 +2,9 @@
 
 > Tokens are the source of truth for MangaFlow UI.
 
+> Tokens apply to the production-only MVP UI and must be reused before any
+> feature-specific styling.
+
 ---
 
 # 1. Color Tokens

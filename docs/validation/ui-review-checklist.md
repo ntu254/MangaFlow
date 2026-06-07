@@ -3,6 +3,7 @@
 Before a UI story is complete, check:
 
 ```txt
+[ ] Screen belongs to the production-only MVP contract
 [ ] Screen matches Clean Pastel Creative SaaS vibe
 [ ] Light theme is default
 [ ] Background uses pastel surface

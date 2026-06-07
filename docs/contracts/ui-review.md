@@ -41,3 +41,12 @@ Editor final approval must be visually distinct from Mangaka internal approval.
 [ ] Readiness checklist identifies blockers.
 [ ] Confirmation dialog exists for destructive actions.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `PageShell`, `MFCard`, `MFButton`, `MFBadge`, and `ReviewDecisionBar`.
+- Approve, reject, and request-revision actions are visually distinct and accessible.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Comments, empty, loading, error, and resolved states are represented.
+- UI review checklist passes.

@@ -1,5 +1,7 @@
 # Deployment Architecture
 
+Deployment targets the accepted production-only MVP.
+
 ## Frontend
 
 - Vercel

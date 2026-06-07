@@ -50,3 +50,12 @@ ReviewDecisionBar
 [ ] Assistant UI does not expose unrelated pages.
 [ ] Loading/error states exist.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `WorkspaceShell`, `MFCard`, `MFButton`, `MFBadge`, and shared workspace components.
+- Assistant UI does not expose full chapter access by default.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Empty, loading, error, and revision states are represented.
+- UI review checklist passes.

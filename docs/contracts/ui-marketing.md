@@ -45,3 +45,12 @@ No heavy gradient.
 [ ] Footer matches style.
 [ ] Mobile layout works.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `MarketingNavbar`, `MarketingFooter`, `MFButton`, `MFCard`, and shared marketing components.
+- Landing content presents production workflow, roles, review, board approval, and readiness.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Mobile layout and keyboard focus are acceptable.
+- UI review checklist passes.

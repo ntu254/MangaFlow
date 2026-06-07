@@ -19,6 +19,12 @@ Express API
 MongoDB Atlas + Cloudflare R2 + FastAPI AI Service
 ```
 
+## MVP boundary
+
+Architecture supports the production-only internal MVP. It does not include
+public manga catalog, personal library, public chapter reader, or end-user
+reading-progress surfaces.
+
 ## Backend principles
 
 - Controller-Service-Repository pattern

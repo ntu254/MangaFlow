@@ -4,6 +4,8 @@
 
 All sensitive routes must use backend permission checks.
 
+Admin cannot override Board decisions.
+
 ## Assistant access
 
 Assistant can access only:
@@ -29,3 +31,7 @@ Assistant cannot access full chapter by default.
 - File signed URL
 - AI processing
 - Task workspace access
+
+## AI output storage
+
+Do not store base64 AI image output in MongoDB.

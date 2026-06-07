@@ -50,3 +50,12 @@ Critical alerts use soft badge + clear text.
 [ ] No one-off card/button styling.
 [ ] Role-specific actions match actor workflow.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `PageShell`, `MFCard`, `MFBadge`, and shared dashboard components.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Responsive layout works from mobile to desktop.
+- Empty, loading, and error states are represented.
+- UI review checklist passes.

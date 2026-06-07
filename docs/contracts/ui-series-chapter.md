@@ -43,3 +43,12 @@ Production Team screen must clarify that Assistant is eligible for task assignme
 [ ] Upload constraints are shown near upload zone.
 [ ] Cards use shared components.
 ```
+[//]: # (Validation section appended by MF-HIOS-004.)
+
+## Validation
+
+- Uses `PageShell`, `MFCard`, `MFButton`, `MFBadge`, `MFProgress`, and `MFPagePreviewCard`.
+- Chapter creation action reflects the Board approval gate.
+- Uses design tokens for color, radius, shadow, and spacing.
+- Mobile layout supports management/review without heavy canvas assumptions.
+- UI review checklist passes.

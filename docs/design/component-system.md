@@ -2,6 +2,9 @@
 
 > MangaFlow uses component-first reusable UI. Feature screens must be composed from shared components before creating feature-specific UI.
 
+> Components support production workflow screens only. Public reader/library UI
+> needs a future contract before components are added for it.
+
 ---
 
 # 1. Component Layers
