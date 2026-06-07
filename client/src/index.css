@@ -7,3 +7,15 @@
     font-family: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 }
+
+@layer utilities {
+  .ambient-shadow {
+    box-shadow: 0px 10px 30px rgba(111, 68, 178, 0.08);
+  }
+  .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
+  .icon-fill {
+    font-variation-settings: "FILL" 1;
+  }
+}

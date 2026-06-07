@@ -21,6 +21,23 @@ async function start() {
   try {
     await mongoose.connect(config.mongoUri)
     console.log("Connected to MongoDB")
+
+    const { User } = await import("./modules/auth/auth.model.js")
+    const { hashPassword } = await import("./modules/auth/auth.service.js")
+
+    const adminEmail = "admin@mangaflow.studio"
+    const adminExists = await User.findOne({ email: adminEmail })
+    if (!adminExists) {
+      const passwordHash = await hashPassword("Admin@123456")
+      await User.create({
+        email: adminEmail,
+        passwordHash,
+        name: "System Admin",
+        role: "ADMIN",
+        isActive: true,
+      })
+      console.log("Admin seeded:", adminEmail)
+    }
   } catch (err) {
     console.warn("MongoDB not available, running without database:", (err as Error).message)
   }

@@ -5,10 +5,10 @@ import type { RoleTabId } from "./RoleTabSelector"
 const roleData: Record<RoleTabId, { features: { icon: string; title: string; desc: string }[] }> = {
   mangaka: {
     features: [
-      { icon: "📄", title: "Create Series", desc: "Submit series proposals with manuscripts for board approval." },
-      { icon: "✎", title: "Manage Chapters", desc: "Upload pages, create regions, and track chapter progress." },
-      { icon: "✓", title: "Assign Tasks", desc: "Assign page regions to assistants and review their work." },
-      { icon: "☆", title: "Review Submissions", desc: "Approve or request revisions on assistant submissions." },
+      { icon: "📄", title: "Create Series", desc: "Submit series proposals and manuscripts for board approval." },
+      { icon: "✎", title: "Manage Chapters", desc: "Upload chapter drafts, manage pages, and track versions." },
+      { icon: "✓", title: "Assign Assistant Tasks", desc: "Assign specific page regions, task types, and deadlines." },
+      { icon: "☆", title: "Verify Fixes", desc: "Review assistant submissions before sending to editor." },
     ],
   },
   assistant: {
@@ -33,14 +33,6 @@ const roleData: Record<RoleTabId, { features: { icon: string; title: string; des
       { icon: "◆", title: "Readiness Check", desc: "Review chapter readiness before publication." },
       { icon: "📊", title: "Ranking Data", desc: "Import and evaluate ranking and reader scores." },
       { icon: "☆", title: "At-Risk Decisions", desc: "Flag series at risk and make continuation decisions." },
-    ],
-  },
-  admin: {
-    features: [
-      { icon: "⚙", title: "User Management", desc: "Create, edit, and manage user roles and access." },
-      { icon: "📄", title: "Production Overview", desc: "Monitor all series, chapters, and task statuses." },
-      { icon: "◆", title: "System Settings", desc: "Configure roles, task types, and global settings." },
-      { icon: "📊", title: "Reports", desc: "View production metrics and friction reports." },
     ],
   },
 }

@@ -72,17 +72,6 @@ export async function loginUser(email: string, password: string) {
   return res
 }
 
-export async function registerUser(name: string, email: string, password: string, role?: string) {
-  const res = await apiRequest<{ user: unknown; accessToken: string; refreshToken: string }>(
-    "/auth/register",
-    { method: "POST", body: JSON.stringify({ name, email, password, role }) },
-  )
-  if (res.success && res.data) {
-    setTokens(res.data.accessToken, res.data.refreshToken)
-  }
-  return res
-}
-
 export async function logoutUser() {
   const { refreshToken } = getTokens()
   await apiRequest("/auth/logout", {

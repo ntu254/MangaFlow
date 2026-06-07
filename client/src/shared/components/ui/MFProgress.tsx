@@ -22,14 +22,8 @@ const toneBarStyles: Record<StatusTone, string> = {
 
 const sizeStyles = {
   sm: "h-1.5",
-  md: "h-2.5",
+  md: "h-2",
   lg: "h-4",
-}
-
-const sizeBarStyles = {
-  sm: "rounded-sm",
-  md: "rounded-full",
-  lg: "rounded-full",
 }
 
 export const MFProgress = forwardRef<HTMLDivElement, MFProgressProps>(
@@ -39,18 +33,17 @@ export const MFProgress = forwardRef<HTMLDivElement, MFProgressProps>(
     return (
       <div ref={ref} className={cn("w-full", className)} {...props}>
         {(label || showValue) && (
-          <div className="mb-1 flex items-center justify-between">
+          <div className="mb-sm flex items-center justify-between">
             {label && <span className="text-label-sm text-on-surface-muted">{label}</span>}
             {showValue && <span className="text-label-sm text-on-surface-muted">{percentage}%</span>}
           </div>
         )}
-        <div className={cn("w-full overflow-hidden bg-surface-container", sizeBarStyles[size])}>
+        <div className={cn("w-full overflow-hidden rounded-full bg-surface-container", sizeStyles[size])}>
           <div
             className={cn(
-              "transition-all duration-300",
+              "rounded-full transition-all duration-300",
               toneBarStyles[tone],
               sizeStyles[size],
-              sizeBarStyles[size],
             )}
             style={{ width: `${percentage}%` }}
             role="progressbar"

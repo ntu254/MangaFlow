@@ -10,23 +10,31 @@ interface MFButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
 }
 
+const variantColor: Record<ButtonVariant, string> = {
+  primary: "#ffffff",
+  secondary: "#ffffff",
+  outline: "#4a4452",
+  ghost: "#4a4452",
+  danger: "#ffffff",
+}
+
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-white hover:bg-primary-deep focus-visible:shadow-focus disabled:bg-surface-high disabled:text-on-surface-muted",
+    "bg-primary hover:bg-primary-container active:scale-95 transition-all disabled:bg-surface-container-high disabled:text-on-surface-muted",
   secondary:
-    "bg-secondary text-white hover:bg-secondary-deep focus-visible:shadow-focus disabled:bg-surface-high disabled:text-on-surface-muted",
+    "bg-secondary hover:bg-secondary-container active:scale-95 transition-all disabled:bg-surface-container-high disabled:text-on-surface-muted",
   outline:
-    "border-2 border-outline-variant bg-white text-on-surface hover:bg-surface-low focus-visible:shadow-focus disabled:border-surface-high disabled:text-on-surface-muted",
+    "border border-outline-variant/30 bg-surface-lowest hover:bg-surface-container-high active:scale-95 transition-all disabled:border-surface-container-high disabled:text-on-surface-muted",
   ghost:
-    "bg-transparent text-on-surface hover:bg-surface-low focus-visible:shadow-focus disabled:text-on-surface-muted",
+    "bg-transparent hover:text-primary active:scale-95 transition-all disabled:text-on-surface-muted",
   danger:
-    "bg-error text-white hover:bg-red-700 focus-visible:shadow-[0_0_0_4px_rgba(186,26,26,0.16)] disabled:bg-surface-high disabled:text-on-surface-muted",
+    "bg-error hover:bg-error-container active:scale-95 transition-all disabled:bg-surface-container-high disabled:text-on-surface-muted",
 }
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-4 py-1.5 text-label-sm",
-  md: "px-6 py-2.5 text-label-md",
-  lg: "px-8 py-3 text-label-md",
+  sm: "px-lg py-sm text-label-md",
+  md: "px-xl py-md text-label-md",
+  lg: "px-xxl py-md text-label-md font-bold",
 }
 
 export const MFButton = forwardRef<HTMLButtonElement, MFButtonProps>(
@@ -35,12 +43,13 @@ export const MFButton = forwardRef<HTMLButtonElement, MFButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-150",
+          "inline-flex items-center justify-center gap-sm rounded-full font-semibold shadow-sm",
           "focus-visible:outline-none",
           variantStyles[variant],
           sizeStyles[size],
           className,
         )}
+        style={{ color: variantColor[variant] }}
         disabled={disabled || loading}
         {...props}
       >

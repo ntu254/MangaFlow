@@ -16,7 +16,7 @@ const userSchema = new Schema<UserDocument>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     name: { type: String, required: true, trim: true },
-    role: { type: String, enum: ["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD", "BOARD_CHAIR"], required: true, default: "MANGAKA" },
+    role: { type: String, enum: ["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD"], required: true, default: "MANGAKA" },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

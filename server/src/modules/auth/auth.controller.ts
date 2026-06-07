@@ -11,7 +11,15 @@ import {
 } from "./auth.service.js"
 import type { AuthUser } from "./auth.types.js"
 
-export async function register(req: Request, res: Response): Promise<void> {
+const ROLE_DASHBOARD_MAP: Record<string, string> = {
+  ADMIN: "/app/admin/dashboard",
+  MANGAKA: "/app/mangaka/dashboard",
+  ASSISTANT: "/app/assistant/dashboard",
+  EDITOR: "/app/editor/dashboard",
+  BOARD: "/app/board/dashboard",
+}
+
+export async function adminCreateUser(req: Request, res: Response): Promise<void> {
   const { email, password, name, role } = req.body as {
     email: string
     password: string
@@ -27,12 +35,11 @@ export async function register(req: Request, res: Response): Promise<void> {
 
   const passwordHash = await hashPassword(password)
   const user = await User.create({ email, passwordHash, name, role })
-  const tokens = await createTokenPair(user.id, user.role)
 
   res.status(201).json({
     success: true,
-    message: "Registration successful",
-    data: { user: await toAuthUser(user.id), ...tokens },
+    message: "User created successfully",
+    data: await toAuthUser(user.id),
   })
 }
 
@@ -57,11 +64,16 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 
   const tokens = await createTokenPair(user.id, user.role)
+  const authUser = await toAuthUser(user.id)
 
   res.json({
     success: true,
     message: "Login successful",
-    data: { user: await toAuthUser(user.id), ...tokens },
+    data: {
+      user: authUser,
+      redirectTo: ROLE_DASHBOARD_MAP[user.role] ?? "/app/mangaka/dashboard",
+      ...tokens,
+    },
   })
 }
 

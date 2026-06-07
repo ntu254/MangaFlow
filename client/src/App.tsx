@@ -6,7 +6,6 @@ import { AuthLayout } from "@/shared/components/layout/AuthLayout"
 import { DashboardLayout } from "@/shared/components/layout/DashboardLayout"
 import { LandingPage } from "@/features/marketing/pages/LandingPage"
 import { LoginPage } from "@/features/auth/pages/LoginPage"
-import { RegisterPage } from "@/features/auth/pages/RegisterPage"
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage"
 import { SeriesListPage } from "@/features/series/pages/SeriesListPage"
 import { SeriesDetailPage } from "@/features/series/pages/SeriesDetailPage"
@@ -26,7 +25,6 @@ function App() {
         </Route>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
         </Route>
         <Route
           element={
@@ -35,15 +33,20 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/series" element={<SeriesListPage />} />
-          <Route path="/series/:id" element={<SeriesDetailPage />} />
-          <Route path="/chapters/:id" element={<ChapterDetailPage />} />
-          <Route path="/tasks" element={<TaskListPage />} />
-          <Route path="/review" element={<ReviewPage />} />
-          <Route path="/board" element={<BoardPage />} />
-          <Route path="/workspace/:chapterId" element={<WorkspacePage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/app/dashboard" element={<DashboardPage />} />
+          <Route path="/app/admin/dashboard" element={<DashboardPage />} />
+          <Route path="/app/mangaka/dashboard" element={<DashboardPage />} />
+          <Route path="/app/assistant/dashboard" element={<DashboardPage />} />
+          <Route path="/app/editor/dashboard" element={<DashboardPage />} />
+          <Route path="/app/board/dashboard" element={<DashboardPage />} />
+          <Route path="/app/series" element={<SeriesListPage />} />
+          <Route path="/app/series/:id" element={<SeriesDetailPage />} />
+          <Route path="/app/chapters/:id" element={<ChapterDetailPage />} />
+          <Route path="/app/tasks" element={<TaskListPage />} />
+          <Route path="/app/review" element={<ReviewPage />} />
+          <Route path="/app/board" element={<BoardPage />} />
+          <Route path="/app/workspace/:chapterId" element={<WorkspacePage />} />
+          <Route path="/app/admin" element={<AdminPage />} />
         </Route>
       </Routes>
     </AuthProvider>

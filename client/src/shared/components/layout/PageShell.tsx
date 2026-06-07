@@ -17,7 +17,7 @@ export function PageShell({ children, className, hideSidebar }: PageShellProps) 
         {!hideSidebar && <RoleSidebar isOpen />}
         <main
           className={cn(
-            "flex-1 p-6",
+            "flex-1 p-lg",
             !hideSidebar && "md:ml-60",
             className,
           )}

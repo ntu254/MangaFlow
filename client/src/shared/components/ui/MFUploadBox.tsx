@@ -40,23 +40,23 @@ export const MFUploadBox = forwardRef<HTMLInputElement, MFUploadBoxProps>(
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 transition-all duration-150",
+          "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-xl transition-all duration-150",
           "focus-visible:outline-none focus-visible:shadow-focus",
           isDragging
-            ? "border-primary bg-primary-container/30 shadow-ambient"
+            ? "border-primary bg-primary-fixed/30 shadow-ambient"
             : "border-outline-variant bg-surface-lowest hover:border-primary hover:bg-surface-low",
           disabled && "cursor-not-allowed opacity-50",
           className,
         )}
         aria-disabled={disabled}
       >
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
+        <div className="mb-md flex h-xl w-xl items-center justify-center rounded-full bg-primary-fixed text-primary">
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m-4-4l4 4 4-4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
           </svg>
         </div>
         <p className="text-label-md font-semibold text-on-surface">{label}</p>
-        <p className="mt-1 text-body-md text-on-surface-muted">{description}</p>
+        <p className="mt-sm text-body-md text-on-surface-muted">{description}</p>
         <input
           ref={(node) => {
             inputRef.current = node

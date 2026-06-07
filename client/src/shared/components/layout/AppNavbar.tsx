@@ -7,12 +7,20 @@ interface NavItem {
   path: string
 }
 
+const ROLE_DASHBOARD: Record<string, string> = {
+  ADMIN: "/app/admin/dashboard",
+  MANGAKA: "/app/mangaka/dashboard",
+  ASSISTANT: "/app/assistant/dashboard",
+  EDITOR: "/app/editor/dashboard",
+  BOARD: "/app/board/dashboard",
+}
+
 const navItems: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Series", path: "/series" },
-  { label: "Tasks", path: "/tasks" },
-  { label: "Review", path: "/review" },
-  { label: "Board", path: "/board" },
+  { label: "Dashboard", path: "/app/dashboard" },
+  { label: "Series", path: "/app/series" },
+  { label: "Tasks", path: "/app/tasks" },
+  { label: "Review", path: "/app/review" },
+  { label: "Board", path: "/app/board" },
 ]
 
 export function AppNavbar() {
@@ -24,31 +32,35 @@ export function AppNavbar() {
     navigate("/login")
   }
 
+  function roleDashboard(): string {
+    return user ? ROLE_DASHBOARD[user.role] ?? "/app/dashboard" : "/app/dashboard"
+  }
+
   return (
-    <nav className="sticky top-0 z-50 border-b border-outline-variant bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
-        <Link to="/dashboard" className="text-title-lg font-bold text-primary">
-          MangaFlow
+    <nav className="sticky top-md z-50 mx-auto mt-lg w-[96%] max-w-7xl rounded-full border border-outline-variant/30 bg-surface/80 px-xl py-md shadow-sm backdrop-blur-md transition-transform duration-200 hover:scale-[0.99]">
+      <div className="flex items-center justify-between">
+        <Link to={roleDashboard()} className="flex items-center gap-md">
+          <span className="text-title-lg font-bold text-primary">MangaFlow</span>
         </Link>
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-lg md:flex">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className="rounded-full px-4 py-2 text-label-sm font-semibold text-on-surface-muted transition-colors hover:bg-surface-low hover:text-on-surface"
+              className="rounded-full px-lg py-sm text-label-sm font-semibold text-on-surface-variant transition-colors duration-200 hover:text-primary"
             >
               {item.label}
             </Link>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-md">
           {user && (
             <span className="text-label-sm text-on-surface-muted">
               {user.name}
             </span>
           )}
           {user?.role === "ADMIN" && (
-            <Link to="/admin">
+            <Link to="/app/admin">
               <MFButton variant="ghost" size="sm">Admin</MFButton>
             </Link>
           )}

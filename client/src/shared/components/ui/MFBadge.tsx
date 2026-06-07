@@ -9,16 +9,16 @@ interface MFBadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const toneStyles: Record<StatusTone, string> = {
   neutral: "bg-surface-container text-on-surface-muted",
-  primary: "bg-primary-container text-primary-deep",
-  secondary: "bg-secondary-container text-secondary-deep",
-  success: "bg-tertiary-container text-tertiary-deep",
-  warning: "bg-yellow/30 text-[#8b6f00]",
-  danger: "bg-error-container text-error",
+  primary: "bg-primary-fixed text-on-primary-fixed",
+  secondary: "bg-secondary-fixed text-on-secondary-fixed",
+  success: "bg-tertiary-fixed text-on-tertiary-fixed",
+  warning: "bg-yellow/40 text-[#6b4f00]",
+  danger: "bg-error-container text-on-error-container",
 }
 
 const sizeStyles = {
-  sm: "px-2 py-0.5 text-label-sm",
-  md: "px-3 py-1 text-label-md",
+  sm: "px-md py-xs text-label-sm",
+  md: "px-lg py-sm text-label-md",
 }
 
 export const MFBadge = forwardRef<HTMLSpanElement, MFBadgeProps>(

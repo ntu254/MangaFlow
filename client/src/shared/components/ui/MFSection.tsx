@@ -11,12 +11,12 @@ export const MFSection = forwardRef<HTMLDivElement, MFSectionProps>(
   ({ className, title, description, actions, children, ...props }, ref) => {
     return (
       <section ref={ref} className={cn(className)} {...props}>
-        <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="mb-md flex items-start justify-between gap-md">
           <div>
             <h2 className="text-title-lg text-on-surface">{title}</h2>
-            {description && <p className="mt-1 text-body-md text-on-surface-muted">{description}</p>}
+            {description && <p className="mt-sm text-body-md text-on-surface-muted">{description}</p>}
           </div>
-          {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+          {actions && <div className="flex shrink-0 items-center gap-sm">{actions}</div>}
         </div>
         {children}
       </section>

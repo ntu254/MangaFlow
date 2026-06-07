@@ -1,12 +1,27 @@
+import { useAuth } from "@/shared/components/auth/AuthProvider"
 import { MFCard, MFCardHeader } from "@/shared/components/ui/MFCard"
 import { MFProgress } from "@/shared/components/ui/MFProgress"
 import { MFSection } from "@/shared/components/ui/MFSection"
 import { MFBadge } from "@/shared/components/ui/MFBadge"
 
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Admin Dashboard",
+  MANGAKA: "Mangaka Dashboard",
+  ASSISTANT: "Assistant Dashboard",
+  EDITOR: "Editor Dashboard",
+  BOARD: "Board Dashboard",
+}
+
 export function DashboardPage() {
+  const { user } = useAuth()
+  const title = user ? ROLE_LABELS[user.role] ?? "Dashboard" : "Dashboard"
+
   return (
     <div className="space-y-6">
-      <h1 className="text-headline-lg text-on-surface">Dashboard</h1>
+      <h1 className="text-headline-lg text-on-surface">{title}</h1>
+      <p className="text-body-md text-on-surface-muted">
+        Welcome, {user?.name}. Role: <MFBadge tone="primary">{user?.role}</MFBadge>
+      </p>
       <div className="grid gap-4 md:grid-cols-3">
         <MFCard padding="md">
           <MFCardHeader>

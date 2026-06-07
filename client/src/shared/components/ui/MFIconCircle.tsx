@@ -10,15 +10,15 @@ interface MFIconCircleProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const sizeStyles: Record<IconCircleSize, string> = {
-  sm: "h-8 w-8",
-  md: "h-10 w-10",
+  sm: "h-lg w-lg",
+  md: "h-xl w-xl",
   lg: "h-14 w-14",
 }
 
 const variantStyles: Record<IconCircleVariant, string> = {
-  primary: "bg-primary-container text-primary-deep",
-  secondary: "bg-secondary-container text-secondary-deep",
-  tertiary: "bg-tertiary-container text-tertiary-deep",
+  primary: "bg-primary-fixed text-on-primary-fixed",
+  secondary: "bg-secondary-fixed text-on-secondary-fixed",
+  tertiary: "bg-tertiary-fixed text-on-tertiary-fixed",
   surface: "bg-surface-low text-on-surface-muted",
 }
 

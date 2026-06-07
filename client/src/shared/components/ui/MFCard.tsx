@@ -6,9 +6,9 @@ interface MFCardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const paddingStyles = {
-  sm: "p-4",
-  md: "p-6",
-  lg: "p-8",
+  sm: "p-md",
+  md: "p-lg",
+  lg: "p-xl",
 }
 
 export const MFCard = forwardRef<HTMLDivElement, MFCardProps>(
@@ -17,7 +17,7 @@ export const MFCard = forwardRef<HTMLDivElement, MFCardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-3xl bg-surface-lowest shadow-card",
+          "rounded-xl border border-outline-variant/30 bg-surface-lowest shadow-ambient",
           paddingStyles[padding],
           className,
         )}
@@ -33,7 +33,7 @@ MFCard.displayName = "MFCard"
 
 export function MFCardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("mb-4 flex items-center justify-between", className)} {...props}>
+    <div className={cn("mb-md flex items-center justify-between", className)} {...props}>
       {children}
     </div>
   )
@@ -41,7 +41,7 @@ export function MFCardHeader({ className, children, ...props }: HTMLAttributes<H
 
 export function MFCardFooter({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("mt-4 flex items-center justify-between border-t border-outline-variant pt-4", className)} {...props}>
+    <div className={cn("mt-md flex items-center justify-between border-t border-outline-variant/20 pt-md", className)} {...props}>
       {children}
     </div>
   )
