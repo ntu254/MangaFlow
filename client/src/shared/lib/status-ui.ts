@@ -67,6 +67,30 @@ export const submissionStatusUI: Record<string, StatusUiConfig> = {
   REJECTED: { label: "Rejected", tone: "danger" },
 }
 
+export const boardDecisionStatusUI: Record<string, StatusUiConfig> = {
+  PENDING: { label: "Pending Decision", tone: "neutral" },
+  APPROVED: { label: "Approved", tone: "success" },
+  REJECTED: { label: "Rejected", tone: "danger" },
+  TIE_BREAK_REQUIRED: { label: "Tie-break Required", tone: "warning" },
+  FINALIZED: { label: "Finalized", tone: "primary" },
+}
+
+export const atRiskStatusUI: Record<string, StatusUiConfig> = {
+  STABLE: { label: "Stable", tone: "success" },
+  WATCHLIST: { label: "Watchlist", tone: "warning" },
+  AT_RISK: { label: "At Risk", tone: "danger" },
+  ESCALATED: { label: "Escalated", tone: "danger" },
+  RESOLVED: { label: "Resolved", tone: "success" },
+}
+
+export const rankingStatusUI: Record<string, StatusUiConfig> = {
+  DRAFT: { label: "Draft", tone: "neutral" },
+  IMPORTED: { label: "Imported", tone: "primary" },
+  REVIEWED: { label: "Reviewed", tone: "secondary" },
+  FINALIZED: { label: "Finalized", tone: "success" },
+  FLAGGED: { label: "Flagged", tone: "warning" },
+}
+
 export function getStatusUi(status: string, mapping: Record<string, StatusUiConfig>): StatusUiConfig {
   return mapping[status] ?? { label: status, tone: "neutral" }
 }
