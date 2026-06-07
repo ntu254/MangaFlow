@@ -9,6 +9,7 @@ import { RoutePlaceholderPage } from "@/shared/components/feedback/RoutePlacehol
 import { LandingPage } from "@/features/marketing/pages/LandingPage"
 import { LoginPage } from "@/features/auth/pages/LoginPage"
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
+import { BoardPage } from "@/features/board/pages/BoardPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
 import { ReviewPage } from "@/features/review/pages/ReviewPage"
 import { SeriesPage } from "@/features/series/pages/SeriesPage"
@@ -109,13 +110,7 @@ function App() {
             />
             <Route
               path="board"
-              element={
-                <RoutePlaceholderPage
-                  title="Board Review"
-                  description="Review series approvals, votes, rankings, and decisions."
-                  icon="how_to_vote"
-                />
-              }
+              element={<BoardPage />}
             />
           </Route>
         </Route>
