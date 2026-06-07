@@ -1,4 +1,3 @@
-import mongoose from "mongoose"
 import { Series, SeriesMember, Manuscript } from "./series.model.js"
 
 export type SeriesStatus =
