@@ -10,6 +10,7 @@ import { LandingPage } from "@/features/marketing/pages/LandingPage"
 import { LoginPage } from "@/features/auth/pages/LoginPage"
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
+import { ReviewPage } from "@/features/review/pages/ReviewPage"
 import { SeriesPage } from "@/features/series/pages/SeriesPage"
 import { TasksPage } from "@/features/task/pages/TasksPage"
 import { WorkspacePage } from "@/features/workspace/pages/WorkspacePage"
@@ -104,13 +105,7 @@ function App() {
             />
             <Route
               path="review"
-              element={
-                <RoutePlaceholderPage
-                  title="Review Queue"
-                  description="Review submissions, comments, and revision requests."
-                  icon="rate_review"
-                />
-              }
+              element={<ReviewPage />}
             />
             <Route
               path="board"
