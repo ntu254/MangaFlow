@@ -1,29 +1,19 @@
-# Product Docs
+# MangaFlow Product Docs
 
-MangaFlow product docs are the living product contract derived from the
-accepted source specs in `docs/01_complete_spec.md` through
-`docs/08_component_design_specification.md`.
+These files are the accepted product source of truth for MangaFlow's
+production-only MVP:
 
-The source specs remain useful reference material, but new work should update
-these smaller contract files, story packets, the test matrix, and decision
-records instead of extending a monolithic spec.
+- `overview.md`
+- `problem.md`
+- `users.md`
+- `requirements.md`
+- `user-flow.md`
+- `feature-list.md`
+- `out-of-scope.md`
 
-## Contract Files
-
-- `overview.md` - product purpose, users, MVP outcome, and non-goals.
-- `architecture.md` - selected stack, runtime surfaces, deployment targets, and
-  local boundaries.
-- `auth-user-sync.md` - Google OAuth identity boundary, local user sync,
-  onboarding, and auth API rules.
-- `roles-permissions.md` - system roles, series roles, and access rules.
-- `workflow.md` - core manga production workflow and state rules.
-- `api-storage-data.md` - API conventions, data domains, file storage, and AI
-  service boundary.
-- `ui-direction.md` - current UI direction, design tokens, layout rules, and
-  responsive expectations.
-- `mvp-roadmap.md` - MVP epics and Harness-aligned delivery phases.
-- `../09_mobile_app_spec.md` - accepted mobile companion app scope for Tantou
-  Editor and Editorial Board.
+The MVP supports internal manga production and editorial workflows. Public
+catalog, personal library, chapter reader, and reading-progress behavior
+requires a future initiative and is not part of the current product contract.
 
 ## Update Rule
 

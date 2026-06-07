@@ -54,9 +54,9 @@ Every task has two possible outputs:
 2. Harness delta: docs, templates, validation expectations, backlog items, or
    decision records that make the next task easier.
 
-## Harness v0 Scope
+## HI-OS Scope
 
-Harness v0 includes:
+HI-OS includes:
 
 - Agent entrypoint.
 - Empty product documentation structure.
@@ -68,7 +68,7 @@ Harness v0 includes:
 - Harness growth backlog.
 - Durable layer: SQLite database and CLI for operational records.
 
-Harness v0 deliberately excludes:
+HI-OS deliberately excludes:
 
 - A project-specific `SPEC.md`.
 - Pre-sliced product domains.
@@ -91,6 +91,41 @@ should use that binary for Harness work. The database is local to each project
 instance and `.gitignore`d. The schema is version-controlled under
 `scripts/schema/`.
 
+Release distribution policy is tracked in `harness-release.toml`. For stories
+that explicitly require release proof, run `harness-cli release verify
+--version <version> --story <id>`. The full audit report is written under
+`.harness/release/`, while a durable summary is stored in SQLite for queries
+and the blocking story gate. Network availability failures are inconclusive
+and never count as passing evidence.
+
+Real MCP integrations use the file-based boundary accepted in Decision `0010`.
+Providers produce versioned CodeGraph or NotebookLM artifacts; Harness owns
+validation, mapping, and durable ingestion. Provider unavailability is
+`inconclusive`, not an empty successful context. US-023 defines the contracts;
+US-024 implements `context ingest` without calling either provider. Passing
+artifacts can update the linked intake and context pack. Failed or inconclusive
+artifacts remain audit evidence but never satisfy an explicit story gate.
+
+US-025 adds the CodeGraph CLI producer adapter. `harness-cli codegraph impact`
+runs local CodeGraph changed-files or symbol analysis, stores the raw response,
+normalizes a US-023 artifact, and sends it through US-024 ingestion. CodeGraph
+never writes Harness governance state directly.
+
+US-026 adds the NotebookLM grounded-brief producer adapter. `harness-cli
+notebooklm brief` invokes the accepted `notebooklm-mcp-cli` boundary through
+the local `nlm` executable, stores or references the raw provider response,
+normalizes a US-023 `notebooklm-brief` artifact, and sends it through US-024
+ingestion. Harness never stores Google credentials, cookies, browser profiles,
+tokens, or provider session files. Missing provider/session/network/notebook
+is inconclusive; malformed or uncited output fails.
+
+US-027 connects validated evidence back into auto intake. When `harness-cli
+intake --auto --story <id>` runs, it prefers the latest passing CodeGraph and
+NotebookLM ingest reports for that story before falling back to ad hoc
+`--impact-report` or `--business-context` inputs. Failed and inconclusive
+evidence stays visible for audit and governance but never seeds intake as
+passing context.
+
 This separation keeps policy docs stable and human-readable while giving agents
 a structured, queryable record of operational state. It also prepares the
 harness for future observability and automated evolution without adding more
@@ -106,6 +141,11 @@ Common commands:
 
 ```bash
 scripts/bin/harness-cli intake  --type <type> --summary <text> --lane <lane>
+scripts/bin/harness-cli intake  --summary <text> --story <id> --auto --impact-report <report> --business-context <context>
+scripts/bin/harness-cli context --story <id>
+scripts/bin/harness-cli codegraph impact --story <id> --changed-files <paths.txt>
+scripts/bin/harness-cli notebooklm brief --story <id> --notebook <notebook-id-or-alias> --query <grounded question>
+scripts/bin/harness-cli arch-check --story <id>
 scripts/bin/harness-cli story   add --id <id> --title <text> --lane <lane>
 scripts/bin/harness-cli story   update --id <id> --status <status>
 scripts/bin/harness-cli story   update --id <id> --unit 1 --integration 1 --e2e 0 --platform 0
@@ -144,7 +184,7 @@ product docs plus executable tests become the living contract.
 
 ## Spec Lifecycle
 
-Harness v0 starts without a tracked project spec. When the human provides a
+HI-OS starts without a tracked project spec. When the human provides a
 specification, treat it as input material, not as a permanent operating manual.
 Use it to populate product docs, story packets, architecture decisions, and
 validation expectations during the first buildout.
@@ -213,6 +253,18 @@ patterns can be queried later:
 scripts/bin/harness-cli query friction
 ```
 
+Use `docs/FRICTION_TAXONOMY.md` when classifying recurring friction for
+learning-loop work. The taxonomy gives names to repeated pain, but it does not
+automatically change policy or convert inconclusive evidence into pass.
+Use `scripts/bin/harness-cli friction add` when friction should be captured as
+durable structured evidence for later review.
+Use `scripts/bin/harness-cli backlog suggest` to review read-only backlog
+candidates from structured friction; create backlog rows explicitly with
+`backlog add` after human review.
+Use `scripts/bin/harness-cli rules suggest` to review read-only rule
+improvement proposals; edit policy, decisions, schemas, or architecture rules
+only after explicit human approval.
+
 Backlog risk uses the same lane vocabulary as intake and stories:
 `tiny`, `normal`, or `high-risk`. Use `--risk tiny` for low-risk follow-up
 items; `low` is not a valid lane.
@@ -247,12 +299,27 @@ scripts/bin/harness-cli story update --id US-012 --verify "cargo test --workspac
 scripts/bin/harness-cli story verify US-012
 ```
 
-`story verify` runs the command from the repository root, records
-`last_verified_at` and `last_verified_result`, and exits 0 on pass or 1 on fail.
+`story verify` first runs the command from the repository root and records
+`last_verified_at` and `last_verified_result`. It then evaluates the story
+governance gate. The command exits 0 only when both stages pass.
+
+The governance gate requires a linked intake, generated context pack, passing
+architecture result, passing mechanical verification, code impact evidence for
+automated intake, a linked trace, and high-risk validation evidence when
+applicable.
+
+Run the final gate after recording the task trace:
+
+```bash
+scripts/bin/harness-cli arch-check --story US-012
+scripts/bin/harness-cli trace --story US-012 ...
+scripts/bin/harness-cli story verify US-012
+```
+
 When `trace --story <id>` links to a story whose verification command has never
 passed, the trace still records but prints an advisory warning before close.
 
-`story verify` accepts only the story id. Configure the command with
+`story verify` accepts only the story id. Configure the mechanical command with
 `story add --verify` or `story update --verify`. Record proof booleans with
 `story update`, using numeric values: `1` means yes and `0` means no. The Rust
 CLI rejects text values such as `yes` and `no`.

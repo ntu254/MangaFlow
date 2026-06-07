@@ -1,11 +1,10 @@
 # Architecture
 
-MangaFlow now has an accepted application stack and product contract. The
-current stack, runtime surfaces, deployment targets, and app-specific module
-direction live in `docs/product/architecture.md`.
+No application stack is selected yet.
 
-This document remains the shared architecture boundary guide for future
-implementation work.
+No application code exists yet. This document defines generic architecture
+questions and boundary rules that future implementation should adapt after a
+user-provided spec and stack decision exist.
 
 ## Discovery Before Shape
 
@@ -80,6 +79,35 @@ Inner layers must not depend on outer layers.
 | interface | all backend layers | UI state or platform shell assumptions |
 | app surfaces | API contracts and app-facing clients | domain internals directly |
 
+## Automated Architecture Check
+
+Projects encode executable dependency boundaries in
+`harness-architecture.toml`:
+
+```toml
+[[layer]]
+name = "domain"
+path = "src/domain"
+forbidden_imports = ["infrastructure", "interface"]
+
+[[layer]]
+name = "application"
+path = "src/application"
+forbidden_imports = ["interface"]
+```
+
+Use `files = ["domain.rs"]` when logical layers share one directory. The
+scanner reads supported source files, extracts import/include statements, and
+matches forbidden dependencies by complete path segment.
+
+```bash
+scripts/bin/harness-cli arch-check --story US-012
+```
+
+The MVP scanner supports Rust, TypeScript/JavaScript, Python, Go, Java, Kotlin,
+and C# source extensions. It is a deterministic path/import gate, not a
+replacement for a semantic dependency graph.
+
 ## Parse-First Boundary Rule
 
 Unknown data must be parsed at boundaries before it enters inner code.
@@ -103,6 +131,18 @@ unknown input
   -> application use case
   -> domain object/value object
 ```
+
+External intelligence follows the same rule:
+
+```text
+MCP provider
+  -> versioned file artifact
+  -> Harness schema and semantic validation
+  -> mapped context
+  -> durable summary and governance use
+```
+
+MCP providers and adapters must not write directly into Harness SQLite.
 
 Inner layers should work with meaningful product types such as `UserId`,
 `AccountId`, `WorkspaceId`, `Role`, `DateRange`, or domain-specific IDs,

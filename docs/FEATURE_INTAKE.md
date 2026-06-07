@@ -44,6 +44,66 @@ lane.
 Do not create or extend a monolithic spec by default after intake. Use product
 docs, stories, decisions, and initiative notes as the living surface.
 
+## Automated Intake (HI-OS)
+
+For projects using Harness Intelligence OS, the intake checklist can be automated:
+
+```bash
+scripts/bin/harness-cli intake \
+  --summary "<text>" \
+  --story <id> \
+  --auto \
+  --impact-report <path-to-codegraph-impact-json> \
+  --business-context <path-to-notebooklm-brief-md>
+```
+
+This automates the following steps:
+1.  **Risk Flag Identification:** Scans the CodeGraph impact report for affected files (e.g. database schema changes, auth files, or public contracts) to automatically apply appropriate risk flags.
+2.  **Risk Lane Determination:** Calculates whether the story is `tiny`, `normal`, or `high-risk` based on the detected flags.
+3.  **Context Pack Seeding:** Stores CodeGraph and NotebookLM insights directly inside the SQLite durable database, ready to be packaged by `harness-cli context`.
+
+The MVP JSON reader supports top-level string fields and string arrays only.
+Nested CodeGraph reports are unsupported input rather than complete impact
+evidence. Risk detection uses normalized path segments, so names such as
+`author` do not count as `auth`.
+
+## MCP Artifact Boundary
+
+HI-OS v0.4 defines the real-provider boundary as versioned JSON files:
+
+- `docs/schemas/codegraph-impact.schema.json`
+- `docs/schemas/notebooklm-brief.schema.json`
+- `docs/schemas/context-ingest-result.schema.json`
+
+MCP tools do not write directly to Harness SQLite. `context ingest` validates a
+provider artifact, verifies provenance and semantic links, maps accepted
+fields, and emits an auditable ingest result. The full operational artifact and
+result remain files; SQLite stores the governance summary. `fail` and
+`inconclusive` artifacts never count as successful intake or governance
+evidence. The current `intake --auto` flags remain unchanged; live provider
+adapters and broader governance integration are separate stories.
+
+The CodeGraph CLI adapter is available through `harness-cli codegraph impact`.
+It preserves the file boundary and composes with `context ingest`; it does not
+change `intake --auto` defaults.
+
+The NotebookLM grounded-brief adapter is available through `harness-cli
+notebooklm brief`. It invokes the accepted `notebooklm-mcp-cli` CLI boundary,
+using `nlm query notebook --json`, requires an explicit provider notebook id
+or alias, normalizes only citation-backed provider output into a
+`notebooklm-brief` artifact, and composes with `context ingest`.
+Provider/session/network unavailability is inconclusive, while uncited
+summaries or malformed provider output fail and cannot satisfy governance.
+
+When `intake --auto --story <id>` runs after context evidence has been ingested,
+Harness prefers the latest passing CodeGraph and NotebookLM `context_ingest`
+reports for that story. Passing CodeGraph evidence can seed risk flags,
+affected docs, and code impact summary; passing NotebookLM evidence can seed
+affected docs and grounded context. Failed or inconclusive evidence remains
+audit-visible but never seeds intake as proof. Missing required evidence is
+blocked by story governance rather than by intake creation, avoiding a circular
+bootstrap between intake and `context ingest`.
+
 ## Lanes
 
 ### Tiny

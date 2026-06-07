@@ -1,4 +1,4 @@
--- Harness v0 schema - migration 001
+-- HI-OS schema - migration 001
 -- Durable layer for operational harness data.
 -- Policy docs (HARNESS.md, FEATURE_INTAKE.md, ARCHITECTURE.md) stay as
 -- human-readable references. This database stores the operational records
@@ -31,47 +31,48 @@ CREATE TABLE intake (
     summary       TEXT    NOT NULL,
     risk_lane     TEXT    NOT NULL
                          CHECK(risk_lane IN ('tiny','normal','high_risk')),
-    risk_flags    TEXT,
-    affected_docs TEXT,
-    story_id      TEXT,
+    risk_flags    TEXT,          -- JSON array, e.g. ["auth","data_model"]
+    affected_docs TEXT,          -- JSON array of doc paths
+    story_id      TEXT,          -- links to story.id when one is created
     notes         TEXT
 );
 
 ----------------------------------------------------------------------
 -- Story: work packets and their validation status
+-- Replaces hand-edited TEST_MATRIX.md rows.
 ----------------------------------------------------------------------
 CREATE TABLE story (
-    id                TEXT PRIMARY KEY,
-    title             TEXT NOT NULL,
-    created_at        TEXT NOT NULL DEFAULT (datetime('now')),
-    risk_lane         TEXT NOT NULL
-                      CHECK(risk_lane IN ('tiny','normal','high_risk')),
-    contract_doc      TEXT,
-    status            TEXT NOT NULL DEFAULT 'planned'
-                      CHECK(status IN (
-                        'planned','in_progress','implemented','changed','retired'
-                      )),
-    unit_proof        INTEGER NOT NULL DEFAULT 0,
+    id               TEXT PRIMARY KEY,   -- e.g. US-001
+    title            TEXT NOT NULL,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    risk_lane        TEXT NOT NULL
+                     CHECK(risk_lane IN ('tiny','normal','high_risk')),
+    contract_doc     TEXT,               -- path to product doc
+    status           TEXT NOT NULL DEFAULT 'planned'
+                     CHECK(status IN (
+                       'planned','in_progress','implemented','changed','retired'
+                     )),
+    unit_proof       INTEGER NOT NULL DEFAULT 0,
     integration_proof INTEGER NOT NULL DEFAULT 0,
-    e2e_proof         INTEGER NOT NULL DEFAULT 0,
-    platform_proof    INTEGER NOT NULL DEFAULT 0,
-    evidence          TEXT,
-    notes             TEXT
+    e2e_proof        INTEGER NOT NULL DEFAULT 0,
+    platform_proof   INTEGER NOT NULL DEFAULT 0,
+    evidence         TEXT,
+    notes            TEXT
 );
 
 ----------------------------------------------------------------------
 -- Decision: durable records with optional verification
 ----------------------------------------------------------------------
 CREATE TABLE decision (
-    id                    TEXT PRIMARY KEY,
+    id                    TEXT PRIMARY KEY,  -- e.g. 0001
     title                 TEXT NOT NULL,
     created_at            TEXT NOT NULL DEFAULT (datetime('now')),
     status                TEXT NOT NULL DEFAULT 'proposed'
                           CHECK(status IN (
                             'proposed','accepted','superseded','rejected'
                           )),
-    doc_path              TEXT,
-    verify_command        TEXT,
+    doc_path              TEXT,              -- path to the markdown ADR
+    verify_command        TEXT,              -- optional check command
     last_verified_at      TEXT,
     last_verified_result  TEXT
                           CHECK(last_verified_result IN ('pass','fail') OR
@@ -103,27 +104,26 @@ CREATE TABLE backlog (
 );
 
 ----------------------------------------------------------------------
--- Trace: agent task execution records
+-- Trace: agent task execution records (observability foundation)
 ----------------------------------------------------------------------
 CREATE TABLE trace (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
-    task_summary     TEXT    NOT NULL,
-    intake_id        INTEGER REFERENCES intake(id),
-    story_id         TEXT    REFERENCES story(id),
-    agent            TEXT,
-    actions_taken    TEXT,
-    files_read       TEXT,
-    files_changed    TEXT,
-    decisions_made   TEXT,
-    errors           TEXT,
-    outcome          TEXT
-                     CHECK(outcome IN (
-                       'completed','blocked','partial','failed'
-                     )),
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    task_summary    TEXT    NOT NULL,
+    intake_id       INTEGER REFERENCES intake(id),
+    story_id        TEXT    REFERENCES story(id),
+    agent           TEXT,
+    actions_taken   TEXT,       -- JSON array
+    files_read      TEXT,       -- JSON array
+    files_changed   TEXT,       -- JSON array
+    decisions_made  TEXT,       -- JSON array
+    errors          TEXT,       -- JSON array
+    outcome         TEXT
+                    CHECK(outcome IN (
+                      'completed','blocked','partial','failed'
+                    )),
     duration_seconds INTEGER,
     token_estimate   INTEGER,
     harness_friction TEXT,
     notes            TEXT
 );
-

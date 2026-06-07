@@ -37,37 +37,4 @@ proposed | accepted | implemented | rejected
 
 ## Items
 
-## Missing Harness CLI Binary
-
-### Title
-
-Install or restore Windows Harness CLI binary.
-
-### Discovered While
-
-US-000 Foundation Scaffold.
-
-### Current Pain
-
-`scripts/bin/harness-cli.exe` is required by AGENTS/Harness instructions. It was
-reported missing during Phase 0 follow-up, which blocked durable intake, story,
-matrix, decision, backlog, and trace updates through the standard CLI path.
-
-As of the Auth/User Sync planning pass, the binary is available and reports
-`harness-cli 0.1.8`.
-
-### Suggested Improvement
-
-No further action is needed while the binary remains available. If this recurs,
-restore the prebuilt Windows binary with the Harness installer or document a
-safe local bootstrap path for Windows workspaces where the binary is absent.
-
-### Risk
-
-Tiny.
-
-CLI value: `--risk tiny`.
-
-### Status
-
-implemented
+No backlog items yet.
