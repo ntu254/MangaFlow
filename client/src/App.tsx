@@ -10,6 +10,7 @@ import { LandingPage } from "@/features/marketing/pages/LandingPage"
 import { LoginPage } from "@/features/auth/pages/LoginPage"
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
+import { SeriesPage } from "@/features/series/pages/SeriesPage"
 
 function AppHomeRedirect() {
   const { user, isLoading } = useAuth()
@@ -69,13 +70,7 @@ function App() {
 
             <Route
               path="series"
-              element={
-                <RoutePlaceholderPage
-                  title="Series"
-                  description="Manage production series and approval status."
-                  icon="auto_stories"
-                />
-              }
+              element={<SeriesPage />}
             />
             <Route
               path="series/:id"
