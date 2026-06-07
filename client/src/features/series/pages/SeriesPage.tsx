@@ -1,22 +1,30 @@
 import { useState } from "react"
 import { useAuth } from "@/shared/components/auth/AuthProvider"
+import {
+  ChapterCreationGateCard,
+  ManuscriptUploadPanel,
+  SeriesSummaryCard,
+} from "@/shared/components/domain"
 import { MFEmptyState } from "@/shared/components/feedback/MFEmptyState"
-import { StatusBadge } from "@/shared/components/domain/StatusBadge"
-import { MFBadge } from "@/shared/components/ui/MFBadge"
 import { MFButton } from "@/shared/components/ui/MFButton"
 import { MFCard } from "@/shared/components/ui/MFCard"
 import { MFIconCircle } from "@/shared/components/ui/MFIconCircle"
 import { PageShell } from "@/shared/components/layout/PageShell"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
-import { seriesStatusUI } from "@/shared/lib/status-ui"
 import type { Series } from "../api/series.types"
 import { CreateSeriesDialog } from "../components/CreateSeriesDialog"
+
+const CHAPTER_READY_STATUSES = new Set(["APPROVED", "ONGOING", "AT_RISK"])
 
 export function SeriesPage() {
   const { user } = useAuth()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createdSeries, setCreatedSeries] = useState<Series | null>(null)
+  const [selectedManuscripts, setSelectedManuscripts] = useState<string[]>([])
   const canCreate = user?.role === "MANGAKA"
+  const canCreateChapter = createdSeries
+    ? CHAPTER_READY_STATUSES.has(createdSeries.status)
+    : false
 
   usePageTitle("Series", "Create and manage internal manga production proposals.")
 
@@ -50,31 +58,59 @@ export function SeriesPage() {
       </MFCard>
 
       {createdSeries ? (
-        <MFCard className="rounded-3xl">
-          <div className="flex flex-wrap items-start justify-between gap-md">
-            <div className="min-w-0">
-              <p className="text-label-sm text-on-surface-muted">Created this session</p>
-              <h3 className="mt-sm break-words text-title-lg text-on-surface">
-                {createdSeries.title}
-              </h3>
-            </div>
-            <StatusBadge status={createdSeries.status} mapping={seriesStatusUI} />
+        <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
+          <div className="space-y-lg">
+            <SeriesSummaryCard
+              title={createdSeries.title}
+              status={createdSeries.status}
+              genre={createdSeries.genres.length > 0 ? createdSeries.genres.join(", ") : "Unclassified"}
+              publicationType="Not supplied yet"
+              description={createdSeries.synopsis}
+              ownerLabel="Current Mangaka"
+              metadata={[
+                "Created this session",
+                "Persisted list awaits query endpoint",
+                `Slug: ${createdSeries.slug}`,
+              ]}
+            />
+
+            <ChapterCreationGateCard
+              seriesTitle={createdSeries.title}
+              canCreateChapter={canCreateChapter}
+              reason="Chapter creation stays disabled until the backend reports an approved, ongoing, or at-risk Series status."
+            />
           </div>
-          <p className="mt-md text-body-md text-on-surface-muted">{createdSeries.synopsis}</p>
-          {createdSeries.genres.length > 0 ? (
-            <div className="mt-md flex flex-wrap gap-sm">
-              {createdSeries.genres.map((genre) => (
-                <MFBadge key={genre} tone="secondary">
-                  {genre}
-                </MFBadge>
-              ))}
-            </div>
-          ) : null}
-          <div className="mt-lg rounded-xl bg-surface-low px-md py-sm text-label-sm text-on-surface-muted">
-            This draft is shown from the create response. A persisted Series list requires the
-            future query endpoint.
+
+          <div className="space-y-lg">
+            <ManuscriptUploadPanel
+              constraints={[
+                "Upload/storage API is not connected in this screen yet.",
+                "Submit still requires the backend manuscript workflow.",
+                "Original files must be stored unchanged with private access.",
+              ]}
+              accept=".pdf,.zip,.jpg,.jpeg,.png"
+              multiple
+              onFilesSelected={(files) =>
+                setSelectedManuscripts(Array.from(files, (file) => file.name))
+              }
+            />
+            {selectedManuscripts.length > 0 ? (
+              <MFCard>
+                <h3 className="text-title-lg text-on-surface">Selected locally</h3>
+                <ul className="mt-md list-disc space-y-xs pl-lg text-body-md text-on-surface-muted">
+                  {selectedManuscripts.map((fileName) => (
+                    <li key={fileName} className="break-words">
+                      {fileName}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-md text-label-sm text-on-surface-muted">
+                  These filenames are local preview only; no upload request has been sent.
+                </p>
+              </MFCard>
+            ) : null}
           </div>
-        </MFCard>
+        </div>
       ) : (
         <MFEmptyState
           icon="library_add"
