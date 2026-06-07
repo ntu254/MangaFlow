@@ -1,4 +1,5 @@
 import { useAuth } from "@/shared/components/auth/AuthProvider"
+import { usePageTitle } from "@/shared/contexts/PageTitleContext"
 import { MFCard, MFCardHeader } from "@/shared/components/ui/MFCard"
 import { MFProgress } from "@/shared/components/ui/MFProgress"
 import { MFSection } from "@/shared/components/ui/MFSection"
@@ -15,12 +16,12 @@ const ROLE_LABELS: Record<string, string> = {
 export function DashboardPage() {
   const { user } = useAuth()
   const title = user ? ROLE_LABELS[user.role] ?? "Dashboard" : "Dashboard"
+  usePageTitle(title, user ? `Welcome, ${user.name}` : "")
 
   return (
     <div className="space-y-6">
-      <h1 className="text-headline-lg text-on-surface">{title}</h1>
       <p className="text-body-md text-on-surface-muted">
-        Welcome, {user?.name}. Role: <MFBadge tone="primary">{user?.role}</MFBadge>
+        Role: <MFBadge tone="primary">{user?.role}</MFBadge>
       </p>
       <div className="grid gap-4 md:grid-cols-3">
         <MFCard padding="md">

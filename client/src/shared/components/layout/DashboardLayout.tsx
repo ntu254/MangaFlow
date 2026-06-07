@@ -1,19 +1,24 @@
+import { useState } from "react"
 import { Outlet } from "react-router-dom"
-import { AppNavbar } from "./AppNavbar"
 import { RoleSidebar } from "./RoleSidebar"
-import { MarketingFooter } from "./MarketingFooter"
+import { DashboardTopBar } from "./DashboardTopBar"
+import { PageTitleProvider } from "@/shared/contexts/PageTitleContext"
 
 export function DashboardLayout() {
+  const [title, setTitle] = useState("")
+  const [subtitle, setSubtitle] = useState<string>()
+
   return (
-    <div className="min-h-screen bg-background">
-      <AppNavbar />
-      <div className="flex">
-        <RoleSidebar isOpen />
-        <main className="flex-1 p-lg md:ml-60">
-          <Outlet />
-        </main>
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      <RoleSidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <PageTitleProvider value={{ title, subtitle, setTitle(title, subtitle) { setTitle(title); setSubtitle(subtitle) } }}>
+          <DashboardTopBar />
+          <main className="flex-1 overflow-y-auto p-lg">
+            <Outlet />
+          </main>
+        </PageTitleProvider>
       </div>
-      <MarketingFooter />
     </div>
   )
 }

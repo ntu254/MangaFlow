@@ -1,7 +1,7 @@
 import { type ReactNode } from "react"
 import { cn } from "@/shared/lib/utils"
-import { AppNavbar } from "./AppNavbar"
 import { RoleSidebar } from "./RoleSidebar"
+import { DashboardTopBar } from "./DashboardTopBar"
 
 interface PageShellProps {
   children: ReactNode
@@ -11,17 +11,11 @@ interface PageShellProps {
 
 export function PageShell({ children, className, hideSidebar }: PageShellProps) {
   return (
-    <div className="min-h-screen bg-background">
-      <AppNavbar />
-      <div className="flex">
-        {!hideSidebar && <RoleSidebar isOpen />}
-        <main
-          className={cn(
-            "flex-1 p-lg",
-            !hideSidebar && "md:ml-60",
-            className,
-          )}
-        >
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      {!hideSidebar && <RoleSidebar />}
+      <div className={cn("flex flex-1 flex-col overflow-hidden")}>
+        <DashboardTopBar />
+        <main className={cn("flex-1 overflow-y-auto p-lg", className)}>
           {children}
         </main>
       </div>
