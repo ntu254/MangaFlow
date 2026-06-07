@@ -49,3 +49,5 @@ scripts/bin/harness-cli.exe
 *.tmp
 *.bak
 *.local
+*.tsbuildinfo
+client/tsconfig.tsbuildinfo
