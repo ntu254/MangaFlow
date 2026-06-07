@@ -11,6 +11,7 @@ import { LoginPage } from "@/features/auth/pages/LoginPage"
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
 import { SeriesPage } from "@/features/series/pages/SeriesPage"
+import { TasksPage } from "@/features/task/pages/TasksPage"
 import { WorkspacePage } from "@/features/workspace/pages/WorkspacePage"
 
 function AppHomeRedirect() {
@@ -99,13 +100,7 @@ function App() {
             />
             <Route
               path="tasks"
-              element={
-                <RoutePlaceholderPage
-                  title="Production Tasks"
-                  description="Track assigned work and production status."
-                  icon="assignment"
-                />
-              }
+              element={<TasksPage />}
             />
             <Route
               path="review"
