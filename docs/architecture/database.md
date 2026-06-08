@@ -53,3 +53,40 @@ Series → BoardVote/BoardDecision
 - Page(chapterId, pageNumber) unique
 - BoardVote(seriesId, userId) unique
 - Ranking(period, seriesId) unique
+
+## Workflow status source of truth
+
+Workflow status enum values are canonical in
+`docs/contracts/workflow-status.md`. Collections that store a workflow status
+must use those exact values.
+
+Affected collections include:
+
+- User
+- Series
+- SeriesMember
+- Manuscript
+- Chapter
+- Page
+- Region
+- Task
+- Submission
+- Comment
+- BoardVote
+- BoardDecision
+- Ranking
+- AssistantEarning
+
+Unknown status strings are invalid implementation behavior. Status transition
+guards belong in backend services and must not be delegated to frontend display
+logic.
+
+Assistant access storage invariant:
+
+```txt
+SeriesMember(role=ASSISTANT, status=ACTIVE, accessScope=TASK_ONLY)
+= eligibility for assignment only.
+
+Task.assignedTo = actual task workspace access.
+Task.contextPageIds = explicit read-only page context.
+```

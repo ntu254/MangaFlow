@@ -15,9 +15,12 @@ Mangaka, Editor
 
 ## Business rules
 
+- Status names and transitions must follow `docs/contracts/workflow-status.md`.
 - Series starts as DRAFT.
 - Owner Mangaka is auto-created as SeriesMember.
 - Required fields must be present before submit.
+- Submit moves Series into Tantou Editor proposal review, not production final
+  approval.
 
 ## API surface
 

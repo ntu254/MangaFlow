@@ -9,6 +9,7 @@ is not part of the MVP.
 ## Product Contracts
 
 - `main.md`
+- `workflow-status.md`
 - `auth.md`
 - `series-proposal.md`
 - `manuscript-review.md`
