@@ -7,6 +7,7 @@ const seriesFind = vi.fn()
 const seriesMemberCreate = vi.fn()
 const manuscriptExists = vi.fn()
 const manuscriptCreate = vi.fn()
+const manuscriptFindOneAndUpdate = vi.fn()
 const fileAssetCreate = vi.fn()
 const createPresignedUploadUrl = vi.fn()
 
@@ -23,6 +24,7 @@ vi.mock("./series.model.js", () => ({
   Manuscript: {
     exists: manuscriptExists,
     create: manuscriptCreate,
+    findOneAndUpdate: manuscriptFindOneAndUpdate,
   },
 }))
 
@@ -165,6 +167,7 @@ describe("createManuscriptUploadService", () => {
       seriesId: "series-1",
       uploadedBy: "owner-1",
       fileAssetId: "file-1",
+      status: "DRAFT",
     })
     expect(result).toMatchObject({ uploadUrl: "https://signed.example/upload", fileAssetId: "file-1", manuscriptId: "manuscript-1" })
   })
@@ -220,6 +223,7 @@ describe("submitSeriesService", () => {
     }
     seriesFindById.mockResolvedValue(series)
     manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
+    manuscriptFindOneAndUpdate.mockResolvedValue({ id: "manuscript-1", status: "EDITOR_REVIEW" })
 
     const result = await submitSeriesService("series-1", "user-1")
 
