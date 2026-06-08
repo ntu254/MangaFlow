@@ -1,5 +1,5 @@
 import mongoose, { Schema, type Document } from "mongoose"
-import { SERIES_STATUSES, type SeriesStatus } from "../../shared/workflow/status.js"
+import { MANUSCRIPT_STATUSES, SERIES_STATUSES, type ManuscriptStatus, type SeriesStatus } from "../../shared/workflow/status.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 export type SeriesMemberAccessScope = "FULL" | "TASK_ONLY"
@@ -78,7 +78,10 @@ export const SeriesMember = mongoose.model<SeriesMemberDocument>("SeriesMember",
 export interface ManuscriptDocument extends Document {
   seriesId: mongoose.Types.ObjectId
   uploadedBy: mongoose.Types.ObjectId
+  version: number
+  status: ManuscriptStatus
   fileAssetId?: mongoose.Types.ObjectId
+  reviewNote?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -87,9 +90,20 @@ const manuscriptSchema = new Schema<ManuscriptDocument>(
   {
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, index: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    version: { type: Number, required: true, min: 1 },
+    status: {
+      type: String,
+      enum: MANUSCRIPT_STATUSES,
+      required: true,
+      default: "DRAFT",
+      index: true,
+    },
     fileAssetId: { type: Schema.Types.ObjectId, ref: "FileAsset" },
+    reviewNote: { type: String, trim: true, maxlength: 2000 },
   },
   { timestamps: true },
 )
+
+manuscriptSchema.index({ seriesId: 1, version: 1 }, { unique: true })
 
 export const Manuscript = mongoose.model<ManuscriptDocument>("Manuscript", manuscriptSchema)
