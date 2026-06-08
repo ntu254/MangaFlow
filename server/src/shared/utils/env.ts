@@ -16,4 +16,9 @@ export const config = {
   jwtExpiresIn: env("JWT_EXPIRES_IN", "15m"),
   jwtRefreshExpiresIn: env("JWT_REFRESH_EXPIRES_IN", "7d"),
   nodeEnv: env("NODE_ENV", "development"),
+  r2Region: env("R2_REGION", "auto"),
+  r2Endpoint: env("R2_ENDPOINT", "https://placeholder.r2.cloudflarestorage.com"),
+  r2AccessKeyId: env("R2_ACCESS_KEY_ID", "placeholder-access-key"),
+  r2SecretAccessKey: env("R2_SECRET_ACCESS_KEY", "placeholder-secret-key"),
+  r2Bucket: env("R2_BUCKET", "mangaflow"),
 }
