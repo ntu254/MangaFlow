@@ -9,6 +9,7 @@ import chapterRoutes from "./modules/chapter/chapter.routes.js"
 import fileRoutes from "./modules/chapter/file.routes.js"
 import taskRoutes from "./modules/task/task.routes.js"
 import submissionRoutes from "./modules/submission/submission.routes.js"
+import commentRoutes from "./modules/comment/comment.routes.js"
 import { errorHandler } from "./shared/middleware/errorHandler.js"
 
 const app = express()
@@ -27,6 +28,7 @@ app.use("/api/chapters", chapterRoutes)
 app.use("/api/files", fileRoutes)
 app.use("/api/tasks", taskRoutes)
 app.use("/api", submissionRoutes)
+app.use("/api/comments", commentRoutes)
 
 app.use(errorHandler)
 
