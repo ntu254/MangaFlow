@@ -1,7 +1,7 @@
 ﻿import { Series, SeriesMember, Manuscript } from "./series.model.js"
 import { FileAsset } from "../chapter/chapter.model.js"
 import { config } from "../../shared/utils/env.js"
-import type { SeriesStatus } from "../../shared/workflow/status.js"
+import type { ManuscriptStatus, SeriesStatus } from "../../shared/workflow/status.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 
@@ -92,6 +92,10 @@ export async function hasManuscript(seriesId: string): Promise<boolean> {
   return Boolean(existing)
 }
 
+export async function getLatestManuscriptBySeries(seriesId: string): Promise<any | null> {
+  return Manuscript.findOne({ seriesId }).sort({ version: -1 })
+}
+
 
 export interface CreateManuscriptUploadDraftInput {
   seriesId: string
@@ -112,14 +116,36 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
     uploadedBy: input.uploadedBy,
   })
 
+  const latest = await getLatestManuscriptBySeries(input.seriesId)
+  const version = latest ? latest.version + 1 : 1
+
   const manuscript = await Manuscript.create({
     seriesId: input.seriesId,
     uploadedBy: input.uploadedBy,
+    version,
+    status: "DRAFT",
     fileAssetId: fileAsset.id,
   })
 
   return { manuscript, fileAsset }
 }
+
+export async function updateManuscriptStatus(
+  manuscriptId: string,
+  status: ManuscriptStatus,
+  reviewNote?: string,
+): Promise<any | null> {
+  return Manuscript.findByIdAndUpdate(
+    manuscriptId,
+    { status, reviewNote },
+    { new: true },
+  )
+}
+
+export async function updateSeriesStatus(seriesId: string, status: SeriesStatus): Promise<any | null> {
+  return Series.findByIdAndUpdate(seriesId, { status }, { new: true })
+}
+
 export async function submitSeriesRepository(seriesId: string, userId: string): Promise<any> {
   const series = await Series.findById(seriesId)
   if (!series) {
@@ -138,17 +164,16 @@ export async function submitSeriesRepository(seriesId: string, userId: string): 
     throw new Error("Required series fields must be completed before submit")
   }
 
-  const [manuscript] = await Promise.all([
-    hasManuscript(seriesId),
-    Promise.resolve(),
-  ])
+  const manuscript = await getLatestManuscriptBySeries(seriesId)
 
   if (!manuscript) {
     throw new Error("Initial manuscript is required before submit")
   }
 
   series.status = "EDITOR_REVIEW"
+  manuscript.status = "EDITOR_REVIEW"
   await series.save()
+  await manuscript.save()
 
   return series
 }

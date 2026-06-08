@@ -7,6 +7,7 @@ const seriesFind = vi.fn()
 const seriesMemberCreate = vi.fn()
 const manuscriptExists = vi.fn()
 const manuscriptCreate = vi.fn()
+const manuscriptFindOne = vi.fn()
 const fileAssetCreate = vi.fn()
 const createPresignedUploadUrl = vi.fn()
 
@@ -22,6 +23,7 @@ vi.mock("./series.model.js", () => ({
   },
   Manuscript: {
     exists: manuscriptExists,
+    findOne: manuscriptFindOne,
     create: manuscriptCreate,
   },
 }))
@@ -89,6 +91,7 @@ describe("createSeriesService", () => {
 describe("series read access", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(null) })
   })
 
   it("lists only owned Series for Mangaka", async () => {
@@ -164,6 +167,8 @@ describe("createManuscriptUploadService", () => {
     expect(manuscriptCreate).toHaveBeenCalledWith({
       seriesId: "series-1",
       uploadedBy: "owner-1",
+      version: 1,
+      status: "DRAFT",
       fileAssetId: "file-1",
     })
     expect(result).toMatchObject({ uploadUrl: "https://signed.example/upload", fileAssetId: "file-1", manuscriptId: "manuscript-1" })
@@ -200,7 +205,7 @@ describe("submitSeriesService", () => {
       title: "Moon Ink",
       synopsis: "A studio drama.",
     })
-    manuscriptExists.mockResolvedValue(null)
+    manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(null) })
 
     await expect(submitSeriesService("series-1", "user-1")).rejects.toMatchObject({
       message: "Initial manuscript is required before submit",
@@ -210,6 +215,13 @@ describe("submitSeriesService", () => {
 
   it("moves a valid draft series to editor review", async () => {
     const save = vi.fn().mockResolvedValue(undefined)
+    const manuscriptSave = vi.fn().mockResolvedValue(undefined)
+    const manuscript = {
+      _id: "manuscript-1",
+      status: "DRAFT",
+      version: 1,
+      save: manuscriptSave,
+    }
     const series = {
       id: "series-1",
       ownerId: "user-1",
@@ -219,12 +231,14 @@ describe("submitSeriesService", () => {
       save,
     }
     seriesFindById.mockResolvedValue(series)
-    manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
+    manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(manuscript) })
 
     const result = await submitSeriesService("series-1", "user-1")
 
     expect(series.status).toBe("EDITOR_REVIEW")
+    expect(manuscript.status).toBe("EDITOR_REVIEW")
     expect(save).toHaveBeenCalled()
+    expect(manuscriptSave).toHaveBeenCalled()
     expect(result).toBe(series)
   })
 
