@@ -1,6 +1,6 @@
 ﻿import { AppError } from "../../shared/errors/AppError.js"
 import type { BoardVoteValue } from "../../shared/workflow/status.js"
-import { getBoardSeries, getOrCreateDecision, isBoardChair, listBoardVotes, listEligibleBoardUsers, updateDecision, updateSeriesAfterDecision, upsertBoardVote } from "./board.repository.js"
+import { getBoardSeries, getDecisionBySeries, getOrCreateDecision, isBoardChair, listBoardQueueSeries, listBoardVotes, listEligibleBoardUsers, updateDecision, updateSeriesAfterDecision, upsertBoardVote } from "./board.repository.js"
 
 const RESULT_TO_SERIES = {
   APPROVE: "APPROVED",
@@ -20,6 +20,23 @@ function plurality(counts: Record<BoardVoteValue, number>): BoardVoteValue | "TI
   const max = Math.max(...entries.map(([, count]) => count))
   const winners = entries.filter(([, count]) => count === max)
   return winners.length === 1 ? winners[0][0] : "TIE_BREAK_REQUIRED"
+}
+
+
+export async function listBoardQueueService() {
+  const seriesList = await listBoardQueueSeries()
+  return Promise.all(seriesList.map(async (series) => {
+    const [votes, decision] = await Promise.all([listBoardVotes(series.id), getDecisionBySeries(series.id)])
+    return {
+      id: series.id,
+      seriesTitle: series.title,
+      ownerId: String(series.ownerId),
+      seriesStatus: series.status,
+      decisionStatus: decision?.status ?? (series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "APPROVED" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : "NEEDS_REVISION"),
+      voteSummary: summarize(votes),
+      updatedAt: series.updatedAt,
+    }
+  }))
 }
 
 async function assertBoardReviewSeries(seriesId: string) {
