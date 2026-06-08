@@ -12,6 +12,7 @@ import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
 import { BoardPage } from "@/features/board/pages/BoardPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
 import { ReviewPage } from "@/features/review/pages/ReviewPage"
+import { SeriesDetailPage } from "@/features/series/pages/SeriesDetailPage"
 import { SeriesPage } from "@/features/series/pages/SeriesPage"
 import { TasksPage } from "@/features/task/pages/TasksPage"
 import { WorkspacePage } from "@/features/workspace/pages/WorkspacePage"
@@ -78,13 +79,7 @@ function App() {
             />
             <Route
               path="series/:id"
-              element={
-                <RoutePlaceholderPage
-                  title="Series Detail"
-                  description="Review series production details and approval readiness."
-                  icon="menu_book"
-                />
-              }
+              element={<SeriesDetailPage />}
             />
             <Route
               path="chapters/:id"
