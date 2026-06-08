@@ -7,6 +7,7 @@ import authRoutes from "./modules/auth/auth.routes.js"
 import seriesRoutes from "./modules/series/series.routes.js"
 import boardRoutes from "./modules/board/board.routes.js"
 import manuscriptRoutes from "./modules/manuscript/manuscript.routes.js"
+import rankingRoutes from "./modules/ranking/ranking.routes.js"
 import chapterRoutes from "./modules/chapter/chapter.routes.js"
 import fileRoutes from "./modules/chapter/file.routes.js"
 import taskRoutes from "./modules/task/task.routes.js"
@@ -29,6 +30,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/series", seriesRoutes)
 app.use("/api/board", boardRoutes)
 app.use("/api/manuscripts", manuscriptRoutes)
+app.use("/api/rankings", rankingRoutes)
 app.use("/api/chapters", chapterRoutes)
 app.use("/api/files", fileRoutes)
 app.use("/api/tasks", taskRoutes)
