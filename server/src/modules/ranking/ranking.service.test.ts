@@ -3,10 +3,11 @@
 const upsertRanking = vi.fn()
 const getRankingById = vi.fn()
 const updateRankingStatus = vi.fn()
+const listRankings = vi.fn()
 
-vi.mock("./ranking.repository.js", () => ({ upsertRanking, getRankingById, updateRankingStatus }))
+vi.mock("./ranking.repository.js", () => ({ upsertRanking, getRankingById, updateRankingStatus, listRankings }))
 
-const { calculateFinalScore, finalizeRankingService, importRankingService } = await import("./ranking.service.js")
+const { calculateFinalScore, finalizeRankingService, importRankingService, listRankingsService } = await import("./ranking.service.js")
 
 describe("ranking.service", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -23,6 +24,12 @@ describe("ranking.service", () => {
 
   it("blocks invalid readerScore", async () => {
     await expect(importRankingService({ period: "2026-06", seriesId: "series-1", voteCount: 100, readerScore: 11 })).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it("lists rankings sorted by repository", async () => {
+    listRankings.mockResolvedValue([{ id: "ranking-1", finalScore: 94 }])
+    await expect(listRankingsService()).resolves.toEqual([{ id: "ranking-1", finalScore: 94 }])
+    expect(listRankings).toHaveBeenCalled()
   })
 
   it("finalizes imported ranking", async () => {

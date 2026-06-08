@@ -1,5 +1,5 @@
 ﻿import { AppError } from "../../shared/errors/AppError.js"
-import { getRankingById, updateRankingStatus, upsertRanking } from "./ranking.repository.js"
+import { getRankingById, listRankings, updateRankingStatus, upsertRanking } from "./ranking.repository.js"
 
 export interface ImportRankingServiceInput {
   period: string
@@ -23,6 +23,11 @@ export async function importRankingService(input: ImportRankingServiceInput) {
     readerScore: input.readerScore,
     finalScore: calculateFinalScore(input.voteCount, input.readerScore),
   })
+}
+
+
+export async function listRankingsService() {
+  return listRankings()
 }
 
 export async function finalizeRankingService(rankingId: string) {

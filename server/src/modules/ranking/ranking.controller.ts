@@ -1,5 +1,11 @@
 ﻿import type { Request, Response } from "express"
-import { finalizeRankingService, importRankingService } from "./ranking.service.js"
+import { finalizeRankingService, importRankingService, listRankingsService } from "./ranking.service.js"
+
+
+export async function listRankings(_req: Request, res: Response): Promise<void> {
+  const rankings = await listRankingsService()
+  res.json({ success: true, message: "Rankings retrieved", data: rankings })
+}
 
 export async function importRanking(req: Request, res: Response): Promise<void> {
   const ranking = await importRankingService(req.body)
