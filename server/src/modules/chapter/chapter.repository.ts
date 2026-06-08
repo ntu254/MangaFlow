@@ -1,4 +1,4 @@
-import { Chapter, Page } from "./chapter.model.js"
+import { Chapter, Page, FileAsset, Region } from "./chapter.model.js"
 import { Series } from "../series/series.model.js"
 import type { ChapterStatus } from "../../shared/workflow/status.js"
 
@@ -96,4 +96,95 @@ export async function getPageById(pageId: string): Promise<any | null> {
 
 export async function updatePageStatus(pageId: string, status: string): Promise<any | null> {
   return Page.findByIdAndUpdate(pageId, { status }, { new: true })
+}
+
+export interface ConfirmPageUploadInput {
+  pageId: string
+  fileAssetId: string
+  r2Key: string
+  originalName: string
+  mimeType: string
+  size: number
+}
+
+export async function confirmPageUploadRepository(input: ConfirmPageUploadInput): Promise<any> {
+  const page = await Page.findByIdAndUpdate(
+    input.pageId,
+    {
+      status: "UPLOADED",
+      originalFileAssetId: input.fileAssetId,
+    },
+    { new: true },
+  )
+
+  if (!page) {
+    throw new Error("Page not found")
+  }
+
+  const fileAsset = await FileAsset.create({
+    _id: input.fileAssetId,
+    originalName: input.originalName,
+    mimeType: input.mimeType,
+    size: input.size,
+    r2Key: input.r2Key,
+    r2Bucket: process.env.R2_BUCKET || "mangaflow",
+    uploadedBy: page.chapterId, // will be replaced with actual user in service
+  })
+
+  return { page, fileAsset }
+}
+
+export async function getFileAssetById(fileAssetId: string): Promise<any | null> {
+  return FileAsset.findById(fileAssetId)
+}
+
+export async function getPageWithFileAsset(pageId: string): Promise<any | null> {
+  return Page.findById(pageId).populate("originalFileAssetId")
+}
+
+export async function createRegionRepository(
+  pageId: string,
+  regionIndex: number,
+  bbox: { x: number; y: number; width: number; height: number },
+): Promise<any> {
+  const page = await Page.findById(pageId)
+  if (!page) {
+    throw new Error("Page not found")
+  }
+
+  const existing = await Region.findOne({ pageId, regionIndex })
+  if (existing) {
+    throw new Error(`Region ${regionIndex} already exists on this page`)
+  }
+
+  const region = await Region.create({
+    pageId,
+    regionIndex,
+    bbox,
+    status: "ACTIVE",
+  })
+
+  await Page.findByIdAndUpdate(pageId, { $push: { regionIds: region._id } })
+
+  return region
+}
+
+export async function getRegionsByPage(pageId: string): Promise<any[]> {
+  return Region.find({ pageId }).sort({ regionIndex: 1 }).lean()
+}
+
+export async function getRegionById(regionId: string): Promise<any | null> {
+  return Region.findById(regionId)
+}
+
+export async function updateRegionStatus(regionId: string, status: "ACTIVE" | "ARCHIVED"): Promise<any | null> {
+  return Region.findByIdAndUpdate(regionId, { status }, { new: true })
+}
+
+export async function deleteRegionRepository(regionId: string): Promise<any | null> {
+  const region = await Region.findByIdAndDelete(regionId)
+  if (region) {
+    await Page.findByIdAndUpdate(region.pageId, { $pull: { regionIds: region._id } })
+  }
+  return region
 }

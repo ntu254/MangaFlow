@@ -6,6 +6,7 @@ import { config } from "./shared/utils/env.js"
 import authRoutes from "./modules/auth/auth.routes.js"
 import seriesRoutes from "./modules/series/series.routes.js"
 import chapterRoutes from "./modules/chapter/chapter.routes.js"
+import fileRoutes from "./modules/chapter/file.routes.js"
 import { errorHandler } from "./shared/middleware/errorHandler.js"
 
 const app = express()
@@ -21,6 +22,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes)
 app.use("/api/series", seriesRoutes)
 app.use("/api/chapters", chapterRoutes)
+app.use("/api/files", fileRoutes)
 
 app.use(errorHandler)
 
