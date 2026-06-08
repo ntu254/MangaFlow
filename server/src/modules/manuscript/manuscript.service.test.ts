@@ -1,65 +1,127 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import * as repository from "./manuscript.repository.js"
+import {
+  forwardManuscriptToBoardService,
+  rejectManuscriptService,
+  requestManuscriptRevisionService,
+} from "./manuscript.service.js"
 
-const getManuscriptWithSeries = vi.fn()
-const updateProposalReview = vi.fn()
+vi.mock("./manuscript.repository.js")
 
-vi.mock("./manuscript.repository.js", () => ({
-  getManuscriptWithSeries,
-  updateProposalReview,
-}))
+describe("manuscript review service", () => {
+  const manuscript = {
+    _id: "manuscript1",
+    seriesId: "series1",
+    status: "EDITOR_REVIEW",
+  }
+  const series = {
+    _id: "series1",
+    status: "EDITOR_REVIEW",
+  }
 
-const { reviewManuscriptProposalService } = await import("./manuscript.service.js")
-
-describe("reviewManuscriptProposalService", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(repository.getManuscriptById).mockResolvedValue(manuscript as any)
+    vi.mocked(repository.getSeriesForManuscript).mockResolvedValue(series as any)
   })
 
-  it("forwards editor-reviewed manuscript to Board and moves Series to BOARD_REVIEW", async () => {
-    getManuscriptWithSeries.mockResolvedValue({
-      manuscript: { id: "manuscript-1", status: "EDITOR_REVIEW" },
-      series: { id: "series-1", status: "EDITOR_REVIEW" },
+  it("requests revision and returns Series to REVISION_REQUESTED", async () => {
+    vi.mocked(repository.updateManuscriptReviewStatus).mockResolvedValue({
+      id: "manuscript1",
+      status: "REVISION_REQUESTED",
+    } as any)
+
+    const result = await requestManuscriptRevisionService({
+      manuscriptId: "manuscript1",
+      actor: { userId: "editor1", role: "EDITOR" },
+      reviewNote: "Please revise",
     })
-    updateProposalReview.mockResolvedValue({ manuscript: { status: "APPROVED_TO_BOARD" }, series: { status: "BOARD_REVIEW" } })
 
-    await reviewManuscriptProposalService("manuscript-1", "FORWARD_TO_BOARD")
-
-    expect(updateProposalReview).toHaveBeenCalledWith("manuscript-1", "APPROVED_TO_BOARD", "series-1", "BOARD_REVIEW")
+    expect(result).toMatchObject({ status: "REVISION_REQUESTED" })
+    expect(repository.updateManuscriptReviewStatus).toHaveBeenCalledWith(
+      "manuscript1",
+      "REVISION_REQUESTED",
+      "Please revise",
+    )
+    expect(repository.updateSeriesReviewStatus).toHaveBeenCalledWith(
+      "series1",
+      "REVISION_REQUESTED",
+    )
   })
 
-  it("requests revision and returns both records to revision state", async () => {
-    getManuscriptWithSeries.mockResolvedValue({
-      manuscript: { id: "manuscript-1", status: "EDITOR_REVIEW" },
-      series: { id: "series-1", status: "EDITOR_REVIEW" },
+  it("forwards manuscript to Board and sets Series BOARD_REVIEW", async () => {
+    vi.mocked(repository.updateManuscriptReviewStatus).mockResolvedValue({
+      id: "manuscript1",
+      status: "APPROVED_TO_BOARD",
+    } as any)
+
+    await forwardManuscriptToBoardService({
+      manuscriptId: "manuscript1",
+      actor: { userId: "editor1", role: "EDITOR" },
     })
 
-    await reviewManuscriptProposalService("manuscript-1", "REQUEST_REVISION")
-
-    expect(updateProposalReview).toHaveBeenCalledWith("manuscript-1", "REVISION_REQUESTED", "series-1", "REVISION_REQUESTED")
+    expect(repository.updateManuscriptReviewStatus).toHaveBeenCalledWith(
+      "manuscript1",
+      "APPROVED_TO_BOARD",
+      undefined,
+    )
+    expect(repository.updateSeriesReviewStatus).toHaveBeenCalledWith(
+      "series1",
+      "BOARD_REVIEW",
+    )
   })
 
-  it("rejects proposal and moves both records to rejected", async () => {
-    getManuscriptWithSeries.mockResolvedValue({
-      manuscript: { id: "manuscript-1", status: "EDITOR_REVIEW" },
-      series: { id: "series-1", status: "EDITOR_REVIEW" },
+  it("rejects manuscript and sets Series REJECTED", async () => {
+    vi.mocked(repository.updateManuscriptReviewStatus).mockResolvedValue({
+      id: "manuscript1",
+      status: "REJECTED",
+    } as any)
+
+    await rejectManuscriptService({
+      manuscriptId: "manuscript1",
+      actor: { userId: "editor1", role: "EDITOR" },
     })
 
-    await reviewManuscriptProposalService("manuscript-1", "REJECT")
-
-    expect(updateProposalReview).toHaveBeenCalledWith("manuscript-1", "REJECTED", "series-1", "REJECTED")
+    expect(repository.updateSeriesReviewStatus).toHaveBeenCalledWith(
+      "series1",
+      "REJECTED",
+    )
   })
 
-  it("blocks proposals outside editor review", async () => {
-    getManuscriptWithSeries.mockResolvedValue({
-      manuscript: { id: "manuscript-1", status: "DRAFT" },
-      series: { id: "series-1", status: "DRAFT" },
-    })
+  it("blocks non-Editor review actions", async () => {
+    await expect(
+      forwardManuscriptToBoardService({
+        manuscriptId: "manuscript1",
+        actor: { userId: "mangaka1", role: "MANGAKA" },
+      }),
+    ).rejects.toThrow("Only Editor can review manuscripts")
+  })
 
-    await expect(reviewManuscriptProposalService("manuscript-1", "FORWARD_TO_BOARD")).rejects.toMatchObject({
-      message: "Manuscript proposal is not in editor review",
-      statusCode: 409,
-    })
+  it("blocks review when Series is not in EDITOR_REVIEW", async () => {
+    vi.mocked(repository.getSeriesForManuscript).mockResolvedValue({
+      ...series,
+      status: "DRAFT",
+    } as any)
 
-    expect(updateProposalReview).not.toHaveBeenCalled()
+    await expect(
+      forwardManuscriptToBoardService({
+        manuscriptId: "manuscript1",
+        actor: { userId: "editor1", role: "EDITOR" },
+      }),
+    ).rejects.toThrow("Series must be in EDITOR_REVIEW")
+  })
+
+  it("blocks review when Manuscript is not in EDITOR_REVIEW", async () => {
+    vi.mocked(repository.getManuscriptById).mockResolvedValue({
+      ...manuscript,
+      status: "REVISION_REQUESTED",
+    } as any)
+
+    await expect(
+      forwardManuscriptToBoardService({
+        manuscriptId: "manuscript1",
+        actor: { userId: "editor1", role: "EDITOR" },
+      }),
+    ).rejects.toThrow("Manuscript must be in EDITOR_REVIEW")
   })
 })

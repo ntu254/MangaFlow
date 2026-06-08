@@ -1,21 +1,78 @@
-﻿import { AppError } from "../../shared/errors/AppError.js"
-import { getManuscriptWithSeries, updateProposalReview } from "./manuscript.repository.js"
+import { AppError } from "../../shared/errors/AppError.js"
+import type { ManuscriptStatus, SeriesStatus } from "../../shared/workflow/status.js"
+import type { UserRole } from "../auth/auth.types.js"
+import {
+  getManuscriptById,
+  getSeriesForManuscript,
+  updateManuscriptReviewStatus,
+  updateSeriesReviewStatus,
+} from "./manuscript.repository.js"
 
-export type ProposalReviewAction = "REQUEST_REVISION" | "FORWARD_TO_BOARD" | "REJECT"
+interface ManuscriptReviewActor {
+  userId: string
+  role: UserRole
+}
 
-const ACTION_STATUS = {
-  REQUEST_REVISION: { manuscript: "REVISION_REQUESTED", series: "REVISION_REQUESTED" },
-  FORWARD_TO_BOARD: { manuscript: "APPROVED_TO_BOARD", series: "BOARD_REVIEW" },
-  REJECT: { manuscript: "REJECTED", series: "REJECTED" },
-} as const
+interface ReviewInput {
+  manuscriptId: string
+  actor: ManuscriptReviewActor
+  reviewNote?: string
+}
 
-export async function reviewManuscriptProposalService(manuscriptId: string, action: ProposalReviewAction) {
-  const found = await getManuscriptWithSeries(manuscriptId)
-  if (!found) throw new AppError("Manuscript not found", 404)
-  if (found.manuscript.status !== "EDITOR_REVIEW" || found.series.status !== "EDITOR_REVIEW") {
-    throw new AppError("Manuscript proposal is not in editor review", 409)
+async function assertEditor(actor: ManuscriptReviewActor) {
+  if (actor.role !== "EDITOR") {
+    throw new AppError("Only Editor can review manuscripts", 403)
+  }
+}
+
+async function getReviewContext(manuscriptId: string) {
+  const manuscript = await getManuscriptById(manuscriptId)
+  if (!manuscript) {
+    throw new AppError("Manuscript not found", 404)
   }
 
-  const target = ACTION_STATUS[action]
-  return updateProposalReview(manuscriptId, target.manuscript, found.series.id, target.series)
+  const series = await getSeriesForManuscript(String(manuscript.seriesId))
+  if (!series) {
+    throw new AppError("Series not found", 404)
+  }
+
+  if (series.status !== "EDITOR_REVIEW") {
+    throw new AppError("Series must be in EDITOR_REVIEW for manuscript review", 409)
+  }
+
+  if (manuscript.status !== "EDITOR_REVIEW") {
+    throw new AppError("Manuscript must be in EDITOR_REVIEW for this action", 409)
+  }
+
+  return { manuscript, series }
+}
+
+async function applyReviewDecision(
+  input: ReviewInput,
+  manuscriptStatus: ManuscriptStatus,
+  seriesStatus: SeriesStatus,
+) {
+  await assertEditor(input.actor)
+  const { manuscript, series } = await getReviewContext(input.manuscriptId)
+
+  const updatedManuscript = await updateManuscriptReviewStatus(
+    String(manuscript._id),
+    manuscriptStatus,
+    input.reviewNote,
+  )
+  await updateSeriesReviewStatus(String(series._id), seriesStatus)
+
+  return updatedManuscript
+}
+
+export async function requestManuscriptRevisionService(input: ReviewInput) {
+  return applyReviewDecision(input, "REVISION_REQUESTED", "REVISION_REQUESTED")
+}
+
+export async function forwardManuscriptToBoardService(input: ReviewInput) {
+  return applyReviewDecision(input, "APPROVED_TO_BOARD", "BOARD_REVIEW")
+}
+
+export async function rejectManuscriptService(input: ReviewInput) {
+  return applyReviewDecision(input, "REJECTED", "REJECTED")
 }
