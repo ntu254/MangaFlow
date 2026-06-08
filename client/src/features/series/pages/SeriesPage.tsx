@@ -1,15 +1,16 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/shared/components/auth/AuthProvider"
-import { ChapterCreationGateCard, ManuscriptUploadPanel, SeriesSummaryCard } from "@/shared/components/domain"
+import {
+  ChapterCreationGateCard,
+  ManuscriptUploadPanel,
+  SeriesSummaryCard,
+} from "@/shared/components/domain"
 import { MFEmptyState } from "@/shared/components/feedback/MFEmptyState"
 import { MFErrorState } from "@/shared/components/feedback/MFErrorState"
 import { MFSkeleton } from "@/shared/components/feedback/MFSkeleton"
-import { MFButton } from "@/shared/components/ui/MFButton"
-import { MFCard } from "@/shared/components/ui/MFCard"
-import { MFIconCircle } from "@/shared/components/ui/MFIconCircle"
 import { PageShell } from "@/shared/components/layout/PageShell"
+import { MFButton, MFCard, MFIconCircle } from "@/shared/components/ui"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
 import { listSeries } from "../api/series.api"
 import type { Series } from "../api/series.types"
@@ -17,46 +18,43 @@ import { CreateSeriesDialog } from "../components/CreateSeriesDialog"
 
 const CHAPTER_READY_STATUSES = new Set(["APPROVED", "ONGOING", "AT_RISK"])
 
-function SeriesCard({ series }: { series: Series }) {
-  return (
-    <SeriesSummaryCard
-      title={series.title}
-      status={series.status}
-      genre={series.genres.length > 0 ? series.genres.join(", ") : "Unclassified"}
-      publicationType="Not supplied yet"
-      description={series.synopsis}
-      ownerLabel="Series owner"
-      metadata={[`Slug: ${series.slug}`, `Updated: ${new Date(series.updatedAt).toLocaleDateString()}`]}
-      action={
-        <Link to={`/app/series/${series.id}`}>
-          <MFButton variant="outline" size="sm">View detail</MFButton>
-        </Link>
-      }
-      statusMapping={undefined}
-    />
-  )
-}
-
 export function SeriesPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [seriesList, setSeriesList] = useState<Series[]>([])
   const [selectedManuscripts, setSelectedManuscripts] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const canCreate = user?.role === "MANGAKA"
-
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["series"],
-    queryFn: async () => {
-      const res = await listSeries()
-      if (!res.success || !res.data) throw new Error(res.message ?? "Could not load Series")
-      return res.data
-    },
-    enabled: Boolean(user),
-  })
 
   usePageTitle("Series", "Create and manage internal manga production proposals.")
 
-  const series = data ?? []
-  const firstSeries = series[0]
+  async function loadSeries() {
+    setLoading(true)
+    setError("")
+    try {
+      const response = await listSeries()
+      if (!response.success || !response.data) {
+        setError(response.message ?? "Could not load Series.")
+        setSeriesList([])
+        return
+      }
+      setSeriesList(response.data)
+    } catch {
+      setError("Could not reach MangaFlow. Check the API server and try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadSeries()
+  }, [])
+
+  function handleCreated(series: Series) {
+    setSeriesList((current) => [series, ...current])
+  }
 
   return (
     <PageShell>
@@ -68,7 +66,7 @@ export function SeriesPage() {
           <div className="min-w-0 flex-1">
             <h2 className="text-headline-md text-on-surface">Series proposals</h2>
             <p className="mt-sm max-w-2xl text-body-md text-on-surface-muted">
-              Live Series records from the backend. Assistant Series access stays task-scoped only.
+              Real Series records are loaded from the backend with role-based access.
             </p>
           </div>
           {canCreate ? (
@@ -80,27 +78,41 @@ export function SeriesPage() {
         </div>
       </MFCard>
 
-      {isLoading ? (
-        <MFCard><MFSkeleton className="h-28 w-full" /></MFCard>
-      ) : isError ? (
-        <MFErrorState title="Could not load Series" description="Check API/server auth, then retry." onRetry={() => void refetch()} />
-      ) : series.length > 0 ? (
+      {loading ? (
+        <MFCard><MFSkeleton className="h-40 w-full" /></MFCard>
+      ) : error ? (
+        <MFErrorState title="Could not load Series" description={error} onRetry={loadSeries} />
+      ) : seriesList.length > 0 ? (
         <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
           <div className="space-y-lg">
-            {series.map((item) => <SeriesCard key={item.id} series={item} />)}
-            {firstSeries ? (
-              <ChapterCreationGateCard
-                seriesTitle={firstSeries.title}
-                canCreateChapter={CHAPTER_READY_STATUSES.has(firstSeries.status)}
-                reason="Chapter creation remains backend-gated by approved, ongoing, or at-risk Series status."
-              />
-            ) : null}
+            {seriesList.map((series) => {
+              const canCreateChapter = CHAPTER_READY_STATUSES.has(series.status)
+              return (
+                <div key={series.id} className="space-y-md">
+                  <SeriesSummaryCard
+                    title={series.title}
+                    status={series.status}
+                    genre={series.genres.length > 0 ? series.genres.join(", ") : "Unclassified"}
+                    publicationType="Not supplied yet"
+                    description={series.synopsis}
+                    ownerLabel={series.ownerId === user?.id ? "Current Mangaka" : "Series owner"}
+                    metadata={[`Slug: ${series.slug}`, `Updated: ${new Date(series.updatedAt).toLocaleDateString()}`]}
+                    action={<MFButton type="button" variant="outline" size="sm" onClick={() => navigate(`/app/series/${series.id}`)}>Open detail</MFButton>}
+                  />
+                  <ChapterCreationGateCard
+                    seriesTitle={series.title}
+                    canCreateChapter={canCreateChapter}
+                    reason="Chapter creation stays disabled until backend Board approval reports APPROVED, ONGOING, or AT_RISK."
+                  />
+                </div>
+              )
+            })}
           </div>
 
           <div className="space-y-lg">
             <ManuscriptUploadPanel
               constraints={[
-                "Upload/storage API is not connected in this screen yet.",
+                "Upload/storage API is not connected in this story.",
                 "Submit still requires the backend manuscript workflow.",
                 "Original files must be stored unchanged with private access.",
               ]}
@@ -122,13 +134,14 @@ export function SeriesPage() {
       ) : (
         <MFEmptyState
           icon="library_add"
-          title={canCreate ? "No Series yet" : "No permitted Series"}
-          description={canCreate ? "Create a draft proposal to begin." : "Permitted Series records will appear here when available."}
+          title={canCreate ? "No Series proposals yet" : "No permitted Series"}
+          description={canCreate ? "Create a draft proposal to begin." : "Series appear only when backend access rules permit them."}
           action={canCreate ? <MFButton variant="outline" onClick={() => setIsCreateOpen(true)}>Create draft</MFButton> : undefined}
         />
       )}
 
-      <CreateSeriesDialog open={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={() => void refetch()} />
+      <CreateSeriesDialog open={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={handleCreated} />
     </PageShell>
   )
 }
+
