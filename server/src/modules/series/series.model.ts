@@ -2,6 +2,7 @@ import mongoose, { Schema, type Document } from "mongoose"
 import { SERIES_STATUSES, type SeriesStatus } from "../../shared/workflow/status.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
+export type SeriesMemberAccessScope = "FULL" | "TASK_ONLY"
 
 export interface SeriesDocument extends Document {
   title: string
@@ -49,6 +50,7 @@ export interface SeriesMemberDocument extends Document {
   userId: mongoose.Types.ObjectId
   role: SeriesMemberRole
   isActive: boolean
+  accessScope: SeriesMemberAccessScope
   createdAt: Date
   updatedAt: Date
 }
@@ -59,6 +61,12 @@ const seriesMemberSchema = new Schema<SeriesMemberDocument>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     role: { type: String, enum: ["MANGAKA", "ASSISTANT", "EDITOR"], required: true },
     isActive: { type: Boolean, default: true },
+    accessScope: {
+      type: String,
+      enum: ["FULL", "TASK_ONLY"],
+      required: true,
+      default: "FULL",
+    },
   },
   { timestamps: true },
 )

@@ -115,6 +115,9 @@ export const ASSISTANT_EARNING_STATUSES = [
 ] as const
 export type AssistantEarningStatus = (typeof ASSISTANT_EARNING_STATUSES)[number]
 
+export const TASK_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const
+export type TaskPriority = (typeof TASK_PRIORITIES)[number]
+
 export function isSeriesStatus(value: string): value is SeriesStatus {
   return SERIES_STATUSES.includes(value as SeriesStatus)
 }
