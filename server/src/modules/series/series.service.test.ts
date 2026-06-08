@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const seriesCreate = vi.fn()
 const seriesFindById = vi.fn()
 const seriesFindOne = vi.fn()
+const seriesFind = vi.fn()
 const seriesMemberCreate = vi.fn()
 const manuscriptExists = vi.fn()
 
@@ -11,6 +12,7 @@ vi.mock("./series.model.js", () => ({
     create: seriesCreate,
     findById: seriesFindById,
     findOne: seriesFindOne,
+    find: seriesFind,
   },
   SeriesMember: {
     create: seriesMemberCreate,
@@ -20,7 +22,7 @@ vi.mock("./series.model.js", () => ({
   },
 }))
 
-const { createSeriesService, submitSeriesService } = await import("./series.service.js")
+const { createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService } = await import("./series.service.js")
 
 describe("createSeriesService", () => {
   beforeEach(() => {
@@ -68,6 +70,51 @@ describe("createSeriesService", () => {
     expect(result.status).toBe("DRAFT")
   })
 })
+
+
+describe("series read access", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("lists only owned Series for Mangaka", async () => {
+    const sort = vi.fn().mockResolvedValue([])
+    seriesFind.mockReturnValue({ sort })
+
+    await listSeriesService("user-1", "MANGAKA")
+
+    expect(seriesFind).toHaveBeenCalledWith({ ownerId: "user-1" })
+    expect(sort).toHaveBeenCalledWith({ updatedAt: -1 })
+  })
+
+  it("limits Board Series list to Board-stage records", async () => {
+    const sort = vi.fn().mockResolvedValue([])
+    seriesFind.mockReturnValue({ sort })
+
+    await listSeriesService("board-1", "BOARD")
+
+    expect(seriesFind).toHaveBeenCalledWith({
+      status: { $in: ["BOARD_REVIEW", "APPROVED", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"] },
+    })
+  })
+
+  it("blocks Assistant Series list access", async () => {
+    await expect(listSeriesService("assistant-1", "ASSISTANT")).rejects.toMatchObject({
+      message: "Assistants cannot list Series; access is task-scoped only",
+      statusCode: 403,
+    })
+  })
+
+  it("blocks non-owner Mangaka from Series detail", async () => {
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1" })
+
+    await expect(getSeriesDetailService("series-1", "intruder", "MANGAKA")).rejects.toMatchObject({
+      message: "Series access denied",
+      statusCode: 403,
+    })
+  })
+})
+
 
 describe("submitSeriesService", () => {
   beforeEach(() => {
