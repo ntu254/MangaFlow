@@ -10,9 +10,9 @@ import { MFEmptyState } from "@/shared/components/feedback/MFEmptyState"
 import { MFErrorState } from "@/shared/components/feedback/MFErrorState"
 import { MFSkeleton } from "@/shared/components/feedback/MFSkeleton"
 import { PageShell } from "@/shared/components/layout/PageShell"
-import { MFButton, MFCard, MFIconCircle } from "@/shared/components/ui"
+import { MFBadge, MFButton, MFCard, MFIconCircle, MFSelect } from "@/shared/components/ui"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
-import { listSeries } from "../api/series.api"
+import { createManuscriptUpload, listSeries } from "../api/series.api"
 import type { Series } from "../api/series.types"
 import { CreateSeriesDialog } from "../components/CreateSeriesDialog"
 
@@ -24,6 +24,8 @@ export function SeriesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [seriesList, setSeriesList] = useState<Series[]>([])
   const [selectedManuscripts, setSelectedManuscripts] = useState<string[]>([])
+  const [uploadSeriesId, setUploadSeriesId] = useState("")
+  const [uploadMessage, setUploadMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const canCreate = user?.role === "MANGAKA"
@@ -41,6 +43,7 @@ export function SeriesPage() {
         return
       }
       setSeriesList(response.data)
+      setUploadSeriesId((current) => current || response.data?.[0]?.id || "")
     } catch {
       setError("Could not reach MangaFlow. Check the API server and try again.")
     } finally {
@@ -54,6 +57,33 @@ export function SeriesPage() {
 
   function handleCreated(series: Series) {
     setSeriesList((current) => [series, ...current])
+    setUploadSeriesId(series.id)
+  }
+
+  async function handleManuscriptFiles(files: FileList) {
+    const file = files.item(0)
+    if (!file) return
+
+    setSelectedManuscripts([file.name])
+    setUploadMessage("")
+
+    if (!uploadSeriesId) {
+      setUploadMessage("Select a Series before requesting a manuscript upload URL.")
+      return
+    }
+
+    const response = await createManuscriptUpload(uploadSeriesId, {
+      originalName: file.name,
+      contentType: file.type,
+      size: file.size,
+    })
+
+    if (!response.success || !response.data) {
+      setUploadMessage(response.message ?? "Could not create manuscript upload URL.")
+      return
+    }
+
+    setUploadMessage("Signed upload URL created. Direct file PUT is still manual/out of UI scope for this story.")
   }
 
   return (
@@ -110,16 +140,28 @@ export function SeriesPage() {
           </div>
 
           <div className="space-y-lg">
+            <MFCard>
+              <MFSelect
+                label="Manuscript target Series"
+                value={uploadSeriesId}
+                onChange={(event) => setUploadSeriesId(event.target.value)}
+                disabled={seriesList.length === 0}
+              >
+                {seriesList.map((series) => (
+                  <option key={series.id} value={series.id}>{series.title}</option>
+                ))}
+              </MFSelect>
+            </MFCard>
             <ManuscriptUploadPanel
               constraints={[
-                "Upload/storage API is not connected in this story.",
-                "Submit still requires the backend manuscript workflow.",
-                "Original files must be stored unchanged with private access.",
+                "Backend returns a private signed upload URL; no base64 is stored.",
+                "New manuscript versions create new Manuscript/FileAsset records.",
+                "Only the owning Mangaka can request initial manuscript upload URLs.",
               ]}
               accept=".pdf,.zip,.jpg,.jpeg,.png"
-              multiple
-              onFilesSelected={(files) => setSelectedManuscripts(Array.from(files, (file) => file.name))}
+              onFilesSelected={(files) => void handleManuscriptFiles(files)}
             />
+            {uploadMessage ? <MFBadge tone="neutral" size="md">{uploadMessage}</MFBadge> : null}
             {selectedManuscripts.length > 0 ? (
               <MFCard>
                 <h3 className="text-title-lg text-on-surface">Selected locally</h3>

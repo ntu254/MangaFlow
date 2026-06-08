@@ -6,6 +6,9 @@ const seriesFindOne = vi.fn()
 const seriesFind = vi.fn()
 const seriesMemberCreate = vi.fn()
 const manuscriptExists = vi.fn()
+const manuscriptCreate = vi.fn()
+const fileAssetCreate = vi.fn()
+const createPresignedUploadUrl = vi.fn()
 
 vi.mock("./series.model.js", () => ({
   Series: {
@@ -19,10 +22,21 @@ vi.mock("./series.model.js", () => ({
   },
   Manuscript: {
     exists: manuscriptExists,
+    create: manuscriptCreate,
   },
 }))
 
-const { createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService } = await import("./series.service.js")
+vi.mock("../chapter/chapter.model.js", () => ({
+  FileAsset: {
+    create: fileAssetCreate,
+  },
+}))
+
+vi.mock("../chapter/file.service.js", () => ({
+  createPresignedUploadUrl,
+}))
+
+const { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService } = await import("./series.service.js")
 
 describe("createSeriesService", () => {
   beforeEach(() => {
@@ -115,6 +129,63 @@ describe("series read access", () => {
   })
 })
 
+
+describe("createManuscriptUploadService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("creates a signed manuscript upload URL for the owning Mangaka", async () => {
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1" })
+    createPresignedUploadUrl.mockResolvedValue({
+      uploadUrl: "https://signed.example/upload",
+      fileAssetId: "ignored-external-id",
+      r2Key: "uploads/file.pdf",
+      expiresIn: 3600,
+    })
+    fileAssetCreate.mockResolvedValue({ id: "file-1" })
+    manuscriptCreate.mockResolvedValue({ id: "manuscript-1" })
+
+    const result = await createManuscriptUploadService({
+      seriesId: "series-1",
+      userId: "owner-1",
+      originalName: "draft.pdf",
+      contentType: "application/pdf",
+      size: 1024,
+    })
+
+    expect(createPresignedUploadUrl).toHaveBeenCalledWith("draft.pdf", "application/pdf", undefined)
+    expect(fileAssetCreate).toHaveBeenCalledWith(expect.objectContaining({
+      originalName: "draft.pdf",
+      mimeType: "application/pdf",
+      r2Key: "uploads/file.pdf",
+      uploadedBy: "owner-1",
+    }))
+    expect(manuscriptCreate).toHaveBeenCalledWith({
+      seriesId: "series-1",
+      uploadedBy: "owner-1",
+      fileAssetId: "file-1",
+    })
+    expect(result).toMatchObject({ uploadUrl: "https://signed.example/upload", fileAssetId: "file-1", manuscriptId: "manuscript-1" })
+  })
+
+  it("blocks non-owner manuscript upload URL creation", async () => {
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1" })
+
+    await expect(createManuscriptUploadService({
+      seriesId: "series-1",
+      userId: "intruder",
+      originalName: "draft.pdf",
+      contentType: "application/pdf",
+      size: 1024,
+    })).rejects.toMatchObject({
+      message: "Only the series owner can upload manuscripts",
+      statusCode: 403,
+    })
+
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled()
+  })
+})
 
 describe("submitSeriesService", () => {
   beforeEach(() => {

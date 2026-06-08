@@ -1,4 +1,6 @@
-import { Series, SeriesMember, Manuscript } from "./series.model.js"
+﻿import { Series, SeriesMember, Manuscript } from "./series.model.js"
+import { FileAsset } from "../chapter/chapter.model.js"
+import { config } from "../../shared/utils/env.js"
 import type { SeriesStatus } from "../../shared/workflow/status.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
@@ -90,6 +92,34 @@ export async function hasManuscript(seriesId: string): Promise<boolean> {
   return Boolean(existing)
 }
 
+
+export interface CreateManuscriptUploadDraftInput {
+  seriesId: string
+  uploadedBy: string
+  r2Key: string
+  originalName: string
+  mimeType: string
+  size: number
+}
+
+export async function createManuscriptUploadDraft(input: CreateManuscriptUploadDraftInput): Promise<any> {
+  const fileAsset = await FileAsset.create({
+    originalName: input.originalName,
+    mimeType: input.mimeType,
+    size: input.size,
+    r2Key: input.r2Key,
+    r2Bucket: config.r2Bucket,
+    uploadedBy: input.uploadedBy,
+  })
+
+  const manuscript = await Manuscript.create({
+    seriesId: input.seriesId,
+    uploadedBy: input.uploadedBy,
+    fileAssetId: fileAsset.id,
+  })
+
+  return { manuscript, fileAsset }
+}
 export async function submitSeriesRepository(seriesId: string, userId: string): Promise<any> {
   const series = await Series.findById(seriesId)
   if (!series) {
@@ -138,4 +168,5 @@ function buildSlug(title: string): string {
 
   return base
 }
+
 

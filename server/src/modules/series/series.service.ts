@@ -6,7 +6,9 @@ import {
   getSeriesForActor,
   listSeriesForActor,
   submitSeriesRepository,
+  createManuscriptUploadDraft,
 } from "./series.repository.js"
+import { createPresignedUploadUrl } from "../chapter/file.service.js"
 
 export interface CreateSeriesServiceInput {
   title: string
@@ -47,6 +49,41 @@ export async function createSeriesService(input: CreateSeriesServiceInput) {
   })
 }
 
+
+export interface CreateManuscriptUploadServiceInput {
+  seriesId: string
+  userId: string
+  originalName: string
+  contentType: string
+  size: number
+  expiresIn?: number
+}
+
+export async function createManuscriptUploadService(input: CreateManuscriptUploadServiceInput) {
+  const series = await getSeriesById(input.seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  if (series.ownerId.toString() !== input.userId) {
+    throw new AppError("Only the series owner can upload manuscripts", 403)
+  }
+
+  const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
+  const persisted = await createManuscriptUploadDraft({
+    seriesId: input.seriesId,
+    uploadedBy: input.userId,
+    r2Key: signed.r2Key,
+    originalName: input.originalName,
+    mimeType: input.contentType,
+    size: input.size,
+  })
+
+  return {
+    uploadUrl: signed.uploadUrl,
+    fileAssetId: persisted.fileAsset.id,
+    manuscriptId: persisted.manuscript.id,
+    expiresIn: signed.expiresIn,
+  }
+}
+
 export async function submitSeriesService(seriesId: string, userId: string) {
   const trimmed = seriesId.trim()
   if (!trimmed) throw new AppError("Series id is required", 400)
@@ -71,3 +108,4 @@ export async function submitSeriesService(seriesId: string, userId: string) {
     throw new AppError("Unable to submit series", 400)
   }
 }
+

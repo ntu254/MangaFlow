@@ -15,3 +15,24 @@ export function createSeries(input: CreateSeriesInput) {
     body: JSON.stringify(input),
   })
 }
+
+
+export interface CreateManuscriptUploadInput {
+  originalName: string
+  contentType: string
+  size: number
+}
+
+export interface ManuscriptUploadUrl {
+  uploadUrl: string
+  fileAssetId: string
+  manuscriptId: string
+  expiresIn: number
+}
+
+export function createManuscriptUpload(seriesId: string, input: CreateManuscriptUploadInput) {
+  return apiRequest<ManuscriptUploadUrl>(`/series/${seriesId}/manuscripts/uploads`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
