@@ -1,10 +1,14 @@
 export type SeriesStatus =
   | "DRAFT"
   | "EDITOR_REVIEW"
+  | "REVISION_REQUESTED"
+  | "BOARD_REVIEW"
   | "APPROVED"
-  | "REJECTED"
   | "ONGOING"
   | "AT_RISK"
+  | "REJECTED"
+  | "CANCELLED"
+  | "COMPLETED"
 
 export interface Series {
   id: string

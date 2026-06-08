@@ -25,13 +25,14 @@ export const taskPriorityUI: Record<string, StatusUiConfig> = {
 export const seriesStatusUI: Record<string, StatusUiConfig> = {
   DRAFT: { label: "Draft", tone: "neutral" },
   EDITOR_REVIEW: { label: "Editor Review", tone: "primary" },
+  REVISION_REQUESTED: { label: "Revision Requested", tone: "warning" },
   BOARD_REVIEW: { label: "Board Review", tone: "primary" },
   APPROVED: { label: "Approved", tone: "success" },
-  REJECTED: { label: "Rejected", tone: "danger" },
   ONGOING: { label: "Ongoing", tone: "success" },
   AT_RISK: { label: "At Risk", tone: "warning" },
-  HIATUS: { label: "Hiatus", tone: "warning" },
+  REJECTED: { label: "Rejected", tone: "danger" },
   CANCELLED: { label: "Cancelled", tone: "danger" },
+  COMPLETED: { label: "Completed", tone: "success" },
 }
 
 export const chapterStatusUI: Record<string, StatusUiConfig> = {
