@@ -116,6 +116,7 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
     seriesId: input.seriesId,
     uploadedBy: input.uploadedBy,
     fileAssetId: fileAsset.id,
+    status: "DRAFT",
   })
 
   return { manuscript, fileAsset }
@@ -148,7 +149,10 @@ export async function submitSeriesRepository(seriesId: string, userId: string): 
   }
 
   series.status = "EDITOR_REVIEW"
-  await series.save()
+  await Promise.all([
+    series.save(),
+    Manuscript.findOneAndUpdate({ seriesId }, { status: "EDITOR_REVIEW" }, { sort: { createdAt: -1 } }),
+  ])
 
   return series
 }
