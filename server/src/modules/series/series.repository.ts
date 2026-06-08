@@ -1,17 +1,5 @@
 import { Series, SeriesMember, Manuscript } from "./series.model.js"
-
-export type SeriesStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "EDITOR_REVIEW"
-  | "REVISION_REQUESTED"
-  | "BOARD_REVIEW"
-  | "APPROVED"
-  | "ONGOING"
-  | "AT_RISK"
-  | "CANCELLED"
-  | "COMPLETED"
-  | "REJECTED"
+import type { SeriesStatus } from "../../shared/workflow/status.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 

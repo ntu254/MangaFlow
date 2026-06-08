@@ -1,17 +1,6 @@
 import mongoose, { Schema, type Document } from "mongoose"
+import { SERIES_STATUSES, type SeriesStatus } from "../../shared/workflow/status.js"
 
-export type SeriesStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "EDITOR_REVIEW"
-  | "REVISION_REQUESTED"
-  | "BOARD_REVIEW"
-  | "APPROVED"
-  | "ONGOING"
-  | "AT_RISK"
-  | "CANCELLED"
-  | "COMPLETED"
-  | "REJECTED"
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 
 export interface SeriesDocument extends Document {
@@ -34,7 +23,7 @@ const seriesSchema = new Schema<SeriesDocument>(
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     status: {
       type: String,
-      enum: ["DRAFT", "EDITOR_REVIEW", "APPROVED", "REJECTED", "ONGOING", "AT_RISK"],
+      enum: SERIES_STATUSES,
       required: true,
       default: "DRAFT",
       index: true,
