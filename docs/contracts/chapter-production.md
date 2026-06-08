@@ -15,8 +15,13 @@ Mangaka, Editor, System
 
 ## Business rules
 
+- Status names and transitions must follow `docs/contracts/workflow-status.md`.
 - Series must be APPROVED/ONGOING/AT_RISK.
 - Board does not vote every chapter.
+- Chapter status starts as `DRAFT` and moves into `IN_PRODUCTION` after page
+  production begins.
+- Page upload creates `UPLOADED` Page records after file validation and private
+  storage processing.
 
 ## API surface
 
@@ -27,6 +32,8 @@ Mangaka, Editor, System
 
 - Chapter creation blocked before approval.
 - Approved series can create chapter.
+- At-risk series can create chapter with warning.
+- Cancelled or completed series cannot create chapter.
 
 ## Validation
 

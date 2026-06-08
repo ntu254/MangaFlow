@@ -2,7 +2,8 @@
 
 ## Scope
 
-Editor reviews initial manuscript.
+Tantou Editor reviews the initial Series proposal/manuscript before Board
+review.
 
 ## Out of scope
 
@@ -15,20 +16,25 @@ Mangaka, Editor
 
 ## Business rules
 
-- Editor can request revision, reject, or approve to Board.
+- Status names and transitions must follow `docs/contracts/workflow-status.md`.
+- This is Editor proposal review, not production final approval.
+- Editor can request revision, reject, or forward to Board.
 - New manuscript versions must not overwrite old files.
+- Forwarding to Board sets Series to `BOARD_REVIEW` and Manuscript to
+  `APPROVED_TO_BOARD`.
 
 ## API surface
 
 `POST /api/manuscripts/:id/request-revision`
-`POST /api/manuscripts/:id/approve-to-board`
+`POST /api/manuscripts/:id/forward-to-board`
 `POST /api/manuscripts/:id/reject`
 
 ## Acceptance criteria
 
 - Revision returns to Mangaka.
-- Approve sets Series BOARD_REVIEW.
+- Forward-to-Board sets Series `BOARD_REVIEW`.
 - Reject sets Series REJECTED.
+- Production final approval remains in `submission-review.md`.
 
 ## Validation
 

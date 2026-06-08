@@ -61,7 +61,7 @@ const boardQueueRows: BoardQueueRow[] = [
     id: "board-row-1",
     seriesTitle: "Moonlit Atelier",
     owner: "Rin Sato",
-    status: "PENDING_REVIEW",
+    status: "BOARD_REVIEW",
     decisionStatus: "PENDING",
     voteSummary: "2 approve / 2 reject",
     age: "Today",

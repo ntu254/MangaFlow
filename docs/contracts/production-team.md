@@ -15,8 +15,12 @@ Mangaka, Editor, Assistant
 
 ## Business rules
 
+- Status names and transitions must follow `docs/contracts/workflow-status.md`.
 - Adding Assistant to team only makes them eligible for assignment.
 - It does not grant full chapter access.
+- Assistant SeriesMember must use `role=ASSISTANT`, `status=ACTIVE`, and
+  `accessScope=TASK_ONLY`.
+- Actual workspace access comes from `Task.assignedTo`, not membership alone.
 
 ## API surface
 
@@ -27,6 +31,8 @@ Mangaka, Editor, Assistant
 
 - Assistant appears in task dropdown.
 - Assistant cannot view all pages.
+- Inactive or non-Assistant users cannot be added as assignable Assistants.
+- Team membership alone does not authorize page workspace access.
 
 ## Validation
 

@@ -34,6 +34,8 @@ progress are not MVP requirements.
 - Assistant sees only assigned Task Workspace.
 - Task may include read-only context pages.
 - Assistant submits file/text result.
+- Production Team membership is assignment eligibility only; actual access is
+  granted by `Task.assignedTo`.
 
 ### Review
 
@@ -45,6 +47,8 @@ progress are not MVP requirements.
 
 - Chapter readiness checklist must pass.
 - Editor manages concrete publication schedule.
+- Publication readiness is backend-owned and should be evaluated by
+  `PublicationReadinessService`.
 
 ### Ranking
 
@@ -55,6 +59,8 @@ progress are not MVP requirements.
 
 - Payroll is tracking only.
 - Earnings are calculated after Editor final approval.
+- MVP formula is `finalPayment = baseRate * deadlineMultiplier`.
+- Revision fee is future scope.
 
 ## Non-functional requirements
 

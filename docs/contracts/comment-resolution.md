@@ -2,7 +2,7 @@
 
 ## Scope
 
-Manage issue/comment lifecycle.
+Manage issue/comment lifecycle for production review.
 
 ## Out of scope
 
@@ -15,8 +15,13 @@ Assistant, Mangaka, Editor
 
 ## Business rules
 
-- Flow: OPEN → FIXED_BY_ASSISTANT → VERIFIED_BY_MANGAKA → RESOLVED_BY_EDITOR.
+- Status names and transitions must follow `docs/contracts/workflow-status.md`.
+- Flow: `OPEN -> FIXED_BY_ASSISTANT -> VERIFIED_BY_MANGAKA -> RESOLVED_BY_EDITOR`.
+- Editor can reopen from `FIXED_BY_ASSISTANT` or `VERIFIED_BY_MANGAKA` to
+  `OPEN` when the fix is insufficient.
 - Unresolved comments block publication.
+- Publication is blocked unless every blocking comment is
+  `RESOLVED_BY_EDITOR`.
 
 ## API surface
 
@@ -24,11 +29,13 @@ Assistant, Mangaka, Editor
 `POST /api/comments/:id/mark-fixed`
 `POST /api/comments/:id/verify-fixed`
 `POST /api/comments/:id/resolve`
+`POST /api/comments/:id/reopen`
 
 ## Acceptance criteria
 
 - Wrong role cannot skip states.
 - Readiness fails with unresolved comment.
+- Editor reopen returns comment to `OPEN`.
 
 ## Validation
 

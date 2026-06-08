@@ -218,7 +218,7 @@ export function SeriesDetailPage() {
         <div className="space-y-lg">
           <SeriesSummaryCard
             title="Moonlit Atelier"
-            status="PENDING_REVIEW"
+            status="BOARD_REVIEW"
             genre="Slice of life, supernatural"
             publicationType="Monthly serial"
             description="A quiet studio drama sample used to prove the Series Detail composition without live product data."

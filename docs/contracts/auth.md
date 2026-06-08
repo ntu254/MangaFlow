@@ -19,6 +19,10 @@ Admin, all users, System
 - Admin creates users.
 - Suspended users cannot login.
 - Role redirect must match systemRole.
+- Sensitive roles such as `ADMIN`, `EDITOR`, `BOARD`, and `BOARD_CHAIR` cannot
+  be self-selected by users.
+- Board Chair authority is used only for Board tie-break actions defined in
+  `docs/contracts/workflow-status.md`; it is not an Admin override.
 
 ## API surface
 
