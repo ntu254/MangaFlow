@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   ActionItemList,
   ContextPageList,
@@ -19,8 +19,10 @@ import {
   MFTable,
   type MFTableColumn,
 } from "@/shared/components/ui"
+import { useAuth } from "@/shared/components/auth"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
 import { taskPriorityUI, taskStatusUI } from "@/shared/lib/status-ui"
+import { listTasksByAssignee, type Task } from "../api/task.api"
 import {
   CreateTaskDialog,
   type CreateTaskFormValues,
@@ -37,76 +39,6 @@ interface TaskRow {
   dueDate: string
   assignee: string
 }
-
-const pendingActions: ActionItem[] = [
-  {
-    id: "action-1",
-    title: "Review submitted tone pass",
-    description: "Page 12 has a new assistant submission waiting for Mangaka review.",
-    metadata: "Moonlit Atelier - Chapter 08",
-    icon: "rate_review",
-    status: "SUBMITTED",
-  },
-  {
-    id: "action-2",
-    title: "Prepare revision notes",
-    description: "A background cleanup task needs clearer region instructions.",
-    metadata: "Due June 13, 2026",
-    icon: "edit_note",
-    status: "REVISION_REQUESTED",
-  },
-]
-
-const featuredTask = {
-  title: "Clean tone pass for assigned page",
-  status: "IN_PROGRESS",
-  scopeType: "page" as const,
-  scopeLabel: "Chapter 08 - Page 12",
-  description:
-    "Local presentation sample for task list composition. Real tasks will come from the task API in a future story.",
-  dueDateLabel: "June 14, 2026",
-  priority: "HIGH",
-  assignedToLabel: "Assistant view",
-  taskTypeLabel: "Tone cleanup",
-}
-
-const contextPages: ContextPageItem[] = [
-  { id: "context-11", pageNumber: 11, status: "APPROVED", label: "Previous page" },
-  { id: "context-13", pageNumber: 13, status: "UPLOADED", label: "Next page" },
-]
-
-const taskRows: TaskRow[] = [
-  {
-    id: "task-1",
-    title: "Clean tone pass",
-    series: "Moonlit Atelier",
-    scope: "Ch. 08 - Page 12",
-    status: "IN_PROGRESS",
-    priority: "HIGH",
-    dueDate: "Jun 14, 2026",
-    assignee: "Assistant view",
-  },
-  {
-    id: "task-2",
-    title: "Lettering alignment",
-    series: "Moonlit Atelier",
-    scope: "Ch. 08 - Region 4",
-    status: "SUBMITTED",
-    priority: "NORMAL",
-    dueDate: "Jun 12, 2026",
-    assignee: "Nari Ito",
-  },
-  {
-    id: "task-3",
-    title: "Background cleanup",
-    series: "Paper Comet",
-    scope: "Ch. 03 - Page 07",
-    status: "REVISION_REQUESTED",
-    priority: "URGENT",
-    dueDate: "Jun 11, 2026",
-    assignee: "Sora Min",
-  },
-]
 
 const assistantOptions: CreateTaskSelectOption[] = [
   { id: "assistant-view", label: "Assistant view" },
@@ -159,6 +91,66 @@ const taskColumns: MFTableColumn<TaskRow>[] = [
   },
 ]
 
+function taskId(task: Task) {
+  return task.id ?? task._id ?? `${task.chapterId}-${task.title}`
+}
+
+function taskTypeLabel(task: Task) {
+  return typeof task.taskTypeId === "string"
+    ? "Task type"
+    : task.taskTypeId.name ?? "Task type"
+}
+
+function scopeLabel(task: Task) {
+  if (task.regionId) return `Region ${String(task.regionId).slice(-6)}`
+  if (task.pageId) return `Page ${String(task.pageId).slice(-6)}`
+  return `Chapter ${String(task.chapterId).slice(-6)}`
+}
+
+function toTaskRows(tasks: Task[], currentUserLabel: string): TaskRow[] {
+  return tasks.map((task) => ({
+    id: taskId(task),
+    title: task.title,
+    series: `Series ${String(task.seriesId).slice(-6)}`,
+    scope: scopeLabel(task),
+    status: task.status,
+    priority: task.priority,
+    dueDate: new Date(task.dueDate).toLocaleDateString(),
+    assignee: currentUserLabel,
+  }))
+}
+
+function toActionItems(tasks: Task[]): ActionItem[] {
+  const actionable = tasks.filter((task) => ["SUBMITTED", "REVISION_REQUESTED", "TODO", "IN_PROGRESS"].includes(task.status)).slice(0, 3)
+  if (actionable.length === 0) {
+    return [{
+      id: "task-empty-action",
+      title: "No live task actions",
+      description: "Assigned task actions will appear after the backend returns actionable tasks.",
+      metadata: "GET /api/tasks/assignee/:assigneeId",
+      icon: "task",
+      status: "TODO",
+    }]
+  }
+  return actionable.map((task) => ({
+    id: taskId(task),
+    title: task.title,
+    description: task.description ?? "Live task from backend assignee query.",
+    metadata: `${scopeLabel(task)} - due ${new Date(task.dueDate).toLocaleDateString()}`,
+    icon: task.status === "REVISION_REQUESTED" ? "edit_note" : "task",
+    status: task.status,
+  }))
+}
+
+function toContextPages(task: Task | null): ContextPageItem[] {
+  return (task?.contextPageIds ?? []).slice(0, 3).map((pageId, index) => ({
+    id: pageId,
+    pageNumber: index + 1,
+    status: "UPLOADED",
+    label: `Context ${String(pageId).slice(-6)}`,
+  }))
+}
+
 function TaskStatePreview() {
   return (
     <MFCard>
@@ -208,6 +200,10 @@ function TaskStatePreview() {
 }
 
 export function TasksPage() {
+  const { user, isLoading: authLoading } = useAuth()
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [tasksError, setTasksError] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [previewTask, setPreviewTask] = useState<CreateTaskFormValues | null>(null)
 
@@ -216,10 +212,47 @@ export function TasksPage() {
     "Track assigned task presentation, read-only context, and workflow states.",
   )
 
+  async function loadTasks() {
+    if (!user) {
+      setTasks([])
+      setTasksLoading(false)
+      return
+    }
+
+    setTasksLoading(true)
+    setTasksError("")
+    try {
+      const response = await listTasksByAssignee(user.id)
+      if (!response.success || !response.data) {
+        setTasksError(response.message ?? "Could not load assigned tasks.")
+        setTasks([])
+        return
+      }
+      setTasks(response.data)
+    } catch {
+      setTasksError("Could not reach MangaFlow tasks API.")
+      setTasks([])
+    } finally {
+      setTasksLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!authLoading) {
+      void loadTasks()
+    }
+  }, [authLoading, user?.id])
+
   function handleCreateTask(values: CreateTaskFormValues) {
     setPreviewTask(values)
     setDialogOpen(false)
   }
+
+  const currentUserLabel = user?.name ?? "Current user"
+  const taskRows = useMemo(() => toTaskRows(tasks, currentUserLabel), [tasks, currentUserLabel])
+  const pendingActions = useMemo(() => toActionItems(tasks), [tasks])
+  const featuredTask = tasks[0] ?? null
+  const contextPages = useMemo(() => toContextPages(featuredTask), [featuredTask])
 
   return (
     <PageShell>
@@ -231,17 +264,18 @@ export function TasksPage() {
                 <MFBadge tone="primary" size="md">
                   Tasks
                 </MFBadge>
-                <MFBadge tone="warning" size="md">
-                  Presentation only
+                <MFBadge tone="success" size="md">
+                  Assignee API connected
                 </MFBadge>
               </div>
               <h1 className="mt-md text-headline-lg text-on-surface">
                 Production task queue
               </h1>
               <p className="mt-sm max-w-3xl text-body-md text-on-surface-muted">
-                This page composes shared task components with local sample data.
-                Assignment rules, Production Team eligibility, active TaskType
-                checks, notifications, and API writes remain backend-owned.
+                This page loads tasks assigned to the authenticated user through
+                backend access checks. Assignment rules, Production Team
+                eligibility, active TaskType checks, notifications, and API
+                writes remain backend-owned.
               </p>
             </div>
             <MFButton type="button" onClick={() => setDialogOpen(true)}>
@@ -253,8 +287,8 @@ export function TasksPage() {
         <MFCard>
           <h2 className="text-title-lg text-on-surface">Assignment boundary</h2>
           <p className="mt-sm text-body-md text-on-surface-muted">
-            Dialog options are caller-supplied samples. This screen does not decide
-            whether an assistant is eligible or whether a task type is active.
+            Dialog options are still caller-supplied samples. This screen does not
+            decide whether an assistant is eligible or whether a task type is active.
           </p>
         </MFCard>
       </section>
@@ -303,10 +337,28 @@ export function TasksPage() {
 
       <section className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-lg">
-          <TaskScopeCard {...featuredTask} />
+          {featuredTask ? (
+            <TaskScopeCard
+              title={featuredTask.title}
+              status={featuredTask.status}
+              scopeType={featuredTask.regionId ? "region" : "page"}
+              scopeLabel={scopeLabel(featuredTask)}
+              description={featuredTask.description ?? "Live task from backend assignee query."}
+              dueDateLabel={new Date(featuredTask.dueDate).toLocaleDateString()}
+              priority={featuredTask.priority}
+              assignedToLabel={currentUserLabel}
+              taskTypeLabel={taskTypeLabel(featuredTask)}
+            />
+          ) : (
+            <MFEmptyState
+              icon="task"
+              title="No featured task"
+              description="A task summary appears here after assigned tasks load."
+            />
+          )}
           <ContextPageList
             pages={contextPages}
-            description="Only context pages supplied by a future task payload should appear here."
+            description="Context page ids come from the task payload. Detailed page metadata remains a later workspace API slice."
           />
         </div>
         <MFCard>
@@ -315,7 +367,19 @@ export function TasksPage() {
             The task page points to a scoped page or region, not full chapter access.
           </p>
           <div className="mt-lg">
-            <MFPagePreviewCard pageNumber={12} status="IN_PROGRESS" isSelected />
+            {featuredTask?.pageId ? (
+              <MFPagePreviewCard
+                pageNumber={1}
+                status={featuredTask.status}
+                isSelected
+              />
+            ) : (
+              <MFEmptyState
+                icon="image"
+                title="No scoped page"
+                description="Assigned page metadata appears here after a live task includes page scope."
+              />
+            )}
           </div>
         </MFCard>
       </section>
@@ -327,14 +391,23 @@ export function TasksPage() {
         </div>
         <div>
           <h2 className="mb-md text-title-lg text-on-surface">Task list</h2>
-          <MFTable
-            caption="Production task list"
-            rows={taskRows}
-            columns={taskColumns}
-            getRowKey={(task) => task.id}
-            emptyTitle="No production tasks"
-            emptyDescription="Tasks will appear here when a backend task query is connected."
-          />
+          {tasksError ? (
+            <MFErrorState
+              title="Could not load tasks"
+              description={tasksError}
+              onRetry={() => void loadTasks()}
+            />
+          ) : (
+            <MFTable
+              caption="Production task list"
+              rows={taskRows}
+              columns={taskColumns}
+              getRowKey={(task) => task.id}
+              loading={tasksLoading || authLoading}
+              emptyTitle="No production tasks"
+              emptyDescription="Tasks appear here when the backend returns records assigned to the current user."
+            />
+          )}
         </div>
       </section>
 
