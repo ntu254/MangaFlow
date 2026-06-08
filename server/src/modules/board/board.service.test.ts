@@ -10,6 +10,7 @@ const listEligibleBoardUsers = vi.fn()
 const updateDecision = vi.fn()
 const updateSeriesAfterDecision = vi.fn()
 const upsertBoardVote = vi.fn()
+const createAtRiskDecision = vi.fn()
 
 vi.mock("./board.repository.js", () => ({
   getBoardSeries,
@@ -22,9 +23,10 @@ vi.mock("./board.repository.js", () => ({
   updateDecision,
   updateSeriesAfterDecision,
   upsertBoardVote,
+  createAtRiskDecision,
 }))
 
-const { castBoardVoteService, finalizeBoardDecisionService, listBoardQueueService, tieBreakBoardDecisionService } = await import("./board.service.js")
+const { castBoardVoteService, createAtRiskDecisionService, finalizeBoardDecisionService, listBoardQueueService, tieBreakBoardDecisionService } = await import("./board.service.js")
 
 describe("board.service", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -122,4 +124,25 @@ describe("board.service", () => {
       statusCode: 403,
     })
   })
+
+  it("records manual at-risk CANCEL decision and cancels series", async () => {
+    getBoardSeries.mockResolvedValue({ id: "series-1", status: "AT_RISK" })
+    createAtRiskDecision.mockResolvedValue({ id: "risk-1", decision: "CANCEL" })
+
+    const result = await createAtRiskDecisionService("series-1", "board-1", "CANCEL", "Ranking declined")
+
+    expect(result).toMatchObject({ decision: "CANCEL" })
+    expect(createAtRiskDecision).toHaveBeenCalledWith("series-1", "CANCEL", "board-1", "Ranking declined")
+    expect(updateSeriesAfterDecision).toHaveBeenCalledWith("series-1", "CANCELLED")
+  })
+
+  it("blocks at-risk decisions unless series is AT_RISK", async () => {
+    getBoardSeries.mockResolvedValue({ id: "series-1", status: "ONGOING" })
+
+    await expect(createAtRiskDecisionService("series-1", "board-1", "WARNING")).rejects.toMatchObject({
+      message: "At-risk decision requires Series in AT_RISK status",
+      statusCode: 409,
+    })
+  })
+
 })
