@@ -6,6 +6,7 @@ import {
   updateChapterStatusService,
   createPageService,
   listPagesService,
+  getChapterReadinessService,
 } from "./chapter.service.js"
 
 export async function createChapter(
@@ -98,5 +99,20 @@ export async function listPages(
     success: true,
     message: "Pages retrieved successfully",
     data: pages,
+  })
+}
+
+export async function getChapterReadiness(
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+): Promise<void> {
+  const chapterId = String(req.params.chapterId)
+  const readiness = await getChapterReadinessService(chapterId)
+
+  res.json({
+    success: true,
+    message: "Chapter readiness retrieved successfully",
+    data: readiness,
   })
 }
