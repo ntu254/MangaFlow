@@ -53,6 +53,34 @@ export async function createSeriesRepository(input: CreateSeriesInput): Promise<
   }
 }
 
+
+const BOARD_VISIBLE_STATUSES: SeriesStatus[] = ["BOARD_REVIEW", "APPROVED", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"]
+
+export async function listSeriesForActor(userId: string, role: string): Promise<any[]> {
+  if (role === "ASSISTANT") {
+    throw new Error("Assistants cannot list Series; access is task-scoped only")
+  }
+
+  const filter = role === "MANGAKA"
+    ? { ownerId: userId }
+    : role === "BOARD"
+      ? { status: { $in: BOARD_VISIBLE_STATUSES } }
+      : {}
+  return Series.find(filter).sort({ updatedAt: -1 })
+}
+
+export async function getSeriesForActor(seriesId: string, userId: string, role: string): Promise<any | null> {
+  const series = await Series.findById(seriesId)
+  if (!series) return null
+
+  const isBoardVisible = role === "BOARD" && BOARD_VISIBLE_STATUSES.includes(series.status as SeriesStatus)
+  const canViewAll = role === "ADMIN" || role === "EDITOR" || isBoardVisible
+  if (!canViewAll && String(series.ownerId) !== userId) {
+    throw new Error("Series access denied")
+  }
+
+  return series
+}
 export async function getSeriesById(seriesId: string): Promise<any | null> {
   return Series.findById(seriesId)
 }
@@ -110,3 +138,4 @@ function buildSlug(title: string): string {
 
   return base
 }
+
