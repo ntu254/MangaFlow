@@ -1,5 +1,11 @@
 ﻿import type { Request, Response } from "express"
-import { castBoardVoteService, finalizeBoardDecisionService, tieBreakBoardDecisionService } from "./board.service.js"
+import { castBoardVoteService, finalizeBoardDecisionService, listBoardQueueService, tieBreakBoardDecisionService } from "./board.service.js"
+
+
+export async function listQueue(_req: Request, res: Response): Promise<void> {
+  const data = await listBoardQueueService()
+  res.json({ success: true, message: "Board queue retrieved", data })
+}
 
 export async function castVote(req: Request, res: Response): Promise<void> {
   const data = await castBoardVoteService(String(req.params.seriesId), req.user!.userId, req.body.value)

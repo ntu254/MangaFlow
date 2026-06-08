@@ -17,9 +17,7 @@ import { PageShell } from "@/shared/components/layout/PageShell"
 import { MFBadge, MFButton, MFCard, MFTable, type MFTableColumn } from "@/shared/components/ui"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
 import { boardDecisionStatusUI, rankingStatusUI, seriesStatusUI } from "@/shared/lib/status-ui"
-import { listSeries } from "@/features/series/api/series.api"
-import { castBoardVote, finalizeBoardDecision, tieBreakBoardDecision, type BoardVoteValue } from "../api/board.api"
-import type { Series } from "@/features/series/api/series.types"
+import { castBoardVote, finalizeBoardDecision, listBoardQueue, tieBreakBoardDecision, type BoardQueueItem, type BoardVoteValue } from "../api/board.api"
 
 interface BoardQueueRow {
   id: string
@@ -66,7 +64,7 @@ function BoardStatePreview() {
 }
 
 export function BoardPage() {
-  const [seriesList, setSeriesList] = useState<Series[]>([])
+  const [queueItems, setQueueItems] = useState<BoardQueueItem[]>([])
   const [voteSummary, setVoteSummary] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -80,14 +78,13 @@ export function BoardPage() {
     setLoading(true)
     setError("")
     try {
-      const response = await listSeries()
+      const response = await listBoardQueue()
       if (!response.success || !response.data) {
         setError(response.message ?? "Could not load Board queue.")
-        setSeriesList([])
+        setQueueItems([])
         return
       }
-      const boardSeries = response.data.filter((series) => ["BOARD_REVIEW", "APPROVED", "AT_RISK", "REJECTED", "REVISION_REQUESTED"].includes(series.status))
-      setSeriesList(boardSeries)
+      setQueueItems(response.data)
     } catch {
       setError("Could not reach MangaFlow. Check API server and try again.")
     } finally {
@@ -97,17 +94,20 @@ export function BoardPage() {
 
   useEffect(() => { void loadBoardQueue() }, [])
 
-  const boardQueueRows = useMemo<BoardQueueRow[]>(() => seriesList.map((series) => ({
-    id: series.id,
-    seriesTitle: series.title,
-    owner: series.ownerId,
-    status: series.status,
-    decisionStatus: series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "APPROVED" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : series.status === "REVISION_REQUESTED" ? "NEEDS_REVISION" : "TIE_BREAK_REQUIRED",
-    voteSummary: voteSummary[series.id] ?? "No live vote summary yet",
-    age: new Date(series.updatedAt).toLocaleDateString(),
-  })), [seriesList, voteSummary])
+  const boardQueueRows = useMemo<BoardQueueRow[]>(() => queueItems.map((item) => {
+    const summary = voteSummary[item.id] ?? `${item.voteSummary.APPROVE} approve / ${item.voteSummary.REJECT} reject / ${item.voteSummary.NEEDS_REVISION} revision`
+    return {
+      id: item.id,
+      seriesTitle: item.seriesTitle,
+      owner: item.ownerId,
+      status: item.seriesStatus,
+      decisionStatus: item.decisionStatus,
+      voteSummary: summary,
+      age: new Date(item.updatedAt).toLocaleDateString(),
+    }
+  }), [queueItems, voteSummary])
 
-  const firstBoardSeries = seriesList.find((series) => series.status === "BOARD_REVIEW") ?? seriesList[0] ?? null
+  const firstBoardSeries = queueItems.find((item) => item.seriesStatus === "BOARD_REVIEW") ?? queueItems[0] ?? null
 
   async function runVote(value: BoardVoteValue) {
     if (!firstBoardSeries) return
@@ -120,7 +120,7 @@ export function BoardPage() {
     }
     const summary = response.data.summary
     setVoteSummary((current) => ({ ...current, [firstBoardSeries.id]: `${summary.APPROVE} approve / ${summary.REJECT} reject / ${summary.NEEDS_REVISION} revision` }))
-    setVotePreview(`${value} vote sent to backend for ${firstBoardSeries.title}.`)
+    setVotePreview(`${value} vote sent to backend for ${firstBoardSeries.seriesTitle}.`)
   }
 
   async function finalizeVote() {
@@ -128,7 +128,7 @@ export function BoardPage() {
     setActiveSeriesId(firstBoardSeries.id)
     const response = await finalizeBoardDecision(firstBoardSeries.id)
     setActiveSeriesId(null)
-    setVotePreview(response.success ? `Finalize sent for ${firstBoardSeries.title}.` : response.message ?? "Finalize failed.")
+    setVotePreview(response.success ? `Finalize sent for ${firstBoardSeries.seriesTitle}.` : response.message ?? "Finalize failed.")
     await loadBoardQueue()
   }
 
@@ -137,7 +137,7 @@ export function BoardPage() {
     setActiveSeriesId(firstBoardSeries.id)
     const response = await tieBreakBoardDecision(firstBoardSeries.id, value)
     setActiveSeriesId(null)
-    setVotePreview(response.success ? `Tie-break ${value} sent for ${firstBoardSeries.title}.` : response.message ?? "Tie-break failed.")
+    setVotePreview(response.success ? `Tie-break ${value} sent for ${firstBoardSeries.seriesTitle}.` : response.message ?? "Tie-break failed.")
     await loadBoardQueue()
   }
 
@@ -146,7 +146,7 @@ export function BoardPage() {
   }
 
   const boardActions: ActionItem[] = [
-    { id: "board-action-1", title: "Series approval queue", description: firstBoardSeries ? `${firstBoardSeries.title} is ready for Board workflow.` : "No live Board-review Series available.", metadata: "Queue is API-backed", icon: "how_to_vote", status: "PENDING" },
+    { id: "board-action-1", title: "Series approval queue", description: firstBoardSeries ? `${firstBoardSeries.seriesTitle} is ready for Board workflow.` : "No live Board-review Series available.", metadata: "Queue is API-backed", icon: "how_to_vote", status: "PENDING" },
     { id: "board-action-2", title: "Tie-break workflow", description: "Tie-break action is API-backed and reserved for Board Chair.", metadata: "Chair-only backend rule", icon: "balance", status: "TIE_BREAK_REQUIRED" },
   ]
 
@@ -181,7 +181,7 @@ export function BoardPage() {
 
       <section className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-lg">
-          <VoteCard title="Series approval vote" description={firstBoardSeries ? `Vote on ${firstBoardSeries.title}.` : "No Series in BOARD_REVIEW."} options={voteOptions} resultLabel={firstBoardSeries?.status ?? "No target"} totalVotesLabel={firstBoardSeries ? voteSummary[firstBoardSeries.id] ?? "No live summary yet" : "No live series"} tieBreakRequired={votePreview.includes("Tie-break")} boardChairNote="Board Chair tie-break remains backend-authorized only." disabled={!firstBoardSeries || activeSeriesId === firstBoardSeries.id} loadingOptionId={null} />
+          <VoteCard title="Series approval vote" description={firstBoardSeries ? `Vote on ${firstBoardSeries.seriesTitle}.` : "No Series in BOARD_REVIEW."} options={voteOptions} resultLabel={firstBoardSeries?.seriesStatus ?? "No target"} totalVotesLabel={firstBoardSeries ? voteSummary[firstBoardSeries.id] ?? "No live summary yet" : "No live series"} tieBreakRequired={votePreview.includes("Tie-break")} boardChairNote="Board Chair tie-break remains backend-authorized only." disabled={!firstBoardSeries || activeSeriesId === firstBoardSeries.id} loadingOptionId={null} />
           <MFCard><div className="flex flex-wrap items-start justify-between gap-md"><div><h2 className="text-title-lg text-on-surface">Board workflow actions</h2><p className="mt-xs text-body-md text-on-surface-muted">Finalize and tie-break call backend endpoints.</p></div><MFBadge tone="neutral" size="md">API-backed</MFBadge></div><div className="mt-lg flex flex-wrap gap-sm"><MFButton type="button" variant="outline" size="sm" onClick={() => void finalizeVote()} disabled={!firstBoardSeries || Boolean(activeSeriesId)}>Finalize decision</MFButton><MFButton type="button" variant="outline" size="sm" onClick={() => void tieBreak("APPROVE")} disabled={!firstBoardSeries || Boolean(activeSeriesId)}>Tie-break approve</MFButton><MFButton type="button" variant="outline" size="sm" onClick={() => void tieBreak("REJECT")} disabled={!firstBoardSeries || Boolean(activeSeriesId)}>Tie-break reject</MFButton><MFButton type="button" variant="outline" size="sm" onClick={() => void tieBreak("NEEDS_REVISION")} disabled={!firstBoardSeries || Boolean(activeSeriesId)}>Tie-break revision</MFButton></div><p className="mt-lg rounded-2xl bg-surface-low p-lg text-body-md text-on-surface">{votePreview}</p></MFCard>
         </div>
 

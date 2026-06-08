@@ -18,6 +18,21 @@ export interface BoardDecisionResponse {
   result?: BoardVoteValue
 }
 
+
+export interface BoardQueueItem {
+  id: string
+  seriesTitle: string
+  ownerId: string
+  seriesStatus: string
+  decisionStatus: string
+  voteSummary: BoardVoteSummary
+  updatedAt: string
+}
+
+export function listBoardQueue() {
+  return apiRequest<BoardQueueItem[]>("/board/queue")
+}
+
 export function castBoardVote(seriesId: string, value: BoardVoteValue) {
   return apiRequest<BoardVoteResponse>(`/board/series/${seriesId}/votes`, {
     method: "POST",

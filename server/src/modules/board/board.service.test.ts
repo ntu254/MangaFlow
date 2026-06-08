@@ -1,6 +1,8 @@
 ﻿import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const getBoardSeries = vi.fn()
+const getDecisionBySeries = vi.fn()
+const listBoardQueueSeries = vi.fn()
 const getOrCreateDecision = vi.fn()
 const isBoardChair = vi.fn()
 const listBoardVotes = vi.fn()
@@ -11,6 +13,8 @@ const upsertBoardVote = vi.fn()
 
 vi.mock("./board.repository.js", () => ({
   getBoardSeries,
+  getDecisionBySeries,
+  listBoardQueueSeries,
   getOrCreateDecision,
   isBoardChair,
   listBoardVotes,
@@ -20,10 +24,34 @@ vi.mock("./board.repository.js", () => ({
   upsertBoardVote,
 }))
 
-const { castBoardVoteService, finalizeBoardDecisionService, tieBreakBoardDecisionService } = await import("./board.service.js")
+const { castBoardVoteService, finalizeBoardDecisionService, listBoardQueueService, tieBreakBoardDecisionService } = await import("./board.service.js")
 
 describe("board.service", () => {
   beforeEach(() => vi.clearAllMocks())
+
+
+  it("builds board queue summaries from backend data", async () => {
+    listBoardQueueSeries.mockResolvedValue([{
+      id: "series-1",
+      title: "Moonlit Atelier",
+      ownerId: "owner-1",
+      status: "BOARD_REVIEW",
+      updatedAt: "2026-06-08T00:00:00.000Z",
+    }])
+    listBoardVotes.mockResolvedValue([{ value: "APPROVE" }, { value: "REJECT" }])
+    getDecisionBySeries.mockResolvedValue({ status: "PENDING" })
+
+    const result = await listBoardQueueService()
+
+    expect(result[0]).toMatchObject({
+      id: "series-1",
+      seriesTitle: "Moonlit Atelier",
+      ownerId: "owner-1",
+      seriesStatus: "BOARD_REVIEW",
+      decisionStatus: "PENDING",
+      voteSummary: { APPROVE: 1, REJECT: 1, NEEDS_REVISION: 0 },
+    })
+  })
 
   it("records a board vote and returns summary", async () => {
     getBoardSeries.mockResolvedValue({ id: "series-1", status: "BOARD_REVIEW" })

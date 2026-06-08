@@ -3,6 +3,15 @@ import { Series } from "../series/series.model.js"
 import { BoardDecision, BoardMember, BoardVote } from "./board.model.js"
 import type { BoardDecisionStatus, BoardVoteValue, SeriesStatus } from "../../shared/workflow/status.js"
 
+
+export async function listBoardQueueSeries(): Promise<any[]> {
+  return Series.find({ status: { $in: ["BOARD_REVIEW", "APPROVED", "REJECTED", "REVISION_REQUESTED"] } }).sort({ updatedAt: -1 })
+}
+
+export async function getDecisionBySeries(seriesId: string): Promise<any | null> {
+  return BoardDecision.findOne({ seriesId })
+}
+
 export async function getBoardSeries(seriesId: string): Promise<any | null> {
   return Series.findById(seriesId)
 }
