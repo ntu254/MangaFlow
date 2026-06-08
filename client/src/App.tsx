@@ -10,6 +10,7 @@ import { LandingPage } from "@/features/marketing/pages/LandingPage"
 import { LoginPage } from "@/features/auth/pages/LoginPage"
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
 import { BoardPage } from "@/features/board/pages/BoardPage"
+import { ChapterDetailPage } from "@/features/chapter/pages/ChapterDetailPage"
 import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
 import { ReviewPage } from "@/features/review/pages/ReviewPage"
 import { SeriesDetailPage } from "@/features/series/pages/SeriesDetailPage"
@@ -83,13 +84,7 @@ function App() {
             />
             <Route
               path="chapters/:id"
-              element={
-                <RoutePlaceholderPage
-                  title="Chapter Detail"
-                  description="Track pages, tasks, reviews, and publication readiness."
-                  icon="collections_bookmark"
-                />
-              }
+              element={<ChapterDetailPage />}
             />
             <Route
               path="workspace/:chapterId"
