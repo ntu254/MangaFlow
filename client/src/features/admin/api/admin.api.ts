@@ -8,6 +8,19 @@ export interface AdminDashboardSummary {
     boardMembers: number
     activeTaskTypes: number
   }
+  sidebarBadges: {
+    suspendedUsers: number
+    seriesPendingReview: number
+    missingBoardChair: boolean
+    inactiveTaskTypes: number
+    taskRateWarnings: number
+    pendingPayrollConfirmations: number
+    storageWarning: boolean
+    aiUnhealthy: boolean
+    criticalAuditEvents: number
+    systemWarnings: number
+    unreadNotifications: number
+  }
   systemHealth: Array<{
     key: string
     label: string

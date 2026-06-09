@@ -27,7 +27,7 @@ router.post(
 router.post(
   "/pages/:pageId/confirm-upload",
   requireAuth,
-  requireRole("MANGAKA", "EDITOR", "ASSISTANT"),
+  requireRole("MANGAKA", "EDITOR"),
   validate(confirmPageUploadSchema),
   fileController.confirmPageUpload,
 )

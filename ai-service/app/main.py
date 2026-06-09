@@ -44,9 +44,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
+backend_origin = os.getenv("BACKEND_ORIGIN", "http://localhost:3001")
+allow_origins = [backend_origin]
+if os.getenv("ENV", "development") != "production":
+    allow_origins.append("http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # Restrict in production
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

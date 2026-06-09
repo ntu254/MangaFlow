@@ -1,4 +1,4 @@
-# UI Contract: Review, Comment, and Approval UI
+﻿# UI Contract: Review, Comment, and Approval UI
 
 ## Applies To
 
@@ -31,35 +31,42 @@ Comment lifecycle must show current state.
 Publication readiness must show pass/fail checklist.
 Editor final approval must be visually distinct from Mangaka internal approval.
 Review Queue page must not become a single monolithic route component.
-Queue reads, decision actions, mapper logic, table columns, and preview panels should be split into hooks/components/utils.
+Queue reads, decision panels, and backend-to-UI mapper logic should be split before adding more review surfaces.
 ```
 
 ## Required Review Page Shape
 
+MF-HIOS-060 defines the next safe extraction slice:
+
 ```txt
 features/review/hooks/useReviewQueue.ts
-features/review/hooks/useReviewDecisionActions.ts
-features/review/components/ReviewHero.tsx
-features/review/components/ReviewWorkflowBoundaryCard.tsx
 features/review/components/ReviewQueuePanel.tsx
-features/review/components/ReviewActionListPanel.tsx
 features/review/components/ReviewDecisionPanel.tsx
-features/review/components/ReviewTargetPreview.tsx
-features/review/components/ReviewReadinessPreview.tsx
-features/review/components/ReviewStatePreview.tsx
 features/review/utils/review-queue.mappers.ts
-features/review/utils/review-table.columns.tsx
 ```
 
 Implementation boundaries:
 
 ```txt
 useReviewQueue owns queue fetch, loading, error, and refresh.
-useReviewDecisionActions owns approve/revision/reject action state and success refresh.
-ReviewQueuePanel renders table/loading/empty/error only.
-ReviewDecisionPanel renders form + ReviewDecisionBar only.
-Mappers convert backend submission data to UI rows/actions/version cards.
-The route page composes panels and should not own table columns or API mapping.
+ReviewQueuePanel renders table/loading/empty/error/retry only.
+ReviewDecisionPanel renders submission id, reviewer note, final approval toggle, decision preview, and ReviewDecisionBar.
+review-queue.mappers.ts converts backend submissions to queue rows, action items, and submission version cards.
+The route page composes panels and should not own queue API state or submission-to-UI mapping.
+No API behavior, endpoint path, payload shape, permission check, or workflow rule changes are allowed in this componentization slice.
+```
+
+Future optional review extractions should be story-scoped before implementation, such as:
+
+```txt
+ReviewHero
+ReviewWorkflowBoundaryCard
+ReviewActionListPanel
+ReviewTargetPreview
+ReviewReadinessPreview
+ReviewStatePreview
+review-table.columns.tsx
+useReviewDecisionActions
 ```
 
 ## Done Criteria
@@ -71,7 +78,8 @@ The route page composes panels and should not own table columns or API mapping.
 [ ] Readiness checklist identifies blockers.
 [ ] Confirmation dialog exists for destructive actions.
 [ ] Review queue API logic is separated from Review Page layout.
-[ ] Review action mutation logic is separated from Review Page layout.
+[ ] Submission-to-UI mapper logic is separated from Review Page layout.
+[ ] Review decision panel is separated without changing action behavior.
 ```
 [//]: # (Validation section appended by MF-HIOS-004.)
 
@@ -82,3 +90,4 @@ The route page composes panels and should not own table columns or API mapping.
 - Uses design tokens for color, radius, shadow, and spacing.
 - Comments, empty, loading, error, and resolved states are represented.
 - UI review checklist passes.
+- Client lint/build pass for componentization stories.

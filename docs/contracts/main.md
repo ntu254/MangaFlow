@@ -1,4 +1,4 @@
-# Main Contract
+﻿# Main Contract
 
 ## MVP scope
 
@@ -49,6 +49,7 @@ Security meaning:
 - Assistant cannot view another assistant's task.
 - Assistant cannot view Board data, confirm payroll, or create tasks.
 - Frontend checks are never sufficient; backend services must enforce this.
+- Assistant page/file/workspace access must not be granted by SeriesMember membership alone.
 
 ## Review invariant
 
@@ -109,7 +110,14 @@ modeled as explicit action endpoints.
 - Store original file unchanged.
 - Use private storage.
 - Access by signed URL.
+- Signed URL response requires backend access-policy validation.
 - Do not store base64 AI output in DB.
+
+## Runtime invariant
+
+- Production must not start with weak auth/storage secret fallbacks.
+- Server must not listen if MongoDB connection fails.
+- Hardcoded admin credentials are forbidden in source.
 
 ## Verification
 

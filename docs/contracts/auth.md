@@ -1,4 +1,4 @@
-# Auth Contract
+﻿# Auth Contract
 
 ## Scope
 
@@ -23,6 +23,8 @@ Admin, all users, System
   be self-selected by users.
 - Board Chair authority is used only for Board tie-break actions defined in
   `docs/contracts/workflow-status.md`; it is not an Admin override.
+- Production auth secrets are required and must not rely on weak fallback defaults.
+- Optional admin bootstrap must be env-driven; hardcoded source credentials are forbidden.
 
 ## API surface
 
@@ -37,6 +39,7 @@ Admin, all users, System
 - Wrong password fails.
 - Suspended user fails.
 - /auth/me returns current user.
+- Production auth startup fails when required secrets are missing.
 
 ## Validation
 

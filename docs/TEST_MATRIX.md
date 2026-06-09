@@ -19,6 +19,17 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| MF-HIOS-070 | comment-resolution.md, submission-review.md, page-workspace.md | yes | no | no | yes | implemented | Comment service split into access policy, transition guard, scope service, command/query modules; server/client lint/build, 66 server tests, docs verifiers passed. |
+| MF-HIOS-069 | task-assignment.md, page-workspace.md, main.md | yes | no | no | yes | implemented | Task persistence, assignment policy, scope guard, and mapper split; server/client lint/build, 66 server tests, docs verifiers passed. |
+| MF-HIOS-068 | chapter-production.md, page-workspace.md | yes | no | no | yes | implemented | Chapter service modularized; server/client lint/build and server tests passed. |
+| MF-HIOS-067 | ui-series-chapter.md | no | no | no | yes | implemented | SeriesDetailPage componentized; client lint/build passed. |
+| MF-HIOS-066 | ui-board.md | no | no | no | yes | implemented | BoardPage componentized; client lint/build passed. |
+| MF-HIOS-065 | ui-workspace.md | no | no | no | yes | implemented | WorkspacePage componentized; client lint/build passed. |
+| MF-HIOS-064 | ui-series-chapter.md | no | no | no | yes | implemented | ChapterDetailPage componentized; client lint/build passed. |
+| MF-HIOS-063 | ui-task.md | no | no | no | yes | implemented | TasksPage componentized; client lint/build passed. |
+| MF-HIOS-062 | ui-admin.md | yes | no | no | yes | implemented | Client/server lint/build passed; dashboard unit test passed. |
+| MF-HIOS-061 | main.md, auth.md, page-workspace.md, ai-bubble-translation.md | yes | no | no | yes | implemented | Server env/accessPolicy tests plus server/client lint/build passed. |
+| MF-HIOS-060 | ui-review.md | no | no | no | yes | implemented | Client lint/build passed after review page extraction. |
 | TBD | Add rows when story packets are created | no | no | no | no | planned | none |
 
 ## Evidence Rules
@@ -31,3 +42,14 @@ implemented until tests or validation evidence exist.
   behavior that cannot be proven in lower layers.
 - A story can be implemented without every proof column if the story packet
   explains why.
+
+
+
+
+
+
+
+
+
+
+

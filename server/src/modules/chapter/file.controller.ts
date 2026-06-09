@@ -52,11 +52,11 @@ export async function confirmPageUpload(
 }
 
 export async function getPresignedDownloadUrl(
-  req: Request & { user?: { userId: string; role: string } },
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): Promise<void> {
-  const result = await getPresignedDownloadUrlService(String(req.params.fileAssetId))
+  const result = await getPresignedDownloadUrlService(String(req.params.fileAssetId), req.user!)
 
   res.json({
     success: true,
@@ -70,7 +70,7 @@ export async function getPageWithFileAsset(
   res: Response,
   _next: NextFunction,
 ): Promise<void> {
-  const page = await getPageWithFileAssetService(String(req.params.pageId))
+  const page = await getPageWithFileAssetService(String(req.params.pageId), req.user!)
 
   res.json({
     success: true,

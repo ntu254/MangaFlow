@@ -1,4 +1,4 @@
-# Task Assignment Contract
+﻿# Task Assignment Contract
 
 ## Scope
 
@@ -27,6 +27,7 @@ Mangaka, Editor, Assistant
 - Context pages are read-only.
 - Due date cannot be in the past.
 - Base rate must be non-negative and is stored as a task snapshot.
+- Active SeriesMember eligibility does not grant page/file/workspace access outside `Task.assignedTo` and explicit context scope.
 
 ## API surface
 
@@ -40,6 +41,7 @@ Mangaka, Editor, Assistant
 - Assistant receives notification.
 - Assistant is authorized only for the assigned Task Workspace.
 - Assistant cannot create tasks.
+- Assistant cannot use Series membership alone to access non-task files or pages.
 
 ## Validation
 

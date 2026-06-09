@@ -1,4 +1,4 @@
-# Page Workspace Contract
+﻿# Page Workspace Contract
 
 ## Scope
 
@@ -24,6 +24,7 @@ Mangaka, Editor, Assistant
 - Assistant can see assigned page/region and explicit read-only
   `contextPageIds` only.
 - Assistant cannot see full chapter by default.
+- Assistant workspace/page access must be enforced by backend task/context access policy, not by SeriesMember membership alone.
 
 ## API surface
 
@@ -37,6 +38,7 @@ Mangaka, Editor, Assistant
 - Assistant cannot open another assistant's task workspace.
 - Assistant task workspace omits pages outside assigned scope and
   `contextPageIds`.
+- Assistant cannot gain workspace access from active SeriesMember status alone.
 
 ## Validation
 

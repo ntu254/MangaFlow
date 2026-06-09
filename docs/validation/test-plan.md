@@ -1,4 +1,4 @@
-# Test Plan
+﻿# Test Plan
 
 ## Unit tests
 
@@ -14,6 +14,8 @@
 - Board three-option plurality, minimum vote, deadline, and tie-break rules
 - PublicationReadinessService item-level pass/fail reasons
 - Payroll MVP formula: `finalPayment = baseRate * deadlineMultiplier`
+- Production env validation rejects missing required secrets
+- File/task access policy denies Assistant overreach
 
 ## Integration tests
 
@@ -35,6 +37,8 @@
 - Board Chair votes normally and only tie-breaks when required
 - Action endpoints use POST for workflow decisions
 - Assistant access is granted by `Task.assignedTo`, not SeriesMember alone
+- Server does not listen when MongoDB connection fails
+- Signed URL endpoint denies unauthorized file access
 
 ## Security tests
 
@@ -51,3 +55,5 @@
 - Assistant cannot confirm payroll
 - Assistant cannot create tasks
 - Frontend-only permission checks do not satisfy backend access tests
+- Production weak-secret fallback is rejected
+- Hardcoded admin credentials do not exist in source

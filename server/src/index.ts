@@ -17,10 +17,11 @@ import commentRoutes from "./modules/comment/comment.routes.js"
 import payrollRoutes from "./modules/payroll/payroll.routes.js"
 import publicationRoutes from "./modules/publication/publication.routes.js"
 import { errorHandler } from "./shared/middleware/errorHandler.js"
+import { seedAdminFromEnv } from "./infrastructure/seed/seedAdmin.js"
 
 const app = express()
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }))
+app.use(cors({ origin: config.clientUrl, credentials: true }))
 app.use(express.json())
 app.use(cookieParser())
 
@@ -48,25 +49,10 @@ async function start() {
   try {
     await mongoose.connect(config.mongoUri)
     console.log("Connected to MongoDB")
-
-    const { User } = await import("./modules/auth/auth.model.js")
-    const { hashPassword } = await import("./modules/auth/auth.service.js")
-
-    const adminEmail = "admin@mangaflow.studio"
-    const adminExists = await User.findOne({ email: adminEmail })
-    if (!adminExists) {
-      const passwordHash = await hashPassword("Admin@123456")
-      await User.create({
-        email: adminEmail,
-        passwordHash,
-        name: "System Admin",
-        role: "ADMIN",
-        isActive: true,
-      })
-      console.log("Admin seeded:", adminEmail)
-    }
+    await seedAdminFromEnv()
   } catch (err) {
-    console.warn("MongoDB not available, running without database:", (err as Error).message)
+    console.error("MongoDB connection failed; server will not start:", (err as Error).message)
+    process.exit(1)
   }
 
   app.listen(config.port, () => {

@@ -1,4 +1,4 @@
-# AI Bubble Translation Contract
+﻿# AI Bubble Translation Contract
 
 ## Scope
 
@@ -18,6 +18,8 @@ Mangaka, Editor, Assistant, AI Service
 - Frontend does not call AI service directly.
 - AI output stored as FileAsset.
 - Do not store base64 in DB.
+- Temporary AI base64 responses are allowed only at backend integration boundaries and must be converted to file/object storage or rejected before persistence.
+- Production AI service browser CORS must not be permissive.
 
 ## API surface
 
@@ -30,6 +32,7 @@ Mangaka, Editor, Assistant, AI Service
 - AI regions created.
 - Whitened image stored.
 - Final translated image rendered on submit.
+- No production path persists base64 output in MongoDB.
 
 ## Validation
 

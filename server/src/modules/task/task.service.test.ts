@@ -10,6 +10,12 @@ import * as taskRepository from "./task.repository.js"
 import { SeriesMember } from "../series/series.model.js"
 
 vi.mock("./task.repository.js")
+vi.mock("./guards/task-scope.guard.js", () => ({
+  validateTaskCreationScope: vi.fn().mockResolvedValue({ taskType: { baseRate: 100 } }),
+}))
+vi.mock("./policies/task-assignment.policy.js", () => ({
+  assertTaskAssignmentAllowed: vi.fn().mockResolvedValue(undefined),
+}))
 vi.mock("../series/series.model.js", () => ({
   SeriesMember: {
     findOne: vi.fn(),
@@ -51,13 +57,13 @@ describe("createTaskService", () => {
     ).rejects.toThrow(AppError)
   })
 
-  it("calls createTaskRepository with correct input", async () => {
-    const mockResult = { id: "task1" }
-    vi.mocked(taskRepository.createTaskRepository).mockResolvedValue(mockResult as any)
+  it("calls createTaskRecord with normalized input", async () => {
+    const mockResult = { id: "task1", seriesId: "series1", chapterId: "chapter1", taskTypeId: "tasktype1", assignedTo: "assistant1", assignedBy: "mangaka1", title: "Test Task", status: "TODO", priority: "NORMAL", baseRate: 100, dueDate: mockInput.dueDate, contextPageIds: [], createdAt: new Date(), updatedAt: new Date() }
+    vi.mocked(taskRepository.createTaskRecord).mockResolvedValue(mockResult as any)
 
     const result = await createTaskService(mockInput)
 
-    expect(taskRepository.createTaskRepository).toHaveBeenCalledWith({
+    expect(taskRepository.createTaskRecord).toHaveBeenCalledWith({
       seriesId: mockInput.seriesId,
       chapterId: mockInput.chapterId,
       taskTypeId: mockInput.taskTypeId,
@@ -68,8 +74,9 @@ describe("createTaskService", () => {
       priority: mockInput.priority,
       dueDate: mockInput.dueDate,
       contextPageIds: mockInput.contextPageIds,
+      baseRate: 100,
     })
-    expect(result).toEqual(mockResult)
+    expect(result).toMatchObject({ id: "task1", baseRate: 100, status: "TODO" })
   })
 })
 
@@ -138,3 +145,4 @@ describe("task access service rules", () => {
     ).rejects.toThrow("Only active Mangaka or Editor series members can manage tasks")
   })
 })
+

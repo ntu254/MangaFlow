@@ -62,13 +62,104 @@ function App() {
 
             <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
               <Route path="admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="admin" element={<Navigate to="/app/admin/dashboard" replace />} />
               <Route
-                path="admin"
+                path="admin/users"
                 element={
                   <RoutePlaceholderPage
-                    title="Admin Operations"
-                    description="Manage users, roles, task types, storage, and audit surfaces."
-                    icon="admin_panel_settings"
+                    title="Users"
+                    description="Create users, update roles, and active/suspend accounts. Backend permissions remain source of truth."
+                    icon="manage_accounts"
+                  />
+                }
+              />
+              <Route
+                path="admin/board-members"
+                element={
+                  <RoutePlaceholderPage
+                    title="Board Members"
+                    description="Manage Board membership and Chair assignment without overriding Board decisions."
+                    icon="groups"
+                  />
+                }
+              />
+              <Route
+                path="admin/series"
+                element={
+                  <RoutePlaceholderPage
+                    title="Series Monitor"
+                    description="View all series, statuses, owners, and editors. Admin observes; Board approval remains Board-owned."
+                    icon="auto_stories"
+                  />
+                }
+              />
+              <Route
+                path="admin/task-types"
+                element={
+                  <RoutePlaceholderPage
+                    title="Task Types"
+                    description="Configure production task types such as translation, cleanup, and lettering."
+                    icon="category"
+                  />
+                }
+              />
+              <Route
+                path="admin/task-rates"
+                element={
+                  <RoutePlaceholderPage
+                    title="Task Rates"
+                    description="Configure default task-rate references for payroll tracking; final payroll rules stay backend-owned."
+                    icon="price_change"
+                  />
+                }
+              />
+              <Route
+                path="admin/payroll"
+                element={
+                  <RoutePlaceholderPage
+                    title="Payroll Tracking"
+                    description="Monitor pending, confirmed, and paid assistant earnings without bypassing approval rules."
+                    icon="payments"
+                  />
+                }
+              />
+              <Route
+                path="admin/storage"
+                element={
+                  <RoutePlaceholderPage
+                    title="Storage"
+                    description="Monitor R2/MinIO usage, file assets, and signed URL access warnings."
+                    icon="cloud"
+                  />
+                }
+              />
+              <Route
+                path="admin/ai-service"
+                element={
+                  <RoutePlaceholderPage
+                    title="AI Service"
+                    description="Monitor AI health and bubble detect/process integration status through backend-owned checks."
+                    icon="smart_toy"
+                  />
+                }
+              />
+              <Route
+                path="admin/audit-logs"
+                element={
+                  <RoutePlaceholderPage
+                    title="Audit Logs"
+                    description="Review critical system, access, workflow, and storage events."
+                    icon="policy"
+                  />
+                }
+              />
+              <Route
+                path="admin/system-health"
+                element={
+                  <RoutePlaceholderPage
+                    title="System Health"
+                    description="Monitor MongoDB, API, storage, AI, env warnings, and runtime hardening status."
+                    icon="monitor_heart"
                   />
                 }
               />
@@ -98,6 +189,16 @@ function App() {
             <Route
               path="board"
               element={<BoardPage />}
+            />
+            <Route
+              path="notifications"
+              element={
+                <RoutePlaceholderPage
+                  title="Notifications"
+                  description="Central notification inbox for workflow alerts, admin warnings, and assignment updates."
+                  icon="notifications"
+                />
+              }
             />
           </Route>
         </Route>

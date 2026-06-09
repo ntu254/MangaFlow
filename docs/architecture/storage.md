@@ -1,4 +1,4 @@
-# Storage Architecture
+﻿# Storage Architecture
 
 ## Provider
 
@@ -20,4 +20,6 @@
 - Private storage only.
 - Never expose drafts publicly.
 - Use signed URLs.
+- Signed URL retrieval must pass backend file access policy.
 - Do not store base64 image output in MongoDB.
+- Backend persists file/object references, not raw base64 payloads.
