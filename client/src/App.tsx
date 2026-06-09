@@ -19,7 +19,7 @@ function App() {
     <AuthProvider>
       <Suspense fallback={<AppRouteFallback />}>
         <Routes>
-          <AppRoutes />
+          {AppRoutes()}
         </Routes>
       </Suspense>
     </AuthProvider>

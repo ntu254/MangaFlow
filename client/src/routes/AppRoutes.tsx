@@ -10,6 +10,7 @@ import { AppHomeRedirect } from "./AppHomeRedirect"
 import {
   LazyAdminDashboardPage,
   LazyAdminUsersPage,
+  LazyAdminBoardMembersPage,
   LazyBoardPage,
   LazyChapterDetailPage,
   LazyReviewPage,
@@ -51,8 +52,9 @@ export function AppRoutes() {
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="admin/dashboard" element={<LazyAdminDashboardPage />} />
             <Route path="admin/users" element={<LazyAdminUsersPage />} />
+            <Route path="admin/board-members" element={<LazyAdminBoardMembersPage />} />
             <Route path="admin" element={<Navigate to="/app/admin/dashboard" replace />} />
-            {adminPlaceholderRoutes.filter((item) => item.path !== "admin/users").map((item) => (
+            {adminPlaceholderRoutes.filter((item) => item.path !== "admin/users" && item.path !== "admin/board-members").map((item) => (
               <Route key={item.path} path={item.path} element={renderPlaceholder(item)} />
             ))}
           </Route>
