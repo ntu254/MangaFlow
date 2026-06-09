@@ -33,6 +33,8 @@ In scope:
 - Extract `ReviewDecisionPanel` from `ReviewPage.tsx`.
 - Extract `useReviewQueue` for queue fetch, loading, error, and refresh.
 - Extract `review-queue.mappers.ts` for backend submission-to-UI row/action/version mapping.
+- Extract static review previews into `review-static-content.ts`.
+- Extract page layout sections into `ReviewHeroPanel`, `ReviewQueueSection`, `ReviewDecisionSection`, and `ReviewStatePreview`.
 - Keep existing API calls, request payloads, response handling, error copy, confirmation behavior, and refresh-after-action behavior unchanged.
 
 Out of scope:
@@ -47,7 +49,7 @@ Out of scope:
 
 ## Acceptance Criteria
 
-- `ReviewPage.tsx` becomes a thinner route-level component focused on page title, local static preview data, and layout composition.
+- `ReviewPage.tsx` becomes a thinner route-level component focused on page title, memoized queue view models, and layout composition.
 - `useReviewQueue` owns `GET /api/submissions/review-queue` loading, error, queue state, and `refresh` behavior.
 - `ReviewQueuePanel` renders the review queue table plus loading, empty, and error/retry states.
 - `ReviewDecisionPanel` renders the submission id input, reviewer note input, final-approval toggle, decision preview, and `ReviewDecisionBar`.
@@ -87,5 +89,7 @@ Manual QA:
 
 - `npm run lint --prefix client` -> PASS.
 - `npm run build --prefix client` -> PASS.
-- Extracted `useReviewQueue`, `ReviewQueuePanel`, `ReviewDecisionPanel`, and `review-queue.mappers.ts`.
+- `ReviewPage.tsx` reduced to 39 lines.
+- Extracted `useReviewQueue`, `ReviewQueuePanel`, `ReviewDecisionPanel`, `ReviewHeroPanel`, `ReviewQueueSection`, `ReviewDecisionSection`, `ReviewStatePreview`, `review-static-content.ts`, and `review-queue.mappers.ts`.
 - Existing backend review action API behavior preserved.
+
