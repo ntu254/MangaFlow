@@ -19,6 +19,7 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| MF-HIOS-076 | payroll.md, submission-review.md, task-assignment.md | yes | no | no | yes | implemented | Payroll service split into access policy, calculation utility, command and query modules; server/client lint/build, 94 server tests, docs verifiers passed. |
 | MF-HIOS-075 | ui-admin.md, admin-dashboard.md, board-approval.md, task-assignment.md | yes | no | no | yes | implemented | Admin service split into user, Board member, task-type, and dashboard service modules; server/client lint/build, 85 server tests, docs verifiers passed. |
 | MF-HIOS-074 | series-proposal.md, manuscript-review.md, main.md | yes | no | no | yes | implemented | Series repository split into persistence, manuscript, submission, and slug utility modules; server/client lint/build, 85 server tests, docs verifiers passed. |
 | MF-HIOS-073 | task-assignment.md, page-workspace.md, main.md | yes | no | no | yes | implemented | Task/task-type controller split into dedicated modules; server/client lint/build, 66 server tests, docs verifiers passed. |
@@ -47,6 +48,7 @@ implemented until tests or validation evidence exist.
   behavior that cannot be proven in lower layers.
 - A story can be implemented without every proof column if the story packet
   explains why.
+
 
 
 
