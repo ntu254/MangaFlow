@@ -14,3 +14,7 @@ export const createCommentSchema = z.object({
 export const commentIdParamsSchema = z.object({
   id: z.string().min(1, "Comment id is required"),
 })
+
+export const taskIdParamsSchema = z.object({
+  taskId: z.string().min(1, "Task id is required"),
+})

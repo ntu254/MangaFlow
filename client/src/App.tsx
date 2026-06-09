@@ -86,10 +86,7 @@ function App() {
               path="chapters/:id"
               element={<ChapterDetailPage />}
             />
-            <Route
-              path="workspace/:chapterId"
-              element={<WorkspacePage />}
-            />
+            <Route path="workspace/:taskId" element={<WorkspacePage />} />
             <Route
               path="tasks"
               element={<TasksPage />}

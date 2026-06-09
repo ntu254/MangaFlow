@@ -1,6 +1,7 @@
 import { AppError } from "../../shared/errors/AppError.js"
 import type { UserRole } from "../auth/auth.types.js"
 import { SeriesMember } from "../series/series.model.js"
+import { getTaskService } from "../task/task.service.js"
 import {
   countBlockingUnresolvedComments,
   createCommentRecord,
@@ -10,6 +11,7 @@ import {
   getRegionForComment,
   getSubmissionForComment,
   getTaskForComment,
+  listCommentsByTask,
   updateCommentStatus,
 } from "./comment.repository.js"
 
@@ -215,4 +217,10 @@ export async function reopenCommentService(commentId: string, actor: CommentActo
 export async function hasBlockingUnresolvedCommentsService(filter: { seriesId?: string; chapterId?: string; taskId?: string }) {
   const count = await countBlockingUnresolvedComments(filter)
   return count > 0
+}
+
+export async function listCommentsByTaskService(taskId: string, actor: CommentActor) {
+  await getTaskService(taskId, actor)
+  const comments = await listCommentsByTask(taskId)
+  return comments
 }

@@ -59,5 +59,9 @@ export async function updateTaskStatusForSubmission(taskId: string, status: stri
 }
 
 export async function listSubmissionsByTask(taskId: string) {
-  return Submission.find({ taskId }).sort({ version: -1 }).lean()
+  return Submission.find({ taskId })
+    .sort({ version: -1 })
+    .populate("submittedBy", "name role")
+    .populate("fileAssetId", "originalName")
+    .lean()
 }

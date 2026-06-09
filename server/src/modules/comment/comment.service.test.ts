@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SeriesMember } from "../series/series.model.js"
+import * as taskService from "../task/task.service.js"
 import * as repository from "./comment.repository.js"
 import {
   createCommentService,
   hasBlockingUnresolvedCommentsService,
+  listCommentsByTaskService,
   markCommentFixedService,
   reopenCommentService,
   resolveCommentService,
@@ -11,6 +13,7 @@ import {
 } from "./comment.service.js"
 
 vi.mock("./comment.repository.js")
+vi.mock("../task/task.service.js")
 vi.mock("../series/series.model.js", () => ({
   SeriesMember: {
     findOne: vi.fn(),
@@ -183,5 +186,21 @@ describe("comment resolution service", () => {
     await expect(
       hasBlockingUnresolvedCommentsService({ chapterId: "chapter1" }),
     ).resolves.toBe(true)
+  })
+
+  it("checks task access before listing task comments", async () => {
+    vi.mocked(taskService.getTaskService).mockResolvedValue({ id: "task1" } as any)
+    vi.mocked(repository.listCommentsByTask).mockResolvedValue([{ id: "comment1" }] as any)
+
+    const result = await listCommentsByTaskService("task1", {
+      userId: "assistant1",
+      role: "ASSISTANT",
+    })
+
+    expect(taskService.getTaskService).toHaveBeenCalledWith("task1", {
+      userId: "assistant1",
+      role: "ASSISTANT",
+    })
+    expect(result).toEqual([{ id: "comment1" }])
   })
 })

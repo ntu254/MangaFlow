@@ -37,6 +37,7 @@ import {
 } from "@/shared/lib/status-ui"
 import { getChapterReadiness, listPagesByChapter, type Page } from "../api/chapter.api"
 import { createPublication, publishPublication, schedulePublication } from "../api/publication.api"
+import { listTasksByChapter, type Task } from "@/features/task/api/task.api"
 
 interface PageRow {
   id: string
@@ -46,25 +47,6 @@ interface PageRow {
   regions: string
   updatedAt: string
 }
-
-const chapterActions: ActionItem[] = [
-  {
-    id: "chapter-action-1",
-    title: "Page 12 task needs Mangaka review",
-    description: "Assistant submission is still represented as local sample data.",
-    metadata: "Submission/comment write flows remain separate stories",
-    icon: "rate_review",
-    status: "SUBMITTED",
-  },
-  {
-    id: "chapter-action-2",
-    title: "Readiness and publish flow are backend-owned",
-    description: "This tab now calls readiness and publication APIs when a real chapter id is available.",
-    metadata: "Page list and review list remain presentation-only",
-    icon: "fact_check",
-    status: "EDITOR_APPROVED",
-  },
-]
 
 const contextPages: ContextPageItem[] = [
   { id: "context-11", pageNumber: 11, status: "APPROVED", label: "Previous page" },
@@ -112,6 +94,42 @@ function toPageRows(pages: Page[]): PageRow[] {
   }))
 }
 
+function taskId(task: Task) {
+  return task.id ?? task._id ?? `${task.chapterId}-${task.title}`
+}
+
+function taskTypeLabel(task: Task) {
+  return typeof task.taskTypeId === "string" ? "Task type linked" : task.taskTypeId.name ?? "Task type linked"
+}
+
+function taskScopeLabel(task: Task) {
+  if (task.regionId) return `Region ${String(task.regionId).slice(-6)}`
+  if (task.pageId) return `Page ${String(task.pageId).slice(-6)}`
+  return `Chapter ${String(task.chapterId).slice(-6)}`
+}
+
+function toChapterActions(tasks: Task[]): ActionItem[] {
+  const actionable = tasks.filter((task) => ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED"].includes(task.status)).slice(0, 3)
+  if (actionable.length === 0) {
+    return [{
+      id: "chapter-task-empty-action",
+      title: "No live chapter task actions",
+      description: "Task actions will appear after the backend returns active chapter tasks.",
+      metadata: "GET /api/tasks/chapter/:chapterId",
+      icon: "task",
+      status: "TODO",
+    }]
+  }
+  return actionable.map((task) => ({
+    id: taskId(task),
+    title: task.title,
+    description: task.description ?? "Live chapter task from backend metadata.",
+    metadata: `${taskScopeLabel(task)} - due ${new Date(task.dueDate).toLocaleDateString()}`,
+    icon: task.status === "SUBMITTED" ? "rate_review" : "task",
+    status: task.status,
+  }))
+}
+
 function ChapterDetailStatePreview() {
   return (
     <MFCard>
@@ -139,6 +157,9 @@ export function ChapterDetailPage() {
   const [pages, setPages] = useState<Page[]>([])
   const [pagesLoading, setPagesLoading] = useState(Boolean(chapterId))
   const [pagesError, setPagesError] = useState("")
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(Boolean(chapterId))
+  const [tasksError, setTasksError] = useState("")
   const [readinessItems, setReadinessItems] = useState<PublicationReadinessItem[]>(fallbackReadinessItems)
   const [readinessLoading, setReadinessLoading] = useState(false)
   const [readinessMessage, setReadinessMessage] = useState("Readiness will load from backend when a real chapter id is available.")
@@ -193,8 +214,33 @@ export function ChapterDetailPage() {
     }
   }
 
+  async function loadTasks() {
+    if (!chapterId) {
+      setTasksLoading(false)
+      return
+    }
+
+    setTasksLoading(true)
+    setTasksError("")
+    try {
+      const response = await listTasksByChapter(chapterId)
+      if (!response.success || !response.data) {
+        setTasksError(response.message ?? "Could not load chapter tasks.")
+        setTasks([])
+        return
+      }
+      setTasks(response.data)
+    } catch {
+      setTasksError("Could not reach MangaFlow chapter task API.")
+      setTasks([])
+    } finally {
+      setTasksLoading(false)
+    }
+  }
+
   useEffect(() => {
     void loadPages()
+    void loadTasks()
   }, [chapterId])
 
   useEffect(() => {
@@ -259,6 +305,8 @@ export function ChapterDetailPage() {
   const readinessSummaryTone = useMemo(() => readinessItems.every((item) => item.passed) ? "success" : "warning", [readinessItems])
   const pageRows = useMemo(() => toPageRows(pages), [pages])
   const selectedPage = pages[0] ?? null
+  const featuredTask = tasks[0] ?? null
+  const chapterActions = useMemo(() => toChapterActions(tasks), [tasks])
 
   return (
     <PageShell>
@@ -266,9 +314,9 @@ export function ChapterDetailPage() {
         <MFCard padding="lg" className="rounded-3xl">
           <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-sm"><MFBadge tone="primary" size="md">Chapter Detail</MFBadge><MFBadge tone="success" size="md">Page metadata API connected</MFBadge><MFBadge tone="success" size="md">Readiness API connected</MFBadge></div>
+              <div className="flex flex-wrap items-center gap-sm"><MFBadge tone="primary" size="md">Chapter Detail</MFBadge><MFBadge tone="success" size="md">Page metadata API connected</MFBadge><MFBadge tone="success" size="md">Readiness API connected</MFBadge><MFBadge tone="success" size="md">Task metadata API connected</MFBadge></div>
               <h1 className="mt-md break-words text-headline-lg text-on-surface">Chapter 08 - Lantern Rain</h1>
-              <p className="mt-sm max-w-3xl text-body-md text-on-surface-muted">This route loads page metadata, readiness, and publication actions from backend APIs when a real chapter id is available. Task/review/context panels remain local samples.</p>
+              <p className="mt-sm max-w-3xl text-body-md text-on-surface-muted">This route loads page metadata, chapter task metadata, readiness, and publication actions from backend APIs when a real chapter id is available. Submission/comment/context panels remain bounded until their read APIs are selected.</p>
             </div>
             <MFButton type="button" disabled>Upload pages disabled</MFButton>
           </div>
@@ -278,13 +326,13 @@ export function ChapterDetailPage() {
 
       <section className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-lg">
-          <ChapterProgressCard title="Chapter 08 - Lantern Rain" status="IN_PRODUCTION" completed={pages.length} total={pages.length} description="Page count comes from backend metadata. Task progress remains local until task APIs are wired." progressLabel="Pages loaded" />
+          <ChapterProgressCard title="Chapter 08 - Lantern Rain" status="IN_PRODUCTION" completed={tasks.filter((task) => task.status === "EDITOR_APPROVED").length} total={tasks.length || pages.length} description="Page count and chapter task metadata come from backend endpoints. Completion uses task approval count when tasks are available." progressLabel={tasks.length ? "Tasks editor-approved" : "Pages loaded"} />
           <MFCard><div className="flex flex-wrap items-start justify-between gap-md"><div><h2 className="text-title-lg text-on-surface">Chapter metadata</h2><p className="mt-xs text-body-md text-on-surface-muted">Parent Series and schedule labels are sample values only.</p></div><StatusBadge status="IN_PRODUCTION" mapping={chapterStatusUI} size="md" /></div><dl className="mt-lg grid gap-md sm:grid-cols-2 lg:grid-cols-4"><div className="rounded-xl bg-surface-low p-md"><dt className="text-label-sm text-on-surface-muted">Series</dt><dd className="mt-xs text-label-md text-on-surface">Moonlit Atelier</dd></div><div className="rounded-xl bg-surface-low p-md"><dt className="text-label-sm text-on-surface-muted">Chapter number</dt><dd className="mt-xs text-label-md text-on-surface">08</dd></div><div className="rounded-xl bg-surface-low p-md"><dt className="text-label-sm text-on-surface-muted">Draft schedule</dt><dd className="mt-xs text-label-md text-on-surface">June 24, 2026</dd></div><div className="rounded-xl bg-surface-low p-md"><dt className="text-label-sm text-on-surface-muted">Access boundary</dt><dd className="mt-xs text-label-md text-on-surface">Mangaka / Editor view</dd></div></dl></MFCard>
         </div>
 
         <div className="space-y-lg">
-          <TaskScopeCard title="Featured page task" status="SUBMITTED" scopeType="page" scopeLabel="Chapter 08 - Page 12" description="Sample task scope. Assistant task workspace remains separate from full chapter access." dueDateLabel="June 14, 2026" priority="HIGH" assignedToLabel="Assistant view" taskTypeLabel="Tone cleanup" />
-          <div><h2 className="mb-md text-title-lg text-on-surface">Pending actions</h2><ActionItemList items={chapterActions} statusMapping={taskStatusUI} /></div>
+          {featuredTask ? <TaskScopeCard title={featuredTask.title} status={featuredTask.status} scopeType={featuredTask.regionId ? "region" : "page"} scopeLabel={taskScopeLabel(featuredTask)} description={featuredTask.description ?? "Live chapter task from backend metadata."} dueDateLabel={new Date(featuredTask.dueDate).toLocaleDateString()} priority={featuredTask.priority} assignedToLabel={`Assistant ${String(featuredTask.assignedTo).slice(-6)}`} taskTypeLabel={taskTypeLabel(featuredTask)} /> : <MFEmptyState icon="task" title="No chapter tasks" description="Chapter tasks will appear after the backend returns task metadata for this chapter." />}
+          <div><h2 className="mb-md text-title-lg text-on-surface">Pending actions</h2>{tasksError ? <MFErrorState title="Could not load chapter tasks" description={tasksError} onRetry={() => void loadTasks()} /> : <ActionItemList items={chapterActions} statusMapping={taskStatusUI} />}{tasksLoading ? <p className="mt-sm text-label-sm text-on-surface-muted">Loading chapter tasks...</p> : null}</div>
         </div>
       </section>
 
