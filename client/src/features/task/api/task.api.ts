@@ -41,3 +41,7 @@ export function getTask(taskId: string) {
 export function listTaskTypes(activeOnly = true) {
   return apiRequest<TaskTypeRef[]>(`/tasks/types?activeOnly=${activeOnly ? "true" : "false"}`)
 }
+
+export function listTasksByChapter(chapterId: string) {
+  return apiRequest<Task[]>(`/tasks/chapter/${chapterId}`)
+}
