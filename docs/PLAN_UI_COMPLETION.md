@@ -1,9 +1,9 @@
 # MangaFlow UI Completion Plan
 
 > Scope: remaining MVP UI work and the execution flow for one story at a time.
-> Last sync: 2026-06-09 local workspace audit.
+> Last sync: 2026-06-09 local workspace + harness audit.
 > Current base branch: `new`.
-> Current feature branch: `feature/mf-hios-083-series-page-componentization`.
+> Current feature branch: none; `new` is current after MF-HIOS-083 through MF-HIOS-088 merges.
 
 ## Source-of-truth sync
 
@@ -14,8 +14,8 @@
 | MF-HIOS-050 through MF-HIOS-059 | implemented | Story packets in `docs/stories/` show `implemented`; harness matrix has implemented rows through MF-HIOS-059. |
 | MF-HIOS-060 through MF-HIOS-068 | implemented | Story packets show implemented componentization/modularization evidence. |
 | MF-HIOS-069 through MF-HIOS-082 | implemented | Story packets show `implemented`; `.harness/context/` packs were synced from stale planned status to implemented. |
-| MF-HIOS-083 | planned/current | Story packet, context pack, and verify script created for current feature branch. |
-| MF-HIOS-084 through MF-HIOS-101 | candidate planned | Listed below; create story packet/context/verify script only when selected. |
+| MF-HIOS-083 through MF-HIOS-088 | implemented | Story packets, verify scripts, and harness matrix rows pass for the completed MVP UI sequence plus SeriesListPanel admin reuse. |
+| MF-HIOS-089 through MF-HIOS-101 | candidate planned | Create story packet/context/verify script only when selected and only after required backend HTTP surface exists. |
 
 ### Known source boundaries
 
@@ -71,11 +71,14 @@ Operational checklist:
 
 ### MVP UI path
 
-1. **MF-HIOS-083: Series Page Componentization** - current story.
+Completed in order:
+
+1. **MF-HIOS-083: Series Page Componentization**.
 2. **MF-HIOS-086: Role Dashboard Hook Extraction**.
 3. **MF-HIOS-087: Admin Dashboard Hook Extraction**.
 4. **MF-HIOS-084: Chapter Detail Tab Extraction**.
 5. **MF-HIOS-085: Tasks Page Preview Dialog Extraction**.
+6. **MF-HIOS-088: SeriesListPanel Admin Reuse**.
 
 ### Stability/hardening path
 
@@ -85,56 +88,44 @@ Use this path if production readiness, security, or backend certainty becomes th
 2. Re-check **MF-HIOS-050 through MF-HIOS-059** API wiring evidence.
 3. Only then continue **MF-HIOS-089+** admin pages.
 
-## Current story: MF-HIOS-083
+## Current status
 
-Route: `/app/series`
+Completed stories on `new`:
 
-Branch: `feature/mf-hios-083-series-page-componentization`
+- `MF-HIOS-083` Series Page Componentization
+- `MF-HIOS-086` Role Dashboard Hook Extraction
+- `MF-HIOS-087` Admin Dashboard Hook Extraction
+- `MF-HIOS-084` Chapter Detail Tab Extraction
+- `MF-HIOS-085` Tasks Page Preview Dialog Extraction
+- `MF-HIOS-088` SeriesListPanel Admin Reuse
 
-Deliverables:
-
-- `client/src/features/series/hooks/useSeriesPage.ts` for page state, fetch, and mutations.
-- `client/src/features/series/components/SeriesListPanel.tsx` for list, loading, empty, and error presentation.
-- `client/src/features/series/utils/series-page.mappers.ts` for pure row/upload transforms.
-- `client/src/features/series/pages/SeriesPage.tsx` reduced to a thin composition shell.
-
-Acceptance:
-
-- Existing list, create, select, and manuscript upload behavior remains unchanged.
-- Existing API helpers remain the boundary; no backend/API/schema/permission changes.
-- Empty/loading/error states remain visible.
-- Client lint and build pass.
-- Harness story verification passes after trace/proof records are updated.
-
-Validation:
+Verified for each completed story:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/verify-mf-hios-083.ps1
-scripts/bin/harness-cli.exe story verify MF-HIOS-083
+powershell -ExecutionPolicy Bypass -File scripts/verify-mf-hios-XXX.ps1
+scripts/bin/harness-cli.exe story verify MF-HIOS-XXX
 ```
 
-## Upcoming story briefs
+## Next story audit
 
-### MF-HIOS-086: Role Dashboard Hook Extraction
+### MF-HIOS-089: Admin Users Management
 
-- Extract role-dashboard loading/config logic into `client/src/features/dashboard/hooks/useRoleDashboard.ts`.
-- Extract dashboard action/stat presentation if needed.
-- Preserve route behavior and navigation.
+Current backend evidence:
 
-### MF-HIOS-087: Admin Dashboard Hook Extraction
+- HTTP route confirmed: `POST /api/auth/admin/users`
+- Service-layer functions exist for list/update role/suspend/activate in `server/src/modules/admin/services/admin-user.service.ts`
+- Public HTTP endpoints for `GET/PATCH /api/admin/users` are **not** currently exposed in the inspected server routes
 
-- Extract admin dashboard summary loading into `client/src/features/admin/hooks/useAdminDashboard.ts`.
-- Keep current admin dashboard presentation and retry behavior.
+Implication:
 
-### MF-HIOS-084: Chapter Detail Tab Extraction
+- Full `MF-HIOS-089` UI implementation should not proceed as if list/update/suspend endpoints already exist.
+- Either add the missing backend HTTP surface first, or explicitly narrow `MF-HIOS-089` to the supported create-user slice with updated contract/docs.
 
-- Extract pages, review, and readiness tabs from `ChapterDetailPage.tsx`.
-- Preserve tab switching and existing data flow.
+Recommended next move:
 
-### MF-HIOS-085: Tasks Page Preview Dialog Extraction
-
-- Extract `TaskPreviewDialog` from `TasksPage.tsx`.
-- Preserve dialog state and preview behavior.
+1. Decide whether to expose missing admin-user HTTP routes now.
+2. If yes, do backend/API story first, then return to `MF-HIOS-089` UI.
+3. If no, split `MF-HIOS-089` and implement create-user-only UI against the real `POST /api/auth/admin/users` endpoint.
 
 ## Later admin/UI completion candidates
 
