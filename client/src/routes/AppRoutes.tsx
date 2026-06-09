@@ -1,3 +1,4 @@
+import { lazy } from "react"
 import { Navigate, Route } from "react-router-dom"
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute"
 import { MarketingLayout } from "@/shared/components/layout/MarketingLayout"
@@ -6,16 +7,17 @@ import { DashboardLayout } from "@/shared/components/layout/DashboardLayout"
 import { RoutePlaceholderPage } from "@/shared/components/feedback/RoutePlaceholderPage"
 import { LandingPage } from "@/features/marketing/pages/LandingPage"
 import { LoginPage } from "@/features/auth/pages/LoginPage"
-import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage"
-import { BoardPage } from "@/features/board/pages/BoardPage"
-import { ChapterDetailPage } from "@/features/chapter/pages/ChapterDetailPage"
-import { RoleDashboardPage } from "@/features/dashboard/pages/RoleDashboardPage"
-import { ReviewPage } from "@/features/review/pages/ReviewPage"
-import { SeriesDetailPage } from "@/features/series/pages/SeriesDetailPage"
-import { SeriesPage } from "@/features/series/pages/SeriesPage"
-import { TasksPage } from "@/features/task/pages/TasksPage"
-import { WorkspacePage } from "@/features/workspace/pages/WorkspacePage"
 import { AppHomeRedirect } from "./AppHomeRedirect"
+
+const AdminDashboardPage = lazy(() => import("@/features/admin/pages/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })))
+const BoardPage = lazy(() => import("@/features/board/pages/BoardPage").then((m) => ({ default: m.BoardPage })))
+const ChapterDetailPage = lazy(() => import("@/features/chapter/pages/ChapterDetailPage").then((m) => ({ default: m.ChapterDetailPage })))
+const RoleDashboardPage = lazy(() => import("@/features/dashboard/pages/RoleDashboardPage").then((m) => ({ default: m.RoleDashboardPage })))
+const ReviewPage = lazy(() => import("@/features/review/pages/ReviewPage").then((m) => ({ default: m.ReviewPage })))
+const SeriesDetailPage = lazy(() => import("@/features/series/pages/SeriesDetailPage").then((m) => ({ default: m.SeriesDetailPage })))
+const SeriesPage = lazy(() => import("@/features/series/pages/SeriesPage").then((m) => ({ default: m.SeriesPage })))
+const TasksPage = lazy(() => import("@/features/task/pages/TasksPage").then((m) => ({ default: m.TasksPage })))
+const WorkspacePage = lazy(() => import("@/features/workspace/pages/WorkspacePage").then((m) => ({ default: m.WorkspacePage })))
 
 const adminPlaceholders = [
   {
