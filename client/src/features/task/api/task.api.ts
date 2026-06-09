@@ -32,3 +32,6 @@ export function listTasksByAssignee(assigneeId: string) {
   return apiRequest<Task[]>(`/tasks/assignee/${assigneeId}`)
 }
 
+export function getTask(taskId: string) {
+  return apiRequest<Task>(`/tasks/${taskId}`)
+}

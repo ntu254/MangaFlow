@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "react-router-dom"
 import { MFEmptyState } from "@/shared/components/feedback/MFEmptyState"
 import { MFErrorState } from "@/shared/components/feedback/MFErrorState"
@@ -13,6 +14,7 @@ import {
 import { WorkspaceShell } from "@/shared/components/layout/WorkspaceShell"
 import { MFBadge, MFCard, MFPagePreviewCard } from "@/shared/components/ui"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
+import { getTask, type Task } from "@/features/task/api/task.api"
 
 const assignedTask = {
   title: "Clean tone pass for assigned page",
@@ -86,7 +88,38 @@ const versions: SubmissionVersionItem[] = [
   },
 ]
 
-function WorkspaceToolbar({ chapterId }: { chapterId?: string }) {
+function taskTypeLabel(task?: Task | null) {
+  if (!task) return assignedTask.taskTypeLabel
+  return typeof task.taskTypeId === "string" ? "Task type linked" : task.taskTypeId.name ?? "Task type linked"
+}
+
+function taskToScope(task?: Task | null) {
+  if (!task) return assignedTask
+
+  return {
+    title: task.title,
+    status: task.status,
+    scopeType: task.regionId ? "region" as const : "page" as const,
+    scopeLabel: task.pageId ? `Assigned page ${task.pageId}` : `Chapter ${task.chapterId}`,
+    description: task.description ?? "Backend task payload loaded for this assigned workspace.",
+    dueDateLabel: new Date(task.dueDate).toLocaleDateString(),
+    priority: task.priority,
+    assignedToLabel: `Assistant ${task.assignedTo}`,
+    taskTypeLabel: taskTypeLabel(task),
+  }
+}
+
+function contextFromTask(task?: Task | null): ContextPageItem[] {
+  if (!task?.contextPageIds?.length) return contextPages
+  return task.contextPageIds.map((contextPageId, index) => ({
+    id: contextPageId,
+    pageNumber: index + 1,
+    status: "READ_ONLY",
+    label: `Read-only context ${contextPageId}`,
+  }))
+}
+
+function WorkspaceToolbar({ taskId, isLive }: { taskId?: string; isLive: boolean }) {
   return (
     <div className="flex flex-col gap-sm md:flex-row md:items-center md:justify-between">
       <div className="min-w-0">
@@ -94,26 +127,29 @@ function WorkspaceToolbar({ chapterId }: { chapterId?: string }) {
           <MFBadge tone="primary" size="md">
             Assistant Task Workspace
           </MFBadge>
-          <MFBadge tone="warning" size="md">
-            API not connected
+          <MFBadge tone={isLive ? "success" : "warning"} size="md">
+            {isLive ? "Task API connected" : "Awaiting task payload"}
           </MFBadge>
         </div>
         <p className="mt-xs break-words text-label-sm text-on-surface-muted">
-          Route context: chapterId {chapterId ?? "not supplied"}. This screen shows
-          assigned-page-only workspace composition.
+          Route context id {taskId ?? "not supplied"}. This screen calls backend task access
+          and keeps page artwork/signed URLs out of scope.
         </p>
       </div>
     </div>
   )
 }
 
-function CanvasPanel() {
+function CanvasPanel({ task, loading, error, onRetry }: { task?: Task | null; loading: boolean; error: string; onRetry: () => void }) {
+  const pageNumber = task?.pageId ? 1 : 12
+  const pageStatus = task?.status ?? "IN_PROGRESS"
+
   return (
     <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-lg">
       <MFCard padding="lg" className="rounded-3xl">
         <div className="flex flex-col gap-lg lg:flex-row lg:items-start">
           <div className="w-full max-w-sm shrink-0 lg:max-w-md">
-            <MFPagePreviewCard pageNumber={12} status="IN_PROGRESS" isSelected />
+            <MFPagePreviewCard pageNumber={pageNumber} status={pageStatus} isSelected />
           </div>
 
           <div className="min-w-0 flex-1 space-y-lg">
@@ -127,13 +163,12 @@ function CanvasPanel() {
                 </MFBadge>
               </div>
               <h2 className="mt-md text-headline-md text-on-surface">
-                Chapter 08 - Page 12
+                {task?.title ?? "Chapter 08 - Page 12"}
               </h2>
               <p className="mt-sm text-body-md text-on-surface-muted">
-                This canvas presents the single assigned page as the primary work
-                surface. Context is intentionally separated into read-only cards so
-                the Assistant workspace does not expose unrelated chapter pages by
-                default.
+                {task
+                  ? "Backend task metadata is loaded through the task endpoint. Context remains explicit and read-only."
+                  : "This canvas presents the single assigned page as the primary work surface. Context is intentionally separated into read-only cards so the Assistant workspace does not expose unrelated chapter pages by default."}
               </p>
             </div>
 
@@ -141,7 +176,7 @@ function CanvasPanel() {
               <div className="rounded-2xl bg-surface-low p-lg">
                 <p className="text-label-sm text-on-surface-muted">Workspace source</p>
                 <p className="mt-xs text-label-md text-on-surface">
-                  Local presentation sample
+                  {task ? "Backend task payload" : "Local presentation fallback"}
                 </p>
               </div>
               <div className="rounded-2xl bg-surface-low p-lg">
@@ -161,14 +196,14 @@ function CanvasPanel() {
           Preview states are represented here without triggering network requests.
         </p>
         <div className="mt-lg grid gap-md lg:grid-cols-3">
-          <div className="rounded-3xl bg-surface-low p-lg" aria-label="Loading state preview">
+          <div className="rounded-3xl bg-surface-low p-lg" aria-label="Loading state preview" aria-busy={loading}>
             <div className="h-4 w-24 rounded-full bg-surface-container" />
             <div className="mt-md space-y-sm">
               <div className="h-3 rounded-full bg-surface-container" />
               <div className="h-3 w-2/3 rounded-full bg-surface-container" />
               <div className="h-3 w-1/2 rounded-full bg-surface-container" />
             </div>
-            <p className="mt-md text-label-sm text-on-surface-muted">Loading preview</p>
+            <p className="mt-md text-label-sm text-on-surface-muted">{loading ? "Loading task workspace..." : "Loading preview"}</p>
           </div>
           <MFEmptyState
             icon="assignment_late"
@@ -177,8 +212,8 @@ function CanvasPanel() {
           />
           <MFErrorState
             title="Workspace API unavailable"
-            description="This preview does not fetch data yet. Future API errors should stay recoverable."
-            onRetry={() => undefined}
+            description={error || "If the backend rejects access, this state remains recoverable without exposing page data."}
+            onRetry={onRetry}
           />
         </div>
       </MFCard>
@@ -186,12 +221,15 @@ function CanvasPanel() {
   )
 }
 
-function LeftPanel() {
+function LeftPanel({ task }: { task?: Task | null }) {
+  const scope = taskToScope(task)
+  const context = contextFromTask(task)
+
   return (
     <div className="space-y-lg">
-      <TaskScopeCard {...assignedTask} />
+      <TaskScopeCard {...scope} />
       <ContextPageList
-        pages={contextPages}
+        pages={context}
         description="Only explicitly supplied context pages appear here, and each one is read-only."
       />
     </div>
@@ -214,20 +252,53 @@ function RightPanel() {
 }
 
 export function WorkspacePage() {
-  const { chapterId } = useParams()
+  const { chapterId: taskId } = useParams()
+  const [task, setTask] = useState<Task | null>(null)
+  const [loading, setLoading] = useState(Boolean(taskId))
+  const [error, setError] = useState("")
   usePageTitle(
     "Task Workspace",
     "Assigned page workspace with read-only context and review history.",
   )
+
+  async function loadTask() {
+    if (!taskId) {
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    try {
+      const response = await getTask(taskId)
+      if (!response.success || !response.data) {
+        setTask(null)
+        setError(response.message ?? "Could not load task workspace.")
+        return
+      }
+      setTask(response.data)
+    } catch {
+      setTask(null)
+      setError("Could not reach MangaFlow task workspace API.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadTask()
+  }, [taskId])
+
+  const isLive = useMemo(() => Boolean(task), [task])
 
   return (
     <WorkspaceShell
       leftLabel="Task and context"
       canvasLabel="Assigned page canvas"
       rightLabel="Review history"
-      toolbar={<WorkspaceToolbar chapterId={chapterId} />}
-      leftPanel={<LeftPanel />}
-      canvas={<CanvasPanel />}
+      toolbar={<WorkspaceToolbar taskId={taskId} isLive={isLive} />}
+      leftPanel={<LeftPanel task={task} />}
+      canvas={<CanvasPanel task={task} loading={loading} error={error} onRetry={() => void loadTask()} />}
       rightPanel={<RightPanel />}
       className="min-h-[calc(100vh-8rem)]"
     />
