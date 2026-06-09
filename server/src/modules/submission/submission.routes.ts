@@ -26,6 +26,12 @@ router.get(
   controller.listTaskSubmissions,
 )
 
+router.get(
+  "/submissions/review-queue",
+  requireAuth,
+  controller.listReviewQueueSubmissions,
+)
+
 router.post(
   "/submissions/:submissionId/mangaka-approve",
   requireAuth,

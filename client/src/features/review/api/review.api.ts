@@ -8,11 +8,11 @@ export interface SubmissionReviewResult {
   chapterId: string
   pageId?: string
   regionId?: string
-  submittedBy: string
+  submittedBy: string | { name?: string; role?: string }
   version: number
   status: string
   resultText?: string
-  fileAssetId?: string
+  fileAssetId?: string | { originalName?: string }
   reviewerNote?: string
   createdAt: string
   updatedAt: string
@@ -44,4 +44,8 @@ export function rejectSubmission(input: ReviewActionInput) {
 
 export function editorApproveSubmission(input: ReviewActionInput) {
   return reviewAction(`/submissions/${input.submissionId}/editor-approve`, input.reviewerNote)
+}
+
+export function listReviewQueueSubmissions() {
+  return apiRequest<SubmissionReviewResult[]>("/submissions/review-queue")
 }

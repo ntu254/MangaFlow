@@ -5,6 +5,7 @@ import * as repository from "./submission.repository.js"
 import {
   createTaskSubmissionService,
   editorApproveSubmissionService,
+  listReviewQueueSubmissionsService,
   mangakaApproveSubmissionService,
   rejectSubmissionService,
   requestSubmissionRevisionService,
@@ -14,6 +15,7 @@ vi.mock("./submission.repository.js")
 vi.mock("../series/series.model.js", () => ({
   SeriesMember: {
     findOne: vi.fn(),
+    find: vi.fn(),
   },
 }))
 
@@ -214,5 +216,35 @@ describe("submission review service", () => {
         actor: { userId: "mangaka1", role: "MANGAKA" },
       }),
     ).rejects.toThrow(AppError)
+  })
+
+  it("lists Mangaka review queue submissions for active Mangaka memberships", async () => {
+    vi.mocked(SeriesMember.find).mockReturnValue({
+      lean: vi.fn().mockResolvedValue([{ seriesId: "series1" }]),
+    } as any)
+    vi.mocked(repository.listReviewQueueSubmissions).mockResolvedValue([{ id: "submission1", status: "SUBMITTED" }] as any)
+
+    const result = await listReviewQueueSubmissionsService({ userId: "mangaka1", role: "MANGAKA" })
+
+    expect(repository.listReviewQueueSubmissions).toHaveBeenCalledWith(["series1"], "SUBMITTED")
+    expect(result).toEqual([{ id: "submission1", status: "SUBMITTED" }])
+  })
+
+  it("lists Editor review queue submissions after Mangaka approval", async () => {
+    vi.mocked(SeriesMember.find).mockReturnValue({
+      lean: vi.fn().mockResolvedValue([{ seriesId: "series1" }]),
+    } as any)
+    vi.mocked(repository.listReviewQueueSubmissions).mockResolvedValue([{ id: "submission1", status: "MANGAKA_APPROVED" }] as any)
+
+    const result = await listReviewQueueSubmissionsService({ userId: "editor1", role: "EDITOR" })
+
+    expect(repository.listReviewQueueSubmissions).toHaveBeenCalledWith(["series1"], "MANGAKA_APPROVED")
+    expect(result).toEqual([{ id: "submission1", status: "MANGAKA_APPROVED" }])
+  })
+
+  it("blocks Assistants from review queue access", async () => {
+    await expect(
+      listReviewQueueSubmissionsService({ userId: "assistant1", role: "ASSISTANT" }),
+    ).rejects.toThrow("Review queue access denied")
   })
 })

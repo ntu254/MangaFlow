@@ -5,6 +5,7 @@ import {
   createSubmissionRecord,
   getSubmissionById,
   getTaskForSubmission,
+  listReviewQueueSubmissions,
   listSubmissionsByTask,
   updateSubmissionStatus,
   updateTaskStatusForSubmission,
@@ -105,6 +106,22 @@ export async function listTaskSubmissionsService(taskId: string, actor: Submissi
 
   await assertSeriesMember(String(task.seriesId), actor, ["MANGAKA", "EDITOR"])
   return listSubmissionsByTask(taskId)
+}
+
+export async function listReviewQueueSubmissionsService(actor: SubmissionActor) {
+  if (!["MANGAKA", "EDITOR"].includes(actor.role)) {
+    throw new AppError("Review queue access denied", 403)
+  }
+
+  const role = actor.role as "MANGAKA" | "EDITOR"
+  const members = await SeriesMember.find({ userId: actor.userId, role, isActive: true }).lean()
+  const seriesIds = members.map((member: any) => String(member.seriesId))
+  if (seriesIds.length === 0) {
+    return []
+  }
+
+  const status = role === "MANGAKA" ? "SUBMITTED" : "MANGAKA_APPROVED"
+  return listReviewQueueSubmissions(seriesIds, status)
 }
 
 export async function mangakaApproveSubmissionService(input: ReviewInput) {

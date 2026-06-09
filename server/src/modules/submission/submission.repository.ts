@@ -65,3 +65,11 @@ export async function listSubmissionsByTask(taskId: string) {
     .populate("fileAssetId", "originalName")
     .lean()
 }
+
+export async function listReviewQueueSubmissions(seriesIds: string[], status: SubmissionStatus) {
+  return Submission.find({ seriesId: { $in: seriesIds }, status })
+    .sort({ updatedAt: -1 })
+    .populate("submittedBy", "name role")
+    .populate("fileAssetId", "originalName")
+    .lean()
+}
