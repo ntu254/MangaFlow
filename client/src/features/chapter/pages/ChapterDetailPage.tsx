@@ -1,14 +1,10 @@
 import { MFBadge, MFButton, MFCard } from "@/shared/components/ui"
 import { PageShell } from "@/shared/components/layout/PageShell"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
-import {
-  ChapterDetailStatePreview,
-  ChapterOverviewPanel,
-  ChapterPagesPanel,
-  ChapterReadinessPanel,
-  ChapterReviewPanel,
-  ChapterTabsCard,
-} from "../components/ChapterDetailPanels"
+import { ChapterDetailStatePreview, ChapterOverviewPanel, ChapterTabsCard } from "../components/ChapterDetailPanels"
+import { ChapterPagesTab } from "../components/ChapterPagesTab"
+import { ChapterReadinessTab } from "../components/ChapterReadinessTab"
+import { ChapterReviewTab } from "../components/ChapterReviewTab"
 import { useChapterDetail } from "../hooks/useChapterDetail"
 
 export function ChapterDetailPage() {
@@ -29,65 +25,24 @@ export function ChapterDetailPage() {
                 <MFBadge tone="success" size="md">Task metadata API connected</MFBadge>
               </div>
               <h1 className="mt-md break-words text-headline-lg text-on-surface">Chapter 08 - Lantern Rain</h1>
-              <p className="mt-sm max-w-3xl text-body-md text-on-surface-muted">
-                This route loads page metadata, chapter task metadata, readiness, and publication actions from backend APIs when a real chapter id is available. Submission/comment/context panels remain bounded until their read APIs are selected.
-              </p>
+              <p className="mt-sm max-w-3xl text-body-md text-on-surface-muted">This route loads page metadata, chapter task metadata, readiness, and publication actions from backend APIs when a real chapter id is available. Submission/comment/context panels remain bounded until their read APIs are selected.</p>
             </div>
             <MFButton type="button" disabled>Upload pages disabled</MFButton>
           </div>
         </MFCard>
         <MFCard>
           <h2 className="text-title-lg text-on-surface">Route boundary</h2>
-          <p className="mt-sm text-body-md text-on-surface-muted">
-            Route id <span className="font-semibold text-on-surface">{chapter.id ?? "sample"}</span> drives page metadata, readiness, and publication API calls. Protected artwork and signed file URLs are not fetched here.
-          </p>
+          <p className="mt-sm text-body-md text-on-surface-muted">Route id <span className="font-semibold text-on-surface">{chapter.id ?? "sample"}</span> drives page metadata, readiness, and publication API calls. Protected artwork and signed file URLs are not fetched here.</p>
         </MFCard>
       </section>
 
-      <ChapterOverviewPanel
-        tasks={chapter.tasks}
-        pagesCount={chapter.pageRows.length}
-        featuredTask={chapter.featuredTask}
-        tasksError={chapter.tasksError}
-        tasksLoading={chapter.tasksLoading}
-        currentChapterId={chapter.chapterId}
-        loadTasks={chapter.loadTasks}
-      />
+      <ChapterOverviewPanel tasks={chapter.tasks} pagesCount={chapter.pageRows.length} featuredTask={chapter.featuredTask} tasksError={chapter.tasksError} tasksLoading={chapter.tasksLoading} currentChapterId={chapter.chapterId} loadTasks={chapter.loadTasks} />
 
-      <ChapterTabsCard
-        activeTab={chapter.activeTab}
-        setActiveTab={chapter.setActiveTab}
-        pageCount={chapter.pageRows.length}
-        readinessCount={chapter.readinessItems.length}
-      />
+      <ChapterTabsCard activeTab={chapter.activeTab} setActiveTab={chapter.setActiveTab} pageCount={chapter.pageRows.length} readinessCount={chapter.readinessItems.length} />
 
-      {chapter.activeTab === "pages" ? (
-        <ChapterPagesPanel
-          pagesError={chapter.pagesError}
-          pagesLoading={chapter.pagesLoading}
-          pageRows={chapter.pageRows}
-          loadPages={chapter.loadPages}
-          selectedPage={chapter.selectedPage}
-        />
-      ) : null}
-
-      {chapter.activeTab === "review" ? <ChapterReviewPanel /> : null}
-
-      {chapter.activeTab === "readiness" ? (
-        <ChapterReadinessPanel
-          readinessLoading={chapter.readinessLoading}
-          readinessItems={chapter.readinessItems}
-          readinessMessage={chapter.readinessMessage}
-          readinessSummaryTone={chapter.readinessSummaryTone}
-          publicationActionLoading={chapter.publicationActionLoading}
-          publicationMessage={chapter.publicationMessage}
-          scheduleInput={chapter.scheduleInput}
-          setScheduleInput={chapter.setScheduleInput}
-          handleCreatePublication={chapter.handleCreatePublication}
-          handleSchedulePublication={chapter.handleSchedulePublication}
-          handlePublishPublication={chapter.handlePublishPublication}
-        />
-      ) : null}
+      {chapter.activeTab === "pages" ? <ChapterPagesTab chapter={chapter} /> : null}
+      {chapter.activeTab === "review" ? <ChapterReviewTab /> : null}
+      {chapter.activeTab === "readiness" ? <ChapterReadinessTab chapter={chapter} /> : null}
 
       <ChapterDetailStatePreview />
     </PageShell>
