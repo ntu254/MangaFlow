@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
 import { config } from "./shared/utils/env.js"
 import authRoutes from "./modules/auth/auth.routes.js"
+import adminRoutes from "./modules/admin/admin.routes.js"
 import seriesRoutes from "./modules/series/series.routes.js"
 import boardRoutes from "./modules/board/board.routes.js"
 import manuscriptRoutes from "./modules/manuscript/manuscript.routes.js"
@@ -30,6 +31,7 @@ app.get("/api/health", (_req, res) => {
 })
 
 app.use("/api/auth", authRoutes)
+app.use("/api/admin", adminRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/series", seriesRoutes)
 app.use("/api/board", boardRoutes)
