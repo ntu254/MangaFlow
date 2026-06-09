@@ -19,6 +19,7 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| MF-HIOS-081 | ui-main.md, main.md | no | no | no | yes | implemented | Lazy route registry and placeholder route config extracted; client lint/build and docs verifiers passed. |
 | MF-HIOS-080 | ui-main.md, main.md | no | no | no | yes | implemented | Route-level lazy loading added; client lint/build and docs verifiers passed; initial bundle warning cleared. |
 | MF-HIOS-079 | chapter-production.md, page-workspace.md, publication-ranking.md | yes | no | no | yes | implemented | Chapter controller split into lifecycle, page, and readiness controller modules; server/client lint/build, 94 server tests, docs verifiers passed. |
 | MF-HIOS-078 | page-workspace.md, chapter-production.md, main.md | yes | no | no | yes | implemented | Chapter file controller split into page/file and region controller modules; server/client lint/build, 94 server tests, docs verifiers passed. |
@@ -52,6 +53,7 @@ implemented until tests or validation evidence exist.
   behavior that cannot be proven in lower layers.
 - A story can be implemented without every proof column if the story packet
   explains why.
+
 
 
 
