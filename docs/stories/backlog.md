@@ -35,24 +35,24 @@ new
 
 | Story | Branch | Status | Notes |
 | --- | --- | --- | --- |
-| MF-HIOS-083 Series Page Componentization | `feature/mf-hios-083-series-page-componentization` | planned/current | Story packet, context pack, and verify script exist. |
+| MF-HIOS-088 SeriesListPanel Admin Reuse | `feature/mf-hios-088-series-list-panel-admin-reuse` | implemented | Read-only/admin reuse props added; merged to `new`. |
 
 ## MVP UI queue
 
 | Order | Story | Status | Expected branch |
 | --- | --- | --- | --- |
-| 1 | MF-HIOS-083 Series Page Componentization | planned/current | `feature/mf-hios-083-series-page-componentization` |
-| 2 | MF-HIOS-086 Role Dashboard Hook Extraction | candidate | `feature/mf-hios-086-role-dashboard-hook-extraction` |
-| 3 | MF-HIOS-087 Admin Dashboard Hook Extraction | candidate | `feature/mf-hios-087-admin-dashboard-hook-extraction` |
-| 4 | MF-HIOS-084 Chapter Detail Tab Extraction | candidate | `feature/mf-hios-084-chapter-detail-tab-extraction` |
-| 5 | MF-HIOS-085 Tasks Page Preview Dialog Extraction | candidate | `feature/mf-hios-085-tasks-page-preview-dialog-extraction` |
+| 1 | MF-HIOS-083 Series Page Componentization | implemented | `feature/mf-hios-083-series-page-componentization` |
+| 2 | MF-HIOS-086 Role Dashboard Hook Extraction | implemented | `feature/mf-hios-086-role-dashboard-hook-extraction` |
+| 3 | MF-HIOS-087 Admin Dashboard Hook Extraction | implemented | `feature/mf-hios-087-admin-dashboard-hook-extraction` |
+| 4 | MF-HIOS-084 Chapter Detail Tab Extraction | implemented | `feature/mf-hios-084-chapter-detail-tab-extraction` |
+| 5 | MF-HIOS-085 Tasks Page Preview Dialog Extraction | implemented | `feature/mf-hios-085-tasks-page-preview-dialog-extraction` |
+| 6 | MF-HIOS-088 SeriesListPanel Admin Reuse | implemented | `feature/mf-hios-088-series-list-panel-admin-reuse` |
 
 ## Later candidates
 
 | Story | Status | Notes |
 | --- | --- | --- |
-| MF-HIOS-088 SeriesListPanel Admin Reuse | candidate | Depends on MF-HIOS-083. |
-| MF-HIOS-089 Admin Users Management | candidate | Confirm backend endpoints/contracts before implementation. |
+| MF-HIOS-089 Admin Users Management | blocked-by-api-gap | Only `POST /api/auth/admin/users` is exposed; no confirmed `GET/PATCH /api/admin/users` HTTP routes yet. |
 | MF-HIOS-090 Admin Board Members | candidate | Confirm board/admin boundary before implementation. |
 | MF-HIOS-091 Admin Series Monitor | candidate | Reuse MF-HIOS-088 panel. |
 | MF-HIOS-092 Admin Task Types Config | candidate | Must not hard-delete used TaskType records. |
@@ -73,3 +73,4 @@ new
 | MF-HIOS-050 through MF-HIOS-059 | implemented |
 | MF-HIOS-060 through MF-HIOS-068 | implemented |
 | MF-HIOS-069 through MF-HIOS-082 | implemented |
+| MF-HIOS-083 through MF-HIOS-088 | implemented |
