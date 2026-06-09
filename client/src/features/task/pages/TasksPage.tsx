@@ -22,7 +22,7 @@ import {
 import { useAuth } from "@/shared/components/auth"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
 import { taskPriorityUI, taskStatusUI } from "@/shared/lib/status-ui"
-import { listTasksByAssignee, type Task } from "../api/task.api"
+import { listTaskTypes, listTasksByAssignee, type Task, type TaskTypeRef } from "../api/task.api"
 import {
   CreateTaskDialog,
   type CreateTaskFormValues,
@@ -43,12 +43,6 @@ interface TaskRow {
 const assistantOptions: CreateTaskSelectOption[] = [
   { id: "assistant-view", label: "Assistant view" },
   { id: "nari-ito", label: "Nari Ito" },
-]
-
-const taskTypeOptions: CreateTaskSelectOption[] = [
-  { id: "tone-cleanup", label: "Tone cleanup" },
-  { id: "lettering", label: "Lettering alignment" },
-  { id: "background-cleanup", label: "Background cleanup" },
 ]
 
 const taskColumns: MFTableColumn<TaskRow>[] = [
@@ -161,8 +155,8 @@ function TaskStatePreview() {
             UI-only previews for loading, empty, error, submitted, and revision states.
           </p>
         </div>
-        <MFBadge tone="warning" size="md">
-          API not connected
+        <MFBadge tone="success" size="md">
+          Task type API connected
         </MFBadge>
       </div>
       <div className="mt-lg grid gap-md xl:grid-cols-4">
@@ -204,6 +198,9 @@ export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [tasksLoading, setTasksLoading] = useState(false)
   const [tasksError, setTasksError] = useState("")
+  const [taskTypes, setTaskTypes] = useState<TaskTypeRef[]>([])
+  const [taskTypesLoading, setTaskTypesLoading] = useState(false)
+  const [taskTypesError, setTaskTypesError] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [previewTask, setPreviewTask] = useState<CreateTaskFormValues | null>(null)
 
@@ -237,9 +234,29 @@ export function TasksPage() {
     }
   }
 
+  async function loadTaskTypes() {
+    setTaskTypesLoading(true)
+    setTaskTypesError("")
+    try {
+      const response = await listTaskTypes(true)
+      if (!response.success || !response.data) {
+        setTaskTypesError(response.message ?? "Could not load task types.")
+        setTaskTypes([])
+        return
+      }
+      setTaskTypes(response.data)
+    } catch {
+      setTaskTypesError("Could not reach MangaFlow task type API.")
+      setTaskTypes([])
+    } finally {
+      setTaskTypesLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!authLoading) {
       void loadTasks()
+      void loadTaskTypes()
     }
   }, [authLoading, user?.id])
 
@@ -253,6 +270,7 @@ export function TasksPage() {
   const pendingActions = useMemo(() => toActionItems(tasks), [tasks])
   const featuredTask = tasks[0] ?? null
   const contextPages = useMemo(() => toContextPages(featuredTask), [featuredTask])
+  const taskTypeOptions = useMemo(() => taskTypes.map((taskType) => ({ id: taskType.id ?? taskType._id ?? taskType.name ?? "task-type", label: taskType.name ?? "Task type", disabled: taskType.isActive === false })), [taskTypes])
 
   return (
     <PageShell>
@@ -266,6 +284,9 @@ export function TasksPage() {
                 </MFBadge>
                 <MFBadge tone="success" size="md">
                   Assignee API connected
+                </MFBadge>
+                <MFBadge tone={taskTypesError ? "warning" : "success"} size="md">
+                  {taskTypesError ? "Task type API fallback" : "Task type API connected"}
                 </MFBadge>
               </div>
               <h1 className="mt-md text-headline-lg text-on-surface">
@@ -287,8 +308,8 @@ export function TasksPage() {
         <MFCard>
           <h2 className="text-title-lg text-on-surface">Assignment boundary</h2>
           <p className="mt-sm text-body-md text-on-surface-muted">
-            Dialog options are still caller-supplied samples. This screen does not
-            decide whether an assistant is eligible or whether a task type is active.
+            Dialog options for task type now come from active backend TaskType records.
+            Assistant eligibility remains backend-owned and assistant options stay caller-supplied.
           </p>
         </MFCard>
       </section>
@@ -410,6 +431,20 @@ export function TasksPage() {
           )}
         </div>
       </section>
+
+      {taskTypesError ? (
+        <MFErrorState
+          title="Could not load task types"
+          description={taskTypesError}
+          onRetry={() => void loadTaskTypes()}
+        />
+      ) : null}
+
+      {taskTypesLoading ? (
+        <MFCard>
+          <p className="text-body-md text-on-surface-muted">Loading task types from backend...</p>
+        </MFCard>
+      ) : null}
 
       <TaskStatePreview />
 

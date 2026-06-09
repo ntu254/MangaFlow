@@ -5,6 +5,8 @@ export interface TaskTypeRef {
   _id?: string
   name?: string
   baseRate?: number
+  description?: string
+  isActive?: boolean
 }
 
 export interface Task {
@@ -34,4 +36,8 @@ export function listTasksByAssignee(assigneeId: string) {
 
 export function getTask(taskId: string) {
   return apiRequest<Task>(`/tasks/${taskId}`)
+}
+
+export function listTaskTypes(activeOnly = true) {
+  return apiRequest<TaskTypeRef[]>(`/tasks/types?activeOnly=${activeOnly ? "true" : "false"}`)
 }
