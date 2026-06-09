@@ -7,6 +7,7 @@ import { importRankingSchema, rankingIdParamsSchema } from "./ranking.validation
 
 const router = Router()
 
+router.get("/", requireAuth, requireRole("BOARD"), controller.listRankings)
 router.post("/import", requireAuth, requireRole("BOARD"), validate(importRankingSchema), controller.importRanking)
 router.post("/:rankingId/finalize", requireAuth, requireRole("BOARD"), validate(rankingIdParamsSchema, "params"), controller.finalizeRanking)
 

@@ -1,6 +1,6 @@
 ﻿import { AppError } from "../../shared/errors/AppError.js"
-import type { BoardVoteValue } from "../../shared/workflow/status.js"
-import { getBoardSeries, getDecisionBySeries, getOrCreateDecision, isBoardChair, listBoardQueueSeries, listBoardVotes, listEligibleBoardUsers, updateDecision, updateSeriesAfterDecision, upsertBoardVote } from "./board.repository.js"
+import type { AtRiskDecision, BoardVoteValue } from "../../shared/workflow/status.js"
+import { createAtRiskDecision, getBoardSeries, getDecisionBySeries, getOrCreateDecision, isBoardChair, listBoardQueueSeries, listBoardVotes, listEligibleBoardUsers, updateDecision, updateSeriesAfterDecision, upsertBoardVote } from "./board.repository.js"
 
 const RESULT_TO_SERIES = {
   APPROVE: "APPROVED",
@@ -76,4 +76,24 @@ export async function tieBreakBoardDecisionService(seriesId: string, userId: str
   if (decision.status !== "TIE_BREAK_REQUIRED") throw new AppError("Tie-break is not required", 409)
   await updateSeriesAfterDecision(seriesId, RESULT_TO_SERIES[value])
   return updateDecision(seriesId, value === "APPROVE" ? "APPROVED" : value === "REJECT" ? "REJECTED" : "NEEDS_REVISION", value, userId)
+}
+
+
+const AT_RISK_TO_SERIES = {
+  CONTINUE: "ONGOING",
+  WARNING: "AT_RISK",
+  REQUEST_IMPROVEMENT_PLAN: "AT_RISK",
+  CANCEL: "CANCELLED",
+} as const
+
+export async function createAtRiskDecisionService(seriesId: string, userId: string, decision: AtRiskDecision, note?: string) {
+  const series = await getBoardSeries(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  if (series.status !== "AT_RISK") {
+    throw new AppError("At-risk decision requires Series in AT_RISK status", 409)
+  }
+
+  const record = await createAtRiskDecision(seriesId, decision, userId, note?.trim() || undefined)
+  await updateSeriesAfterDecision(seriesId, AT_RISK_TO_SERIES[decision])
+  return record
 }

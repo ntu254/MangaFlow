@@ -1,4 +1,7 @@
 import { Chapter, Page, FileAsset, Region } from "./chapter.model.js"
+import { Comment } from "../comment/comment.model.js"
+import { Submission } from "../submission/submission.model.js"
+import { Task } from "../task/task.model.js"
 import { Series } from "../series/series.model.js"
 import type { ChapterStatus } from "../../shared/workflow/status.js"
 
@@ -187,4 +190,18 @@ export async function deleteRegionRepository(regionId: string): Promise<any | nu
     await Page.findByIdAndUpdate(region.pageId, { $pull: { regionIds: region._id } })
   }
   return region
+}
+
+export async function getChapterReadinessData(chapterId: string) {
+  const chapter = await Chapter.findById(chapterId).lean()
+  if (!chapter) return null
+
+  const [pages, tasks, submissions, blockingComments] = await Promise.all([
+    Page.find({ chapterId }).sort({ pageNumber: 1 }).lean(),
+    Task.find({ chapterId }).lean(),
+    Submission.find({ chapterId }).sort({ createdAt: -1 }).lean(),
+    Comment.find({ chapterId, isBlocking: true, status: { $ne: "RESOLVED_BY_EDITOR" } }).lean(),
+  ])
+
+  return { chapter, pages, tasks, submissions, blockingComments }
 }

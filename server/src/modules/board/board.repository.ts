@@ -1,7 +1,7 @@
 ﻿import { User } from "../auth/auth.model.js"
 import { Series } from "../series/series.model.js"
-import { BoardDecision, BoardMember, BoardVote } from "./board.model.js"
-import type { BoardDecisionStatus, BoardVoteValue, SeriesStatus } from "../../shared/workflow/status.js"
+import { AtRiskDecisionRecord, BoardDecision, BoardMember, BoardVote } from "./board.model.js"
+import type { AtRiskDecision, BoardDecisionStatus, BoardVoteValue, SeriesStatus } from "../../shared/workflow/status.js"
 
 
 export async function listBoardQueueSeries(): Promise<any[]> {
@@ -45,4 +45,9 @@ export async function updateDecision(seriesId: string, status: BoardDecisionStat
 
 export async function updateSeriesAfterDecision(seriesId: string, status: SeriesStatus): Promise<any> {
   return Series.findByIdAndUpdate(seriesId, { status }, { new: true })
+}
+
+
+export async function createAtRiskDecision(seriesId: string, decision: AtRiskDecision, decidedBy: string, note?: string): Promise<any> {
+  return AtRiskDecisionRecord.create({ seriesId, decision, decidedBy, note })
 }

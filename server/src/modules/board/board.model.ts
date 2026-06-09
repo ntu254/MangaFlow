@@ -1,5 +1,5 @@
 ﻿import mongoose, { Schema, type Document } from "mongoose"
-import { BOARD_DECISION_STATUSES, BOARD_VOTE_VALUES, type BoardDecisionStatus, type BoardVoteValue } from "../../shared/workflow/status.js"
+import { AT_RISK_DECISIONS, BOARD_DECISION_STATUSES, BOARD_VOTE_VALUES, type AtRiskDecision, type BoardDecisionStatus, type BoardVoteValue } from "../../shared/workflow/status.js"
 
 export interface BoardMemberDocument extends Document {
   userId: mongoose.Types.ObjectId
@@ -60,3 +60,27 @@ const boardDecisionSchema = new Schema<BoardDecisionDocument>(
 )
 
 export const BoardDecision = mongoose.model<BoardDecisionDocument>("BoardDecision", boardDecisionSchema)
+
+
+export interface AtRiskDecisionDocument extends Document {
+  seriesId: mongoose.Types.ObjectId
+  decision: AtRiskDecision
+  decidedBy: mongoose.Types.ObjectId
+  note?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+const atRiskDecisionSchema = new Schema<AtRiskDecisionDocument>(
+  {
+    seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, index: true },
+    decision: { type: String, enum: AT_RISK_DECISIONS, required: true, index: true },
+    decidedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    note: { type: String, trim: true, maxlength: 2000 },
+  },
+  { timestamps: true },
+)
+
+atRiskDecisionSchema.index({ seriesId: 1, createdAt: -1 })
+
+export const AtRiskDecisionRecord = mongoose.model<AtRiskDecisionDocument>("AtRiskDecision", atRiskDecisionSchema)

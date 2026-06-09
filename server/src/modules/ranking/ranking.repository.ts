@@ -1,4 +1,4 @@
-﻿import { Ranking } from "./ranking.model.js"
+import { Ranking } from "./ranking.model.js"
 
 export interface ImportRankingInput {
   period: string
@@ -14,6 +14,14 @@ export async function upsertRanking(input: ImportRankingInput): Promise<any> {
     { ...input, status: "IMPORTED" },
     { new: true, upsert: true, setDefaultsOnInsert: true },
   )
+}
+
+
+export async function listRankings(): Promise<any[]> {
+  return Ranking.find()
+    .sort({ finalScore: -1, voteCount: -1, updatedAt: -1 })
+    .populate("seriesId", "title")
+    .lean()
 }
 
 export async function getRankingById(rankingId: string): Promise<any | null> {

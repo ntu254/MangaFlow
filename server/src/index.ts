@@ -8,12 +8,14 @@ import seriesRoutes from "./modules/series/series.routes.js"
 import boardRoutes from "./modules/board/board.routes.js"
 import manuscriptRoutes from "./modules/manuscript/manuscript.routes.js"
 import rankingRoutes from "./modules/ranking/ranking.routes.js"
+import dashboardRoutes from "./modules/dashboard/dashboard.routes.js"
 import chapterRoutes from "./modules/chapter/chapter.routes.js"
 import fileRoutes from "./modules/chapter/file.routes.js"
 import taskRoutes from "./modules/task/task.routes.js"
 import submissionRoutes from "./modules/submission/submission.routes.js"
 import commentRoutes from "./modules/comment/comment.routes.js"
 import payrollRoutes from "./modules/payroll/payroll.routes.js"
+import publicationRoutes from "./modules/publication/publication.routes.js"
 import { errorHandler } from "./shared/middleware/errorHandler.js"
 
 const app = express()
@@ -27,6 +29,7 @@ app.get("/api/health", (_req, res) => {
 })
 
 app.use("/api/auth", authRoutes)
+app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/series", seriesRoutes)
 app.use("/api/board", boardRoutes)
 app.use("/api/manuscripts", manuscriptRoutes)
@@ -37,6 +40,7 @@ app.use("/api/tasks", taskRoutes)
 app.use("/api", submissionRoutes)
 app.use("/api/comments", commentRoutes)
 app.use("/api/payroll", payrollRoutes)
+app.use("/api/publications", publicationRoutes)
 
 app.use(errorHandler)
 

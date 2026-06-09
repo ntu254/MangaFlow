@@ -13,44 +13,59 @@ import { MFEmptyState } from "@/shared/components/feedback/MFEmptyState"
 import { MFErrorState } from "@/shared/components/feedback/MFErrorState"
 import { MFSkeleton } from "@/shared/components/feedback/MFSkeleton"
 import { PageShell } from "@/shared/components/layout/PageShell"
-import { MFBadge, MFCard, MFPagePreviewCard, MFTable, type MFTableColumn } from "@/shared/components/ui"
+import { MFBadge, MFButton, MFCard, MFTable, type MFTableColumn } from "@/shared/components/ui"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
-import { chapterStatusUI, pageStatusUI, taskStatusUI } from "@/shared/lib/status-ui"
+import { chapterStatusUI, taskStatusUI } from "@/shared/lib/status-ui"
+import { listChaptersBySeries, type Chapter } from "@/features/chapter/api/chapter.api"
 import { getSeries } from "../api/series.api"
 import type { Series } from "../api/series.types"
 
-interface ChapterRow { id: string; title: string; status: string; progress: string; updatedAt: string }
-interface PagePreview { id: string; pageNumber: number; status: string; label: string }
+interface ChapterRow {
+  id: string
+  title: string
+  number: string
+  status: string
+  schedule: string
+  updatedAt: string
+}
 
 const CHAPTER_READY_STATUSES = new Set(["APPROVED", "ONGOING", "AT_RISK"])
 
 const seriesDetailActions: ActionItem[] = [
-  { id: "series-action-1", title: "Manuscript workflow pending", description: "Manuscript upload/review API is not connected in this story.", metadata: "Boundary documented", icon: "rate_review", status: "TODO" },
+  { id: "series-action-1", title: "Chapter list connected", description: "Series Detail now loads live chapter rows from the backend.", metadata: "GET /api/chapters/series/:seriesId", icon: "menu_book", status: "IN_PROGRESS" },
   { id: "series-action-2", title: "Chapter creation remains gated", description: "Backend Board approval remains the source of truth.", metadata: "No chapter mutation here", icon: "lock", status: "REVISION_REQUESTED" },
 ]
 
-const chapterRows: ChapterRow[] = [
-  { id: "chapter-placeholder", title: "No live chapters connected", status: "TODO", progress: "0 of 0 pages", updatedAt: "Pending API" },
-]
-
-const pagePreviews: PagePreview[] = [
-  { id: "page-1", pageNumber: 1, status: "UPLOADED", label: "Placeholder" },
-  { id: "page-2", pageNumber: 2, status: "IN_PROGRESS", label: "Placeholder" },
-  { id: "page-3", pageNumber: 3, status: "APPROVED", label: "Placeholder" },
-]
-
 const chapterColumns: MFTableColumn<ChapterRow>[] = [
-  { id: "chapter", header: "Chapter", cell: (chapter) => <div><p className="text-label-md text-on-surface">{chapter.title}</p><p className="mt-xs text-label-sm text-on-surface-muted">Chapter API not connected</p></div> },
+  { id: "chapter", header: "Chapter", cell: (chapter) => <div><p className="break-words text-label-md text-on-surface">{chapter.title}</p><p className="mt-xs text-label-sm text-on-surface-muted">{chapter.number}</p></div> },
   { id: "status", header: "Status", cell: (chapter) => <StatusBadge status={chapter.status} mapping={chapterStatusUI} /> },
-  { id: "progress", header: "Progress", cell: (chapter) => chapter.progress },
+  { id: "schedule", header: "Schedule", cell: (chapter) => chapter.schedule },
   { id: "updated", header: "Updated", cell: (chapter) => chapter.updatedAt },
 ]
+
+function chapterId(chapter: Chapter) {
+  return chapter.id ?? chapter._id ?? `${chapter.seriesId}-${chapter.chapterNumber}`
+}
+
+function toChapterRows(chapters: Chapter[]): ChapterRow[] {
+  return chapters.map((chapter) => ({
+    id: chapterId(chapter),
+    title: chapter.title,
+    number: `Chapter ${chapter.chapterNumber}`,
+    status: chapter.status,
+    schedule: chapter.draftSchedule ? new Date(chapter.draftSchedule).toLocaleDateString() : "Not scheduled",
+    updatedAt: new Date(chapter.updatedAt).toLocaleDateString(),
+  }))
+}
 
 export function SeriesDetailPage() {
   const { id } = useParams()
   const [series, setSeries] = useState<Series | null>(null)
+  const [chapters, setChapters] = useState<Chapter[]>([])
   const [selectedManuscripts, setSelectedManuscripts] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [chapterLoading, setChapterLoading] = useState(true)
+  const [chapterError, setChapterError] = useState("")
   const [error, setError] = useState("")
 
   usePageTitle("Series Detail", "Review Series details loaded from the backend.")
@@ -59,6 +74,7 @@ export function SeriesDetailPage() {
     if (!id) {
       setError("Missing Series id.")
       setLoading(false)
+      setChapterLoading(false)
       return
     }
 
@@ -79,8 +95,33 @@ export function SeriesDetailPage() {
     }
   }
 
+  async function loadChapters() {
+    if (!id) {
+      setChapterLoading(false)
+      return
+    }
+
+    setChapterLoading(true)
+    setChapterError("")
+    try {
+      const response = await listChaptersBySeries(id)
+      if (!response.success || !response.data) {
+        setChapterError(response.message ?? "Could not load chapters.")
+        setChapters([])
+        return
+      }
+      setChapters(response.data)
+    } catch {
+      setChapterError("Could not reach MangaFlow chapters API.")
+      setChapters([])
+    } finally {
+      setChapterLoading(false)
+    }
+  }
+
   useEffect(() => {
     void loadSeries()
+    void loadChapters()
   }, [id])
 
   if (loading) {
@@ -96,6 +137,7 @@ export function SeriesDetailPage() {
   }
 
   const canCreateChapter = CHAPTER_READY_STATUSES.has(series.status)
+  const chapterRows = toChapterRows(chapters)
 
   return (
     <PageShell>
@@ -135,11 +177,19 @@ export function SeriesDetailPage() {
             seriesTitle={series.title}
             canCreateChapter={canCreateChapter}
             reason="Chapter creation is allowed only after backend status is APPROVED, ONGOING, or AT_RISK."
+            actionLabel={canCreateChapter ? "Backend gate ready" : "Create chapter blocked"}
           />
 
           <div>
             <h2 className="mb-md text-title-lg text-on-surface">Chapter progress</h2>
-            <ChapterProgressCard title="Chapter API pending" status="TODO" completed={0} total={0} description="Live chapter rows will appear in a later story." />
+            <ChapterProgressCard
+              title="Live chapters"
+              status={chapters.length > 0 ? "IN_PRODUCTION" : "DRAFT"}
+              completed={chapters.length}
+              total={chapters.length}
+              progressLabel="Chapters loaded"
+              description="Chapter records are loaded from the backend. Page-level progress remains a later page API slice."
+            />
           </div>
         </div>
 
@@ -171,25 +221,43 @@ export function SeriesDetailPage() {
 
       <section className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div>
-          <h2 className="mb-md text-title-lg text-on-surface">Chapter list</h2>
-          <MFTable caption="Series chapter list" rows={chapterRows} columns={chapterColumns} getRowKey={(chapter) => chapter.id} emptyTitle="No chapters for this Series" emptyDescription="Chapter rows will appear when backend chapter query is connected." />
+          <div className="mb-md flex flex-wrap items-center justify-between gap-md">
+            <h2 className="text-title-lg text-on-surface">Chapter list</h2>
+            <MFBadge tone="success" size="md">API connected</MFBadge>
+          </div>
+          {chapterError ? (
+            <MFErrorState
+              title="Could not load chapters"
+              description={chapterError}
+              onRetry={() => void loadChapters()}
+            />
+          ) : (
+            <MFTable
+              caption="Series chapter list"
+              rows={chapterRows}
+              columns={chapterColumns}
+              getRowKey={(chapter) => chapter.id}
+              loading={chapterLoading}
+              emptyTitle="No chapters for this Series"
+              emptyDescription="Chapters appear here after backend chapter creation succeeds for an approved, ongoing, or at-risk Series."
+            />
+          )}
         </div>
 
         <MFCard>
           <h2 className="text-title-lg text-on-surface">Page preview boundary</h2>
-          <p className="mt-xs text-body-md text-on-surface-muted">Preview cards are placeholders and do not fetch protected artwork.</p>
-          <div className="mt-lg grid grid-cols-3 gap-md">
-            {pagePreviews.map((page) => (
-              <div key={page.id} className="min-w-0">
-                <MFPagePreviewCard pageNumber={page.pageNumber} status={page.status} isSelected={page.pageNumber === 2} />
-                <p className="mt-sm break-words text-center text-label-sm text-on-surface-muted">{page.label}</p>
-              </div>
-            ))}
+          <p className="mt-xs text-body-md text-on-surface-muted">This slice reads chapter metadata only. Protected page artwork still requires page APIs and signed file access.</p>
+          <div className="mt-lg rounded-3xl bg-surface-low p-lg">
+            <MFEmptyState
+              icon="image"
+              title="Page previews not connected"
+              description="Page thumbnails will appear only after the protected page workspace and signed URL flow are wired."
+            />
           </div>
-          <div className="mt-md flex flex-wrap gap-sm">
-            <StatusBadge status="UPLOADED" mapping={pageStatusUI} />
-            <StatusBadge status="IN_PROGRESS" mapping={pageStatusUI} />
-            <StatusBadge status="APPROVED" mapping={pageStatusUI} />
+          <div className="mt-md">
+            <MFButton type="button" variant="outline" size="sm" disabled>
+              Page API pending
+            </MFButton>
           </div>
         </MFCard>
       </section>

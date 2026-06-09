@@ -1,6 +1,7 @@
-﻿import { apiRequest } from "@/shared/api/client"
+import { apiRequest } from "@/shared/api/client"
 
 export type BoardVoteValue = "APPROVE" | "REJECT" | "NEEDS_REVISION"
+export type AtRiskDecisionValue = "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL"
 
 export interface BoardVoteSummary {
   APPROVE: number
@@ -18,7 +19,6 @@ export interface BoardDecisionResponse {
   result?: BoardVoteValue
 }
 
-
 export interface BoardQueueItem {
   id: string
   seriesTitle: string
@@ -27,6 +27,13 @@ export interface BoardQueueItem {
   decisionStatus: string
   voteSummary: BoardVoteSummary
   updatedAt: string
+}
+
+export interface AtRiskDecisionResponse {
+  id: string
+  decision: AtRiskDecisionValue
+  note?: string
+  createdAt?: string
 }
 
 export function listBoardQueue() {
@@ -50,5 +57,12 @@ export function tieBreakBoardDecision(seriesId: string, value: BoardVoteValue) {
   return apiRequest<BoardDecisionResponse>(`/board/series/${seriesId}/decisions/tie-break`, {
     method: "POST",
     body: JSON.stringify({ value }),
+  })
+}
+
+export function createAtRiskDecision(seriesId: string, decision: AtRiskDecisionValue, note?: string) {
+  return apiRequest<AtRiskDecisionResponse>(`/board/series/${seriesId}/at-risk-decisions`, {
+    method: "POST",
+    body: JSON.stringify({ decision, note }),
   })
 }

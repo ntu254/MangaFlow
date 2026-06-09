@@ -34,6 +34,14 @@ router.get(
   controller.getChapter,
 )
 
+router.get(
+  "/:chapterId/readiness",
+  requireAuth,
+  requireRole("ADMIN", "MANGAKA", "EDITOR"),
+  validate(chapterIdParamsSchema, "params"),
+  controller.getChapterReadiness,
+)
+
 router.patch(
   "/:chapterId/status",
   requireAuth,

@@ -1,5 +1,5 @@
 ﻿import type { Request, Response } from "express"
-import { castBoardVoteService, finalizeBoardDecisionService, listBoardQueueService, tieBreakBoardDecisionService } from "./board.service.js"
+import { castBoardVoteService, createAtRiskDecisionService, finalizeBoardDecisionService, listBoardQueueService, tieBreakBoardDecisionService } from "./board.service.js"
 
 
 export async function listQueue(_req: Request, res: Response): Promise<void> {
@@ -20,4 +20,10 @@ export async function finalizeDecision(req: Request, res: Response): Promise<voi
 export async function tieBreakDecision(req: Request, res: Response): Promise<void> {
   const data = await tieBreakBoardDecisionService(String(req.params.seriesId), req.user!.userId, req.body.value)
   res.json({ success: true, message: "Board tie-break finalized", data })
+}
+
+
+export async function createAtRiskDecision(req: Request, res: Response): Promise<void> {
+  const data = await createAtRiskDecisionService(String(req.params.seriesId), req.user!.userId, req.body.decision, req.body.note)
+  res.status(201).json({ success: true, message: "At-risk decision recorded", data })
 }

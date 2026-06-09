@@ -8,3 +8,9 @@ export const seriesIdParamsSchema = z.object({
 export const boardVoteBodySchema = z.object({
   value: z.enum(["APPROVE", "REJECT", "NEEDS_REVISION"]),
 })
+
+
+export const atRiskDecisionBodySchema = z.object({
+  decision: z.enum(["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"]),
+  note: z.string().max(2000).optional(),
+})
