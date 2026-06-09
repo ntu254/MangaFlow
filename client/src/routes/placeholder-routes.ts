@@ -7,13 +7,6 @@ export interface PlaceholderRouteConfig {
 
 export const adminPlaceholderRoutes: PlaceholderRouteConfig[] = [
   {
-    path: "admin/users",
-    title: "Users",
-    description:
-      "Create users, update roles, and active/suspend accounts. Backend permissions remain source of truth.",
-    icon: "manage_accounts",
-  },
-  {
     path: "admin/board-members",
     title: "Board Members",
     description:

@@ -17,6 +17,10 @@ export const adminUpdateUserRoleSchema = z.object({
   role: z.enum(roles),
 })
 
+export const adminUpdateUserStatusSchema = z.object({
+  isActive: z.boolean(),
+})
+
 export const adminBoardMemberSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
 })

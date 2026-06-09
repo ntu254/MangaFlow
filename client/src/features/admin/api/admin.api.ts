@@ -36,3 +36,47 @@ export interface AdminDashboardSummary {
 export function getAdminSidebarSummary() {
   return apiRequest<AdminDashboardSummary>("/dashboard/admin/sidebar-summary")
 }
+
+export type AdminUserRole = "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR" | "BOARD"
+
+export interface AdminUser {
+  id: string
+  email: string
+  name: string
+  role: AdminUserRole
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface AdminCreateUserInput {
+  email: string
+  password: string
+  name: string
+  role: AdminUserRole
+}
+
+export function listAdminUsers() {
+  return apiRequest<AdminUser[]>("/admin/users")
+}
+
+export function createAdminUser(input: AdminCreateUserInput) {
+  return apiRequest<AdminUser>("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateAdminUserRole(userId: string, role: AdminUserRole) {
+  return apiRequest<AdminUser>(`/admin/users/${userId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  })
+}
+
+export function updateAdminUserStatus(userId: string, isActive: boolean) {
+  return apiRequest<AdminUser>(`/admin/users/${userId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  })
+}
