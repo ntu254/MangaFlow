@@ -145,6 +145,7 @@ export function ChapterDetailPage() {
   const [publicationId, setPublicationId] = useState("")
   const [scheduleInput, setScheduleInput] = useState("2026-06-24T00:00:00.000Z")
   const [publicationMessage, setPublicationMessage] = useState("No publication API action run yet.")
+  const [publicationActionLoading, setPublicationActionLoading] = useState(false)
 
   usePageTitle("Chapter Detail", "Review chapter production, page status, task context, and readiness presentation.")
 
@@ -175,15 +176,21 @@ export function ChapterDetailPage() {
   async function loadReadiness() {
     if (!chapterId) return
     setReadinessLoading(true)
-    const response = await getChapterReadiness(chapterId)
-    if (!response.success || !response.data) {
-      setReadinessMessage(response.message ?? "Could not load readiness.")
+    try {
+      const response = await getChapterReadiness(chapterId)
+      if (!response.success || !response.data) {
+        setReadinessMessage(response.message ?? "Could not load readiness.")
+        setReadinessItems(fallbackReadinessItems)
+      } else {
+        setReadinessItems(response.data.items.map((item) => ({ id: item.key, label: item.key.replace(/([A-Z])/g, " $1"), passed: item.passed, description: item.reason })))
+        setReadinessMessage(response.data.ready ? "Backend says this chapter is ready for publication." : "Backend says this chapter is still blocked for publication.")
+      }
+    } catch {
+      setReadinessMessage("Could not reach MangaFlow readiness API.")
       setReadinessItems(fallbackReadinessItems)
-    } else {
-      setReadinessItems(response.data.items.map((item) => ({ id: item.key, label: item.key, passed: item.passed, description: item.reason })))
-      setReadinessMessage(response.data.ready ? "Backend says this chapter is ready for publication." : "Backend says this chapter is still blocked for publication.")
+    } finally {
+      setReadinessLoading(false)
     }
-    setReadinessLoading(false)
   }
 
   useEffect(() => {
@@ -198,14 +205,21 @@ export function ChapterDetailPage() {
 
   async function handleCreatePublication() {
     if (!chapterId) return
-    const response = await createPublication(chapterId, scheduleInput)
-    if (!response.success || !response.data) {
-      setPublicationMessage(response.message ?? "Could not create publication.")
-      return
+    setPublicationActionLoading(true)
+    try {
+      const response = await createPublication(chapterId, scheduleInput)
+      if (!response.success || !response.data) {
+        setPublicationMessage(response.message ?? "Could not create publication.")
+        return
+      }
+      setPublicationId(response.data.id)
+      setPublicationMessage("Publication record created via backend.")
+      await loadReadiness()
+    } catch {
+      setPublicationMessage("Could not reach MangaFlow publication API.")
+    } finally {
+      setPublicationActionLoading(false)
     }
-    setPublicationId(response.data.id)
-    setPublicationMessage("Publication record created via backend.")
-    await loadReadiness()
   }
 
   async function handleSchedulePublication() {
@@ -213,9 +227,16 @@ export function ChapterDetailPage() {
       setPublicationMessage("Create a publication record first.")
       return
     }
-    const response = await schedulePublication(publicationId, scheduleInput)
-    setPublicationMessage(response.success ? "Publication schedule updated via backend." : response.message ?? "Could not schedule publication.")
-    await loadReadiness()
+    setPublicationActionLoading(true)
+    try {
+      const response = await schedulePublication(publicationId, scheduleInput)
+      setPublicationMessage(response.success ? "Publication schedule updated via backend." : response.message ?? "Could not schedule publication.")
+      await loadReadiness()
+    } catch {
+      setPublicationMessage("Could not reach MangaFlow publication API.")
+    } finally {
+      setPublicationActionLoading(false)
+    }
   }
 
   async function handlePublishPublication() {
@@ -223,9 +244,16 @@ export function ChapterDetailPage() {
       setPublicationMessage("Create a publication record first.")
       return
     }
-    const response = await publishPublication(publicationId)
-    setPublicationMessage(response.success ? "Chapter published through backend publication flow." : response.message ?? "Could not publish chapter.")
-    await loadReadiness()
+    setPublicationActionLoading(true)
+    try {
+      const response = await publishPublication(publicationId)
+      setPublicationMessage(response.success ? "Chapter published through backend publication flow." : response.message ?? "Could not publish chapter.")
+      await loadReadiness()
+    } catch {
+      setPublicationMessage("Could not reach MangaFlow publication API.")
+    } finally {
+      setPublicationActionLoading(false)
+    }
   }
 
   const readinessSummaryTone = useMemo(() => readinessItems.every((item) => item.passed) ? "success" : "warning", [readinessItems])
@@ -270,7 +298,7 @@ export function ChapterDetailPage() {
         <section className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="space-y-lg">
             {readinessLoading ? <MFCard><div className="h-48 rounded-3xl bg-surface-low" /></MFCard> : <PublicationReadinessChecklist items={readinessItems} description={readinessMessage} />}
-            <MFCard><div className="flex flex-wrap items-start justify-between gap-md"><div><h2 className="text-title-lg text-on-surface">Backend publication actions</h2><p className="mt-xs text-body-md text-on-surface-muted">Scheduling, readiness calculation, and publish calls now go to backend endpoints.</p></div><MFBadge tone={readinessSummaryTone} size="md">API-backed</MFBadge></div><div className="mt-lg space-y-md"><input className="w-full rounded-xl border border-outline-variant bg-surface-lowest px-md py-sm text-body-md" value={scheduleInput} onChange={(event) => setScheduleInput(event.target.value)} /><div className="flex flex-wrap gap-sm"><MFButton type="button" size="sm" onClick={() => void handleCreatePublication()}>Create publication</MFButton><MFButton type="button" variant="outline" size="sm" onClick={() => void handleSchedulePublication()}>Update schedule</MFButton><MFButton type="button" variant="outline" size="sm" onClick={() => void handlePublishPublication()}>Publish chapter</MFButton></div><p className="rounded-2xl bg-surface-low p-md text-body-md text-on-surface">{publicationMessage}</p></div></MFCard>
+            <MFCard><div className="flex flex-wrap items-start justify-between gap-md"><div><h2 className="text-title-lg text-on-surface">Backend publication actions</h2><p className="mt-xs text-body-md text-on-surface-muted">Scheduling, readiness calculation, and publish calls now go to backend endpoints.</p></div><MFBadge tone={readinessSummaryTone} size="md">API-backed</MFBadge></div><div className="mt-lg space-y-md"><input className="w-full rounded-xl border border-outline-variant bg-surface-lowest px-md py-sm text-body-md" value={scheduleInput} onChange={(event) => setScheduleInput(event.target.value)} /><div className="flex flex-wrap gap-sm"><MFButton type="button" size="sm" loading={publicationActionLoading} onClick={() => void handleCreatePublication()}>Create publication</MFButton><MFButton type="button" variant="outline" size="sm" loading={publicationActionLoading} onClick={() => void handleSchedulePublication()}>Update schedule</MFButton><MFButton type="button" variant="outline" size="sm" loading={publicationActionLoading} onClick={() => void handlePublishPublication()}>Publish chapter</MFButton></div><p className="rounded-2xl bg-surface-low p-md text-body-md text-on-surface">{publicationMessage}</p></div></MFCard>
           </div>
           <MFCard><h2 className="text-title-lg text-on-surface">Publication boundary</h2><p className="mt-xs text-body-md text-on-surface-muted">Backend still owns readiness rules and publish permission checks. This UI only calls explicit endpoints and renders their result.</p><div className="mt-lg flex flex-wrap gap-sm"><MFBadge tone="warning" size="md">Needs real chapter id</MFBadge><MFBadge tone="neutral" size="md">No local readiness math</MFBadge></div></MFCard>
         </section>
