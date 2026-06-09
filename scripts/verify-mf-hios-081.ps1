@@ -1,0 +1,10 @@
+npm run lint --prefix client
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+npm run build --prefix client
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+python scripts/verify-product-contract-scope.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+python scripts/verify-architecture-docs.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+python scripts/verify-ui-design-system.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
