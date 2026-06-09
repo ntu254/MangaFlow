@@ -119,6 +119,63 @@ Feature components may contain business-specific layout and data mapping, but sh
 
 ---
 
+# 5.1 Route Page Composition Rule
+
+Route-level page files should remain thin. A route page should usually handle
+only page title setup, hook orchestration, and high-level layout composition.
+
+Split a page when any of these are true:
+
+```txt
+The file exceeds roughly 250 lines.
+The page has more than four useState calls.
+The page calls more than two API surfaces.
+The page contains table columns, API mappers, and JSX together.
+The page contains multiple domain panels such as queue + decision + readiness.
+The page mixes local/sample fallback data with live API data.
+The page touches a high-risk boundary such as auth, Assistant access, Board, publication, payroll, or file access.
+```
+
+Preferred split order:
+
+```txt
+1. Move mappers and table columns to utils/.
+2. Move data loading and mutations to hooks/.
+3. Move domain panels to components/.
+4. Keep the page as layout composition only.
+```
+
+Recommended feature shape:
+
+```txt
+client/src/features/{feature}/
+├── api/
+│   ├── {feature}.api.ts
+│   ├── {feature}.types.ts
+│   └── {feature}.keys.ts        # future TanStack Query convention
+├── hooks/
+│   ├── use{Feature}PageData.ts
+│   └── use{ActionName}.ts
+├── components/
+│   ├── {Feature}Hero.tsx
+│   ├── {Feature}BoundaryCard.tsx
+│   ├── {Feature}Table.tsx
+│   ├── {Feature}ActionsPanel.tsx
+│   └── {Feature}StatePreview.tsx
+├── utils/
+│   ├── {feature}.mappers.ts
+│   └── {feature}.columns.tsx
+└── pages/
+    └── {Feature}Page.tsx
+```
+
+Feature panels should be split by domain responsibility, not by tiny visual
+fragments. Prefer `ReviewQueuePanel`, `ChapterReadinessTab`, or
+`WorkspaceCanvasPanel` over one-off wrappers such as `TitleText` or
+`SmallBadge`.
+
+---
+
 # 6. Required Component Rules
 
 ```txt
