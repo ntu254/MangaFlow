@@ -4,7 +4,10 @@ import { requireRole } from "../../shared/middleware/requireRole.js"
 import { validate } from "../../shared/middleware/validate.js"
 import * as controller from "./admin.controller.js"
 import {
+  adminBoardMemberSchema,
   adminCreateUserSchema,
+  adminSetBoardChairSchema,
+  adminUpdateBoardMemberStatusSchema,
   adminUpdateUserRoleSchema,
   adminUpdateUserStatusSchema,
   adminUserIdParamsSchema,
@@ -17,5 +20,10 @@ router.get("/users", controller.listAdminUsers)
 router.post("/users", validate(adminCreateUserSchema), controller.createAdminUser)
 router.patch("/users/:userId/role", validate(adminUserIdParamsSchema, "params"), validate(adminUpdateUserRoleSchema), controller.updateAdminUserRole)
 router.patch("/users/:userId/status", validate(adminUserIdParamsSchema, "params"), validate(adminUpdateUserStatusSchema), controller.updateAdminUserStatus)
+
+router.get("/board-members", controller.listAdminBoardMembers)
+router.post("/board-members", validate(adminBoardMemberSchema), controller.createAdminBoardMember)
+router.patch("/board-members/:userId/status", validate(adminUserIdParamsSchema, "params"), validate(adminUpdateBoardMemberStatusSchema), controller.updateAdminBoardMemberStatus)
+router.patch("/board-members/:userId/chair", validate(adminUserIdParamsSchema, "params"), validate(adminSetBoardChairSchema), controller.updateAdminBoardChair)
 
 export default router

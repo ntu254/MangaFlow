@@ -39,3 +39,11 @@ export const adminUpdateTaskTypeSchema = z.object({
   description: z.string().min(1).max(500).optional(),
   baseRate: z.number().int().nonnegative().optional(),
 })
+
+export const adminUpdateBoardMemberStatusSchema = z.object({
+  isActive: z.boolean(),
+})
+
+export const adminSetBoardChairSchema = z.object({
+  isChair: z.literal(true)
+})

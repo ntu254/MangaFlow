@@ -80,3 +80,40 @@ export function updateAdminUserStatus(userId: string, isActive: boolean) {
     body: JSON.stringify({ isActive }),
   })
 }
+
+export interface AdminBoardMember {
+  userId: string
+  email?: string
+  name?: string
+  role?: AdminUserRole
+  isUserActive: boolean
+  isActive: boolean
+  isChair: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export function listAdminBoardMembers() {
+  return apiRequest<AdminBoardMember[]>("/admin/board-members")
+}
+
+export function createAdminBoardMember(userId: string) {
+  return apiRequest<AdminBoardMember>("/admin/board-members", {
+    method: "POST",
+    body: JSON.stringify({ userId }),
+  })
+}
+
+export function updateAdminBoardMemberStatus(userId: string, isActive: boolean) {
+  return apiRequest<AdminBoardMember>(`/admin/board-members/${userId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  })
+}
+
+export function assignAdminBoardChair(userId: string) {
+  return apiRequest<AdminBoardMember>(`/admin/board-members/${userId}/chair`, {
+    method: "PATCH",
+    body: JSON.stringify({ isChair: true }),
+  })
+}

@@ -4,12 +4,17 @@ export const LazyAdminDashboardPage = lazy(() =>
   import("@/features/admin/pages/AdminDashboardPage").then((m) => ({
     default: m.AdminDashboardPage,
   })),
-);
+)
 export const LazyAdminUsersPage = lazy(() =>
   import("@/features/admin/pages/AdminUsersPage").then((m) => ({
     default: m.AdminUsersPage,
   })),
-);
+)
+export const LazyAdminBoardMembersPage = lazy(() =>
+  import("@/features/admin/pages/AdminBoardMembersPage").then((m) => ({
+    default: m.AdminBoardMembersPage,
+  })),
+)
 export const LazyBoardPage = lazy(() =>
   import("@/features/board/pages/BoardPage").then((m) => ({
     default: m.BoardPage,
