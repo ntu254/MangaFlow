@@ -19,6 +19,7 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| MF-HIOS-073 | task-assignment.md, page-workspace.md, main.md | yes | no | no | yes | implemented | Task/task-type controller split into dedicated modules; server/client lint/build, 66 server tests, docs verifiers passed. |
 | MF-HIOS-072 | ui-main.md, main.md | no | no | no | yes | implemented | App route tree extracted into dedicated modules; client lint/build and docs verifiers passed. |
 | MF-HIOS-071 | submission-review.md, task-assignment.md, comment-resolution.md | yes | no | no | yes | implemented | Submission service split into access policy, transition guard, query/create and review command modules; server/client lint/build, 66 server tests, docs verifiers passed. |
 | MF-HIOS-070 | comment-resolution.md, submission-review.md, page-workspace.md | yes | no | no | yes | implemented | Comment service split into access policy, transition guard, scope service, command/query modules; server/client lint/build, 66 server tests, docs verifiers passed. |
@@ -44,6 +45,7 @@ implemented until tests or validation evidence exist.
   behavior that cannot be proven in lower layers.
 - A story can be implemented without every proof column if the story packet
   explains why.
+
 
 
 
