@@ -55,6 +55,10 @@ export async function getCommentById(commentId: string) {
   return Comment.findById(commentId)
 }
 
+export async function listCommentsByTask(taskId: string) {
+  return Comment.find({ taskId }).sort({ createdAt: -1 }).populate("authorId", "name role").lean()
+}
+
 export async function updateCommentStatus(
   commentId: string,
   status: CommentStatus,

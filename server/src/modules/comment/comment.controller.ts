@@ -1,6 +1,7 @@
 import type { Request, Response } from "express"
 import {
   createCommentService,
+  listCommentsByTaskService,
   markCommentFixedService,
   reopenCommentService,
   resolveCommentService,
@@ -40,4 +41,20 @@ export async function resolveComment(req: Request, res: Response): Promise<void>
 export async function reopenComment(req: Request, res: Response): Promise<void> {
   const comment = await reopenCommentService(String(req.params.id), req.user!)
   res.json({ success: true, message: "Comment reopened", data: comment })
+}
+
+export async function listTaskComments(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const comments = await listCommentsByTaskService(
+    req.params.taskId as string,
+    req.user!,
+  )
+
+  res.json({
+    success: true,
+    message: "Comments retrieved successfully",
+    data: comments,
+  })
 }

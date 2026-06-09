@@ -14,7 +14,7 @@ import {
 import { WorkspaceShell } from "@/shared/components/layout/WorkspaceShell"
 import { MFBadge, MFCard, MFPagePreviewCard } from "@/shared/components/ui"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
-import { getTask, type Task } from "@/features/task/api/task.api"
+import { getTask, getTaskComments, getTaskSubmissions, type Task, type Comment, type SubmissionVersion } from "@/features/task/api/task.api"
 
 const assignedTask = {
   title: "Clean tone pass for assigned page",
@@ -41,50 +41,6 @@ const contextPages: ContextPageItem[] = [
     pageNumber: 13,
     status: "UPLOADED",
     label: "Next beat",
-  },
-]
-
-const comments: CommentThreadItem[] = [
-  {
-    id: "comment-1",
-    authorName: "Mika Tan",
-    authorRole: "Mangaka",
-    body: "Keep the background texture soft around the speech bubble so the lettering stays readable.",
-    status: "OPEN",
-    createdAt: "Today 09:20",
-    targetLabel: "Page 12 - upper panel",
-    isUnresolved: true,
-  },
-  {
-    id: "comment-2",
-    authorName: "Rin Sato",
-    authorRole: "Tantou Editor",
-    body: "Panel rhythm looks good. Please preserve the light source direction from the previous page.",
-    status: "VERIFIED_BY_MANGAKA",
-    createdAt: "Yesterday 16:45",
-    targetLabel: "Page 12 - full page",
-  },
-]
-
-const versions: SubmissionVersionItem[] = [
-  {
-    id: "submission-v2",
-    label: "Version 2",
-    submittedBy: "Assistant view",
-    submittedAt: "Today 11:35",
-    status: "SUBMITTED",
-    summary: "Tone cleanup preview attached for review. This route does not submit or upload files yet.",
-    fileName: "chapter-08-page-12-tone-pass-v2.psd",
-    isCurrent: true,
-  },
-  {
-    id: "submission-v1",
-    label: "Version 1",
-    submittedBy: "Assistant view",
-    submittedAt: "Yesterday 18:10",
-    status: "REVISION_REQUESTED",
-    summary: "Earlier presentation sample showing the revision state.",
-    fileName: "chapter-08-page-12-tone-pass-v1.psd",
   },
 ]
 
@@ -117,6 +73,32 @@ function contextFromTask(task?: Task | null): ContextPageItem[] {
     status: "READ_ONLY",
     label: `Read-only context ${contextPageId}`,
   }))
+}
+
+function mapCommentToThread(comment: Comment): CommentThreadItem {
+  return {
+    id: comment.id ?? comment._id ?? comment.taskId,
+    authorName: comment.authorId?.name ?? "Unknown",
+    authorRole: comment.authorId?.role,
+    body: comment.body,
+    status: comment.status,
+    createdAt: comment.createdAt,
+    targetLabel: comment.targetLabel,
+    isUnresolved: comment.isUnresolved ?? (comment.status !== "RESOLVED_BY_EDITOR"),
+  }
+}
+
+function mapSubmissionToVersion(submission: SubmissionVersion, index: number): SubmissionVersionItem {
+  return {
+    id: submission.id ?? submission._id ?? `${submission.taskId}-${submission.version}`,
+    label: `Version ${submission.version}`,
+    submittedBy: submission.submittedBy?.name ?? "Unknown",
+    submittedAt: submission.createdAt,
+    status: submission.status,
+    summary: submission.resultText,
+    fileName: submission.fileAssetId?.originalName,
+    isCurrent: index === 0,
+  }
 }
 
 function WorkspaceToolbar({ taskId, isLive }: { taskId?: string; isLive: boolean }) {
@@ -236,7 +218,7 @@ function LeftPanel({ task }: { task?: Task | null }) {
   )
 }
 
-function RightPanel() {
+function RightPanel({ comments, submissions }: { comments: CommentThreadItem[]; submissions: SubmissionVersionItem[] }) {
   return (
     <div className="space-y-lg">
       <CommentThread
@@ -244,7 +226,7 @@ function RightPanel() {
         description="Review notes are displayed without resolve or submit actions in this story."
       />
       <SubmissionVersionList
-        versions={versions}
+        versions={submissions}
         description="Version history preview only. Submission mutation is reserved for an API-backed story."
       />
     </div>
@@ -252,8 +234,10 @@ function RightPanel() {
 }
 
 export function WorkspacePage() {
-  const { chapterId: taskId } = useParams()
+  const { taskId } = useParams()
   const [task, setTask] = useState<Task | null>(null)
+  const [comments, setComments] = useState<CommentThreadItem[]>([])
+  const [submissions, setSubmissions] = useState<SubmissionVersionItem[]>([])
   const [loading, setLoading] = useState(Boolean(taskId))
   const [error, setError] = useState("")
   usePageTitle(
@@ -273,12 +257,32 @@ export function WorkspacePage() {
       const response = await getTask(taskId)
       if (!response.success || !response.data) {
         setTask(null)
+        setComments([])
+        setSubmissions([])
         setError(response.message ?? "Could not load task workspace.")
         return
       }
       setTask(response.data)
+
+      // Load comments and submissions for this task
+      const [commentsRes, submissionsRes] = await Promise.all([
+        getTaskComments(taskId),
+        getTaskSubmissions(taskId),
+      ])
+      if (commentsRes.success && commentsRes.data) {
+        setComments(commentsRes.data.map(mapCommentToThread))
+      } else {
+        setComments([])
+      }
+      if (submissionsRes.success && submissionsRes.data) {
+        setSubmissions(submissionsRes.data.map((submission, index) => mapSubmissionToVersion(submission, index)))
+      } else {
+        setSubmissions([])
+      }
     } catch {
       setTask(null)
+      setComments([])
+      setSubmissions([])
       setError("Could not reach MangaFlow task workspace API.")
     } finally {
       setLoading(false)
@@ -299,7 +303,7 @@ export function WorkspacePage() {
       toolbar={<WorkspaceToolbar taskId={taskId} isLive={isLive} />}
       leftPanel={<LeftPanel task={task} />}
       canvas={<CanvasPanel task={task} loading={loading} error={error} onRetry={() => void loadTask()} />}
-      rightPanel={<RightPanel />}
+      rightPanel={<RightPanel comments={comments} submissions={submissions} />}
       className="min-h-[calc(100vh-8rem)]"
     />
   )
