@@ -119,6 +119,11 @@ PageShell
 All components use TypeScript props.
 Shared UI components live under client/src/shared/components/ui.
 Feature components live under client/src/features/{feature}/components.
+Route pages should stay thin and primarily orchestrate layout + hooks.
+Route pages over roughly 250 lines or mixing multiple API surfaces should be split.
+Move table column definitions and API-to-UI mappers out of page files.
+Move data loading and mutation state into feature hooks before adding more panels.
+Prefer domain panels such as *Hero, *Panel, *Table, *BoundaryCard, *StatePreview, and *Tabs.
 Use cn() for class composition.
 Use Tailwind tokens, not raw colors.
 Wrap ShadCN primitives with MangaFlow components before use.
@@ -143,6 +148,7 @@ Shadow uses ambient/card/dropdown shadow.
 Empty/loading/error states exist.
 Mobile layout does not break.
 UI review checklist passes.
+If the page coordinates more than one API surface, hooks and panel components are separated enough to keep future wiring low-risk.
 ```
 
 ---

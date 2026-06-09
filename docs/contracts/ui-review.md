@@ -30,6 +30,36 @@ Danger actions require confirmation.
 Comment lifecycle must show current state.
 Publication readiness must show pass/fail checklist.
 Editor final approval must be visually distinct from Mangaka internal approval.
+Review Queue page must not become a single monolithic route component.
+Queue reads, decision actions, mapper logic, table columns, and preview panels should be split into hooks/components/utils.
+```
+
+## Required Review Page Shape
+
+```txt
+features/review/hooks/useReviewQueue.ts
+features/review/hooks/useReviewDecisionActions.ts
+features/review/components/ReviewHero.tsx
+features/review/components/ReviewWorkflowBoundaryCard.tsx
+features/review/components/ReviewQueuePanel.tsx
+features/review/components/ReviewActionListPanel.tsx
+features/review/components/ReviewDecisionPanel.tsx
+features/review/components/ReviewTargetPreview.tsx
+features/review/components/ReviewReadinessPreview.tsx
+features/review/components/ReviewStatePreview.tsx
+features/review/utils/review-queue.mappers.ts
+features/review/utils/review-table.columns.tsx
+```
+
+Implementation boundaries:
+
+```txt
+useReviewQueue owns queue fetch, loading, error, and refresh.
+useReviewDecisionActions owns approve/revision/reject action state and success refresh.
+ReviewQueuePanel renders table/loading/empty/error only.
+ReviewDecisionPanel renders form + ReviewDecisionBar only.
+Mappers convert backend submission data to UI rows/actions/version cards.
+The route page composes panels and should not own table columns or API mapping.
 ```
 
 ## Done Criteria
@@ -40,6 +70,8 @@ Editor final approval must be visually distinct from Mangaka internal approval.
 [ ] Unresolved comments are easy to find.
 [ ] Readiness checklist identifies blockers.
 [ ] Confirmation dialog exists for destructive actions.
+[ ] Review queue API logic is separated from Review Page layout.
+[ ] Review action mutation logic is separated from Review Page layout.
 ```
 [//]: # (Validation section appended by MF-HIOS-004.)
 
