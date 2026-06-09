@@ -4,7 +4,7 @@ import { PageShell } from "@/shared/components/layout/PageShell"
 import { usePageTitle } from "@/shared/contexts/PageTitleContext"
 import { ActionItemList } from "@/shared/components/domain"
 import { taskStatusUI } from "@/shared/lib/status-ui"
-import { CreateTaskDialog, TaskListPanel, TaskPreviewPanel } from "../components"
+import { CreateTaskDialog, TaskListPanel, TaskPreviewDialog, TaskPreviewPanel } from "../components"
 import { TaskStatePreview } from "../components/TaskStatePreview"
 import { useTasksPage } from "../hooks/useTasksPage"
 
@@ -69,37 +69,7 @@ export function TasksPage() {
         </MFCard>
       </section>
 
-      {previewTask ? (
-        <MFCard>
-          <div className="flex flex-wrap items-start justify-between gap-md">
-            <div>
-              <h2 className="text-title-lg text-on-surface">Local task preview</h2>
-              <p className="mt-xs text-body-md text-on-surface-muted">
-                Captured from the dialog only in browser state. No task was created.
-              </p>
-            </div>
-            <MFBadge tone="neutral" size="md">Local only</MFBadge>
-          </div>
-          <dl className="mt-lg grid gap-md sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl bg-surface-low p-md">
-              <dt className="text-label-sm text-on-surface-muted">Title</dt>
-              <dd className="mt-xs text-label-md text-on-surface">{previewTask.title || "Untitled task"}</dd>
-            </div>
-            <div className="rounded-xl bg-surface-low p-md">
-              <dt className="text-label-sm text-on-surface-muted">Task type</dt>
-              <dd className="mt-xs text-label-md text-on-surface">{previewTask.taskTypeId || "Not selected"}</dd>
-            </div>
-            <div className="rounded-xl bg-surface-low p-md">
-              <dt className="text-label-sm text-on-surface-muted">Assistant</dt>
-              <dd className="mt-xs text-label-md text-on-surface">{previewTask.assistantId || "Not selected"}</dd>
-            </div>
-            <div className="rounded-xl bg-surface-low p-md">
-              <dt className="text-label-sm text-on-surface-muted">Priority</dt>
-              <dd className="mt-xs text-label-md text-on-surface">{previewTask.priority}</dd>
-            </div>
-          </dl>
-        </MFCard>
-      ) : null}
+      <TaskPreviewDialog previewTask={previewTask} />
 
       <TaskPreviewPanel
         featuredTask={featuredTask}
