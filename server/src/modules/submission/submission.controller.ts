@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express"
 import {
   createTaskSubmissionService,
   editorApproveSubmissionService,
+  listReviewQueueSubmissionsService,
   listTaskSubmissionsService,
   mangakaApproveSubmissionService,
   rejectSubmissionService,
@@ -40,6 +41,20 @@ export async function listTaskSubmissions(
   res.json({
     success: true,
     message: "Submissions retrieved successfully",
+    data: submissions,
+  })
+}
+
+export async function listReviewQueueSubmissions(
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+): Promise<void> {
+  const submissions = await listReviewQueueSubmissionsService(req.user!)
+
+  res.json({
+    success: true,
+    message: "Review queue retrieved successfully",
     data: submissions,
   })
 }

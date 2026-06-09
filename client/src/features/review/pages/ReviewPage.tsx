@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   ActionItemList,
   CommentThread,
@@ -29,9 +29,11 @@ import {
 } from "@/shared/lib/status-ui"
 import {
   editorApproveSubmission,
+  listReviewQueueSubmissions,
   mangakaApproveSubmission,
   rejectSubmission,
   requestSubmissionRevision,
+  type SubmissionReviewResult,
 } from "../api/review.api"
 import type { ReviewDecisionAction } from "@/shared/components/domain"
 
@@ -44,77 +46,6 @@ interface ReviewQueueRow {
   owner: string
   age: string
 }
-
-const reviewActions: ActionItem[] = [
-  {
-    id: "review-action-1",
-    title: "Submission waiting for Mangaka review",
-    description: "Tone cleanup version 2 is ready for internal review.",
-    metadata: "Moonlit Atelier - Chapter 08 - Page 12",
-    icon: "rate_review",
-    status: "SUBMITTED",
-  },
-  {
-    id: "review-action-2",
-    title: "Unresolved comment blocks readiness",
-    description: "One review note must be handled before publication can proceed.",
-    metadata: "Publication readiness blocker",
-    icon: "forum",
-    status: "REVISION_REQUESTED",
-  },
-]
-
-const reviewRows: ReviewQueueRow[] = [
-  {
-    id: "review-1",
-    target: "Tone cleanup submission",
-    series: "Moonlit Atelier",
-    type: "Submission",
-    status: "SUBMITTED",
-    owner: "Mangaka review",
-    age: "Today",
-  },
-  {
-    id: "review-2",
-    target: "Initial manuscript v3",
-    series: "Paper Comet",
-    type: "Manuscript",
-    status: "REVISION_REQUESTED",
-    owner: "Editor review",
-    age: "Yesterday",
-  },
-  {
-    id: "review-3",
-    target: "Lettering alignment",
-    series: "Moonlit Atelier",
-    type: "Final approval",
-    status: "MANGAKA_APPROVED",
-    owner: "Editor final review",
-    age: "2 days",
-  },
-]
-
-const submissionVersions: SubmissionVersionItem[] = [
-  {
-    id: "submission-v2",
-    label: "Version 2",
-    submittedBy: "Assistant view",
-    submittedAt: "Today 11:35",
-    status: "SUBMITTED",
-    summary: "Latest tone cleanup preview. This page does not submit, approve, or upload files.",
-    fileName: "chapter-08-page-12-tone-pass-v2.psd",
-    isCurrent: true,
-  },
-  {
-    id: "submission-v1",
-    label: "Version 1",
-    submittedBy: "Assistant view",
-    submittedAt: "Yesterday 18:10",
-    status: "REVISION_REQUESTED",
-    summary: "Earlier sample version retained to show non-overwrite history.",
-    fileName: "chapter-08-page-12-tone-pass-v1.psd",
-  },
-]
 
 const comments: CommentThreadItem[] = [
   {
@@ -210,8 +141,8 @@ function ReviewStatePreview() {
             UI-only previews for loading, empty, error, resolved, submitted, and revision states.
           </p>
         </div>
-        <MFBadge tone="warning" size="md">
-          Queue API pending
+        <MFBadge tone="success" size="md">
+          Queue API connected
         </MFBadge>
       </div>
       <div className="mt-lg grid gap-md xl:grid-cols-4">
@@ -249,7 +180,71 @@ function ReviewStatePreview() {
   )
 }
 
+function submissionId(submission: SubmissionReviewResult) {
+  return submission.id ?? submission._id ?? `${submission.taskId}-${submission.version}`
+}
+
+function submittedByLabel(submission: SubmissionReviewResult) {
+  return typeof submission.submittedBy === "string"
+    ? `Assistant ${String(submission.submittedBy).slice(-6)}`
+    : submission.submittedBy.name ?? "Assistant"
+}
+
+function fileLabel(submission: SubmissionReviewResult) {
+  if (!submission.fileAssetId) return undefined
+  return typeof submission.fileAssetId === "string" ? "File linked" : submission.fileAssetId.originalName
+}
+
+function toReviewRows(submissions: SubmissionReviewResult[]): ReviewQueueRow[] {
+  return submissions.map((submission) => ({
+    id: submissionId(submission),
+    target: `Submission v${submission.version}`,
+    series: `Series ${String(submission.seriesId).slice(-6)}`,
+    type: submission.status === "MANGAKA_APPROVED" ? "Editor final approval" : "Mangaka review",
+    status: submission.status,
+    owner: submission.status === "MANGAKA_APPROVED" ? "Editor final review" : "Mangaka review",
+    age: new Date(submission.updatedAt ?? submission.createdAt).toLocaleDateString(),
+  }))
+}
+
+function toReviewActions(submissions: SubmissionReviewResult[]): ActionItem[] {
+  if (submissions.length === 0) {
+    return [{
+      id: "review-empty-action",
+      title: "No live review actions",
+      description: "Review items will appear after backend returns submissions for your role.",
+      metadata: "GET /api/submissions/review-queue",
+      icon: "rate_review",
+      status: "SUBMITTED",
+    }]
+  }
+  return submissions.slice(0, 3).map((submission) => ({
+    id: submissionId(submission),
+    title: `Review submission v${submission.version}`,
+    description: submission.resultText ?? "Submission is waiting for review.",
+    metadata: `${submission.status} - task ${String(submission.taskId).slice(-6)}`,
+    icon: "rate_review",
+    status: submission.status,
+  }))
+}
+
+function toSubmissionVersions(submissions: SubmissionReviewResult[]): SubmissionVersionItem[] {
+  return submissions.slice(0, 3).map((submission, index) => ({
+    id: submissionId(submission),
+    label: `Version ${submission.version}`,
+    submittedBy: submittedByLabel(submission),
+    submittedAt: new Date(submission.createdAt).toLocaleDateString(),
+    status: submission.status,
+    summary: submission.resultText,
+    fileName: fileLabel(submission),
+    isCurrent: index === 0,
+  }))
+}
+
 export function ReviewPage() {
+  const [queue, setQueue] = useState<SubmissionReviewResult[]>([])
+  const [queueLoading, setQueueLoading] = useState(true)
+  const [queueError, setQueueError] = useState("")
   const [decisionPreview, setDecisionPreview] = useState("No review API action run yet.")
   const [submissionId, setSubmissionId] = useState("")
   const [reviewerNote, setReviewerNote] = useState("Reviewed from MangaFlow review queue.")
@@ -260,6 +255,29 @@ export function ReviewPage() {
     "Review Queue",
     "Review submissions, send explicit review actions, and inspect readiness blockers.",
   )
+
+  async function loadReviewQueue() {
+    setQueueLoading(true)
+    setQueueError("")
+    try {
+      const response = await listReviewQueueSubmissions()
+      if (!response.success || !response.data) {
+        setQueue([])
+        setQueueError(response.message ?? "Could not load review queue.")
+        return
+      }
+      setQueue(response.data)
+    } catch {
+      setQueue([])
+      setQueueError("Could not reach MangaFlow review queue API.")
+    } finally {
+      setQueueLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadReviewQueue()
+  }, [])
 
   async function runReviewAction(action: ReviewDecisionAction) {
     if (!submissionId.trim()) {
@@ -284,12 +302,17 @@ export function ReviewPage() {
       }
 
       setDecisionPreview(`Backend accepted ${action}; submission status is ${response.data.status}.`)
+      await loadReviewQueue()
     } catch {
       setDecisionPreview("Could not reach MangaFlow submission review API.")
     } finally {
       setLoadingAction(null)
     }
   }
+
+  const reviewRows = useMemo(() => toReviewRows(queue), [queue])
+  const reviewActions = useMemo(() => toReviewActions(queue), [queue])
+  const submissionVersions = useMemo(() => toSubmissionVersions(queue), [queue])
 
   return (
     <PageShell>
@@ -304,12 +327,15 @@ export function ReviewPage() {
                 <MFBadge tone="success" size="md">
                   Review API actions connected
                 </MFBadge>
+                <MFBadge tone="success" size="md">
+                  Queue API connected
+                </MFBadge>
               </div>
               <h1 className="mt-md text-headline-lg text-on-surface">
                 Review queue
               </h1>
               <p className="mt-sm max-w-3xl text-body-md text-on-surface-muted">
-                This page keeps sample queue display but sends review decisions to
+                This page loads backend review queue submissions for the current role and sends
                 explicit backend submission action endpoints when a real submission id is provided.
                 Comment lifecycle, readiness updates, payroll triggers, and file access remain backend-owned.
               </p>
@@ -333,14 +359,7 @@ export function ReviewPage() {
         </div>
         <div>
           <h2 className="mb-md text-title-lg text-on-surface">Review queue</h2>
-          <MFTable
-            caption="Review queue"
-            rows={reviewRows}
-            columns={reviewColumns}
-            getRowKey={(row) => row.id}
-            emptyTitle="No review items"
-            emptyDescription="Review records will appear here when a backend query is connected."
-          />
+          {queueError ? <MFErrorState title="Could not load review queue" description={queueError} onRetry={() => void loadReviewQueue()} /> : <MFTable caption="Review queue" rows={reviewRows} columns={reviewColumns} getRowKey={(row) => row.id} loading={queueLoading} emptyTitle="No review items" emptyDescription="Review records will appear here when backend returns submissions for your role." />}
         </div>
       </section>
 
@@ -392,7 +411,7 @@ export function ReviewPage() {
           </MFCard>
           <SubmissionVersionList
             versions={submissionVersions}
-            description="Version history preview only. Submission review mutation is reserved for an API-backed story."
+            description="Recent backend review queue submissions. Use the submission id above to send a review action."
           />
         </div>
 
