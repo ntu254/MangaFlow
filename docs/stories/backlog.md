@@ -35,7 +35,7 @@ new
 
 | Story | Branch | Status | Notes |
 | --- | --- | --- | --- |
-| MF-HIOS-091 Admin Series Monitor | current worktree | implemented | Read-only Admin series monitor added with backend Admin list-access proof. |
+| MF-HIOS-093 Admin Task Rates Config | current worktree | implemented | Admin default-rate page added without changing payroll formula or existing task snapshots. |
 
 ## MVP UI queue
 
@@ -56,7 +56,7 @@ new
 | MF-HIOS-090 Admin Board Members | implemented | Admin Board member routes/page implemented and governance-verified. |
 | MF-HIOS-091 Admin Series Monitor | implemented | Reuses MF-HIOS-088 panel in read-only monitor mode. |
 | MF-HIOS-092 Admin Task Types Config | implemented | Admin routes/page added; must not hard-delete used TaskType records. |
-| MF-HIOS-093 Admin Task Rates Config | candidate | Payroll rules are high-risk if changed. |
+| MF-HIOS-093 Admin Task Rates Config | implemented | Admin default-rate UI added; payroll formula and existing Task.baseRate snapshots remain unchanged. |
 | MF-HIOS-094 Admin Payroll Tracking | candidate | Payroll/audit changes need explicit proof. |
 | MF-HIOS-095 Admin Storage Monitor | candidate | File access/signed URL boundaries are high-risk. |
 | MF-HIOS-096 Admin AI Service Monitor | candidate | AI service/browser access boundary must remain backend-mediated. |
