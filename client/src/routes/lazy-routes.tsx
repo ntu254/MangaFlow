@@ -137,10 +137,10 @@ export const LazyMangakaCommentsPlaceholder = lazyComingSoon(
   "Comments",
   "Review threaded comments on content.",
 );
-export const LazyMangakaRankingPlaceholder = lazyComingSoon(
-  "/app/mangaka/ranking",
-  "Ranking",
-  "View ranking signals for owned series.",
+export const LazyMangakaRankingPage = lazy(() =>
+  import("@/features/ranking/pages/MangakaRankingPage").then((m) => ({
+    default: m.MangakaRankingPage,
+  })),
 );
 export const LazyMangakaPayrollPlaceholder = lazyComingSoon(
   "/app/mangaka/payroll",

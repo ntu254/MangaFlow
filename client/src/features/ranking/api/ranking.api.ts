@@ -23,6 +23,10 @@ export function listRankings() {
   return apiRequest<RankingRecord[]>("/rankings")
 }
 
+export function listMangakaRankings() {
+  return apiRequest<RankingRecord[]>("/rankings/my-rankings")
+}
+
 export function importRanking(input: ImportRankingInput) {
   return apiRequest<RankingRecord>("/rankings/import", {
     method: "POST",

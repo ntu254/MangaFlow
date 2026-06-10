@@ -1,5 +1,5 @@
 ﻿import type { Request, Response } from "express"
-import { finalizeRankingService, importRankingService, listRankingsService } from "./ranking.service.js"
+import { finalizeRankingService, importRankingService, listMangakaRankingsService, listRankingsService } from "./ranking.service.js"
 
 
 export async function listRankings(_req: Request, res: Response): Promise<void> {
@@ -15,4 +15,10 @@ export async function importRanking(req: Request, res: Response): Promise<void> 
 export async function finalizeRanking(req: Request, res: Response): Promise<void> {
   const ranking = await finalizeRankingService(String(req.params.rankingId))
   res.json({ success: true, message: "Ranking finalized", data: ranking })
+}
+
+
+export async function listMangakaRankings(req: Request, res: Response): Promise<void> {
+  const rankings = await listMangakaRankingsService(String(req.user!.userId))
+  res.json({ success: true, message: "Mangaka rankings retrieved", data: rankings })
 }

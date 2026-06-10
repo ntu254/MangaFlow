@@ -1,5 +1,6 @@
-﻿import { AppError } from "../../shared/errors/AppError.js"
-import { getRankingById, listRankings, updateRankingStatus, upsertRanking } from "./ranking.repository.js"
+import { AppError } from "../../shared/errors/AppError.js"
+import { getRankingById, listRankings, listRankingsBySeriesIds, updateRankingStatus, upsertRanking } from "./ranking.repository.js"
+import { listSeriesForActor } from "../series/repositories/series.repository.js"
 
 export interface ImportRankingServiceInput {
   period: string
@@ -37,4 +38,10 @@ export async function finalizeRankingService(rankingId: string) {
     throw new AppError("Only imported or reviewed ranking can be finalized", 409)
   }
   return updateRankingStatus(rankingId, "FINALIZED")
+}
+
+
+export async function listMangakaRankingsService(mangakaId: string) {
+  const series = await listSeriesForActor(mangakaId, "MANGAKA")
+  return listRankingsBySeriesIds(series.map((item) => item._id))
 }

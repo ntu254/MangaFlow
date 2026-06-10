@@ -24,6 +24,14 @@ export async function listRankings(): Promise<any[]> {
     .lean()
 }
 
+
+export async function listRankingsBySeriesIds(seriesIds: unknown[]): Promise<any[]> {
+  return Ranking.find({ seriesId: { $in: seriesIds } })
+    .sort({ finalScore: -1, voteCount: -1, updatedAt: -1 })
+    .populate("seriesId", "title")
+    .lean()
+}
+
 export async function getRankingById(rankingId: string): Promise<any | null> {
   return Ranking.findById(rankingId)
 }
