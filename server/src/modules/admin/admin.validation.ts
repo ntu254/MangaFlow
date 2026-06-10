@@ -40,6 +40,10 @@ export const adminUpdateTaskTypeSchema = z.object({
   baseRate: z.number().int().nonnegative().optional(),
 })
 
+export const adminUpdateTaskTypeStatusSchema = z.object({
+  isActive: z.boolean(),
+})
+
 export const adminUpdateBoardMemberStatusSchema = z.object({
   isActive: z.boolean(),
 })

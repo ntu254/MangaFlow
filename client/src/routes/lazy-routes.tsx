@@ -24,6 +24,16 @@ export const LazyAdminBoardMembersPage = lazy(() =>
     default: m.AdminBoardMembersPage,
   })),
 );
+export const LazyAdminSeriesMonitorPage = lazy(() =>
+  import("@/features/admin/pages/AdminSeriesMonitorPage").then((m) => ({
+    default: m.AdminSeriesMonitorPage,
+  })),
+);
+export const LazyAdminTaskTypesPage = lazy(() =>
+  import("@/features/admin/pages/AdminTaskTypesPage").then((m) => ({
+    default: m.AdminTaskTypesPage,
+  })),
+);
 export const LazyBoardPage = lazy(() =>
   import("@/features/board/pages/BoardPage").then((m) => ({
     default: m.BoardPage,
@@ -66,16 +76,6 @@ export const LazyWorkspacePage = lazy(() =>
 );
 
 // Placeholder shells for reserved routes not yet wired to real pages.
-export const LazyAdminSeriesPlaceholder = lazyComingSoon(
-  "/app/admin/series",
-  "Series Monitor",
-  "View all series, statuses, owners, and editors. Admin observes; Board approval remains Board-owned.",
-);
-export const LazyAdminTaskTypesPlaceholder = lazyComingSoon(
-  "/app/admin/task-types",
-  "Task Types",
-  "Configure production task types such as translation, cleanup, and lettering.",
-);
 export const LazyAdminTaskRatesPlaceholder = lazyComingSoon(
   "/app/admin/task-rates",
   "Task Rates",

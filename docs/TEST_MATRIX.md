@@ -19,6 +19,9 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| MF-HIOS-091 | ui-admin.md, series-proposal.md, main.md | yes | no | no | yes | implemented | Admin Series Monitor read-only page added using existing `/api/series`; Admin list access regression test added; `scripts/verify-mf-hios-091.ps1` passed server/client lint/build and 13 server series tests. |
+| MF-HIOS-092 | ui-admin.md, task-assignment.md, payroll.md, main.md | yes | no | no | yes | implemented | Admin Task Types config routes/page added; used TaskType records are deactivated instead of hard-deleted; `scripts/verify-mf-hios-092.ps1` passed server/client lint/build and 26 server admin/task tests. |
+| MF-HIOS-090 | ui-admin.md, admin-dashboard.md, board-approval.md, auth.md | yes | no | no | yes | implemented | Durable Harness governance closed; `scripts/verify-mf-hios-090.ps1` passed server/client lint/build and 13 server admin/auth tests. |
 | MF-HIOS-082 | submission-review.md, task-assignment.md, main.md | yes | no | no | yes | implemented | Submission controller split into query and review controller modules; server/client lint/build, 94 server tests, docs verifiers passed. |
 | MF-HIOS-081 | ui-main.md, main.md | no | no | no | yes | implemented | Lazy route registry and placeholder route config extracted; client lint/build and docs verifiers passed. |
 | MF-HIOS-080 | ui-main.md, main.md | no | no | no | yes | implemented | Route-level lazy loading added; client lint/build and docs verifiers passed; initial bundle warning cleared. |

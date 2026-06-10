@@ -10,13 +10,13 @@ import {
   LazyAdminDashboardPage,
   LazyAdminUsersPage,
   LazyAdminBoardMembersPage,
+  LazyAdminSeriesMonitorPage,
+  LazyAdminTaskTypesPage,
   LazyChapterDetailPage,
   LazyRoleDashboardPage,
   LazySeriesDetailPage,
   LazyTasksPage,
   LazyWorkspacePage,
-  LazyAdminSeriesPlaceholder,
-  LazyAdminTaskTypesPlaceholder,
   LazyAdminTaskRatesPlaceholder,
   LazyAdminPayrollPlaceholder,
   LazyAdminStoragePlaceholder,
@@ -82,8 +82,8 @@ export function AppRoutes() {
             <Route path={APP_ROUTES.admin.users.replace(/^\/app\//, "")} element={<LazyAdminUsersPage />} />
             <Route path={APP_ROUTES.admin.boardMembers.replace(/^\/app\//, "")} element={<LazyAdminBoardMembersPage />} />
             {redirectAdmin}
-            <Route path={APP_ROUTES.admin.series.replace(/^\/app\//, "")} element={<LazyAdminSeriesPlaceholder />} />
-            <Route path={APP_ROUTES.admin.taskTypes.replace(/^\/app\//, "")} element={<LazyAdminTaskTypesPlaceholder />} />
+            <Route path={APP_ROUTES.admin.series.replace(/^\/app\//, "")} element={<LazyAdminSeriesMonitorPage />} />
+            <Route path={APP_ROUTES.admin.taskTypes.replace(/^\/app\//, "")} element={<LazyAdminTaskTypesPage />} />
             <Route path={APP_ROUTES.admin.taskRates.replace(/^\/app\//, "")} element={<LazyAdminTaskRatesPlaceholder />} />
             <Route path={APP_ROUTES.admin.payroll.replace(/^\/app\//, "")} element={<LazyAdminPayrollPlaceholder />} />
             <Route path={APP_ROUTES.admin.storage.replace(/^\/app\//, "")} element={<LazyAdminStoragePlaceholder />} />

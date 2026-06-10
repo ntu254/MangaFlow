@@ -117,3 +117,55 @@ export function assignAdminBoardChair(userId: string) {
     body: JSON.stringify({ isChair: true }),
   })
 }
+
+export interface AdminTaskType {
+  id: string
+  name: string
+  description: string
+  baseRate: number
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface AdminTaskTypeInput {
+  name: string
+  description: string
+  baseRate: number
+}
+
+export interface AdminTaskTypeUpdateInput {
+  description?: string
+  baseRate?: number
+}
+
+export function listAdminTaskTypes() {
+  return apiRequest<AdminTaskType[]>("/admin/task-types")
+}
+
+export function createAdminTaskType(input: AdminTaskTypeInput) {
+  return apiRequest<AdminTaskType>("/admin/task-types", {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateAdminTaskType(taskTypeId: string, input: AdminTaskTypeUpdateInput) {
+  return apiRequest<AdminTaskType>(`/admin/task-types/${taskTypeId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateAdminTaskTypeStatus(taskTypeId: string, isActive: boolean) {
+  return apiRequest<AdminTaskType>(`/admin/task-types/${taskTypeId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  })
+}
+
+export function deleteAdminTaskType(taskTypeId: string) {
+  return apiRequest<AdminTaskType | null>(`/admin/task-types/${taskTypeId}`, {
+    method: "DELETE",
+  })
+}
