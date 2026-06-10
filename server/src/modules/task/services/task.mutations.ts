@@ -69,7 +69,20 @@ async function loadManagedTask(taskId: string, actor: TaskActor) {
 }
 
 export async function updateTaskStatusService(taskId: string, actor: TaskActor, status: TaskStatus) {
-  await loadManagedTask(taskId, actor)
+  const existing = await getTaskById(taskId)
+  if (!existing) throw new AppError("Task not found", 404)
+  
+  if (actor.role === "ASSISTANT") {
+    if (String(existing.assignedTo) !== actor.userId) {
+      throw new AppError("Task access denied", 403)
+    }
+    if (status !== "IN_PROGRESS" && status !== "TODO") {
+      throw new AppError("Assistant can only start or reset task", 403)
+    }
+  } else {
+    await assertSeriesManager(String(existing.seriesId), actor)
+  }
+
   const task = await updateTaskStatus(taskId, status)
   if (!task) throw new AppError("Task not found", 404)
   return task
