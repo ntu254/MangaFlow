@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express"
+﻿import type { NextFunction, Request, Response } from "express"
 import {
   confirmPageUploadService,
   getPageWithFileAssetService,
@@ -12,11 +12,11 @@ export async function getPresignedUploadUrl(req: Request, res: Response, _next: 
     contentType: req.body.contentType,
     expiresIn: req.body.expiresIn,
   })
-
   res.json({ success: true, message: "Presigned upload URL generated", data: result })
 }
 
 export async function confirmPageUpload(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const actor = { userId: req.user!.userId, role: req.user!.role }
   const result = await confirmPageUploadService({
     pageId: String(req.params.pageId),
     fileAssetId: req.body.fileAssetId,
@@ -25,17 +25,23 @@ export async function confirmPageUpload(req: Request, res: Response, _next: Next
     mimeType: req.body.mimeType,
     size: req.body.size,
     userId: req.user!.userId,
+    actor,
   })
-
   res.json({ success: true, message: "Page upload confirmed", data: result })
 }
 
 export async function getPresignedDownloadUrl(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const result = await getPresignedDownloadUrlService(String(req.params.fileAssetId), req.user!)
+  const actor = { userId: req.user!.userId, role: req.user!.role }
+  const result = await getPresignedDownloadUrlService(
+    String(req.params.fileAssetId),
+    actor,
+    req.query.expiresIn ? Number(req.query.expiresIn) : undefined
+  )
   res.json({ success: true, message: "Presigned download URL generated", data: result })
 }
 
 export async function getPageWithFileAsset(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const page = await getPageWithFileAssetService(String(req.params.pageId), req.user!)
-  res.json({ success: true, message: "Page retrieved with file asset", data: page })
+  const actor = { userId: req.user!.userId, role: req.user!.role }
+  const page = await getPageWithFileAssetService(String(req.params.pageId), actor)
+  res.json({ success: true, message: "Page with file asset retrieved", data: page })
 }

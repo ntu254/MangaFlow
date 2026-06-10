@@ -1,14 +1,4 @@
 import { lazy } from "react"
-import { ComingSoonPage } from "@/shared/components/feedback/ComingSoonPage"
-
-function lazyComingSoon(_path: string, title: string, description?: string) {
-  return lazy(() =>
-    Promise.resolve({
-      default: () => <ComingSoonPage title={title} description={description} />,
-    }),
-  )
-}
-
 export const LazyAdminDashboardPage = lazy(() =>
   import("@/features/admin/pages/AdminDashboardPage").then((m) => ({
     default: m.AdminDashboardPage,
@@ -132,31 +122,24 @@ export const LazyNotificationsPage = lazy(() =>
   })),
 )
 
-// Placeholder shells for reserved routes not yet wired to real pages.
-export const LazyAdminStoragePlaceholder = lazyComingSoon(
-  "/app/admin/storage",
-  "Storage",
-  "Monitor R2/MinIO usage, file assets, and signed URL access warnings.",
+export const LazyAdminStoragePage = lazy(() =>
+  import("@/features/admin/pages/AdminStoragePage").then((m) => ({
+    default: m.AdminStoragePage,
+  })),
 )
-export const LazyAdminAiServicePlaceholder = lazyComingSoon(
-  "/app/admin/ai-service",
-  "AI Service",
-  "Monitor AI health and bubble detect/process integration status through backend-owned checks.",
+export const LazyAdminAiServicePage = lazy(() =>
+  import("@/features/admin/pages/AdminAiServicePage").then((m) => ({
+    default: m.AdminAiServicePage,
+  })),
 )
-export const LazyAdminAuditLogsPlaceholder = lazyComingSoon(
-  "/app/admin/audit-logs",
-  "Audit Logs",
-  "Review critical system, access, workflow, and storage events.",
-)
-
-export const LazyEditorRankingSupportPlaceholder = lazyComingSoon(
-  "/app/editor/ranking-support",
-  "Ranking Support",
-  "Provide ranking inputs and editorial context.",
+export const LazyAdminAuditLogsPage = lazy(() =>
+  import("@/features/admin/pages/AdminAuditLogsPage").then((m) => ({
+    default: m.AdminAuditLogsPage,
+  })),
 )
 
-export const LazyNotificationsPlaceholder = lazyComingSoon(
-  "/app/notifications",
-  "Notifications",
-  "Central inbox for alerts, assignments, and workflow updates.",
+export const LazyEditorRankingSupportPage = lazy(() =>
+  import("@/features/editor/pages/EditorRankingSupportPage").then((m) => ({
+    default: m.EditorRankingSupportPage,
+  })),
 )

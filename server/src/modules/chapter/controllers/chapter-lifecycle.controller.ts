@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express"
+﻿import type { NextFunction, Request, Response } from "express"
 import {
   createChapterService,
   getChapterService,
@@ -22,11 +22,13 @@ export async function listChapters(req: Request, res: Response, _next: NextFunct
 }
 
 export async function getChapter(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const chapter = await getChapterService(String(req.params.chapterId))
+  const actor = { userId: req.user!.userId, role: req.user!.role }
+  const chapter = await getChapterService(String(req.params.chapterId), actor)
   res.json({ success: true, message: "Chapter retrieved successfully", data: chapter })
 }
 
 export async function updateChapterStatus(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const chapter = await updateChapterStatusService(String(req.params.chapterId), req.body.status)
+  const actor = { userId: req.user!.userId, role: req.user!.role }
+  const chapter = await updateChapterStatusService(String(req.params.chapterId), req.body.status, actor)
   res.json({ success: true, message: "Chapter status updated successfully", data: chapter })
 }

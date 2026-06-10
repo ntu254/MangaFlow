@@ -1,5 +1,7 @@
 ﻿import { AppError } from "../../../shared/errors/AppError.js"
 import { createChapterRepository, getChapterById, listChaptersBySeries, updateChapterStatus } from "../chapter.repository.js"
+import { assertCanReadChapter, assertCanWriteChapter, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import type { ChapterStatus } from "../../../shared/workflow/status.js"
 
 export interface CreateChapterServiceInput {
   seriesId: string
@@ -36,19 +38,23 @@ export async function listChaptersService(seriesId: string) {
   return listChaptersBySeries(seriesId.trim())
 }
 
-export async function getChapterService(chapterId: string) {
+export async function getChapterService(chapterId: string, actor: AccessActor) {
   const trimmed = chapterId.trim()
   if (!trimmed) throw new AppError("Chapter id is required", 400)
+  await assertCanReadChapter(actor, trimmed)
+
   const chapter = await getChapterById(trimmed)
   if (!chapter) throw new AppError("Chapter not found", 404)
   return chapter
 }
 
-export async function updateChapterStatusService(chapterId: string, status: string) {
+export async function updateChapterStatusService(chapterId: string, status: string, actor: AccessActor) {
   const trimmed = chapterId.trim()
   if (!trimmed) throw new AppError("Chapter id is required", 400)
+  await assertCanWriteChapter(actor, trimmed)
+
   if (!status?.trim()) throw new AppError("Status is required", 400)
-  const chapter = await updateChapterStatus(trimmed, status as any)
+  const chapter = await updateChapterStatus(trimmed, status as ChapterStatus)
   if (!chapter) throw new AppError("Chapter not found", 404)
   return chapter
 }

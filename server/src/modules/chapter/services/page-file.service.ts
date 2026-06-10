@@ -2,7 +2,7 @@
 import { FileAsset } from "../chapter.model.js"
 import { confirmPageUploadRepository, getFileAssetById, getPageWithFileAsset } from "../chapter.repository.js"
 import { createPresignedDownloadUrl, createPresignedUploadUrl, validateFileSize, validateFileType } from "../file.service.js"
-import { assertCanReadFileAsset, assertCanReadPage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import { assertCanReadFileAsset, assertCanReadPage, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
 
 export interface GetPresignedUploadUrlInput {
   originalName: string
@@ -28,11 +28,14 @@ export interface ConfirmPageUploadInput {
   mimeType: string
   size: number
   userId: string
+  actor: AccessActor
 }
 
 export async function confirmPageUploadService(input: ConfirmPageUploadInput) {
   const trimmedPageId = input.pageId.trim()
   if (!trimmedPageId) throw new AppError("Page id is required", 400)
+  await assertCanWritePage(input.actor, trimmedPageId)
+
   if (!input.fileAssetId?.trim() || !input.r2Key?.trim() || !input.originalName?.trim() || !input.mimeType?.trim()) {
     throw new AppError("All file asset fields are required", 400)
   }

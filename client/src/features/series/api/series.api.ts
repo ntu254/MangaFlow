@@ -36,3 +36,9 @@ export function createManuscriptUpload(seriesId: string, input: CreateManuscript
     body: JSON.stringify(input),
   })
 }
+
+export function submitSeries(seriesId: string) {
+  return apiRequest<Series>(`/series/${seriesId}/submit`, {
+    method: "POST",
+  })
+}

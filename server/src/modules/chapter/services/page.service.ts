@@ -1,9 +1,12 @@
 ﻿import { AppError } from "../../../shared/errors/AppError.js"
 import { createPageRepository, getPagesByChapter } from "../chapter.repository.js"
+import { assertCanReadChapter, assertCanWriteChapter, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
 
-export async function createPageService(chapterId: string, pageNumber: number) {
+export async function createPageService(chapterId: string, pageNumber: number, actor: AccessActor) {
   const trimmed = chapterId.trim()
   if (!trimmed) throw new AppError("Chapter id is required", 400)
+  await assertCanWriteChapter(actor, trimmed)
+
   if (typeof pageNumber !== "number" || pageNumber < 1) throw new AppError("Valid page number is required", 400)
   try {
     return await createPageRepository(trimmed, pageNumber)
@@ -15,8 +18,9 @@ export async function createPageService(chapterId: string, pageNumber: number) {
   }
 }
 
-export async function listPagesService(chapterId: string) {
+export async function listPagesService(chapterId: string, actor: AccessActor) {
   const trimmed = chapterId.trim()
   if (!trimmed) throw new AppError("Chapter id is required", 400)
+  await assertCanReadChapter(actor, trimmed)
   return getPagesByChapter(trimmed)
 }
