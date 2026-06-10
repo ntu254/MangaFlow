@@ -2,6 +2,8 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import mongoose from "mongoose"
+import fs from "fs"
+import swaggerUi from "swagger-ui-express"
 import { config } from "./shared/utils/env.js"
 import authRoutes from "./modules/auth/auth.routes.js"
 import adminRoutes from "./modules/admin/admin.routes.js"
@@ -44,6 +46,14 @@ app.use("/api", submissionRoutes)
 app.use("/api/comments", commentRoutes)
 app.use("/api/payroll", payrollRoutes)
 app.use("/api/publications", publicationRoutes)
+
+// Load Swagger document conditionally to avoid crashing if it hasn't been generated yet
+try {
+  const swaggerDocument = JSON.parse(fs.readFileSync(new URL("../swagger-output.json", import.meta.url), "utf-8"))
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+} catch (error) {
+  console.log("Swagger UI not available. Run `npm run swagger` to generate swagger-output.json")
+}
 
 app.use(errorHandler)
 

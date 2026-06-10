@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "swagger": "tsx src/swagger.ts",
     "seed": "tsx src/seed.ts",
     "lint": "tsc --noEmit",
     "test": "vitest run"
@@ -28,6 +29,8 @@
     "sharp": "^0.34.5",
     "slugify": "^1.6.9",
     "socket.io": "^4.8.3",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.0",
     "zod": "^3.24.0"
   },
@@ -39,6 +42,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/multer": "^2.1.0",
     "@types/node": "^22.10.0",
+    "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
     "tsx": "^4.19.0",
     "typescript": "~5.7.0",

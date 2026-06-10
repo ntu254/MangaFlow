@@ -35,16 +35,62 @@ are outside the MVP.
 - AI Service: Python FastAPI with YOLO/OpenCV bubble processing
 - Deployment: Vercel for frontend, Railway for backend and AI service
 
-## Quick start
+## Cài đặt & Chạy dự án (Quick Start)
+
+Dự án bao gồm 3 phân hệ chính: **Frontend (React)**, **Backend (Node.js)**, và **AI Service (Python)**. 
+
+### 1. Backend (Node.js)
+
+Backend xử lý toàn bộ logic nghiệp vụ, phân quyền, và tương tác với MongoDB, Cloudflare R2.
 
 ```bash
-git clone <repo-url>
-cd MangaFlow
-cp server/.env.example server/.env
-cp client/.env.example client/.env
+cd server
+# Cài đặt thư viện
 npm install
+
+# Sao chép file biến môi trường và điền thông tin (MongoDB URI, Cloudflare R2 credentials)
+cp .env.example .env
+
+# Chạy server ở môi trường dev (auto-reload)
 npm run dev
 ```
+> Server sẽ chạy tại: **http://localhost:3001**
+> Giao diện Swagger API: **http://localhost:3001/api-docs**
+
+### 2. Frontend (React / Vite)
+
+Giao diện người dùng dành cho Mangaka, Assistant, Editor và Board.
+
+```bash
+cd client
+# Cài đặt thư viện
+npm install
+
+# Mặc định VITE_API_URL sẽ trỏ tới http://localhost:3001
+cp .env.example .env
+
+# Chạy web app
+npm run dev
+```
+> Giao diện web chạy tại: **http://localhost:5173**
+
+### 3. AI Service (Python FastAPI)
+
+Service xử lý ảnh manga, nhận diện và xoá chữ trong bong bóng thoại (Bubble Detection/Whitening).
+Vui lòng tham khảo chi tiết tại `ai-service/README.md`.
+
+```bash
+cd ai-service
+# Cài đặt môi trường và thư viện
+python -m venv .venv
+# Activate venv (Windows: .venv\Scripts\activate | Mac/Linux: source .venv/bin/activate)
+pip install -r requirements.txt
+
+# Chạy service
+uvicorn app.main:app --reload --host localhost --port 8000
+```
+> AI Service chạy tại: **http://localhost:8000**
+> Swagger của AI: **http://localhost:8000/docs**
 
 See:
 

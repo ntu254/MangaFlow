@@ -21,27 +21,52 @@ ai-service/
 └── Dockerfile
 ```
 
-## Cài đặt
+## Cài đặt từ đầu (Setup from scratch)
+
+### 1. Yêu cầu hệ thống
+- **Python 3.9+** được cài đặt trên máy.
+- Khuyến nghị sử dụng môi trường ảo (Virtual Environment) để tránh xung đột thư viện.
+
+### 2. Tạo môi trường ảo & cài thư viện
+Mở Terminal / PowerShell và đi tới thư mục `ai-service`:
 
 ```bash
+cd ai-service
+
+# 1. Tạo môi trường ảo (chỉ làm 1 lần đầu tiên)
+python -m venv .venv
+
+# 2. Kích hoạt môi trường ảo
+# Trên Windows:
+.venv\Scripts\activate
+# Trên macOS/Linux:
+source .venv/bin/activate
+
+# 3. Cài đặt các thư viện cần thiết
 pip install -r requirements.txt
 ```
 
-## Lấy model
+### 3. Tải Model YOLO
+Mô hình YOLO cần được tải xuống lần đầu tiên thông qua Hugging Face:
 
 ```bash
-# Dùng huggingface_hub CLI
+# Cài đặt công cụ CLI của huggingface nếu chưa có
 pip install huggingface_hub
+
+# Lệnh này sẽ tải model `best.pt` (nếu app/model_loader.py có tích hợp lệnh tải)
+# Quá trình load model thực tế sẽ tự động diễn ra ở lần chạy app đầu tiên.
 ```
 
-## Chạy
+## Khởi động Service (Chạy App)
+
+**LƯU Ý:** Bạn bắt buộc phải **kích hoạt môi trường ảo** (như Bước 2 ở trên) trước khi chạy lệnh khởi động!
 
 ```bash
-# Đứng trong thư mục ai-service
+# Đứng trong thư mục ai-service (đảm bảo Terminal có chữ (.venv) ở đầu)
 uvicorn app.main:app --reload --host localhost --port 8000
 ```
 
-Mở Swagger UI: **http://localhost:8000/docs**
+Mở Swagger UI để test trực tiếp API trên trình duyệt: **http://localhost:8000/docs**
 
 ## API Endpoints
 
