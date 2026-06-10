@@ -143,3 +143,39 @@ export const LazyEditorRankingSupportPage = lazy(() =>
     default: m.EditorRankingSupportPage,
   })),
 )
+
+export const LazyMangakaChaptersPage = lazy(() =>
+  import("@/features/chapter/pages/MangakaChaptersPage").then((m) => ({
+    default: m.MangakaChaptersPage,
+  })),
+)
+export const LazyEditorChaptersPage = lazy(() =>
+  import("@/features/chapter/pages/EditorChaptersPage").then((m) => ({
+    default: m.EditorChaptersPage,
+  })),
+)
+export const LazyEditorPagesPage = lazy(() =>
+  import("@/features/chapter/pages/EditorPagesPage").then((m) => ({
+    default: m.EditorPagesPage,
+  })),
+)
+export const LazyMangakaSubmissionsPage = lazy(() =>
+  import("@/features/review/pages/MangakaSubmissionsPage").then((m) => ({
+    default: m.MangakaSubmissionsPage,
+  })),
+)
+export const LazyMangakaCommentsPage = lazy(() =>
+  import("@/features/review/pages/MangakaCommentsPage").then((m) => ({
+    default: m.MangakaCommentsPage,
+  })),
+)
+export const LazyEditorManuscriptsPage = lazy(() =>
+  import("@/features/review/pages/EditorManuscriptsPage").then((m) => ({
+    default: m.EditorManuscriptsPage,
+  })),
+)
+export const LazyEditorCommentsPage = lazy(() =>
+  import("@/features/review/pages/EditorCommentsPage").then((m) => ({
+    default: m.EditorCommentsPage,
+  })),
+)
