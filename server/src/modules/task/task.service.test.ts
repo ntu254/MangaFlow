@@ -9,9 +9,13 @@ import {
 import * as taskRepository from "./task.repository.js"
 import { SeriesMember } from "../series/series.model.js"
 
+const taskScopeGuardMock = vi.hoisted(() => ({
+  validateTaskCreationScope: vi.fn(),
+}))
+
 vi.mock("./task.repository.js")
 vi.mock("./guards/task-scope.guard.js", () => ({
-  validateTaskCreationScope: vi.fn().mockResolvedValue({ taskType: { baseRate: 100 } }),
+  validateTaskCreationScope: taskScopeGuardMock.validateTaskCreationScope,
 }))
 vi.mock("./policies/task-assignment.policy.js", () => ({
   assertTaskAssignmentAllowed: vi.fn().mockResolvedValue(undefined),
@@ -43,6 +47,7 @@ describe("createTaskService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    taskScopeGuardMock.validateTaskCreationScope.mockResolvedValue({ taskType: { baseRate: 100 } })
   })
 
   it("throws AppError if title is empty", async () => {
@@ -77,6 +82,20 @@ describe("createTaskService", () => {
       baseRate: 100,
     })
     expect(result).toMatchObject({ id: "task1", baseRate: 100, status: "TODO" })
+  })
+
+  it("snapshots the current TaskType base rate for payroll history", async () => {
+    taskScopeGuardMock.validateTaskCreationScope.mockResolvedValue({ taskType: { baseRate: 275 } })
+    const mockResult = { id: "task1", seriesId: "series1", chapterId: "chapter1", taskTypeId: "tasktype1", assignedTo: "assistant1", assignedBy: "mangaka1", title: "Test Task", status: "TODO", priority: "NORMAL", baseRate: 275, dueDate: mockInput.dueDate, contextPageIds: [], createdAt: new Date(), updatedAt: new Date() }
+    vi.mocked(taskRepository.createTaskRecord).mockResolvedValue(mockResult as any)
+
+    const result = await createTaskService(mockInput)
+
+    expect(taskRepository.createTaskRecord).toHaveBeenCalledWith(expect.objectContaining({
+      taskTypeId: mockInput.taskTypeId,
+      baseRate: 275,
+    }))
+    expect(result).toMatchObject({ id: "task1", baseRate: 275 })
   })
 })
 

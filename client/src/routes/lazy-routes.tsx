@@ -34,6 +34,11 @@ export const LazyAdminTaskTypesPage = lazy(() =>
     default: m.AdminTaskTypesPage,
   })),
 );
+export const LazyAdminTaskRatesPage = lazy(() =>
+  import("@/features/admin/pages/AdminTaskRatesPage").then((m) => ({
+    default: m.AdminTaskRatesPage,
+  })),
+);
 export const LazyBoardPage = lazy(() =>
   import("@/features/board/pages/BoardPage").then((m) => ({
     default: m.BoardPage,
@@ -76,11 +81,6 @@ export const LazyWorkspacePage = lazy(() =>
 );
 
 // Placeholder shells for reserved routes not yet wired to real pages.
-export const LazyAdminTaskRatesPlaceholder = lazyComingSoon(
-  "/app/admin/task-rates",
-  "Task Rates",
-  "Configure default task-rate references for payroll tracking.",
-);
 export const LazyAdminPayrollPlaceholder = lazyComingSoon(
   "/app/admin/payroll",
   "Payroll Tracking",
