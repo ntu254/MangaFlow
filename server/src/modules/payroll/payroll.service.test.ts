@@ -179,4 +179,16 @@ describe("payroll service", () => {
 
     expect(repository.listEarnings).toHaveBeenCalledWith({ assistantId: "assistant1" })
   })
+
+  it("lists all earnings for Admin tracking", async () => {
+    vi.mocked(repository.listEarnings).mockResolvedValue([{ id: "earning1" }, { id: "earning2" }] as any)
+
+    const result = await listPayrollEarningsService({
+      userId: "admin1",
+      role: "ADMIN",
+    })
+
+    expect(repository.listEarnings).toHaveBeenCalledWith({})
+    expect(result).toHaveLength(2)
+  })
 })

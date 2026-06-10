@@ -19,6 +19,7 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| MF-HIOS-094 | ui-admin.md, payroll.md, main.md | yes | no | no | yes | implemented | Admin Payroll Tracking page added using existing payroll endpoints; backend regression proves Admin lists all earnings; `scripts/verify-mf-hios-094.ps1` passed server/client lint/build and 10 server payroll tests. |
 | MF-HIOS-093 | ui-admin.md, task-assignment.md, payroll.md, main.md | yes | no | no | yes | implemented | Admin Task Rates page added using existing Admin TaskType API; backend regression proves task creation snapshots TaskType `baseRate`; `scripts/verify-mf-hios-093.ps1` passed server/client lint/build and 19 server task/admin tests. |
 | MF-HIOS-091 | ui-admin.md, series-proposal.md, main.md | yes | no | no | yes | implemented | Admin Series Monitor read-only page added using existing `/api/series`; Admin list access regression test added; `scripts/verify-mf-hios-091.ps1` passed server/client lint/build and 13 server series tests. |
 | MF-HIOS-092 | ui-admin.md, task-assignment.md, payroll.md, main.md | yes | no | no | yes | implemented | Admin Task Types config routes/page added; used TaskType records are deactivated instead of hard-deleted; `scripts/verify-mf-hios-092.ps1` passed server/client lint/build and 26 server admin/task tests. |

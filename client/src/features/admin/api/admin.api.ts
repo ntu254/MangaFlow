@@ -169,3 +169,40 @@ export function deleteAdminTaskType(taskTypeId: string) {
     method: "DELETE",
   })
 }
+
+export type AdminPayrollStatus = "PENDING" | "CONFIRMED" | "PAID" | "VOID"
+
+export interface AdminPayrollEarning {
+  id?: string
+  _id?: string
+  taskId: string
+  seriesId: string
+  chapterId: string
+  assistantId: string
+  baseRate: number
+  deadlineMultiplier: number
+  finalPayment: number
+  isLate: boolean
+  status: AdminPayrollStatus
+  calculatedAt?: string
+  confirmedAt?: string
+  paidAt?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export function listAdminPayrollEarnings() {
+  return apiRequest<AdminPayrollEarning[]>("/payroll/earnings")
+}
+
+export function confirmAdminPayrollEarning(taskId: string) {
+  return apiRequest<AdminPayrollEarning>(`/payroll/tasks/${taskId}/confirm`, {
+    method: "POST",
+  })
+}
+
+export function markAdminPayrollEarningPaid(earningId: string) {
+  return apiRequest<AdminPayrollEarning>(`/payroll/earnings/${earningId}/mark-paid`, {
+    method: "POST",
+  })
+}

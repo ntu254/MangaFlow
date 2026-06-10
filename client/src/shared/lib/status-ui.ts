@@ -99,6 +99,13 @@ export const rankingStatusUI: Record<string, StatusUiConfig> = {
   FLAGGED: { label: "Flagged", tone: "warning" },
 }
 
+export const payrollStatusUI: Record<string, StatusUiConfig> = {
+  PENDING: { label: "Pending", tone: "warning" },
+  CONFIRMED: { label: "Confirmed", tone: "primary" },
+  PAID: { label: "Paid", tone: "success" },
+  VOID: { label: "Void", tone: "danger" },
+}
+
 export function getStatusUi(status: string, mapping: Record<string, StatusUiConfig>): StatusUiConfig {
   return mapping[status] ?? { label: status, tone: "neutral" }
 }

@@ -39,6 +39,11 @@ export const LazyAdminTaskRatesPage = lazy(() =>
     default: m.AdminTaskRatesPage,
   })),
 );
+export const LazyAdminPayrollPage = lazy(() =>
+  import("@/features/admin/pages/AdminPayrollPage").then((m) => ({
+    default: m.AdminPayrollPage,
+  })),
+);
 export const LazyBoardPage = lazy(() =>
   import("@/features/board/pages/BoardPage").then((m) => ({
     default: m.BoardPage,
@@ -81,11 +86,6 @@ export const LazyWorkspacePage = lazy(() =>
 );
 
 // Placeholder shells for reserved routes not yet wired to real pages.
-export const LazyAdminPayrollPlaceholder = lazyComingSoon(
-  "/app/admin/payroll",
-  "Payroll Tracking",
-  "Monitor pending, confirmed, and paid assistant earnings without bypassing approval rules.",
-);
 export const LazyAdminStoragePlaceholder = lazyComingSoon(
   "/app/admin/storage",
   "Storage",
