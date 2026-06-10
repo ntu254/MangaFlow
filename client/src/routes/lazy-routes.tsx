@@ -44,6 +44,11 @@ export const LazyAdminPayrollPage = lazy(() =>
     default: m.AdminPayrollPage,
   })),
 );
+export const LazyAdminSystemHealthPage = lazy(() =>
+  import("@/features/admin/pages/AdminSystemHealthPage").then((m) => ({
+    default: m.AdminSystemHealthPage,
+  })),
+);
 export const LazyBoardPage = lazy(() =>
   import("@/features/board/pages/BoardPage").then((m) => ({
     default: m.BoardPage,
@@ -101,12 +106,6 @@ export const LazyAdminAuditLogsPlaceholder = lazyComingSoon(
   "Audit Logs",
   "Review critical system, access, workflow, and storage events.",
 );
-export const LazyAdminSystemHealthPlaceholder = lazyComingSoon(
-  "/app/admin/system-health",
-  "System Health",
-  "Monitor MongoDB, API, storage, AI, env warnings, and runtime hardening status.",
-);
-
 export const LazyMangakaSeriesPlaceholder = lazyComingSoon(
   "/app/mangaka/series",
   "My Series",

@@ -15,7 +15,7 @@
 | MF-HIOS-060 through MF-HIOS-068 | implemented | Story packets show implemented componentization/modularization evidence. |
 | MF-HIOS-069 through MF-HIOS-082 | implemented | Story packets show `implemented`; `.harness/context/` packs were synced from stale planned status to implemented. |
 | MF-HIOS-083 through MF-HIOS-088 | implemented | Story packets, verify scripts, and harness matrix rows pass for the completed MVP UI sequence plus SeriesListPanel admin reuse. |
-| MF-HIOS-089 through MF-HIOS-101 | candidate planned | Create story packet/context/verify script only when selected and only after required backend HTTP surface exists. |
+| MF-HIOS-089 through MF-HIOS-101 | partially implemented | MF-HIOS-089 through MF-HIOS-094, MF-HIOS-098, and MF-HIOS-100 have local story/matrix evidence. Remaining candidates should still be selected only after required backend HTTP surface exists. |
 
 ### Known source boundaries
 
@@ -98,6 +98,8 @@ Completed stories on `new`:
 - `MF-HIOS-084` Chapter Detail Tab Extraction
 - `MF-HIOS-085` Tasks Page Preview Dialog Extraction
 - `MF-HIOS-088` SeriesListPanel Admin Reuse
+- `MF-HIOS-098` Admin System Health
+- `MF-HIOS-100` Placeholder Skeleton States
 
 Verified for each completed story:
 
@@ -139,9 +141,9 @@ Recommended next move:
 - MF-HIOS-095: Admin storage monitor.
 - MF-HIOS-096: Admin AI service monitor.
 - MF-HIOS-097: Admin audit logs.
-- MF-HIOS-098: Admin system health.
+- MF-HIOS-098: Admin system health. **Implemented and governance-verified.**
 - MF-HIOS-099: Notifications inbox.
-- MF-HIOS-100: Placeholder skeleton states.
+- MF-HIOS-100: Placeholder skeleton states. **Implemented and governance-verified.**
 - MF-HIOS-101: Mobile/QA pass.
 
 ## Definition of done per UI story

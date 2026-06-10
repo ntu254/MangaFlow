@@ -1,6 +1,7 @@
-import { Suspense } from "react"
+import { Suspense, type ReactNode } from "react"
 import { type RouteObject, Navigate, createBrowserRouter } from "react-router-dom"
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute"
+import { MFRouteSkeleton } from "@/shared/components/feedback/MFRouteSkeleton"
 import { MarketingLayout } from "@/shared/components/layout/MarketingLayout"
 import { AuthLayout } from "@/shared/components/layout/AuthLayout"
 import { DashboardLayout } from "@/shared/components/layout/DashboardLayout"
@@ -19,7 +20,7 @@ import {
   LazyAdminStoragePlaceholder,
   LazyAdminAiServicePlaceholder,
   LazyAdminAuditLogsPlaceholder,
-  LazyAdminSystemHealthPlaceholder,
+  LazyAdminSystemHealthPage,
   LazyMangakaSeriesPlaceholder,
   LazyMangakaManuscriptsPlaceholder,
   LazyMangakaChaptersPlaceholder,
@@ -52,6 +53,14 @@ import {
   LazySeriesDetailPage,
   LazyChapterDetailPage,
 } from "@/routes/lazy-routes"
+
+function withRouteSkeleton(children: ReactNode, title: string, description?: string) {
+  return (
+    <Suspense fallback={<MFRouteSkeleton title={title} description={description} />}>
+      {children}
+    </Suspense>
+  )
+}
 
 export const routes: RouteObject[] = [
   {
@@ -99,24 +108,24 @@ export const routes: RouteObject[] = [
               { path: APP_ROUTES.admin.taskTypes.replace(/^\/app\//, ""), element: <LazyAdminTaskTypesPage /> },
               { path: APP_ROUTES.admin.taskRates.replace(/^\/app\//, ""), element: <LazyAdminTaskRatesPage /> },
               { path: APP_ROUTES.admin.payroll.replace(/^\/app\//, ""), element: <LazyAdminPayrollPage /> },
-              { path: APP_ROUTES.admin.storage.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAdminStoragePlaceholder /></Suspense> },
-              { path: APP_ROUTES.admin.aiService.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAdminAiServicePlaceholder /></Suspense> },
-              { path: APP_ROUTES.admin.auditLogs.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAdminAuditLogsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.admin.systemHealth.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAdminSystemHealthPlaceholder /></Suspense> },
+              { path: APP_ROUTES.admin.storage.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAdminStoragePlaceholder />, "Storage", "Loading storage monitor placeholder.") },
+              { path: APP_ROUTES.admin.aiService.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAdminAiServicePlaceholder />, "AI Service", "Loading AI service monitor placeholder.") },
+              { path: APP_ROUTES.admin.auditLogs.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAdminAuditLogsPlaceholder />, "Audit Logs", "Loading audit logs placeholder.") },
+              { path: APP_ROUTES.admin.systemHealth.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAdminSystemHealthPage />, "System Health", "Loading backend-owned system health summary.") },
             ],
           },
           {
             element: <ProtectedRoute roles={["MANGAKA"]} />,
             children: [
               { path: APP_ROUTES.mangaka.dashboard.replace(/^\/app\//, ""), element: <LazyRoleDashboardPage /> },
-              { path: APP_ROUTES.mangaka.series.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaSeriesPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.manuscripts.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaManuscriptsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.chapters.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaChaptersPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.tasks.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaTasksPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.submissions.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaSubmissionsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.comments.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaCommentsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.ranking.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaRankingPlaceholder /></Suspense> },
-              { path: APP_ROUTES.mangaka.payroll.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyMangakaPayrollPlaceholder /></Suspense> },
+              { path: APP_ROUTES.mangaka.series.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaSeriesPlaceholder />, "My Series") },
+              { path: APP_ROUTES.mangaka.manuscripts.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaManuscriptsPlaceholder />, "Manuscripts") },
+              { path: APP_ROUTES.mangaka.chapters.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaChaptersPlaceholder />, "Chapters") },
+              { path: APP_ROUTES.mangaka.tasks.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaTasksPlaceholder />, "Tasks") },
+              { path: APP_ROUTES.mangaka.submissions.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaSubmissionsPlaceholder />, "Submissions") },
+              { path: APP_ROUTES.mangaka.comments.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaCommentsPlaceholder />, "Comments") },
+              { path: APP_ROUTES.mangaka.ranking.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaRankingPlaceholder />, "Ranking") },
+              { path: APP_ROUTES.mangaka.payroll.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyMangakaPayrollPlaceholder />, "Payroll") },
             ],
           },
           {
@@ -124,42 +133,42 @@ export const routes: RouteObject[] = [
             children: [
               { path: APP_ROUTES.assistant.dashboard.replace(/^\/app\//, ""), element: <LazyRoleDashboardPage /> },
               { path: APP_ROUTES.assistant.tasks.replace(/^\/app\//, ""), element: <LazyTasksPage /> },
-              { path: APP_ROUTES.assistant.submissions.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAssistantSubmissionsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.assistant.revisions.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAssistantRevisionsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.assistant.earnings.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyAssistantEarningsPlaceholder /></Suspense> },
+              { path: APP_ROUTES.assistant.submissions.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAssistantSubmissionsPlaceholder />, "Submissions") },
+              { path: APP_ROUTES.assistant.revisions.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAssistantRevisionsPlaceholder />, "Revisions") },
+              { path: APP_ROUTES.assistant.earnings.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyAssistantEarningsPlaceholder />, "Earnings") },
             ],
           },
           {
             element: <ProtectedRoute roles={["EDITOR"]} />,
             children: [
               { path: APP_ROUTES.editor.dashboard.replace(/^\/app\//, ""), element: <LazyRoleDashboardPage /> },
-              { path: APP_ROUTES.editor.series.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorSeriesPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.manuscripts.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorManuscriptsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.chapters.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorChaptersPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.pages.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorPagesPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.comments.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorCommentsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.tasks.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorTasksPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.publication.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorPublicationPlaceholder /></Suspense> },
-              { path: APP_ROUTES.editor.rankingSupport.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyEditorRankingSupportPlaceholder /></Suspense> },
+              { path: APP_ROUTES.editor.series.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorSeriesPlaceholder />, "Assigned Series") },
+              { path: APP_ROUTES.editor.manuscripts.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorManuscriptsPlaceholder />, "Manuscript Review") },
+              { path: APP_ROUTES.editor.chapters.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorChaptersPlaceholder />, "Chapter Review") },
+              { path: APP_ROUTES.editor.pages.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorPagesPlaceholder />, "Page Review") },
+              { path: APP_ROUTES.editor.comments.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorCommentsPlaceholder />, "Comments") },
+              { path: APP_ROUTES.editor.tasks.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorTasksPlaceholder />, "Tasks") },
+              { path: APP_ROUTES.editor.publication.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorPublicationPlaceholder />, "Publication") },
+              { path: APP_ROUTES.editor.rankingSupport.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyEditorRankingSupportPlaceholder />, "Ranking Support") },
             ],
           },
           {
             element: <ProtectedRoute roles={["BOARD"]} />,
             children: [
               { path: APP_ROUTES.board.dashboard.replace(/^\/app\//, ""), element: <LazyRoleDashboardPage /> },
-              { path: APP_ROUTES.board.approvals.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyBoardApprovalsPlaceholder /></Suspense> },
-              { path: APP_ROUTES.board.votes.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyBoardVotesPlaceholder /></Suspense> },
-              { path: APP_ROUTES.board.ranking.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyBoardRankingPlaceholder /></Suspense> },
-              { path: APP_ROUTES.board.rankingImport.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyBoardRankingImportPlaceholder /></Suspense> },
-              { path: APP_ROUTES.board.atRisk.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyBoardAtRiskPlaceholder /></Suspense> },
-              { path: APP_ROUTES.board.decisions.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyBoardDecisionsPlaceholder /></Suspense> },
+              { path: APP_ROUTES.board.approvals.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyBoardApprovalsPlaceholder />, "Series Approvals") },
+              { path: APP_ROUTES.board.votes.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyBoardVotesPlaceholder />, "My Votes") },
+              { path: APP_ROUTES.board.ranking.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyBoardRankingPlaceholder />, "Ranking") },
+              { path: APP_ROUTES.board.rankingImport.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyBoardRankingImportPlaceholder />, "Import Ranking") },
+              { path: APP_ROUTES.board.atRisk.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyBoardAtRiskPlaceholder />, "At-Risk Series") },
+              { path: APP_ROUTES.board.decisions.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyBoardDecisionsPlaceholder />, "Decisions") },
             ],
           },
 
-          { path: APP_ROUTES.shared.notifications.replace(/^\/app\//, ""), element: <Suspense fallback={null}><LazyNotificationsPlaceholder /></Suspense> },
-          { path: "workspace/:taskId", element: <Suspense fallback={null}><LazyWorkspacePage /></Suspense> },
-          { path: "series/:id", element: <Suspense fallback={null}><LazySeriesDetailPage /></Suspense> },
-          { path: "chapters/:id", element: <Suspense fallback={null}><LazyChapterDetailPage /></Suspense> },
+          { path: APP_ROUTES.shared.notifications.replace(/^\/app\//, ""), element: withRouteSkeleton(<LazyNotificationsPlaceholder />, "Notifications") },
+          { path: "workspace/:taskId", element: withRouteSkeleton(<LazyWorkspacePage />, "Workspace") },
+          { path: "series/:id", element: withRouteSkeleton(<LazySeriesDetailPage />, "Series Detail") },
+          { path: "chapters/:id", element: withRouteSkeleton(<LazyChapterDetailPage />, "Chapter Detail") },
         ],
       },
     ],

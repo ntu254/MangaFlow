@@ -37,6 +37,15 @@ export function getAdminSidebarSummary() {
   return apiRequest<AdminDashboardSummary>("/dashboard/admin/sidebar-summary")
 }
 
+export interface ApiHealth {
+  success: boolean
+  message: string
+}
+
+export function getApiHealth() {
+  return apiRequest<ApiHealth>("/health")
+}
+
 export type AdminUserRole = "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR" | "BOARD"
 
 export interface AdminUser {

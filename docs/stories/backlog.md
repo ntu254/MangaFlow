@@ -35,7 +35,7 @@ new
 
 | Story | Branch | Status | Notes |
 | --- | --- | --- | --- |
-| MF-HIOS-094 Admin Payroll Tracking | current worktree | implemented | Admin payroll page added using existing tracking endpoints; no formula, revision fee, or real payment execution changes. |
+| MF-HIOS-100 Placeholder Skeleton States | current worktree | implemented | Placeholder routes use shared MangaFlow skeleton states; MF-HIOS-098 System Health is also implemented and governance-verified. |
 
 ## MVP UI queue
 
@@ -61,9 +61,9 @@ new
 | MF-HIOS-095 Admin Storage Monitor | candidate | File access/signed URL boundaries are high-risk. |
 | MF-HIOS-096 Admin AI Service Monitor | candidate | AI service/browser access boundary must remain backend-mediated. |
 | MF-HIOS-097 Admin Audit Logs | candidate | Audit/security proof required. |
-| MF-HIOS-098 Admin System Health | candidate | Confirm health API contract. |
+| MF-HIOS-098 Admin System Health | implemented | Read-only page uses existing dashboard summary and `/api/health`; no storage object, signed URL, AI service, or workflow override behavior added. |
 | MF-HIOS-099 Notifications Inbox | candidate | Confirm notifications API contract. |
-| MF-HIOS-100 Placeholder Skeleton States | candidate | UI polish. |
+| MF-HIOS-100 Placeholder Skeleton States | implemented | Placeholder pages and Suspense fallbacks now use shared MangaFlow skeleton states. |
 | MF-HIOS-101 Mobile/QA Pass | candidate | Final responsive/accessibility pass. |
 
 ## Recently synced implementation status
