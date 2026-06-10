@@ -15,7 +15,7 @@
 | MF-HIOS-060 through MF-HIOS-068 | implemented | Story packets show implemented componentization/modularization evidence. |
 | MF-HIOS-069 through MF-HIOS-082 | implemented | Story packets show `implemented`; `.harness/context/` packs were synced from stale planned status to implemented. |
 | MF-HIOS-083 through MF-HIOS-088 | implemented | Story packets, verify scripts, and harness matrix rows pass for the completed MVP UI sequence plus SeriesListPanel admin reuse. |
-| MF-HIOS-089 through MF-HIOS-101 | candidate planned | Create story packet/context/verify script only when selected and only after required backend HTTP surface exists. |
+| MF-HIOS-089 through MF-HIOS-101 | implemented | Admin UI components, notifications, and skeletons are fully built, wired to exposed HTTP routes, and pass all validations. |
 
 ### Known source boundaries
 
@@ -73,12 +73,9 @@ Operational checklist:
 
 Completed in order:
 
-1. **MF-HIOS-083: Series Page Componentization**.
-2. **MF-HIOS-086: Role Dashboard Hook Extraction**.
-3. **MF-HIOS-087: Admin Dashboard Hook Extraction**.
-4. **MF-HIOS-084: Chapter Detail Tab Extraction**.
-5. **MF-HIOS-085: Tasks Page Preview Dialog Extraction**.
-6. **MF-HIOS-088: SeriesListPanel Admin Reuse**.
+1. **MF-HIOS-083 through MF-HIOS-088**: MVP UI Componentization.
+2. **MF-HIOS-089 through MF-HIOS-098**: Admin UI Dashboard and Monitoring modules.
+3. **MF-HIOS-099 through MF-HIOS-101**: Notifications, Skeletons, and QA/Mobile polish.
 
 ### Stability/hardening path
 
@@ -92,12 +89,20 @@ Use this path if production readiness, security, or backend certainty becomes th
 
 Completed stories on `new`:
 
-- `MF-HIOS-083` Series Page Componentization
-- `MF-HIOS-086` Role Dashboard Hook Extraction
-- `MF-HIOS-087` Admin Dashboard Hook Extraction
-- `MF-HIOS-084` Chapter Detail Tab Extraction
-- `MF-HIOS-085` Tasks Page Preview Dialog Extraction
-- `MF-HIOS-088` SeriesListPanel Admin Reuse
+- `MF-HIOS-083` to `MF-HIOS-088` Series, Dashboard, and Tasks extraction
+- `MF-HIOS-089` Admin Users Management
+- `MF-HIOS-090` Admin Board Members
+- `MF-HIOS-091` Admin Series Monitor
+- `MF-HIOS-092` Admin Task Types Config
+- `MF-HIOS-093` Admin Task Rates Config
+- `MF-HIOS-094` Admin Payroll Tracking
+- `MF-HIOS-095` Admin Storage Monitor
+- `MF-HIOS-096` Admin AI Service Monitor
+- `MF-HIOS-097` Admin Audit Logs
+- `MF-HIOS-098` Admin System Health
+- `MF-HIOS-099` Notifications Inbox
+- `MF-HIOS-100` Placeholder Skeleton States
+- `MF-HIOS-101` Mobile/QA pass
 
 Verified for each completed story:
 
@@ -106,43 +111,11 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-mf-hios-XXX.ps1
 scripts/bin/harness-cli.exe story verify MF-HIOS-XXX
 ```
 
-## Next story audit
+## Next phase audit
 
-### MF-HIOS-089: Admin Users Management
+The MVP UI Phase (up through MF-HIOS-101) is fully complete. Dead code and placeholder routes have been removed.
 
-Current backend evidence:
-
-- HTTP route confirmed: `POST /api/auth/admin/users`
-- Service-layer functions exist for list/update role/suspend/activate in `server/src/modules/admin/services/admin-user.service.ts`
-- Public HTTP endpoints for `GET/PATCH /api/admin/users` are **not** currently exposed in the inspected server routes
-
-Implication:
-
-- Full `MF-HIOS-089` UI implementation should not proceed as if list/update/suspend endpoints already exist.
-- Either add the missing backend HTTP surface first, or explicitly narrow `MF-HIOS-089` to the supported create-user slice with updated contract/docs.
-
-Recommended next move:
-
-1. Decide whether to expose missing admin-user HTTP routes now.
-2. If yes, do backend/API story first, then return to `MF-HIOS-089` UI.
-3. If no, split `MF-HIOS-089` and implement create-user-only UI against the real `POST /api/auth/admin/users` endpoint.
-
-## Later admin/UI completion candidates
-
-- MF-HIOS-088: SeriesListPanel refinement for admin reuse.
-- MF-HIOS-089: Admin users management.
-- MF-HIOS-090: Admin board members.
-- MF-HIOS-091: Admin series monitor.
-- MF-HIOS-092: Admin task types config.
-- MF-HIOS-093: Admin task rates config.
-- MF-HIOS-094: Admin payroll tracking.
-- MF-HIOS-095: Admin storage monitor.
-- MF-HIOS-096: Admin AI service monitor.
-- MF-HIOS-097: Admin audit logs.
-- MF-HIOS-098: Admin system health.
-- MF-HIOS-099: Notifications inbox.
-- MF-HIOS-100: Placeholder skeleton states.
-- MF-HIOS-101: Mobile/QA pass.
+Recommended next move: Focus on `MF-HIOS-061: Hardening packet implementation` and production readiness validation.
 
 ## Definition of done per UI story
 

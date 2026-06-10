@@ -47,6 +47,22 @@ router.get(
 )
 
 router.post(
+  "/pages/:pageId/ai/bubble-detect",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR", "ASSISTANT"),
+  validate(pageIdParamsSchema, "params"),
+  fileController.detectBubbles,
+)
+
+router.post(
+  "/pages/:pageId/ai/bubble-process",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR", "ASSISTANT"),
+  validate(pageIdParamsSchema, "params"),
+  fileController.processBubbles,
+)
+
+router.post(
   "/pages/:pageId/regions",
   requireAuth,
   requireRole("MANGAKA", "EDITOR"),

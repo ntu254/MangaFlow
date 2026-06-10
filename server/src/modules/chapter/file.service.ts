@@ -75,6 +75,40 @@ export async function deleteFileAsset(r2Key: string): Promise<void> {
   await s3.send(command)
 }
 
+export async function getFileBuffer(r2Key: string): Promise<Buffer> {
+  const command = new GetObjectCommand({
+    Bucket: config.r2Bucket,
+    Key: r2Key,
+  })
+  const response = await s3.send(command)
+  if (!response.Body) {
+    throw new Error("S3 object body is empty")
+  }
+  const arrayBuffer = await response.Body.transformToByteArray()
+  return Buffer.from(arrayBuffer)
+}
+
+export async function uploadBuffer(
+  buffer: Buffer,
+  originalName: string,
+  contentType: string,
+): Promise<{ fileAssetId: string; r2Key: string; size: number }> {
+  const fileAssetId = uuidv4()
+  const r2Key = buildR2Key(fileAssetId, originalName)
+  const size = buffer.length
+
+  const command = new PutObjectCommand({
+    Bucket: config.r2Bucket,
+    Key: r2Key,
+    Body: buffer,
+    ContentType: contentType,
+  })
+
+  await s3.send(command)
+
+  return { fileAssetId, r2Key, size }
+}
+
 export function validateFileType(mimeType: string, allowedTypes: string[]): boolean {
   return allowedTypes.includes(mimeType)
 }

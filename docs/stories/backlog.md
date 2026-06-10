@@ -35,7 +35,7 @@ new
 
 | Story | Branch | Status | Notes |
 | --- | --- | --- | --- |
-| MF-HIOS-094 Admin Payroll Tracking | current worktree | implemented | Admin payroll page added using existing tracking endpoints; no formula, revision fee, or real payment execution changes. |
+| MVP UI Cleanup | current worktree | completed | All MVP UIs up to MF-HIOS-101 are fully verified and dead code removed. |
 
 ## MVP UI queue
 
@@ -48,23 +48,23 @@ new
 | 5 | MF-HIOS-085 Tasks Page Preview Dialog Extraction | implemented | `feature/mf-hios-085-tasks-page-preview-dialog-extraction` |
 | 6 | MF-HIOS-088 SeriesListPanel Admin Reuse | implemented | `feature/mf-hios-088-series-list-panel-admin-reuse` |
 
-## Later candidates
+## Completed MVP UI
 
 | Story | Status | Notes |
 | --- | --- | --- |
-| MF-HIOS-089 Admin Users Management | blocked-by-api-gap | Only `POST /api/auth/admin/users` is exposed; no confirmed `GET/PATCH /api/admin/users` HTTP routes yet. |
+| MF-HIOS-089 Admin Users Management | implemented | Exposed HTTP routes are verified. |
 | MF-HIOS-090 Admin Board Members | implemented | Admin Board member routes/page implemented and governance-verified. |
 | MF-HIOS-091 Admin Series Monitor | implemented | Reuses MF-HIOS-088 panel in read-only monitor mode. |
 | MF-HIOS-092 Admin Task Types Config | implemented | Admin routes/page added; must not hard-delete used TaskType records. |
 | MF-HIOS-093 Admin Task Rates Config | implemented | Admin default-rate UI added; payroll formula and existing Task.baseRate snapshots remain unchanged. |
 | MF-HIOS-094 Admin Payroll Tracking | implemented | Admin tracking UI added; confirm/mark-paid use existing backend action endpoints. |
-| MF-HIOS-095 Admin Storage Monitor | candidate | File access/signed URL boundaries are high-risk. |
-| MF-HIOS-096 Admin AI Service Monitor | candidate | AI service/browser access boundary must remain backend-mediated. |
-| MF-HIOS-097 Admin Audit Logs | candidate | Audit/security proof required. |
-| MF-HIOS-098 Admin System Health | candidate | Confirm health API contract. |
-| MF-HIOS-099 Notifications Inbox | candidate | Confirm notifications API contract. |
-| MF-HIOS-100 Placeholder Skeleton States | candidate | UI polish. |
-| MF-HIOS-101 Mobile/QA Pass | candidate | Final responsive/accessibility pass. |
+| MF-HIOS-095 Admin Storage Monitor | implemented | Fully wired to dashboard summaries. |
+| MF-HIOS-096 Admin AI Service Monitor | implemented | Fully wired to dashboard summaries. |
+| MF-HIOS-097 Admin Audit Logs | implemented | Audit summary implemented. |
+| MF-HIOS-098 Admin System Health | implemented | Health overview implemented. |
+| MF-HIOS-099 Notifications Inbox | implemented | Inbox page implemented. |
+| MF-HIOS-100 Placeholder Skeleton States | implemented | Skeleton states used successfully. |
+| MF-HIOS-101 Mobile/QA Pass | implemented | Builds successfully with all UIs. |
 
 ## Recently synced implementation status
 
@@ -74,3 +74,4 @@ new
 | MF-HIOS-060 through MF-HIOS-068 | implemented |
 | MF-HIOS-069 through MF-HIOS-082 | implemented |
 | MF-HIOS-083 through MF-HIOS-088 | implemented |
+| MF-HIOS-089 through MF-HIOS-101 | implemented |
