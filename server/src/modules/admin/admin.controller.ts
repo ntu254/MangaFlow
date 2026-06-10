@@ -10,6 +10,12 @@ import {
   deactivateAdminBoardMemberService,
   listAdminBoardMembersService,
   setAdminBoardChairService,
+  activateAdminTaskTypeService,
+  createAdminTaskTypeService,
+  deactivateAdminTaskTypeService,
+  deleteAdminTaskTypeService,
+  listAdminTaskTypesService,
+  updateAdminTaskTypeService,
 } from "./admin.service.js"
 import type { UserRole } from "../auth/auth.types.js"
 
@@ -116,5 +122,65 @@ function toAdminBoardMemberResponse(member: any) {
     isChair: Boolean(member.isChair),
     createdAt: member.createdAt,
     updatedAt: member.updatedAt,
+  }
+}
+
+export async function listAdminTaskTypes(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const taskTypes = await listAdminTaskTypesService()
+    res.json({ success: true, message: "Admin task types retrieved", data: taskTypes.map(toAdminTaskTypeResponse) })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function createAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const taskType = await createAdminTaskTypeService(req.body as { name: string; description: string; baseRate: number })
+    res.status(201).json({ success: true, message: "Task type created", data: toAdminTaskTypeResponse(taskType) })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function updateAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const taskType = await updateAdminTaskTypeService(String(req.params.taskTypeId), req.body as { description?: string; baseRate?: number })
+    res.json({ success: true, message: "Task type updated", data: toAdminTaskTypeResponse(taskType) })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function updateAdminTaskTypeStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const isActive = (req.body as { isActive: boolean }).isActive
+    const taskType = isActive
+      ? await activateAdminTaskTypeService(String(req.params.taskTypeId))
+      : await deactivateAdminTaskTypeService(String(req.params.taskTypeId))
+    res.json({ success: true, message: isActive ? "Task type activated" : "Task type deactivated", data: toAdminTaskTypeResponse(taskType) })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const taskType = await deleteAdminTaskTypeService(String(req.params.taskTypeId))
+    res.json({ success: true, message: "Task type deleted", data: taskType ? toAdminTaskTypeResponse(taskType) : null })
+  } catch (err) {
+    next(err)
+  }
+}
+
+function toAdminTaskTypeResponse(taskType: any) {
+  return {
+    id: String(taskType._id ?? taskType.id),
+    name: taskType.name,
+    description: taskType.description,
+    baseRate: Number(taskType.baseRate),
+    isActive: Boolean(taskType.isActive),
+    createdAt: taskType.createdAt,
+    updatedAt: taskType.updatedAt,
   }
 }

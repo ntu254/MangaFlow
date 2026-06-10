@@ -115,6 +115,16 @@ describe("series read access", () => {
     })
   })
 
+  it("allows Admin to monitor all Series without workflow mutation filters", async () => {
+    const sort = vi.fn().mockResolvedValue([])
+    seriesFind.mockReturnValue({ sort })
+
+    await listSeriesService("admin-1", "ADMIN")
+
+    expect(seriesFind).toHaveBeenCalledWith({})
+    expect(sort).toHaveBeenCalledWith({ updatedAt: -1 })
+  })
+
   it("blocks Assistant Series list access", async () => {
     await expect(listSeriesService("assistant-1", "ASSISTANT")).rejects.toMatchObject({
       message: "Assistants cannot list Series; access is task-scoped only",

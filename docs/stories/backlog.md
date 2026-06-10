@@ -35,7 +35,7 @@ new
 
 | Story | Branch | Status | Notes |
 | --- | --- | --- | --- |
-| MF-HIOS-088 SeriesListPanel Admin Reuse | `feature/mf-hios-088-series-list-panel-admin-reuse` | implemented | Read-only/admin reuse props added; merged to `new`. |
+| MF-HIOS-091 Admin Series Monitor | current worktree | implemented | Read-only Admin series monitor added with backend Admin list-access proof. |
 
 ## MVP UI queue
 
@@ -53,9 +53,9 @@ new
 | Story | Status | Notes |
 | --- | --- | --- |
 | MF-HIOS-089 Admin Users Management | blocked-by-api-gap | Only `POST /api/auth/admin/users` is exposed; no confirmed `GET/PATCH /api/admin/users` HTTP routes yet. |
-| MF-HIOS-090 Admin Board Members | candidate | Confirm board/admin boundary before implementation. |
-| MF-HIOS-091 Admin Series Monitor | candidate | Reuse MF-HIOS-088 panel. |
-| MF-HIOS-092 Admin Task Types Config | candidate | Must not hard-delete used TaskType records. |
+| MF-HIOS-090 Admin Board Members | implemented | Admin Board member routes/page implemented and governance-verified. |
+| MF-HIOS-091 Admin Series Monitor | implemented | Reuses MF-HIOS-088 panel in read-only monitor mode. |
+| MF-HIOS-092 Admin Task Types Config | implemented | Admin routes/page added; must not hard-delete used TaskType records. |
 | MF-HIOS-093 Admin Task Rates Config | candidate | Payroll rules are high-risk if changed. |
 | MF-HIOS-094 Admin Payroll Tracking | candidate | Payroll/audit changes need explicit proof. |
 | MF-HIOS-095 Admin Storage Monitor | candidate | File access/signed URL boundaries are high-risk. |
