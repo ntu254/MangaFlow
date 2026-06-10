@@ -1,7 +1,7 @@
 import { Suspense } from "react"
-import { Routes } from "react-router-dom"
+import { RouterProvider } from "react-router-dom"
 import { AuthProvider } from "@/shared/components/auth/AuthProvider"
-import { AppRoutes } from "@/routes/AppRoutes"
+import { router } from "@/routes/AppRoutes"
 
 function AppRouteFallback() {
   return (
@@ -18,9 +18,7 @@ function App() {
   return (
     <AuthProvider>
       <Suspense fallback={<AppRouteFallback />}>
-        <Routes>
-          {AppRoutes()}
-        </Routes>
+        <RouterProvider router={router} />
       </Suspense>
     </AuthProvider>
   )

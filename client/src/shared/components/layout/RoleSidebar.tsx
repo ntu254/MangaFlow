@@ -15,7 +15,6 @@ interface RoleSidebarProps {
 export function RoleSidebar({ isOpen, onClose, collapsed, onToggleCollapse }: RoleSidebarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const role = user?.role.toLowerCase() ?? "admin"
   const roleName = user?.role ?? "ADMIN"
   const roleLabel = user?.role
     ? `${user.role.charAt(0)}${user.role.slice(1).toLowerCase()} Studio`
@@ -97,7 +96,7 @@ export function RoleSidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Ro
               </div>
               <div className="space-y-xs">
                 {section.items.map((item: SidebarItem) => {
-                  const path = item.absolute ? item.path : `/app/${role}/${item.path}`
+                  const path = item.absolute ? item.path : `/${item.path}`
                   return (
                     <NavLink
                       key={`${section.label}-${item.label}`}

@@ -8,19 +8,19 @@ interface NavItem {
 }
 
 const ROLE_DASHBOARD: Record<string, string> = {
-  ADMIN: "/app/admin/dashboard",
-  MANGAKA: "/app/mangaka/dashboard",
-  ASSISTANT: "/app/assistant/dashboard",
-  EDITOR: "/app/editor/dashboard",
-  BOARD: "/app/board/dashboard",
+  ADMIN: "/admin/dashboard",
+  MANGAKA: "/mangaka/dashboard",
+  ASSISTANT: "/assistant/dashboard",
+  EDITOR: "/editor/dashboard",
+  BOARD: "/board/dashboard",
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", path: "/app/dashboard" },
-  { label: "Series", path: "/app/series" },
-  { label: "Tasks", path: "/app/tasks" },
-  { label: "Review", path: "/app/review" },
-  { label: "Board", path: "/app/board" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Series", path: "/series" },
+  { label: "Tasks", path: "/tasks" },
+  { label: "Review", path: "/review" },
+  { label: "Board", path: "/board" },
 ]
 
 export function AppNavbar() {
@@ -60,7 +60,7 @@ export function AppNavbar() {
             </span>
           )}
           {user?.role === "ADMIN" && (
-            <Link to="/app/admin">
+            <Link to="/admin">
               <MFButton variant="ghost" size="sm">Admin</MFButton>
             </Link>
           )}

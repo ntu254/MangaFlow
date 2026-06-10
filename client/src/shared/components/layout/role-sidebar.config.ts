@@ -174,11 +174,10 @@ export function buildSidebarSections(
   const isAdminRole = roleName.toUpperCase() === "ADMIN"
   const badgeLookup = isAdminRole ? adminBadgeLookup(summary) : {}
 
-  const normalizedPath = (path: string) => {
-    const withoutAppSegment = path.replace(/^\/app\//, "")
-    const normalized = withoutAppSegment === "notifications" ? "/app/notifications" : `/app/${withoutAppSegment}`
-    return normalized
-  }
+  function normalizedPath(path: string) {
+      const withoutAppSegment = path.replace(/^\/app\//, "")
+      return withoutAppSegment
+    }
 
   return getBaseSidebarSections(roleName)
     .map((section) => {

@@ -16,5 +16,6 @@ export function AppHomeRedirect() {
     return <Navigate to="/login" replace />
   }
 
-  return <Navigate to={`/app/${user.role.toLowerCase()}/dashboard`} replace />
+  const rolePath = user.role.toLowerCase()
+  return <Navigate to={`/${rolePath}/dashboard`} replace />
 }

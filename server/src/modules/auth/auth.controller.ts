@@ -12,11 +12,11 @@ import {
 import type { AuthUser } from "./auth.types.js"
 
 const ROLE_DASHBOARD_MAP: Record<string, string> = {
-  ADMIN: "/app/admin/dashboard",
-  MANGAKA: "/app/mangaka/dashboard",
-  ASSISTANT: "/app/assistant/dashboard",
-  EDITOR: "/app/editor/dashboard",
-  BOARD: "/app/board/dashboard",
+  ADMIN: "/admin/dashboard",
+  MANGAKA: "/mangaka/dashboard",
+  ASSISTANT: "/assistant/dashboard",
+  EDITOR: "/editor/dashboard",
+  BOARD: "/board/dashboard",
 }
 
 export async function adminCreateUser(req: Request, res: Response): Promise<void> {
