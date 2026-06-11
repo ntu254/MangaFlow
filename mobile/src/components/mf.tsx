@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react"
+import { Ionicons } from "@expo/vector-icons"
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -19,6 +20,14 @@ const coverColors: Record<SeriesCard["coverTone"], string> = {
   dark: "#222032",
   warm: "#c48052",
   mono: "#d9d5df",
+}
+
+const defaultQueueIcons: Record<Tone, string> = {
+  primary: "document-text-outline",
+  success: "checkmark-circle-outline",
+  warning: "alert-circle-outline",
+  danger: "warning-outline",
+  neutral: "ellipse-outline",
 }
 
 export interface TabItem {
@@ -46,7 +55,7 @@ export function MFScreen({ tabs, activeTab, onTabChange, children }: MFScreenPro
           const active = tab.id === activeTab
           return (
             <Pressable key={tab.id} accessibilityRole="button" onPress={() => onTabChange(tab.id)} style={styles.tabButton}>
-              <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{tab.icon}</Text>
+              <Ionicons name={tab.icon as never} size={22} color={active ? colors.primary : colors.outline} />
               <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
             </Pressable>
           )
@@ -76,7 +85,7 @@ export function MFHeader({ role, userName, subtitle, logoSuffix, notificationCou
       </View>
       <View style={styles.headerRight}>
         <View style={styles.bell}>
-          <Text style={styles.bellText}>N</Text>
+          <Ionicons name="notifications-outline" size={18} color={colors.text} />
           <View style={styles.notificationBadge}><Text style={styles.notificationText}>{notificationCount}</Text></View>
         </View>
         <View style={styles.avatar}><Text style={styles.avatarText}>{role === "BOARD" ? "A" : "R"}</Text></View>
@@ -115,6 +124,15 @@ export function MFBadge({ tone, children }: PropsWithChildren<{ tone: Tone }>) {
   return <View style={[styles.badge, { backgroundColor: swatch.bg }]}><Text style={[styles.badgeText, { color: swatch.fg }]}>{children}</Text></View>
 }
 
+export function MFIconCircle({ tone, icon, size = 42 }: { tone: Tone; icon: string; size?: number }) {
+  const swatch = toneColors[tone]
+  return (
+    <View style={[styles.iconCircle, { width: size, height: size, borderRadius: size / 2, backgroundColor: swatch.bg }]}>
+      <Ionicons name={icon as never} size={Math.max(18, Math.round(size * 0.48))} color={swatch.fg} />
+    </View>
+  )
+}
+
 export function MFButton({ tone = "primary", children, variant = "filled" }: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline" }>) {
   const swatch = toneColors[tone]
   return (
@@ -125,16 +143,17 @@ export function MFButton({ tone = "primary", children, variant = "filled" }: Pro
 }
 
 export function MFMetricStrip({ items }: { items: MetricItem[] }) {
+  const compact = items.length > 3
+
   return (
     <MFCard style={styles.metricStrip}>
       {items.map((item, index) => {
-        const swatch = toneColors[item.tone]
         return (
-          <View key={item.id} style={[styles.metricItem, index > 0 && styles.metricDivider]}>
-            <View style={[styles.metricIcon, { backgroundColor: swatch.bg }]}><Text style={[styles.metricIconText, { color: swatch.fg }]}>{item.icon}</Text></View>
-            <View>
-              <Text style={styles.metricLabel}>{item.label}</Text>
+          <View key={item.id} style={[styles.metricItem, compact && styles.metricItemCompact, index > 0 && styles.metricDivider]}>
+            <MFIconCircle tone={item.tone} icon={item.icon} size={compact ? 38 : 42} />
+            <View style={compact && styles.metricTextCompact}>
               <Text style={styles.metricValue}>{item.value}</Text>
+              <Text style={[styles.metricLabel, compact && styles.metricLabelCompact]}>{item.label}</Text>
             </View>
           </View>
         )
@@ -150,7 +169,7 @@ export function MFActionCards({ items }: { items: MetricItem[] }) {
         const swatch = toneColors[item.tone]
         return (
           <MFCard key={item.id} style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: swatch.bg }]}><Text style={[styles.actionIconText, { color: swatch.fg }]}>{item.icon}</Text></View>
+            <MFIconCircle tone={item.tone} icon={item.icon} size={44} />
             <Text style={styles.actionTitle}>{item.value} {item.label}</Text>
             <Text style={[styles.actionLink, { color: swatch.fg }]}>Open now</Text>
           </MFCard>
@@ -167,13 +186,15 @@ export function MFQueueList({ items }: { items: QueueItem[] }) {
         const swatch = toneColors[item.tone]
         return (
           <View key={item.id} style={styles.queueRow}>
-            <View style={[styles.queueIcon, { backgroundColor: swatch.bg }]}><Text style={[styles.queueIconText, { color: swatch.fg }]}>-</Text></View>
+            <View style={[styles.queueIcon, { backgroundColor: swatch.bg }]}>
+              <Ionicons name={(item.icon ?? defaultQueueIcons[item.tone]) as never} size={20} color={swatch.fg} />
+            </View>
             <View style={styles.queueText}>
               <Text style={styles.queueTitle}>{item.title}</Text>
               <Text style={styles.queueSubtitle}>{item.subtitle}</Text>
             </View>
             {item.value ? <Text style={[styles.queueValue, { color: swatch.fg }]}>{item.value}</Text> : null}
-            <Text style={styles.chevron}>{'>'}</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.outline} />
           </View>
         )
       })}
@@ -261,8 +282,6 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.md, paddingBottom: 110, gap: spacing.md },
   tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", justifyContent: "space-around", paddingTop: spacing.sm, paddingBottom: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.outlineVariant },
   tabButton: { minWidth: 58, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2 },
-  tabIcon: { fontSize: 18, color: colors.outline },
-  tabIconActive: { color: colors.primary, fontWeight: "900" },
   tabLabel: { fontSize: 11, color: colors.outline, fontWeight: "600" },
   tabLabelActive: { color: colors.primary },
   header: { minHeight: 66, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -273,13 +292,13 @@ const styles = StyleSheet.create({
   logoSuffix: { color: colors.primary, fontSize: 9, fontWeight: "800", letterSpacing: 4 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   bell: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.outlineVariant, alignItems: "center", justifyContent: "center" },
-  bellText: { color: colors.text, fontSize: 12, fontWeight: "800" },
   notificationBadge: { position: "absolute", right: -5, top: -5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
   notificationText: { color: colors.surface, fontSize: 10, fontWeight: "800" },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   avatarText: { color: colors.primary, fontWeight: "900" },
   userName: { color: colors.text, fontSize: 14, fontWeight: "800" },
   userRole: { color: colors.textMuted, fontSize: 12 },
+  iconCircle: { alignItems: "center", justifyContent: "center" },
   hero: { position: "relative", paddingVertical: spacing.sm, overflow: "hidden" },
   inkWash: { position: "absolute", right: -20, top: -8, width: 210, height: 96, borderRadius: 32, backgroundColor: colors.inkWash, opacity: 0.6 },
   heroTitle: { color: colors.text, fontSize: typography.display, fontWeight: "900", letterSpacing: -0.5 },
@@ -287,15 +306,14 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: "#f0e8f4", ...shadow.card },
   metricStrip: { flexDirection: "row", paddingVertical: spacing.sm },
   metricItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm },
+  metricItemCompact: { flexDirection: "column", gap: 4, paddingHorizontal: 2 },
   metricDivider: { borderLeftWidth: 1, borderLeftColor: colors.outlineVariant },
-  metricIcon: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
-  metricIconText: { fontWeight: "900", fontSize: 16 },
+  metricTextCompact: { alignItems: "center" },
   metricLabel: { color: colors.textMuted, fontSize: 11, fontWeight: "700" },
+  metricLabelCompact: { textAlign: "center", fontSize: 10, lineHeight: 12 },
   metricValue: { color: colors.text, fontSize: 21, fontWeight: "900" },
   actionGrid: { flexDirection: "row", gap: spacing.sm },
   actionCard: { flex: 1, minHeight: 132, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm },
-  actionIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  actionIconText: { fontSize: 16, fontWeight: "900" },
   actionTitle: { color: colors.text, textAlign: "center", fontWeight: "800", fontSize: 13 },
   actionLink: { fontWeight: "800", fontSize: 12 },
   queueRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: "#f2edf5" },

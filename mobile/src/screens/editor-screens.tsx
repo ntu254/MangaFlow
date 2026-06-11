@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 import {
   ActivityList,
   MFActionCards,
@@ -7,6 +8,7 @@ import {
   MFCard,
   MFCover,
   MFHero,
+  MFIconCircle,
   MFMetricStrip,
   MFProgress,
   MFQueueList,
@@ -18,9 +20,13 @@ import {
   editorActions,
   editorActivity,
   editorQueues,
+  commentActivity,
+  commentMetrics,
   finalApprovals,
   manuscripts,
+  productionComments,
   readinessChecks,
+  type CommentItem,
 } from "@/data/mobile-data"
 import { colors, radius, spacing } from "@/design/tokens"
 
@@ -100,6 +106,29 @@ export function EditorReadinessScreen() {
   )
 }
 
+export function EditorCommentsScreen() {
+  return (
+    <>
+      <MFHero title="Comments" subtitle="Review and resolve production feedback." />
+      <MFMetricStrip items={commentMetrics} />
+      <SegmentedControl labels={["All", "Open", "Blocking", "Fixed", "Resolved"]} />
+      <View style={styles.stack}>
+        {productionComments.map((comment) => <CommentReviewRow key={comment.id} item={comment} />)}
+      </View>
+      <MFCard style={styles.blockingCallout}>
+        <MFIconCircle tone="danger" icon="warning-outline" size={54} />
+        <View style={styles.flex}>
+          <Text style={styles.title}>Blocking publication</Text>
+          <Text style={styles.body}>There are 2 unresolved blocking comments on Eclipse of Eternity Chapter 12.</Text>
+        </View>
+        <MFButton tone="danger" variant="outline">Open blockers</MFButton>
+      </MFCard>
+      <SectionTitle title="Recent activity" action="View all" />
+      <ActivityList items={commentActivity} />
+    </>
+  )
+}
+
 export function EditorSubmissionReviewScreen() {
   return (
     <>
@@ -166,6 +195,40 @@ export function EditorFinalApprovalsScreen() {
   )
 }
 
+function CommentReviewRow({ item }: { item: CommentItem }) {
+  const statusIcon = item.tone === "danger" ? "warning-outline" : item.tone === "success" ? "checkmark-circle-outline" : item.tone === "warning" ? "ellipse-outline" : "checkmark-done-outline"
+
+  return (
+    <MFCard style={styles.commentRow}>
+      <View style={styles.commentThumb}>
+        <View style={styles.commentPanel}>
+          <View style={styles.commentPanelGlow} />
+          <View style={styles.commentBubble} />
+        </View>
+        <View style={styles.pagePill}><Text style={styles.pagePillText}>{item.page}</Text></View>
+      </View>
+      <View style={styles.commentBody}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.commentTitle}>{item.title}</Text>
+          <Ionicons name="chevron-forward" size={17} color={colors.outline} />
+        </View>
+        <Text style={styles.commentText}>{item.body}</Text>
+        <View style={styles.commentMetaRow}>
+          <View style={styles.commentOwnerAvatar}><Text style={styles.commentOwnerText}>{item.owner.charAt(0)}</Text></View>
+          <Text style={styles.commentOwner}>{item.owner}</Text>
+        </View>
+      </View>
+      <View style={styles.commentAction}>
+        <MFBadge tone={item.tone}>{item.status}</MFBadge>
+        <View style={[styles.actionButton, item.tone === "danger" && styles.actionButtonDanger]}>
+          <Ionicons name={statusIcon as never} size={15} color={item.tone === "danger" ? colors.danger : colors.primary} />
+          <Text style={[styles.actionButtonText, item.tone === "danger" && styles.actionButtonTextDanger]}>{item.action}</Text>
+        </View>
+      </View>
+    </MFCard>
+  )
+}
+
 function PanelPreview({ label }: { label: string }) {
   return (
     <View style={styles.panelPreview}>
@@ -206,5 +269,25 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   noteBox: { backgroundColor: colors.primarySoft },
   buttonRow: { flexDirection: "row", gap: spacing.sm },
+  commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9 },
+  commentThumb: { width: 78, position: "relative" },
+  commentPanel: { width: 78, height: 78, borderRadius: radius.md, backgroundColor: "#d9d5df", overflow: "hidden", padding: 8 },
+  commentPanelGlow: { position: "absolute", left: 11, top: 11, width: 43, height: 43, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)" },
+  commentBubble: { marginLeft: "auto", width: 24, height: 36, borderRadius: 14, backgroundColor: colors.surface },
+  pagePill: { position: "absolute", left: 7, bottom: 7, minWidth: 27, height: 23, borderRadius: 8, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#e4d7ff" },
+  pagePillText: { color: colors.primary, fontSize: 11, fontWeight: "900" },
+  commentBody: { flex: 1, gap: 5 },
+  commentTitle: { flex: 1, color: colors.text, fontSize: 13, fontWeight: "900" },
+  commentText: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
+  commentMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  commentOwnerAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
+  commentOwnerText: { color: colors.primary, fontSize: 10, fontWeight: "900" },
+  commentOwner: { color: colors.primary, fontSize: 11, fontWeight: "700" },
+  commentAction: { width: 82, alignItems: "flex-end", justifyContent: "space-between", gap: spacing.xs },
+  actionButton: { minWidth: 76, minHeight: 34, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 4, paddingHorizontal: 7 },
+  actionButtonDanger: { borderColor: colors.danger },
+  actionButtonText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
+  actionButtonTextDanger: { color: colors.danger },
+  blockingCallout: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: "#ffd9d9", backgroundColor: "#fff8f8" },
 })
 

@@ -12,7 +12,27 @@ npm run lint
 npm test
 npm run build
 npm run web
+npm run android
 ```
+
+## Android Emulator
+
+Start an Android emulator from Android Studio first, then run:
+
+```bash
+cd mobile
+npm install
+npm run android
+```
+
+From the repository root, use:
+
+```bash
+npm install --prefix mobile
+npm run android --prefix mobile
+```
+
+If Expo asks for a target device, select the running emulator. The Android SDK platform tools must be available through Android Studio or your local `ANDROID_HOME` setup.
 
 ## Scope
 
