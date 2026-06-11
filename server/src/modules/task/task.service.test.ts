@@ -161,7 +161,7 @@ describe("task access service rules", () => {
 
     await expect(
       updateTaskStatusService("task1", { userId: "assistant1", role: "ASSISTANT" }, "SUBMITTED"),
-    ).rejects.toThrow("Only active Mangaka or Editor series members can manage tasks")
+    ).rejects.toThrow("Assistant can only start or reset task")
   })
 })
 
