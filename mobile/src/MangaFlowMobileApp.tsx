@@ -9,28 +9,27 @@ import {
   BoardTieBreakScreen,
 } from "@/screens/board-screens"
 import {
-  EditorFinalApprovalsScreen,
+  EditorCommentsScreen,
   EditorHomeScreen,
   EditorManuscriptsScreen,
   EditorReadinessScreen,
-  EditorSubmissionReviewScreen,
 } from "@/screens/editor-screens"
 import type { Role } from "@/data/mobile-data"
 
 const boardTabs: TabItem[] = [
-  { id: "home", label: "Home", icon: "H" },
-  { id: "reviews", label: "Reviews", icon: "R" },
-  { id: "votes", label: "Votes", icon: "V" },
-  { id: "ranking", label: "Ranking", icon: "K" },
-  { id: "profile", label: "Profile", icon: "P" },
+  { id: "home", label: "Home", icon: "home-outline" },
+  { id: "reviews", label: "Reviews", icon: "document-text-outline" },
+  { id: "votes", label: "Votes", icon: "checkbox-outline" },
+  { id: "ranking", label: "Ranking", icon: "bar-chart-outline" },
+  { id: "profile", label: "Profile", icon: "person-circle-outline" },
 ]
 
 const editorTabs: TabItem[] = [
-  { id: "home", label: "Home", icon: "H" },
-  { id: "review", label: "Review", icon: "R" },
-  { id: "comments", label: "Comments", icon: "C" },
-  { id: "readiness", label: "Readiness", icon: "S" },
-  { id: "profile", label: "Profile", icon: "P" },
+  { id: "home", label: "Home", icon: "home-outline" },
+  { id: "review", label: "Review", icon: "document-text-outline" },
+  { id: "comments", label: "Comments", icon: "chatbubble-outline" },
+  { id: "readiness", label: "Readiness", icon: "shield-checkmark-outline" },
+  { id: "profile", label: "Profile", icon: "person-circle-outline" },
 ]
 
 export function MangaFlowMobileApp() {
@@ -52,7 +51,7 @@ export function MangaFlowMobileApp() {
     }
 
     if (editorTab === "review") return <EditorManuscriptsScreen />
-    if (editorTab === "comments") return <EditorSubmissionReviewScreen />
+    if (editorTab === "comments") return <EditorCommentsScreen />
     if (editorTab === "readiness") return <EditorReadinessScreen />
     if (editorTab === "profile") return <RoleProfile role="EDITOR" name="Rin Sato" />
     return <EditorHomeScreen />

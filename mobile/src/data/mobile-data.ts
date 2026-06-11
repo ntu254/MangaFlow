@@ -16,6 +16,7 @@ export interface QueueItem {
   subtitle: string
   value?: string
   tone: Tone
+  icon?: string
 }
 
 export interface SeriesCard {
@@ -37,24 +38,36 @@ export interface ActivityItem {
   tone: Tone
 }
 
+export interface CommentItem {
+  id: string
+  title: string
+  body: string
+  owner: string
+  status: string
+  tone: Tone
+  action: string
+  page: string
+  coverTone: SeriesCard["coverTone"]
+}
+
 export const boardMetrics: MetricItem[] = [
-  { id: "waiting", label: "Waiting", value: "4", tone: "primary", icon: "Q" },
-  { id: "tie", label: "Tie-break", value: "1", tone: "warning", icon: "T" },
-  { id: "risk", label: "At-risk", value: "3", tone: "danger", icon: "!" },
+  { id: "waiting", label: "Waiting", value: "4", tone: "primary", icon: "reader-outline" },
+  { id: "tie", label: "Tie-break", value: "1", tone: "warning", icon: "scale-outline" },
+  { id: "risk", label: "At-risk", value: "3", tone: "danger", icon: "warning-outline" },
 ]
 
 export const boardDecisionCards: MetricItem[] = [
-  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "V" },
-  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "T" },
-  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "!" },
-  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "R" },
+  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "ballot-outline" },
+  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "scale-outline" },
+  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "warning-outline" },
+  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "bar-chart-outline" },
 ]
 
 export const boardQueues: QueueItem[] = [
-  { id: "series", title: "Series Waiting Review", subtitle: "Proposals awaiting board review", value: "4", tone: "primary" },
-  { id: "tie", title: "Tie-break Decisions", subtitle: "Requires Board Chair resolution", value: "1", tone: "warning" },
-  { id: "risk", title: "At-risk Cases", subtitle: "Series flagged for attention", value: "3", tone: "danger" },
-  { id: "ranking", title: "Ranking Cycle", subtitle: "Current cycle: Monthly Ranking", value: "1", tone: "primary" },
+  { id: "series", title: "Series Waiting Review", subtitle: "Proposals awaiting board review", value: "4", tone: "primary", icon: "document-text-outline" },
+  { id: "tie", title: "Tie-break Decisions", subtitle: "Requires Board Chair resolution", value: "1", tone: "warning", icon: "scale-outline" },
+  { id: "risk", title: "At-risk Cases", subtitle: "Series flagged for attention", value: "3", tone: "danger", icon: "warning-outline" },
+  { id: "ranking", title: "Ranking Cycle", subtitle: "Current cycle: Monthly Ranking", value: "1", tone: "primary", icon: "bar-chart-outline" },
 ]
 
 export const boardSeries: SeriesCard[] = [
@@ -78,17 +91,17 @@ export const boardActivity: ActivityItem[] = [
 ]
 
 export const editorActions: MetricItem[] = [
-  { id: "manuscripts", label: "Review manuscripts", value: "3", tone: "primary", icon: "M" },
-  { id: "approvals", label: "Final approve submissions", value: "5", tone: "success", icon: "A" },
-  { id: "comments", label: "Resolve comments", value: "4", tone: "warning", icon: "C" },
-  { id: "blocked", label: "Check blocked chapters", value: "2", tone: "danger", icon: "B" },
+  { id: "manuscripts", label: "Review manuscripts", value: "3", tone: "primary", icon: "document-text-outline" },
+  { id: "approvals", label: "Final approve submissions", value: "5", tone: "success", icon: "checkmark-done-outline" },
+  { id: "comments", label: "Resolve comments", value: "4", tone: "warning", icon: "chatbubble-ellipses-outline" },
+  { id: "blocked", label: "Check blocked chapters", value: "2", tone: "danger", icon: "lock-closed-outline" },
 ]
 
 export const editorQueues: QueueItem[] = [
-  { id: "manuscripts", title: "Manuscripts Waiting", subtitle: "New submissions awaiting review", value: "3", tone: "primary" },
-  { id: "final", title: "Final Approval Queue", subtitle: "Ready for your final approval", value: "5", tone: "success" },
-  { id: "comments", title: "Comments Blocking Publication", subtitle: "Unresolved comments", value: "4", tone: "warning" },
-  { id: "readiness", title: "Readiness Alerts", subtitle: "Chapters at risk or blocked", value: "2", tone: "danger" },
+  { id: "manuscripts", title: "Manuscripts Waiting", subtitle: "New submissions awaiting review", value: "3", tone: "primary", icon: "reader-outline" },
+  { id: "final", title: "Final Approval Queue", subtitle: "Ready for your final approval", value: "5", tone: "success", icon: "shield-checkmark-outline" },
+  { id: "comments", title: "Comments Blocking Publication", subtitle: "Unresolved comments", value: "4", tone: "warning", icon: "chatbubble-outline" },
+  { id: "readiness", title: "Readiness Alerts", subtitle: "Chapters at risk or blocked", value: "2", tone: "danger", icon: "warning-outline" },
 ]
 
 export const manuscripts: SeriesCard[] = [
@@ -106,12 +119,71 @@ export const finalApprovals: SeriesCard[] = [
 ]
 
 export const readinessChecks: QueueItem[] = [
-  { id: "pages", title: "All pages uploaded", subtitle: "Page files are present", value: "Passed", tone: "success" },
-  { id: "tasks", title: "All tasks approved", subtitle: "Assistant work is approved", value: "Passed", tone: "success" },
-  { id: "submissions", title: "All submissions approved", subtitle: "Mangaka and editor chain complete", value: "Passed", tone: "success" },
-  { id: "comments", title: "All comments resolved", subtitle: "2 comments still block publication", value: "Failed", tone: "danger" },
-  { id: "editor", title: "Editor final approval exists", subtitle: "Final approval was recorded", value: "Passed", tone: "success" },
-  { id: "date", title: "Publication date exists", subtitle: "Schedule has not been selected", value: "Failed", tone: "danger" },
+  { id: "pages", title: "All pages uploaded", subtitle: "Page files are present", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
+  { id: "tasks", title: "All tasks approved", subtitle: "Assistant work is approved", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
+  { id: "submissions", title: "All submissions approved", subtitle: "Mangaka and editor chain complete", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
+  { id: "comments", title: "All comments resolved", subtitle: "2 comments still block publication", value: "Failed", tone: "danger", icon: "warning-outline" },
+  { id: "editor", title: "Editor final approval exists", subtitle: "Final approval was recorded", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
+  { id: "date", title: "Publication date exists", subtitle: "Schedule has not been selected", value: "Failed", tone: "danger", icon: "calendar-outline" },
+]
+
+export const commentMetrics: MetricItem[] = [
+  { id: "open", label: "Open", value: "6", tone: "primary", icon: "chatbox-ellipses-outline" },
+  { id: "fixed", label: "Fixed by Assistant", value: "4", tone: "success", icon: "checkmark-circle-outline" },
+  { id: "blocking", label: "Blocking", value: "2", tone: "danger", icon: "warning-outline" },
+  { id: "resolved", label: "Resolved Today", value: "3", tone: "neutral", icon: "calendar-outline" },
+]
+
+export const productionComments: CommentItem[] = [
+  {
+    id: "eclipse-p18",
+    title: "Eclipse of Eternity / Ch.12 / Page 18",
+    body: "Please soften texture around the speech bubble before final approval.",
+    owner: "Mangaka",
+    status: "Blocking",
+    tone: "danger",
+    action: "Review",
+    page: "18",
+    coverTone: "mono",
+  },
+  {
+    id: "neon-p12",
+    title: "Neon Reverie / Ch.8 / Page 12",
+    body: "Check letter spacing consistency in the upper-right bubble.",
+    owner: "Editor",
+    status: "Open",
+    tone: "warning",
+    action: "Open",
+    page: "12",
+    coverTone: "mono",
+  },
+  {
+    id: "lotus-p05",
+    title: "Crimson Lotus / Ch.7 / Page 05",
+    body: "Background cleanup looks fixed. Please verify one remaining edge.",
+    owner: "Editor",
+    status: "Fixed by Assistant",
+    tone: "success",
+    action: "Verify",
+    page: "05",
+    coverTone: "mono",
+  },
+  {
+    id: "dawn-p03",
+    title: "Dawn of Ashes / Ch.10 / Page 03",
+    body: "Panel rhythm approved. Keep lighting direction consistent with previous page.",
+    owner: "Editor",
+    status: "Resolved",
+    tone: "neutral",
+    action: "View",
+    page: "03",
+    coverTone: "mono",
+  },
+]
+
+export const commentActivity: ActivityItem[] = [
+  { id: "fixed", title: "Assistant marked comment fixed / Crimson Lotus Ch.7 Pg05", time: "20m ago", tone: "success" },
+  { id: "resolved", title: "You resolved 1 comment / Dawn of Ashes Ch.10 Pg03", time: "1h ago", tone: "primary" },
 ]
 
 export const editorActivity: ActivityItem[] = [

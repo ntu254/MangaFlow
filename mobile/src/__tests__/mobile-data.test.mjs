@@ -14,6 +14,9 @@ test("mobile mock data covers board and editor reference screens", () => {
     "atRiskTitles",
     "editorActions",
     "editorQueues",
+    "commentMetrics",
+    "productionComments",
+    "commentActivity",
     "manuscripts",
     "finalApprovals",
     "readinessChecks",
@@ -29,8 +32,7 @@ test("mobile app exposes Board and Tantou Editor role shells", () => {
   assert.match(appSource, /BoardAtRiskScreen/)
   assert.match(appSource, /EditorHomeScreen/)
   assert.match(appSource, /EditorManuscriptsScreen/)
+  assert.match(appSource, /EditorCommentsScreen/)
   assert.match(appSource, /EditorReadinessScreen/)
-  assert.match(appSource, /EditorSubmissionReviewScreen/)
-  assert.match(appSource, /EditorFinalApprovalsScreen/)
 })
 
