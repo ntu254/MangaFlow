@@ -1,5 +1,5 @@
 import { Image } from "expo-image"
-import { View, Text, StyleSheet } from "react-native"
+import { Text, View, StyleSheet } from "react-native"
 import {
   ActivityList,
   MFActionCards,
@@ -16,159 +16,176 @@ import {
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
-import {
-  editorActions,
-  editorActivity,
-  editorQueues,
-  commentActivity,
-  commentMetrics,
-  finalApprovals,
-  manuscripts,
-  productionComments,
-  readinessChecks,
-  type CommentItem,
-} from "@/data/mobile-data"
+import type { EditorCommentItem } from "@/data/editor"
+import type { EditorReadinessCheck } from "@/domain/workflow"
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, radius, spacing } from "@/design/tokens"
+import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
 const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg")
 
 export function EditorHomeScreen() {
+  const flow = useEditorMobileFlow()
+  const passed = flow.readiness.checks.filter((check) => check.passed).length
+
   return (
     <>
       <MFHero title="Today" subtitle="Review and publication companion" />
+      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
       <SectionTitle title="Next actions" action="View all" />
-      <MFActionCards items={editorActions} />
+      <MFActionCards items={flow.home.actions} />
       <SectionTitle title="Review queues" />
-      <MFQueueList items={editorQueues} />
+      <MFQueueList items={flow.home.queues} />
       <SectionTitle title="Priority chapter" />
       <MFCard style={styles.priorityCard}>
-        <MFCover item={manuscripts[0]} small />
+        <MFCover item={flow.home.priorityChapter} small />
         <View style={styles.flex}>
-          <Text style={styles.title}>Eclipse of Eternity / Ch.12</Text>
-          <MFBadge tone="danger">Not Ready</MFBadge>
-          <Text style={styles.passText}>4 / 6 checks passed</Text>
-          <MFProgress value={0.67} />
-          <Text style={styles.muted}>Blocked by unresolved comments / 1 pending final approval</Text>
+          <Text style={styles.title}>{flow.readiness.chapterTitle}</Text>
+          <MFBadge tone={flow.readiness.overallPassed ? "success" : "danger"}>{flow.readiness.overallPassed ? "Ready" : "Blocked"}</MFBadge>
+          <Text style={styles.passText}>{passed} / {flow.readiness.checks.length} checks passed</Text>
+          <MFProgress value={passed / flow.readiness.checks.length} />
+          <Text style={styles.muted}>Source: {flow.readiness.source}. Mobile displays results only.</Text>
         </View>
       </MFCard>
       <SectionTitle title="Recent activity" action="View all" />
-      <ActivityList items={editorActivity} />
+      <ActivityList items={flow.home.activity} />
     </>
   )
 }
 
 export function EditorManuscriptsScreen() {
+  const flow = useEditorMobileFlow()
+  const selected = flow.selectedManuscript
+
   return (
     <>
-      <MFHero title="Manuscripts" subtitle="Review incoming series proposals and manuscript revisions." />
+      <MFHero title="Manuscripts" subtitle="Proposal review before Board review." />
+      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
       <MFMetricStrip items={[
-        { id: "waiting", label: "Waiting", value: "3", tone: "primary", icon: "file-text" },
-        { id: "revision", label: "Revisions", value: "2", tone: "warning", icon: "refresh-cw" },
-        { id: "ready", label: "Ready for Board", value: "1", tone: "success", icon: "shield-check" },
+        { id: "waiting", label: "Waiting", value: String(flow.manuscriptItems.filter((item) => item.manuscriptStatus === "EDITOR_REVIEW").length), tone: "primary", icon: "file-text" },
+        { id: "revision", label: "Revisions", value: String(flow.manuscriptItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED").length), tone: "warning", icon: "refresh-cw" },
+        { id: "ready", label: "Ready for Board", value: String(flow.manuscriptItems.filter((item) => item.decisionActions.includes("forward-to-board")).length), tone: "success", icon: "shield-check" },
       ]} />
-      <SegmentedControl labels={["Waiting 3", "Revision 2", "Forwarded 1"]} />
+      <SegmentedControl labels={["EDITOR_REVIEW", "Revision", "Forwardable"]} />
       <View style={styles.stack}>
-        {manuscripts.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Open Review" />)}
+        {flow.manuscriptItems.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Open Review" />)}
       </View>
+      {selected ? (
+        <MFCard>
+          <View style={styles.rowBetween}>
+            <Text style={styles.title}>Proposal decision preview</Text>
+            <MFBadge tone={selected.tone}>{selected.manuscriptStatus}</MFBadge>
+          </View>
+          <Text style={styles.body}>{selected.editorRecommendation}</Text>
+          <Text style={styles.muted}>Version {selected.version}. Forwarding to Board will later call the manuscript action endpoint.</Text>
+          <View style={styles.buttonRow}>
+            <MFButton tone="warning" variant="outline" onPress={() => flow.recordProposalAction("request-revision")}>Request Revision</MFButton>
+            <MFButton tone="danger" variant="outline" onPress={() => flow.recordProposalAction("reject")}>Reject</MFButton>
+          </View>
+          <MFButton tone="success" onPress={() => flow.recordProposalAction("forward-to-board")}>Forward to Board</MFButton>
+        </MFCard>
+      ) : null}
+      <EditorFinalApprovalsPanel />
     </>
   )
 }
 
 export function EditorReadinessScreen() {
+  const flow = useEditorMobileFlow()
+  const passed = flow.readiness.checks.filter((check) => check.passed).length
+  const readinessChecks = flow.readiness.checks.map(readinessCheckToQueueItem)
+
   return (
     <>
-      <MFHero title="Readiness" subtitle="Check chapter blockers before publication." />
+      <MFHero title="Readiness" subtitle="Display backend-owned chapter blockers before publication." />
+      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
       <MFCard style={styles.chapterPicker}>
-        <MFCover item={manuscripts[0]} small />
-        <Text style={[styles.title, styles.flex]}>Eclipse of Eternity / Chapter 12</Text>
+        <MFCover item={flow.home.priorityChapter} small />
+        <Text style={[styles.title, styles.flex]}>{flow.readiness.chapterTitle}</Text>
         <MFIcon name="chevron-right" size={18} color={colors.outline} />
       </MFCard>
       <MFCard style={styles.readinessSummary}>
-        <View style={styles.ring}><Text style={styles.ringValue}>4</Text><Text style={styles.ringTotal}>/ 6</Text></View>
+        <View style={styles.ring}><Text style={styles.ringValue}>{passed}</Text><Text style={styles.ringTotal}>/ {flow.readiness.checks.length}</Text></View>
         <View style={styles.flex}>
-          <MFBadge tone="danger">Blocked</MFBadge>
-          <Text style={styles.bigTitle}>4 of 6 checks passed</Text>
-          <MFProgress value={0.67} />
+          <MFBadge tone={flow.readiness.overallPassed ? "success" : "danger"}>{flow.readiness.overallPassed ? "Ready" : "Blocked"}</MFBadge>
+          <Text style={styles.bigTitle}>{passed} of {flow.readiness.checks.length} checks passed</Text>
+          <MFProgress value={passed / flow.readiness.checks.length} />
+          <Text style={styles.muted}>Source: {flow.readiness.source}. UI does not duplicate readiness logic.</Text>
         </View>
       </MFCard>
       <MFCard>
-        {readinessChecks.map((check) => (
-          <View key={check.id} style={[styles.checkRow, check.tone === "danger" && styles.failedRow]}>
-            <View style={[styles.checkIcon, { borderColor: check.tone === "danger" ? colors.danger : colors.success }]}>
-              <MFIcon name={check.tone === "danger" ? "alert-triangle" : "check"} size={14} color={check.tone === "danger" ? colors.danger : colors.success} />
-            </View>
-            <Text style={styles.checkTitle}>{check.title}</Text>
-            <Text style={[styles.checkValue, { color: check.tone === "danger" ? colors.danger : colors.success }]}>{check.value}</Text>
-          </View>
-        ))}
+        {flow.readiness.checks.map((check) => <ReadinessRow key={check.id} check={check} />)}
       </MFCard>
       <SectionTitle title="Blockers" />
       <MFQueueList items={readinessChecks.filter((check) => check.tone === "danger")} />
       <MFButton tone="primary" variant="outline">Open blockers</MFButton>
-      <MFButton>Schedule publication</MFButton>
+      <MFButton>Schedule publication mock</MFButton>
     </>
   )
 }
 
 export function EditorCommentsScreen() {
+  const flow = useEditorMobileFlow()
+  const blockingCount = flow.commentsPayload.comments.filter((comment) => "blocking" in comment && comment.blocking).length
+
   return (
     <>
-      <MFHero title="Comments" subtitle="Review and resolve production feedback." />
-      <MFMetricStrip items={commentMetrics} />
-      <SegmentedControl labels={["All", "Open", "Blocking", "Fixed", "Resolved"]} />
+      <MFHero title="Comments" subtitle="Resolve production feedback through the canonical lifecycle." />
+      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFMetricStrip items={flow.commentsPayload.metrics} />
+      <SegmentedControl labels={["All", "OPEN", "FIXED", "VERIFIED", "RESOLVED"]} />
       <View style={styles.stack}>
-        {productionComments.map((comment) => <CommentReviewRow key={comment.id} item={comment} />)}
+        {flow.commentsPayload.comments.map((comment) => <CommentReviewRow key={comment.id} item={comment as EditorCommentItem} />)}
       </View>
       <MFCard style={styles.blockingCallout}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
           <Text style={styles.title}>Blocking publication</Text>
-          <Text style={styles.body}>There are 2 unresolved blocking comments on Eclipse of Eternity Chapter 12.</Text>
+          <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED_BY_EDITOR.</Text>
         </View>
         <MFButton tone="danger" variant="outline">Open blockers</MFButton>
       </MFCard>
       <SectionTitle title="Recent activity" action="View all" />
-      <ActivityList items={commentActivity} />
+      <ActivityList items={flow.commentsPayload.activity} />
     </>
   )
 }
 
 export function EditorSubmissionReviewScreen() {
+  const flow = useEditorMobileFlow()
+  const item = flow.selectedSubmission
+
   return (
     <>
-      <MFHero title="Submission Review" subtitle="Bubble Lettering / Page 12" />
+      <MFHero title="Submission Review" subtitle={item ? item.subtitle : "Editor final approval"} />
+      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
       <MFCard>
         <View style={styles.compareGrid}>
           <PanelPreview label="Before" />
           <PanelPreview label="Submitted" />
         </View>
       </MFCard>
-      <MFQueueList items={[
-        { id: "assistant", title: "Assistant", subtitle: "Yuna Kato", value: "", tone: "primary" },
-        { id: "note", title: "Mangaka approval note", subtitle: "Looks good, please do final review", value: "", tone: "success" },
-        { id: "time", title: "Submitted", subtitle: "May 15, 2025 / 2:48 PM", value: "", tone: "neutral" },
-        { id: "type", title: "Task type", subtitle: "Lettering", value: "", tone: "primary" },
-      ]} />
-      <MFCard>
-        <View style={styles.rowBetween}>
-          <Text style={styles.title}>Linked comments</Text>
-          <Text style={styles.link}>2 comments</Text>
-        </View>
-        <Text style={styles.passText}>Resolved: Adjust bubble tail position</Text>
-        <Text style={styles.warnText}>Open: Ensure consistent letter spacing</Text>
-      </MFCard>
-      <SectionTitle title="Decision panel" />
-      <MFCard style={styles.noteBox}>
-        <Text style={styles.link}>Your note (optional)</Text>
-        <Text style={styles.body}>Overall looks good. Please confirm spacing consistency in a few panels.</Text>
-      </MFCard>
-      <View style={styles.buttonRow}>
-        <MFButton tone="primary" variant="outline">Request Revision</MFButton>
-        <MFButton tone="primary" variant="outline">Add Comment</MFButton>
-      </View>
-      <MFButton tone="success">Final Approve</MFButton>
+      {item ? (
+        <>
+          <MFQueueList items={[
+            { id: "assistant", title: "Assistant", subtitle: item.assistantName, value: "", tone: "primary" },
+            { id: "note", title: "Mangaka approval note", subtitle: item.mangakaNote, value: "", tone: "success" },
+            { id: "status", title: "Review status", subtitle: item.submissionStatus, value: "", tone: item.tone },
+            { id: "comments", title: "Linked comments", subtitle: "Resolve before publication readiness", value: String(item.linkedCommentCount), tone: item.linkedCommentCount > 0 ? "warning" : "success" },
+          ]} />
+          <SectionTitle title="Decision panel" />
+          <MFCard style={styles.noteBox}>
+            <Text style={styles.link}>Editor final approval boundary</Text>
+            <Text style={styles.body}>This action is separate from proposal review and is the only approval path that can later trigger payroll.</Text>
+          </MFCard>
+          <View style={styles.buttonRow}>
+            <MFButton tone="primary" variant="outline" onPress={() => flow.recordFinalApprovalAction("request-revision")}>Request Revision</MFButton>
+            <MFButton tone="primary" variant="outline" onPress={() => flow.recordFinalApprovalAction("add-comment")}>Add Comment</MFButton>
+          </View>
+          <MFButton tone="success" onPress={() => flow.recordFinalApprovalAction("editor-approve")}>Final Approve</MFButton>
+        </>
+      ) : null}
       <SectionTitle title="History" />
       <ActivityList items={[
         { id: "submitted", title: "Submitted by Assistant", time: "May 15, 2:48 PM", tone: "primary" },
@@ -180,28 +197,30 @@ export function EditorSubmissionReviewScreen() {
 }
 
 export function EditorFinalApprovalsScreen() {
+  return <EditorFinalApprovalsPanel standalone />
+}
+
+function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolean }) {
+  const flow = useEditorMobileFlow()
+
   return (
     <>
-      <MFHero title="Final approvals" subtitle="Submissions approved by Mangaka and waiting for your final decision." />
+      {standalone ? <MFHero title="Final approvals" subtitle="Submissions approved by Mangaka and waiting for Editor decision." /> : <SectionTitle title="Final approvals" action="Review all" />}
       <MFMetricStrip items={[
-        { id: "waiting", label: "Waiting", value: "5", tone: "primary", icon: "file-text" },
-        { id: "urgent", label: "Urgent", value: "2", tone: "danger", icon: "alert-triangle" },
-        { id: "blocked", label: "Blocked", value: "1", tone: "danger", icon: "lock" },
+        { id: "waiting", label: "Waiting", value: String(flow.submissionItems.filter((item) => item.submissionStatus === "MANGAKA_APPROVED").length), tone: "primary", icon: "file-text" },
+        { id: "urgent", label: "Urgent", value: String(flow.submissionItems.filter((item) => item.tone === "danger").length), tone: "danger", icon: "alert-triangle" },
+        { id: "approved", label: "Approved", value: String(flow.submissionItems.filter((item) => item.submissionStatus === "EDITOR_APPROVED").length), tone: "success", icon: "check-circle" },
       ]} />
-      <SegmentedControl labels={["All", "Urgent", "Blocked", "Approved Today"]} />
+      <SegmentedControl labels={["MANGAKA_APPROVED", "Urgent", "Blocked", "EDITOR_APPROVED"]} />
       <View style={styles.stack}>
-        {finalApprovals.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Review" />)}
+        {flow.submissionItems.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Review" />)}
       </View>
-      <SectionTitle title="Recently approved" action="View all" />
-      <ActivityList items={[
-        { id: "redraw", title: "Panel redraw / Dawn of Ashes", time: "16m ago", tone: "success" },
-        { id: "details", title: "Background details / Shikkoku no Tenshi", time: "1h ago", tone: "success" },
-      ]} />
+      <EditorSubmissionReviewScreen />
     </>
   )
 }
 
-function CommentReviewRow({ item }: { item: CommentItem }) {
+function CommentReviewRow({ item }: { item: EditorCommentItem }) {
   const statusIcon: IconName = item.tone === "danger" ? "alert-triangle" : item.tone === "success" ? "check-circle" : item.tone === "warning" ? "circle" : "check"
   const coverSource = getCommentCoverSource(item)
 
@@ -221,6 +240,7 @@ function CommentReviewRow({ item }: { item: CommentItem }) {
           <MFIcon name="chevron-right" size={17} color={colors.outline} />
         </View>
         <Text style={styles.commentText}>{item.body}</Text>
+        <Text style={styles.muted}>{item.canonicalStatus}</Text>
         <View style={styles.commentMetaRow}>
           <View style={styles.commentOwnerAvatar}><Text style={styles.commentOwnerText}>{item.owner.charAt(0)}</Text></View>
           <Text style={styles.commentOwner}>{item.owner}</Text>
@@ -237,11 +257,37 @@ function CommentReviewRow({ item }: { item: CommentItem }) {
   )
 }
 
-function getCommentCoverSource(item: CommentItem) {
+function getCommentCoverSource(item: EditorCommentItem) {
   const title = item.title.toLowerCase()
 
   if (title.includes("crimson") || item.tone === "success") return crimsonRoadCover
   return shadowlineCover
+}
+
+function ReadinessRow({ check }: { check: EditorReadinessCheck }) {
+  return (
+    <View style={[styles.checkRow, !check.passed && styles.failedRow]}>
+      <View style={[styles.checkIcon, { borderColor: check.passed ? colors.success : colors.danger }]}>
+        <MFIcon name={check.passed ? "check" : "alert-triangle"} size={14} color={check.passed ? colors.success : colors.danger} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={styles.checkTitle}>{check.title}</Text>
+        <Text style={styles.muted}>{check.reason}</Text>
+      </View>
+      <Text style={[styles.checkValue, { color: check.passed ? colors.success : colors.danger }]}>{check.passed ? "Passed" : "Failed"}</Text>
+    </View>
+  )
+}
+
+function readinessCheckToQueueItem(check: EditorReadinessCheck) {
+  return {
+    id: check.id,
+    title: check.title,
+    subtitle: check.reason,
+    value: check.passed ? "Passed" : "Failed",
+    tone: check.passed ? "success" as const : "danger" as const,
+    icon: check.passed ? "check-circle" as const : "alert-triangle" as const,
+  }
 }
 
 function PanelPreview({ label }: { label: string }) {
@@ -255,14 +301,18 @@ function PanelPreview({ label }: { label: string }) {
   )
 }
 
+function StateBanner({ loading, error, message }: { loading: boolean; error: string | null; message: string }) {
+  if (error) return <MFCard style={styles.errorPanel}><Text style={styles.body}>{error}</Text></MFCard>
+  return <Text style={styles.muted}>{loading ? "Loading mock Editor flow..." : message}</Text>
+}
+
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   flex: { flex: 1 },
-  title: { color: colors.text, fontSize: 16, fontWeight: "900" },
+  title: { color: colors.text, fontSize: 16, fontWeight: "900", flexShrink: 1 },
   bigTitle: { color: colors.text, fontSize: 22, fontWeight: "900", marginVertical: spacing.sm },
-  muted: { color: colors.textMuted, fontSize: 12, marginTop: 4 },
+  muted: { color: colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
   passText: { color: colors.success, fontWeight: "800", fontSize: 12, marginTop: spacing.xs },
-  warnText: { color: colors.warning, fontWeight: "800", fontSize: 12, marginTop: spacing.xs },
   body: { color: colors.text, fontSize: 13, lineHeight: 20 },
   link: { color: colors.primary, fontWeight: "800", fontSize: 12 },
   priorityCard: { flexDirection: "row", gap: spacing.md },
@@ -275,14 +325,14 @@ const styles = StyleSheet.create({
   failedRow: { backgroundColor: colors.dangerSoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm },
   checkIcon: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   checkTitle: { flex: 1, color: colors.text, fontWeight: "700" },
-  checkValue: { fontWeight: "800" },
+  checkValue: { fontWeight: "800", fontSize: 12 },
   compareGrid: { flexDirection: "row", gap: spacing.sm },
   panelPreview: { flex: 1 },
   mangaPanel: { minHeight: 118, borderRadius: radius.md, backgroundColor: "#2f2f37", marginTop: spacing.xs, padding: spacing.sm, alignItems: "flex-end", justifyContent: "flex-start" },
   bubble: { width: 78, height: 58, borderRadius: 30, backgroundColor: colors.surface, color: colors.text, fontSize: 10, fontWeight: "900", textAlign: "center", paddingTop: 13 },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   noteBox: { backgroundColor: colors.primarySoft },
-  buttonRow: { flexDirection: "row", gap: spacing.sm },
+  buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
   commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9 },
   commentThumb: { width: 78, position: "relative" },
   commentPanel: { width: 78, height: 78, borderRadius: radius.md, backgroundColor: "#d9d5df", overflow: "hidden", padding: 8 },
@@ -304,5 +354,5 @@ const styles = StyleSheet.create({
   actionButtonText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
   actionButtonTextDanger: { color: colors.danger },
   blockingCallout: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: "#ffd9d9", backgroundColor: "#fff8f8" },
+  errorPanel: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },
 })
-

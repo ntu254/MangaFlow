@@ -2,7 +2,9 @@
 
 Expo + React Native + TypeScript mobile foundation for MangaFlow.
 
-This first slice is UI-only and uses local mock data for Board Chair and Tantou Editor flows. It does not wire API, auth, signed URLs, Board decisions, or publication readiness mutations.
+This slice is UI-only and uses an async mock data-source boundary for Board Chair and Tantou Editor flows. It does not wire API, auth, signed URLs, Board decisions, or publication readiness mutations.
+
+For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile. The current story packet is `../docs/stories/MF-HIOS-095-mobile-editor-board-flow-foundation.md`.
 
 ## Scripts
 
@@ -39,4 +41,7 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Board shell: Home, Reviews, Votes, Ranking, Profile.
 - Editor shell: Home, Review, Comments, Readiness, Profile.
 - Shared MangaFlow UI primitives under `src/components/mf.tsx`.
-- Mock data and status mappings under `src/data/mobile-data.ts`.
+- Contract-aligned mobile types under `src/domain/workflow.ts`.
+- Role-specific mock data under `src/data/editor.ts` and `src/data/board.ts`.
+- Future API replacement boundary under `src/services/mobile-workflow-data-source.ts`.
+- Role flow hooks under `src/hooks/use-editor-mobile-flow.ts` and `src/hooks/use-board-mobile-flow.ts`.
