@@ -1,6 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 import { MFIcon, type IconName } from "@/design/icons"
 import type { MetricItem, QueueItem, SeriesCard, Tone } from "@/data/mobile-data"
@@ -45,6 +46,7 @@ interface MFScreenProps extends PropsWithChildren {
 export function MFScreen({ tabs, activeTab, onTabChange, children }: MFScreenProps) {
   return (
     <View style={styles.root}>
+      <MFHeaderBackground />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {children}
@@ -107,7 +109,7 @@ interface HeroProps {
 export function MFHero({ title, subtitle, children }: HeroProps) {
   return (
     <View style={styles.hero}>
-      <View style={styles.inkWash} />
+      <MFHeaderBackground compact />
       <Text style={styles.heroTitle}>{title}</Text>
       <Text style={styles.heroSubtitle}>{subtitle}</Text>
       {children}
@@ -300,8 +302,7 @@ const styles = StyleSheet.create({
   userRole: { color: colors.textMuted, fontSize: 12 },
   iconCircle: { alignItems: "center", justifyContent: "center" },
   hero: { position: "relative", paddingVertical: spacing.sm, overflow: "hidden" },
-  inkWash: { position: "absolute", right: -20, top: -8, width: 210, height: 96, borderRadius: 32, backgroundColor: colors.inkWash, opacity: 0.6 },
-  heroTitle: { color: colors.text, fontSize: typography.display, fontWeight: "900", letterSpacing: -0.5 },
+  heroTitle: { color: colors.text, fontSize: typography.display, fontWeight: "900", letterSpacing: 0 },
   heroSubtitle: { color: colors.textMuted, fontSize: typography.body, marginTop: 4 },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: "#f0e8f4", ...shadow.card },
   metricStrip: { flexDirection: "row", paddingVertical: spacing.sm },
