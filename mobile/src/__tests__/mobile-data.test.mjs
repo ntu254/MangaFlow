@@ -109,6 +109,17 @@ test("mobile action cards use responsive centered layout", () => {
   assert.match(mfSource, /numberOfLines=\{2\}/)
 })
 
+test("recent activity lists use tone-mapped icons", () => {
+  assert.match(dataSource, /boardActivity[\s\S]*icon: "check-circle"/)
+  assert.match(dataSource, /boardActivity[\s\S]*icon: "scale-balance"/)
+  assert.match(dataSource, /editorActivity[\s\S]*icon: "message-circle"/)
+  assert.match(dataSource, /editorActivity[\s\S]*icon: "lock"/)
+  assert.match(mfSource, /defaultActivityIcons/)
+  assert.match(mfSource, /item\.icon \?\? defaultActivityIcons/)
+  assert.match(mfSource, /activityIcon/)
+  assert.doesNotMatch(mfSource, /activityDot/)
+})
+
 test("mobile series covers use provided manga artwork assets", () => {
   assert.match(mfSource, /biatruyen\.jpg/)
   assert.match(mfSource, /biatruyen1\.jpg/)

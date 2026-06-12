@@ -41,6 +41,7 @@ export interface ActivityItem {
   title: string
   time: string
   tone: Tone
+  icon?: IconName
 }
 
 export interface CommentItem {
@@ -89,10 +90,10 @@ export const atRiskTitles: SeriesCard[] = [
 ]
 
 export const boardActivity: ActivityItem[] = [
-  { id: "approved", title: "You finalized Aurora Pulse as Approved", time: "2h ago", tone: "success" },
-  { id: "ranking", title: "Monthly Ranking Cycle started", time: "6h ago", tone: "primary" },
-  { id: "tie", title: "You resolved a tie vote for Crimson Road", time: "1d ago", tone: "warning" },
-  { id: "risk", title: "You flagged Shadowline as At Risk", time: "2d ago", tone: "danger" },
+  { id: "approved", title: "You finalized Aurora Pulse as Approved", time: "2h ago", tone: "success", icon: "check-circle" },
+  { id: "ranking", title: "Monthly Ranking Cycle started", time: "6h ago", tone: "primary", icon: "bar-chart-2" },
+  { id: "tie", title: "You resolved a tie vote for Crimson Road", time: "1d ago", tone: "warning", icon: "scale-balance" },
+  { id: "risk", title: "You flagged Shadowline as At Risk", time: "2d ago", tone: "danger", icon: "alert-triangle" },
 ]
 
 export const editorActions: MetricItem[] = [
@@ -187,15 +188,15 @@ export const productionComments: CommentItem[] = [
 ]
 
 export const commentActivity: ActivityItem[] = [
-  { id: "fixed", title: "Assistant marked comment fixed / Crimson Lotus Ch.7 Pg05", time: "20m ago", tone: "success" },
-  { id: "resolved", title: "You resolved 1 comment / Dawn of Ashes Ch.10 Pg03", time: "1h ago", tone: "primary" },
+  { id: "fixed", title: "Assistant marked comment fixed / Crimson Lotus Ch.7 Pg05", time: "20m ago", tone: "success", icon: "check-circle" },
+  { id: "resolved", title: "You resolved 1 comment / Dawn of Ashes Ch.10 Pg03", time: "1h ago", tone: "primary", icon: "message-circle" },
 ]
 
 export const editorActivity: ActivityItem[] = [
-  { id: "approve", title: "You approved Ch.11 of Eclipse of Eternity", time: "18m ago", tone: "success" },
-  { id: "comments", title: "2 new comments on Ch.10 - Dawn of Ashes", time: "1h ago", tone: "warning" },
-  { id: "submission", title: "New submission: Shikkoku no Tenshi / Ch.7", time: "2h ago", tone: "primary" },
-  { id: "blocked", title: "Ch.8 of Crimson Lotus is blocked", time: "3h ago", tone: "danger" },
+  { id: "approve", title: "You approved Ch.11 of Eclipse of Eternity", time: "18m ago", tone: "success", icon: "check-circle" },
+  { id: "comments", title: "2 new comments on Ch.10 - Dawn of Ashes", time: "1h ago", tone: "warning", icon: "message-circle" },
+  { id: "submission", title: "New submission: Shikkoku no Tenshi / Ch.7", time: "2h ago", tone: "primary", icon: "file-text" },
+  { id: "blocked", title: "Ch.8 of Crimson Lotus is blocked", time: "3h ago", tone: "danger", icon: "lock" },
 ]
 
 export function toneCount(items: Array<{ tone: Tone }>, tone: Tone): number {

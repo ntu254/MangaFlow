@@ -35,6 +35,14 @@ const defaultQueueIcons: Record<Tone, IconName> = {
   neutral: "circle",
 }
 
+const defaultActivityIcons: Record<Tone, IconName> = {
+  primary: "file-text",
+  success: "check-circle",
+  warning: "alert-circle",
+  danger: "alert-triangle",
+  neutral: "circle",
+}
+
 export interface TabItem {
   id: string
   label: string
@@ -291,14 +299,16 @@ export function SectionTitle({ title, action }: { title: string; action?: string
   )
 }
 
-export function ActivityList({ items }: { items: Array<{ id: string; title: string; time: string; tone: Tone }> }) {
+export function ActivityList({ items }: { items: Array<{ id: string; title: string; time: string; tone: Tone; icon?: IconName }> }) {
   return (
     <MFCard>
       {items.map((item) => {
         const swatch = toneColors[item.tone]
         return (
           <View key={item.id} style={styles.activityRow}>
-            <View style={[styles.activityDot, { borderColor: swatch.fg }]} />
+            <View style={[styles.activityIcon, { backgroundColor: swatch.bg }]}>
+              <MFIcon name={item.icon ?? defaultActivityIcons[item.tone]} size={15} color={swatch.fg} strokeWidth={2.4} />
+            </View>
             <Text style={styles.activityTitle}>{item.title}</Text>
             <Text style={styles.activityTime}>{item.time}</Text>
           </View>
@@ -402,7 +412,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "900" },
   sectionAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },
   activityRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 7 },
-  activityDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2 },
+  activityIcon: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   activityTitle: { flex: 1, color: colors.text, fontSize: 12 },
   activityTime: { color: colors.outline, fontSize: 11 },
   segmented: { flexDirection: "row", backgroundColor: colors.surface, borderRadius: radius.lg, padding: 4, borderWidth: 1, borderColor: colors.outlineVariant },
