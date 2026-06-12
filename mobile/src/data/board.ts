@@ -1,0 +1,72 @@
+import type {
+  ActivityItem,
+  AtRiskDecision,
+  BoardAtRiskCase,
+  BoardDecisionHistoryItem,
+  BoardRankingItem,
+  BoardSeriesReviewItem,
+  MetricItem,
+  QueueItem,
+} from "@/domain/workflow"
+
+export const boardMetrics: MetricItem[] = [
+  { id: "waiting", label: "Waiting", value: "4", tone: "primary", icon: "file-text" },
+  { id: "tie", label: "Tie-break", value: "1", tone: "warning", icon: "scale-balance" },
+  { id: "risk", label: "At-risk", value: "3", tone: "danger", icon: "alert-triangle" },
+]
+
+export const boardDecisionCards: MetricItem[] = [
+  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "check-circle", subtitle: "BOARD_REVIEW proposals", actionLabel: "Open votes" },
+  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "scale-balance", subtitle: "Board Chair only", actionLabel: "Resolve now" },
+  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "alert-triangle", subtitle: "Manual decision required", actionLabel: "Check risk" },
+  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "bar-chart-2", subtitle: "Reader score 1-10", actionLabel: "View ranking" },
+]
+
+export const boardQueues: QueueItem[] = [
+  { id: "series", title: "Series Waiting Review", subtitle: "Proposals forwarded by Tantou Editors", value: "4", tone: "primary", icon: "file-text" },
+  { id: "tie", title: "Tie-break Decisions", subtitle: "Requires Board Chair separate action", value: "1", tone: "warning", icon: "scale-balance" },
+  { id: "risk", title: "At-risk Cases", subtitle: "No auto-cancel; Board decides manually", value: "3", tone: "danger", icon: "alert-triangle" },
+  { id: "ranking", title: "Ranking Cycle", subtitle: "Current cycle: Monthly Ranking", value: "1", tone: "primary", icon: "bar-chart-2" },
+]
+
+export const boardSeries: BoardSeriesReviewItem[] = [
+  { id: "neon", title: "Neon Reverie", subtitle: "Sci-Fi / Drama", meta: "Proposed: Monthly", status: "Board Review", tone: "primary", progress: "4 / 7 votes submitted", progressValue: 0.57, coverTone: "violet", tags: ["Sci-Fi", "Drama"], seriesStatus: "BOARD_REVIEW", decisionStatus: "PENDING", publicationType: "MONTHLY", voteSummary: { approve: 3, reject: 1, needsRevision: 0, pending: 3, eligible: 7 }, voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"] },
+  { id: "aurora", title: "Aurora Pulse", subtitle: "Fantasy / Adventure", meta: "Proposed: Monthly", status: "Tie-break", tone: "warning", progress: "6 / 7 votes submitted", progressValue: 0.86, coverTone: "blue", tags: ["Fantasy", "Adventure"], seriesStatus: "BOARD_REVIEW", decisionStatus: "TIE_BREAK_REQUIRED", publicationType: "MONTHLY", voteSummary: { approve: 3, reject: 0, needsRevision: 3, pending: 1, eligible: 7 }, voteOptions: ["APPROVE", "NEEDS_REVISION"] },
+  { id: "crimson", title: "Crimson Road", subtitle: "Action / Historical", meta: "Proposed: Weekly", status: "Board Review", tone: "primary", progress: "6 / 7 votes submitted", progressValue: 0.86, coverTone: "red", tags: ["Action", "Historical"], seriesStatus: "BOARD_REVIEW", decisionStatus: "PENDING", publicationType: "WEEKLY", voteSummary: { approve: 5, reject: 1, needsRevision: 0, pending: 1, eligible: 7 }, voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"] },
+  { id: "shadow", title: "Shadowline", subtitle: "Thriller / Mystery", meta: "Proposed: Monthly", status: "Needs Revision Lead", tone: "warning", progress: "5 / 7 votes submitted", progressValue: 0.71, coverTone: "dark", tags: ["Thriller", "Mystery"], seriesStatus: "BOARD_REVIEW", decisionStatus: "PENDING", publicationType: "MONTHLY", voteSummary: { approve: 1, reject: 1, needsRevision: 3, pending: 2, eligible: 7 }, voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"] },
+]
+
+export const boardRankings: BoardRankingItem[] = [
+  { id: "shadow-rank", title: "Shadowline", subtitle: "Current rank 12", meta: "Down 5 places", status: "At Risk", tone: "danger", coverTone: "dark", rankingStatus: "AT_RISK", rank: 12, previousRank: 7, voteCount: 1280, readerScore: 6.1, finalScore: 1079 },
+  { id: "crimson-rank", title: "Crimson Road", subtitle: "Current rank 18", meta: "Down 7 places", status: "At Risk", tone: "danger", coverTone: "red", rankingStatus: "AT_RISK", rank: 18, previousRank: 11, voteCount: 990, readerScore: 6.3, finalScore: 712 },
+  { id: "aurora-rank", title: "Aurora Pulse", subtitle: "Current rank 25", meta: "Warning watch", status: "Warning", tone: "warning", coverTone: "blue", rankingStatus: "WARNING", rank: 25, previousRank: 19, voteCount: 860, readerScore: 6.4, finalScore: 621 },
+]
+
+const atRiskDecisions: AtRiskDecision[] = ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"]
+
+export const atRiskTitles: BoardAtRiskCase[] = [
+  { id: "shadow-risk", title: "Shadowline", subtitle: "Current rank 12, reader score 6.1", meta: "Down 5 places", status: "At Risk", tone: "danger", coverTone: "dark", seriesStatus: "AT_RISK", rankingStatus: "AT_RISK", availableDecisions: atRiskDecisions, supportNote: "Recent performance decline across key metrics. Recommend improvement plan before cancellation.", requiresConfirmation: true },
+  { id: "crimson-risk", title: "Crimson Road", subtitle: "Current rank 18, reader score 6.3", meta: "Down 7 places", status: "At Risk", tone: "danger", coverTone: "red", seriesStatus: "AT_RISK", rankingStatus: "AT_RISK", availableDecisions: atRiskDecisions, supportNote: "Action readability dropped after latest arc; monitor and require story support.", requiresConfirmation: true },
+  { id: "aurora-risk", title: "Aurora Pulse", subtitle: "Current rank 25, reader score 6.4", meta: "Down 6 places", status: "Warning", tone: "warning", coverTone: "blue", seriesStatus: "AT_RISK", rankingStatus: "WARNING", availableDecisions: ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN"], supportNote: "Soft warning recommended; cancellation is not suggested in this mock case.", requiresConfirmation: true },
+]
+
+export const boardDecisionHistory: BoardDecisionHistoryItem[] = [
+  { id: "hist-aurora", title: "Aurora Pulse proposal", decision: "APPROVE", status: "FINALIZED", time: "2h ago", immutable: true },
+  { id: "hist-crimson", title: "Crimson Road tie-break", decision: "NEEDS_REVISION", status: "FINALIZED", time: "1d ago", immutable: true },
+  { id: "hist-shadow-risk", title: "Shadowline at-risk review", decision: "REQUEST_IMPROVEMENT_PLAN", status: "AT_RISK_ACTION_RECORDED", time: "2d ago", immutable: true },
+]
+
+export const boardActivity: ActivityItem[] = [
+  { id: "approved", title: "You finalized Aurora Pulse as Approved", time: "2h ago", tone: "success", icon: "check-circle" },
+  { id: "ranking", title: "Monthly Ranking Cycle started", time: "6h ago", tone: "primary", icon: "bar-chart-2" },
+  { id: "tie", title: "You resolved a tie vote for Crimson Road", time: "1d ago", tone: "warning", icon: "scale-balance" },
+  { id: "risk", title: "You recorded an at-risk action for Shadowline", time: "2d ago", tone: "danger", icon: "alert-triangle" },
+]
+
+export const boardHome = {
+  metrics: boardMetrics,
+  decisionCards: boardDecisionCards,
+  queues: boardQueues,
+  priorityReview: boardSeries[0],
+  activity: boardActivity,
+}

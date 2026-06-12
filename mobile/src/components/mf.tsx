@@ -157,10 +157,21 @@ export function MFIconCircle({ tone, icon, size = 42 }: { tone: Tone; icon: Icon
   )
 }
 
-export function MFButton({ tone = "primary", children, variant = "filled" }: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline" }>) {
+export function MFButton({
+  tone = "primary",
+  children,
+  variant = "filled",
+  onPress,
+  accessibilityLabel,
+}: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline"; onPress?: () => void; accessibilityLabel?: string }>) {
   const swatch = toneColors[tone]
   return (
-    <Pressable style={[styles.button, variant === "filled" ? { backgroundColor: swatch.fg, borderColor: swatch.fg } : { backgroundColor: colors.surface, borderColor: swatch.fg }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      style={[styles.button, variant === "filled" ? { backgroundColor: swatch.fg, borderColor: swatch.fg } : { backgroundColor: colors.surface, borderColor: swatch.fg }]}
+    >
       <Text style={[styles.buttonText, { color: variant === "filled" ? colors.surface : swatch.fg }]}>{children}</Text>
     </Pressable>
   )

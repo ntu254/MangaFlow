@@ -5,6 +5,7 @@ import { colors, radius, spacing } from "@/design/tokens"
 import {
   BoardAtRiskScreen,
   BoardHomeScreen,
+  BoardRankingScreen,
   BoardReviewsScreen,
   BoardTieBreakScreen,
 } from "@/screens/board-screens"
@@ -14,7 +15,7 @@ import {
   EditorManuscriptsScreen,
   EditorReadinessScreen,
 } from "@/screens/editor-screens"
-import type { Role } from "@/data/mobile-data"
+import type { Role } from "@/domain/workflow"
 
 const boardTabs: TabItem[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -45,7 +46,7 @@ export function MangaFlowMobileApp() {
     if (role === "board") {
       if (boardTab === "reviews") return <BoardReviewsScreen />
       if (boardTab === "votes") return <BoardTieBreakScreen />
-      if (boardTab === "ranking") return <BoardAtRiskScreen />
+      if (boardTab === "ranking") return <BoardRankingScreen />
       if (boardTab === "profile") return <RoleProfile role="BOARD" name="Aiko Mori" />
       return <BoardHomeScreen />
     }
@@ -87,7 +88,7 @@ function RoleProfile({ role, name }: { role: "BOARD" | "EDITOR"; name: string })
     <View style={styles.profileCard}>
       <Text style={styles.profileTitle}>{name}</Text>
       <Text style={styles.profileText}>{role === "BOARD" ? "Board Chair companion profile" : "Tantou Editor companion profile"}</Text>
-      <Text style={styles.profileText}>This UI foundation uses mock data only. Backend auth and role permissions remain server-owned for a later story.</Text>
+      <Text style={styles.profileText}>This mobile slice uses async mock data-source boundaries only. API wiring, auth, signed URLs, Board decisions, and publication readiness remain backend-owned for later stories.</Text>
     </View>
   )
 }
