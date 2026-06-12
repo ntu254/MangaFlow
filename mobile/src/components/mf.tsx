@@ -57,7 +57,14 @@ export function MFScreen({ tabs, activeTab, onTabChange, children, role = "edito
         {tabs.map((tab) => {
           const active = tab.id === activeTab
           return (
-            <Pressable key={tab.id} accessibilityRole="button" onPress={() => onTabChange(tab.id)} style={styles.tabButton}>
+            <Pressable
+              key={tab.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              hitSlop={8}
+              onPress={() => onTabChange(tab.id)}
+              style={styles.tabButton}
+            >
               <MFIcon name={tab.icon} size={22} color={active ? colors.primary : colors.outline} />
               <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
             </Pressable>
@@ -300,7 +307,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   safeArea: { flex: 1, zIndex: 1 },
   scroll: { paddingHorizontal: spacing.md, paddingBottom: 110, gap: spacing.md },
-  tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", justifyContent: "space-around", paddingTop: spacing.sm, paddingBottom: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.outlineVariant },
+  tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, elevation: 10, flexDirection: "row", justifyContent: "space-around", paddingTop: spacing.sm, paddingBottom: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.outlineVariant },
   tabButton: { minWidth: 58, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2 },
   tabLabel: { fontSize: 11, color: colors.outline, fontWeight: "600" },
   tabLabelActive: { color: colors.primary },
