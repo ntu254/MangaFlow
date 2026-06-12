@@ -1,8 +1,8 @@
 import type { PropsWithChildren, ReactNode } from "react"
-import { Ionicons } from "@expo/vector-icons"
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
+import { MFIcon, type IconName } from "@/design/icons"
 import type { MetricItem, QueueItem, SeriesCard, Tone } from "@/data/mobile-data"
 
 const toneColors: Record<Tone, { fg: string; bg: string }> = {
@@ -22,18 +22,18 @@ const coverColors: Record<SeriesCard["coverTone"], string> = {
   mono: "#d9d5df",
 }
 
-const defaultQueueIcons: Record<Tone, string> = {
-  primary: "document-text-outline",
-  success: "checkmark-circle-outline",
-  warning: "alert-circle-outline",
-  danger: "warning-outline",
-  neutral: "ellipse-outline",
+const defaultQueueIcons: Record<Tone, IconName> = {
+  primary: "file-text",
+  success: "check-circle",
+  warning: "alert-circle",
+  danger: "alert-triangle",
+  neutral: "circle",
 }
 
 export interface TabItem {
   id: string
   label: string
-  icon: string
+  icon: IconName
 }
 
 interface MFScreenProps extends PropsWithChildren {
@@ -55,7 +55,7 @@ export function MFScreen({ tabs, activeTab, onTabChange, children }: MFScreenPro
           const active = tab.id === activeTab
           return (
             <Pressable key={tab.id} accessibilityRole="button" onPress={() => onTabChange(tab.id)} style={styles.tabButton}>
-              <Ionicons name={tab.icon as never} size={22} color={active ? colors.primary : colors.outline} />
+              <MFIcon name={tab.icon} size={22} color={active ? colors.primary : colors.outline} />
               <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
             </Pressable>
           )
@@ -85,7 +85,7 @@ export function MFHeader({ role, userName, subtitle, logoSuffix, notificationCou
       </View>
       <View style={styles.headerRight}>
         <View style={styles.bell}>
-          <Ionicons name="notifications-outline" size={18} color={colors.text} />
+          <MFIcon name="bell" size={18} color={colors.text} />
           <View style={styles.notificationBadge}><Text style={styles.notificationText}>{notificationCount}</Text></View>
         </View>
         <View style={styles.avatar}><Text style={styles.avatarText}>{role === "BOARD" ? "A" : "R"}</Text></View>
@@ -124,11 +124,11 @@ export function MFBadge({ tone, children }: PropsWithChildren<{ tone: Tone }>) {
   return <View style={[styles.badge, { backgroundColor: swatch.bg }]}><Text style={[styles.badgeText, { color: swatch.fg }]}>{children}</Text></View>
 }
 
-export function MFIconCircle({ tone, icon, size = 42 }: { tone: Tone; icon: string; size?: number }) {
+export function MFIconCircle({ tone, icon, size = 42 }: { tone: Tone; icon: IconName; size?: number }) {
   const swatch = toneColors[tone]
   return (
     <View style={[styles.iconCircle, { width: size, height: size, borderRadius: size / 2, backgroundColor: swatch.bg }]}>
-      <Ionicons name={icon as never} size={Math.max(18, Math.round(size * 0.48))} color={swatch.fg} />
+      <MFIcon name={icon} size={Math.max(18, Math.round(size * 0.48))} color={swatch.fg} />
     </View>
   )
 }
@@ -187,14 +187,14 @@ export function MFQueueList({ items }: { items: QueueItem[] }) {
         return (
           <View key={item.id} style={styles.queueRow}>
             <View style={[styles.queueIcon, { backgroundColor: swatch.bg }]}>
-              <Ionicons name={(item.icon ?? defaultQueueIcons[item.tone]) as never} size={20} color={swatch.fg} />
+              <MFIcon name={item.icon ?? defaultQueueIcons[item.tone]} size={20} color={swatch.fg} />
             </View>
             <View style={styles.queueText}>
               <Text style={styles.queueTitle}>{item.title}</Text>
               <Text style={styles.queueSubtitle}>{item.subtitle}</Text>
             </View>
             {item.value ? <Text style={[styles.queueValue, { color: swatch.fg }]}>{item.value}</Text> : null}
-            <Ionicons name="chevron-forward" size={18} color={colors.outline} />
+            <MFIcon name="chevron-right" size={18} color={colors.outline} />
           </View>
         )
       })}
