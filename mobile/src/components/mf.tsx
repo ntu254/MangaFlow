@@ -177,6 +177,46 @@ export function MFButton({
   )
 }
 
+export function MFConfirmationPanel({
+  title,
+  body,
+  confirmLabel,
+  cancelLabel = "Cancel",
+  tone = "primary",
+  endpointHint,
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  body: string
+  confirmLabel: string
+  cancelLabel?: string
+  tone?: Tone
+  endpointHint?: string
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const swatch = toneColors[tone]
+
+  return (
+    <MFCard style={[styles.confirmationPanel, { borderColor: swatch.fg }]}>
+      <View style={styles.confirmationHeader}>
+        <MFIconCircle tone={tone} icon={tone === "danger" ? "alert-triangle" : tone === "success" ? "check-circle" : "file-check"} />
+        <View style={styles.confirmationTitleBlock}>
+          <Text style={styles.confirmationKicker}>Confirmation required</Text>
+          <Text style={styles.confirmationTitle}>{title}</Text>
+        </View>
+      </View>
+      <Text style={styles.confirmationBody}>{body}</Text>
+      {endpointHint ? <Text style={styles.confirmationHint}>{endpointHint}</Text> : null}
+      <View style={styles.confirmationActions}>
+        <MFButton tone={tone} onPress={onConfirm}>{confirmLabel}</MFButton>
+        <MFButton tone="neutral" variant="outline" onPress={onCancel}>{cancelLabel}</MFButton>
+      </View>
+    </MFCard>
+  )
+}
+
 export function MFMetricStrip({ items }: { items: MetricItem[] }) {
   const compact = items.length > 3
 
@@ -419,6 +459,14 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: "800" },
   button: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },
   buttonText: { fontWeight: "900", fontSize: 14 },
+  confirmationPanel: { gap: spacing.sm, backgroundColor: colors.surface },
+  confirmationHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  confirmationTitleBlock: { flex: 1 },
+  confirmationKicker: { color: colors.textMuted, fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  confirmationTitle: { color: colors.text, fontSize: 16, fontWeight: "900", marginTop: 2 },
+  confirmationBody: { color: colors.text, fontSize: 13, lineHeight: 20 },
+  confirmationHint: { color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, fontSize: 11, fontWeight: "800" },
+  confirmationActions: { flexDirection: "row", gap: spacing.sm },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "900" },
   sectionAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },

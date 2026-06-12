@@ -71,6 +71,11 @@ mobile/src/screens/
 - At-risk: manual decisions `CONTINUE`, `WARNING`, `REQUEST_IMPROVEMENT_PLAN`, `CANCEL`; cancellation is never automatic.
 - Decision history: immutable-looking display of prior Board decisions.
 
+## Implemented Story Slices
+
+- `MF-HIOS-095`: Mobile Editor + Board flow foundation with role mock data, API-ready data-source boundary, domain DTOs, hooks, and base screens.
+- `MF-HIOS-096`: Mobile decision confirmation details for Editor proposal/final approval actions and Board vote/tie-break/at-risk actions. Confirmation panels are local mock UI only and do not enforce permissions or mutate backend workflow state.
+
 ## Forbidden Shortcuts
 
 - Do not imply Admin can override Board.
@@ -83,10 +88,11 @@ mobile/src/screens/
 
 Choose the next story by the smallest safe boundary:
 
-1. UI polish or missing mobile state for Editor/Board: normal lane.
-2. Replacing mock data-source methods with read-only API calls: normal or high-risk depending on endpoint and permission surface.
-3. Auth, signed URLs, Board decision mutations, readiness publish actions, payroll, or Assistant scope: high-risk lane.
-4. Adding roles beyond Editor/Board: new product/mobile scope story first.
+1. Missing empty/error/detail states inside Editor/Board screens: normal lane.
+2. UI polish for mobile touch targets, overflow, queue selection, and detail previews: normal lane.
+3. Replacing mock data-source methods with read-only API calls: normal or high-risk depending on endpoint and permission surface.
+4. Auth, signed URLs, Board decision mutations, readiness publish actions, payroll, or Assistant scope: high-risk lane.
+5. Adding roles beyond Editor/Board: new product/mobile scope story first.
 
 ## Validation
 

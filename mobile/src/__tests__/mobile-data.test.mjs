@@ -198,3 +198,20 @@ test("mobile series covers use provided manga artwork assets", () => {
   assert.ok(existsSync(new URL("../../assets/images/biatruyen1.jpg", import.meta.url)))
 })
 
+test("mobile decision actions require confirmation detail before mock recording", () => {
+  assert.match(mfSource, /MFConfirmationPanel/)
+  assert.match(mfSource, /Confirmation required/)
+  assert.match(editorHookSource, /pendingProposalAction/)
+  assert.match(editorHookSource, /confirmProposalAction/)
+  assert.match(editorHookSource, /pendingFinalApprovalAction/)
+  assert.match(editorSource, /Future endpoint: POST \/api\/manuscripts\/:manuscriptId\/forward-to-board/)
+  assert.match(editorSource, /Future endpoint: POST \/api\/submissions\/:submissionId\/editor-approve/)
+  assert.match(boardHookSource, /pendingVote/)
+  assert.match(boardHookSource, /confirmVote/)
+  assert.match(boardHookSource, /pendingAtRiskDecision/)
+  assert.match(boardSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/votes/)
+  assert.match(boardSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/decisions\/tie-break/)
+  assert.match(boardSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/at-risk-decisions/)
+  assert.match(boardSource, /Series is never auto-cancelled/)
+})
+
