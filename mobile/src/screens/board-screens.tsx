@@ -110,9 +110,9 @@ export function BoardAtRiskScreen() {
     <>
       <MFHero title="At-risk titles" subtitle="Review warnings and decide next action." />
       <MFMetricStrip items={[
-        { id: "risk", label: "At Risk", value: "3", tone: "danger", icon: "!" },
-        { id: "warning", label: "Warning", value: "2", tone: "warning", icon: "W" },
-        { id: "plan", label: "Improvement Plans", value: "1", tone: "primary", icon: "P" },
+        { id: "risk", label: "At Risk", value: "3", tone: "danger", icon: "alert-triangle" },
+        { id: "warning", label: "Warning", value: "2", tone: "warning", icon: "alert-circle" },
+        { id: "plan", label: "Improvement Plans", value: "1", tone: "primary", icon: "file-check" },
       ]} />
       <View style={styles.stack}>
         {atRiskTitles.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Review case" />)}

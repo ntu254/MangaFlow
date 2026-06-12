@@ -1,3 +1,5 @@
+import type { IconName } from "@/design/icons"
+
 export type Role = "board" | "editor"
 
 export type Tone = "primary" | "success" | "warning" | "danger" | "neutral"
@@ -7,7 +9,7 @@ export interface MetricItem {
   label: string
   value: string
   tone: Tone
-  icon: string
+  icon: IconName
 }
 
 export interface QueueItem {
@@ -16,7 +18,7 @@ export interface QueueItem {
   subtitle: string
   value?: string
   tone: Tone
-  icon?: string
+  icon?: IconName
 }
 
 export interface SeriesCard {
@@ -51,23 +53,23 @@ export interface CommentItem {
 }
 
 export const boardMetrics: MetricItem[] = [
-  { id: "waiting", label: "Waiting", value: "4", tone: "primary", icon: "reader-outline" },
-  { id: "tie", label: "Tie-break", value: "1", tone: "warning", icon: "scale-outline" },
-  { id: "risk", label: "At-risk", value: "3", tone: "danger", icon: "warning-outline" },
+  { id: "waiting", label: "Waiting", value: "4", tone: "primary", icon: "file-text" },
+  { id: "tie", label: "Tie-break", value: "1", tone: "warning", icon: "scale-balance" },
+  { id: "risk", label: "At-risk", value: "3", tone: "danger", icon: "alert-triangle" },
 ]
 
 export const boardDecisionCards: MetricItem[] = [
-  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "ballot-outline" },
-  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "scale-outline" },
-  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "warning-outline" },
-  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "bar-chart-outline" },
+  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "check-circle" },
+  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "scale-balance" },
+  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "alert-triangle" },
+  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "bar-chart-2" },
 ]
 
 export const boardQueues: QueueItem[] = [
-  { id: "series", title: "Series Waiting Review", subtitle: "Proposals awaiting board review", value: "4", tone: "primary", icon: "document-text-outline" },
-  { id: "tie", title: "Tie-break Decisions", subtitle: "Requires Board Chair resolution", value: "1", tone: "warning", icon: "scale-outline" },
-  { id: "risk", title: "At-risk Cases", subtitle: "Series flagged for attention", value: "3", tone: "danger", icon: "warning-outline" },
-  { id: "ranking", title: "Ranking Cycle", subtitle: "Current cycle: Monthly Ranking", value: "1", tone: "primary", icon: "bar-chart-outline" },
+  { id: "series", title: "Series Waiting Review", subtitle: "Proposals awaiting board review", value: "4", tone: "primary", icon: "file-text" },
+  { id: "tie", title: "Tie-break Decisions", subtitle: "Requires Board Chair resolution", value: "1", tone: "warning", icon: "scale-balance" },
+  { id: "risk", title: "At-risk Cases", subtitle: "Series flagged for attention", value: "3", tone: "danger", icon: "alert-triangle" },
+  { id: "ranking", title: "Ranking Cycle", subtitle: "Current cycle: Monthly Ranking", value: "1", tone: "primary", icon: "bar-chart-2" },
 ]
 
 export const boardSeries: SeriesCard[] = [
@@ -91,17 +93,17 @@ export const boardActivity: ActivityItem[] = [
 ]
 
 export const editorActions: MetricItem[] = [
-  { id: "manuscripts", label: "Review manuscripts", value: "3", tone: "primary", icon: "document-text-outline" },
-  { id: "approvals", label: "Final approve submissions", value: "5", tone: "success", icon: "checkmark-done-outline" },
-  { id: "comments", label: "Resolve comments", value: "4", tone: "warning", icon: "chatbubble-ellipses-outline" },
-  { id: "blocked", label: "Check blocked chapters", value: "2", tone: "danger", icon: "lock-closed-outline" },
+  { id: "manuscripts", label: "Review manuscripts", value: "3", tone: "primary", icon: "file-text" },
+  { id: "approvals", label: "Final approve submissions", value: "5", tone: "success", icon: "check-circle" },
+  { id: "comments", label: "Resolve comments", value: "4", tone: "warning", icon: "message-circle" },
+  { id: "blocked", label: "Check blocked chapters", value: "2", tone: "danger", icon: "lock" },
 ]
 
 export const editorQueues: QueueItem[] = [
-  { id: "manuscripts", title: "Manuscripts Waiting", subtitle: "New submissions awaiting review", value: "3", tone: "primary", icon: "reader-outline" },
-  { id: "final", title: "Final Approval Queue", subtitle: "Ready for your final approval", value: "5", tone: "success", icon: "shield-checkmark-outline" },
-  { id: "comments", title: "Comments Blocking Publication", subtitle: "Unresolved comments", value: "4", tone: "warning", icon: "chatbubble-outline" },
-  { id: "readiness", title: "Readiness Alerts", subtitle: "Chapters at risk or blocked", value: "2", tone: "danger", icon: "warning-outline" },
+  { id: "manuscripts", title: "Manuscripts Waiting", subtitle: "New submissions awaiting review", value: "3", tone: "primary", icon: "file-text" },
+  { id: "final", title: "Final Approval Queue", subtitle: "Ready for your final approval", value: "5", tone: "success", icon: "shield-check" },
+  { id: "comments", title: "Comments Blocking Publication", subtitle: "Unresolved comments", value: "4", tone: "warning", icon: "message-square" },
+  { id: "readiness", title: "Readiness Alerts", subtitle: "Chapters at risk or blocked", value: "2", tone: "danger", icon: "alert-triangle" },
 ]
 
 export const manuscripts: SeriesCard[] = [
@@ -119,19 +121,19 @@ export const finalApprovals: SeriesCard[] = [
 ]
 
 export const readinessChecks: QueueItem[] = [
-  { id: "pages", title: "All pages uploaded", subtitle: "Page files are present", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
-  { id: "tasks", title: "All tasks approved", subtitle: "Assistant work is approved", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
-  { id: "submissions", title: "All submissions approved", subtitle: "Mangaka and editor chain complete", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
-  { id: "comments", title: "All comments resolved", subtitle: "2 comments still block publication", value: "Failed", tone: "danger", icon: "warning-outline" },
-  { id: "editor", title: "Editor final approval exists", subtitle: "Final approval was recorded", value: "Passed", tone: "success", icon: "checkmark-circle-outline" },
-  { id: "date", title: "Publication date exists", subtitle: "Schedule has not been selected", value: "Failed", tone: "danger", icon: "calendar-outline" },
+  { id: "pages", title: "All pages uploaded", subtitle: "Page files are present", value: "Passed", tone: "success", icon: "check-circle" },
+  { id: "tasks", title: "All tasks approved", subtitle: "Assistant work is approved", value: "Passed", tone: "success", icon: "check-circle" },
+  { id: "submissions", title: "All submissions approved", subtitle: "Mangaka and editor chain complete", value: "Passed", tone: "success", icon: "check-circle" },
+  { id: "comments", title: "All comments resolved", subtitle: "2 comments still block publication", value: "Failed", tone: "danger", icon: "alert-triangle" },
+  { id: "editor", title: "Editor final approval exists", subtitle: "Final approval was recorded", value: "Passed", tone: "success", icon: "check-circle" },
+  { id: "date", title: "Publication date exists", subtitle: "Schedule has not been selected", value: "Failed", tone: "danger", icon: "calendar" },
 ]
 
 export const commentMetrics: MetricItem[] = [
-  { id: "open", label: "Open", value: "6", tone: "primary", icon: "chatbox-ellipses-outline" },
-  { id: "fixed", label: "Fixed by Assistant", value: "4", tone: "success", icon: "checkmark-circle-outline" },
-  { id: "blocking", label: "Blocking", value: "2", tone: "danger", icon: "warning-outline" },
-  { id: "resolved", label: "Resolved Today", value: "3", tone: "neutral", icon: "calendar-outline" },
+  { id: "open", label: "Open", value: "6", tone: "primary", icon: "message-square" },
+  { id: "fixed", label: "Fixed by Assistant", value: "4", tone: "success", icon: "check-circle" },
+  { id: "blocking", label: "Blocking", value: "2", tone: "danger", icon: "alert-triangle" },
+  { id: "resolved", label: "Resolved Today", value: "3", tone: "neutral", icon: "calendar" },
 ]
 
 export const productionComments: CommentItem[] = [

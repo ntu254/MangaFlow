@@ -17,19 +17,19 @@ import {
 import type { Role } from "@/data/mobile-data"
 
 const boardTabs: TabItem[] = [
-  { id: "home", label: "Home", icon: "home-outline" },
-  { id: "reviews", label: "Reviews", icon: "document-text-outline" },
-  { id: "votes", label: "Votes", icon: "checkbox-outline" },
-  { id: "ranking", label: "Ranking", icon: "bar-chart-outline" },
-  { id: "profile", label: "Profile", icon: "person-circle-outline" },
+  { id: "home", label: "Home", icon: "home" },
+  { id: "reviews", label: "Reviews", icon: "file-text" },
+  { id: "votes", label: "Votes", icon: "check-circle" },
+  { id: "ranking", label: "Ranking", icon: "bar-chart-2" },
+  { id: "profile", label: "Profile", icon: "circle-user" },
 ]
 
 const editorTabs: TabItem[] = [
-  { id: "home", label: "Home", icon: "home-outline" },
-  { id: "review", label: "Review", icon: "document-text-outline" },
-  { id: "comments", label: "Comments", icon: "chatbubble-outline" },
-  { id: "readiness", label: "Readiness", icon: "shield-checkmark-outline" },
-  { id: "profile", label: "Profile", icon: "person-circle-outline" },
+  { id: "home", label: "Home", icon: "home" },
+  { id: "review", label: "Review", icon: "file-text" },
+  { id: "comments", label: "Comments", icon: "message-circle" },
+  { id: "readiness", label: "Readiness", icon: "shield-check" },
+  { id: "profile", label: "Profile", icon: "circle-user" },
 ]
 
 export function MangaFlowMobileApp() {

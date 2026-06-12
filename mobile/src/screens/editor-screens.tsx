@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
 import {
   ActivityList,
   MFActionCards,
@@ -28,6 +27,7 @@ import {
   readinessChecks,
   type CommentItem,
 } from "@/data/mobile-data"
+import { MFIcon, type IconName } from "@/design/icons"
 import { colors, radius, spacing } from "@/design/tokens"
 
 export function EditorHomeScreen() {
@@ -60,9 +60,9 @@ export function EditorManuscriptsScreen() {
     <>
       <MFHero title="Manuscripts" subtitle="Review incoming series proposals and manuscript revisions." />
       <MFMetricStrip items={[
-        { id: "waiting", label: "Waiting", value: "3", tone: "primary", icon: "W" },
-        { id: "revision", label: "Revisions", value: "2", tone: "warning", icon: "R" },
-        { id: "ready", label: "Ready for Board", value: "1", tone: "success", icon: "B" },
+        { id: "waiting", label: "Waiting", value: "3", tone: "primary", icon: "file-text" },
+        { id: "revision", label: "Revisions", value: "2", tone: "warning", icon: "refresh-cw" },
+        { id: "ready", label: "Ready for Board", value: "1", tone: "success", icon: "shield-check" },
       ]} />
       <SegmentedControl labels={["Waiting 3", "Revision 2", "Forwarded 1"]} />
       <View style={styles.stack}>
@@ -116,7 +116,7 @@ export function EditorCommentsScreen() {
         {productionComments.map((comment) => <CommentReviewRow key={comment.id} item={comment} />)}
       </View>
       <MFCard style={styles.blockingCallout}>
-        <MFIconCircle tone="danger" icon="warning-outline" size={54} />
+        <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
           <Text style={styles.title}>Blocking publication</Text>
           <Text style={styles.body}>There are 2 unresolved blocking comments on Eclipse of Eternity Chapter 12.</Text>
@@ -178,9 +178,9 @@ export function EditorFinalApprovalsScreen() {
     <>
       <MFHero title="Final approvals" subtitle="Submissions approved by Mangaka and waiting for your final decision." />
       <MFMetricStrip items={[
-        { id: "waiting", label: "Waiting", value: "5", tone: "primary", icon: "W" },
-        { id: "urgent", label: "Urgent", value: "2", tone: "danger", icon: "!" },
-        { id: "blocked", label: "Blocked", value: "1", tone: "danger", icon: "B" },
+        { id: "waiting", label: "Waiting", value: "5", tone: "primary", icon: "file-text" },
+        { id: "urgent", label: "Urgent", value: "2", tone: "danger", icon: "alert-triangle" },
+        { id: "blocked", label: "Blocked", value: "1", tone: "danger", icon: "lock" },
       ]} />
       <SegmentedControl labels={["All", "Urgent", "Blocked", "Approved Today"]} />
       <View style={styles.stack}>
@@ -196,7 +196,7 @@ export function EditorFinalApprovalsScreen() {
 }
 
 function CommentReviewRow({ item }: { item: CommentItem }) {
-  const statusIcon = item.tone === "danger" ? "warning-outline" : item.tone === "success" ? "checkmark-circle-outline" : item.tone === "warning" ? "ellipse-outline" : "checkmark-done-outline"
+  const statusIcon: IconName = item.tone === "danger" ? "alert-triangle" : item.tone === "success" ? "check-circle" : item.tone === "warning" ? "circle" : "check"
 
   return (
     <MFCard style={styles.commentRow}>
@@ -210,7 +210,7 @@ function CommentReviewRow({ item }: { item: CommentItem }) {
       <View style={styles.commentBody}>
         <View style={styles.rowBetween}>
           <Text style={styles.commentTitle}>{item.title}</Text>
-          <Ionicons name="chevron-forward" size={17} color={colors.outline} />
+          <MFIcon name="chevron-right" size={17} color={colors.outline} />
         </View>
         <Text style={styles.commentText}>{item.body}</Text>
         <View style={styles.commentMetaRow}>
@@ -221,7 +221,7 @@ function CommentReviewRow({ item }: { item: CommentItem }) {
       <View style={styles.commentAction}>
         <MFBadge tone={item.tone}>{item.status}</MFBadge>
         <View style={[styles.actionButton, item.tone === "danger" && styles.actionButtonDanger]}>
-          <Ionicons name={statusIcon as never} size={15} color={item.tone === "danger" ? colors.danger : colors.primary} />
+          <MFIcon name={statusIcon} size={15} color={item.tone === "danger" ? colors.danger : colors.primary} />
           <Text style={[styles.actionButtonText, item.tone === "danger" && styles.actionButtonTextDanger]}>{item.action}</Text>
         </View>
       </View>
