@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react"
+import { Image } from "expo-image"
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
@@ -22,6 +23,9 @@ const coverColors: Record<SeriesCard["coverTone"], string> = {
   warm: "#c48052",
   mono: "#d9d5df",
 }
+
+const shadowlineCover = require("../../assets/images/biatruyen.jpg")
+const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg")
 
 const defaultQueueIcons: Record<Tone, IconName> = {
   primary: "file-text",
@@ -223,12 +227,26 @@ export function MFQueueList({ items }: { items: QueueItem[] }) {
 }
 
 export function MFCover({ item, small = false }: { item: SeriesCard; small?: boolean }) {
+  const coverSource = getCoverSource(item)
+
   return (
     <View style={[styles.cover, small && styles.coverSmall, { backgroundColor: coverColors[item.coverTone] }]}>
-      <View style={styles.coverGlow} />
-      <Text style={styles.coverTitle}>{item.title}</Text>
+      {coverSource ? (
+        <Image source={coverSource} style={styles.coverImage} contentFit="cover" transition={0} />
+      ) : (
+        <View style={styles.coverGlow} />
+      )}
+      <View style={styles.coverShade} />
+      <Text style={[styles.coverTitle, coverSource && styles.coverTitleOverlay]} numberOfLines={2}>{item.title}</Text>
     </View>
   )
+}
+
+function getCoverSource(item: SeriesCard) {
+  const title = item.title.toLowerCase()
+
+  if (title.includes("crimson") || item.coverTone === "red" || item.coverTone === "warm") return crimsonRoadCover
+  return shadowlineCover
 }
 
 export function MFProgress({ value }: { value: number }) {
@@ -360,8 +378,11 @@ const styles = StyleSheet.create({
   chevron: { color: colors.outline, fontSize: 22 },
   cover: { width: 92, height: 118, borderRadius: radius.md, padding: spacing.sm, justifyContent: "flex-end", overflow: "hidden" },
   coverSmall: { width: 72, height: 72 },
+  coverImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
+  coverShade: { position: "absolute", left: 0, right: 0, bottom: 0, height: "48%", backgroundColor: "rgba(18, 9, 39, 0.34)" },
   coverGlow: { position: "absolute", left: 12, top: 12, width: 54, height: 54, borderRadius: 27, backgroundColor: "rgba(255,255,255,0.16)" },
   coverTitle: { color: colors.surface, fontWeight: "900", fontSize: 14, textTransform: "uppercase" },
+  coverTitleOverlay: { position: "relative", textShadowColor: "rgba(0,0,0,0.45)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceContainer, overflow: "hidden", marginTop: spacing.sm },
   progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
   seriesRow: { flexDirection: "row", gap: spacing.md },

@@ -9,6 +9,7 @@ const tokenSource = readFileSync(new URL("../design/tokens.ts", import.meta.url)
 const mfSource = readFileSync(new URL("../components/mf.tsx", import.meta.url), "utf8")
 const headerBackgroundSource = readFileSync(new URL("../components/header-background.tsx", import.meta.url), "utf8")
 const boardSource = readFileSync(new URL("../screens/board-screens.tsx", import.meta.url), "utf8")
+const editorSource = readFileSync(new URL("../screens/editor-screens.tsx", import.meta.url), "utf8")
 
 test("mobile mock data covers board and editor reference screens", () => {
   for (const symbol of [
@@ -69,12 +70,12 @@ test("mobile header background uses the shared manga wash treatment", () => {
   assert.match(tokenSource, /headerWash/)
   assert.match(mfSource, /MFHeaderBackground/)
   assert.match(headerBackgroundSource, /expo-image/)
-  assert.match(headerBackgroundSource, /header-editor-wash\.png/)
-  assert.match(headerBackgroundSource, /header-board-wash\.png/)
+  assert.match(headerBackgroundSource, /nen\.jpg/)
+  assert.match(headerBackgroundSource, /nen1\.jpg/)
   assert.match(headerBackgroundSource, /useWindowDimensions/)
   assert.match(headerBackgroundSource, /contentPosition="right top"/)
-  assert.ok(existsSync(new URL("../../assets/backgrounds/header-editor-wash.png", import.meta.url)))
-  assert.ok(existsSync(new URL("../../assets/backgrounds/header-board-wash.png", import.meta.url)))
+  assert.ok(existsSync(new URL("../../assets/images/nen.jpg", import.meta.url)))
+  assert.ok(existsSync(new URL("../../assets/images/nen1.jpg", import.meta.url)))
 })
 
 test("mobile UI requirement polish is represented in shared components", () => {
@@ -103,5 +104,16 @@ test("mobile action cards use responsive centered layout", () => {
   assert.match(mfSource, /compactCards/)
   assert.match(mfSource, /actionGridCompact/)
   assert.match(mfSource, /numberOfLines=\{2\}/)
+})
+
+test("mobile series covers use provided manga artwork assets", () => {
+  assert.match(mfSource, /biatruyen\.jpg/)
+  assert.match(mfSource, /biatruyen1\.jpg/)
+  assert.match(mfSource, /contentFit="cover"/)
+  assert.match(editorSource, /commentPanelImage/)
+  assert.match(editorSource, /biatruyen\.jpg/)
+  assert.match(editorSource, /biatruyen1\.jpg/)
+  assert.ok(existsSync(new URL("../../assets/images/biatruyen.jpg", import.meta.url)))
+  assert.ok(existsSync(new URL("../../assets/images/biatruyen1.jpg", import.meta.url)))
 })
 

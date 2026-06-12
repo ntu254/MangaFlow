@@ -1,3 +1,4 @@
+import { Image } from "expo-image"
 import { View, Text, StyleSheet } from "react-native"
 import {
   ActivityList,
@@ -29,6 +30,9 @@ import {
 } from "@/data/mobile-data"
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, radius, spacing } from "@/design/tokens"
+
+const shadowlineCover = require("../../assets/images/biatruyen.jpg")
+const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg")
 
 export function EditorHomeScreen() {
   return (
@@ -199,12 +203,14 @@ export function EditorFinalApprovalsScreen() {
 
 function CommentReviewRow({ item }: { item: CommentItem }) {
   const statusIcon: IconName = item.tone === "danger" ? "alert-triangle" : item.tone === "success" ? "check-circle" : item.tone === "warning" ? "circle" : "check"
+  const coverSource = getCommentCoverSource(item)
 
   return (
     <MFCard style={styles.commentRow}>
       <View style={styles.commentThumb}>
         <View style={styles.commentPanel}>
-          <View style={styles.commentPanelGlow} />
+          <Image source={coverSource} style={styles.commentPanelImage} contentFit="cover" transition={0} />
+          <View style={styles.commentPanelShade} />
           <View style={styles.commentBubble} />
         </View>
         <View style={styles.pagePill}><Text style={styles.pagePillText}>{item.page}</Text></View>
@@ -229,6 +235,13 @@ function CommentReviewRow({ item }: { item: CommentItem }) {
       </View>
     </MFCard>
   )
+}
+
+function getCommentCoverSource(item: CommentItem) {
+  const title = item.title.toLowerCase()
+
+  if (title.includes("crimson") || item.tone === "success") return crimsonRoadCover
+  return shadowlineCover
 }
 
 function PanelPreview({ label }: { label: string }) {
@@ -273,8 +286,9 @@ const styles = StyleSheet.create({
   commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9 },
   commentThumb: { width: 78, position: "relative" },
   commentPanel: { width: 78, height: 78, borderRadius: radius.md, backgroundColor: "#d9d5df", overflow: "hidden", padding: 8 },
-  commentPanelGlow: { position: "absolute", left: 11, top: 11, width: 43, height: 43, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)" },
-  commentBubble: { marginLeft: "auto", width: 24, height: 36, borderRadius: 14, backgroundColor: colors.surface },
+  commentPanelImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
+  commentPanelShade: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(22, 12, 36, 0.16)" },
+  commentBubble: { marginLeft: "auto", width: 24, height: 36, borderRadius: 14, backgroundColor: colors.surface, opacity: 0.92 },
   pagePill: { position: "absolute", left: 7, bottom: 7, minWidth: 27, height: 23, borderRadius: 8, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#e4d7ff" },
   pagePillText: { color: colors.primary, fontSize: 11, fontWeight: "900" },
   commentBody: { flex: 1, gap: 5 },

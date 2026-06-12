@@ -3,8 +3,8 @@ import { useState } from "react"
 import { StyleSheet, useWindowDimensions, View } from "react-native"
 import { colors } from "@/design/tokens"
 
-const editorHeaderWash = require("../../assets/backgrounds/header-editor-wash.png")
-const boardHeaderWash = require("../../assets/backgrounds/header-board-wash.png")
+const editorHeaderWash = require("../../assets/images/nen.jpg")
+const boardHeaderWash = require("../../assets/images/nen1.jpg")
 
 interface MFHeaderBackgroundProps {
   compact?: boolean
