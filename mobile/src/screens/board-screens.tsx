@@ -5,6 +5,7 @@ import {
   MFBadge,
   MFButton,
   MFCard,
+  MFConfirmationPanel,
   MFCover,
   MFHero,
   MFMetricStrip,
@@ -14,7 +15,7 @@ import {
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
-import type { BoardSeriesReviewItem } from "@/domain/workflow"
+import type { AtRiskDecision, BoardSeriesReviewItem, BoardVoteValue, Tone } from "@/domain/workflow"
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, spacing } from "@/design/tokens"
 import { useBoardMobileFlow } from "@/hooks/use-board-mobile-flow"
@@ -51,7 +52,18 @@ export function BoardReviewsScreen() {
       <View style={styles.stack}>
         {flow.seriesReviews.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Open vote" />)}
       </View>
-      {selected ? <BoardVotePanel item={selected} onVote={flow.recordVote} /> : null}
+      {selected ? <BoardVotePanel item={selected} onVote={flow.startVote} /> : null}
+      {flow.pendingVote ? (
+        <MFConfirmationPanel
+          title={voteActionTitle(flow.pendingVote)}
+          body={`Confirm mock ${flow.pendingVote} vote for ${selected?.title ?? "the selected Board review"}. Mobile displays the vote boundary only and does not finalize Board decisions.`}
+          confirmLabel="Confirm vote mock"
+          tone={voteActionTone(flow.pendingVote)}
+          endpointHint="Future endpoint: POST /api/board/series/:seriesId/votes"
+          onConfirm={flow.confirmVote}
+          onCancel={flow.cancelVote}
+        />
+      ) : null}
     </>
   )
 }
@@ -88,10 +100,21 @@ export function BoardTieBreakScreen() {
             <Text style={styles.body}>Chair tie-break is a separate action only because normal votes produced TIE_BREAK_REQUIRED.</Text>
           </MFCard>
           <View style={styles.buttonRow}>
-            <MFButton tone="success" variant="outline" onPress={() => flow.recordVote("APPROVE")}>Approve</MFButton>
-            <MFButton tone="danger" variant="outline" onPress={() => flow.recordVote("NEEDS_REVISION")}>Needs Revision</MFButton>
+            <MFButton tone="success" variant="outline" onPress={() => flow.startVote("APPROVE")}>Approve</MFButton>
+            <MFButton tone="danger" variant="outline" onPress={() => flow.startVote("NEEDS_REVISION")}>Needs Revision</MFButton>
           </View>
-          <MFButton onPress={() => flow.recordVote("NEEDS_REVISION")}>Finalize Tie-break Mock</MFButton>
+          <MFButton onPress={() => flow.startVote("NEEDS_REVISION")}>Finalize Tie-break Mock</MFButton>
+          {flow.pendingVote ? (
+            <MFConfirmationPanel
+              title={voteActionTitle(flow.pendingVote)}
+              body={`Confirm Board Chair mock tie-break for ${item.title}. This action appears only because decision status is TIE_BREAK_REQUIRED.`}
+              confirmLabel="Confirm tie-break mock"
+              tone={voteActionTone(flow.pendingVote)}
+              endpointHint="Future endpoint: POST /api/board/series/:seriesId/decisions/tie-break"
+              onConfirm={flow.confirmVote}
+              onCancel={flow.cancelVote}
+            />
+          ) : null}
         </>
       ) : (
         <MFCard><Text style={styles.body}>No tie-break decisions in the mock queue.</Text></MFCard>
@@ -144,7 +167,7 @@ export function BoardAtRiskScreen() {
   )
 }
 
-function BoardVotePanel({ item, onVote }: { item: BoardSeriesReviewItem; onVote: (value: "APPROVE" | "REJECT" | "NEEDS_REVISION") => void }) {
+function BoardVotePanel({ item, onVote }: { item: BoardSeriesReviewItem; onVote: (value: BoardVoteValue) => void }) {
   return (
     <MFCard>
       <View style={styles.rowBetween}>
@@ -199,13 +222,24 @@ function BoardAtRiskPanel() {
           <Text style={styles.subhead}>Manual Board decision</Text>
           <Text style={styles.body}>Series is not auto-cancelled. Each at-risk action requires confirmation when wired to the backend.</Text>
           <View style={styles.actionButtons}>
-            <MFButton tone="success" variant="outline" onPress={() => flow.recordAtRiskDecision("CONTINUE")}>CONTINUE</MFButton>
-            <MFButton tone="warning" variant="outline" onPress={() => flow.recordAtRiskDecision("WARNING")}>WARNING</MFButton>
+            <MFButton tone="success" variant="outline" onPress={() => flow.startAtRiskDecision("CONTINUE")}>CONTINUE</MFButton>
+            <MFButton tone="warning" variant="outline" onPress={() => flow.startAtRiskDecision("WARNING")}>WARNING</MFButton>
           </View>
           <View style={styles.actionButtons}>
-            <MFButton tone="primary" variant="outline" onPress={() => flow.recordAtRiskDecision("REQUEST_IMPROVEMENT_PLAN")}>REQUEST PLAN</MFButton>
-            <MFButton tone="danger" variant="outline" onPress={() => flow.recordAtRiskDecision("CANCEL")}>CANCEL</MFButton>
+            <MFButton tone="primary" variant="outline" onPress={() => flow.startAtRiskDecision("REQUEST_IMPROVEMENT_PLAN")}>REQUEST PLAN</MFButton>
+            <MFButton tone="danger" variant="outline" onPress={() => flow.startAtRiskDecision("CANCEL")}>CANCEL</MFButton>
           </View>
+          {flow.pendingAtRiskDecision ? (
+            <MFConfirmationPanel
+              title={atRiskDecisionTitle(flow.pendingAtRiskDecision)}
+              body={`Confirm mock ${flow.pendingAtRiskDecision} for ${item.title}. Series is never auto-cancelled; Board action must remain auditable on the backend.`}
+              confirmLabel="Confirm at-risk mock"
+              tone={atRiskDecisionTone(flow.pendingAtRiskDecision)}
+              endpointHint="Future endpoint: POST /api/board/series/:seriesId/at-risk-decisions"
+              onConfirm={flow.confirmAtRiskDecision}
+              onCancel={flow.cancelAtRiskDecision}
+            />
+          ) : null}
           <Text style={styles.muted}>{flow.lastMockAction}</Text>
         </MFCard>
       ) : null}
@@ -248,6 +282,32 @@ function VoteCount({ label, value, tone }: { label: string; value: string; tone:
       <Text style={[styles.voteValue, { color }]}>{value}</Text>
     </View>
   )
+}
+
+function voteActionTitle(value: BoardVoteValue) {
+  if (value === "APPROVE") return "Approve production vote"
+  if (value === "REJECT") return "Reject production vote"
+  return "Request Board revision vote"
+}
+
+function voteActionTone(value: BoardVoteValue): Tone {
+  if (value === "APPROVE") return "success"
+  if (value === "REJECT") return "danger"
+  return "warning"
+}
+
+function atRiskDecisionTitle(decision: AtRiskDecision) {
+  if (decision === "CONTINUE") return "Continue publication"
+  if (decision === "WARNING") return "Issue Board warning"
+  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan"
+  return "Cancel series"
+}
+
+function atRiskDecisionTone(decision: AtRiskDecision): Tone {
+  if (decision === "CONTINUE") return "success"
+  if (decision === "WARNING") return "warning"
+  if (decision === "CANCEL") return "danger"
+  return "primary"
 }
 
 function StateBanner({ loading, error, message }: { loading: boolean; error: string | null; message: string }) {

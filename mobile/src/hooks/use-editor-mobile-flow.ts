@@ -11,6 +11,8 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockM
   const [readiness, setReadiness] = useState(editorReadinessResult)
   const [selectedManuscriptId, setSelectedManuscriptId] = useState(manuscripts[0]?.id ?? "")
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(finalApprovals[0]?.id ?? "")
+  const [pendingProposalAction, setPendingProposalAction] = useState<EditorProposalAction | null>(null)
+  const [pendingFinalApprovalAction, setPendingFinalApprovalAction] = useState<EditorFinalApprovalAction | null>(null)
   const [lastMockAction, setLastMockAction] = useState("Mock actions are local only. Backend permissions and workflow transitions stay server-owned.")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -62,8 +64,36 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockM
     [submissionItems, selectedSubmissionId],
   )
 
+  function startProposalAction(action: EditorProposalAction) {
+    setPendingProposalAction(action)
+  }
+
+  function confirmProposalAction() {
+    if (!pendingProposalAction) return
+    recordProposalAction(pendingProposalAction)
+    setPendingProposalAction(null)
+  }
+
+  function cancelProposalAction() {
+    setPendingProposalAction(null)
+  }
+
   function recordProposalAction(action: EditorProposalAction) {
     setLastMockAction(`Mock ${action} recorded for proposal review. API wiring will call the matching manuscript action endpoint later.`)
+  }
+
+  function startFinalApprovalAction(action: EditorFinalApprovalAction) {
+    setPendingFinalApprovalAction(action)
+  }
+
+  function confirmFinalApprovalAction() {
+    if (!pendingFinalApprovalAction) return
+    recordFinalApprovalAction(pendingFinalApprovalAction)
+    setPendingFinalApprovalAction(null)
+  }
+
+  function cancelFinalApprovalAction() {
+    setPendingFinalApprovalAction(null)
   }
 
   function recordFinalApprovalAction(action: EditorFinalApprovalAction) {
@@ -80,10 +110,18 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockM
     selectedSubmission,
     selectedManuscriptId,
     selectedSubmissionId,
+    pendingProposalAction,
+    pendingFinalApprovalAction,
     setSelectedManuscriptId,
     setSelectedSubmissionId,
     lastMockAction,
+    startProposalAction,
+    confirmProposalAction,
+    cancelProposalAction,
     recordProposalAction,
+    startFinalApprovalAction,
+    confirmFinalApprovalAction,
+    cancelFinalApprovalAction,
     recordFinalApprovalAction,
     loading,
     error,

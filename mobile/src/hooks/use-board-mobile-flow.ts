@@ -12,6 +12,8 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMo
   const [decisionHistory, setDecisionHistory] = useState(boardDecisionHistory)
   const [selectedSeriesId, setSelectedSeriesId] = useState(boardSeries[0]?.id ?? "")
   const [selectedAtRiskId, setSelectedAtRiskId] = useState(atRiskTitles[0]?.id ?? "")
+  const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null)
+  const [pendingAtRiskDecision, setPendingAtRiskDecision] = useState<AtRiskDecision | null>(null)
   const [lastMockAction, setLastMockAction] = useState("Mock actions are local only. Board decisions stay auditable backend workflow actions.")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,8 +67,36 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMo
     [atRiskCases, selectedAtRiskId],
   )
 
+  function startVote(value: BoardVoteValue) {
+    setPendingVote(value)
+  }
+
+  function confirmVote() {
+    if (!pendingVote) return
+    recordVote(pendingVote)
+    setPendingVote(null)
+  }
+
+  function cancelVote() {
+    setPendingVote(null)
+  }
+
   function recordVote(value: BoardVoteValue) {
     setLastMockAction(`Mock ${value} vote selected. Later API wiring uses POST /api/board/series/:seriesId/votes.`)
+  }
+
+  function startAtRiskDecision(decision: AtRiskDecision) {
+    setPendingAtRiskDecision(decision)
+  }
+
+  function confirmAtRiskDecision() {
+    if (!pendingAtRiskDecision) return
+    recordAtRiskDecision(pendingAtRiskDecision)
+    setPendingAtRiskDecision(null)
+  }
+
+  function cancelAtRiskDecision() {
+    setPendingAtRiskDecision(null)
   }
 
   function recordAtRiskDecision(decision: AtRiskDecision) {
@@ -84,10 +114,18 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMo
     selectedAtRiskCase,
     selectedSeriesId,
     selectedAtRiskId,
+    pendingVote,
+    pendingAtRiskDecision,
     setSelectedSeriesId,
     setSelectedAtRiskId,
     lastMockAction,
+    startVote,
+    confirmVote,
+    cancelVote,
     recordVote,
+    startAtRiskDecision,
+    confirmAtRiskDecision,
+    cancelAtRiskDecision,
     recordAtRiskDecision,
     loading,
     error,

@@ -6,6 +6,7 @@ import {
   MFBadge,
   MFButton,
   MFCard,
+  MFConfirmationPanel,
   MFCover,
   MFHero,
   MFIconCircle,
@@ -17,7 +18,7 @@ import {
   SegmentedControl,
 } from "@/components/mf"
 import type { EditorCommentItem } from "@/data/editor"
-import type { EditorReadinessCheck } from "@/domain/workflow"
+import type { EditorFinalApprovalAction, EditorProposalAction, EditorReadinessCheck, Tone } from "@/domain/workflow"
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, radius, spacing } from "@/design/tokens"
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow"
@@ -80,11 +81,22 @@ export function EditorManuscriptsScreen() {
           <Text style={styles.body}>{selected.editorRecommendation}</Text>
           <Text style={styles.muted}>Version {selected.version}. Forwarding to Board will later call the manuscript action endpoint.</Text>
           <View style={styles.buttonRow}>
-            <MFButton tone="warning" variant="outline" onPress={() => flow.recordProposalAction("request-revision")}>Request Revision</MFButton>
-            <MFButton tone="danger" variant="outline" onPress={() => flow.recordProposalAction("reject")}>Reject</MFButton>
+            <MFButton tone="warning" variant="outline" onPress={() => flow.startProposalAction("request-revision")}>Request Revision</MFButton>
+            <MFButton tone="danger" variant="outline" onPress={() => flow.startProposalAction("reject")}>Reject</MFButton>
           </View>
-          <MFButton tone="success" onPress={() => flow.recordProposalAction("forward-to-board")}>Forward to Board</MFButton>
+          <MFButton tone="success" onPress={() => flow.startProposalAction("forward-to-board")}>Forward to Board</MFButton>
         </MFCard>
+      ) : null}
+      {flow.pendingProposalAction ? (
+        <MFConfirmationPanel
+          title={proposalActionTitle(flow.pendingProposalAction)}
+          body={`Confirm mock ${flow.pendingProposalAction} for ${selected?.title ?? "the selected proposal"}. This preview does not change workflow status or permissions.`}
+          confirmLabel="Confirm mock action"
+          tone={proposalActionTone(flow.pendingProposalAction)}
+          endpointHint={proposalActionEndpoint(flow.pendingProposalAction)}
+          onConfirm={flow.confirmProposalAction}
+          onCancel={flow.cancelProposalAction}
+        />
       ) : null}
       <EditorFinalApprovalsPanel />
     </>
@@ -180,10 +192,21 @@ export function EditorSubmissionReviewScreen() {
             <Text style={styles.body}>This action is separate from proposal review and is the only approval path that can later trigger payroll.</Text>
           </MFCard>
           <View style={styles.buttonRow}>
-            <MFButton tone="primary" variant="outline" onPress={() => flow.recordFinalApprovalAction("request-revision")}>Request Revision</MFButton>
-            <MFButton tone="primary" variant="outline" onPress={() => flow.recordFinalApprovalAction("add-comment")}>Add Comment</MFButton>
+            <MFButton tone="primary" variant="outline" onPress={() => flow.startFinalApprovalAction("request-revision")}>Request Revision</MFButton>
+            <MFButton tone="primary" variant="outline" onPress={() => flow.startFinalApprovalAction("add-comment")}>Add Comment</MFButton>
           </View>
-          <MFButton tone="success" onPress={() => flow.recordFinalApprovalAction("editor-approve")}>Final Approve</MFButton>
+          <MFButton tone="success" onPress={() => flow.startFinalApprovalAction("editor-approve")}>Final Approve</MFButton>
+          {flow.pendingFinalApprovalAction ? (
+            <MFConfirmationPanel
+              title={finalApprovalActionTitle(flow.pendingFinalApprovalAction)}
+              body={`Confirm mock ${flow.pendingFinalApprovalAction} for ${item.title}. Editor final approval remains separate from proposal review.`}
+              confirmLabel="Confirm review mock"
+              tone={finalApprovalActionTone(flow.pendingFinalApprovalAction)}
+              endpointHint={finalApprovalActionEndpoint(flow.pendingFinalApprovalAction)}
+              onConfirm={flow.confirmFinalApprovalAction}
+              onCancel={flow.cancelFinalApprovalAction}
+            />
+          ) : null}
         </>
       ) : null}
       <SectionTitle title="History" />
@@ -288,6 +311,42 @@ function readinessCheckToQueueItem(check: EditorReadinessCheck) {
     tone: check.passed ? "success" as const : "danger" as const,
     icon: check.passed ? "check-circle" as const : "alert-triangle" as const,
   }
+}
+
+function proposalActionTitle(action: EditorProposalAction) {
+  if (action === "forward-to-board") return "Forward proposal to Board"
+  if (action === "reject") return "Reject proposal"
+  return "Request proposal revision"
+}
+
+function proposalActionTone(action: EditorProposalAction): Tone {
+  if (action === "forward-to-board") return "success"
+  if (action === "reject") return "danger"
+  return "warning"
+}
+
+function proposalActionEndpoint(action: EditorProposalAction) {
+  if (action === "forward-to-board") return "Future endpoint: POST /api/manuscripts/:manuscriptId/forward-to-board"
+  if (action === "reject") return "Future endpoint: POST /api/manuscripts/:manuscriptId/reject"
+  return "Future endpoint: POST /api/manuscripts/:manuscriptId/request-revision"
+}
+
+function finalApprovalActionTitle(action: EditorFinalApprovalAction) {
+  if (action === "editor-approve") return "Final approve submission"
+  if (action === "add-comment") return "Add editor comment"
+  return "Request production revision"
+}
+
+function finalApprovalActionTone(action: EditorFinalApprovalAction): Tone {
+  if (action === "editor-approve") return "success"
+  if (action === "request-revision") return "warning"
+  return "primary"
+}
+
+function finalApprovalActionEndpoint(action: EditorFinalApprovalAction) {
+  if (action === "editor-approve") return "Future endpoint: POST /api/submissions/:submissionId/editor-approve"
+  if (action === "add-comment") return "Future endpoint: POST /api/comments"
+  return "Future endpoint: POST /api/submissions/:submissionId/request-revision"
 }
 
 function PanelPreview({ label }: { label: string }) {
