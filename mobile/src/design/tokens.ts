@@ -19,6 +19,7 @@ export const colors = {
   success: "#18a957",
   successSoft: "#e8faef",
   inkWash: "#eee3ff",
+  headerWash: "#f4ecff",
 } as const
 
 export const spacing = {
