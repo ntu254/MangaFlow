@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import test from "node:test"
 
 const dataSource = readFileSync(new URL("../data/mobile-data.ts", import.meta.url), "utf8")
@@ -67,11 +67,12 @@ test("mobile icon system follows the requirement mapping", () => {
 test("mobile header background uses the shared manga wash treatment", () => {
   assert.match(tokenSource, /headerWash/)
   assert.match(mfSource, /MFHeaderBackground/)
-  assert.match(headerBackgroundSource, /torii/)
-  assert.match(headerBackgroundSource, /pagoda/)
-  assert.match(headerBackgroundSource, /castle/)
-  assert.match(headerBackgroundSource, /gPen/)
-  assert.match(headerBackgroundSource, /mangaPanel/)
+  assert.match(headerBackgroundSource, /expo-image/)
+  assert.match(headerBackgroundSource, /header-editor-wash\.png/)
+  assert.match(headerBackgroundSource, /header-board-wash\.png/)
+  assert.match(headerBackgroundSource, /useWindowDimensions/)
+  assert.ok(existsSync(new URL("../../assets/backgrounds/header-editor-wash.png", import.meta.url)))
+  assert.ok(existsSync(new URL("../../assets/backgrounds/header-board-wash.png", import.meta.url)))
 })
 
 test("mobile UI requirement polish is represented in shared components", () => {
