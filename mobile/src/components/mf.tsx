@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react"
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -92,9 +92,9 @@ export function MFHeader({ role, userName, subtitle, logoSuffix, notificationCou
           <View style={styles.notificationBadge}><Text style={styles.notificationText}>{notificationCount}</Text></View>
         </View>
         <View style={styles.avatar}><Text style={styles.avatarText}>{role === "BOARD" ? "A" : "R"}</Text></View>
-        <View>
-          <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.userRole}>{subtitle}</Text>
+        <View style={styles.userBlock}>
+          <Text style={styles.userName} numberOfLines={1}>{userName}</Text>
+          <Text style={styles.userRole} numberOfLines={1}>{subtitle}</Text>
         </View>
       </View>
     </View>
@@ -112,8 +112,10 @@ export function MFHero({ title, subtitle, children, role = "editor" }: HeroProps
   return (
     <View style={styles.hero}>
       <MFHeaderBackground compact role={role} />
-      <Text style={styles.heroTitle}>{title}</Text>
-      <Text style={styles.heroSubtitle}>{subtitle}</Text>
+      <View style={styles.heroContent}>
+        <Text style={styles.heroTitle}>{title}</Text>
+        <Text style={styles.heroSubtitle}>{subtitle}</Text>
+      </View>
       {children}
     </View>
   )
@@ -167,17 +169,20 @@ export function MFMetricStrip({ items }: { items: MetricItem[] }) {
 }
 
 export function MFActionCards({ items }: { items: MetricItem[] }) {
+  const { width } = useWindowDimensions()
+  const compactCards = width <= 460
+
   return (
-    <View style={styles.actionGrid}>
+    <View style={[styles.actionGrid, compactCards && styles.actionGridCompact]}>
       {items.map((item) => {
         const swatch = toneColors[item.tone]
         return (
-          <MFCard key={item.id} style={styles.actionCard}>
+          <MFCard key={item.id} style={[styles.actionCard, compactCards ? styles.actionCardCompact : styles.actionCardWide]}>
             <MFIconCircle tone={item.tone} icon={item.icon} size={44} />
-            <Text style={styles.actionTitle}>{item.value} {item.label}</Text>
-            {item.subtitle ? <Text style={styles.actionSubtitle}>{item.subtitle}</Text> : null}
+            <Text style={styles.actionTitle} numberOfLines={2}>{item.value} {item.label}</Text>
+            {item.subtitle ? <Text style={styles.actionSubtitle} numberOfLines={2}>{item.subtitle}</Text> : null}
             <View style={styles.actionLinkRow}>
-              <Text style={[styles.actionLink, { color: swatch.fg }]}>{item.actionLabel ?? "Open now"}</Text>
+              <Text style={[styles.actionLink, { color: swatch.fg }]} numberOfLines={1}>{item.actionLabel ?? "Open now"}</Text>
               <MFIcon name="chevron-right" size={14} color={swatch.fg} />
             </View>
           </MFCard>
@@ -293,28 +298,30 @@ export function SegmentedControl({ labels, activeIndex = 0 }: { labels: string[]
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  safeArea: { flex: 1 },
+  safeArea: { flex: 1, zIndex: 1 },
   scroll: { paddingHorizontal: spacing.md, paddingBottom: 110, gap: spacing.md },
   tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", justifyContent: "space-around", paddingTop: spacing.sm, paddingBottom: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.outlineVariant },
   tabButton: { minWidth: 58, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2 },
   tabLabel: { fontSize: 11, color: colors.outline, fontWeight: "600" },
   tabLabelActive: { color: colors.primary },
-  header: { minHeight: 66, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  logoRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  header: { minHeight: 66, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  logoRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flexShrink: 0 },
   logoMark: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
   logoMarkText: { color: colors.surface, fontSize: 22, fontWeight: "900" },
   logoText: { color: colors.primary, fontSize: 19, fontWeight: "900" },
   logoSuffix: { color: colors.primary, fontSize: 9, fontWeight: "800", letterSpacing: 4 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  headerRight: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: spacing.sm, minWidth: 0 },
   bell: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.outlineVariant, alignItems: "center", justifyContent: "center" },
   notificationBadge: { position: "absolute", right: -5, top: -5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
   notificationText: { color: colors.surface, fontSize: 10, fontWeight: "800" },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   avatarText: { color: colors.primary, fontWeight: "900" },
-  userName: { color: colors.text, fontSize: 14, fontWeight: "800" },
-  userRole: { color: colors.textMuted, fontSize: 12 },
+  userBlock: { flexShrink: 1, minWidth: 64, maxWidth: 96 },
+  userName: { color: colors.text, fontSize: 14, fontWeight: "800", textAlign: "left" },
+  userRole: { color: colors.textMuted, fontSize: 12, textAlign: "left" },
   iconCircle: { alignItems: "center", justifyContent: "center" },
-  hero: { position: "relative", paddingVertical: spacing.sm, overflow: "hidden" },
+  hero: { position: "relative", paddingVertical: spacing.sm, minHeight: 112 },
+  heroContent: { position: "relative", zIndex: 1 },
   heroTitle: { color: colors.text, fontSize: typography.display, fontWeight: "900", letterSpacing: 0 },
   heroSubtitle: { color: colors.textMuted, fontSize: typography.body, marginTop: 4 },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: "#f0e8f4", ...shadow.card },
@@ -327,9 +334,12 @@ const styles = StyleSheet.create({
   metricLabelCompact: { textAlign: "center", fontSize: 10, lineHeight: 12 },
   metricValue: { color: colors.text, fontSize: 21, fontWeight: "900" },
   actionGrid: { flexDirection: "row", gap: spacing.sm },
-  actionCard: { flex: 1, minHeight: 150, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm },
-  actionTitle: { color: colors.text, textAlign: "center", fontWeight: "800", fontSize: 13 },
-  actionSubtitle: { color: colors.textMuted, textAlign: "center", fontSize: 10, lineHeight: 14 },
+  actionGridCompact: { flexWrap: "wrap" },
+  actionCard: { minHeight: 150, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm },
+  actionCardWide: { flex: 1 },
+  actionCardCompact: { flexGrow: 1, flexBasis: "47%", maxWidth: "49%", minHeight: 136 },
+  actionTitle: { color: colors.text, textAlign: "center", fontWeight: "800", fontSize: 13, lineHeight: 17 },
+  actionSubtitle: { color: colors.textMuted, textAlign: "center", fontSize: 10, lineHeight: 14, minHeight: 28 },
   actionLinkRow: { flexDirection: "row", alignItems: "center", gap: 2 },
   actionLink: { fontWeight: "800", fontSize: 12 },
   queueRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: "#f2edf5" },

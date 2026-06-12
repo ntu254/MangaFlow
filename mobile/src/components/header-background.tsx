@@ -14,7 +14,7 @@ interface MFHeaderBackgroundProps {
 export function MFHeaderBackground({ compact = false, role = "editor" }: MFHeaderBackgroundProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const { width } = useWindowDimensions()
-  const imageWidth = Math.min(Math.max(width * (compact ? 0.82 : 0.9), compact ? 300 : 340), compact ? 430 : 500)
+  const imageWidth = Math.min(Math.max(width * (compact ? 1.05 : 1), compact ? 360 : 380), compact ? 540 : 560)
   const imageHeight = Math.round(imageWidth * 0.47)
   const source = role === "board" ? boardHeaderWash : editorHeaderWash
 
@@ -27,13 +27,16 @@ export function MFHeaderBackground({ compact = false, role = "editor" }: MFHeade
     >
       <View style={styles.fallbackWash} />
       {imageFailed ? <FallbackMotif role={role} /> : null}
-      <Image
-        source={source}
-        style={styles.image}
-        contentFit="contain"
-        transition={0}
-        onError={() => setImageFailed(true)}
-      />
+      {!imageFailed ? (
+        <Image
+          source={source}
+          style={[styles.image, role === "board" && styles.imageBoard]}
+          contentFit="contain"
+          contentPosition="right top"
+          transition={0}
+          onError={() => setImageFailed(true)}
+        />
+      ) : null}
     </View>
   )
 }
@@ -51,26 +54,29 @@ function FallbackMotif({ role }: { role: "board" | "editor" }) {
 const styles = StyleSheet.create({
   root: {
     position: "absolute",
-    top: -12,
-    right: -20,
-    overflow: "hidden",
+    top: -18,
+    right: -70,
+    zIndex: 0,
   },
   rootCompact: {
-    top: -18,
-    right: -30,
+    top: -24,
+    right: -86,
   },
   fallbackWash: {
     position: "absolute",
     inset: 0,
     borderRadius: 44,
     backgroundColor: colors.headerWash,
-    opacity: 0.18,
+    opacity: 0.12,
     transform: [{ rotate: "-4deg" }],
   },
   image: {
     width: "100%",
     height: "100%",
-    opacity: 0.58,
+    opacity: 0.64,
+  },
+  imageBoard: {
+    opacity: 0.68,
   },
   fallbackMotif: {
     position: "absolute",

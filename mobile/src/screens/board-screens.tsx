@@ -22,6 +22,7 @@ import {
   boardQueues,
   boardSeries,
 } from "@/data/mobile-data"
+import { MFIcon, type IconName } from "@/design/icons"
 import { colors, spacing } from "@/design/tokens"
 
 export function BoardHomeScreen() {
@@ -147,10 +148,15 @@ export function BoardAtRiskScreen() {
 
 function VoteCount({ label, value, tone }: { label: string; value: string; tone: "success" | "danger" | "neutral" }) {
   const color = tone === "success" ? colors.success : tone === "danger" ? colors.danger : colors.outline
+  const bg = tone === "success" ? colors.successSoft : tone === "danger" ? colors.dangerSoft : colors.surfaceContainer
+  const icon: IconName = tone === "success" ? "check" : tone === "danger" ? "alert-triangle" : "circle"
+
   return (
     <View style={styles.voteCount}>
-      <View style={[styles.voteCircle, { borderColor: color }]} />
-      <Text style={styles.voteLabel}>{label}</Text>
+      <View style={[styles.voteCircle, { borderColor: color, backgroundColor: bg }]}>
+        <MFIcon name={icon} size={20} color={color} strokeWidth={2.5} />
+      </View>
+      <Text style={styles.voteLabel} numberOfLines={2}>{label}</Text>
       <Text style={[styles.voteValue, { color }]}>{value}</Text>
     </View>
   )
@@ -166,10 +172,10 @@ const styles = StyleSheet.create({
   tieCard: { flexDirection: "row", gap: spacing.md },
   tieBody: { flex: 1 },
   divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: spacing.md },
-  voteSplit: { flexDirection: "row", justifyContent: "space-between", marginTop: spacing.sm },
-  voteCount: { alignItems: "center", flex: 1 },
-  voteCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, marginBottom: 4 },
-  voteLabel: { color: colors.textMuted, fontSize: 10, textAlign: "center" },
+  voteSplit: { flexDirection: "row", justifyContent: "space-between", gap: spacing.xs, marginTop: spacing.sm },
+  voteCount: { alignItems: "center", flex: 1, minWidth: 0 },
+  voteCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, marginBottom: 6, alignItems: "center", justifyContent: "center" },
+  voteLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 13, minHeight: 26, textAlign: "center" },
   voteValue: { fontSize: 24, fontWeight: "900" },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
   warningPanel: { backgroundColor: colors.warningSoft, borderColor: "#ffd99c" },

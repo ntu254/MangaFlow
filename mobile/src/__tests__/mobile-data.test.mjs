@@ -8,6 +8,7 @@ const iconSource = readFileSync(new URL("../design/icons.tsx", import.meta.url),
 const tokenSource = readFileSync(new URL("../design/tokens.ts", import.meta.url), "utf8")
 const mfSource = readFileSync(new URL("../components/mf.tsx", import.meta.url), "utf8")
 const headerBackgroundSource = readFileSync(new URL("../components/header-background.tsx", import.meta.url), "utf8")
+const boardSource = readFileSync(new URL("../screens/board-screens.tsx", import.meta.url), "utf8")
 
 test("mobile mock data covers board and editor reference screens", () => {
   for (const symbol of [
@@ -71,6 +72,7 @@ test("mobile header background uses the shared manga wash treatment", () => {
   assert.match(headerBackgroundSource, /header-editor-wash\.png/)
   assert.match(headerBackgroundSource, /header-board-wash\.png/)
   assert.match(headerBackgroundSource, /useWindowDimensions/)
+  assert.match(headerBackgroundSource, /contentPosition="right top"/)
   assert.ok(existsSync(new URL("../../assets/backgrounds/header-editor-wash.png", import.meta.url)))
   assert.ok(existsSync(new URL("../../assets/backgrounds/header-board-wash.png", import.meta.url)))
 })
@@ -86,5 +88,20 @@ test("mobile UI requirement polish is represented in shared components", () => {
   assert.match(mfSource, /seriesActionPill/)
   assert.match(dataSource, /actionLabel/)
   assert.match(dataSource, /tags:/)
+})
+
+test("board vote split shows semantic icons and centered labels", () => {
+  assert.match(boardSource, /function VoteCount/)
+  assert.match(boardSource, /MFIcon name=\{icon\}/)
+  assert.match(boardSource, /"alert-triangle"/)
+  assert.match(boardSource, /numberOfLines=\{2\}/)
+  assert.match(boardSource, /textAlign: "center"/)
+})
+
+test("mobile action cards use responsive centered layout", () => {
+  assert.match(mfSource, /useWindowDimensions/)
+  assert.match(mfSource, /compactCards/)
+  assert.match(mfSource, /actionGridCompact/)
+  assert.match(mfSource, /numberOfLines=\{2\}/)
 })
 
