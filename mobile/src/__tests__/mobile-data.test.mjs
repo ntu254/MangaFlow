@@ -69,6 +69,21 @@ test("mobile header background uses the shared manga wash treatment", () => {
   assert.match(mfSource, /MFHeaderBackground/)
   assert.match(headerBackgroundSource, /torii/)
   assert.match(headerBackgroundSource, /pagoda/)
+  assert.match(headerBackgroundSource, /castle/)
+  assert.match(headerBackgroundSource, /gPen/)
   assert.match(headerBackgroundSource, /mangaPanel/)
+})
+
+test("mobile UI requirement polish is represented in shared components", () => {
+  for (const tokenValue of ["#5d38f5", "#4f26e9", "#10b981", "#ef4444", "#f59e0b"]) {
+    assert.match(tokenSource, new RegExp(tokenValue))
+  }
+
+  assert.match(appSource, /role=\{role\}/)
+  assert.match(mfSource, /actionSubtitle/)
+  assert.match(mfSource, /seriesTag/)
+  assert.match(mfSource, /seriesActionPill/)
+  assert.match(dataSource, /actionLabel/)
+  assert.match(dataSource, /tags:/)
 })
 
