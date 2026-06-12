@@ -64,13 +64,13 @@ const styles = StyleSheet.create({
     inset: 0,
     borderRadius: 44,
     backgroundColor: colors.headerWash,
-    opacity: 0.34,
+    opacity: 0.18,
     transform: [{ rotate: "-4deg" }],
   },
   image: {
     width: "100%",
     height: "100%",
-    opacity: 0.34,
+    opacity: 0.58,
   },
   fallbackMotif: {
     position: "absolute",
