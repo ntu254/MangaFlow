@@ -78,8 +78,8 @@ export function EditorReadinessScreen() {
       <MFHero title="Readiness" subtitle="Check chapter blockers before publication." />
       <MFCard style={styles.chapterPicker}>
         <MFCover item={manuscripts[0]} small />
-        <Text style={styles.title}>Eclipse of Eternity / Chapter 12</Text>
-        <Text style={styles.chevron}>v</Text>
+        <Text style={[styles.title, styles.flex]}>Eclipse of Eternity / Chapter 12</Text>
+        <MFIcon name="chevron-right" size={18} color={colors.outline} />
       </MFCard>
       <MFCard style={styles.readinessSummary}>
         <View style={styles.ring}><Text style={styles.ringValue}>4</Text><Text style={styles.ringTotal}>/ 6</Text></View>
@@ -92,7 +92,9 @@ export function EditorReadinessScreen() {
       <MFCard>
         {readinessChecks.map((check) => (
           <View key={check.id} style={[styles.checkRow, check.tone === "danger" && styles.failedRow]}>
-            <View style={[styles.checkIcon, { borderColor: check.tone === "danger" ? colors.danger : colors.success }]} />
+            <View style={[styles.checkIcon, { borderColor: check.tone === "danger" ? colors.danger : colors.success }]}>
+              <MFIcon name={check.tone === "danger" ? "alert-triangle" : "check"} size={14} color={check.tone === "danger" ? colors.danger : colors.success} />
+            </View>
             <Text style={styles.checkTitle}>{check.title}</Text>
             <Text style={[styles.checkValue, { color: check.tone === "danger" ? colors.danger : colors.success }]}>{check.value}</Text>
           </View>
@@ -252,14 +254,13 @@ const styles = StyleSheet.create({
   link: { color: colors.primary, fontWeight: "800", fontSize: 12 },
   priorityCard: { flexDirection: "row", gap: spacing.md },
   chapterPicker: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  chevron: { marginLeft: "auto", color: colors.outline, fontWeight: "900" },
   readinessSummary: { flexDirection: "row", gap: spacing.lg, alignItems: "center" },
   ring: { width: 104, height: 104, borderRadius: 52, borderWidth: 12, borderColor: colors.primary, alignItems: "center", justifyContent: "center" },
   ringValue: { color: colors.primary, fontSize: 34, fontWeight: "900" },
   ringTotal: { color: colors.textMuted, fontSize: 15, fontWeight: "700" },
   checkRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.outlineVariant },
   failedRow: { backgroundColor: colors.dangerSoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm },
-  checkIcon: { width: 22, height: 22, borderRadius: 11, borderWidth: 2 },
+  checkIcon: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   checkTitle: { flex: 1, color: colors.text, fontWeight: "700" },
   checkValue: { fontWeight: "800" },
   compareGrid: { flexDirection: "row", gap: spacing.sm },

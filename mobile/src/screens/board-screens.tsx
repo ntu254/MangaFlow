@@ -27,7 +27,7 @@ import { colors, spacing } from "@/design/tokens"
 export function BoardHomeScreen() {
   return (
     <>
-      <MFHero title="Board Today" subtitle="Governance and decision companion" />
+      <MFHero role="board" title="Board Today" subtitle="Governance and decision companion" />
       <SectionTitle title="Next decisions" />
       <MFActionCards items={boardDecisionCards} />
       <SectionTitle title="Decision queues" />
@@ -43,7 +43,7 @@ export function BoardHomeScreen() {
 export function BoardReviewsScreen() {
   return (
     <>
-      <MFHero title="Series reviews" subtitle="Review proposals forwarded by editors." />
+      <MFHero role="board" title="Series reviews" subtitle="Review proposals forwarded by editors." />
       <MFMetricStrip items={boardMetrics} />
       <SegmentedControl labels={["All", "Weekly", "Monthly", "Urgent"]} />
       <View style={styles.stack}>
@@ -57,7 +57,7 @@ export function BoardTieBreakScreen() {
   const item = boardSeries[0]
   return (
     <>
-      <MFHero title="Tie-break" subtitle="Board Chair resolution required" />
+      <MFHero role="board" title="Tie-break" subtitle="Board Chair resolution required" />
       <MFCard style={styles.tieCard}>
         <MFCover item={item} />
         <View style={styles.tieBody}>
@@ -108,7 +108,7 @@ export function BoardTieBreakScreen() {
 export function BoardAtRiskScreen() {
   return (
     <>
-      <MFHero title="At-risk titles" subtitle="Review warnings and decide next action." />
+      <MFHero role="board" title="At-risk titles" subtitle="Review warnings and decide next action." />
       <MFMetricStrip items={[
         { id: "risk", label: "At Risk", value: "3", tone: "danger", icon: "alert-triangle" },
         { id: "warning", label: "Warning", value: "2", tone: "warning", icon: "alert-circle" },

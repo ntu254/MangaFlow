@@ -3,9 +3,12 @@ import { colors } from "@/design/tokens"
 
 interface MFHeaderBackgroundProps {
   compact?: boolean
+  role?: "board" | "editor"
 }
 
-export function MFHeaderBackground({ compact = false }: MFHeaderBackgroundProps) {
+export function MFHeaderBackground({ compact = false, role = "editor" }: MFHeaderBackgroundProps) {
+  const isBoard = role === "board"
+
   return (
     <View
       pointerEvents="none"
@@ -15,6 +18,21 @@ export function MFHeaderBackground({ compact = false }: MFHeaderBackgroundProps)
     >
       <View style={styles.washLarge} />
       <View style={styles.washSmall} />
+      {isBoard ? <BoardMotif /> : <EditorMotif />}
+      <View style={styles.mangaPanel}>
+        <View style={styles.panelLine} />
+        <View style={[styles.panelLine, styles.panelLineSecond]} />
+        <View style={styles.speechBubble} />
+      </View>
+      <View style={styles.branch} />
+      <View style={[styles.branch, styles.branchLower]} />
+    </View>
+  )
+}
+
+function EditorMotif() {
+  return (
+    <>
       <View style={styles.torii}>
         <View style={styles.toriiTop} />
         <View style={styles.toriiBeam} />
@@ -27,14 +45,24 @@ export function MFHeaderBackground({ compact = false }: MFHeaderBackgroundProps)
         <View style={[styles.pagodaTier, styles.pagodaTierLower]} />
         <View style={styles.pagodaBase} />
       </View>
-      <View style={styles.mangaPanel}>
-        <View style={styles.panelLine} />
-        <View style={[styles.panelLine, styles.panelLineSecond]} />
-        <View style={styles.speechBubble} />
+    </>
+  )
+}
+
+function BoardMotif() {
+  return (
+    <>
+      <View style={styles.castle}>
+        <View style={styles.castleRoofTop} />
+        <View style={styles.castleRoofWide} />
+        <View style={styles.castleBody} />
+        <View style={styles.castleBase} />
       </View>
-      <View style={styles.branch} />
-      <View style={[styles.branch, styles.branchLower]} />
-    </View>
+      <View style={styles.gPen}>
+        <View style={styles.gPenNib} />
+        <View style={styles.gPenStem} />
+      </View>
+    </>
   )
 }
 
@@ -166,6 +194,82 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: ink,
+  },
+  castle: {
+    position: "absolute",
+    right: 38,
+    top: 60,
+    width: 118,
+    height: 108,
+    opacity: 0.54,
+  },
+  castleRoofTop: {
+    position: "absolute",
+    top: 0,
+    left: 39,
+    width: 40,
+    height: 16,
+    borderBottomWidth: 4,
+    borderBottomColor: inkStrong,
+    transform: [{ skewX: "-18deg" }],
+  },
+  castleRoofWide: {
+    position: "absolute",
+    top: 24,
+    left: 18,
+    width: 82,
+    height: 18,
+    borderBottomWidth: 4,
+    borderBottomColor: inkStrong,
+    transform: [{ skewX: "14deg" }],
+  },
+  castleBody: {
+    position: "absolute",
+    top: 39,
+    left: 32,
+    width: 54,
+    height: 44,
+    borderWidth: 2,
+    borderColor: ink,
+    borderRadius: 6,
+  },
+  castleBase: {
+    position: "absolute",
+    left: 10,
+    bottom: 0,
+    width: 98,
+    height: 20,
+    borderTopWidth: 3,
+    borderTopColor: inkStrong,
+  },
+  gPen: {
+    position: "absolute",
+    right: 158,
+    top: 82,
+    width: 84,
+    height: 84,
+    opacity: 0.52,
+    transform: [{ rotate: "-28deg" }],
+  },
+  gPenNib: {
+    position: "absolute",
+    left: 7,
+    top: 8,
+    width: 24,
+    height: 38,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    borderWidth: 3,
+    borderColor: inkStrong,
+  },
+  gPenStem: {
+    position: "absolute",
+    left: 27,
+    top: 39,
+    width: 58,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: ink,
   },
   mangaPanel: {
     position: "absolute",

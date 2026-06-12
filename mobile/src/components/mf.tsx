@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 import { MFIcon, type IconName } from "@/design/icons"
-import type { MetricItem, QueueItem, SeriesCard, Tone } from "@/data/mobile-data"
+import type { MetricItem, QueueItem, Role, SeriesCard, Tone } from "@/data/mobile-data"
 
 const toneColors: Record<Tone, { fg: string; bg: string }> = {
   primary: { fg: colors.primary, bg: colors.primarySoft },
@@ -41,12 +41,13 @@ interface MFScreenProps extends PropsWithChildren {
   tabs: TabItem[]
   activeTab: string
   onTabChange: (tab: string) => void
+  role?: Role
 }
 
-export function MFScreen({ tabs, activeTab, onTabChange, children }: MFScreenProps) {
+export function MFScreen({ tabs, activeTab, onTabChange, children, role = "editor" }: MFScreenProps) {
   return (
     <View style={styles.root}>
-      <MFHeaderBackground />
+      <MFHeaderBackground role={role} />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {children}
@@ -104,12 +105,13 @@ interface HeroProps {
   title: string
   subtitle: string
   children?: ReactNode
+  role?: Role
 }
 
-export function MFHero({ title, subtitle, children }: HeroProps) {
+export function MFHero({ title, subtitle, children, role = "editor" }: HeroProps) {
   return (
     <View style={styles.hero}>
-      <MFHeaderBackground compact />
+      <MFHeaderBackground compact role={role} />
       <Text style={styles.heroTitle}>{title}</Text>
       <Text style={styles.heroSubtitle}>{subtitle}</Text>
       {children}
@@ -173,7 +175,11 @@ export function MFActionCards({ items }: { items: MetricItem[] }) {
           <MFCard key={item.id} style={styles.actionCard}>
             <MFIconCircle tone={item.tone} icon={item.icon} size={44} />
             <Text style={styles.actionTitle}>{item.value} {item.label}</Text>
-            <Text style={[styles.actionLink, { color: swatch.fg }]}>Open now</Text>
+            {item.subtitle ? <Text style={styles.actionSubtitle}>{item.subtitle}</Text> : null}
+            <View style={styles.actionLinkRow}>
+              <Text style={[styles.actionLink, { color: swatch.fg }]}>{item.actionLabel ?? "Open now"}</Text>
+              <MFIcon name="chevron-right" size={14} color={swatch.fg} />
+            </View>
           </MFCard>
         )
       })}
@@ -184,10 +190,10 @@ export function MFActionCards({ items }: { items: MetricItem[] }) {
 export function MFQueueList({ items }: { items: QueueItem[] }) {
   return (
     <MFCard>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const swatch = toneColors[item.tone]
         return (
-          <View key={item.id} style={styles.queueRow}>
+          <View key={item.id} style={[styles.queueRow, index === items.length - 1 && styles.queueRowLast]}>
             <View style={[styles.queueIcon, { backgroundColor: swatch.bg }]}>
               <MFIcon name={item.icon ?? defaultQueueIcons[item.tone]} size={20} color={swatch.fg} />
             </View>
@@ -218,6 +224,8 @@ export function MFProgress({ value }: { value: number }) {
 }
 
 export function MFSeriesRow({ item, actionLabel = "Open summary" }: { item: SeriesCard; actionLabel?: string }) {
+  const tags = item.tags ?? item.subtitle.split("/").map((tag) => tag.trim()).filter(Boolean)
+
   return (
     <MFCard style={styles.seriesRow}>
       <MFCover item={item} />
@@ -226,7 +234,9 @@ export function MFSeriesRow({ item, actionLabel = "Open summary" }: { item: Seri
           <Text style={styles.seriesTitle}>{item.title}</Text>
           <MFBadge tone={item.tone}>{item.status}</MFBadge>
         </View>
-        <Text style={styles.seriesSubtitle}>{item.subtitle}</Text>
+        <View style={styles.seriesTags}>
+          {tags.map((tag) => <Text key={tag} style={styles.seriesTag}>{tag}</Text>)}
+        </View>
         <Text style={styles.seriesMeta}>{item.meta}</Text>
         {typeof item.progressValue === "number" ? (
           <>
@@ -234,7 +244,10 @@ export function MFSeriesRow({ item, actionLabel = "Open summary" }: { item: Seri
             <MFProgress value={item.progressValue} />
           </>
         ) : null}
-        <Text style={styles.seriesAction}>{actionLabel}  {'>'}</Text>
+        <View style={styles.seriesActionPill}>
+          <Text style={styles.seriesAction}>{actionLabel}</Text>
+          <MFIcon name="chevron-right" size={14} color={colors.primary} />
+        </View>
       </View>
     </MFCard>
   )
@@ -314,10 +327,13 @@ const styles = StyleSheet.create({
   metricLabelCompact: { textAlign: "center", fontSize: 10, lineHeight: 12 },
   metricValue: { color: colors.text, fontSize: 21, fontWeight: "900" },
   actionGrid: { flexDirection: "row", gap: spacing.sm },
-  actionCard: { flex: 1, minHeight: 132, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm },
+  actionCard: { flex: 1, minHeight: 150, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm },
   actionTitle: { color: colors.text, textAlign: "center", fontWeight: "800", fontSize: 13 },
+  actionSubtitle: { color: colors.textMuted, textAlign: "center", fontSize: 10, lineHeight: 14 },
+  actionLinkRow: { flexDirection: "row", alignItems: "center", gap: 2 },
   actionLink: { fontWeight: "800", fontSize: 12 },
   queueRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: "#f2edf5" },
+  queueRowLast: { borderBottomWidth: 0 },
   queueIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   queueIconText: { fontSize: 18, fontWeight: "900" },
   queueText: { flex: 1 },
@@ -335,10 +351,12 @@ const styles = StyleSheet.create({
   seriesBody: { flex: 1, gap: 5 },
   seriesHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.sm },
   seriesTitle: { color: colors.text, fontSize: 16, fontWeight: "900", flex: 1 },
-  seriesSubtitle: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
+  seriesTags: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
+  seriesTag: { color: colors.primary, backgroundColor: colors.chip, borderRadius: radius.sm, paddingHorizontal: 7, paddingVertical: 3, fontSize: 10, fontWeight: "700" },
   seriesMeta: { color: colors.textMuted, fontSize: 11 },
   seriesProgress: { color: colors.primary, fontSize: 12, fontWeight: "800", marginTop: 4 },
-  seriesAction: { color: colors.primary, fontSize: 12, fontWeight: "800", textAlign: "right", marginTop: spacing.xs },
+  seriesActionPill: { minHeight: 34, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.sm, alignSelf: "flex-end", flexDirection: "row", alignItems: "center", gap: 2, marginTop: spacing.xs },
+  seriesAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },
   badge: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full, alignSelf: "flex-start" },
   badgeText: { fontSize: 11, fontWeight: "800" },
   button: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },

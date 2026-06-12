@@ -58,7 +58,7 @@ export function MangaFlowMobileApp() {
   }, [boardTab, editorTab, role])
 
   return (
-    <MFScreen tabs={activeTabs} activeTab={activeTab} onTabChange={setActiveTab}>
+    <MFScreen tabs={activeTabs} activeTab={activeTab} onTabChange={setActiveTab} role={role}>
       <MFHeader
         role={role === "board" ? "BOARD" : "EDITOR"}
         logoSuffix={role === "board" ? "BOARD" : undefined}

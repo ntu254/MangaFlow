@@ -10,6 +10,8 @@ export interface MetricItem {
   value: string
   tone: Tone
   icon: IconName
+  subtitle?: string
+  actionLabel?: string
 }
 
 export interface QueueItem {
@@ -31,6 +33,7 @@ export interface SeriesCard {
   progress?: string
   progressValue?: number
   coverTone: "violet" | "red" | "blue" | "dark" | "warm" | "mono"
+  tags?: string[]
 }
 
 export interface ActivityItem {
@@ -59,10 +62,10 @@ export const boardMetrics: MetricItem[] = [
 ]
 
 export const boardDecisionCards: MetricItem[] = [
-  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "check-circle" },
-  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "scale-balance" },
-  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "alert-triangle" },
-  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "bar-chart-2" },
+  { id: "vote", label: "Vote on series", value: "4", tone: "primary", icon: "check-circle", subtitle: "Awaiting board votes", actionLabel: "Open votes" },
+  { id: "tie", label: "Tie-break required", value: "1", tone: "warning", icon: "scale-balance", subtitle: "Board Chair resolution", actionLabel: "Resolve now" },
+  { id: "risk", label: "Review at-risk titles", value: "3", tone: "danger", icon: "alert-triangle", subtitle: "Ranking decline alerts", actionLabel: "Check risk" },
+  { id: "ranking", label: "Finalize ranking", value: "1", tone: "primary", icon: "bar-chart-2", subtitle: "Monthly cycle", actionLabel: "View ranking" },
 ]
 
 export const boardQueues: QueueItem[] = [
@@ -73,10 +76,10 @@ export const boardQueues: QueueItem[] = [
 ]
 
 export const boardSeries: SeriesCard[] = [
-  { id: "neon", title: "Neon Reverie", subtitle: "Sci-Fi / Drama", meta: "Proposed: Monthly", status: "Approve", tone: "success", progress: "4 / 7 votes submitted", progressValue: 0.57, coverTone: "violet" },
-  { id: "aurora", title: "Aurora Pulse", subtitle: "Fantasy / Adventure", meta: "Proposed: Monthly", status: "Needs Revision", tone: "warning", progress: "3 / 7 votes submitted", progressValue: 0.43, coverTone: "blue" },
-  { id: "crimson", title: "Crimson Road", subtitle: "Action / Historical", meta: "Proposed: Weekly", status: "Approve", tone: "success", progress: "6 / 7 votes submitted", progressValue: 0.86, coverTone: "red" },
-  { id: "shadow", title: "Shadowline", subtitle: "Thriller / Mystery", meta: "Proposed: Monthly", status: "At Risk", tone: "danger", progress: "1 / 7 votes submitted", progressValue: 0.14, coverTone: "dark" },
+  { id: "neon", title: "Neon Reverie", subtitle: "Sci-Fi / Drama", meta: "Proposed: Monthly", status: "Approve", tone: "success", progress: "4 / 7 votes submitted", progressValue: 0.57, coverTone: "violet", tags: ["Sci-Fi", "Drama"] },
+  { id: "aurora", title: "Aurora Pulse", subtitle: "Fantasy / Adventure", meta: "Proposed: Monthly", status: "Needs Revision", tone: "warning", progress: "3 / 7 votes submitted", progressValue: 0.43, coverTone: "blue", tags: ["Fantasy", "Adventure"] },
+  { id: "crimson", title: "Crimson Road", subtitle: "Action / Historical", meta: "Proposed: Weekly", status: "Approve", tone: "success", progress: "6 / 7 votes submitted", progressValue: 0.86, coverTone: "red", tags: ["Action", "Historical"] },
+  { id: "shadow", title: "Shadowline", subtitle: "Thriller / Mystery", meta: "Proposed: Monthly", status: "At Risk", tone: "danger", progress: "1 / 7 votes submitted", progressValue: 0.14, coverTone: "dark", tags: ["Thriller", "Mystery"] },
 ]
 
 export const atRiskTitles: SeriesCard[] = [
@@ -93,10 +96,10 @@ export const boardActivity: ActivityItem[] = [
 ]
 
 export const editorActions: MetricItem[] = [
-  { id: "manuscripts", label: "Review manuscripts", value: "3", tone: "primary", icon: "file-text" },
-  { id: "approvals", label: "Final approve submissions", value: "5", tone: "success", icon: "check-circle" },
-  { id: "comments", label: "Resolve comments", value: "4", tone: "warning", icon: "message-circle" },
-  { id: "blocked", label: "Check blocked chapters", value: "2", tone: "danger", icon: "lock" },
+  { id: "manuscripts", label: "Review manuscripts", value: "3", tone: "primary", icon: "file-text", subtitle: "New submissions need review", actionLabel: "Review now" },
+  { id: "approvals", label: "Final approve submissions", value: "5", tone: "success", icon: "check-circle", subtitle: "Ready for final approval", actionLabel: "Approve now" },
+  { id: "comments", label: "Resolve comments", value: "4", tone: "warning", icon: "message-circle", subtitle: "Blocking publication", actionLabel: "Resolve now" },
+  { id: "blocked", label: "Check blocked chapters", value: "2", tone: "danger", icon: "lock", subtitle: "Require attention", actionLabel: "Check now" },
 ]
 
 export const editorQueues: QueueItem[] = [
@@ -107,10 +110,10 @@ export const editorQueues: QueueItem[] = [
 ]
 
 export const manuscripts: SeriesCard[] = [
-  { id: "eclipse", title: "Eclipse of Eternity", subtitle: "Fantasy / Dark / Action", meta: "Version 1.4, submitted 18m ago", status: "Waiting Review", tone: "primary", coverTone: "dark" },
-  { id: "neon-manuscript", title: "Neon Reverie", subtitle: "Sci-Fi / Psychological / Drama", meta: "Version 2.1, submitted 1h ago", status: "Revision Uploaded", tone: "warning", coverTone: "violet" },
-  { id: "lotus", title: "Crimson Lotus", subtitle: "Historical / Romance / Drama", meta: "Version 3.0, submitted 3h ago", status: "Needs Editor Decision", tone: "danger", coverTone: "red" },
-  { id: "flavors", title: "Flavors of Youth", subtitle: "Slice of Life / Romance / Food", meta: "Version 1.2, submitted 5h ago", status: "Ready to Forward", tone: "success", coverTone: "warm" },
+  { id: "eclipse", title: "Eclipse of Eternity", subtitle: "Fantasy / Dark / Action", meta: "Version 1.4, submitted 18m ago", status: "Waiting Review", tone: "primary", coverTone: "dark", tags: ["Fantasy", "Dark", "Action"] },
+  { id: "neon-manuscript", title: "Neon Reverie", subtitle: "Sci-Fi / Psychological / Drama", meta: "Version 2.1, submitted 1h ago", status: "Revision Uploaded", tone: "warning", coverTone: "violet", tags: ["Sci-Fi", "Psychological", "Drama"] },
+  { id: "lotus", title: "Crimson Lotus", subtitle: "Historical / Romance / Drama", meta: "Version 3.0, submitted 3h ago", status: "Needs Editor Decision", tone: "danger", coverTone: "red", tags: ["Historical", "Romance", "Drama"] },
+  { id: "flavors", title: "Flavors of Youth", subtitle: "Slice of Life / Romance / Food", meta: "Version 1.2, submitted 5h ago", status: "Ready to Forward", tone: "success", coverTone: "warm", tags: ["Slice of Life", "Romance", "Food"] },
 ]
 
 export const finalApprovals: SeriesCard[] = [
