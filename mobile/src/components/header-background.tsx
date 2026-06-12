@@ -7,15 +7,14 @@ const editorHeaderWash = require("../../assets/images/nen.jpg")
 const boardHeaderWash = require("../../assets/images/nen1.jpg")
 
 interface MFHeaderBackgroundProps {
-  compact?: boolean
   role?: "board" | "editor"
 }
 
-export function MFHeaderBackground({ compact = false, role = "editor" }: MFHeaderBackgroundProps) {
+export function MFHeaderBackground({ role = "editor" }: MFHeaderBackgroundProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const { width } = useWindowDimensions()
-  const imageWidth = Math.min(Math.max(width * (compact ? 1.05 : 1), compact ? 360 : 380), compact ? 540 : 560)
-  const imageHeight = Math.round(imageWidth * 0.47)
+  const imageWidth = width
+  const imageHeight = Math.min(Math.max(width * 0.82, 310), 390)
   const source = role === "board" ? boardHeaderWash : editorHeaderWash
 
   return (
@@ -23,7 +22,7 @@ export function MFHeaderBackground({ compact = false, role = "editor" }: MFHeade
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[styles.root, compact && styles.rootCompact, { width: imageWidth, height: imageHeight }]}
+      style={[styles.root, { width: imageWidth, height: imageHeight }]}
     >
       <View style={styles.fallbackWash} />
       {imageFailed ? <FallbackMotif role={role} /> : null}
@@ -31,12 +30,16 @@ export function MFHeaderBackground({ compact = false, role = "editor" }: MFHeade
         <Image
           source={source}
           style={[styles.image, role === "board" && styles.imageBoard]}
-          contentFit="contain"
+          contentFit="cover"
           contentPosition="right top"
           transition={0}
           onError={() => setImageFailed(true)}
         />
       ) : null}
+      <View style={styles.topVeil} />
+      <View style={styles.leftVeil} />
+      <View style={styles.bottomFadeStrong} />
+      <View style={styles.bottomFadeSoft} />
     </View>
   )
 }
@@ -54,29 +57,52 @@ function FallbackMotif({ role }: { role: "board" | "editor" }) {
 const styles = StyleSheet.create({
   root: {
     position: "absolute",
-    top: -18,
-    right: -70,
+    top: 0,
+    left: 0,
     zIndex: 0,
-  },
-  rootCompact: {
-    top: -24,
-    right: -86,
   },
   fallbackWash: {
     position: "absolute",
     inset: 0,
-    borderRadius: 44,
     backgroundColor: colors.headerWash,
-    opacity: 0.12,
-    transform: [{ rotate: "-4deg" }],
+    opacity: 0.22,
   },
   image: {
     width: "100%",
     height: "100%",
-    opacity: 0.64,
+    opacity: 0.24,
   },
   imageBoard: {
-    opacity: 0.68,
+    opacity: 0.26,
+  },
+  topVeil: {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.32)",
+  },
+  leftVeil: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: "46%",
+    backgroundColor: "rgba(248, 249, 250, 0.58)",
+  },
+  bottomFadeStrong: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 124,
+    backgroundColor: "rgba(248, 249, 250, 0.84)",
+  },
+  bottomFadeSoft: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 72,
+    height: 108,
+    backgroundColor: "rgba(248, 249, 250, 0.42)",
   },
   fallbackMotif: {
     position: "absolute",

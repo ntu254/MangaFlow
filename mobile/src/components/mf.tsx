@@ -119,10 +119,9 @@ interface HeroProps {
   role?: Role
 }
 
-export function MFHero({ title, subtitle, children, role = "editor" }: HeroProps) {
+export function MFHero({ title, subtitle, children }: HeroProps) {
   return (
     <View style={styles.hero}>
-      <MFHeaderBackground compact role={role} />
       <View style={styles.heroContent}>
         <Text style={styles.heroTitle}>{title}</Text>
         <Text style={styles.heroSubtitle}>{subtitle}</Text>
