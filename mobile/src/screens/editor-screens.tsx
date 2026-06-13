@@ -7,7 +7,6 @@ import {
   MFButton,
   MFCard,
   MFConfirmationPanel,
-  MFDetailList,
   MFCover,
   MFEmptyState,
   MFHero,
@@ -17,7 +16,6 @@ import {
   MFQueueList,
   MFSeriesRow,
   MFStateNotice,
-  MFTimeline,
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
@@ -26,6 +24,7 @@ import type { EditorFinalApprovalAction, EditorProposalAction, EditorReadinessCh
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, radius, spacing } from "@/design/tokens"
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow"
+import { EditorCommentDetailPanel, EditorReadinessEvidencePanel } from "@/screens/editor-panels"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
 const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg")
@@ -141,19 +140,7 @@ export function EditorReadinessScreen() {
       <MFCard>
         {flow.readiness.checks.map((check) => <ReadinessRow key={check.id} check={check} />)}
       </MFCard>
-      <SectionTitle title="Readiness evidence" />
-      <MFDetailList items={[
-        { id: "source", label: "Source", value: flow.readiness.source, tone: "primary", icon: "shield-check" },
-        { id: "blocking", label: "Blocking checks", value: `${flow.readiness.checks.filter((check) => !check.passed).length} blockers returned by backend-owned result`, tone: flow.readiness.overallPassed ? "success" : "danger", icon: "alert-triangle" },
-        { id: "chapter", label: "Chapter", value: flow.readiness.chapterTitle, tone: "neutral", icon: "file-text" },
-      ]} />
-      <MFTimeline items={flow.readiness.checks.map((check) => ({
-        id: check.id,
-        title: check.title,
-        subtitle: check.reason,
-        tone: check.passed ? "success" : "danger",
-        icon: check.passed ? "check-circle" : "alert-triangle",
-      }))} />
+      <EditorReadinessEvidencePanel readiness={flow.readiness} />
       <SectionTitle title="Blockers" />
       <MFQueueList items={readinessChecks.filter((check) => check.tone === "danger")} />
       <MFButton tone="primary" variant="outline">Open blockers</MFButton>
@@ -184,7 +171,7 @@ export function EditorCommentsScreen() {
           <MFEmptyState title="No production comments" subtitle="Resolved or empty comment states remain visible without hiding the lifecycle route." icon="message-circle" tone="success" />
         )}
       </View>
-      {flow.selectedComment ? <EditorCommentDetail item={flow.selectedComment as EditorCommentItem} /> : null}
+      {flow.selectedComment ? <EditorCommentDetailPanel item={flow.selectedComment as EditorCommentItem} /> : null}
       <MFCard style={styles.blockingCallout}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
@@ -287,26 +274,6 @@ function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolea
         )) : <MFEmptyState title="No final approvals" subtitle="The final approval queue can render empty API responses without dropping the decision panel shell." icon="shield-check" tone="success" />}
       </View>
       <EditorSubmissionReviewDetail flow={flow} />
-    </>
-  )
-}
-
-function EditorCommentDetail({ item }: { item: EditorCommentItem }) {
-  return (
-    <>
-      <SectionTitle title="Comment detail" />
-      <MFDetailList items={[
-        { id: "status", label: "Canonical status", value: item.canonicalStatus, tone: item.tone, icon: item.tone === "danger" ? "alert-triangle" : "message-circle" },
-        { id: "owner", label: "Owner", value: item.owner, tone: "primary", icon: "circle-user" },
-        { id: "page", label: "Page target", value: `Page ${item.page}. Mobile preview does not grant signed file access.`, tone: "neutral", icon: "file-text" },
-        { id: "blocker", label: "Publication blocker", value: item.blocking ? "Blocks publication until RESOLVED_BY_EDITOR." : "Not currently blocking publication.", tone: item.blocking ? "danger" : "success", icon: item.blocking ? "lock" : "check-circle" },
-      ]} />
-      <MFTimeline items={[
-        { id: "open", title: "OPEN", subtitle: "Editor issue is visible in the production review queue.", tone: "primary", icon: "message-square" },
-        { id: "fixed", title: "FIXED_BY_ASSISTANT", subtitle: "Assistant may mark fix complete from assigned task context only.", tone: item.canonicalStatus === "OPEN" ? "neutral" : "success", icon: "check-circle" },
-        { id: "verified", title: "VERIFIED_BY_MANGAKA", subtitle: "Mangaka verifies internally before Editor can resolve.", tone: item.canonicalStatus === "VERIFIED_BY_MANGAKA" || item.canonicalStatus === "RESOLVED_BY_EDITOR" ? "success" : "neutral", icon: "shield-check" },
-        { id: "resolved", title: "RESOLVED_BY_EDITOR", subtitle: "Only this status clears the publication blocker.", tone: item.canonicalStatus === "RESOLVED_BY_EDITOR" ? "success" : "warning", icon: "check" },
-      ]} />
     </>
   )
 }
