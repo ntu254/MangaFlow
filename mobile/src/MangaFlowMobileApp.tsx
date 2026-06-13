@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
-import { MFHeader, MFScreen, type TabItem } from "@/components/mf"
+import { MFBadge, MFCard, MFDetailList, MFHeader, MFIconCircle, MFScreen, MFTimeline, type TabItem } from "@/components/mf"
 import { colors, radius, spacing } from "@/design/tokens"
 import {
   BoardAtRiskScreen,
@@ -70,6 +70,7 @@ export function MangaFlowMobileApp() {
         <RoleButton active={role === "board"} label="Board" onPress={() => setRole("board")} />
         <RoleButton active={role === "editor"} label="Tantou Editor" onPress={() => setRole("editor")} />
       </View>
+      <RoleHandoffSummary role={role} />
       {screen}
     </MFScreen>
   )
@@ -84,12 +85,49 @@ function RoleButton({ active, label, onPress }: { active: boolean; label: string
 }
 
 function RoleProfile({ role, name }: { role: "BOARD" | "EDITOR"; name: string }) {
+  const isBoard = role === "BOARD"
+
   return (
-    <View style={styles.profileCard}>
-      <Text style={styles.profileTitle}>{name}</Text>
-      <Text style={styles.profileText}>{role === "BOARD" ? "Board Chair companion profile" : "Tantou Editor companion profile"}</Text>
-      <Text style={styles.profileText}>This mobile slice uses async mock data-source boundaries only. API wiring, auth, signed URLs, Board decisions, and publication readiness remain backend-owned for later stories.</Text>
-    </View>
+    <>
+      <MFCard style={styles.profileHero}>
+        <MFIconCircle tone={isBoard ? "warning" : "primary"} icon={isBoard ? "scale-balance" : "file-text"} size={58} />
+        <View style={styles.profileHeroText}>
+          <View style={styles.profileTitleRow}>
+            <Text style={styles.profileTitle}>{name}</Text>
+            <MFBadge tone={isBoard ? "warning" : "primary"}>{isBoard ? "Board Chair" : "Tantou Editor"}</MFBadge>
+          </View>
+          <Text style={styles.profileText}>{isBoard ? "Board governance companion for votes, tie-breaks, ranking, and at-risk review." : "Editor companion for proposal review, final approval, comments, and readiness evidence."}</Text>
+        </View>
+      </MFCard>
+      <MFDetailList items={[
+        { id: "scope", label: "Mobile scope", value: isBoard ? "Board and Board Chair surfaces only. No Admin override is represented." : "Tantou Editor surfaces only. Proposal review and final approval stay visually separate.", tone: "primary", icon: isBoard ? "scale-balance" : "shield-check" },
+        { id: "data", label: "Data boundary", value: "Async mock data-source now; future API wiring replaces the service boundary without changing screen ownership.", tone: "neutral", icon: "file-check" },
+        { id: "security", label: "Backend-owned", value: "Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and payroll remain backend-owned.", tone: "danger", icon: "lock" },
+      ]} />
+      <MFTimeline items={[
+        { id: "current", title: isBoard ? "Review Board queues" : "Review Editor queues", subtitle: isBoard ? "Votes, tie-breaks, ranking, and at-risk cases stay auditable backend workflows later." : "Proposal, final approval, comments, and readiness are displayed with local mock state.", tone: "primary", icon: "file-text" },
+        { id: "handoff", title: isBoard ? "Receive Editor-forwarded proposals" : "Forward proposal to Board", subtitle: "Mobile handoff copy explains the next surface but does not call workflow endpoints.", tone: "warning", icon: "chevron-right" },
+        { id: "future", title: "Future API story", subtitle: "Replace mockMobileWorkflowDataSource with read-only API calls first, then handle mutations in high-risk stories.", tone: "success", icon: "check-circle" },
+      ]} />
+    </>
+  )
+}
+
+function RoleHandoffSummary({ role }: { role: Role }) {
+  const isBoard = role === "board"
+
+  return (
+    <MFCard style={styles.handoffCard}>
+      <MFIconCircle tone={isBoard ? "warning" : "primary"} icon={isBoard ? "scale-balance" : "shield-check"} size={48} />
+      <View style={styles.handoffText}>
+        <Text style={styles.handoffTitle}>{isBoard ? "Board handoff from Editor review" : "Editor handoff to Board review"}</Text>
+        <Text style={styles.handoffBody}>
+          {isBoard
+            ? "Proposals appear here only after Editor forwards them. Tie-break and at-risk actions are shown as confirmed mock UI, not final backend decisions."
+            : "Proposal review, final approval, comments, and readiness stay separate so future API wiring can target the correct workflow endpoint."}
+        </Text>
+      </View>
+    </MFCard>
   )
 }
 
@@ -99,7 +137,13 @@ const styles = StyleSheet.create({
   roleButtonActive: { backgroundColor: colors.primary },
   roleButtonText: { color: colors.textMuted, fontWeight: "800" },
   roleButtonTextActive: { color: colors.surface },
-  profileCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
+  handoffCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surfaceLow },
+  handoffText: { flex: 1 },
+  handoffTitle: { color: colors.text, fontSize: 15, fontWeight: "900" },
+  handoffBody: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  profileHero: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  profileHeroText: { flex: 1 },
+  profileTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   profileTitle: { color: colors.text, fontSize: 24, fontWeight: "900" },
   profileText: { color: colors.textMuted, fontSize: 14, lineHeight: 22 },
 })
