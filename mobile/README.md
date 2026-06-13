@@ -12,6 +12,7 @@ For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile.
 - `../docs/stories/MF-HIOS-098-mobile-empty-error-state-polish.md`
 - `../docs/stories/MF-HIOS-099-mobile-rich-detail-previews.md`
 - `../docs/stories/MF-HIOS-100-mobile-role-handoff-profile-polish.md`
+- `../docs/stories/MF-HIOS-101-mobile-panel-componentization.md`
 
 ## Scripts
 
@@ -57,3 +58,4 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Shared empty/loading/error UI states for API-ready mobile flows.
 - Rich local detail previews for Editor comment/readiness evidence and Board ranking/history context.
 - Role handoff and profile scope panels that explain mock/API boundaries without adding auth or new mobile roles.
+- Componentized Editor and Board detail panels under `src/screens/*-panels.tsx`.
