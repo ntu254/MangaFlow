@@ -6,7 +6,6 @@ import {
   MFBadge,
   MFButton,
   MFCard,
-  MFConfirmationPanel,
   MFCover,
   MFEmptyState,
   MFHero,
@@ -20,10 +19,11 @@ import {
   SegmentedControl,
 } from "@/components/mf"
 import type { EditorCommentItem } from "@/data/editor"
-import type { EditorFinalApprovalAction, EditorProposalAction, EditorReadinessCheck, Tone } from "@/domain/workflow"
+import type { EditorReadinessCheck } from "@/domain/workflow"
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, radius, spacing } from "@/design/tokens"
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow"
+import { EditorFinalApprovalDecisionPanel, EditorProposalDecisionPanel } from "@/screens/editor-action-panels"
 import { EditorCommentDetailPanel, EditorReadinessEvidencePanel } from "@/screens/editor-panels"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
@@ -84,27 +84,10 @@ export function EditorManuscriptsScreen() {
         )) : <MFEmptyState title="No manuscripts waiting" subtitle="When the API returns an empty proposal queue, this panel keeps the review route stable." icon="file-text" />}
       </View>
       {selected ? (
-        <MFCard>
-          <View style={styles.rowBetween}>
-            <Text style={styles.title}>Proposal decision preview</Text>
-            <MFBadge tone={selected.tone}>{selected.manuscriptStatus}</MFBadge>
-          </View>
-          <Text style={styles.body}>{selected.editorRecommendation}</Text>
-          <Text style={styles.muted}>Version {selected.version}. Forwarding to Board will later call the manuscript action endpoint.</Text>
-          <View style={styles.buttonRow}>
-            <MFButton tone="warning" variant="outline" onPress={() => flow.startProposalAction("request-revision")}>Request Revision</MFButton>
-            <MFButton tone="danger" variant="outline" onPress={() => flow.startProposalAction("reject")}>Reject</MFButton>
-          </View>
-          <MFButton tone="success" onPress={() => flow.startProposalAction("forward-to-board")}>Forward to Board</MFButton>
-        </MFCard>
-      ) : null}
-      {flow.pendingProposalAction ? (
-        <MFConfirmationPanel
-          title={proposalActionTitle(flow.pendingProposalAction)}
-          body={`Confirm mock ${flow.pendingProposalAction} for ${selected?.title ?? "the selected proposal"}. This preview does not change workflow status or permissions.`}
-          confirmLabel="Confirm mock action"
-          tone={proposalActionTone(flow.pendingProposalAction)}
-          endpointHint={proposalActionEndpoint(flow.pendingProposalAction)}
+        <EditorProposalDecisionPanel
+          item={selected}
+          pendingAction={flow.pendingProposalAction}
+          onStartAction={flow.startProposalAction}
           onConfirm={flow.confirmProposalAction}
           onCancel={flow.cancelProposalAction}
         />
@@ -213,27 +196,13 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             { id: "status", title: "Review status", subtitle: item.submissionStatus, value: "", tone: item.tone },
             { id: "comments", title: "Linked comments", subtitle: "Resolve before publication readiness", value: String(item.linkedCommentCount), tone: item.linkedCommentCount > 0 ? "warning" : "success" },
           ]} />
-          <SectionTitle title="Decision panel" />
-          <MFCard style={styles.noteBox}>
-            <Text style={styles.link}>Editor final approval boundary</Text>
-            <Text style={styles.body}>This action is separate from proposal review and is the only approval path that can later trigger payroll.</Text>
-          </MFCard>
-          <View style={styles.buttonRow}>
-            <MFButton tone="primary" variant="outline" onPress={() => flow.startFinalApprovalAction("request-revision")}>Request Revision</MFButton>
-            <MFButton tone="primary" variant="outline" onPress={() => flow.startFinalApprovalAction("add-comment")}>Add Comment</MFButton>
-          </View>
-          <MFButton tone="success" onPress={() => flow.startFinalApprovalAction("editor-approve")}>Final Approve</MFButton>
-          {flow.pendingFinalApprovalAction ? (
-            <MFConfirmationPanel
-              title={finalApprovalActionTitle(flow.pendingFinalApprovalAction)}
-              body={`Confirm mock ${flow.pendingFinalApprovalAction} for ${item.title}. Editor final approval remains separate from proposal review.`}
-              confirmLabel="Confirm review mock"
-              tone={finalApprovalActionTone(flow.pendingFinalApprovalAction)}
-              endpointHint={finalApprovalActionEndpoint(flow.pendingFinalApprovalAction)}
-              onConfirm={flow.confirmFinalApprovalAction}
-              onCancel={flow.cancelFinalApprovalAction}
-            />
-          ) : null}
+          <EditorFinalApprovalDecisionPanel
+            item={item}
+            pendingAction={flow.pendingFinalApprovalAction}
+            onStartAction={flow.startFinalApprovalAction}
+            onConfirm={flow.confirmFinalApprovalAction}
+            onCancel={flow.cancelFinalApprovalAction}
+          />
         </>
       ) : <MFEmptyState title="No selected submission" subtitle="Select a Mangaka-approved submission to preview final approval details." icon="file-check" />}
       <SectionTitle title="History" />
@@ -348,42 +317,6 @@ function readinessCheckToQueueItem(check: EditorReadinessCheck) {
   }
 }
 
-function proposalActionTitle(action: EditorProposalAction) {
-  if (action === "forward-to-board") return "Forward proposal to Board"
-  if (action === "reject") return "Reject proposal"
-  return "Request proposal revision"
-}
-
-function proposalActionTone(action: EditorProposalAction): Tone {
-  if (action === "forward-to-board") return "success"
-  if (action === "reject") return "danger"
-  return "warning"
-}
-
-function proposalActionEndpoint(action: EditorProposalAction) {
-  if (action === "forward-to-board") return "Future endpoint: POST /api/manuscripts/:manuscriptId/forward-to-board"
-  if (action === "reject") return "Future endpoint: POST /api/manuscripts/:manuscriptId/reject"
-  return "Future endpoint: POST /api/manuscripts/:manuscriptId/request-revision"
-}
-
-function finalApprovalActionTitle(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Final approve submission"
-  if (action === "add-comment") return "Add editor comment"
-  return "Request production revision"
-}
-
-function finalApprovalActionTone(action: EditorFinalApprovalAction): Tone {
-  if (action === "editor-approve") return "success"
-  if (action === "request-revision") return "warning"
-  return "primary"
-}
-
-function finalApprovalActionEndpoint(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Future endpoint: POST /api/submissions/:submissionId/editor-approve"
-  if (action === "add-comment") return "Future endpoint: POST /api/comments"
-  return "Future endpoint: POST /api/submissions/:submissionId/request-revision"
-}
-
 function PanelPreview({ label }: { label: string }) {
   return (
     <View style={styles.panelPreview}>
@@ -403,7 +336,6 @@ const styles = StyleSheet.create({
   muted: { color: colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
   passText: { color: colors.success, fontWeight: "800", fontSize: 12, marginTop: spacing.xs },
   body: { color: colors.text, fontSize: 13, lineHeight: 20 },
-  link: { color: colors.primary, fontWeight: "800", fontSize: 12 },
   priorityCard: { flexDirection: "row", gap: spacing.md },
   chapterPicker: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   readinessSummary: { flexDirection: "row", gap: spacing.lg, alignItems: "center" },
@@ -420,7 +352,6 @@ const styles = StyleSheet.create({
   mangaPanel: { minHeight: 118, borderRadius: radius.md, backgroundColor: "#2f2f37", marginTop: spacing.xs, padding: spacing.sm, alignItems: "flex-end", justifyContent: "flex-start" },
   bubble: { width: 78, height: 58, borderRadius: 30, backgroundColor: colors.surface, color: colors.text, fontSize: 10, fontWeight: "900", textAlign: "center", paddingTop: 13 },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
-  noteBox: { backgroundColor: colors.primarySoft },
   buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
   commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4" },
   commentRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },

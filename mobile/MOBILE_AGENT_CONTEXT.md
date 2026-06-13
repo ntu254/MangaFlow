@@ -80,6 +80,7 @@ mobile/src/screens/
 - `MF-HIOS-099`: Mobile rich detail previews. Shared `MFDetailList` and `MFTimeline` show Editor comment/readiness evidence and Board ranking/history context while keeping signed URLs, readiness, ranking formula, and Board decisions backend-owned.
 - `MF-HIOS-100`: Mobile role handoff/profile polish. The mobile shell explains Editor-to-Board handoffs and profile scope/API boundaries without treating role switch as auth or adding new mobile roles.
 - `MF-HIOS-101`: Mobile panel componentization. Editor detail panels live in `mobile/src/screens/editor-panels.tsx`; Board detail/history panels live in `mobile/src/screens/board-panels.tsx` so role screens stay thinner for future API wiring.
+- `MF-HIOS-102`: Mobile action panel componentization. Editor proposal/final approval actions live in `mobile/src/screens/editor-action-panels.tsx`; Board vote/tie-break/at-risk action panels live in `mobile/src/screens/board-action-panels.tsx` so confirmation copy and future endpoint hints stay near the action boundary.
 
 ## Forbidden Shortcuts
 

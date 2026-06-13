@@ -18,6 +18,8 @@ const boardSource = readFileSync(new URL("../screens/board-screens.tsx", import.
 const editorSource = readFileSync(new URL("../screens/editor-screens.tsx", import.meta.url), "utf8")
 const boardPanelsSource = readFileSync(new URL("../screens/board-panels.tsx", import.meta.url), "utf8")
 const editorPanelsSource = readFileSync(new URL("../screens/editor-panels.tsx", import.meta.url), "utf8")
+const boardActionPanelsSource = readFileSync(new URL("../screens/board-action-panels.tsx", import.meta.url), "utf8")
+const editorActionPanelsSource = readFileSync(new URL("../screens/editor-action-panels.tsx", import.meta.url), "utf8")
 
 test("mobile mock data covers board and editor reference screens", () => {
   for (const symbol of [
@@ -108,7 +110,7 @@ test("board mock covers ranking and manual at-risk decisions", () => {
   assert.match(boardDataSource, /readerScore: 6\.4/)
   assert.match(boardDataSource, /"REQUEST_IMPROVEMENT_PLAN"/)
   assert.match(boardDataSource, /requiresConfirmation: true/)
-  assert.match(boardSource, /Series is not auto-cancelled/)
+  assert.match(boardActionPanelsSource, /Series is not auto-cancelled/)
 })
 
 test("mobile icon system follows the requirement mapping", () => {
@@ -164,11 +166,11 @@ test("mobile UI requirement polish is represented in shared components", () => {
 })
 
 test("board vote split shows semantic icons and centered labels", () => {
-  assert.match(boardSource, /function VoteCount/)
-  assert.match(boardSource, /MFIcon name=\{icon\}/)
-  assert.match(boardSource, /"alert-triangle"/)
-  assert.match(boardSource, /numberOfLines=\{2\}/)
-  assert.match(boardSource, /textAlign: "center"/)
+  assert.match(boardActionPanelsSource, /function BoardVoteCount/)
+  assert.match(boardActionPanelsSource, /MFIcon name=\{icon\}/)
+  assert.match(boardActionPanelsSource, /"alert-triangle"/)
+  assert.match(boardActionPanelsSource, /numberOfLines=\{2\}/)
+  assert.match(boardActionPanelsSource, /textAlign: "center"/)
 })
 
 test("mobile action cards use responsive centered layout", () => {
@@ -206,15 +208,15 @@ test("mobile decision actions require confirmation detail before mock recording"
   assert.match(editorHookSource, /pendingProposalAction/)
   assert.match(editorHookSource, /confirmProposalAction/)
   assert.match(editorHookSource, /pendingFinalApprovalAction/)
-  assert.match(editorSource, /Future endpoint: POST \/api\/manuscripts\/:manuscriptId\/forward-to-board/)
-  assert.match(editorSource, /Future endpoint: POST \/api\/submissions\/:submissionId\/editor-approve/)
+  assert.match(editorActionPanelsSource, /Future endpoint: POST \/api\/manuscripts\/:manuscriptId\/forward-to-board/)
+  assert.match(editorActionPanelsSource, /Future endpoint: POST \/api\/submissions\/:submissionId\/editor-approve/)
   assert.match(boardHookSource, /pendingVote/)
   assert.match(boardHookSource, /confirmVote/)
   assert.match(boardHookSource, /pendingAtRiskDecision/)
-  assert.match(boardSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/votes/)
-  assert.match(boardSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/decisions\/tie-break/)
-  assert.match(boardSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/at-risk-decisions/)
-  assert.match(boardSource, /Series is never auto-cancelled/)
+  assert.match(boardActionPanelsSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/votes/)
+  assert.match(boardActionPanelsSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/decisions\/tie-break/)
+  assert.match(boardActionPanelsSource, /Future endpoint: POST \/api\/board\/series\/:seriesId\/at-risk-decisions/)
+  assert.match(boardActionPanelsSource, /Series is never auto-cancelled/)
 })
 
 test("mobile queues expose selectable rows that drive detail panels", () => {
@@ -279,6 +281,25 @@ test("mobile detail panels are componentized out of role screen files", () => {
   assert.doesNotMatch(editorSource, /function EditorCommentDetail/)
   assert.doesNotMatch(boardSource, /function BoardRankingInsight/)
   assert.doesNotMatch(boardSource, /function DecisionHistory/)
+})
+
+test("mobile action panels are componentized out of role screen files", () => {
+  assert.match(editorSource, /EditorProposalDecisionPanel/)
+  assert.match(editorSource, /EditorFinalApprovalDecisionPanel/)
+  assert.match(boardSource, /BoardVotePanel/)
+  assert.match(boardSource, /BoardVoteConfirmationPanel/)
+  assert.match(boardSource, /BoardTieBreakActionsPanel/)
+  assert.match(boardSource, /BoardAtRiskDecisionPanel/)
+  assert.match(editorActionPanelsSource, /export function EditorProposalDecisionPanel/)
+  assert.match(editorActionPanelsSource, /export function EditorFinalApprovalDecisionPanel/)
+  assert.match(boardActionPanelsSource, /export function BoardVotePanel/)
+  assert.match(boardActionPanelsSource, /export function BoardVoteConfirmationPanel/)
+  assert.match(boardActionPanelsSource, /export function BoardTieBreakActionsPanel/)
+  assert.match(boardActionPanelsSource, /export function BoardAtRiskDecisionPanel/)
+  assert.doesNotMatch(editorSource, /function proposalActionTitle/)
+  assert.doesNotMatch(editorSource, /function finalApprovalActionTitle/)
+  assert.doesNotMatch(boardSource, /function voteActionTitle/)
+  assert.doesNotMatch(boardSource, /function atRiskDecisionTitle/)
 })
 
 test("mobile role handoff and profile polish explains scope without adding roles", () => {
