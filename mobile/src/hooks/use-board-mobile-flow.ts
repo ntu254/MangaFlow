@@ -12,6 +12,7 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMo
   const [decisionHistory, setDecisionHistory] = useState(boardDecisionHistory)
   const [selectedSeriesId, setSelectedSeriesId] = useState(boardSeries[0]?.id ?? "")
   const [selectedAtRiskId, setSelectedAtRiskId] = useState(atRiskTitles[0]?.id ?? "")
+  const [selectedRankingId, setSelectedRankingId] = useState(boardRankings[0]?.id ?? "")
   const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null)
   const [pendingAtRiskDecision, setPendingAtRiskDecision] = useState<AtRiskDecision | null>(null)
   const [lastMockAction, setLastMockAction] = useState("Mock actions are local only. Board decisions stay auditable backend workflow actions.")
@@ -67,6 +68,11 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMo
     [atRiskCases, selectedAtRiskId],
   )
 
+  const selectedRanking = useMemo(
+    () => rankings.find((item) => item.id === selectedRankingId) ?? rankings[0],
+    [rankings, selectedRankingId],
+  )
+
   function startVote(value: BoardVoteValue) {
     setPendingVote(value)
   }
@@ -112,12 +118,15 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMo
     decisionHistory,
     selectedSeries,
     selectedAtRiskCase,
+    selectedRanking,
     selectedSeriesId,
     selectedAtRiskId,
+    selectedRankingId,
     pendingVote,
     pendingAtRiskDecision,
     setSelectedSeriesId,
     setSelectedAtRiskId,
+    setSelectedRankingId,
     lastMockAction,
     startVote,
     confirmVote,

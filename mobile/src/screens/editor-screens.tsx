@@ -1,5 +1,5 @@
 import { Image } from "expo-image"
-import { Text, View, StyleSheet } from "react-native"
+import { Pressable, Text, View, StyleSheet } from "react-native"
 import {
   ActivityList,
   MFActionCards,
@@ -7,6 +7,7 @@ import {
   MFButton,
   MFCard,
   MFConfirmationPanel,
+  MFDetailList,
   MFCover,
   MFEmptyState,
   MFHero,
@@ -16,6 +17,7 @@ import {
   MFQueueList,
   MFSeriesRow,
   MFStateNotice,
+  MFTimeline,
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
@@ -139,6 +141,19 @@ export function EditorReadinessScreen() {
       <MFCard>
         {flow.readiness.checks.map((check) => <ReadinessRow key={check.id} check={check} />)}
       </MFCard>
+      <SectionTitle title="Readiness evidence" />
+      <MFDetailList items={[
+        { id: "source", label: "Source", value: flow.readiness.source, tone: "primary", icon: "shield-check" },
+        { id: "blocking", label: "Blocking checks", value: `${flow.readiness.checks.filter((check) => !check.passed).length} blockers returned by backend-owned result`, tone: flow.readiness.overallPassed ? "success" : "danger", icon: "alert-triangle" },
+        { id: "chapter", label: "Chapter", value: flow.readiness.chapterTitle, tone: "neutral", icon: "file-text" },
+      ]} />
+      <MFTimeline items={flow.readiness.checks.map((check) => ({
+        id: check.id,
+        title: check.title,
+        subtitle: check.reason,
+        tone: check.passed ? "success" : "danger",
+        icon: check.passed ? "check-circle" : "alert-triangle",
+      }))} />
       <SectionTitle title="Blockers" />
       <MFQueueList items={readinessChecks.filter((check) => check.tone === "danger")} />
       <MFButton tone="primary" variant="outline">Open blockers</MFButton>
@@ -158,10 +173,18 @@ export function EditorCommentsScreen() {
       <MFMetricStrip items={flow.commentsPayload.metrics} />
       <SegmentedControl labels={["All", "OPEN", "FIXED", "VERIFIED", "RESOLVED"]} />
       <View style={styles.stack}>
-        {flow.commentsPayload.comments.length > 0 ? flow.commentsPayload.comments.map((comment) => <CommentReviewRow key={comment.id} item={comment as EditorCommentItem} />) : (
+        {flow.commentsPayload.comments.length > 0 ? flow.commentsPayload.comments.map((comment) => (
+          <CommentReviewRow
+            key={comment.id}
+            item={comment as EditorCommentItem}
+            selected={flow.selectedCommentId === comment.id}
+            onPress={() => flow.setSelectedCommentId(comment.id)}
+          />
+        )) : (
           <MFEmptyState title="No production comments" subtitle="Resolved or empty comment states remain visible without hiding the lifecycle route." icon="message-circle" tone="success" />
         )}
       </View>
+      {flow.selectedComment ? <EditorCommentDetail item={flow.selectedComment as EditorCommentItem} /> : null}
       <MFCard style={styles.blockingCallout}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
@@ -268,12 +291,32 @@ function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolea
   )
 }
 
-function CommentReviewRow({ item }: { item: EditorCommentItem }) {
+function EditorCommentDetail({ item }: { item: EditorCommentItem }) {
+  return (
+    <>
+      <SectionTitle title="Comment detail" />
+      <MFDetailList items={[
+        { id: "status", label: "Canonical status", value: item.canonicalStatus, tone: item.tone, icon: item.tone === "danger" ? "alert-triangle" : "message-circle" },
+        { id: "owner", label: "Owner", value: item.owner, tone: "primary", icon: "circle-user" },
+        { id: "page", label: "Page target", value: `Page ${item.page}. Mobile preview does not grant signed file access.`, tone: "neutral", icon: "file-text" },
+        { id: "blocker", label: "Publication blocker", value: item.blocking ? "Blocks publication until RESOLVED_BY_EDITOR." : "Not currently blocking publication.", tone: item.blocking ? "danger" : "success", icon: item.blocking ? "lock" : "check-circle" },
+      ]} />
+      <MFTimeline items={[
+        { id: "open", title: "OPEN", subtitle: "Editor issue is visible in the production review queue.", tone: "primary", icon: "message-square" },
+        { id: "fixed", title: "FIXED_BY_ASSISTANT", subtitle: "Assistant may mark fix complete from assigned task context only.", tone: item.canonicalStatus === "OPEN" ? "neutral" : "success", icon: "check-circle" },
+        { id: "verified", title: "VERIFIED_BY_MANGAKA", subtitle: "Mangaka verifies internally before Editor can resolve.", tone: item.canonicalStatus === "VERIFIED_BY_MANGAKA" || item.canonicalStatus === "RESOLVED_BY_EDITOR" ? "success" : "neutral", icon: "shield-check" },
+        { id: "resolved", title: "RESOLVED_BY_EDITOR", subtitle: "Only this status clears the publication blocker.", tone: item.canonicalStatus === "RESOLVED_BY_EDITOR" ? "success" : "warning", icon: "check" },
+      ]} />
+    </>
+  )
+}
+
+function CommentReviewRow({ item, selected, onPress }: { item: EditorCommentItem; selected: boolean; onPress: () => void }) {
   const statusIcon: IconName = item.tone === "danger" ? "alert-triangle" : item.tone === "success" ? "check-circle" : item.tone === "warning" ? "circle" : "check"
   const coverSource = getCommentCoverSource(item)
 
   return (
-    <MFCard style={styles.commentRow}>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.commentRow, selected && styles.commentRowSelected]}>
       <View style={styles.commentThumb}>
         <View style={styles.commentPanel}>
           <Image source={coverSource} style={styles.commentPanelImage} contentFit="cover" transition={0} />
@@ -298,10 +341,10 @@ function CommentReviewRow({ item }: { item: EditorCommentItem }) {
         <MFBadge tone={item.tone}>{item.status}</MFBadge>
         <View style={[styles.actionButton, item.tone === "danger" && styles.actionButtonDanger]}>
           <MFIcon name={statusIcon} size={15} color={item.tone === "danger" ? colors.danger : colors.primary} />
-          <Text style={[styles.actionButtonText, item.tone === "danger" && styles.actionButtonTextDanger]}>{item.action}</Text>
+          <Text style={[styles.actionButtonText, item.tone === "danger" && styles.actionButtonTextDanger]}>{selected ? "Selected" : item.action}</Text>
         </View>
       </View>
-    </MFCard>
+    </Pressable>
   )
 }
 
@@ -412,7 +455,8 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   noteBox: { backgroundColor: colors.primarySoft },
   buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9 },
+  commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4" },
+  commentRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   commentThumb: { width: 78, position: "relative" },
   commentPanel: { width: 78, height: 78, borderRadius: radius.md, backgroundColor: "#d9d5df", overflow: "hidden", padding: 8 },
   commentPanelImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
