@@ -10,6 +10,7 @@ For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile.
 - `../docs/stories/MF-HIOS-096-mobile-decision-confirmation-details.md`
 - `../docs/stories/MF-HIOS-097-mobile-queue-selection-details.md`
 - `../docs/stories/MF-HIOS-098-mobile-empty-error-state-polish.md`
+- `../docs/stories/MF-HIOS-099-mobile-rich-detail-previews.md`
 
 ## Scripts
 
@@ -53,3 +54,4 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Local confirmation detail panels for mock Editor and Board decisions before future POST action endpoints are wired.
 - Selectable queue rows for Editor and Board detail panels, using local mock state only.
 - Shared empty/loading/error UI states for API-ready mobile flows.
+- Rich local detail previews for Editor comment/readiness evidence and Board ranking/history context.

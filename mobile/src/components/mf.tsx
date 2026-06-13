@@ -215,6 +215,60 @@ export function MFEmptyState({
   )
 }
 
+export function MFDetailList({
+  items,
+}: {
+  items: Array<{ id: string; label: string; value: string; tone?: Tone; icon?: IconName }>
+}) {
+  return (
+    <MFCard>
+      {items.map((item, index) => {
+        const tone = item.tone ?? "neutral"
+        const swatch = toneColors[tone]
+        return (
+          <View key={item.id} style={[styles.detailRow, index === items.length - 1 && styles.detailRowLast]}>
+            <View style={[styles.detailIcon, { backgroundColor: swatch.bg }]}>
+              <MFIcon name={item.icon ?? defaultQueueIcons[tone]} size={17} color={swatch.fg} />
+            </View>
+            <View style={styles.detailText}>
+              <Text style={styles.detailLabel}>{item.label}</Text>
+              <Text style={styles.detailValue}>{item.value}</Text>
+            </View>
+          </View>
+        )
+      })}
+    </MFCard>
+  )
+}
+
+export function MFTimeline({
+  items,
+}: {
+  items: Array<{ id: string; title: string; subtitle: string; tone: Tone; icon?: IconName }>
+}) {
+  return (
+    <MFCard>
+      {items.map((item, index) => {
+        const swatch = toneColors[item.tone]
+        return (
+          <View key={item.id} style={styles.timelineRow}>
+            <View style={styles.timelineRail}>
+              <View style={[styles.timelineDot, { backgroundColor: swatch.bg, borderColor: swatch.fg }]}>
+                <MFIcon name={item.icon ?? defaultActivityIcons[item.tone]} size={13} color={swatch.fg} />
+              </View>
+              {index < items.length - 1 ? <View style={styles.timelineLine} /> : null}
+            </View>
+            <View style={styles.timelineText}>
+              <Text style={styles.timelineTitle}>{item.title}</Text>
+              <Text style={styles.timelineSubtitle}>{item.subtitle}</Text>
+            </View>
+          </View>
+        )
+      })}
+    </MFCard>
+  )
+}
+
 export function MFButton({
   tone = "primary",
   children,
@@ -560,6 +614,19 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg },
   emptyTitle: { color: colors.text, fontSize: 16, fontWeight: "900", textAlign: "center" },
   emptySubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: "center" },
+  detailRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.outlineVariant },
+  detailRowLast: { borderBottomWidth: 0 },
+  detailIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  detailText: { flex: 1 },
+  detailLabel: { color: colors.textMuted, fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  detailValue: { color: colors.text, fontSize: 13, lineHeight: 19, fontWeight: "700", marginTop: 2 },
+  timelineRow: { flexDirection: "row", gap: spacing.sm, minHeight: 54 },
+  timelineRail: { width: 28, alignItems: "center" },
+  timelineDot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  timelineLine: { flex: 1, width: 2, backgroundColor: colors.outlineVariant, marginVertical: 3 },
+  timelineText: { flex: 1, paddingBottom: spacing.sm },
+  timelineTitle: { color: colors.text, fontSize: 13, fontWeight: "900" },
+  timelineSubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "900" },
   sectionAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },

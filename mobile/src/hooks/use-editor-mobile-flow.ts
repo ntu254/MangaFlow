@@ -11,6 +11,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockM
   const [readiness, setReadiness] = useState(editorReadinessResult)
   const [selectedManuscriptId, setSelectedManuscriptId] = useState(manuscripts[0]?.id ?? "")
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(finalApprovals[0]?.id ?? "")
+  const [selectedCommentId, setSelectedCommentId] = useState(productionComments[0]?.id ?? "")
   const [pendingProposalAction, setPendingProposalAction] = useState<EditorProposalAction | null>(null)
   const [pendingFinalApprovalAction, setPendingFinalApprovalAction] = useState<EditorFinalApprovalAction | null>(null)
   const [lastMockAction, setLastMockAction] = useState("Mock actions are local only. Backend permissions and workflow transitions stay server-owned.")
@@ -64,6 +65,11 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockM
     [submissionItems, selectedSubmissionId],
   )
 
+  const selectedComment = useMemo(
+    () => commentsPayload.comments.find((item) => item.id === selectedCommentId) ?? commentsPayload.comments[0],
+    [commentsPayload.comments, selectedCommentId],
+  )
+
   function startProposalAction(action: EditorProposalAction) {
     setPendingProposalAction(action)
   }
@@ -108,12 +114,15 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockM
     readiness,
     selectedManuscript,
     selectedSubmission,
+    selectedComment,
     selectedManuscriptId,
     selectedSubmissionId,
+    selectedCommentId,
     pendingProposalAction,
     pendingFinalApprovalAction,
     setSelectedManuscriptId,
     setSelectedSubmissionId,
+    setSelectedCommentId,
     lastMockAction,
     startProposalAction,
     confirmProposalAction,

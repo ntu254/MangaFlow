@@ -247,3 +247,21 @@ test("mobile screens expose reusable loading error and empty states", () => {
   assert.doesNotMatch(boardSource, /function StateBanner/)
 })
 
+test("mobile rich detail previews preserve backend-owned workflow boundaries", () => {
+  assert.match(mfSource, /MFDetailList/)
+  assert.match(mfSource, /MFTimeline/)
+  assert.match(editorHookSource, /selectedCommentId/)
+  assert.match(editorHookSource, /selectedComment/)
+  assert.match(editorSource, /Comment detail/)
+  assert.match(editorSource, /Mobile preview does not grant signed file access/)
+  assert.match(editorSource, /Only this status clears the publication blocker/)
+  assert.match(editorSource, /Readiness evidence/)
+  assert.match(editorSource, /backend-owned result/)
+  assert.match(boardHookSource, /selectedRankingId/)
+  assert.match(boardHookSource, /selectedRanking/)
+  assert.match(boardSource, /Ranking insight/)
+  assert.match(boardSource, /Ranking formula remains backend-owned/)
+  assert.match(boardSource, /Manual Board attention is required; cancellation is not automatic/)
+  assert.match(boardSource, /immutable record/)
+})
+

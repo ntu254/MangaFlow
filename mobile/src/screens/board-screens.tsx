@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet } from "react-native"
+import { Pressable, Text, View, StyleSheet } from "react-native"
 import {
   ActivityList,
   MFActionCards,
@@ -6,6 +6,7 @@ import {
   MFButton,
   MFCard,
   MFConfirmationPanel,
+  MFDetailList,
   MFCover,
   MFEmptyState,
   MFHero,
@@ -14,12 +15,13 @@ import {
   MFQueueList,
   MFSeriesRow,
   MFStateNotice,
+  MFTimeline,
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
-import type { AtRiskDecision, BoardSeriesReviewItem, BoardVoteValue, Tone } from "@/domain/workflow"
+import type { AtRiskDecision, BoardRankingItem, BoardSeriesReviewItem, BoardVoteValue, Tone } from "@/domain/workflow"
 import { MFIcon, type IconName } from "@/design/icons"
-import { colors, spacing } from "@/design/tokens"
+import { colors, radius, spacing } from "@/design/tokens"
 import { useBoardMobileFlow } from "@/hooks/use-board-mobile-flow"
 
 export function BoardHomeScreen() {
@@ -149,7 +151,13 @@ export function BoardRankingScreen() {
       <SectionTitle title="Ranking import preview" />
       <View style={styles.stack}>
         {flow.rankings.length > 0 ? flow.rankings.map((item) => (
-          <MFCard key={item.id} style={styles.rankingRow}>
+          <Pressable
+            key={item.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: flow.selectedRankingId === item.id }}
+            onPress={() => flow.setSelectedRankingId(item.id)}
+            style={[styles.rankingRow, flow.selectedRankingId === item.id && styles.rankingRowSelected]}
+          >
             <MFCover item={item} small />
             <View style={styles.flex}>
               <View style={styles.rowBetween}>
@@ -159,9 +167,10 @@ export function BoardRankingScreen() {
               <Text style={styles.muted}>Rank {item.rank} / previous {item.previousRank}</Text>
               <Text style={styles.body}>voteCount {item.voteCount} / readerScore {item.readerScore} / finalScore {item.finalScore}</Text>
             </View>
-          </MFCard>
+          </Pressable>
         )) : <MFEmptyState title="No ranking import" subtitle="Reader score import can be empty while the Board waits for the next ranking cycle." icon="bar-chart-2" />}
       </View>
+      {flow.selectedRanking ? <BoardRankingInsight item={flow.selectedRanking} /> : null}
       <BoardAtRiskPanel />
       <DecisionHistory />
     </>
@@ -265,23 +274,41 @@ function BoardAtRiskPanel() {
   )
 }
 
+function BoardRankingInsight({ item }: { item: BoardRankingItem }) {
+  const rankChange = item.previousRank - item.rank
+  const movement = rankChange > 0 ? `Up ${rankChange} places` : rankChange < 0 ? `Down ${Math.abs(rankChange)} places` : "No rank movement"
+
+  return (
+    <>
+      <SectionTitle title="Ranking insight" />
+      <MFDetailList items={[
+        { id: "rank", label: "Rank movement", value: movement, tone: rankChange >= 0 ? "success" : "danger", icon: rankChange >= 0 ? "check-circle" : "alert-triangle" },
+        { id: "reader", label: "Reader score", value: `${item.readerScore} / 10. Mobile displays imported score only.`, tone: item.readerScore >= 7 ? "success" : "warning", icon: "bar-chart-2" },
+        { id: "votes", label: "Vote count", value: `${item.voteCount} votes in the imported ranking period.`, tone: "primary", icon: "file-check" },
+        { id: "final", label: "Final score", value: `${item.finalScore}. Ranking formula remains backend-owned.`, tone: "neutral", icon: "shield-check" },
+      ]} />
+      <MFTimeline items={[
+        { id: "imported", title: "Ranking imported", subtitle: "Board reviews voteCount, readerScore, and backend finalScore output.", tone: "primary", icon: "bar-chart-2" },
+        { id: "review", title: item.rankingStatus, subtitle: item.rankingStatus === "AT_RISK" ? "Manual Board attention is required; cancellation is not automatic." : "Warning state can continue with monitoring or improvement plan.", tone: item.tone, icon: item.tone === "danger" ? "alert-triangle" : "alert-circle" },
+        { id: "decision", title: "Board decision pending", subtitle: "Any at-risk action must be confirmed and audited by backend workflow later.", tone: "warning", icon: "scale-balance" },
+      ]} />
+    </>
+  )
+}
+
 function DecisionHistory() {
   const flow = useBoardMobileFlow()
 
   return (
     <>
       <SectionTitle title="Decision history" />
-      <MFCard>
-        {flow.decisionHistory.map((item) => (
-          <View key={item.id} style={styles.historyRow}>
-            <MFIcon name="check-circle" size={18} color={colors.primary} />
-            <View style={styles.flex}>
-              <Text style={styles.subhead}>{item.title}</Text>
-              <Text style={styles.muted}>{item.decision} / {item.status} / immutable record / {item.time}</Text>
-            </View>
-          </View>
-        ))}
-      </MFCard>
+      <MFTimeline items={flow.decisionHistory.map((item) => ({
+        id: item.id,
+        title: item.title,
+        subtitle: `${item.decision} / ${item.status} / immutable record / ${item.time}`,
+        tone: item.decision === "CANCEL" ? "danger" : item.decision === "REQUEST_IMPROVEMENT_PLAN" || item.decision === "NEEDS_REVISION" ? "warning" : "success",
+        icon: item.decision === "CANCEL" ? "alert-triangle" : "check-circle",
+      }))} />
     </>
   )
 }
@@ -349,6 +376,6 @@ const styles = StyleSheet.create({
   atRiskDetail: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.md },
   flex: { flex: 1 },
   notePanel: { marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaceLow },
-  rankingRow: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
-  historyRow: { flexDirection: "row", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.outlineVariant },
+  rankingRow: { flexDirection: "row", gap: spacing.md, alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4", padding: spacing.md },
+  rankingRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
 })
