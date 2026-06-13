@@ -3,22 +3,18 @@ import {
   ActivityList,
   MFActionCards,
   MFBadge,
-  MFButton,
   MFCard,
-  MFConfirmationPanel,
   MFCover,
   MFEmptyState,
   MFHero,
   MFMetricStrip,
-  MFProgress,
   MFQueueList,
   MFSeriesRow,
   MFStateNotice,
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
-import type { AtRiskDecision, BoardSeriesReviewItem, BoardVoteValue, Tone } from "@/domain/workflow"
-import { MFIcon, type IconName } from "@/design/icons"
+import { BoardAtRiskDecisionPanel, BoardTieBreakActionsPanel, BoardVoteConfirmationPanel, BoardVoteCount, BoardVotePanel } from "@/screens/board-action-panels"
 import { colors, radius, spacing } from "@/design/tokens"
 import { useBoardMobileFlow } from "@/hooks/use-board-mobile-flow"
 import { BoardDecisionHistoryPanel, BoardRankingInsightPanel } from "@/screens/board-panels"
@@ -64,17 +60,7 @@ export function BoardReviewsScreen() {
         )) : <MFEmptyState title="No Board reviews" subtitle="When the Board queue is empty, the vote route still renders a stable review state." icon="check-circle" tone="success" />}
       </View>
       {selected ? <BoardVotePanel item={selected} onVote={flow.startVote} /> : null}
-      {flow.pendingVote ? (
-        <MFConfirmationPanel
-          title={voteActionTitle(flow.pendingVote)}
-          body={`Confirm mock ${flow.pendingVote} vote for ${selected?.title ?? "the selected Board review"}. Mobile displays the vote boundary only and does not finalize Board decisions.`}
-          confirmLabel="Confirm vote mock"
-          tone={voteActionTone(flow.pendingVote)}
-          endpointHint="Future endpoint: POST /api/board/series/:seriesId/votes"
-          onConfirm={flow.confirmVote}
-          onCancel={flow.cancelVote}
-        />
-      ) : null}
+      <BoardVoteConfirmationPanel pendingVote={flow.pendingVote} selectedTitle={selected?.title} mode="vote" onConfirm={flow.confirmVote} onCancel={flow.cancelVote} />
     </>
   )
 }
@@ -100,9 +86,9 @@ export function BoardTieBreakScreen() {
               <View style={styles.divider} />
               <Text style={styles.subhead}>Current vote split</Text>
               <View style={styles.voteSplit}>
-                <VoteCount label="Approve" value={String(item.voteSummary.approve)} tone="success" />
-                <VoteCount label="Needs Revision" value={String(item.voteSummary.needsRevision)} tone="danger" />
-                <VoteCount label="Pending" value={String(item.voteSummary.pending)} tone="neutral" />
+                <BoardVoteCount label="Approve" value={String(item.voteSummary.approve)} tone="success" />
+                <BoardVoteCount label="Needs Revision" value={String(item.voteSummary.needsRevision)} tone="danger" />
+                <BoardVoteCount label="Pending" value={String(item.voteSummary.pending)} tone="neutral" />
               </View>
             </View>
           </MFCard>
@@ -110,22 +96,8 @@ export function BoardTieBreakScreen() {
             <Text style={styles.subhead}>Board Chair boundary</Text>
             <Text style={styles.body}>Chair tie-break is a separate action only because normal votes produced TIE_BREAK_REQUIRED.</Text>
           </MFCard>
-          <View style={styles.buttonRow}>
-            <MFButton tone="success" variant="outline" onPress={() => flow.startVote("APPROVE")}>Approve</MFButton>
-            <MFButton tone="danger" variant="outline" onPress={() => flow.startVote("NEEDS_REVISION")}>Needs Revision</MFButton>
-          </View>
-          <MFButton onPress={() => flow.startVote("NEEDS_REVISION")}>Finalize Tie-break Mock</MFButton>
-          {flow.pendingVote ? (
-            <MFConfirmationPanel
-              title={voteActionTitle(flow.pendingVote)}
-              body={`Confirm Board Chair mock tie-break for ${item.title}. This action appears only because decision status is TIE_BREAK_REQUIRED.`}
-              confirmLabel="Confirm tie-break mock"
-              tone={voteActionTone(flow.pendingVote)}
-              endpointHint="Future endpoint: POST /api/board/series/:seriesId/decisions/tie-break"
-              onConfirm={flow.confirmVote}
-              onCancel={flow.cancelVote}
-            />
-          ) : null}
+          <BoardTieBreakActionsPanel onVote={flow.startVote} />
+          <BoardVoteConfirmationPanel pendingVote={flow.pendingVote} selectedTitle={item.title} mode="tie-break" onConfirm={flow.confirmVote} onCancel={flow.cancelVote} />
         </>
       ) : (
         <MFEmptyState title="No tie-break decisions" subtitle="Board Chair action appears only when backend decision status is TIE_BREAK_REQUIRED." icon="scale-balance" tone="success" />
@@ -185,29 +157,6 @@ export function BoardAtRiskScreen() {
   )
 }
 
-function BoardVotePanel({ item, onVote }: { item: BoardSeriesReviewItem; onVote: (value: BoardVoteValue) => void }) {
-  return (
-    <MFCard>
-      <View style={styles.rowBetween}>
-        <Text style={styles.subhead}>Vote summary</Text>
-        <MFBadge tone="primary">{item.seriesStatus}</MFBadge>
-      </View>
-      <Text style={styles.body}>Board vote options are APPROVE, REJECT, and NEEDS_REVISION. Admin override is not represented in mobile.</Text>
-      <View style={styles.voteSplit}>
-        <VoteCount label="Approve" value={String(item.voteSummary.approve)} tone="success" />
-        <VoteCount label="Reject" value={String(item.voteSummary.reject)} tone="danger" />
-        <VoteCount label="Needs Revision" value={String(item.voteSummary.needsRevision)} tone="neutral" />
-      </View>
-      <MFProgress value={(item.voteSummary.eligible - item.voteSummary.pending) / item.voteSummary.eligible} />
-      <View style={styles.buttonRow}>
-        <MFButton tone="success" variant="outline" onPress={() => onVote("APPROVE")}>APPROVE</MFButton>
-        <MFButton tone="danger" variant="outline" onPress={() => onVote("REJECT")}>REJECT</MFButton>
-      </View>
-      <MFButton tone="primary" variant="outline" onPress={() => onVote("NEEDS_REVISION")}>NEEDS_REVISION</MFButton>
-    </MFCard>
-  )
-}
-
 function BoardAtRiskPanel() {
   const flow = useBoardMobileFlow()
   const item = flow.selectedAtRiskCase
@@ -231,88 +180,17 @@ function BoardAtRiskPanel() {
         )) : <MFEmptyState title="No at-risk cases" subtitle="Manual Board decisions appear only when ranking review returns warning or at-risk items." icon="alert-triangle" tone="success" />}
       </View>
       {item ? (
-        <MFCard>
-          <View style={styles.atRiskDetail}>
-            <MFCover item={item} />
-            <View style={styles.flex}>
-              <View style={styles.rowBetween}>
-                <Text style={styles.title}>{item.title}</Text>
-                <MFBadge tone={item.tone}>{item.rankingStatus}</MFBadge>
-              </View>
-              <MFCard style={styles.notePanel}>
-                <Text style={styles.link}>Editor support note</Text>
-                <Text style={styles.body}>{item.supportNote}</Text>
-              </MFCard>
-            </View>
-          </View>
-          <Text style={styles.subhead}>Manual Board decision</Text>
-          <Text style={styles.body}>Series is not auto-cancelled. Each at-risk action requires confirmation when wired to the backend.</Text>
-          <View style={styles.actionButtons}>
-            <MFButton tone="success" variant="outline" onPress={() => flow.startAtRiskDecision("CONTINUE")}>CONTINUE</MFButton>
-            <MFButton tone="warning" variant="outline" onPress={() => flow.startAtRiskDecision("WARNING")}>WARNING</MFButton>
-          </View>
-          <View style={styles.actionButtons}>
-            <MFButton tone="primary" variant="outline" onPress={() => flow.startAtRiskDecision("REQUEST_IMPROVEMENT_PLAN")}>REQUEST PLAN</MFButton>
-            <MFButton tone="danger" variant="outline" onPress={() => flow.startAtRiskDecision("CANCEL")}>CANCEL</MFButton>
-          </View>
-          {flow.pendingAtRiskDecision ? (
-            <MFConfirmationPanel
-              title={atRiskDecisionTitle(flow.pendingAtRiskDecision)}
-              body={`Confirm mock ${flow.pendingAtRiskDecision} for ${item.title}. Series is never auto-cancelled; Board action must remain auditable on the backend.`}
-              confirmLabel="Confirm at-risk mock"
-              tone={atRiskDecisionTone(flow.pendingAtRiskDecision)}
-              endpointHint="Future endpoint: POST /api/board/series/:seriesId/at-risk-decisions"
-              onConfirm={flow.confirmAtRiskDecision}
-              onCancel={flow.cancelAtRiskDecision}
-            />
-          ) : null}
-          <Text style={styles.muted}>{flow.lastMockAction}</Text>
-        </MFCard>
+        <BoardAtRiskDecisionPanel
+          item={item}
+          pendingDecision={flow.pendingAtRiskDecision}
+          onStartDecision={flow.startAtRiskDecision}
+          onConfirm={flow.confirmAtRiskDecision}
+          onCancel={flow.cancelAtRiskDecision}
+          lastMockAction={flow.lastMockAction}
+        />
       ) : <MFEmptyState title="No selected at-risk case" subtitle="Select an at-risk title to review the support note and manual decision options." icon="alert-triangle" />}
     </>
   )
-}
-
-function VoteCount({ label, value, tone }: { label: string; value: string; tone: "success" | "danger" | "neutral" }) {
-  const color = tone === "success" ? colors.success : tone === "danger" ? colors.danger : colors.outline
-  const bg = tone === "success" ? colors.successSoft : tone === "danger" ? colors.dangerSoft : colors.surfaceContainer
-  const icon: IconName = tone === "success" ? "check" : tone === "danger" ? "alert-triangle" : "circle"
-
-  return (
-    <View style={styles.voteCount}>
-      <View style={[styles.voteCircle, { borderColor: color, backgroundColor: bg }]}>
-        <MFIcon name={icon} size={20} color={color} strokeWidth={2.5} />
-      </View>
-      <Text style={styles.voteLabel} numberOfLines={2}>{label}</Text>
-      <Text style={[styles.voteValue, { color }]}>{value}</Text>
-    </View>
-  )
-}
-
-function voteActionTitle(value: BoardVoteValue) {
-  if (value === "APPROVE") return "Approve production vote"
-  if (value === "REJECT") return "Reject production vote"
-  return "Request Board revision vote"
-}
-
-function voteActionTone(value: BoardVoteValue): Tone {
-  if (value === "APPROVE") return "success"
-  if (value === "REJECT") return "danger"
-  return "warning"
-}
-
-function atRiskDecisionTitle(decision: AtRiskDecision) {
-  if (decision === "CONTINUE") return "Continue publication"
-  if (decision === "WARNING") return "Issue Board warning"
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan"
-  return "Cancel series"
-}
-
-function atRiskDecisionTone(decision: AtRiskDecision): Tone {
-  if (decision === "CONTINUE") return "success"
-  if (decision === "WARNING") return "warning"
-  if (decision === "CANCEL") return "danger"
-  return "primary"
 }
 
 const styles = StyleSheet.create({
@@ -320,22 +198,13 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 17, fontWeight: "900", flexShrink: 1 },
   muted: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
   body: { color: colors.text, fontSize: 13, lineHeight: 20, marginTop: 4 },
-  link: { color: colors.primary, fontSize: 12, fontWeight: "800" },
   subhead: { color: colors.text, fontSize: 14, fontWeight: "900" },
   tieCard: { flexDirection: "row", gap: spacing.md },
   tieBody: { flex: 1 },
   divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: spacing.md },
   voteSplit: { flexDirection: "row", justifyContent: "space-between", gap: spacing.xs, marginTop: spacing.sm },
-  voteCount: { alignItems: "center", flex: 1, minWidth: 0 },
-  voteCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, marginBottom: 6, alignItems: "center", justifyContent: "center" },
-  voteLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 13, minHeight: 26, textAlign: "center" },
-  voteValue: { fontSize: 24, fontWeight: "900" },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
-  buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  actionButtons: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
-  atRiskDetail: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.md },
   flex: { flex: 1 },
-  notePanel: { marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaceLow },
   rankingRow: { flexDirection: "row", gap: spacing.md, alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4", padding: spacing.md },
   rankingRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
 })
