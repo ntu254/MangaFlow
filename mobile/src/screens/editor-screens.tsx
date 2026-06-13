@@ -8,12 +8,14 @@ import {
   MFCard,
   MFConfirmationPanel,
   MFCover,
+  MFEmptyState,
   MFHero,
   MFIconCircle,
   MFMetricStrip,
   MFProgress,
   MFQueueList,
   MFSeriesRow,
+  MFStateNotice,
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
@@ -33,7 +35,7 @@ export function EditorHomeScreen() {
   return (
     <>
       <MFHero title="Today" subtitle="Review and publication companion" />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading mock Editor home..." />
       <SectionTitle title="Next actions" action="View all" />
       <MFActionCards items={flow.home.actions} />
       <SectionTitle title="Review queues" />
@@ -62,7 +64,7 @@ export function EditorManuscriptsScreen() {
   return (
     <>
       <MFHero title="Manuscripts" subtitle="Proposal review before Board review." />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading manuscript review queue..." />
       <MFMetricStrip items={[
         { id: "waiting", label: "Waiting", value: String(flow.manuscriptItems.filter((item) => item.manuscriptStatus === "EDITOR_REVIEW").length), tone: "primary", icon: "file-text" },
         { id: "revision", label: "Revisions", value: String(flow.manuscriptItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED").length), tone: "warning", icon: "refresh-cw" },
@@ -70,7 +72,7 @@ export function EditorManuscriptsScreen() {
       ]} />
       <SegmentedControl labels={["EDITOR_REVIEW", "Revision", "Forwardable"]} />
       <View style={styles.stack}>
-        {flow.manuscriptItems.map((item) => (
+        {flow.manuscriptItems.length > 0 ? flow.manuscriptItems.map((item) => (
           <MFSeriesRow
             key={item.id}
             item={item}
@@ -78,7 +80,7 @@ export function EditorManuscriptsScreen() {
             selected={flow.selectedManuscriptId === item.id}
             onPress={() => flow.setSelectedManuscriptId(item.id)}
           />
-        ))}
+        )) : <MFEmptyState title="No manuscripts waiting" subtitle="When the API returns an empty proposal queue, this panel keeps the review route stable." icon="file-text" />}
       </View>
       {selected ? (
         <MFCard>
@@ -119,7 +121,7 @@ export function EditorReadinessScreen() {
   return (
     <>
       <MFHero title="Readiness" subtitle="Display backend-owned chapter blockers before publication." />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading readiness result..." />
       <MFCard style={styles.chapterPicker}>
         <MFCover item={flow.home.priorityChapter} small />
         <Text style={[styles.title, styles.flex]}>{flow.readiness.chapterTitle}</Text>
@@ -152,11 +154,13 @@ export function EditorCommentsScreen() {
   return (
     <>
       <MFHero title="Comments" subtitle="Resolve production feedback through the canonical lifecycle." />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading comment lifecycle..." />
       <MFMetricStrip items={flow.commentsPayload.metrics} />
       <SegmentedControl labels={["All", "OPEN", "FIXED", "VERIFIED", "RESOLVED"]} />
       <View style={styles.stack}>
-        {flow.commentsPayload.comments.map((comment) => <CommentReviewRow key={comment.id} item={comment as EditorCommentItem} />)}
+        {flow.commentsPayload.comments.length > 0 ? flow.commentsPayload.comments.map((comment) => <CommentReviewRow key={comment.id} item={comment as EditorCommentItem} />) : (
+          <MFEmptyState title="No production comments" subtitle="Resolved or empty comment states remain visible without hiding the lifecycle route." icon="message-circle" tone="success" />
+        )}
       </View>
       <MFCard style={styles.blockingCallout}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
@@ -184,7 +188,7 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
   return (
     <>
       <MFHero title="Submission Review" subtitle={item ? item.subtitle : "Editor final approval"} />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading final approval detail..." />
       <MFCard>
         <View style={styles.compareGrid}>
           <PanelPreview label="Before" />
@@ -221,7 +225,7 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             />
           ) : null}
         </>
-      ) : null}
+      ) : <MFEmptyState title="No selected submission" subtitle="Select a Mangaka-approved submission to preview final approval details." icon="file-check" />}
       <SectionTitle title="History" />
       <ActivityList items={[
         { id: "submitted", title: "Submitted by Assistant", time: "May 15, 2:48 PM", tone: "primary" },
@@ -249,7 +253,7 @@ function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolea
       ]} />
       <SegmentedControl labels={["MANGAKA_APPROVED", "Urgent", "Blocked", "EDITOR_APPROVED"]} />
       <View style={styles.stack}>
-        {flow.submissionItems.map((item) => (
+        {flow.submissionItems.length > 0 ? flow.submissionItems.map((item) => (
           <MFSeriesRow
             key={item.id}
             item={item}
@@ -257,7 +261,7 @@ function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolea
             selected={flow.selectedSubmissionId === item.id}
             onPress={() => flow.setSelectedSubmissionId(item.id)}
           />
-        ))}
+        )) : <MFEmptyState title="No final approvals" subtitle="The final approval queue can render empty API responses without dropping the decision panel shell." icon="shield-check" tone="success" />}
       </View>
       <EditorSubmissionReviewDetail flow={flow} />
     </>
@@ -381,11 +385,6 @@ function PanelPreview({ label }: { label: string }) {
   )
 }
 
-function StateBanner({ loading, error, message }: { loading: boolean; error: string | null; message: string }) {
-  if (error) return <MFCard style={styles.errorPanel}><Text style={styles.body}>{error}</Text></MFCard>
-  return <Text style={styles.muted}>{loading ? "Loading mock Editor flow..." : message}</Text>
-}
-
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   flex: { flex: 1 },
@@ -434,5 +433,4 @@ const styles = StyleSheet.create({
   actionButtonText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
   actionButtonTextDanger: { color: colors.danger },
   blockingCallout: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: "#ffd9d9", backgroundColor: "#fff8f8" },
-  errorPanel: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },
 })

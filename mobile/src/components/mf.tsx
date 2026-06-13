@@ -157,6 +157,64 @@ export function MFIconCircle({ tone, icon, size = 42 }: { tone: Tone; icon: Icon
   )
 }
 
+export function MFStateNotice({
+  loading,
+  error,
+  message,
+  loadingLabel = "Loading mobile workflow...",
+}: {
+  loading: boolean
+  error: string | null
+  message: string
+  loadingLabel?: string
+}) {
+  if (error) {
+    return (
+      <MFCard style={styles.stateNoticeError}>
+        <MFIconCircle tone="danger" icon="alert-triangle" size={38} />
+        <View style={styles.stateNoticeBody}>
+          <Text style={styles.stateNoticeTitle}>Could not load this mock flow</Text>
+          <Text style={styles.stateNoticeText}>{error}</Text>
+        </View>
+      </MFCard>
+    )
+  }
+
+  if (loading) {
+    return (
+      <MFCard style={styles.stateNoticeLoading}>
+        <MFIconCircle tone="primary" icon="refresh-cw" size={38} />
+        <View style={styles.stateNoticeBody}>
+          <Text style={styles.stateNoticeTitle}>{loadingLabel}</Text>
+          <Text style={styles.stateNoticeText}>Reading through the async mobile data-source boundary.</Text>
+        </View>
+      </MFCard>
+    )
+  }
+
+  return <Text style={styles.inlineStateMessage}>{message}</Text>
+}
+
+export function MFEmptyState({
+  title,
+  subtitle,
+  icon = "file-text",
+  tone = "neutral",
+}: {
+  title: string
+  subtitle: string
+  icon?: IconName
+  tone?: Tone
+}) {
+  return (
+    <MFCard style={styles.emptyState}>
+      <MFIconCircle tone={tone} icon={icon} size={48} />
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptySubtitle}>{subtitle}</Text>
+    </MFCard>
+  )
+}
+
 export function MFButton({
   tone = "primary",
   children,
@@ -493,6 +551,15 @@ const styles = StyleSheet.create({
   confirmationBody: { color: colors.text, fontSize: 13, lineHeight: 20 },
   confirmationHint: { color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, fontSize: 11, fontWeight: "800" },
   confirmationActions: { flexDirection: "row", gap: spacing.sm },
+  stateNoticeError: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: colors.danger, backgroundColor: colors.dangerSoft },
+  stateNoticeLoading: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  stateNoticeBody: { flex: 1 },
+  stateNoticeTitle: { color: colors.text, fontSize: 14, fontWeight: "900" },
+  stateNoticeText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 2 },
+  inlineStateMessage: { color: colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
+  emptyState: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg },
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: "900", textAlign: "center" },
+  emptySubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 18, textAlign: "center" },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: "900" },
   sectionAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },
