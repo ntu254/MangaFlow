@@ -230,3 +230,20 @@ test("mobile queues expose selectable rows that drive detail panels", () => {
   assert.match(boardSource, /selected=\{flow\.selectedAtRiskId === risk\.id\}/)
 })
 
+test("mobile screens expose reusable loading error and empty states", () => {
+  assert.match(mfSource, /MFStateNotice/)
+  assert.match(mfSource, /MFEmptyState/)
+  assert.match(mfSource, /Could not load this mock flow/)
+  assert.match(mfSource, /Reading through the async mobile data-source boundary/)
+  assert.match(editorSource, /No manuscripts waiting/)
+  assert.match(editorSource, /No production comments/)
+  assert.match(editorSource, /No final approvals/)
+  assert.match(editorSource, /No selected submission/)
+  assert.match(boardSource, /No Board reviews/)
+  assert.match(boardSource, /No tie-break decisions/)
+  assert.match(boardSource, /No ranking import/)
+  assert.match(boardSource, /No at-risk cases/)
+  assert.doesNotMatch(editorSource, /function StateBanner/)
+  assert.doesNotMatch(boardSource, /function StateBanner/)
+})
+

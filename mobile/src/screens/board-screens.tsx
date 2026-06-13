@@ -7,11 +7,13 @@ import {
   MFCard,
   MFConfirmationPanel,
   MFCover,
+  MFEmptyState,
   MFHero,
   MFMetricStrip,
   MFProgress,
   MFQueueList,
   MFSeriesRow,
+  MFStateNotice,
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
@@ -26,7 +28,7 @@ export function BoardHomeScreen() {
   return (
     <>
       <MFHero role="board" title="Board Today" subtitle="Governance and decision companion" />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading mock Board home..." />
       <SectionTitle title="Next decisions" />
       <MFActionCards items={flow.home.decisionCards} />
       <SectionTitle title="Decision queues" />
@@ -46,11 +48,11 @@ export function BoardReviewsScreen() {
   return (
     <>
       <MFHero role="board" title="Series reviews" subtitle="Vote on proposals forwarded by Tantou Editors." />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Board review queue..." />
       <MFMetricStrip items={flow.home.metrics} />
       <SegmentedControl labels={["BOARD_REVIEW", "Weekly", "Monthly", "Urgent"]} />
       <View style={styles.stack}>
-        {flow.seriesReviews.map((item) => (
+        {flow.seriesReviews.length > 0 ? flow.seriesReviews.map((item) => (
           <MFSeriesRow
             key={item.id}
             item={item}
@@ -58,7 +60,7 @@ export function BoardReviewsScreen() {
             selected={flow.selectedSeriesId === item.id}
             onPress={() => flow.setSelectedSeriesId(item.id)}
           />
-        ))}
+        )) : <MFEmptyState title="No Board reviews" subtitle="When the Board queue is empty, the vote route still renders a stable review state." icon="check-circle" tone="success" />}
       </View>
       {selected ? <BoardVotePanel item={selected} onVote={flow.startVote} /> : null}
       {flow.pendingVote ? (
@@ -83,7 +85,7 @@ export function BoardTieBreakScreen() {
   return (
     <>
       <MFHero role="board" title="Tie-break" subtitle="Board Chair resolution required" />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Board Chair tie-break queue..." />
       {item ? (
         <>
           <MFCard style={styles.tieCard}>
@@ -125,7 +127,7 @@ export function BoardTieBreakScreen() {
           ) : null}
         </>
       ) : (
-        <MFCard><Text style={styles.body}>No tie-break decisions in the mock queue.</Text></MFCard>
+        <MFEmptyState title="No tie-break decisions" subtitle="Board Chair action appears only when backend decision status is TIE_BREAK_REQUIRED." icon="scale-balance" tone="success" />
       )}
       <DecisionHistory />
     </>
@@ -138,7 +140,7 @@ export function BoardRankingScreen() {
   return (
     <>
       <MFHero role="board" title="Ranking" subtitle="Review imported ranking data and manual at-risk actions." />
-      <StateBanner loading={flow.loading} error={flow.error} message={flow.lastMockAction} />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading ranking import preview..." />
       <MFMetricStrip items={[
         { id: "imported", label: "Imported", value: String(flow.rankings.length), tone: "primary", icon: "bar-chart-2" },
         { id: "score", label: "Score 1-10", value: "OK", tone: "success", icon: "check-circle" },
@@ -146,7 +148,7 @@ export function BoardRankingScreen() {
       ]} />
       <SectionTitle title="Ranking import preview" />
       <View style={styles.stack}>
-        {flow.rankings.map((item) => (
+        {flow.rankings.length > 0 ? flow.rankings.map((item) => (
           <MFCard key={item.id} style={styles.rankingRow}>
             <MFCover item={item} small />
             <View style={styles.flex}>
@@ -158,7 +160,7 @@ export function BoardRankingScreen() {
               <Text style={styles.body}>voteCount {item.voteCount} / readerScore {item.readerScore} / finalScore {item.finalScore}</Text>
             </View>
           </MFCard>
-        ))}
+        )) : <MFEmptyState title="No ranking import" subtitle="Reader score import can be empty while the Board waits for the next ranking cycle." icon="bar-chart-2" />}
       </View>
       <BoardAtRiskPanel />
       <DecisionHistory />
@@ -210,7 +212,7 @@ function BoardAtRiskPanel() {
         { id: "plan", label: "Confirm", value: "Required", tone: "primary", icon: "file-check" },
       ]} />
       <View style={styles.stack}>
-        {flow.atRiskCases.map((risk) => (
+        {flow.atRiskCases.length > 0 ? flow.atRiskCases.map((risk) => (
           <MFSeriesRow
             key={risk.id}
             item={risk}
@@ -218,7 +220,7 @@ function BoardAtRiskPanel() {
             selected={flow.selectedAtRiskId === risk.id}
             onPress={() => flow.setSelectedAtRiskId(risk.id)}
           />
-        ))}
+        )) : <MFEmptyState title="No at-risk cases" subtitle="Manual Board decisions appear only when ranking review returns warning or at-risk items." icon="alert-triangle" tone="success" />}
       </View>
       {item ? (
         <MFCard>
@@ -258,7 +260,7 @@ function BoardAtRiskPanel() {
           ) : null}
           <Text style={styles.muted}>{flow.lastMockAction}</Text>
         </MFCard>
-      ) : null}
+      ) : <MFEmptyState title="No selected at-risk case" subtitle="Select an at-risk title to review the support note and manual decision options." icon="alert-triangle" />}
     </>
   )
 }
@@ -326,11 +328,6 @@ function atRiskDecisionTone(decision: AtRiskDecision): Tone {
   return "primary"
 }
 
-function StateBanner({ loading, error, message }: { loading: boolean; error: string | null; message: string }) {
-  if (error) return <MFCard style={styles.errorPanel}><Text style={styles.body}>{error}</Text></MFCard>
-  return <Text style={styles.muted}>{loading ? "Loading mock Board flow..." : message}</Text>
-}
-
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   title: { color: colors.text, fontSize: 17, fontWeight: "900", flexShrink: 1 },
@@ -354,5 +351,4 @@ const styles = StyleSheet.create({
   notePanel: { marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaceLow },
   rankingRow: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
   historyRow: { flexDirection: "row", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.outlineVariant },
-  errorPanel: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },
 })
