@@ -311,11 +311,20 @@ export function MFProgress({ value }: { value: number }) {
   return <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.round(value * 100)}%` }]} /></View>
 }
 
-export function MFSeriesRow({ item, actionLabel = "Open summary" }: { item: SeriesCard; actionLabel?: string }) {
+export function MFSeriesRow({
+  item,
+  actionLabel = "Open summary",
+  selected = false,
+  onPress,
+}: {
+  item: SeriesCard
+  actionLabel?: string
+  selected?: boolean
+  onPress?: () => void
+}) {
   const tags = item.tags ?? item.subtitle.split("/").map((tag) => tag.trim()).filter(Boolean)
-
-  return (
-    <MFCard style={styles.seriesRow}>
+  const content = (
+    <>
       <MFCover item={item} />
       <View style={styles.seriesBody}>
         <View style={styles.seriesHeader}>
@@ -332,11 +341,25 @@ export function MFSeriesRow({ item, actionLabel = "Open summary" }: { item: Seri
             <MFProgress value={item.progressValue} />
           </>
         ) : null}
-        <View style={styles.seriesActionPill}>
-          <Text style={styles.seriesAction}>{actionLabel}</Text>
-          <MFIcon name="chevron-right" size={14} color={colors.primary} />
+        <View style={[styles.seriesActionPill, selected && styles.seriesActionPillSelected]}>
+          <Text style={[styles.seriesAction, selected && styles.seriesActionSelected]}>{selected ? "Selected" : actionLabel}</Text>
+          <MFIcon name={selected ? "check" : "chevron-right"} size={14} color={selected ? colors.surface : colors.primary} />
         </View>
       </View>
+    </>
+  )
+
+  if (onPress) {
+    return (
+      <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.seriesRow, selected && styles.seriesRowSelected]}>
+        {content}
+      </Pressable>
+    )
+  }
+
+  return (
+    <MFCard style={[styles.seriesRow, selected && styles.seriesRowSelected]}>
+      {content}
     </MFCard>
   )
 }
@@ -445,7 +468,8 @@ const styles = StyleSheet.create({
   coverTitleOverlay: { position: "relative", textShadowColor: "rgba(0,0,0,0.45)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceContainer, overflow: "hidden", marginTop: spacing.sm },
   progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  seriesRow: { flexDirection: "row", gap: spacing.md },
+  seriesRow: { flexDirection: "row", gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: "#f0e8f4", ...shadow.card },
+  seriesRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   seriesBody: { flex: 1, gap: 5 },
   seriesHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.sm },
   seriesTitle: { color: colors.text, fontSize: 16, fontWeight: "900", flex: 1 },
@@ -455,6 +479,8 @@ const styles = StyleSheet.create({
   seriesProgress: { color: colors.primary, fontSize: 12, fontWeight: "800", marginTop: 4 },
   seriesActionPill: { minHeight: 34, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.sm, alignSelf: "flex-end", flexDirection: "row", alignItems: "center", gap: 2, marginTop: spacing.xs },
   seriesAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },
+  seriesActionPillSelected: { backgroundColor: colors.primary },
+  seriesActionSelected: { color: colors.surface },
   badge: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full, alignSelf: "flex-start" },
   badgeText: { fontSize: 11, fontWeight: "800" },
   button: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },

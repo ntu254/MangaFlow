@@ -50,7 +50,15 @@ export function BoardReviewsScreen() {
       <MFMetricStrip items={flow.home.metrics} />
       <SegmentedControl labels={["BOARD_REVIEW", "Weekly", "Monthly", "Urgent"]} />
       <View style={styles.stack}>
-        {flow.seriesReviews.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Open vote" />)}
+        {flow.seriesReviews.map((item) => (
+          <MFSeriesRow
+            key={item.id}
+            item={item}
+            actionLabel="Open vote"
+            selected={flow.selectedSeriesId === item.id}
+            onPress={() => flow.setSelectedSeriesId(item.id)}
+          />
+        ))}
       </View>
       {selected ? <BoardVotePanel item={selected} onVote={flow.startVote} /> : null}
       {flow.pendingVote ? (
@@ -202,7 +210,15 @@ function BoardAtRiskPanel() {
         { id: "plan", label: "Confirm", value: "Required", tone: "primary", icon: "file-check" },
       ]} />
       <View style={styles.stack}>
-        {flow.atRiskCases.map((risk) => <MFSeriesRow key={risk.id} item={risk} actionLabel="Review case" />)}
+        {flow.atRiskCases.map((risk) => (
+          <MFSeriesRow
+            key={risk.id}
+            item={risk}
+            actionLabel="Review case"
+            selected={flow.selectedAtRiskId === risk.id}
+            onPress={() => flow.setSelectedAtRiskId(risk.id)}
+          />
+        ))}
       </View>
       {item ? (
         <MFCard>

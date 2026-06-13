@@ -75,6 +75,7 @@ mobile/src/screens/
 
 - `MF-HIOS-095`: Mobile Editor + Board flow foundation with role mock data, API-ready data-source boundary, domain DTOs, hooks, and base screens.
 - `MF-HIOS-096`: Mobile decision confirmation details for Editor proposal/final approval actions and Board vote/tie-break/at-risk actions. Confirmation panels are local mock UI only and do not enforce permissions or mutate backend workflow state.
+- `MF-HIOS-097`: Mobile queue selection details. `MFSeriesRow` supports tap/selected state; Editor manuscript/final approval queues and Board review/at-risk queues update their local detail panels from hook state.
 
 ## Forbidden Shortcuts
 

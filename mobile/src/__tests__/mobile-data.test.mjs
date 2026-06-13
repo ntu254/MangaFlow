@@ -215,3 +215,18 @@ test("mobile decision actions require confirmation detail before mock recording"
   assert.match(boardSource, /Series is never auto-cancelled/)
 })
 
+test("mobile queues expose selectable rows that drive detail panels", () => {
+  assert.match(mfSource, /selected = false/)
+  assert.match(mfSource, /accessibilityState=\{\{ selected \}\}/)
+  assert.match(mfSource, /seriesRowSelected/)
+  assert.match(mfSource, /Selected/)
+  assert.match(editorSource, /setSelectedManuscriptId\(item\.id\)/)
+  assert.match(editorSource, /selected=\{flow\.selectedManuscriptId === item\.id\}/)
+  assert.match(editorSource, /setSelectedSubmissionId\(item\.id\)/)
+  assert.match(editorSource, /EditorSubmissionReviewDetail flow=\{flow\}/)
+  assert.match(boardSource, /setSelectedSeriesId\(item\.id\)/)
+  assert.match(boardSource, /selected=\{flow\.selectedSeriesId === item\.id\}/)
+  assert.match(boardSource, /setSelectedAtRiskId\(risk\.id\)/)
+  assert.match(boardSource, /selected=\{flow\.selectedAtRiskId === risk\.id\}/)
+})
+

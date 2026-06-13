@@ -70,7 +70,15 @@ export function EditorManuscriptsScreen() {
       ]} />
       <SegmentedControl labels={["EDITOR_REVIEW", "Revision", "Forwardable"]} />
       <View style={styles.stack}>
-        {flow.manuscriptItems.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Open Review" />)}
+        {flow.manuscriptItems.map((item) => (
+          <MFSeriesRow
+            key={item.id}
+            item={item}
+            actionLabel="Open Review"
+            selected={flow.selectedManuscriptId === item.id}
+            onPress={() => flow.setSelectedManuscriptId(item.id)}
+          />
+        ))}
       </View>
       {selected ? (
         <MFCard>
@@ -166,6 +174,11 @@ export function EditorCommentsScreen() {
 
 export function EditorSubmissionReviewScreen() {
   const flow = useEditorMobileFlow()
+
+  return <EditorSubmissionReviewDetail flow={flow} />
+}
+
+function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEditorMobileFlow> }) {
   const item = flow.selectedSubmission
 
   return (
@@ -236,9 +249,17 @@ function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolea
       ]} />
       <SegmentedControl labels={["MANGAKA_APPROVED", "Urgent", "Blocked", "EDITOR_APPROVED"]} />
       <View style={styles.stack}>
-        {flow.submissionItems.map((item) => <MFSeriesRow key={item.id} item={item} actionLabel="Review" />)}
+        {flow.submissionItems.map((item) => (
+          <MFSeriesRow
+            key={item.id}
+            item={item}
+            actionLabel="Review"
+            selected={flow.selectedSubmissionId === item.id}
+            onPress={() => flow.setSelectedSubmissionId(item.id)}
+          />
+        ))}
       </View>
-      <EditorSubmissionReviewScreen />
+      <EditorSubmissionReviewDetail flow={flow} />
     </>
   )
 }
