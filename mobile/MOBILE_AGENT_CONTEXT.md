@@ -78,6 +78,7 @@ mobile/src/screens/
 - `MF-HIOS-097`: Mobile queue selection details. `MFSeriesRow` supports tap/selected state; Editor manuscript/final approval queues and Board review/at-risk queues update their local detail panels from hook state.
 - `MF-HIOS-098`: Mobile empty/loading/error state polish. Shared `MFStateNotice` and `MFEmptyState` cover API-ready loading, error, empty queue, and missing selected-detail states without adding workflow logic.
 - `MF-HIOS-099`: Mobile rich detail previews. Shared `MFDetailList` and `MFTimeline` show Editor comment/readiness evidence and Board ranking/history context while keeping signed URLs, readiness, ranking formula, and Board decisions backend-owned.
+- `MF-HIOS-100`: Mobile role handoff/profile polish. The mobile shell explains Editor-to-Board handoffs and profile scope/API boundaries without treating role switch as auth or adding new mobile roles.
 
 ## Forbidden Shortcuts
 

@@ -265,3 +265,17 @@ test("mobile rich detail previews preserve backend-owned workflow boundaries", (
   assert.match(boardSource, /immutable record/)
 })
 
+test("mobile role handoff and profile polish explains scope without adding roles", () => {
+  assert.match(appSource, /RoleHandoffSummary/)
+  assert.match(appSource, /Editor handoff to Board review/)
+  assert.match(appSource, /Board handoff from Editor review/)
+  assert.match(appSource, /Mobile handoff copy explains the next surface but does not call workflow endpoints/)
+  assert.match(appSource, /Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and payroll remain backend-owned/)
+  assert.match(appSource, /mockMobileWorkflowDataSource/)
+  assert.match(appSource, /Tantou Editor surfaces only/)
+  assert.match(appSource, /Board and Board Chair surfaces only/)
+  assert.match(appSource, /No Admin override is represented/)
+  assert.doesNotMatch(appSource, /Mangaka companion/)
+  assert.doesNotMatch(appSource, /Assistant companion/)
+})
+
