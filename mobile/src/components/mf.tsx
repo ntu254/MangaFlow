@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Image } from "expo-image"
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, type ViewStyle, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -78,7 +78,7 @@ export function MFScreen({ tabs, activeTab, onTabChange, children, role = "edito
               style={styles.tabButton}
             >
               <MFIcon name={tab.icon} size={22} color={active ? colors.primary : colors.outline} />
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>{tab.label}</Text>
             </Pressable>
           )
         })}
@@ -145,7 +145,7 @@ export function MFCard({ children, style }: PropsWithChildren<{ style?: object }
 
 export function MFBadge({ tone, children }: PropsWithChildren<{ tone: Tone }>) {
   const swatch = toneColors[tone]
-  return <View style={[styles.badge, { backgroundColor: swatch.bg }]}><Text style={[styles.badgeText, { color: swatch.fg }]}>{children}</Text></View>
+  return <View style={[styles.badge, { backgroundColor: swatch.bg }]}><Text style={[styles.badgeText, { color: swatch.fg }]} numberOfLines={2}>{children}</Text></View>
 }
 
 export function MFIconCircle({ tone, icon, size = 42 }: { tone: Tone; icon: IconName; size?: number }) {
@@ -275,16 +275,24 @@ export function MFButton({
   variant = "filled",
   onPress,
   accessibilityLabel,
-}: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline"; onPress?: () => void; accessibilityLabel?: string }>) {
+  style,
+}: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline" | "soft"; onPress?: () => void; accessibilityLabel?: string; style?: ViewStyle }>) {
   const swatch = toneColors[tone]
+  const buttonStyle =
+    variant === "filled"
+      ? { backgroundColor: swatch.fg, borderColor: swatch.fg }
+      : variant === "soft"
+        ? { backgroundColor: swatch.bg, borderColor: swatch.bg }
+        : { backgroundColor: swatch.bg, borderColor: swatch.fg }
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={[styles.button, variant === "filled" ? { backgroundColor: swatch.fg, borderColor: swatch.fg } : { backgroundColor: colors.surface, borderColor: swatch.fg }]}
+      style={[styles.button, buttonStyle, style]}
     >
-      <Text style={[styles.buttonText, { color: variant === "filled" ? colors.surface : swatch.fg }]}>{children}</Text>
+      <Text style={[styles.buttonText, { color: variant === "filled" ? colors.surface : swatch.fg }]} numberOfLines={2}>{children}</Text>
     </Pressable>
   )
 }
@@ -322,8 +330,8 @@ export function MFConfirmationPanel({
       <Text style={styles.confirmationBody}>{body}</Text>
       {endpointHint ? <Text style={styles.confirmationHint}>{endpointHint}</Text> : null}
       <View style={styles.confirmationActions}>
-        <MFButton tone={tone} onPress={onConfirm}>{confirmLabel}</MFButton>
-        <MFButton tone="neutral" variant="outline" onPress={onCancel}>{cancelLabel}</MFButton>
+        <MFButton tone={tone} style={styles.confirmationActionButton} onPress={onConfirm}>{confirmLabel}</MFButton>
+        <MFButton tone="neutral" variant="soft" style={styles.confirmationActionButton} onPress={onCancel}>{cancelLabel}</MFButton>
       </View>
     </MFCard>
   )
@@ -351,7 +359,7 @@ export function MFMetricStrip({ items }: { items: MetricItem[] }) {
 
 export function MFActionCards({ items }: { items: MetricItem[] }) {
   const { width } = useWindowDimensions()
-  const compactCards = width <= 460
+  const compactCards = width <= 620
 
   return (
     <View style={[styles.actionGrid, compactCards && styles.actionGridCompact]}>
@@ -374,6 +382,17 @@ export function MFActionCards({ items }: { items: MetricItem[] }) {
 }
 
 export function MFQueueList({ items }: { items: QueueItem[] }) {
+  if (items.length === 0) {
+    return (
+      <MFEmptyState
+        title="No queue items"
+        subtitle="This mobile route stays available while the API returns an empty list."
+        icon="check-circle"
+        tone="success"
+      />
+    )
+  }
+
   return (
     <MFCard>
       {items.map((item, index) => {
@@ -384,10 +403,14 @@ export function MFQueueList({ items }: { items: QueueItem[] }) {
               <MFIcon name={item.icon ?? defaultQueueIcons[item.tone]} size={20} color={swatch.fg} />
             </View>
             <View style={styles.queueText}>
-              <Text style={styles.queueTitle}>{item.title}</Text>
-              <Text style={styles.queueSubtitle}>{item.subtitle}</Text>
+              <Text style={styles.queueTitle} numberOfLines={2}>{item.title}</Text>
+              <Text style={styles.queueSubtitle} numberOfLines={3}>{item.subtitle}</Text>
             </View>
-            {item.value ? <Text style={[styles.queueValue, { color: swatch.fg }]}>{item.value}</Text> : null}
+            {item.value ? (
+              <View style={[styles.queueValuePill, { backgroundColor: swatch.bg }]}>
+                <Text style={[styles.queueValue, { color: swatch.fg }]} numberOfLines={2}>{item.value}</Text>
+              </View>
+            ) : null}
             <MFIcon name="chevron-right" size={18} color={colors.outline} />
           </View>
         )
@@ -440,13 +463,13 @@ export function MFSeriesRow({
       <MFCover item={item} />
       <View style={styles.seriesBody}>
         <View style={styles.seriesHeader}>
-          <Text style={styles.seriesTitle}>{item.title}</Text>
+          <Text style={styles.seriesTitle} numberOfLines={2}>{item.title}</Text>
           <MFBadge tone={item.tone}>{item.status}</MFBadge>
         </View>
         <View style={styles.seriesTags}>
-          {tags.map((tag) => <Text key={tag} style={styles.seriesTag}>{tag}</Text>)}
+          {tags.map((tag) => <Text key={tag} style={styles.seriesTag} numberOfLines={2}>{tag}</Text>)}
         </View>
-        <Text style={styles.seriesMeta}>{item.meta}</Text>
+        <Text style={styles.seriesMeta} numberOfLines={2}>{item.meta}</Text>
         {typeof item.progressValue === "number" ? (
           <>
             <Text style={styles.seriesProgress}>{item.progress}</Text>
@@ -454,7 +477,7 @@ export function MFSeriesRow({
           </>
         ) : null}
         <View style={[styles.seriesActionPill, selected && styles.seriesActionPillSelected]}>
-          <Text style={[styles.seriesAction, selected && styles.seriesActionSelected]}>{selected ? "Selected" : actionLabel}</Text>
+          <Text style={[styles.seriesAction, selected && styles.seriesActionSelected]} numberOfLines={2}>{selected ? "Selected" : actionLabel}</Text>
           <MFIcon name={selected ? "check" : "chevron-right"} size={14} color={selected ? colors.surface : colors.primary} />
         </View>
       </View>
@@ -480,7 +503,7 @@ export function SectionTitle({ title, action }: { title: string; action?: string
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {action ? <Text style={styles.sectionAction}>{action}</Text> : null}
+      {action ? <Text style={styles.sectionAction} numberOfLines={1}>{action}</Text> : null}
     </View>
   )
 }
@@ -495,8 +518,8 @@ export function ActivityList({ items }: { items: Array<{ id: string; title: stri
             <View style={[styles.activityIcon, { backgroundColor: swatch.bg }]}>
               <MFIcon name={item.icon ?? defaultActivityIcons[item.tone]} size={15} color={swatch.fg} strokeWidth={2.4} />
             </View>
-            <Text style={styles.activityTitle}>{item.title}</Text>
-            <Text style={styles.activityTime}>{item.time}</Text>
+            <Text style={styles.activityTitle} numberOfLines={2}>{item.title}</Text>
+            <Text style={styles.activityTime} numberOfLines={1}>{item.time}</Text>
           </View>
         )
       })}
@@ -509,7 +532,7 @@ export function SegmentedControl({ labels, activeIndex = 0 }: { labels: string[]
     <View style={styles.segmented}>
       {labels.map((label, index) => (
         <View key={label} style={[styles.segment, index === activeIndex && styles.segmentActive]}>
-          <Text style={[styles.segmentText, index === activeIndex && styles.segmentTextActive]}>{label}</Text>
+          <Text style={[styles.segmentText, index === activeIndex && styles.segmentTextActive]} numberOfLines={2}>{label}</Text>
         </View>
       ))}
     </View>
@@ -521,8 +544,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, zIndex: 1 },
   scroll: { paddingHorizontal: spacing.md, paddingBottom: 110, gap: spacing.md },
   tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, elevation: 10, flexDirection: "row", justifyContent: "space-around", paddingTop: spacing.sm, paddingBottom: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.outlineVariant },
-  tabButton: { minWidth: 58, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2 },
-  tabLabel: { fontSize: 11, color: colors.outline, fontWeight: "600" },
+  tabButton: { flex: 1, minWidth: 0, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2, paddingHorizontal: 2 },
+  tabLabel: { fontSize: 11, color: colors.outline, fontWeight: "600", maxWidth: "100%" },
   tabLabelActive: { color: colors.primary },
   header: { minHeight: 66, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   logoRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flexShrink: 0 },
@@ -546,7 +569,7 @@ const styles = StyleSheet.create({
   heroSubtitle: { color: colors.textMuted, fontSize: typography.body, marginTop: 4 },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: "#f0e8f4", ...shadow.card },
   metricStrip: { flexDirection: "row", paddingVertical: spacing.sm },
-  metricItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm },
+  metricItem: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm },
   metricItemCompact: { flexDirection: "column", gap: 4, paddingHorizontal: 2 },
   metricDivider: { borderLeftWidth: 1, borderLeftColor: colors.outlineVariant },
   metricTextCompact: { alignItems: "center" },
@@ -555,21 +578,22 @@ const styles = StyleSheet.create({
   metricValue: { color: colors.text, fontSize: 21, fontWeight: "900" },
   actionGrid: { flexDirection: "row", gap: spacing.sm },
   actionGridCompact: { flexWrap: "wrap" },
-  actionCard: { minHeight: 150, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm },
+  actionCard: { minHeight: 150, alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm, gap: spacing.xs },
   actionCardWide: { flex: 1 },
   actionCardCompact: { flexGrow: 1, flexBasis: "47%", maxWidth: "49%", minHeight: 136 },
   actionTitle: { color: colors.text, textAlign: "center", fontWeight: "800", fontSize: 13, lineHeight: 17 },
   actionSubtitle: { color: colors.textMuted, textAlign: "center", fontSize: 10, lineHeight: 14, minHeight: 28 },
-  actionLinkRow: { flexDirection: "row", alignItems: "center", gap: 2 },
-  actionLink: { fontWeight: "800", fontSize: 12 },
+  actionLinkRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, minHeight: 30, borderRadius: radius.full, paddingHorizontal: spacing.sm, backgroundColor: colors.surfaceLow, maxWidth: "100%" },
+  actionLink: { fontWeight: "800", fontSize: 12, flexShrink: 1 },
   queueRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: "#f2edf5" },
   queueRowLast: { borderBottomWidth: 0 },
   queueIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   queueIconText: { fontSize: 18, fontWeight: "900" },
-  queueText: { flex: 1 },
+  queueText: { flex: 1, minWidth: 0 },
   queueTitle: { color: colors.text, fontWeight: "800", fontSize: 14 },
   queueSubtitle: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
-  queueValue: { fontSize: 22, fontWeight: "900" },
+  queueValuePill: { minWidth: 52, maxWidth: 108, minHeight: 32, borderRadius: radius.full, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.sm },
+  queueValue: { fontSize: 13, lineHeight: 15, fontWeight: "900", textAlign: "center" },
   chevron: { color: colors.outline, fontSize: 22 },
   cover: { width: 92, height: 118, borderRadius: radius.md, padding: spacing.sm, justifyContent: "flex-end", overflow: "hidden" },
   coverSmall: { width: 72, height: 72 },
@@ -582,29 +606,30 @@ const styles = StyleSheet.create({
   progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
   seriesRow: { flexDirection: "row", gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: "#f0e8f4", ...shadow.card },
   seriesRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  seriesBody: { flex: 1, gap: 5 },
+  seriesBody: { flex: 1, minWidth: 0, gap: 5 },
   seriesHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.sm },
   seriesTitle: { color: colors.text, fontSize: 16, fontWeight: "900", flex: 1 },
   seriesTags: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
   seriesTag: { color: colors.primary, backgroundColor: colors.chip, borderRadius: radius.sm, paddingHorizontal: 7, paddingVertical: 3, fontSize: 10, fontWeight: "700" },
   seriesMeta: { color: colors.textMuted, fontSize: 11 },
   seriesProgress: { color: colors.primary, fontSize: 12, fontWeight: "800", marginTop: 4 },
-  seriesActionPill: { minHeight: 34, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.sm, alignSelf: "flex-end", flexDirection: "row", alignItems: "center", gap: 2, marginTop: spacing.xs },
-  seriesAction: { color: colors.primary, fontSize: 12, fontWeight: "800" },
+  seriesActionPill: { minHeight: 34, maxWidth: "100%", borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.sm, alignSelf: "flex-end", flexDirection: "row", alignItems: "center", gap: 2, marginTop: spacing.xs },
+  seriesAction: { color: colors.primary, fontSize: 12, lineHeight: 15, fontWeight: "800", flexShrink: 1, textAlign: "center" },
   seriesActionPillSelected: { backgroundColor: colors.primary },
   seriesActionSelected: { color: colors.surface },
-  badge: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full, alignSelf: "flex-start" },
-  badgeText: { fontSize: 11, fontWeight: "800" },
-  button: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },
-  buttonText: { fontWeight: "900", fontSize: 14 },
+  badge: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full, alignSelf: "flex-start", maxWidth: 168 },
+  badgeText: { fontSize: 11, lineHeight: 13, fontWeight: "800", textAlign: "center" },
+  button: { minHeight: 50, borderRadius: radius.full, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md, paddingVertical: 8 },
+  buttonText: { fontWeight: "900", fontSize: 13, lineHeight: 17, textAlign: "center" },
   confirmationPanel: { gap: spacing.sm, backgroundColor: colors.surface },
   confirmationHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  confirmationTitleBlock: { flex: 1 },
+  confirmationTitleBlock: { flex: 1, minWidth: 0 },
   confirmationKicker: { color: colors.textMuted, fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
   confirmationTitle: { color: colors.text, fontSize: 16, fontWeight: "900", marginTop: 2 },
   confirmationBody: { color: colors.text, fontSize: 13, lineHeight: 20 },
   confirmationHint: { color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, fontSize: 11, fontWeight: "800" },
-  confirmationActions: { flexDirection: "row", gap: spacing.sm },
+  confirmationActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  confirmationActionButton: { flexGrow: 1, flexBasis: "47%", minWidth: 0 },
   stateNoticeError: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: colors.danger, backgroundColor: colors.dangerSoft },
   stateNoticeLoading: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: colors.primary, backgroundColor: colors.primarySoft },
   stateNoticeBody: { flex: 1 },
@@ -635,8 +660,8 @@ const styles = StyleSheet.create({
   activityTitle: { flex: 1, color: colors.text, fontSize: 12 },
   activityTime: { color: colors.outline, fontSize: 11 },
   segmented: { flexDirection: "row", backgroundColor: colors.surface, borderRadius: radius.lg, padding: 4, borderWidth: 1, borderColor: colors.outlineVariant },
-  segment: { flex: 1, minHeight: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  segment: { flex: 1, minWidth: 0, minHeight: 50, borderRadius: radius.md, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   segmentActive: { backgroundColor: colors.primarySoft },
-  segmentText: { color: colors.textMuted, fontWeight: "700", fontSize: 12 },
+  segmentText: { color: colors.textMuted, fontWeight: "700", fontSize: 11, lineHeight: 14, textAlign: "center", flexShrink: 1 },
   segmentTextActive: { color: colors.primary, fontWeight: "900" },
 })

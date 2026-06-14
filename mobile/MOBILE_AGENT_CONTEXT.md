@@ -81,6 +81,8 @@ mobile/src/screens/
 - `MF-HIOS-100`: Mobile role handoff/profile polish. The mobile shell explains Editor-to-Board handoffs and profile scope/API boundaries without treating role switch as auth or adding new mobile roles.
 - `MF-HIOS-101`: Mobile panel componentization. Editor detail panels live in `mobile/src/screens/editor-panels.tsx`; Board detail/history panels live in `mobile/src/screens/board-panels.tsx` so role screens stay thinner for future API wiring.
 - `MF-HIOS-102`: Mobile action panel componentization. Editor proposal/final approval actions live in `mobile/src/screens/editor-action-panels.tsx`; Board vote/tie-break/at-risk action panels live in `mobile/src/screens/board-action-panels.tsx` so confirmation copy and future endpoint hints stay near the action boundary.
+- `MF-HIOS-103`: Mobile action visual polish. Shared action buttons, segmented controls, status chips, confirmation panels, readiness blockers, ranking rows, handoff, and profile surfaces now use aligned mobile touch targets and readable labels while preserving mock-only action boundaries.
+- `MF-HIOS-104`: Mobile edge-case visual QA. Shared queue empty states, long-label clamps, wrapped action rows, readiness rows, ranking rows, comment rows, badges, tabs, and action pills are hardened for narrow mobile widths without changing workflow behavior.
 
 ## Forbidden Shortcuts
 
@@ -95,10 +97,9 @@ mobile/src/screens/
 Choose the next story by the smallest safe boundary:
 
 1. Missing empty/error/detail states inside Editor/Board screens: normal lane.
-2. UI polish for mobile touch targets, overflow, queue selection, and detail previews: normal lane.
-3. Replacing mock data-source methods with read-only API calls: normal or high-risk depending on endpoint and permission surface.
-4. Auth, signed URLs, Board decision mutations, readiness publish actions, payroll, or Assistant scope: high-risk lane.
-5. Adding roles beyond Editor/Board: new product/mobile scope story first.
+2. Replacing mock data-source methods with read-only API calls: normal or high-risk depending on endpoint and permission surface.
+3. Auth, signed URLs, Board decision mutations, readiness publish actions, payroll, or Assistant scope: high-risk lane.
+4. Adding roles beyond Editor/Board: new product/mobile scope story first.
 
 ## Validation
 

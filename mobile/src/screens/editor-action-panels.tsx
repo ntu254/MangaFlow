@@ -26,15 +26,15 @@ export function EditorProposalDecisionPanel({
         <Text style={styles.body}>{item.editorRecommendation}</Text>
         <Text style={styles.muted}>Version {item.version}. Forwarding to Board will later call the manuscript action endpoint.</Text>
         <View style={styles.buttonRow}>
-          <MFButton tone="warning" variant="outline" onPress={() => onStartAction("request-revision")}>Request Revision</MFButton>
-          <MFButton tone="danger" variant="outline" onPress={() => onStartAction("reject")}>Reject</MFButton>
+          <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("request-revision")}>Request revision</MFButton>
+          <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("reject")}>Reject</MFButton>
         </View>
-        <MFButton tone="success" onPress={() => onStartAction("forward-to-board")}>Forward to Board</MFButton>
+        <MFButton tone="success" style={styles.actionButtonFull} onPress={() => onStartAction("forward-to-board")}>Forward to Board</MFButton>
       </MFCard>
       {pendingAction ? (
         <MFConfirmationPanel
           title={proposalActionTitle(pendingAction)}
-          body={`Confirm mock ${pendingAction} for ${item.title}. This preview does not change workflow status or permissions.`}
+          body={`Confirm mock ${proposalActionLabel(pendingAction)} for ${item.title}. This preview does not change workflow status or permissions.`}
           confirmLabel="Confirm mock action"
           tone={proposalActionTone(pendingAction)}
           endpointHint={proposalActionEndpoint(pendingAction)}
@@ -67,14 +67,14 @@ export function EditorFinalApprovalDecisionPanel({
         <Text style={styles.body}>This action is separate from proposal review and is the only approval path that can later trigger payroll.</Text>
       </MFCard>
       <View style={styles.buttonRow}>
-        <MFButton tone="primary" variant="outline" onPress={() => onStartAction("request-revision")}>Request Revision</MFButton>
-        <MFButton tone="primary" variant="outline" onPress={() => onStartAction("add-comment")}>Add Comment</MFButton>
+        <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("request-revision")}>Request revision</MFButton>
+        <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("add-comment")}>Add comment</MFButton>
       </View>
-      <MFButton tone="success" onPress={() => onStartAction("editor-approve")}>Final Approve</MFButton>
+      <MFButton tone="success" style={styles.actionButtonFull} onPress={() => onStartAction("editor-approve")}>Final approve</MFButton>
       {pendingAction ? (
         <MFConfirmationPanel
           title={finalApprovalActionTitle(pendingAction)}
-          body={`Confirm mock ${pendingAction} for ${item.title}. Editor final approval remains separate from proposal review.`}
+          body={`Confirm mock ${finalApprovalActionLabel(pendingAction)} for ${item.title}. Editor final approval remains separate from proposal review.`}
           confirmLabel="Confirm review mock"
           tone={finalApprovalActionTone(pendingAction)}
           endpointHint={finalApprovalActionEndpoint(pendingAction)}
@@ -90,6 +90,12 @@ function proposalActionTitle(action: EditorProposalAction) {
   if (action === "forward-to-board") return "Forward proposal to Board"
   if (action === "reject") return "Reject proposal"
   return "Request proposal revision"
+}
+
+function proposalActionLabel(action: EditorProposalAction) {
+  if (action === "forward-to-board") return "forward to Board"
+  if (action === "reject") return "reject proposal"
+  return "request proposal revision"
 }
 
 function proposalActionTone(action: EditorProposalAction): Tone {
@@ -110,6 +116,12 @@ function finalApprovalActionTitle(action: EditorFinalApprovalAction) {
   return "Request production revision"
 }
 
+function finalApprovalActionLabel(action: EditorFinalApprovalAction) {
+  if (action === "editor-approve") return "final approval"
+  if (action === "add-comment") return "add editor comment"
+  return "request production revision"
+}
+
 function finalApprovalActionTone(action: EditorFinalApprovalAction): Tone {
   if (action === "editor-approve") return "success"
   if (action === "request-revision") return "warning"
@@ -123,8 +135,10 @@ function finalApprovalActionEndpoint(action: EditorFinalApprovalAction) {
 }
 
 const styles = StyleSheet.create({
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
-  buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+  rowBetween: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+  actionButtonHalf: { flexGrow: 1, flexBasis: "47%", minWidth: 132 },
+  actionButtonFull: { marginTop: spacing.sm },
   title: { color: colors.text, fontSize: 16, fontWeight: "900", flexShrink: 1 },
   muted: { color: colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
   body: { color: colors.text, fontSize: 13, lineHeight: 20 },

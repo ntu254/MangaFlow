@@ -14,6 +14,8 @@ For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile.
 - `../docs/stories/MF-HIOS-100-mobile-role-handoff-profile-polish.md`
 - `../docs/stories/MF-HIOS-101-mobile-panel-componentization.md`
 - `../docs/stories/MF-HIOS-102-mobile-action-panel-componentization.md`
+- `../docs/stories/MF-HIOS-103-mobile-action-visual-polish.md`
+- `../docs/stories/MF-HIOS-104-mobile-edge-case-visual-qa.md`
 
 ## Scripts
 
@@ -61,3 +63,5 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Role handoff and profile scope panels that explain mock/API boundaries without adding auth or new mobile roles.
 - Componentized Editor and Board detail panels under `src/screens/*-panels.tsx`.
 - Componentized Editor and Board action/confirmation panels under `src/screens/*-action-panels.tsx`.
+- Polished mobile action controls, status chips, readiness blockers, ranking rows, segmented controls, and confirmation panels for narrow mobile widths.
+- Visual edge-case hardening for empty queues, long labels, wrapped action rows, and narrow mobile viewport QA.

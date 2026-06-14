@@ -34,10 +34,26 @@ export function BoardDecisionHistoryPanel({ items }: { items: BoardDecisionHisto
       <MFTimeline items={items.map((item) => ({
         id: item.id,
         title: item.title,
-        subtitle: `${item.decision} / ${item.status} / immutable record / ${item.time}`,
+        subtitle: `${decisionLabel(item.decision)} / ${statusLabel(item.status)} / immutable record / ${item.time}`,
         tone: item.decision === "CANCEL" ? "danger" : item.decision === "REQUEST_IMPROVEMENT_PLAN" || item.decision === "NEEDS_REVISION" ? "warning" : "success",
         icon: item.decision === "CANCEL" ? "alert-triangle" : "check-circle",
       }))} />
     </>
   )
+}
+
+function decisionLabel(decision: BoardDecisionHistoryItem["decision"]) {
+  if (decision === "APPROVE") return "Approved"
+  if (decision === "REJECT") return "Rejected"
+  if (decision === "NEEDS_REVISION") return "Needs revision"
+  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Improvement plan requested"
+  if (decision === "CONTINUE") return "Continue"
+  if (decision === "WARNING") return "Warning issued"
+  return "Cancelled"
+}
+
+function statusLabel(status: BoardDecisionHistoryItem["status"]) {
+  if (status === "AT_RISK_ACTION_RECORDED") return "At-risk action recorded"
+  if (status === "TIE_BREAK_REQUIRED") return "Tie-break required"
+  return status.charAt(0) + status.slice(1).toLowerCase()
 }

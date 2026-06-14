@@ -71,7 +71,7 @@ export function EditorManuscriptsScreen() {
         { id: "revision", label: "Revisions", value: String(flow.manuscriptItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED").length), tone: "warning", icon: "refresh-cw" },
         { id: "ready", label: "Ready for Board", value: String(flow.manuscriptItems.filter((item) => item.decisionActions.includes("forward-to-board")).length), tone: "success", icon: "shield-check" },
       ]} />
-      <SegmentedControl labels={["EDITOR_REVIEW", "Revision", "Forwardable"]} />
+      <SegmentedControl labels={["Editor review", "Revision", "Forwardable"]} />
       <View style={styles.stack}>
         {flow.manuscriptItems.length > 0 ? flow.manuscriptItems.map((item) => (
           <MFSeriesRow
@@ -126,7 +126,7 @@ export function EditorReadinessScreen() {
       <EditorReadinessEvidencePanel readiness={flow.readiness} />
       <SectionTitle title="Blockers" />
       <MFQueueList items={readinessChecks.filter((check) => check.tone === "danger")} />
-      <MFButton tone="primary" variant="outline">Open blockers</MFButton>
+      <MFButton tone="primary" variant="soft">Open blockers</MFButton>
       <MFButton>Schedule publication mock</MFButton>
     </>
   )
@@ -141,7 +141,7 @@ export function EditorCommentsScreen() {
       <MFHero title="Comments" subtitle="Resolve production feedback through the canonical lifecycle." />
       <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading comment lifecycle..." />
       <MFMetricStrip items={flow.commentsPayload.metrics} />
-      <SegmentedControl labels={["All", "OPEN", "FIXED", "VERIFIED", "RESOLVED"]} />
+      <SegmentedControl labels={["All", "Open", "Fixed", "Verified", "Resolved"]} />
       <View style={styles.stack}>
         {flow.commentsPayload.comments.length > 0 ? flow.commentsPayload.comments.map((comment) => (
           <CommentReviewRow
@@ -161,7 +161,7 @@ export function EditorCommentsScreen() {
           <Text style={styles.title}>Blocking publication</Text>
           <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED_BY_EDITOR.</Text>
         </View>
-        <MFButton tone="danger" variant="outline">Open blockers</MFButton>
+        <MFButton tone="danger" variant="soft" style={styles.calloutButton}>Open blockers</MFButton>
       </MFCard>
       <SectionTitle title="Recent activity" action="View all" />
       <ActivityList items={flow.commentsPayload.activity} />
@@ -230,7 +230,7 @@ function EditorFinalApprovalsPanel({ standalone = false }: { standalone?: boolea
         { id: "urgent", label: "Urgent", value: String(flow.submissionItems.filter((item) => item.tone === "danger").length), tone: "danger", icon: "alert-triangle" },
         { id: "approved", label: "Approved", value: String(flow.submissionItems.filter((item) => item.submissionStatus === "EDITOR_APPROVED").length), tone: "success", icon: "check-circle" },
       ]} />
-      <SegmentedControl labels={["MANGAKA_APPROVED", "Urgent", "Blocked", "EDITOR_APPROVED"]} />
+      <SegmentedControl labels={["Mangaka approved", "Urgent", "Blocked", "Editor approved"]} />
       <View style={styles.stack}>
         {flow.submissionItems.length > 0 ? flow.submissionItems.map((item) => (
           <MFSeriesRow
@@ -292,16 +292,21 @@ function getCommentCoverSource(item: EditorCommentItem) {
 }
 
 function ReadinessRow({ check }: { check: EditorReadinessCheck }) {
+  const toneColor = check.passed ? colors.success : colors.danger
+  const toneBg = check.passed ? colors.successSoft : colors.dangerSoft
+
   return (
     <View style={[styles.checkRow, !check.passed && styles.failedRow]}>
-      <View style={[styles.checkIcon, { borderColor: check.passed ? colors.success : colors.danger }]}>
-        <MFIcon name={check.passed ? "check" : "alert-triangle"} size={14} color={check.passed ? colors.success : colors.danger} />
+      <View style={[styles.checkIcon, { backgroundColor: toneBg }]}>
+        <MFIcon name={check.passed ? "check" : "alert-triangle"} size={14} color={toneColor} />
       </View>
       <View style={styles.flex}>
         <Text style={styles.checkTitle}>{check.title}</Text>
         <Text style={styles.muted}>{check.reason}</Text>
       </View>
-      <Text style={[styles.checkValue, { color: check.passed ? colors.success : colors.danger }]}>{check.passed ? "Passed" : "Failed"}</Text>
+      <View style={[styles.checkValuePill, { backgroundColor: toneBg }]}>
+        <Text style={[styles.checkValue, { color: toneColor }]}>{check.passed ? "Passed" : "Failed"}</Text>
+      </View>
     </View>
   )
 }
@@ -342,18 +347,19 @@ const styles = StyleSheet.create({
   ring: { width: 104, height: 104, borderRadius: 52, borderWidth: 12, borderColor: colors.primary, alignItems: "center", justifyContent: "center" },
   ringValue: { color: colors.primary, fontSize: 34, fontWeight: "900" },
   ringTotal: { color: colors.textMuted, fontSize: 15, fontWeight: "700" },
-  checkRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.outlineVariant },
-  failedRow: { backgroundColor: colors.dangerSoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm },
-  checkIcon: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  checkRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.outlineVariant },
+  failedRow: { backgroundColor: "#fff7f8", borderRadius: radius.md, paddingHorizontal: spacing.sm, marginVertical: 2, borderBottomWidth: 0 },
+  checkIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   checkTitle: { flex: 1, color: colors.text, fontWeight: "700" },
-  checkValue: { fontWeight: "800", fontSize: 12 },
+  checkValuePill: { minWidth: 66, minHeight: 32, borderRadius: radius.full, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.sm },
+  checkValue: { fontWeight: "900", fontSize: 12 },
   compareGrid: { flexDirection: "row", gap: spacing.sm },
   panelPreview: { flex: 1 },
   mangaPanel: { minHeight: 118, borderRadius: radius.md, backgroundColor: "#2f2f37", marginTop: spacing.xs, padding: spacing.sm, alignItems: "flex-end", justifyContent: "flex-start" },
   bubble: { width: 78, height: 58, borderRadius: 30, backgroundColor: colors.surface, color: colors.text, fontSize: 10, fontWeight: "900", textAlign: "center", paddingTop: 13 },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "stretch", padding: 9, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4" },
+  commentRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, alignItems: "stretch", padding: 9, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4" },
   commentRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   commentThumb: { width: 78, position: "relative" },
   commentPanel: { width: 78, height: 78, borderRadius: radius.md, backgroundColor: "#d9d5df", overflow: "hidden", padding: 8 },
@@ -362,17 +368,18 @@ const styles = StyleSheet.create({
   commentBubble: { marginLeft: "auto", width: 24, height: 36, borderRadius: 14, backgroundColor: colors.surface, opacity: 0.92 },
   pagePill: { position: "absolute", left: 7, bottom: 7, minWidth: 27, height: 23, borderRadius: 8, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#e4d7ff" },
   pagePillText: { color: colors.primary, fontSize: 11, fontWeight: "900" },
-  commentBody: { flex: 1, gap: 5 },
+  commentBody: { flex: 1, minWidth: 160, gap: 5 },
   commentTitle: { flex: 1, color: colors.text, fontSize: 13, fontWeight: "900" },
   commentText: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
   commentMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
   commentOwnerAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   commentOwnerText: { color: colors.primary, fontSize: 10, fontWeight: "900" },
   commentOwner: { color: colors.primary, fontSize: 11, fontWeight: "700" },
-  commentAction: { width: 82, alignItems: "flex-end", justifyContent: "space-between", gap: spacing.xs },
-  actionButton: { minWidth: 76, minHeight: 34, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 4, paddingHorizontal: 7 },
-  actionButtonDanger: { borderColor: colors.danger },
+  commentAction: { width: 88, minWidth: 88, alignItems: "flex-end", justifyContent: "space-between", gap: spacing.xs },
+  actionButton: { minWidth: 82, minHeight: 36, borderRadius: radius.full, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 4, paddingHorizontal: 7 },
+  actionButtonDanger: { backgroundColor: colors.dangerSoft },
   actionButtonText: { color: colors.primary, fontSize: 12, fontWeight: "900" },
   actionButtonTextDanger: { color: colors.danger },
-  blockingCallout: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: "#ffd9d9", backgroundColor: "#fff8f8" },
+  blockingCallout: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: spacing.sm, borderColor: "#ffd9d9", backgroundColor: "#fff8f8" },
+  calloutButton: { flexGrow: 1, flexBasis: "100%" },
 })

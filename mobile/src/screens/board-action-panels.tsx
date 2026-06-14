@@ -19,10 +19,10 @@ export function BoardVotePanel({ item, onVote }: { item: BoardSeriesReviewItem; 
       </View>
       <MFProgress value={(item.voteSummary.eligible - item.voteSummary.pending) / item.voteSummary.eligible} />
       <View style={styles.buttonRow}>
-        <MFButton tone="success" variant="outline" onPress={() => onVote("APPROVE")}>APPROVE</MFButton>
-        <MFButton tone="danger" variant="outline" onPress={() => onVote("REJECT")}>REJECT</MFButton>
+        <MFButton tone="success" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("APPROVE")}>Approve</MFButton>
+        <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("REJECT")}>Reject</MFButton>
       </View>
-      <MFButton tone="primary" variant="outline" onPress={() => onVote("NEEDS_REVISION")}>NEEDS_REVISION</MFButton>
+      <MFButton tone="warning" variant="soft" style={styles.actionButtonFull} onPress={() => onVote("NEEDS_REVISION")}>Needs revision</MFButton>
     </MFCard>
   )
 }
@@ -49,7 +49,7 @@ export function BoardVoteConfirmationPanel({
       title={voteActionTitle(pendingVote)}
       body={isTieBreak
         ? `Confirm Board Chair mock tie-break for ${selectedTitle ?? "the selected proposal"}. This action appears only because decision status is TIE_BREAK_REQUIRED.`
-        : `Confirm mock ${pendingVote} vote for ${selectedTitle ?? "the selected Board review"}. Mobile displays the vote boundary only and does not finalize Board decisions.`}
+        : `Confirm mock ${voteActionLabel(pendingVote)} vote for ${selectedTitle ?? "the selected Board review"}. Mobile displays the vote boundary only and does not finalize Board decisions.`}
       confirmLabel={isTieBreak ? "Confirm tie-break mock" : "Confirm vote mock"}
       tone={voteActionTone(pendingVote)}
       endpointHint={isTieBreak ? "Future endpoint: POST /api/board/series/:seriesId/decisions/tie-break" : "Future endpoint: POST /api/board/series/:seriesId/votes"}
@@ -63,10 +63,10 @@ export function BoardTieBreakActionsPanel({ onVote }: { onVote: (value: BoardVot
   return (
     <>
       <View style={styles.buttonRow}>
-        <MFButton tone="success" variant="outline" onPress={() => onVote("APPROVE")}>Approve</MFButton>
-        <MFButton tone="danger" variant="outline" onPress={() => onVote("NEEDS_REVISION")}>Needs Revision</MFButton>
+        <MFButton tone="success" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("APPROVE")}>Approve</MFButton>
+        <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("NEEDS_REVISION")}>Needs revision</MFButton>
       </View>
-      <MFButton onPress={() => onVote("NEEDS_REVISION")}>Finalize Tie-break Mock</MFButton>
+      <MFButton style={styles.actionButtonFull} onPress={() => onVote("NEEDS_REVISION")}>Finalize tie-break mock</MFButton>
     </>
   )
 }
@@ -95,26 +95,24 @@ export function BoardAtRiskDecisionPanel({
             <Text style={styles.title}>{item.title}</Text>
             <MFBadge tone={item.tone}>{item.rankingStatus}</MFBadge>
           </View>
-          <MFCard style={styles.notePanel}>
+          <View style={styles.notePanel}>
             <Text style={styles.link}>Editor support note</Text>
             <Text style={styles.body}>{item.supportNote}</Text>
-          </MFCard>
+          </View>
         </View>
       </View>
       <Text style={styles.subhead}>Manual Board decision</Text>
       <Text style={styles.body}>Series is not auto-cancelled. Each at-risk action requires confirmation when wired to the backend.</Text>
       <View style={styles.actionButtons}>
-        <MFButton tone="success" variant="outline" onPress={() => onStartDecision("CONTINUE")}>CONTINUE</MFButton>
-        <MFButton tone="warning" variant="outline" onPress={() => onStartDecision("WARNING")}>WARNING</MFButton>
-      </View>
-      <View style={styles.actionButtons}>
-        <MFButton tone="primary" variant="outline" onPress={() => onStartDecision("REQUEST_IMPROVEMENT_PLAN")}>REQUEST PLAN</MFButton>
-        <MFButton tone="danger" variant="outline" onPress={() => onStartDecision("CANCEL")}>CANCEL</MFButton>
+        <MFButton tone="success" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("CONTINUE")}>Continue</MFButton>
+        <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("WARNING")}>Warning</MFButton>
+        <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("REQUEST_IMPROVEMENT_PLAN")}>Request plan</MFButton>
+        <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("CANCEL")}>Cancel</MFButton>
       </View>
       {pendingDecision ? (
         <MFConfirmationPanel
           title={atRiskDecisionTitle(pendingDecision)}
-          body={`Confirm mock ${pendingDecision} for ${item.title}. Series is never auto-cancelled; Board action must remain auditable on the backend.`}
+          body={`Confirm mock ${atRiskDecisionLabel(pendingDecision)} for ${item.title}. Series is never auto-cancelled; Board action must remain auditable on the backend.`}
           confirmLabel="Confirm at-risk mock"
           tone={atRiskDecisionTone(pendingDecision)}
           endpointHint="Future endpoint: POST /api/board/series/:seriesId/at-risk-decisions"
@@ -149,6 +147,12 @@ function voteActionTitle(value: BoardVoteValue) {
   return "Request Board revision vote"
 }
 
+function voteActionLabel(value: BoardVoteValue) {
+  if (value === "APPROVE") return "approve"
+  if (value === "REJECT") return "reject"
+  return "needs revision"
+}
+
 function voteActionTone(value: BoardVoteValue): Tone {
   if (value === "APPROVE") return "success"
   if (value === "REJECT") return "danger"
@@ -160,6 +164,13 @@ function atRiskDecisionTitle(decision: AtRiskDecision) {
   if (decision === "WARNING") return "Issue Board warning"
   if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan"
   return "Cancel series"
+}
+
+function atRiskDecisionLabel(decision: AtRiskDecision) {
+  if (decision === "CONTINUE") return "continue"
+  if (decision === "WARNING") return "warning"
+  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "request improvement plan"
+  return "cancel"
 }
 
 function atRiskDecisionTone(decision: AtRiskDecision): Tone {
@@ -176,14 +187,16 @@ const styles = StyleSheet.create({
   body: { color: colors.text, fontSize: 13, lineHeight: 20, marginTop: 4 },
   link: { color: colors.primary, fontSize: 12, fontWeight: "800" },
   subhead: { color: colors.text, fontSize: 14, fontWeight: "900" },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
-  buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  actionButtons: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
-  voteSplit: { flexDirection: "row", justifyContent: "space-between", gap: spacing.xs, marginTop: spacing.sm },
+  rowBetween: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
+  buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+  actionButtons: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+  actionButtonHalf: { flexGrow: 1, flexBasis: "47%", minWidth: 132 },
+  actionButtonFull: { marginTop: spacing.sm },
+  voteSplit: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: spacing.xs, marginTop: spacing.sm },
   voteCount: { alignItems: "center", flex: 1, minWidth: 0 },
   voteCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, marginBottom: 6, alignItems: "center", justifyContent: "center" },
   voteLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 13, minHeight: 26, textAlign: "center" },
   voteValue: { fontSize: 24, fontWeight: "900" },
-  atRiskDetail: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.md },
-  notePanel: { marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaceLow },
+  atRiskDetail: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md, marginBottom: spacing.md, alignItems: "flex-start" },
+  notePanel: { marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaceLow, borderRadius: 14, borderWidth: 1, borderColor: colors.outlineVariant },
 })

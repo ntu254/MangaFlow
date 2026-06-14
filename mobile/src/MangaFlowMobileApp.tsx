@@ -92,7 +92,7 @@ function RoleProfile({ role, name }: { role: "BOARD" | "EDITOR"; name: string })
       <MFCard style={styles.profileHero}>
         <MFIconCircle tone={isBoard ? "warning" : "primary"} icon={isBoard ? "scale-balance" : "file-text"} size={58} />
         <View style={styles.profileHeroText}>
-          <View style={styles.profileTitleRow}>
+          <View style={styles.profileTitleBlock}>
             <Text style={styles.profileTitle}>{name}</Text>
             <MFBadge tone={isBoard ? "warning" : "primary"}>{isBoard ? "Board Chair" : "Tantou Editor"}</MFBadge>
           </View>
@@ -137,14 +137,14 @@ const styles = StyleSheet.create({
   roleButtonActive: { backgroundColor: colors.primary },
   roleButtonText: { color: colors.textMuted, fontWeight: "800" },
   roleButtonTextActive: { color: colors.surface },
-  handoffCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surfaceLow },
+  handoffCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surfaceLow, borderColor: colors.outlineVariant },
   handoffText: { flex: 1 },
   handoffTitle: { color: colors.text, fontSize: 15, fontWeight: "900" },
   handoffBody: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 3 },
-  profileHero: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  profileHero: { flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: colors.surfaceLow },
   profileHeroText: { flex: 1 },
-  profileTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
-  profileTitle: { color: colors.text, fontSize: 24, fontWeight: "900" },
+  profileTitleBlock: { gap: spacing.xs, alignItems: "flex-start" },
+  profileTitle: { color: colors.text, fontSize: 24, fontWeight: "900", lineHeight: 29 },
   profileText: { color: colors.textMuted, fontSize: 14, lineHeight: 22 },
 })
 

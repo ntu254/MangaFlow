@@ -47,7 +47,7 @@ export function BoardReviewsScreen() {
       <MFHero role="board" title="Series reviews" subtitle="Vote on proposals forwarded by Tantou Editors." />
       <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Board review queue..." />
       <MFMetricStrip items={flow.home.metrics} />
-      <SegmentedControl labels={["BOARD_REVIEW", "Weekly", "Monthly", "Urgent"]} />
+      <SegmentedControl labels={["Board review", "Weekly", "Monthly", "Urgent"]} />
       <View style={styles.stack}>
         {flow.seriesReviews.length > 0 ? flow.seriesReviews.map((item) => (
           <MFSeriesRow
@@ -136,7 +136,11 @@ export function BoardRankingScreen() {
                 <MFBadge tone={item.tone}>{item.rankingStatus}</MFBadge>
               </View>
               <Text style={styles.muted}>Rank {item.rank} / previous {item.previousRank}</Text>
-              <Text style={styles.body}>voteCount {item.voteCount} / readerScore {item.readerScore} / finalScore {item.finalScore}</Text>
+              <View style={styles.rankingStats}>
+                <RankingStat label="Votes" value={String(item.voteCount)} tone="primary" />
+                <RankingStat label="Reader" value={String(item.readerScore)} tone={item.readerScore >= 7 ? "success" : "warning"} />
+                <RankingStat label="Final" value={String(item.finalScore)} tone="neutral" />
+              </View>
             </View>
           </Pressable>
         )) : <MFEmptyState title="No ranking import" subtitle="Reader score import can be empty while the Board waits for the next ranking cycle." icon="bar-chart-2" />}
@@ -193,6 +197,18 @@ function BoardAtRiskPanel() {
   )
 }
 
+function RankingStat({ label, value, tone }: { label: string; value: string; tone: "primary" | "success" | "warning" | "neutral" }) {
+  const color = tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "primary" ? colors.primary : colors.textMuted
+  const backgroundColor = tone === "success" ? colors.successSoft : tone === "warning" ? colors.warningSoft : tone === "primary" ? colors.primarySoft : colors.surfaceContainer
+
+  return (
+    <View style={[styles.rankingStat, { backgroundColor }]}>
+      <Text style={[styles.rankingStatValue, { color }]}>{value}</Text>
+      <Text style={styles.rankingStatLabel}>{label}</Text>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   title: { color: colors.text, fontSize: 17, fontWeight: "900", flexShrink: 1 },
@@ -203,8 +219,12 @@ const styles = StyleSheet.create({
   tieBody: { flex: 1 },
   divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: spacing.md },
   voteSplit: { flexDirection: "row", justifyContent: "space-between", gap: spacing.xs, marginTop: spacing.sm },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
-  flex: { flex: 1 },
-  rankingRow: { flexDirection: "row", gap: spacing.md, alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4", padding: spacing.md },
+  rowBetween: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
+  flex: { flex: 1, minWidth: 0 },
+  rankingRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md, alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: "#f0e8f4", padding: spacing.md },
   rankingRowSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  rankingStats: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: spacing.sm },
+  rankingStat: { minWidth: 64, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 6, alignItems: "center" },
+  rankingStatValue: { fontSize: 13, fontWeight: "900" },
+  rankingStatLabel: { color: colors.textMuted, fontSize: 9, fontWeight: "800", marginTop: 1 },
 })

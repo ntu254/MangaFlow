@@ -316,3 +316,17 @@ test("mobile role handoff and profile polish explains scope without adding roles
   assert.doesNotMatch(appSource, /Assistant companion/)
 })
 
+test("mobile visual edge cases guard long labels and empty queues", () => {
+  assert.match(mfSource, /items\.length === 0/)
+  assert.match(mfSource, /No queue items/)
+  assert.match(mfSource, /numberOfLines=\{2\}>\{children\}/)
+  assert.match(mfSource, /queueValuePill: \{[^}]*maxWidth: 108/)
+  assert.match(mfSource, /seriesActionPill: \{[^}]*maxWidth: "100%"/)
+  assert.match(mfSource, /tabButton: \{[^}]*minWidth: 0/)
+  assert.match(boardActionPanelsSource, /buttonRow: \{[^}]*flexWrap: "wrap"/)
+  assert.match(editorActionPanelsSource, /buttonRow: \{[^}]*flexWrap: "wrap"/)
+  assert.match(boardSource, /rankingRow: \{[^}]*flexWrap: "wrap"/)
+  assert.match(editorSource, /checkRow: \{[^}]*flexWrap: "wrap"/)
+  assert.match(editorSource, /commentRow: \{[^}]*flexWrap: "wrap"/)
+})
+
