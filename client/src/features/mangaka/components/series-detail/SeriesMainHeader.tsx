@@ -111,6 +111,7 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
             <div className="text-[12px] font-bold text-gray-500 mt-6 flex items-center gap-1.5">
               Current Phase: <span className={isProposal ? "text-orange-500" : "text-emerald-500"}>{isProposal ? 'Editor Review' : 'Production'}</span>
             </div>
+            
           </div>
 
           {/* Next Action Card */}

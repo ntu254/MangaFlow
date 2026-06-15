@@ -1,5 +1,3 @@
-import { useRef } from "react"
-import axios from "axios"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
@@ -59,23 +57,14 @@ export interface UploadedFileResult {
   contentType: SeriesUploadContentType
 }
 
-function getUploadErrorMessage(error: unknown) {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message || error.message
-  }
-  return error instanceof Error ? error.message : "Upload failed"
-}
-
 /**
  * Full upload flow for a single file:
  * 1. ask backend for a presigned upload URL (also persists a draft manuscript)
  * 2. PUT the file bytes directly to the presigned URL
  */
 export function useUploadSeriesFile() {
-  const queueRef = useRef<Promise<unknown>>(Promise.resolve())
-
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       seriesId,
       file,
       onProgress,
@@ -84,38 +73,29 @@ export function useUploadSeriesFile() {
       file: File
       onProgress?: (loaded: number, total: number) => void
     }): Promise<UploadedFileResult> => {
-      const queuedUpload = queueRef.current
-        .catch(() => undefined)
-        .then(async () => {
-          const contentType = resolveUploadContentType(file)
-          if (!contentType) {
-            throw new Error(`Unsupported file type: ${file.type || "unknown"}`)
-          }
+      const contentType = resolveUploadContentType(file)
+      if (!contentType) {
+        throw new Error(`Unsupported file type: ${file.type || "unknown"}`)
+      }
 
-          const payload: CreateManuscriptUploadInput = {
-            originalName: file.name,
-            contentType,
-            size: file.size,
-          }
+      const payload: CreateManuscriptUploadInput = {
+        originalName: file.name,
+        contentType,
+        size: file.size,
+      }
 
-          const { data } = await seriesApi.createManuscriptUpload(seriesId, payload)
-          const { uploadUrl, fileAssetId, manuscriptId } = data.data
+      const { data } = await seriesApi.createManuscriptUpload(seriesId, payload)
+      const { uploadUrl, fileAssetId, manuscriptId } = data.data
 
-          await putToPresignedUrl(uploadUrl, file, onProgress)
+      await putToPresignedUrl(uploadUrl, file, onProgress)
 
-          return {
-            fileAssetId,
-            manuscriptId,
-            originalName: file.name,
-            size: file.size,
-            contentType,
-          }
-        })
-
-      queueRef.current = queuedUpload.catch(() => undefined)
-      return queuedUpload.catch((error) => {
-        throw new Error(getUploadErrorMessage(error))
-      })
+      return {
+        fileAssetId,
+        manuscriptId,
+        originalName: file.name,
+        size: file.size,
+        contentType,
+      }
     },
   })
 }

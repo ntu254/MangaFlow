@@ -30,7 +30,7 @@ export default function SeriesDetailPage() {
   const seriesPhase: SeriesPhase = productionStatuses.includes(summary.series.status) ? 'production' : 'proposal'
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white" style={{ zoom: 0.9 }}>
+    <div className="flex -m-6 h-[calc(100vh-64px)] bg-white overflow-hidden">
       
       {/* Sidebar Navigation */}
       <SeriesSidebar 
@@ -42,19 +42,11 @@ export default function SeriesDetailPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-y-auto bg-gray-50/30">
-        
-        <div className="flex justify-end p-4 border-b border-gray-100 bg-white">
-          <div className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-bold text-[13px] border border-indigo-200 shadow-sm">
-            Current Context: {seriesPhase === 'proposal' ? 'Proposal Review' : 'Production'}
-          </div>
-        </div>
 
         <div className={`flex flex-col w-full mx-auto flex-1 ${activeMainTab === 'workspace' ? '' : 'px-10 py-8 max-w-[1600px]'}`}>
           
           {/* Main Header (Only for non-workspace tabs) */}
           {activeMainTab !== 'workspace' && <SeriesMainHeader summary={summary} seriesPhase={seriesPhase} />}
-
-          {/* Sub Tabs (Only for Overview) */}
           {activeMainTab === 'overview' && (
             <div className="flex items-center gap-8 border-b border-gray-200 mb-6 mt-4">
               <button 

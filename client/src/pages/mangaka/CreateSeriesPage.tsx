@@ -72,7 +72,6 @@ export default function MangakaCreateSeriesPage() {
   const [editorMessage, setEditorMessage] = useState('')
   // Cover Draft chosen in Step 1; uploaded once we have a seriesId in Step 2.
   const [pendingCover, setPendingCover] = useState<File | null>(null)
-  const [isUploadingFiles, setIsUploadingFiles] = useState(false)
 
   const user = useAuthStore((s) => s.user)
   const createSeries = useCreateSeries()
@@ -85,10 +84,7 @@ export default function MangakaCreateSeriesPage() {
   )
 
   const isBusy =
-    createSeries.isPending ||
-    submitSeries.isPending ||
-    updateSeries.isPending ||
-    isUploadingFiles
+    createSeries.isPending || submitSeries.isPending || updateSeries.isPending
 
   // Step 1 -> 2: persist the draft (create once, reuse afterwards)
   const goToUploadStep = async () => {
@@ -118,10 +114,6 @@ export default function MangakaCreateSeriesPage() {
 
   // Step 2 -> 3: require at least one proposal/sample upload
   const goToSubmitStep = () => {
-    if (isUploadingFiles) {
-      toast.error('Please wait for uploads to finish before continuing')
-      return
-    }
     if (!hasRequiredUpload) {
       toast.error('Upload at least one proposal PDF or sample page before continuing')
       return
@@ -151,10 +143,6 @@ export default function MangakaCreateSeriesPage() {
   // form values. Available in Step 1 and Step 2 only.
   const saveAsDraft = async () => {
     if (currentStep === 3) return
-    if (isUploadingFiles) {
-      toast.error('Please wait for uploads to finish before saving')
-      return
-    }
 
     // Save is more permissive than Next: only require the hard backend
     // constraints (title + synopsis); other fields can be filled in later.
@@ -224,7 +212,6 @@ export default function MangakaCreateSeriesPage() {
             setUploadedFiles={setUploadedFiles}
             pendingCover={pendingCover}
             clearPendingCover={() => setPendingCover(null)}
-            onUploadingChange={setIsUploadingFiles}
           />
         )}
         {currentStep === 3 && (

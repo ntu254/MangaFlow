@@ -12,17 +12,6 @@ export function ProposalOverviewTab({ summary }: { summary: SeriesSummary }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex gap-4 items-start shadow-sm">
-        <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm text-purple-600">
-          <Info size={16} />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[14px] font-bold text-gray-900">This series is in {statusLabel}</span>
-          <span className="text-[13px] font-medium text-gray-600 mt-1">{summary.commentSummary.open > 0 ? 'The editor has feedback for your proposal.' : 'The editor is reviewing your proposal.'}</span>
-          <span className="text-[12px] font-medium text-gray-500 mt-2">Last update: {lastUpdate}</span>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col h-full hover:shadow-md transition-shadow">
           <h3 className="text-[15px] font-bold text-gray-900 mb-2">Review Status</h3>

@@ -9,19 +9,39 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
   const currentChapterPct = currentChapter && currentChapter.pageCount > 0
     ? Math.round((currentChapter.approvedPages / currentChapter.pageCount) * 100)
     : 0
-
   return (
     <div className="flex flex-col gap-6">
 
-      {/* Alert Banner */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-4 items-start shadow-sm justify-end">
-        <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm text-indigo-600">
-          <Info size={16} />
+      {/* Publication Readiness Bar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mt-0 flex items-center gap-6 overflow-x-auto">
+        
+        <div className="flex flex-col shrink-0 min-w-[140px]">
+          <h3 className="text-[15px] font-bold text-gray-900">Publication Readiness</h3>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[14px] font-bold text-gray-900">You are viewing the production overview.</span>
-          <span className="text-[13px] font-medium text-gray-600 mt-1">This shows real-time production status and progress.</span>
+
+        <div className="h-10 w-px bg-gray-200 shrink-0 mx-2"></div>
+
+        <ReadinessItem icon="file" title="Pages Approved" value={`${approvedPages} / ${uploadedPages}`} />
+        <ReadinessItem icon="check" title="All Tasks Approved" value={`${summary.taskSummary.completed} / ${summary.taskSummary.total}`} />
+        <ReadinessItem icon="circle" title="Pending Reviews" value={String(summary.taskSummary.pendingReviews)} />
+        <ReadinessItem icon="check_circle" title="All Comments Resolved" value={`${summary.commentSummary.resolved} / ${summary.commentSummary.open + summary.commentSummary.resolved}`} />
+        
+        <div className="flex flex-col shrink-0 ml-4">
+          <span className="text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1"><CheckCircle2 size={12}/> Editor Final Approval</span>
+          <span className="text-[13px] font-bold text-gray-900">{summary.publicationSummary.isReady ? 'Ready' : 'Pending'}</span>
         </div>
+
+        <div className="flex flex-col shrink-0 ml-4">
+          <span className="text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1"><FileTextIcon /> Publication Date</span>
+          <span className="text-[13px] font-bold text-gray-900">{currentChapter?.draftSchedule ? formatDate(currentChapter.draftSchedule) : 'Not scheduled'}</span>
+        </div>
+
+        <div className="ml-auto shrink-0 pl-4">
+          <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 text-[13px] transition-colors shadow-sm">
+            Check Readiness <ArrowRightIcon />
+          </button>
+        </div>
+
       </div>
 
       {/* Top Grid */}
@@ -29,8 +49,6 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
         
         {/* Production at a Glance */}
         <div className="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col hover:shadow-md transition-shadow">
-          <h3 className="text-[15px] font-bold text-gray-900 mb-5">Production at a Glance</h3>
-          
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-bold text-gray-500">Chapters</span>
@@ -234,39 +252,6 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
         </div>
 
       </div>
-
-      {/* Bottom Bar: Publication Readiness */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mt-2 flex items-center gap-6 overflow-x-auto">
-        
-        <div className="flex flex-col shrink-0 min-w-[140px]">
-          <h3 className="text-[15px] font-bold text-gray-900">Publication Readiness</h3>
-        </div>
-
-        <div className="h-10 w-px bg-gray-200 shrink-0 mx-2"></div>
-
-        <ReadinessItem icon="file" title="Pages Approved" value={`${approvedPages} / ${uploadedPages}`} />
-        <ReadinessItem icon="check" title="All Tasks Approved" value={`${summary.taskSummary.completed} / ${summary.taskSummary.total}`} />
-        <ReadinessItem icon="circle" title="Pending Reviews" value={String(summary.taskSummary.pendingReviews)} />
-        <ReadinessItem icon="check_circle" title="All Comments Resolved" value={`${summary.commentSummary.resolved} / ${summary.commentSummary.open + summary.commentSummary.resolved}`} />
-        
-        <div className="flex flex-col shrink-0 ml-4">
-          <span className="text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1"><CheckCircle2 size={12}/> Editor Final Approval</span>
-          <span className="text-[13px] font-bold text-gray-900">{summary.publicationSummary.isReady ? 'Ready' : 'Pending'}</span>
-        </div>
-
-        <div className="flex flex-col shrink-0 ml-4">
-          <span className="text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1"><FileTextIcon /> Publication Date</span>
-          <span className="text-[13px] font-bold text-gray-900">{currentChapter?.draftSchedule ? formatDate(currentChapter.draftSchedule) : 'Not scheduled'}</span>
-        </div>
-
-        <div className="ml-auto shrink-0 pl-4">
-          <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 text-[13px] transition-colors shadow-sm">
-            Check Readiness <ArrowRightIcon />
-          </button>
-        </div>
-
-      </div>
-
     </div>
   )
 }
