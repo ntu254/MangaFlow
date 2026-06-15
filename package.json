@@ -1,0 +1,20 @@
+{
+  "name": "mangaflow",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "setup": "npm install && npm --prefix server install && npm --prefix client install && npm --prefix mobile install && npm run ai:install",
+    "dev": "concurrently -n server,client,mobile,ai -c blue,green,magenta,yellow \"npm --prefix server run dev\" \"npm --prefix client run dev\" \"npm --prefix mobile run start -- --port 8082\" \"npm run ai:dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:mobile": "npm --prefix mobile run start -- --port 8082",
+    "dev:ai": "npm run ai:dev",
+    "ai:install": "python -m venv ai-service\\.venv && .\\ai-service\\.venv\\Scripts\\python.exe -m pip install --upgrade pip && .\\ai-service\\.venv\\Scripts\\python.exe -m pip install -r ai-service\\requirements.txt",
+    "ai:dev": "node scripts/run-ai-service.mjs",
+    "lint": "npm --prefix server run lint && npm --prefix client run lint && npm --prefix mobile run typecheck",
+    "test": "npm --prefix server run test && npm --prefix mobile run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
