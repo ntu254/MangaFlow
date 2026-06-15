@@ -112,6 +112,17 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
               Current Phase: <span className={isProposal ? "text-orange-500" : "text-emerald-500"}>{isProposal ? 'Editor Review' : 'Production'}</span>
             </div>
             
+            {/* Context Alert Banner */}
+            <div className={`mt-2 border rounded-xl p-3 flex gap-3 items-start shadow-sm ${isProposal ? 'bg-purple-50 border-purple-100' : 'bg-indigo-50 border-indigo-100'}`}>
+              <div className={`bg-white w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow-sm ${isProposal ? 'text-purple-600' : 'text-indigo-600'}`}>
+                <Info size={14} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[12px] font-bold text-gray-900">{isProposal ? `This series is in ${labelize(summary.series.status)}` : 'You are viewing the production overview.'}</span>
+                <span className="text-[11px] font-medium text-gray-600 mt-0.5">{isProposal ? (summary.commentSummary.open > 0 ? 'The editor has feedback for your proposal.' : 'The editor is reviewing your proposal.') : 'This shows real-time production status and progress.'}</span>
+              </div>
+            </div>
+            
           </div>
 
           {/* Next Action Card */}
