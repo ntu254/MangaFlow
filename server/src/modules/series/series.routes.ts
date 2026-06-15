@@ -2,6 +2,7 @@
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireRole } from "../../shared/middleware/requireRole.js"
 import { validate } from "../../shared/middleware/validate.js"
+import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./series.controller.js"
 import { createManuscriptUploadSchema, createSeriesSchema, seriesIdParamsSchema, updateSeriesSchema } from "./series.validation.js"
 import { addSeriesMemberSchema } from "./series-member.validation.js"
@@ -9,10 +10,10 @@ import { addSeriesMember } from "./series-member.controller.js"
 
 const router = Router()
 
-router.get("/", requireAuth, controller.listSeries)
-router.get("/:seriesId", requireAuth, validate(seriesIdParamsSchema, "params"), controller.getSeriesDetail)
-router.get("/:seriesId/summary", requireAuth, validate(seriesIdParamsSchema, "params"), controller.getSeriesSummary)
-router.post("/", requireAuth, requireRole("MANGAKA"), validate(createSeriesSchema), controller.createSeries)
+router.get("/", requireAuth, asyncHandler(controller.listSeries))
+router.get("/:seriesId", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesDetail))
+router.get("/:seriesId/summary", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesSummary))
+router.post("/", requireAuth, requireRole("MANGAKA"), validate(createSeriesSchema), asyncHandler(controller.createSeries))
 
 router.post(
   "/:seriesId/manuscripts/uploads",
@@ -20,7 +21,7 @@ router.post(
   requireRole("MANGAKA"),
   validate(seriesIdParamsSchema, "params"),
   validate(createManuscriptUploadSchema),
-  controller.createManuscriptUpload,
+  asyncHandler(controller.createManuscriptUpload),
 )
 
 router.patch(
@@ -29,14 +30,14 @@ router.patch(
   requireRole("MANGAKA"),
   validate(seriesIdParamsSchema, "params"),
   validate(updateSeriesSchema),
-  controller.updateSeries,
+  asyncHandler(controller.updateSeries),
 )
 router.post(
   "/:seriesId/submit",
   requireAuth,
   requireRole("MANGAKA"),
   validate(seriesIdParamsSchema, "params"),
-  controller.submitSeries,
+  asyncHandler(controller.submitSeries),
 )
 
 router.post(

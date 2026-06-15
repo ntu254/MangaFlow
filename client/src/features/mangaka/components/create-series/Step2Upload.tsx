@@ -13,6 +13,7 @@ interface Step2UploadProps {
   ) => void
   pendingCover?: File | null
   clearPendingCover?: () => void
+  onUploadingChange?: (isUploading: boolean) => void
 }
 
 const ACCEPT_BY_SLOT: Record<UploadSlot, string> = {
@@ -32,12 +33,26 @@ export function Step2Upload({
   setUploadedFiles,
   pendingCover,
   clearPendingCover,
+  onUploadingChange,
 }: Step2UploadProps) {
   const upload = useUploadSeriesFile()
+  const autoCoverKeyRef = useRef<string | null>(null)
 
   const proposal = uploadedFiles.find((f) => f.slot === 'PROPOSAL_PDF') ?? null
   const samples = uploadedFiles.filter((f) => f.slot === 'SAMPLE_PAGE')
   const hasCoverUploaded = uploadedFiles.some((f) => f.slot === 'COVER_DRAFT')
+  const pendingCoverKey = pendingCover
+    ? `${pendingCover.name}:${pendingCover.size}:${pendingCover.lastModified}`
+    : null
+
+  useEffect(() => {
+    onUploadingChange?.(upload.isPending)
+    return () => onUploadingChange?.(false)
+  }, [onUploadingChange, upload.isPending])
+
+  useEffect(() => {
+    if (!pendingCoverKey) autoCoverKeyRef.current = null
+  }, [pendingCoverKey])
 
   const uploadFile = async (slot: UploadSlot, file: File) => {
     if (!seriesId) {
@@ -76,7 +91,10 @@ export function Step2Upload({
   // seriesId and we haven't already pushed one. Clear the pending state so we
   // don't loop.
   useEffect(() => {
-    if (!seriesId || !pendingCover || hasCoverUploaded) return
+    if (!seriesId || !pendingCover || !pendingCoverKey || hasCoverUploaded) return
+    if (autoCoverKeyRef.current === pendingCoverKey) return
+    autoCoverKeyRef.current = pendingCoverKey
+
     let cancelled = false
     void (async () => {
       try {
@@ -97,7 +115,7 @@ export function Step2Upload({
     }
     // upload is a stable mutation object from react-query; intentionally not in deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seriesId, pendingCover, hasCoverUploaded])
+  }, [seriesId, pendingCover, pendingCoverKey, hasCoverUploaded])
 
   return (
     <div className="flex flex-col gap-6">

@@ -26,6 +26,10 @@ function isDuplicateManuscriptVersionError(error: unknown): boolean {
   )
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export interface CreateManuscriptUploadDraftInput {
   seriesId: string
   uploadedBy: string
@@ -46,7 +50,7 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
   })
 
   let manuscript
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
     const latest = await getLatestManuscriptBySeries(input.seriesId)
     const version = latest ? latest.version + 1 : 1
 
@@ -60,9 +64,10 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
       })
       break
     } catch (error) {
-      if (!isDuplicateManuscriptVersionError(error) || attempt === 2) {
+      if (!isDuplicateManuscriptVersionError(error) || attempt === 7) {
         throw error
       }
+      await delay(20 * (attempt + 1))
     }
   }
 
