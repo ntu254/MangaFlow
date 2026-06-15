@@ -1,4 +1,0 @@
-export * from "./repositories/chapter.repository.js"
-export * from "./repositories/page.repository.js"
-export * from "./repositories/region.repository.js"
-export * from "./repositories/readiness.repository.js"
