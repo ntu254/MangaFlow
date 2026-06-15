@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid"
 const s3 = new S3Client({
   region: config.r2Region,
   endpoint: config.r2Endpoint,
+  requestChecksumCalculation: "WHEN_REQUIRED",
   credentials: {
     accessKeyId: config.r2AccessKeyId,
     secretAccessKey: config.r2SecretAccessKey,
