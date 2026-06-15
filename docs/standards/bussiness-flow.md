@@ -261,7 +261,6 @@ Editorial Board phải approve Series trước thì Mangaka mới được tạo
 | ------------------ | -------------------------- |
 | ---                | ---:                       |
 | DRAFT              | Không                      |
-| SUBMITTED          | Không                      |
 | EDITOR_REVIEW      | Không                      |
 | REVISION_REQUESTED | Không                      |
 | BOARD_REVIEW       | Không                      |
@@ -349,8 +348,8 @@ NEEDS_REVISION
 Voting rule:
 
 ```
-Majority vote wins
-If tie → Board Chair decides
+Voting result is determined by the option with the highest vote count after quorum is met.
+If two or more options tie for highest vote count, Board Chair must make the tie-break decision.
 ```
 
 Kết quả:
@@ -649,7 +648,7 @@ Backend phải check:
 | Description        | Có       | Mô tả công việc                                   |
 | Task Type          | Có       | Lấy từ Task Type active                           |
 | Assigned Assistant | Có       | Chỉ assistant trong series                        |
-| Priority           | Có       | LOW / MEDIUM / HIGH / URGENT                      |
+| Priority           | Có       | LOW / NORMAL / HIGH / URGENT                      |
 | Due Date           | Có       | Deadline                                          |
 | Base Rate          | Có       | Auto-fill từ Task Type, có thể chỉnh nếu có quyền |
 | Region             | Optional | Có nếu task gắn vùng                              |
@@ -772,9 +771,16 @@ Assistant login
 → Assistant upload result file hoặc nhập text tùy Task Type
 → Assistant submit
 → Submission được tạo
-→ Submission status = PENDING_MANGAKA_REVIEW
+→ Submission status = SUBMITTED
 → Task status = SUBMITTED
+→ Meaning: pending Mangaka review
 → Mangaka nhận notification
+```
+
+UI label:
+
+```
+SUBMITTED => Pending Mangaka Review
 ```
 
 ---
@@ -901,12 +907,23 @@ Flow:
 Tất cả task/page trong chapter đã EDITOR_APPROVED
 → System check Publication Readiness
 → Nếu đạt
-→ Chapter status = READY_FOR_PUBLICATION
 → Editor tạo/xác nhận publication schedule
-→ Chapter publish theo lịch Board đã duyệt: weekly/monthly
+→ Editor publish publication
+→ Chapter status chuyển READY_FOR_PUBLICATION rồi PUBLISHED
 ```
 
 Board approve Series + publication type. Editor quản lý lịch chapter cụ thể theo lịch đó.
+
+MVP:
+
+- Editor tạo hoặc cập nhật publication date.
+- System check readiness trước khi publish.
+- Khi publish thành công, Chapter chuyển `READY_FOR_PUBLICATION` rồi `PUBLISHED`.
+
+Future:
+
+- Publication scheduler tự publish theo lịch.
+- Chapter có thể giữ trạng thái `READY_FOR_PUBLICATION` trong lúc chờ lịch chạy.
 
 ---
 
@@ -960,20 +977,22 @@ normalizedReaderScore = readerScore * 10
 finalScore = voteCount * 0.7 + normalizedReaderScore * 0.3
 ```
 
-System cập nhật:
+MVP:
 
 ```
-rank
-previousRank
-status = NORMAL / WARNING / AT_RISK
+Board imports/finalizes ranking data
+System stores period, series, voteCount, readerScore, finalScore
+Board manually reviews weak series
+Board manually creates decision: CONTINUE / WARNING / REQUEST_IMPROVEMENT_PLAN / CANCEL
 ```
 
-Nếu series bị cảnh báo:
+Future:
 
 ```
-Notify Mangaka
-Notify Editor
-Board thấy trong At-Risk Series
+System calculates rank + previousRank automatically
+System marks ranking WARNING / AT_RISK
+System may mark Series AT_RISK
+System notifies Mangaka + Editor
 ```
 
 Board có thể quyết định:
@@ -1012,6 +1031,12 @@ Late > 24h       → mark LATE, no bonus
 ```
 
 Formula:
+
+```
+finalPayment = basePayment * deadlineMultiplier
+```
+
+Future:
 
 ```
 finalPayment = basePayment * (1 + bonusRate) + revisionFee
@@ -1417,7 +1442,7 @@ flowchart TD
     D --> E["Upload result file hoặc nhập text submission"]
     E --> F["Submit"]
     F --> G["Create Submission"]
-    G --> H["Submission status = PENDING_MANGAKA_REVIEW"]
+    G --> H["Submission status = SUBMITTED"]
     H --> I["Task status = SUBMITTED"]
     I --> J["Notify Mangaka"]
 ```
@@ -1536,15 +1561,8 @@ flowchart TD
     B --> C["System calculates normalizedReaderScore = readerScore * 10"]
     C --> D["System calculates finalScore = voteCount * 0.7 + normalizedReaderScore * 0.3"]
     D --> E["Sort ranking table"]
-    E --> F["Update rank + previousRank"]
-    F --> G{"Ranking status?"}
-
-    G -->|NORMAL| H["Series status unchanged"]
-    G -->|WARNING| I["Mark ranking WARNING"]
-    I --> J["Notify Mangaka + Editor"]
-    G -->|AT_RISK| K["Mark Series AT_RISK"]
-    K --> L["Notify Mangaka + Editor"]
-    L --> M["Board reviews At-Risk Series"]
+    E --> F["Finalize ranking data"]
+    F --> M["Board manually reviews weak series"]
     M --> N{"Board decision?"}
 
     N -->|CONTINUE| O["Create BoardDecision = CONTINUE"]
@@ -1562,11 +1580,10 @@ flowchart TD
 flowchart TD
     A["Task status = EDITOR_APPROVED"] --> B["System calculate earning"]
     B --> C["Get Task.baseRate"]
-    C --> D["Apply deadline bonus/penalty"]
-    D --> E["Apply revision fee if configured"]
-    E --> F{"Task rejected?"}
+    C --> D["Apply deadline multiplier"]
+    D --> F{"Task rejected?"}
     F -->|Yes| G["finalPayment = 0"]
-    F -->|No| H["finalPayment = basePayment * (1 + bonusRate) + revisionFee"]
+    F -->|No| H["finalPayment = basePayment * deadlineMultiplier"]
     G --> I["Create AssistantEarning"]
     H --> I
     I --> J["Mangaka views Payroll"]

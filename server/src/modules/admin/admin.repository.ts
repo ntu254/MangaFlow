@@ -2,6 +2,7 @@ import { User } from "../auth/auth.model.js"
 import { BoardMember } from "../board/board.model.js"
 import { Series } from "../series/series.model.js"
 import { Task, TaskType } from "../task/task.model.js"
+import type { TaskTypeInput, TaskTypeUpdateInput } from "../task/task-type.types.js"
 
 export function listUsers() {
   return User.find().sort({ createdAt: -1 }).lean()
@@ -90,7 +91,7 @@ export function countTaskTypes() {
 }
 
 export function listTaskTypes() {
-  return TaskType.find().sort({ name: 1 }).lean()
+  return TaskType.find().sort({ sortOrder: 1, name: 1 }).lean()
 }
 
 export function getTaskType(taskTypeId: string) {
@@ -101,12 +102,17 @@ export function getTaskTypeByName(name: string) {
   return TaskType.findOne({ name })
 }
 
-export function createTaskType(input: { name: string; description: string; baseRate: number }) {
-  return TaskType.create(input)
+export function getTaskTypeByCode(code: string) {
+  return TaskType.findOne({ code: code.toUpperCase() })
 }
 
-export function updateTaskType(taskTypeId: string, updates: { name?: string; description?: string; baseRate?: number; isActive?: boolean }) {
-  return TaskType.findByIdAndUpdate(taskTypeId, updates, { new: true })
+export function createTaskType(input: TaskTypeInput) {
+  return TaskType.create({ ...input, code: input.code.toUpperCase() })
+}
+
+export function updateTaskType(taskTypeId: string, updates: TaskTypeUpdateInput) {
+  const patch = updates.code ? { ...updates, code: updates.code.toUpperCase() } : updates
+  return TaskType.findByIdAndUpdate(taskTypeId, patch, { new: true })
 }
 
 export function taskTypeInUse(taskTypeId: string) {

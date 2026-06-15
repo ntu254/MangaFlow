@@ -1,25 +1,27 @@
 import { Task, TaskType } from "../task.model.js"
 import { AppError } from "../../../shared/errors/AppError.js"
+import type { TaskTypeInput, TaskTypeUpdateInput } from "../task-type.types.js"
 
-export async function createTaskTypeRepository(input: { name: string; description: string; baseRate: number }): Promise<any> {
-  const existing = await TaskType.findOne({ name: input.name })
+export async function createTaskTypeRepository(input: TaskTypeInput): Promise<any> {
+  const existing = await TaskType.findOne({ $or: [{ name: input.name }, { code: input.code.toUpperCase() }] })
   if (existing) {
-    throw new AppError("Task type with this name already exists", 409)
+    throw new AppError("Task type with this name or code already exists", 409)
   }
-  return TaskType.create(input)
+  return TaskType.create({ ...input, code: input.code.toUpperCase() })
 }
 
 export async function listTaskTypes(activeOnly = true): Promise<any[]> {
   const query = activeOnly ? { isActive: true } : {}
-  return TaskType.find(query).sort({ name: 1 }).lean()
+  return TaskType.find(query).sort({ sortOrder: 1, name: 1 }).lean()
 }
 
 export async function getTaskTypeById(taskTypeId: string): Promise<any | null> {
   return TaskType.findById(taskTypeId)
 }
 
-export async function updateTaskType(taskTypeId: string, updates: { description?: string; baseRate?: number; isActive?: boolean }): Promise<any | null> {
-  return TaskType.findByIdAndUpdate(taskTypeId, updates, { new: true })
+export async function updateTaskType(taskTypeId: string, updates: TaskTypeUpdateInput): Promise<any | null> {
+  const patch = updates.code ? { ...updates, code: updates.code.toUpperCase() } : updates
+  return TaskType.findByIdAndUpdate(taskTypeId, patch, { new: true })
 }
 
 export async function deleteTaskType(taskTypeId: string): Promise<any | null> {

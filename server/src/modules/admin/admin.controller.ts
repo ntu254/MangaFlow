@@ -20,6 +20,7 @@ import {
   updateAdminTaskTypeService,
 } from "./admin.service.js"
 import type { UserRole } from "../auth/auth.types.js"
+import type { TaskTypeInput, TaskTypeUpdateInput } from "../task/task-type.types.js"
 
 export async function listAdminUsers(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -176,7 +177,7 @@ export async function listAdminTaskTypes(_req: Request, res: Response, next: Nex
 
 export async function createAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const taskType = await createAdminTaskTypeService(req.body as { name: string; description: string; baseRate: number })
+    const taskType = await createAdminTaskTypeService(req.body as TaskTypeInput)
     res.status(201).json({ success: true, message: "Task type created", data: toAdminTaskTypeResponse(taskType) })
   } catch (err) {
     next(err)
@@ -185,7 +186,7 @@ export async function createAdminTaskType(req: Request, res: Response, next: Nex
 
 export async function updateAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const taskType = await updateAdminTaskTypeService(String(req.params.taskTypeId), req.body as { name?: string; description?: string; baseRate?: number })
+    const taskType = await updateAdminTaskTypeService(String(req.params.taskTypeId), req.body as TaskTypeUpdateInput)
     res.json({ success: true, message: "Task type updated", data: toAdminTaskTypeResponse(taskType) })
   } catch (err) {
     next(err)
@@ -217,9 +218,16 @@ function toAdminTaskTypeResponse(taskType: any) {
   return {
     id: String(taskType._id ?? taskType.id),
     name: taskType.name,
+    code: taskType.code,
     description: taskType.description,
     baseRate: Number(taskType.baseRate),
+    currency: taskType.currency,
     isActive: Boolean(taskType.isActive),
+    allowRegionTask: Boolean(taskType.allowRegionTask),
+    allowPageTask: Boolean(taskType.allowPageTask),
+    requiresFileSubmission: Boolean(taskType.requiresFileSubmission),
+    requiresTextSubmission: Boolean(taskType.requiresTextSubmission),
+    sortOrder: taskType.sortOrder,
     createdAt: taskType.createdAt,
     updatedAt: taskType.updatedAt,
   }

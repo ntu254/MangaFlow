@@ -1,23 +1,32 @@
 import { AppError } from "../../../shared/errors/AppError.js"
+import type { TaskTypeInput, TaskTypeUpdateInput } from "../../task/task-type.types.js"
 import * as repository from "../admin.repository.js"
 
 export async function listAdminTaskTypesService() {
   return repository.listTaskTypes()
 }
 
-export async function createAdminTaskTypeService(input: { name: string; description: string; baseRate: number }) {
-  const existing = await repository.getTaskTypeByName(input.name)
-  if (existing) throw new AppError("Task type with this name already exists", 409)
+async function assertUniqueTaskTypeIdentity(input: { name?: string; code?: string }, taskTypeId?: string) {
+  if (input.name) {
+    const existing = await repository.getTaskTypeByName(input.name)
+    if (existing && String(existing.id) !== taskTypeId) throw new AppError("Task type with this name already exists", 409)
+  }
+
+  if (input.code) {
+    const existingCode = await repository.getTaskTypeByCode(input.code)
+    if (existingCode && String(existingCode.id) !== taskTypeId) {
+      throw new AppError("Task type with this code already exists", 409)
+    }
+  }
+}
+
+export async function createAdminTaskTypeService(input: TaskTypeInput) {
+  await assertUniqueTaskTypeIdentity(input)
   return repository.createTaskType(input)
 }
 
-export async function updateAdminTaskTypeService(taskTypeId: string, updates: { name?: string; description?: string; baseRate?: number }) {
-  if (updates.name) {
-    const existing = await repository.getTaskTypeByName(updates.name)
-    if (existing && String(existing.id) !== taskTypeId) {
-      throw new AppError("Task type with this name already exists", 409)
-    }
-  }
+export async function updateAdminTaskTypeService(taskTypeId: string, updates: TaskTypeUpdateInput) {
+  await assertUniqueTaskTypeIdentity(updates, taskTypeId)
 
   const taskType = await repository.updateTaskType(taskTypeId, updates)
   if (!taskType) throw new AppError("Task type not found", 404)
