@@ -10,6 +10,7 @@
     "swagger": "tsx src/swagger.ts",
     "r2:cors": "tsx scripts/configure-r2-cors.ts",
     "seed": "tsx src/seed.ts",
+    "r2:cors": "tsx scripts/configure-r2-cors.ts",
     "lint": "tsc --noEmit",
     "test": "vitest run"
   },

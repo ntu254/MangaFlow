@@ -123,5 +123,5 @@ export function validateFileType(
 }
 
 export function validateFileSize(size: number, maxSizeMB: number): boolean {
-  return size <= maxSizeMB * 1024 * 1024;
+  return size <= maxSizeMB * 1024 * 1024
 }
