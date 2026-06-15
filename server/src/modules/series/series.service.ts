@@ -12,6 +12,20 @@ import {
 } from "./series.repository.js"
 import { createPresignedUploadUrl } from "../chapter/file.service.js"
 
+function isDuplicateManuscriptVersionError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 11000 &&
+      "keyPattern" in error &&
+      typeof error.keyPattern === "object" &&
+      error.keyPattern &&
+      "seriesId" in error.keyPattern &&
+      "version" in error.keyPattern,
+  )
+}
+
 export interface CreateSeriesServiceInput {
   title: string
   synopsis: string
@@ -83,14 +97,22 @@ export async function createManuscriptUploadService(input: CreateManuscriptUploa
   }
 
   const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
-  const persisted = await createManuscriptUploadDraft({
-    seriesId: input.seriesId,
-    uploadedBy: input.userId,
-    r2Key: signed.r2Key,
-    originalName: input.originalName,
-    mimeType: input.contentType,
-    size: input.size,
-  })
+  let persisted
+  try {
+    persisted = await createManuscriptUploadDraft({
+      seriesId: input.seriesId,
+      uploadedBy: input.userId,
+      r2Key: signed.r2Key,
+      originalName: input.originalName,
+      mimeType: input.contentType,
+      size: input.size,
+    })
+  } catch (error) {
+    if (isDuplicateManuscriptVersionError(error)) {
+      throw new AppError("Unable to allocate manuscript version. Please retry the upload.", 409)
+    }
+    throw error
+  }
 
   return {
     uploadUrl: signed.uploadUrl,

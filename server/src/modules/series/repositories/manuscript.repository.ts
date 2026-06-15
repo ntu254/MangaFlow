@@ -12,6 +12,20 @@ export async function getLatestManuscriptBySeries(seriesId: string): Promise<any
   return Manuscript.findOne({ seriesId }).sort({ version: -1 })
 }
 
+function isDuplicateManuscriptVersionError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 11000 &&
+      "keyPattern" in error &&
+      typeof error.keyPattern === "object" &&
+      error.keyPattern &&
+      "seriesId" in error.keyPattern &&
+      "version" in error.keyPattern,
+  )
+}
+
 export interface CreateManuscriptUploadDraftInput {
   seriesId: string
   uploadedBy: string
@@ -31,16 +45,30 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
     uploadedBy: input.uploadedBy,
   })
 
-  const latest = await getLatestManuscriptBySeries(input.seriesId)
-  const version = latest ? latest.version + 1 : 1
+  let manuscript
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const latest = await getLatestManuscriptBySeries(input.seriesId)
+    const version = latest ? latest.version + 1 : 1
 
-  const manuscript = await Manuscript.create({
-    seriesId: input.seriesId,
-    uploadedBy: input.uploadedBy,
-    version,
-    status: "DRAFT",
-    fileAssetId: fileAsset.id,
-  })
+    try {
+      manuscript = await Manuscript.create({
+        seriesId: input.seriesId,
+        uploadedBy: input.uploadedBy,
+        version,
+        status: "DRAFT",
+        fileAssetId: fileAsset.id,
+      })
+      break
+    } catch (error) {
+      if (!isDuplicateManuscriptVersionError(error) || attempt === 2) {
+        throw error
+      }
+    }
+  }
+
+  if (!manuscript) {
+    throw new Error("Unable to create manuscript draft")
+  }
 
   return { manuscript, fileAsset }
 }
