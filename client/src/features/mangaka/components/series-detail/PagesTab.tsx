@@ -82,7 +82,7 @@ export function PagesTab({ seriesId, chapters }: PagesTabProps) {
 
           {sortedChapters.map((chapter) => (
             <ChapterCard
-              key={chapter.id}
+              key={chapter.id || (chapter as any)._id}
               ch={chapter.chapterNumber}
               title={chapter.title}
               status={labelizeStatus(chapter.status)}
@@ -137,8 +137,8 @@ export function PagesTab({ seriesId, chapters }: PagesTabProps) {
           ) : (
             <>
               <div className="grid grid-cols-5 gap-4 mb-6">
-                {pages.map((page) => (
-                  <PageCard key={page.id} num={page.pageNumber} status={labelizeStatus(page.status)} statColor={statusColor(page.status)} onOpen={() => setActiveTab("pages")} />
+                {pages.map((page, i) => (
+                  <PageCard key={page.id || (page as any)._id || i} num={page.pageNumber} status={labelizeStatus(page.status)} statColor={statusColor(page.status)} onOpen={() => setActiveTab("pages")} />
                 ))}
               </div>
 

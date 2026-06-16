@@ -91,8 +91,8 @@ export default function SeriesDetailPage() {
               {activeSubTab === 'manuscript' && <ManuscriptTab summary={summary} />}
               {activeSubTab === 'editor_feedback' && (
                 <div className="space-y-3">
-                  {summary.recentComments.map((comment) => (
-                    <div key={comment.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                  {summary.recentComments.map((comment, i) => (
+                    <div key={comment.id || (comment as any)._id || i} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-[13px] font-bold text-gray-900">{comment.author ?? 'Unknown'} - {comment.authorRole ?? 'Member'}</span>
                         <span className={`text-[11px] font-bold ${comment.isBlocking ? 'text-red-600' : 'text-gray-500'}`}>{labelize(comment.status)}</span>

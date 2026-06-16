@@ -21,6 +21,8 @@ import BoardSeriesReviewPage from '@/pages/board/SeriesReviewPage'
 import BoardSeriesSummaryPage from '@/pages/board/SeriesSummaryPage'
 import PageStudioPage from '@/pages/mangaka/PageStudioPage'
 import TaskStudioPage from '@/pages/assistant/TaskStudioPage'
+import MangakaReviewQueuePage from '@/pages/mangaka/ReviewQueuePage'
+import MangakaTaskReviewPage from '@/pages/mangaka/TaskReviewPage'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to='/login' replace /> },
@@ -74,6 +76,8 @@ const router = createBrowserRouter([
             { path: 'series/create', element: <MangakaCreateSeriesPage /> },
             { path: 'series/:id', element: <MangakaSeriesDetailPage /> },
             { path: 'pages/:pageId/studio', element: <PageStudioPage /> },
+            { path: 'reviews', element: <MangakaReviewQueuePage /> },
+            { path: 'tasks/:taskId/review', element: <MangakaTaskReviewPage /> },
             { path: 'inbox', element: <div className="p-6">Inbox content</div> },
             { path: 'ranking', element: <div className="p-6">Ranking content</div> },
             { path: 'payroll', element: <div className="p-6">Payroll content</div> },
