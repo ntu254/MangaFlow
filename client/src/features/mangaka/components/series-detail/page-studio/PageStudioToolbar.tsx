@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { MousePointer2, Square, MessageSquare, Hand, ZoomIn, Sparkles, Undo2, Redo2, ChevronDown, Loader2 } from 'lucide-react'
 
-interface PageWorkspaceToolbarProps {
+interface PageStudioToolbarProps {
   onRunAI: () => void
   aiPending: boolean
 }
 
-export function PageWorkspaceToolbar({ onRunAI, aiPending }: PageWorkspaceToolbarProps) {
+export function PageStudioToolbar({ onRunAI, aiPending }: PageStudioToolbarProps) {
   return (
     <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 overflow-x-auto [&::-webkit-scrollbar]:hidden">
       <div className="flex items-center gap-1 shrink-0">

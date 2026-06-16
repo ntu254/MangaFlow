@@ -2,8 +2,7 @@ import type { ReactNode } from 'react'
 import { MoreVertical } from 'lucide-react'
 import type { AIResult, Page, Region } from '@/api/chapter'
 
-<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/page-workspace/PageWorkspaceRightPanel.tsx
-interface PageWorkspaceRightPanelProps {
+interface PageStudioRightPanelProps {
   rightTab: 'task' | 'comments'
   setRightTab: (tab: 'task' | 'comments') => void
   page: Page
@@ -14,7 +13,7 @@ interface PageWorkspaceRightPanelProps {
   aiActionPending?: boolean
 }
 
-export function PageWorkspaceRightPanel({
+export function PageStudioRightPanel({
   rightTab,
   setRightTab,
   page,
@@ -23,7 +22,7 @@ export function PageWorkspaceRightPanel({
   onAcceptSuggestion,
   onRejectSuggestion,
   aiActionPending,
-}: PageWorkspaceRightPanelProps) {
+}: PageStudioRightPanelProps) {
   const suggestions = aiResults.flatMap((result) =>
     result.suggestions.map((suggestion) => ({
       ...suggestion,
@@ -32,15 +31,6 @@ export function PageWorkspaceRightPanel({
     })),
   )
   const pendingSuggestions = suggestions.filter((suggestion) => suggestion.decision === 'PENDING')
-
-=======
-interface PageStudioRightPanelProps {
-  rightTab: 'task' | 'comments';
-  setRightTab: (tab: 'task' | 'comments') => void;
-}
-
-export function PageStudioRightPanel({ rightTab, setRightTab }: PageStudioRightPanelProps) {
->>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/page-studio/PageStudioRightPanel.tsx
   return (
     <div className="w-80 flex flex-col border-l border-gray-200 shrink-0 bg-white overflow-hidden">
       <div className="flex items-center border-b border-gray-100 shrink-0">

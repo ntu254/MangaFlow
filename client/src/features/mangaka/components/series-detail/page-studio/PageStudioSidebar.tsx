@@ -1,7 +1,7 @@
 import { Search, Filter, MoreVertical, Check } from 'lucide-react'
 import type { AIResult, Page, Region } from '@/api/chapter'
 
-interface PageWorkspaceSidebarProps {
+interface PageStudioSidebarProps {
   leftTab: 'pages' | 'layers'
   setLeftTab: (tab: 'pages' | 'layers') => void
   pages: Page[]
@@ -11,7 +11,7 @@ interface PageWorkspaceSidebarProps {
   onSelectPage: (pageId: string) => void
 }
 
-export function PageWorkspaceSidebar({ leftTab, setLeftTab, pages, regions, aiResults, selectedPageId, onSelectPage }: PageWorkspaceSidebarProps) {
+export function PageStudioSidebar({ leftTab, setLeftTab, pages, regions, aiResults, selectedPageId, onSelectPage }: PageStudioSidebarProps) {
   return (
     <div className="w-56 flex flex-col border-r border-gray-200 shrink-0 bg-white">
       <div className="flex items-center border-b border-gray-200">

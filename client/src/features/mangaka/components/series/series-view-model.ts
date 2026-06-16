@@ -49,7 +49,7 @@ const nextActions: Record<SeriesDisplayStatus, string> = {
   "Revision Requested": "Address requested revisions",
   "Board Review": "View board review",
   Approved: "Prepare series production",
-  "In Production": "Open production workspace",
+  "In Production": "Open Production Hub",
   "At Risk": "Review attention items",
   Rejected: "View decision",
   Cancelled: "View series details",

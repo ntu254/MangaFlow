@@ -1,22 +1,14 @@
 import { ChevronRight, ArrowLeft, Settings, ChevronDown } from 'lucide-react'
 import type { Page } from '@/api/chapter'
 
-<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/page-workspace/PageWorkspaceHeader.tsx
-interface PageWorkspaceHeaderProps {
+interface PageStudioHeaderProps {
   onBack: () => void
   chapterId: string
   page: Page
   title: string
 }
 
-export function PageWorkspaceHeader({ onBack, chapterId, page, title }: PageWorkspaceHeaderProps) {
-=======
-interface PageStudioHeaderProps {
-  onBack: () => void;
-}
-
-export function PageStudioHeader({ onBack }: PageStudioHeaderProps) {
->>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/page-studio/PageStudioHeader.tsx
+export function PageStudioHeader({ onBack, chapterId, page, title }: PageStudioHeaderProps) {
   return (
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
       <div className="flex flex-col gap-1">
