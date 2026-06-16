@@ -61,7 +61,7 @@ export function SeriesSidebar({ summary, seriesPhase = 'production', activeTab, 
 
         <div className="h-px bg-gray-100 my-2 mx-3"></div>
 
-        <NavItem icon={<Lock size={16} />} label="Workspace" active={activeTab === 'workspace'} onClick={() => onChangeTab('workspace')} locked={!summary.allowedActions.canOpenWorkspace} isCollapsed={isCollapsed} />
+        <NavItem icon={<Lock size={16} />} label="Pages" active={activeTab === 'pages'} onClick={() => onChangeTab('pages')} locked={!summary.allowedActions.canOpenWorkspace} isCollapsed={isCollapsed} />
         <NavItem icon={<BarChart3 size={16} />} label="Ranking" active={activeTab === 'ranking'} onClick={() => onChangeTab('ranking')} locked={isProposal} isCollapsed={isCollapsed} />
         <NavItem icon={<CreditCard size={16} />} label="Payroll" active={activeTab === 'payroll'} onClick={() => onChangeTab('payroll')} locked={isProposal} isCollapsed={isCollapsed} />
 

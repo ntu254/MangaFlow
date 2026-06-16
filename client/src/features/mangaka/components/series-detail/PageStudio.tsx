@@ -1,3 +1,4 @@
+<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/PageWorkspace.tsx
 import { useMemo, useState } from 'react'
 import type { Page } from '@/api/chapter'
 import {
@@ -22,6 +23,16 @@ interface PageWorkspaceProps {
 }
 
 export function PageWorkspace({ onBack, chapterId, initialPageId }: PageWorkspaceProps) {
+=======
+import { useState } from 'react'
+import { PageStudioHeader } from './page-studio/PageStudioHeader'
+import { PageStudioSidebar } from './page-studio/PageStudioSidebar'
+import { PageStudioToolbar } from './page-studio/PageStudioToolbar'
+import { PageStudioCanvas } from './page-studio/PageStudioCanvas'
+import { PageStudioRightPanel } from './page-studio/PageStudioRightPanel'
+
+export function PageStudio({ onBack }: { onBack: () => void }) {
+>>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/PageStudio.tsx
   const [leftTab, setLeftTab] = useState<'pages' | 'layers'>('pages')
   const [rightTab, setRightTab] = useState<'task' | 'comments'>('task')
   const [drawMode] = useState(true)
@@ -66,9 +77,16 @@ export function PageWorkspace({ onBack, chapterId, initialPageId }: PageWorkspac
 
   return (
     <div className="flex flex-col w-full h-full flex-1 bg-white overflow-hidden border-t border-gray-200">
+<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/PageWorkspace.tsx
       <PageWorkspaceHeader onBack={onBack} chapterId={chapterId} page={workspace.page} title={pageTitle} />
+=======
+      
+      {/* Header */}
+      <PageStudioHeader onBack={onBack} />
+>>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/PageStudio.tsx
 
       <div className="flex flex-1 overflow-hidden">
+<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/PageWorkspace.tsx
         <PageWorkspaceSidebar
           leftTab={leftTab}
           setLeftTab={setLeftTab}
@@ -78,9 +96,23 @@ export function PageWorkspace({ onBack, chapterId, initialPageId }: PageWorkspac
           selectedPageId={activePageId}
           onSelectPage={setSelectedPageId}
         />
+=======
+        
+        {/* Left Column: Sidebar (Pages/Layers) */}
+        <PageStudioSidebar leftTab={leftTab} setLeftTab={setLeftTab} />
+>>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/PageStudio.tsx
 
         <div className="flex-1 flex flex-col min-w-0 bg-gray-50">
+<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/PageWorkspace.tsx
           <PageWorkspaceToolbar onRunAI={() => runAI.mutate()} aiPending={runAI.isPending} />
+=======
+          
+          {/* Toolbar */}
+          <PageStudioToolbar />
+
+          {/* Canvas Area */}
+          <PageStudioCanvas />
+>>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/PageStudio.tsx
 
           <PageWorkspaceCanvas
             imageUrl={workingDownload?.downloadUrl}
@@ -91,6 +123,7 @@ export function PageWorkspace({ onBack, chapterId, initialPageId }: PageWorkspac
           />
         </div>
 
+<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/PageWorkspace.tsx
         <PageWorkspaceRightPanel
           rightTab={rightTab}
           setRightTab={setRightTab}
@@ -101,6 +134,11 @@ export function PageWorkspace({ onBack, chapterId, initialPageId }: PageWorkspac
           onRejectSuggestion={(aiResultId, suggestionIndex) => rejectSuggestion.mutate({ aiResultId, suggestionIndex })}
           aiActionPending={acceptSuggestion.isPending || rejectSuggestion.isPending || createRegion.isPending}
         />
+=======
+        {/* Right Column: Task Creation & Comments */}
+        <PageStudioRightPanel rightTab={rightTab} setRightTab={setRightTab} />
+
+>>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/PageStudio.tsx
       </div>
     </div>
   )

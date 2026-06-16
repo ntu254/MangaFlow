@@ -2,14 +2,14 @@ import { ArrowRight, ChevronRight, ExternalLink, FileText, MessageCircle, MoreHo
 import { useMemo, useState } from "react"
 import type { Chapter } from "@/api/chapter"
 import { useChapterPages } from "@/hooks/useChapterWorkspace"
-import { PageWorkspace } from "./PageWorkspace"
+import { PageStudio } from "./PageStudio"
 
-interface WorkspaceTabProps {
+interface PagesTabProps {
   seriesId: string
   chapters: Chapter[]
 }
 
-export function WorkspaceTab({ seriesId, chapters }: WorkspaceTabProps) {
+export function PagesTab({ seriesId, chapters }: PagesTabProps) {
   const [activeTab, setActiveTab] = useState<"chapter" | "tasks" | "pages" | "submissions" | "comments">("chapter")
   const sortedChapters = useMemo(
     () => [...chapters].sort((a, b) => b.chapterNumber - a.chapterNumber),
@@ -25,7 +25,7 @@ export function WorkspaceTab({ seriesId, chapters }: WorkspaceTabProps) {
   }
 
   if (isPagesTab) {
-    return <PageWorkspace onBack={() => setActiveTab("chapter")} chapterId={selectedChapter.id} />
+    return <PageStudio onBack={() => setActiveTab("chapter")} chapterId={selectedChapter.id} />
   }
 
   const approvedPages = pages.filter((page) => page.status === "APPROVED").length
@@ -35,8 +35,9 @@ export function WorkspaceTab({ seriesId, chapters }: WorkspaceTabProps) {
 
   return (
     <div className="flex flex-col w-full h-full gap-6 px-8 py-6 max-w-[1600px] mx-auto">
+      {/* Hub Header */}
       <div className="flex flex-col mb-4">
-        <h1 className="text-[28px] font-black text-gray-900 tracking-tight leading-tight mb-2">Workspace</h1>
+        <h1 className="text-[28px] font-black text-gray-900 tracking-tight leading-tight mb-2">Production Hub</h1>
         <p className="text-[14px] text-gray-500 font-medium mb-6">Manage chapters, pages, tasks, and track production progress.</p>
 
         <div className="flex items-center justify-between border-b border-gray-200 pb-6">
@@ -60,10 +61,11 @@ export function WorkspaceTab({ seriesId, chapters }: WorkspaceTabProps) {
           </div>
         </div>
 
+        {/* Hub Sub-tabs */}
         <div className="flex items-center gap-8 pt-4">
           <TabButton icon={<FileText size={16} />} label="Chapter Overview" active={activeTab === "chapter"} onClick={() => setActiveTab("chapter")} />
           <TabButton label="Task Board" active={activeTab === "tasks"} onClick={() => setActiveTab("tasks")} />
-          <TabButton label="Page Workspace" badge={String(pages.length)} active={isPagesTab} onClick={() => setActiveTab("pages")} />
+          <TabButton label="Page Studio" badge={String(pages.length)} active={isPagesTab} onClick={() => setActiveTab("pages")} />
           <TabButton label="Submissions" badge="0" active={activeTab === "submissions"} onClick={() => setActiveTab("submissions")} />
           <TabButton label="Comments" badge="0" active={activeTab === "comments"} onClick={() => setActiveTab("comments")} />
         </div>
@@ -112,7 +114,7 @@ export function WorkspaceTab({ seriesId, chapters }: WorkspaceTabProps) {
                 <Settings size={14} /> Settings
               </button>
               <button onClick={() => setActiveTab("pages")} className="flex items-center gap-2 text-[12px] font-bold text-white bg-purple-600 hover:bg-purple-700 px-4 py-1.5 rounded-lg transition-colors shadow-sm">
-                Open Chapter Workspace <ExternalLink size={14} />
+                Open Chapter Production <ExternalLink size={14} />
               </button>
             </div>
           </div>

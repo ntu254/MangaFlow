@@ -13,7 +13,6 @@ export type PageStatus =
   | "UPLOADING"
   | "UPLOADED"
   | "PROCESSING_FAILED"
-  | "READY_FOR_REGION"
   | "TASK_ASSIGNED"
   | "IN_PROGRESS"
   | "UNDER_REVIEW"

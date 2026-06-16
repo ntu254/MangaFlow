@@ -85,6 +85,10 @@ export function PageWorkspaceCanvas({ imageUrl, regions, aiResults, drawMode, on
     )
   }
 
+<<<<<<< HEAD:client/src/features/mangaka/components/series-detail/page-workspace/PageWorkspaceCanvas.tsx
+=======
+export function PageStudioCanvas() {
+>>>>>>> fbac561b003b4b1365164d94c422b8f8bd9cd07a:client/src/features/mangaka/components/series-detail/page-studio/PageStudioCanvas.tsx
   return (
     <div className="flex-1 relative overflow-auto p-8 flex justify-center items-start">
       <div
