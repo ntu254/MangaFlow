@@ -31,7 +31,7 @@ Out of scope: Assistant submission, Mangaka review, Editor final approval, publi
 Bắt đầu khi Page đã upload và có Working Image.
 
 ```
-Page.status in [UPLOADED, READY_FOR_REGION]
+Page.status = UPLOADED
 Page.workingFileAssetId exists
 User has Page Studio permission
 ```

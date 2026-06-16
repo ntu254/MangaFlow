@@ -17,6 +17,12 @@ export async function getPageWorkspaceService(pageId: string, userId: string, ro
     .lean()
 
   if (!page) throw new AppError("Page not found", 404)
+
+  // Flow-02/04: UPLOADED means all 3 assets exist and Page Studio is open.
+  // PROCESSING_FAILED blocks Studio until the page is re-uploaded.
+  if (page.status === "UPLOADING" || page.status === "PROCESSING_FAILED") {
+    throw new AppError(`Page Studio unavailable: page status is ${page.status}`, 409)
+  }
   if (!page.workingFileAssetId) throw new AppError("Page Studio unavailable because working image is missing", 409)
 
   const [regions, aiResults, tasks] = await Promise.all([

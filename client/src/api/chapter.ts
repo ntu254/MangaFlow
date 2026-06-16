@@ -1,8 +1,6 @@
 import { apiClient } from "@/lib/axios"
 import type { ApiResponse } from "@/types"
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
 export type ChapterStatus =
   | "DRAFT"
   | "IN_PRODUCTION"
@@ -100,8 +98,6 @@ export interface AIResult {
   updatedAt: string
 }
 
-// ── Upload types ──────────────────────────────────────────────────────────────
-
 export interface PresignedUploadResponse {
   uploadUrl: string
   r2Key: string
@@ -129,10 +125,19 @@ export interface ConfirmPageUploadResponse {
   thumbnailAsset: FileAssetRef
 }
 
-// ── Chapter API ───────────────────────────────────────────────────────────────
+export interface PageWorkspaceResponse {
+  page: Page
+  workingFileAsset?: FileAssetRef
+  originalFileAsset?: FileAssetRef
+  thumbnailFileAsset?: FileAssetRef
+  regions: Region[]
+  aiResults: AIResult[]
+  tasks: Array<{ id: string; title: string; status: string; assignedTo?: string }>
+  feedbackPoints: unknown[]
+  collaborators: unknown[]
+}
 
 export const chapterApi = {
-  /** Flow-02: Create chapter — Series must be APPROVED/ONGOING/AT_RISK with publicationType. */
   create: (input: { seriesId: string; chapterNumber: number; title: string }) =>
     apiClient.post<ApiResponse<Chapter>>("/chapters", input),
 
@@ -145,7 +150,6 @@ export const chapterApi = {
   updateStatus: (chapterId: string, status: ChapterStatus) =>
     apiClient.patch<ApiResponse<Chapter>>(`/chapters/${chapterId}/status`, { status }),
 
-  /** Create a blank page record before uploading assets. */
   createPage: (chapterId: string, pageNumber: number) =>
     apiClient.post<ApiResponse<Page>>(`/chapters/${chapterId}/pages`, { pageNumber }),
 
@@ -153,10 +157,7 @@ export const chapterApi = {
     apiClient.get<ApiResponse<Page[]>>(`/chapters/${chapterId}/pages`),
 }
 
-// ── File / Page upload API ────────────────────────────────────────────────────
-
 export const fileApi = {
-  /** Get a presigned URL for uploading one file to R2/S3. */
   getPresignedUploadUrl: (input: {
     originalName: string
     contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf"
@@ -164,32 +165,23 @@ export const fileApi = {
   }) =>
     apiClient.post<ApiResponse<PresignedUploadResponse>>("/files/presigned-upload", input),
 
-  /**
-   * Flow-02: Confirm that all three assets (original / working / thumbnail)
-   * have been uploaded and link them to the page record.
-   */
   confirmPageUpload: (pageId: string, input: ConfirmPageUploadInput) =>
     apiClient.post<ApiResponse<ConfirmPageUploadResponse>>(
       `/files/pages/${pageId}/confirm-upload`,
       input,
     ),
 
-  /** Get a short-lived presigned download URL for any file asset. */
   getPresignedDownloadUrl: (fileAssetId: string, expiresIn?: number) =>
-    apiClient.get<ApiResponse<{ url: string; expiresIn: number }>>(
+    apiClient.get<ApiResponse<{ downloadUrl: string; expiresIn: number }>>(
       `/files/files/${fileAssetId}/presigned-download`,
       expiresIn ? { params: { expiresIn } } : undefined,
     ),
 
-  /** Get page with populated file asset refs. */
   getPageWithAssets: (pageId: string) =>
     apiClient.get<ApiResponse<PageWithAssets>>(`/files/pages/${pageId}`),
 }
 
-// ── Region API (Flow-04) ──────────────────────────────────────────────────────
-
 export const regionApi = {
-  /** Create a manual region on a page. */
   create: (
     pageId: string,
     input: {
@@ -205,7 +197,6 @@ export const regionApi = {
   get: (regionId: string) =>
     apiClient.get<ApiResponse<Region>>(`/files/regions/${regionId}`),
 
-  /** Flow-04: Update region type and/or bbox coordinates. */
   update: (
     regionId: string,
     patch: {
@@ -219,30 +210,27 @@ export const regionApi = {
     apiClient.delete<ApiResponse<Region>>(`/files/regions/${regionId}`),
 }
 
-// ── AI Segmentation API (Flow-04) ─────────────────────────────────────────────
-
 export const aiApi = {
-  /**
-   * Flow-04: Run AI segmentation using the page's workingFileAssetId.
-   * Creates an AIResult in PENDING → COMPLETED/FAILED.
-   */
   segment: (pageId: string) =>
     apiClient.post<ApiResponse<AIResult>>(`/files/pages/${pageId}/ai/segment`),
 
   listResults: (pageId: string) =>
     apiClient.get<ApiResponse<AIResult[]>>(`/files/pages/${pageId}/ai-results`),
 
-  /** Accept an individual AI suggestion → creates a Region record. */
   acceptSuggestion: (aiResultId: string, suggestionIndex: number) =>
     apiClient.post<ApiResponse<{ aiResult: AIResult; region: Region }>>(
       `/files/ai-results/${aiResultId}/accept-region`,
       { suggestionIndex },
     ),
 
-  /** Reject an individual AI suggestion. */
   rejectSuggestion: (aiResultId: string, suggestionIndex: number) =>
     apiClient.post<ApiResponse<AIResult>>(
       `/files/ai-results/${aiResultId}/reject-region`,
       { suggestionIndex },
     ),
+}
+
+export const pageApi = {
+  getWorkspace: (pageId: string) =>
+    apiClient.get<ApiResponse<PageWorkspaceResponse>>(`/pages/${pageId}/workspace`),
 }

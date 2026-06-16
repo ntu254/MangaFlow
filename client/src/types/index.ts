@@ -23,9 +23,19 @@ export type ManuscriptStatus =
 export type ChapterStatus =
   | "DRAFT"
   | "IN_PRODUCTION"
+  | "IN_REVIEW"
   | "READY_FOR_PUBLICATION"
-  | "PUBLISHED";
-export type PageStatus = "PENDING" | "UPLOADED" | "PROCESSING" | "READY";
+  | "PUBLISHED"
+  | "REVISION_REQUIRED";
+/** Flow-02: UPLOADED = đủ Original/Working/Thumbnail, sẵn sàng Page Studio + Region/AI. */
+export type PageStatus =
+  | "UPLOADING"
+  | "UPLOADED"
+  | "PROCESSING_FAILED"
+  | "TASK_ASSIGNED"
+  | "IN_PROGRESS"
+  | "UNDER_REVIEW"
+  | "APPROVED";
 export type TaskStatus =
   | "TODO"
   | "IN_PROGRESS"
@@ -33,10 +43,12 @@ export type TaskStatus =
   | "REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
   | "EDITOR_APPROVED"
-  | "REJECTED";
+  | "REJECTED"
+  /** Flow-05: Task cancelled before completion. */
+  | "CANCELLED";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type SubmissionStatus =
-  | "PENDING_MANGAKA_REVIEW"
+  | "SUBMITTED"
   | "REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
   | "EDITOR_APPROVED"
@@ -59,8 +71,9 @@ export type RankingStatus = "NORMAL" | "WARNING" | "AT_RISK";
 export type EarningStatus = "PENDING" | "CONFIRMED" | "PAID";
 export type PublicationType = "WEEKLY" | "MONTHLY";
 export type TaskCurrency = "POINT" | "VND";
-export type SeriesMemberRole = "OWNER_MANGAKA" | "CO_MANGAKA" | "ASSISTANT";
-export type SeriesMemberStatus = "ACTIVE" | "INACTIVE";
+export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR";
+/** Flow-03: Full status lifecycle thay vì chỉ ACTIVE/INACTIVE. */
+export type SeriesMemberStatus = "INVITED" | "ACTIVE" | "REMOVED" | "PAUSED";
 export type SeriesMemberAccessScope = "FULL" | "TASK_ONLY";
 
 // Core Entities
@@ -97,8 +110,11 @@ export interface SeriesMember {
   user?: User;
   role: SeriesMemberRole;
   status: SeriesMemberStatus;
+  /** @deprecated Use status === "ACTIVE" instead. */
+  isActive: boolean;
   accessScope: SeriesMemberAccessScope;
   createdAt: string;
+  updatedAt: string;
 }
 export interface Manuscript {
   _id: string;
@@ -126,11 +142,14 @@ export interface Page {
   chapterId: string;
   pageNumber: number;
   status: PageStatus;
-  originalUrl?: string;
-  previewUrl?: string;
-  thumbnailUrl?: string;
-  aiCopyUrl?: string;
+  /** Flow-02: preserved original file, never resized. */
+  originalFileAssetId?: string;
+  /** Flow-02/04: shared working image for Page Studio and AI segmentation. */
+  workingFileAssetId?: string;
+  thumbnailFileAssetId?: string;
+  regionIds: string[];
   createdAt: string;
+  updatedAt: string;
 }
 export interface FileAsset {
   _id: string;
@@ -143,12 +162,15 @@ export interface FileAsset {
 export interface Region {
   _id: string;
   pageId: string;
-  label?: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  regionIndex: number;
+  type: "PANEL" | "BUBBLE" | "SFX" | "AREA" | "OTHER";
+  bbox: { x: number; y: number; width: number; height: number };
+  status: "CREATED" | "AI_SUGGESTED" | "ACCEPTED" | "REJECTED" | "LINKED_TO_TASK" | "ARCHIVED";
+  source: "MANUAL" | "AI";
+  aiResultId?: string;
+  confidence?: number;
   createdAt: string;
+  updatedAt: string;
 }
 export interface TaskType {
   _id: string;
@@ -166,29 +188,32 @@ export interface TaskType {
 }
 export interface Task {
   _id: string;
-  title: string;
-  description: string;
-  taskTypeId: string;
-  taskType?: TaskType;
   seriesId: string;
   chapterId: string;
-  pageId: string;
+  pageId?: string;
   page?: Page;
   regionId?: string;
   region?: Region;
+  taskTypeId: string;
+  taskType?: TaskType;
   assignedTo: string;
   assignedUser?: User;
   assignedBy: string;
   assignedByUser?: User;
-  priority: TaskPriority;
+  title: string;
+  description?: string;
   status: TaskStatus;
-  dueDate: string;
+  priority: TaskPriority;
   baseRate: number;
   currency: TaskCurrency;
-  contextPageIds?: string[];
-  referenceFiles?: FileAsset[];
-  note?: string;
-  revisionRound: number;
+  dueDate: string;
+  contextPageIds: string[];
+  /** Flow-05: latest submission id for quick resolution. */
+  currentSubmissionId?: string;
+  /** Flow-06/07: which role last requested revision. */
+  revisionRequestedByRole?: "MANGAKA" | "EDITOR";
+  revisionRequestedByUserId?: string;
+  revisionRequestedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

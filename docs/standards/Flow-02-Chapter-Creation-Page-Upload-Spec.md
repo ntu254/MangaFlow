@@ -101,16 +101,17 @@ Flow này dùng chính: `DRAFT`, `IN_PRODUCTION`.
 
 ## 8. Page Status
 
-| Status            | Ý nghĩa                               |
-| ----------------- | ------------------------------------- |
-| UPLOADING         | File đang upload/xử lý                |
-| UPLOADED          | Page có đủ Original/Working/Thumbnail |
-| PROCESSING_FAILED | Lỗi tạo Working Image hoặc Thumbnail  |
-| READY_FOR_REGION  | Page sẵn sàng tạo Region/AI           |
-| TASK_ASSIGNED     | Page đã có Task                       |
-| IN_PROGRESS       | Task đang làm                         |
-| UNDER_REVIEW      | Submission đang review                |
-| APPROVED          | Page approved                         |
+| Status            | Ý nghĩa                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| UPLOADING         | File đang upload/xử lý                                                             |
+| UPLOADED          | Page có đủ Original/Working/Thumbnail — sẵn sàng mở Page Studio và tạo Region/AI  |
+| PROCESSING_FAILED | Lỗi tạo Working Image hoặc Thumbnail                                               |
+| TASK_ASSIGNED     | Page đã có Task                                                                    |
+| IN_PROGRESS       | Task đang làm                                                                      |
+| UNDER_REVIEW      | Submission đang review                                                             |
+| APPROVED          | Page approved                                                                      |
+
+> **Lưu ý:** `READY_FOR_REGION` đã bị loại bỏ. `UPLOADED` là trạng thái duy nhất xác nhận page đủ điều kiện mở Page Studio và tạo Region/chạy AI — không cần trạng thái trung gian.
 
 ## 9. Step-by-step flow
 

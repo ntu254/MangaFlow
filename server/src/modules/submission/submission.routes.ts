@@ -64,4 +64,13 @@ router.post(
   controller.editorApproveSubmission,
 )
 
+/** Flow-07: Editor reject from MANGAKA_APPROVED state — requires reviewerNote. */
+router.post(
+  "/submissions/:submissionId/editor-reject",
+  requireAuth,
+  validate(submissionIdParamsSchema, "params"),
+  validate(reviewActionBodySchema),
+  controller.editorRejectSubmission,
+)
+
 export default router

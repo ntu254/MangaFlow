@@ -1,11 +1,14 @@
 import { AppError } from "../../../shared/errors/AppError.js"
 import { Chapter, Page, Region } from "../../chapter/chapter.model.js"
 import { Series } from "../../series/series.model.js"
-import { TaskType } from "../task.model.js"
+import { Task, TaskType } from "../task.model.js"
 
 export interface ValidatedTaskScope {
   taskType: { baseRate: number }
 }
+
+/** Active statuses — a task in any of these blocks creating a duplicate. */
+const ACTIVE_TASK_STATUSES = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
 
 export async function validateTaskCreationScope(input: {
   seriesId: string
@@ -38,6 +41,7 @@ export async function validateTaskCreationScope(input: {
     const page = await Page.findById(input.pageId)
     if (!page) throw new AppError("Page not found", 404)
     if (String(page.chapterId) !== input.chapterId) throw new AppError("Page does not belong to the specified chapter", 400)
+    if (!taskType.allowPageTask) throw new AppError("This task type does not allow page-level tasks", 409)
   }
 
   if (input.regionId) {
@@ -45,12 +49,31 @@ export async function validateTaskCreationScope(input: {
     const region = await Region.findById(input.regionId)
     if (!region) throw new AppError("Region not found", 404)
     if (String(region.pageId) !== input.pageId) throw new AppError("Region does not belong to the specified page", 400)
+    if (!taskType.allowRegionTask) throw new AppError("This task type does not allow region-level tasks", 409)
   }
 
   if (input.contextPageIds && input.contextPageIds.length > 0) {
     const pages = await Page.find({ _id: { $in: input.contextPageIds }, chapterId: input.chapterId })
     if (pages.length !== input.contextPageIds.length) {
       throw new AppError("One or more context pages not found or do not belong to this chapter", 400)
+    }
+  }
+
+  // Flow-05 duplicate task guard: block if an active task already exists for the same target + taskType
+  const targetFilter = input.regionId
+    ? { chapterId: input.chapterId, regionId: input.regionId, taskTypeId: input.taskTypeId }
+    : input.pageId
+      ? { chapterId: input.chapterId, pageId: input.pageId, taskTypeId: input.taskTypeId, regionId: { $exists: false } }
+      : null
+
+  if (targetFilter) {
+    const activeTask = await Task.findOne({ ...targetFilter, status: { $in: ACTIVE_TASK_STATUSES } })
+    if (activeTask) {
+      throw new AppError(
+        `An active task already exists for this ${input.regionId ? "region" : "page"} with the same task type. ` +
+        `It must be EDITOR_APPROVED, REJECTED, or CANCELLED before creating a new one.`,
+        409,
+      )
     }
   }
 

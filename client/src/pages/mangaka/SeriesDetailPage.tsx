@@ -8,6 +8,8 @@ import { WorkspaceTab } from '@/features/mangaka/components/series-detail/Worksp
 import { FileText, MessageSquare, ShieldAlert, BarChart3 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { useSeriesSummary } from '@/hooks/useSeries'
+import { useQuery } from '@tanstack/react-query'
+import { chapterApi } from '@/api/chapter'
 
 type SeriesPhase = 'proposal' | 'production'
 type SubTab = 'overview' | 'manuscript' | 'editor_feedback' | 'board_review'
@@ -15,6 +17,15 @@ type SubTab = 'overview' | 'manuscript' | 'editor_feedback' | 'board_review'
 export default function SeriesDetailPage() {
   const { id } = useParams()
   const { data: summary, isLoading, isError } = useSeriesSummary(id)
+  const { data: chapters = [] } = useQuery({
+    queryKey: ['series', id, 'chapters'],
+    queryFn: async () => {
+      if (!id) throw new Error('No series ID')
+      const { data } = await chapterApi.listBySeries(id)
+      return data.data
+    },
+    enabled: !!id,
+  })
   const [activeMainTab, setActiveMainTab] = useState<string>('overview')
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('overview')
 
@@ -22,7 +33,7 @@ export default function SeriesDetailPage() {
     return <div className="flex h-screen items-center justify-center text-gray-500">Loading series detail...</div>
   }
 
-  if (isError || !summary) {
+  if (isError || !summary || !id) {
     return <div className="flex h-screen items-center justify-center text-red-500">Failed to load series detail</div>
   }
 
@@ -31,8 +42,6 @@ export default function SeriesDetailPage() {
 
   return (
     <div className="flex -m-6 h-[calc(100vh-64px)] bg-white overflow-hidden">
-      
-      {/* Sidebar Navigation */}
       <SeriesSidebar 
         summary={summary}
         seriesPhase={seriesPhase} 
@@ -40,12 +49,8 @@ export default function SeriesDetailPage() {
         onChangeTab={setActiveMainTab}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-y-auto bg-gray-50/30">
-
         <div className={`flex flex-col w-full mx-auto flex-1 ${activeMainTab === 'workspace' ? '' : 'px-10 py-8 max-w-[1600px]'}`}>
-          
-          {/* Main Header (Only for non-workspace tabs) */}
           {activeMainTab !== 'workspace' && <SeriesMainHeader summary={summary} seriesPhase={seriesPhase} />}
           {activeMainTab === 'overview' && (
             <div className="flex items-center gap-8 border-b border-gray-200 mb-6 mt-4">
@@ -77,7 +82,6 @@ export default function SeriesDetailPage() {
             </div>
           )}
 
-          {/* Content based on Active Tab */}
           {activeMainTab === 'overview' && (
             <>
               {activeSubTab === 'overview' && (
@@ -107,12 +111,9 @@ export default function SeriesDetailPage() {
             </>
           )}
           
-          {activeMainTab === 'workspace' && <WorkspaceTab />}
-          
+          {activeMainTab === 'workspace' && <WorkspaceTab seriesId={id} chapters={chapters} />}
         </div>
-
       </div>
-
     </div>
   )
 }
@@ -124,4 +125,3 @@ function labelize(value: string) {
 function formatDate(value: string) {
   return new Date(value).toLocaleString()
 }
-

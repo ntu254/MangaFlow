@@ -60,6 +60,7 @@ export const TASK_STATUSES = [
   "EDITOR_APPROVED",
   "REVISION_REQUESTED",
   "REJECTED",
+  "CANCELLED",
 ] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 

@@ -35,6 +35,10 @@ export async function runAISegmentationService(pageId: string, actor: AccessActo
 
   const page = await Page.findById(trimmed)
   if (!page) throw new AppError("Page not found", 404)
+  // Flow-04: AI segmentation requires UPLOADED status (workingFileAssetId present).
+  if (page.status === "UPLOADING" || page.status === "PROCESSING_FAILED") {
+    throw new AppError(`AI segmentation unavailable: page status is ${page.status}`, 409)
+  }
   if (!page.workingFileAssetId) {
     throw new AppError("Working image is required before running AI segmentation", 409)
   }
