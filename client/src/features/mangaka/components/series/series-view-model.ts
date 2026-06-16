@@ -73,7 +73,7 @@ export function toSeriesViewModel(series: SeriesDraft): SeriesViewModel {
   return {
     id: series.id,
     title: series.title,
-    type: series.publicationType?.trim() || "Manga Series",
+    type: series.publicationType?.trim() || series.requestedPublicationType?.trim() || "Manga Series",
     genres: series.genres ?? [],
     description: series.synopsis,
     status,

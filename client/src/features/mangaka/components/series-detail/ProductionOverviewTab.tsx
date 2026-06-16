@@ -1,4 +1,4 @@
-import { Info, ExternalLink, MessageSquare, CheckCircle2 } from 'lucide-react'
+import { ExternalLink, MessageSquare, CheckCircle2 } from 'lucide-react'
 import type { SeriesSummary } from '@/api/series'
 
 export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {

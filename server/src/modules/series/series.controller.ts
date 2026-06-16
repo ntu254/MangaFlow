@@ -29,6 +29,8 @@ export async function createManuscriptUpload(req: Request, res: Response): Promi
     contentType: req.body.contentType,
     size: req.body.size,
     expiresIn: req.body.expiresIn,
+    assetType: req.body.assetType,
+    slot: req.body.slot,
   })
 
   res.status(201).json({ success: true, message: "Manuscript upload URL created", data: result })

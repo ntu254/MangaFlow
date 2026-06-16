@@ -3,7 +3,6 @@ export type UserRole = "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR" | "BOARD";
 export type UserStatus = "ACTIVE" | "SUSPENDED";
 export type SeriesStatus =
   | "DRAFT"
-  | "SUBMITTED"
   | "EDITOR_REVIEW"
   | "REVISION_REQUESTED"
   | "BOARD_REVIEW"
@@ -16,8 +15,9 @@ export type SeriesStatus =
 export type ManuscriptStatus =
   | "DRAFT"
   | "SUBMITTED"
-  | "EDITOR_REVIEW"
+  | "UNDER_EDITOR_REVIEW"
   | "REVISION_REQUESTED"
+  | "FORWARDED_TO_BOARD"
   | "APPROVED"
   | "REJECTED";
 export type ChapterStatus =
@@ -80,7 +80,8 @@ export interface Series {
   description: string;
   genre: string[];
   targetAudience: string;
-  publicationType: PublicationType;
+  requestedPublicationType?: PublicationType;
+  publicationType?: PublicationType;
   tags?: string[];
   coverDraft?: string;
   status: SeriesStatus;

@@ -1,10 +1,37 @@
-﻿import { AppError } from "../../../shared/errors/AppError.js"
-import { createRegionRepository, deleteRegionRepository, getRegionById, getRegionsByPage, updateRegionStatus } from "../chapter.repository.js"
+import { AppError } from "../../../shared/errors/AppError.js"
+import {
+  createRegionRepository,
+  deleteRegionRepository,
+  getRegionById,
+  getRegionsByPage,
+  nextRegionIndex,
+  updateRegionRepository,
+} from "../chapter.repository.js"
+import { REGION_TYPES, type RegionType } from "../chapter.model.js"
+import { Task } from "../../task/task.model.js"
 import { assertCanReadPage, assertCanReadRegion, assertCanWritePage, assertCanWriteRegion, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+
+function assertBbox(bbox: { x: number; y: number; width: number; height: number } | undefined) {
+  if (
+    !bbox ||
+    typeof bbox.x !== "number" ||
+    typeof bbox.y !== "number" ||
+    typeof bbox.width !== "number" ||
+    typeof bbox.height !== "number" ||
+    bbox.width <= 0 ||
+    bbox.height <= 0
+  ) {
+    throw new AppError("Valid bbox with positive width/height is required", 400)
+  }
+}
+
+function assertType(type: string): asserts type is RegionType {
+  if (!REGION_TYPES.includes(type as RegionType)) throw new AppError("Invalid region type", 400)
+}
 
 export interface CreateRegionInput {
   pageId: string
-  regionIndex: number
+  type: string
   bbox: { x: number; y: number; width: number; height: number }
   actor: AccessActor
 }
@@ -13,12 +40,20 @@ export async function createRegionService(input: CreateRegionInput) {
   if (!input.pageId?.trim()) throw new AppError("Page id is required", 400)
   await assertCanWritePage(input.actor, input.pageId.trim())
 
-  if (typeof input.regionIndex !== "number" || input.regionIndex < 0) throw new AppError("Valid region index is required", 400)
-  if (!input.bbox || typeof input.bbox.x !== "number" || typeof input.bbox.y !== "number" || typeof input.bbox.width !== "number" || typeof input.bbox.height !== "number" || input.bbox.width <= 0 || input.bbox.height <= 0) {
-    throw new AppError("Valid bbox with positive width/height is required", 400)
-  }
+  const type = input.type ?? "PANEL"
+  assertType(type)
+  assertBbox(input.bbox)
+
   try {
-    return await createRegionRepository(input.pageId.trim(), input.regionIndex, input.bbox)
+    const regionIndex = await nextRegionIndex(input.pageId.trim())
+    return await createRegionRepository({
+      pageId: input.pageId.trim(),
+      regionIndex,
+      type,
+      bbox: input.bbox,
+      source: "MANUAL",
+      status: "CREATED",
+    })
   } catch (error) {
     const message = String((error as Error).message ?? "")
     if (message.includes("Page not found")) throw new AppError("Page not found", 404)
@@ -43,15 +78,42 @@ export async function getRegionService(regionId: string, actor: AccessActor) {
   return region
 }
 
-export async function updateRegionStatusService(regionId: string, status: "ACTIVE" | "ARCHIVED", actor: AccessActor) {
+export interface UpdateRegionInput {
+  type?: string
+  bbox?: { x: number; y: number; width: number; height: number }
+  actor: AccessActor
+}
+
+export async function updateRegionService(regionId: string, input: UpdateRegionInput) {
   const trimmed = regionId.trim()
   if (!trimmed) throw new AppError("Region id is required", 400)
-  await assertCanWriteRegion(actor, trimmed)
+  await assertCanWriteRegion(input.actor, trimmed)
 
-  if (!["ACTIVE", "ARCHIVED"].includes(status)) throw new AppError("Invalid region status", 400)
-  const region = await updateRegionStatus(trimmed, status)
+  const region = await getRegionById(trimmed)
   if (!region) throw new AppError("Region not found", 404)
-  return region
+
+  // Block editing geometry of a region already linked to an active task
+  if (region.status === "LINKED_TO_TASK") {
+    const activeTask = await Task.findOne({ regionId: trimmed, status: { $nin: ["DONE", "CANCELLED", "APPROVED"] } })
+    if (activeTask) throw new AppError("Region is linked to an active task and cannot be edited", 409)
+  }
+
+  const patch: { type?: RegionType; bbox?: typeof input.bbox } = {}
+  if (input.type !== undefined) {
+    assertType(input.type)
+    patch.type = input.type
+  }
+  if (input.bbox !== undefined) {
+    assertBbox(input.bbox)
+    patch.bbox = input.bbox
+  }
+  if (patch.type === undefined && patch.bbox === undefined) {
+    throw new AppError("No region changes provided", 400)
+  }
+
+  const updated = await updateRegionRepository(trimmed, patch)
+  if (!updated) throw new AppError("Region not found", 404)
+  return updated
 }
 
 export async function deleteRegionService(regionId: string, actor: AccessActor) {
@@ -59,7 +121,15 @@ export async function deleteRegionService(regionId: string, actor: AccessActor) 
   if (!trimmed) throw new AppError("Region id is required", 400)
   await assertCanWriteRegion(actor, trimmed)
 
-  const region = await deleteRegionRepository(trimmed)
+  const region = await getRegionById(trimmed)
   if (!region) throw new AppError("Region not found", 404)
-  return region
+
+  if (region.status === "LINKED_TO_TASK") {
+    const activeTask = await Task.findOne({ regionId: trimmed, status: { $nin: ["DONE", "CANCELLED", "APPROVED"] } })
+    if (activeTask) throw new AppError("Region is linked to an active task and cannot be deleted", 409)
+  }
+
+  const deleted = await deleteRegionRepository(trimmed)
+  if (!deleted) throw new AppError("Region not found", 404)
+  return deleted
 }

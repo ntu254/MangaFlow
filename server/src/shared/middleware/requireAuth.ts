@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express"
-import { verifyAccessToken } from "../../modules/auth/auth.service.js"
+import { toAuthUser, verifyAccessToken } from "../../modules/auth/auth.service.js"
 import type { JwtPayload } from "../../modules/auth/auth.types.js"
 
 declare global {
@@ -20,6 +20,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   const token = header.slice(7)
   try {
     const payload = await verifyAccessToken(token)
+    const user = await toAuthUser(payload.userId)
+    if (!user || user.role !== payload.role) {
+      res.status(401).json({ success: false, message: "Inactive or invalid user" })
+      return
+    }
     req.user = payload
     next()
   } catch {

@@ -18,10 +18,10 @@ interface Step2UploadProps {
 const ACCEPT_BY_SLOT: Record<UploadSlot, string> = {
   PROPOSAL_PDF: '.pdf,application/pdf',
   SAMPLE_PAGE: '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp',
-  CHARACTER_CONCEPT: '.zip,.pdf,.jpg,.jpeg,.png,.webp,application/zip,application/pdf,image/jpeg,image/png,image/webp',
+  CHARACTER_CONCEPT: '.zip,.pdf,.psd,.jpg,.jpeg,.png,.webp,application/zip,application/pdf,image/vnd.adobe.photoshop,application/x-photoshop,image/jpeg,image/png,image/webp',
   COVER_DRAFT: '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp',
   REFERENCE_IMAGE: '.zip,.jpg,.jpeg,.png,.webp,application/zip,image/jpeg,image/png,image/webp',
-  WORLD_SETTING: '.zip,.pdf,application/zip,application/pdf',
+  WORLD_SETTING: '.zip,.pdf,.psd,application/zip,application/pdf,image/vnd.adobe.photoshop,application/x-photoshop',
 }
 
 const MAX_SIZE_BYTES = 100 * 1024 * 1024 // 100MB to match backend validation
@@ -54,7 +54,12 @@ export function Step2Upload({
     }
 
     try {
-      const result = await upload.mutateAsync({ seriesId, file })
+      const result = await upload.mutateAsync({
+        seriesId,
+        file,
+        slot,
+        assetType: slot === 'PROPOSAL_PDF' || slot === 'SAMPLE_PAGE' ? 'MANUSCRIPT' : 'SUPPORTING',
+      })
       setUploadedFiles((prev) => [...prev, { ...result, slot }])
       toast.success(`${UPLOAD_SLOT_LABELS[slot]}: ${file.name} uploaded`)
     } catch (error) {
@@ -80,7 +85,7 @@ export function Step2Upload({
     let cancelled = false
     void (async () => {
       try {
-        const result = await upload.mutateAsync({ seriesId, file: pendingCover })
+        const result = await upload.mutateAsync({ seriesId, file: pendingCover, assetType: 'SUPPORTING', slot: 'COVER_DRAFT' })
         if (cancelled) return
         setUploadedFiles((prev) => [...prev, { ...result, slot: 'COVER_DRAFT' }])
         toast.success('Cover Draft uploaded')

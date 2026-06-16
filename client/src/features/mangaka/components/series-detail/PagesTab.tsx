@@ -1,9 +1,7 @@
 import {
   ArrowRight,
-  Check,
   ChevronRight,
   ExternalLink,
-  Eye,
   FileText,
   MessageCircle,
   MoreHorizontal,
@@ -492,24 +490,4 @@ function PageCard({ num, status, statColor }: any) {
     </div>
   );
 }
-
-function ProgressRow({ label, val, color }: any) {
-  const bgClasses: any = {
-    purple: "bg-purple-500",
-    blue: "bg-blue-500",
-    orange: "bg-orange-500",
-    red: "bg-red-500",
-  };
-
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${bgClasses[color]}`}></div>
-        <span className="text-[11px] font-bold text-gray-600">{label}</span>
-      </div>
-      <span className="text-[12px] font-extrabold text-gray-900">{val}</span>
-    </div>
-  );
-}
-
 

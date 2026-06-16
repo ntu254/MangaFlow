@@ -104,25 +104,50 @@ const schemas = {
   CreateSeriesRequest: {
     type: "object",
     required: ["title", "synopsis"],
-    properties: { title: { type: "string" }, synopsis: { type: "string" }, genres: { type: "array", items: { type: "string" } } },
+    properties: {
+      title: { type: "string" },
+      synopsis: { type: "string" },
+      targetAudience: { type: "string" },
+      requestedPublicationType: { type: "string", enum: ["WEEKLY", "MONTHLY"] },
+      publicationType: { type: "string", enum: ["WEEKLY", "MONTHLY"], deprecated: true },
+      genres: { type: "array", items: { type: "string" } },
+    },
   },
   ManuscriptUploadRequest: {
     type: "object",
     required: ["originalName", "contentType", "size"],
     properties: {
       originalName: { type: "string" },
-      contentType: { type: "string", enum: ["image/jpeg", "image/png", "image/webp", "application/pdf"] },
+      contentType: { type: "string", enum: ["image/jpeg", "image/png", "image/webp", "application/pdf", "application/zip", "image/vnd.adobe.photoshop", "application/x-photoshop"] },
       size: { type: "integer", minimum: 1 },
       expiresIn: { type: "integer", minimum: 1 },
+      assetType: { type: "string", enum: ["MANUSCRIPT", "SUPPORTING"] },
+      slot: { type: "string" },
     },
   },
-  BoardVoteRequest: { type: "object", required: ["value"], properties: { value: { type: "string", enum: ["APPROVE", "REJECT", "NEEDS_REVISION"] } } },
+  BoardVoteRequest: { type: "object", required: ["value"], properties: { value: { type: "string", enum: ["APPROVE", "REJECT", "NEEDS_REVISION"] }, note: { type: "string" } } },
+  BoardFinalizeRequest: {
+    type: "object",
+    properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED", "NEEDS_REVISION"] }, publicationType: { type: "string", enum: ["WEEKLY", "MONTHLY"] }, note: { type: "string" } },
+  },
+  BoardTieBreakRequest: {
+    type: "object",
+    required: ["value"],
+    properties: { value: { type: "string", enum: ["APPROVE", "REJECT", "NEEDS_REVISION"] }, publicationType: { type: "string", enum: ["WEEKLY", "MONTHLY"] }, note: { type: "string" } },
+  },
   AtRiskDecisionRequest: {
     type: "object",
     required: ["decision"],
     properties: { decision: { type: "string", enum: ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"] }, note: { type: "string" } },
   },
   ReviewNoteRequest: { type: "object", properties: { reviewNote: { type: "string", maxLength: 2000 } } },
+  EditorRevisionRequest: { type: "object", required: ["revisionReason", "feedbackSummary"], properties: { revisionReason: { type: "string" }, feedbackSummary: { type: "string" }, reviewNote: { type: "string" } } },
+  EditorRejectRequest: { type: "object", required: ["rejectReason"], properties: { rejectReason: { type: "string" }, reviewNote: { type: "string" } } },
+  EditorForwardRequest: {
+    type: "object",
+    required: ["editorRecommendation", "feasibilityNote", "suggestedPublicationType"],
+    properties: { editorRecommendation: { type: "string" }, feasibilityNote: { type: "string" }, suggestedPublicationType: { type: "string", enum: ["WEEKLY", "MONTHLY"] }, riskNote: { type: "string" } },
+  },
   CreateChapterRequest: { type: "object", required: ["seriesId", "chapterNumber", "title"], properties: { seriesId: { type: "string" }, chapterNumber: { type: "integer" }, title: { type: "string" } } },
   UpdateChapterStatusRequest: { type: "object", required: ["status"], properties: { status: { type: "string", enum: ["DRAFT", "IN_PRODUCTION", "IN_REVIEW", "REVISION_REQUIRED", "READY_FOR_PUBLICATION", "PUBLISHED"] } } },
   CreatePageRequest: { type: "object", required: ["pageNumber"], properties: { pageNumber: { type: "integer", minimum: 1 } } },
@@ -164,9 +189,13 @@ const requestSchemaByPattern: Array<[RegExp, keyof typeof schemas]> = [
   [/\/api\/(auth\/)?admin\/users$/, "CreateUserRequest"],
   [/\/api\/series\/?$/, "CreateSeriesRequest"],
   [/\/api\/series\/\{seriesId\}\/manuscripts\/uploads$/, "ManuscriptUploadRequest"],
-  [/\/api\/board\/series\/\{seriesId\}\/votes$/, "BoardVoteRequest"],
-  [/\/api\/board\/series\/\{seriesId\}\/decisions\/tie-break$/, "BoardVoteRequest"],
+  [/\/api\/board\/series\/\{seriesId\}\/(votes|vote)$/, "BoardVoteRequest"],
+  [/\/api\/board\/series\/\{seriesId\}\/(decisions\/finalize|finalize-decision)$/, "BoardFinalizeRequest"],
+  [/\/api\/board\/series\/\{seriesId\}\/(decisions\/tie-break|tie-break)$/, "BoardTieBreakRequest"],
   [/\/api\/board\/series\/\{seriesId\}\/at-risk-decisions$/, "AtRiskDecisionRequest"],
+  [/\/api\/editor\/series\/\{seriesId\}\/request-revision$/, "EditorRevisionRequest"],
+  [/\/api\/editor\/series\/\{seriesId\}\/reject$/, "EditorRejectRequest"],
+  [/\/api\/editor\/series\/\{seriesId\}\/forward-to-board$/, "EditorForwardRequest"],
   [/\/api\/manuscripts\/\{manuscriptId\}\/(request-revision|forward-to-board|reject)$/, "ReviewNoteRequest"],
   [/\/api\/chapters\/?$/, "CreateChapterRequest"],
   [/\/api\/chapters\/\{chapterId\}\/status$/, "UpdateChapterStatusRequest"],
@@ -193,6 +222,7 @@ function tagFor(pathName: string): string {
   if (pathName.startsWith("/api/admin")) return "Admin"
   if (pathName.startsWith("/api/dashboard")) return "Dashboard"
   if (pathName.startsWith("/api/series")) return "Series"
+  if (pathName.startsWith("/api/editor")) return "Manuscripts"
   if (pathName.startsWith("/api/manuscripts")) return "Manuscripts"
   if (pathName.startsWith("/api/board")) return "Board"
   if (pathName.startsWith("/api/chapters")) return "Chapters"

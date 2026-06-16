@@ -37,6 +37,11 @@ vi.mock("../chapter/chapter.model.js", () => ({
 vi.mock("../chapter/file.service.js", () => ({
   createPresignedUploadUrl,
 }))
+vi.mock("../../shared/workflow/events.js", () => ({
+  notifyRole: vi.fn().mockResolvedValue([]),
+  notifyUsers: vi.fn().mockResolvedValue([]),
+  recordAuditLog: vi.fn().mockResolvedValue(null),
+}))
 
 const { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService } = await import("./series.service.js")
 
@@ -76,6 +81,7 @@ describe("createSeriesService", () => {
       characters: undefined,
       conflict: undefined,
       targetAudience: undefined,
+      requestedPublicationType: undefined,
       publicationType: undefined,
       tags: [],
       genres: ["Drama"],
@@ -140,7 +146,7 @@ describe("series read access", () => {
   })
 
   it("blocks non-owner Mangaka from Series detail", async () => {
-    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1" })
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1", status: "DRAFT" })
 
     await expect(getSeriesDetailService("series-1", "intruder", "MANGAKA")).rejects.toMatchObject({
       message: "Series access denied",
@@ -156,7 +162,7 @@ describe("createManuscriptUploadService", () => {
   })
 
   it("creates a signed manuscript upload URL for the owning Mangaka", async () => {
-    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1" })
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1", status: "DRAFT" })
     createPresignedUploadUrl.mockResolvedValue({
       uploadUrl: "https://signed.example/upload",
       fileAssetId: "ignored-external-id",
@@ -221,6 +227,9 @@ describe("submitSeriesService", () => {
       status: "DRAFT",
       title: "Moon Ink",
       synopsis: "A studio drama.",
+      targetAudience: "Seinen",
+      genres: ["Drama"],
+      requestedPublicationType: "WEEKLY",
     })
     manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(null) })
 
@@ -245,6 +254,9 @@ describe("submitSeriesService", () => {
       status: "DRAFT",
       title: "Moon Ink",
       synopsis: "A studio drama.",
+      targetAudience: "Seinen",
+      genres: ["Drama"],
+      requestedPublicationType: "WEEKLY",
       save,
     }
     seriesFindById.mockResolvedValue(series)
@@ -253,7 +265,7 @@ describe("submitSeriesService", () => {
     const result = await submitSeriesService("series-1", "user-1")
 
     expect(series.status).toBe("EDITOR_REVIEW")
-    expect(manuscript.status).toBe("EDITOR_REVIEW")
+    expect(manuscript.status).toBe("SUBMITTED")
     expect(save).toHaveBeenCalled()
     expect(manuscriptSave).toHaveBeenCalled()
     expect(result).toBe(series)
@@ -266,6 +278,9 @@ describe("submitSeriesService", () => {
       status: "DRAFT",
       title: "Moon Ink",
       synopsis: "A studio drama.",
+      targetAudience: "Seinen",
+      genres: ["Drama"],
+      requestedPublicationType: "WEEKLY",
     })
     manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
 
@@ -286,7 +301,7 @@ describe("submitSeriesService", () => {
     manuscriptExists.mockResolvedValue({ _id: "manuscript-1" })
 
     await expect(submitSeriesService("series-1", "user-1")).rejects.toMatchObject({
-      message: "Only draft series can be submitted",
+      message: "Only draft or revision-requested series can be submitted",
       statusCode: 409,
     })
   })

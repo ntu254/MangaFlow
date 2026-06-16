@@ -1,12 +1,19 @@
 ﻿import { Router } from "express"
+import { z } from "zod"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireRole } from "../../shared/middleware/requireRole.js"
 import { validate } from "../../shared/middleware/validate.js"
 import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./series.controller.js"
 import { createManuscriptUploadSchema, createSeriesSchema, seriesIdParamsSchema, updateSeriesSchema } from "./series.validation.js"
-import { addSeriesMemberSchema } from "./series-member.validation.js"
-import { addSeriesMember } from "./series-member.controller.js"
+import { addSeriesMemberSchema, updateSeriesMemberSchema } from "./series-member.validation.js"
+import {
+  addSeriesMember,
+  listSeriesMembers,
+  updateSeriesMember,
+  removeSeriesMember,
+  getEligibleAssistants,
+} from "./series-member.controller.js"
 
 const router = Router()
 
@@ -39,6 +46,13 @@ router.post(
   validate(seriesIdParamsSchema, "params"),
   asyncHandler(controller.submitSeries),
 )
+router.post(
+  "/:seriesId/submit-to-editor",
+  requireAuth,
+  requireRole("MANGAKA"),
+  validate(seriesIdParamsSchema, "params"),
+  asyncHandler(controller.submitSeries),
+)
 
 router.post(
   "/:seriesId/members",
@@ -46,7 +60,38 @@ router.post(
   requireRole("MANGAKA", "EDITOR"),
   validate(seriesIdParamsSchema, "params"),
   validate(addSeriesMemberSchema),
-  addSeriesMember,
+  asyncHandler(addSeriesMember),
+)
+
+router.get(
+  "/:seriesId/members",
+  requireAuth,
+  validate(seriesIdParamsSchema, "params"),
+  asyncHandler(listSeriesMembers),
+)
+
+router.patch(
+  "/:seriesId/members/:memberId",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR"),
+  validate(updateSeriesMemberSchema),
+  asyncHandler(updateSeriesMember),
+)
+
+router.delete(
+  "/:seriesId/members/:memberId",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR"),
+  validate(z.object({ seriesId: z.string().min(1), memberId: z.string().min(1) }), "params"),
+  asyncHandler(removeSeriesMember),
+)
+
+router.get(
+  "/:seriesId/eligible-assistants",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR", "ADMIN"),
+  validate(seriesIdParamsSchema, "params"),
+  asyncHandler(getEligibleAssistants),
 )
 
 export default router

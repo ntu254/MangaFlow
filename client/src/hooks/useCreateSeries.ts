@@ -43,6 +43,8 @@ const CONTENT_TYPE_MAP: Record<string, SeriesUploadContentType> = {
   "application/pdf": "application/pdf",
   "application/zip": "application/zip",
   "application/x-zip-compressed": "application/zip",
+  "image/vnd.adobe.photoshop": "image/vnd.adobe.photoshop",
+  "application/x-photoshop": "application/x-photoshop",
 }
 
 export function resolveUploadContentType(file: File): SeriesUploadContentType | null {
@@ -51,7 +53,7 @@ export function resolveUploadContentType(file: File): SeriesUploadContentType | 
 
 export interface UploadedFileResult {
   fileAssetId: string
-  manuscriptId: string
+  manuscriptId?: string
   originalName: string
   size: number
   contentType: SeriesUploadContentType
@@ -68,10 +70,14 @@ export function useUploadSeriesFile() {
       seriesId,
       file,
       onProgress,
+      assetType = "MANUSCRIPT",
+      slot,
     }: {
       seriesId: string
       file: File
       onProgress?: (loaded: number, total: number) => void
+      assetType?: "MANUSCRIPT" | "SUPPORTING"
+      slot?: string
     }): Promise<UploadedFileResult> => {
       const contentType = resolveUploadContentType(file)
       if (!contentType) {
@@ -82,6 +88,8 @@ export function useUploadSeriesFile() {
         originalName: file.name,
         contentType,
         size: file.size,
+        assetType,
+        slot,
       }
 
       const { data } = await seriesApi.createManuscriptUpload(seriesId, payload)

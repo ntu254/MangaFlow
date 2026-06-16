@@ -1,8 +1,9 @@
 import mongoose, { Schema, type Document } from "mongoose"
-import { MANUSCRIPT_STATUSES, SERIES_STATUSES, type ManuscriptStatus, type SeriesStatus } from "../../shared/workflow/status.js"
+import { MANUSCRIPT_STATUSES, PUBLICATION_TYPES, SERIES_STATUSES, type ManuscriptStatus, type PublicationType, type SeriesStatus } from "../../shared/workflow/status.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 export type SeriesMemberAccessScope = "FULL" | "TASK_ONLY"
+export type SeriesMemberStatus = "INVITED" | "ACTIVE" | "REMOVED" | "PAUSED"
 
 export interface SeriesDocument extends Document {
   title: string
@@ -13,7 +14,8 @@ export interface SeriesDocument extends Document {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags?: string[]
   genres: string[]
   ownerId: mongoose.Types.ObjectId
@@ -32,7 +34,8 @@ const seriesSchema = new Schema<SeriesDocument>(
     characters: { type: String, trim: true, maxlength: 2000 },
     conflict: { type: String, trim: true, maxlength: 2000 },
     targetAudience: { type: String, trim: true, maxlength: 120 },
-    publicationType: { type: String, trim: true, maxlength: 120 },
+    requestedPublicationType: { type: String, enum: PUBLICATION_TYPES },
+    publicationType: { type: String, enum: PUBLICATION_TYPES },
     tags: { type: [String], default: [] },
     genres: { type: [String], default: [] },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -62,6 +65,9 @@ export interface SeriesMemberDocument extends Document {
   seriesId: mongoose.Types.ObjectId
   userId: mongoose.Types.ObjectId
   role: SeriesMemberRole
+  /** Flow-03: status enum replaces the old isActive boolean. */
+  status: SeriesMemberStatus
+  /** @deprecated Use status === "ACTIVE" instead. Kept for backward-compat read. */
   isActive: boolean
   accessScope: SeriesMemberAccessScope
   createdAt: Date
@@ -73,6 +79,14 @@ const seriesMemberSchema = new Schema<SeriesMemberDocument>(
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     role: { type: String, enum: ["MANGAKA", "ASSISTANT", "EDITOR"], required: true },
+    status: {
+      type: String,
+      enum: ["INVITED", "ACTIVE", "REMOVED", "PAUSED"],
+      required: true,
+      default: "ACTIVE",
+      index: true,
+    },
+    /** Virtual backward-compat getter so old code reading .isActive still works. */
     isActive: { type: Boolean, default: true },
     accessScope: { type: String, enum: ["FULL", "TASK_ONLY"], required: true, default: "FULL" },
   },
@@ -90,6 +104,10 @@ export interface ManuscriptDocument extends Document {
   status: ManuscriptStatus
   fileAssetId?: mongoose.Types.ObjectId
   reviewNote?: string
+  editorRecommendation?: string
+  feasibilityNote?: string
+  suggestedPublicationType?: PublicationType
+  riskNote?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -102,6 +120,10 @@ const manuscriptSchema = new Schema<ManuscriptDocument>(
     status: { type: String, enum: MANUSCRIPT_STATUSES, required: true, default: "DRAFT", index: true },
     fileAssetId: { type: Schema.Types.ObjectId, ref: "FileAsset" },
     reviewNote: { type: String, trim: true, maxlength: 2000 },
+    editorRecommendation: { type: String, trim: true, maxlength: 2000 },
+    feasibilityNote: { type: String, trim: true, maxlength: 2000 },
+    suggestedPublicationType: { type: String, enum: PUBLICATION_TYPES },
+    riskNote: { type: String, trim: true, maxlength: 2000 },
   },
   { timestamps: true },
 )

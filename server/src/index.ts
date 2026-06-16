@@ -9,6 +9,7 @@ import authRoutes from "./modules/auth/auth.routes.js"
 import adminRoutes from "./modules/admin/admin.routes.js"
 import seriesRoutes from "./modules/series/series.routes.js"
 import boardRoutes from "./modules/board/board.routes.js"
+import editorRoutes from "./modules/editor/editor.routes.js"
 import manuscriptRoutes from "./modules/manuscript/manuscript.routes.js"
 import rankingRoutes from "./modules/ranking/ranking.routes.js"
 import dashboardRoutes from "./modules/dashboard/dashboard.routes.js"
@@ -64,6 +65,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/series", seriesRoutes)
+app.use("/api/editor", editorRoutes)
 app.use("/api/board", boardRoutes)
 app.use("/api/manuscripts", manuscriptRoutes)
 app.use("/api/rankings", rankingRoutes)

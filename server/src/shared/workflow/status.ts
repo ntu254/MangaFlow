@@ -18,12 +18,16 @@ export type SeriesStatus = (typeof SERIES_STATUSES)[number]
 export const MANUSCRIPT_STATUSES = [
   "DRAFT",
   "SUBMITTED",
-  "EDITOR_REVIEW",
+  "UNDER_EDITOR_REVIEW",
   "REVISION_REQUESTED",
-  "APPROVED_TO_BOARD",
+  "FORWARDED_TO_BOARD",
+  "APPROVED",
   "REJECTED",
 ] as const
 export type ManuscriptStatus = (typeof MANUSCRIPT_STATUSES)[number]
+
+export const PUBLICATION_TYPES = ["WEEKLY", "MONTHLY"] as const
+export type PublicationType = (typeof PUBLICATION_TYPES)[number]
 
 export const CHAPTER_STATUSES = [
   "DRAFT",

@@ -2,6 +2,7 @@ import { Router } from "express"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireRole } from "../../shared/middleware/requireRole.js"
 import { validate } from "../../shared/middleware/validate.js"
+import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./manuscript.controller.js"
 import { manuscriptIdParamsSchema, manuscriptReviewBodySchema } from "./manuscript.validation.js"
 
@@ -13,7 +14,7 @@ router.post(
   requireRole("EDITOR"),
   validate(manuscriptIdParamsSchema, "params"),
   validate(manuscriptReviewBodySchema),
-  controller.requestRevision,
+  asyncHandler(controller.requestRevision),
 )
 
 router.post(
@@ -22,7 +23,7 @@ router.post(
   requireRole("EDITOR"),
   validate(manuscriptIdParamsSchema, "params"),
   validate(manuscriptReviewBodySchema),
-  controller.forwardToBoard,
+  asyncHandler(controller.forwardToBoard),
 )
 
 router.post(
@@ -31,7 +32,7 @@ router.post(
   requireRole("EDITOR"),
   validate(manuscriptIdParamsSchema, "params"),
   validate(manuscriptReviewBodySchema),
-  controller.reject,
+  asyncHandler(controller.reject),
 )
 
 export default router

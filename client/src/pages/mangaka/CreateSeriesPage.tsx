@@ -15,7 +15,7 @@ import {
   useSubmitSeries,
   useUpdateSeries,
 } from '@/hooks/useCreateSeries'
-import type { CreateSeriesInput, UpdateSeriesInput } from '@/api/series'
+import type { CreateSeriesInput, PublicationType, UpdateSeriesInput } from '@/api/series'
 import { useAuthStore } from '@/store/authStore'
 
 function mapFormToCreatePayload(form: CreateSeriesFormData): CreateSeriesInput {
@@ -27,7 +27,7 @@ function mapFormToCreatePayload(form: CreateSeriesFormData): CreateSeriesInput {
     characters: form.characters.trim() || undefined,
     conflict: form.conflict.trim() || undefined,
     targetAudience: form.audience.trim() || undefined,
-    publicationType: form.publicationType.trim() || undefined,
+    requestedPublicationType: (form.publicationType.trim() || undefined) as PublicationType | undefined,
     tags: form.tags,
     genres: form.genre ? [form.genre] : [],
   }
@@ -45,7 +45,7 @@ function mapFormToUpdatePayload(form: CreateSeriesFormData): UpdateSeriesInput {
   if (form.characters.trim()) payload.characters = form.characters.trim()
   if (form.conflict.trim()) payload.conflict = form.conflict.trim()
   if (form.audience.trim()) payload.targetAudience = form.audience.trim()
-  if (form.publicationType.trim()) payload.publicationType = form.publicationType.trim()
+  if (form.publicationType.trim()) payload.requestedPublicationType = form.publicationType.trim() as PublicationType
   payload.tags = form.tags
   payload.genres = form.genre ? [form.genre] : []
   return payload

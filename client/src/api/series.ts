@@ -10,6 +10,10 @@ export type SeriesUploadContentType =
   | "image/webp"
   | "application/pdf"
   | "application/zip"
+  | "image/vnd.adobe.photoshop"
+  | "application/x-photoshop"
+
+export type PublicationType = "WEEKLY" | "MONTHLY"
 
 export interface CreateSeriesInput {
   title: string
@@ -19,7 +23,8 @@ export interface CreateSeriesInput {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags?: string[]
   genres?: string[]
 }
@@ -36,7 +41,8 @@ export interface SeriesDraft {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags: string[]
   genres: string[]
   ownerId: string
@@ -52,12 +58,14 @@ export interface CreateManuscriptUploadInput {
   contentType: SeriesUploadContentType
   size: number
   expiresIn?: number
+  assetType?: "MANUSCRIPT" | "SUPPORTING"
+  slot?: string
 }
 
 export interface CreateManuscriptUploadResponse {
   uploadUrl: string
   fileAssetId: string
-  manuscriptId: string
+  manuscriptId?: string
   expiresIn: number
 }
 
@@ -205,7 +213,7 @@ export const seriesApi = {
     ),
 
   submit: (seriesId: string) =>
-    apiClient.post<ApiResponse<SubmitSeriesResponse>>(`/series/${seriesId}/submit`),
+    apiClient.post<ApiResponse<SubmitSeriesResponse>>(`/series/${seriesId}/submit-to-editor`),
 }
 
 // ==================== UPLOAD HELPER ====================

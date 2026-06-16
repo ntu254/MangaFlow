@@ -67,7 +67,7 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-bold text-gray-500">{isProposal ? 'Proposed Type' : 'Total Chapters'}</span>
-              <span className="text-[13px] font-bold text-gray-900">{isProposal ? (summary.series.publicationType || '-') : chapterCount}</span>
+              <span className="text-[13px] font-bold text-gray-900">{isProposal ? (summary.series.requestedPublicationType || '-') : chapterCount}</span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-bold text-gray-500">{isProposal ? 'Total Chapters' : 'Total Pages'}</span>
