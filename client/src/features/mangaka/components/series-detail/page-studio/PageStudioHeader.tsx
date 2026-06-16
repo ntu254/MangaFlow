@@ -1,10 +1,10 @@
 import { ChevronRight, ArrowLeft, Settings, ChevronDown } from 'lucide-react'
 
-interface PageWorkspaceHeaderProps {
+interface PageStudioHeaderProps {
   onBack: () => void;
 }
 
-export function PageWorkspaceHeader({ onBack }: PageWorkspaceHeaderProps) {
+export function PageStudioHeader({ onBack }: PageStudioHeaderProps) {
   return (
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
       <div className="flex flex-col gap-1">

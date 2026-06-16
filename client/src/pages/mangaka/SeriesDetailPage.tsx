@@ -4,7 +4,7 @@ import { SeriesMainHeader } from '@/features/mangaka/components/series-detail/Se
 import { ProposalOverviewTab } from '@/features/mangaka/components/series-detail/ProposalOverviewTab'
 import { ProductionOverviewTab } from '@/features/mangaka/components/series-detail/ProductionOverviewTab'
 import { ManuscriptTab } from '@/features/mangaka/components/series-detail/ManuscriptTab'
-import { WorkspaceTab } from '@/features/mangaka/components/series-detail/WorkspaceTab'
+import { PagesTab } from '@/features/mangaka/components/series-detail/PagesTab'
 import { FileText, MessageSquare, ShieldAlert, BarChart3 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { useSeriesSummary } from '@/hooks/useSeries'
@@ -43,10 +43,10 @@ export default function SeriesDetailPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-y-auto bg-gray-50/30">
 
-        <div className={`flex flex-col w-full mx-auto flex-1 ${activeMainTab === 'workspace' ? '' : 'px-10 py-8 max-w-[1600px]'}`}>
+        <div className={`flex flex-col w-full mx-auto flex-1 ${activeMainTab === 'pages' ? '' : 'px-10 py-8 max-w-[1600px]'}`}>
           
-          {/* Main Header (Only for non-workspace tabs) */}
-          {activeMainTab !== 'workspace' && <SeriesMainHeader summary={summary} seriesPhase={seriesPhase} />}
+          {/* Main Header (Only for non-pages tabs) */}
+          {activeMainTab !== 'pages' && <SeriesMainHeader summary={summary} seriesPhase={seriesPhase} />}
           {activeMainTab === 'overview' && (
             <div className="flex items-center gap-8 border-b border-gray-200 mb-6 mt-4">
               <button 
@@ -107,7 +107,7 @@ export default function SeriesDetailPage() {
             </>
           )}
           
-          {activeMainTab === 'workspace' && <WorkspaceTab />}
+          {activeMainTab === 'pages' && <PagesTab />}
           
         </div>
 

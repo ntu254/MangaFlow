@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { PageWorkspaceHeader } from './page-workspace/PageWorkspaceHeader'
-import { PageWorkspaceSidebar } from './page-workspace/PageWorkspaceSidebar'
-import { PageWorkspaceToolbar } from './page-workspace/PageWorkspaceToolbar'
-import { PageWorkspaceCanvas } from './page-workspace/PageWorkspaceCanvas'
-import { PageWorkspaceRightPanel } from './page-workspace/PageWorkspaceRightPanel'
+import { PageStudioHeader } from './page-studio/PageStudioHeader'
+import { PageStudioSidebar } from './page-studio/PageStudioSidebar'
+import { PageStudioToolbar } from './page-studio/PageStudioToolbar'
+import { PageStudioCanvas } from './page-studio/PageStudioCanvas'
+import { PageStudioRightPanel } from './page-studio/PageStudioRightPanel'
 
-export function PageWorkspace({ onBack }: { onBack: () => void }) {
+export function PageStudio({ onBack }: { onBack: () => void }) {
   const [leftTab, setLeftTab] = useState<'pages' | 'layers'>('pages')
   const [rightTab, setRightTab] = useState<'task' | 'comments'>('task')
 
@@ -13,27 +13,27 @@ export function PageWorkspace({ onBack }: { onBack: () => void }) {
     <div className="flex flex-col w-full h-full flex-1 bg-white overflow-hidden border-t border-gray-200">
       
       {/* Header */}
-      <PageWorkspaceHeader onBack={onBack} />
+      <PageStudioHeader onBack={onBack} />
 
       {/* Main 3-Column Area */}
       <div className="flex flex-1 overflow-hidden">
         
         {/* Left Column: Sidebar (Pages/Layers) */}
-        <PageWorkspaceSidebar leftTab={leftTab} setLeftTab={setLeftTab} />
+        <PageStudioSidebar leftTab={leftTab} setLeftTab={setLeftTab} />
 
         {/* Middle Column: Canvas & Bottom Panel */}
         <div className="flex-1 flex flex-col min-w-0 bg-gray-50">
           
           {/* Toolbar */}
-          <PageWorkspaceToolbar />
+          <PageStudioToolbar />
 
           {/* Canvas Area */}
-          <PageWorkspaceCanvas />
+          <PageStudioCanvas />
 
         </div>
 
         {/* Right Column: Task Creation & Comments */}
-        <PageWorkspaceRightPanel rightTab={rightTab} setRightTab={setRightTab} />
+        <PageStudioRightPanel rightTab={rightTab} setRightTab={setRightTab} />
 
       </div>
 

@@ -2,12 +2,12 @@ import { ChevronDown, MoreVertical, Paperclip } from 'lucide-react'
 
 const USER_AVATAR = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80&fit=crop&crop=faces"
 
-interface PageWorkspaceRightPanelProps {
+interface PageStudioRightPanelProps {
   rightTab: 'task' | 'comments';
   setRightTab: (tab: 'task' | 'comments') => void;
 }
 
-export function PageWorkspaceRightPanel({ rightTab, setRightTab }: PageWorkspaceRightPanelProps) {
+export function PageStudioRightPanel({ rightTab, setRightTab }: PageStudioRightPanelProps) {
   return (
     <div className="w-80 flex flex-col border-l border-gray-200 shrink-0 bg-white overflow-hidden">
       <div className="flex items-center border-b border-gray-100 shrink-0">

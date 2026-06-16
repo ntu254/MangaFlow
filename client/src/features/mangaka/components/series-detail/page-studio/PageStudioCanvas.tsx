@@ -2,7 +2,7 @@ import { MessageSquare } from 'lucide-react'
 
 const PAGE_IMAGE = "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80&fit=crop"
 
-export function PageWorkspaceCanvas() {
+export function PageStudioCanvas() {
   return (
     <div className="flex-1 relative overflow-auto p-8 flex justify-center items-start">
       {/* The Image Wrapper */}

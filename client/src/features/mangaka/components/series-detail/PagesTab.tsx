@@ -12,21 +12,21 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { useState } from "react";
-import { PageWorkspace } from "./PageWorkspace";
+import { PageStudio } from "./PageStudio";
 
-export function WorkspaceTab() {
+export function PagesTab() {
   const [activeTab, setActiveTab] = useState("chapter");
 
   if (activeTab === "pages") {
-    return <PageWorkspace onBack={() => setActiveTab("chapter")} />;
+    return <PageStudio onBack={() => setActiveTab("chapter")} />;
   }
 
   return (
     <div className="flex flex-col w-full h-full gap-6 px-8 py-6 max-w-[1600px] mx-auto">
-      {/* Workspace Header */}
+      {/* Hub Header */}
       <div className="flex flex-col mb-4">
         <h1 className="text-[28px] font-black text-gray-900 tracking-tight leading-tight mb-2">
-          Workspace
+          Production Hub
         </h1>
         <p className="text-[14px] text-gray-500 font-medium mb-6">
           Manage chapters, pages, tasks, and track production progress.
@@ -56,7 +56,7 @@ export function WorkspaceTab() {
           </div>
         </div>
 
-        {/* Workspace Sub-tabs */}
+        {/* Hub Sub-tabs */}
         <div className="flex items-center gap-8 pt-4">
           <TabButton
             icon={<FileText size={16} />}
@@ -70,7 +70,7 @@ export function WorkspaceTab() {
             onClick={() => setActiveTab("tasks")}
           />
           <TabButton
-            label="Page Workspace"
+            label="Page Studio"
             badge="12"
             active={activeTab === "pages"}
             onClick={() => setActiveTab("pages")}
@@ -171,7 +171,7 @@ export function WorkspaceTab() {
                 <Settings size={14} /> Settings
               </button>
               <button className="flex items-center gap-2 text-[12px] font-bold text-white bg-purple-600 hover:bg-purple-700 px-4 py-1.5 rounded-lg transition-colors shadow-sm">
-                Open Chapter Workspace <ExternalLink size={14} />
+                Open Chapter Production <ExternalLink size={14} />
               </button>
             </div>
           </div>
