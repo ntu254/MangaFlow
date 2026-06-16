@@ -2,12 +2,12 @@ import { Search, Filter, MoreVertical, Check } from 'lucide-react'
 
 const PAGE_IMAGE = "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80&fit=crop"
 
-interface PageWorkspaceSidebarProps {
+interface PageStudioSidebarProps {
   leftTab: 'pages' | 'layers';
   setLeftTab: (tab: 'pages' | 'layers') => void;
 }
 
-export function PageWorkspaceSidebar({ leftTab, setLeftTab }: PageWorkspaceSidebarProps) {
+export function PageStudioSidebar({ leftTab, setLeftTab }: PageStudioSidebarProps) {
   return (
     <div className="w-56 flex flex-col border-r border-gray-200 shrink-0 bg-white">
       <div className="flex items-center border-b border-gray-200">

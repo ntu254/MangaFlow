@@ -40,7 +40,7 @@ export function CurrentProductionCard() {
       <div className="flex flex-col gap-2.5 mt-2">
         <button className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-[12px] shadow-sm">
           <ExternalLink size={14} className="text-gray-400" />
-          Open Workspace
+          Open Production
         </button>
         <button className="w-full bg-red-50/30 border border-red-300 hover:bg-red-50 text-red-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-[12px] shadow-sm">
           <RefreshCw size={14} className="text-red-500" />

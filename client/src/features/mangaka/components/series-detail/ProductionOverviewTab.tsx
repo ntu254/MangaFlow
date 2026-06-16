@@ -88,7 +88,7 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
           </div>
 
           <button className="w-full bg-purple-50 border border-purple-100 hover:bg-purple-100 text-purple-700 font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-[12px] transition-colors mt-auto">
-            Go to Workspace <ExternalLink size={14} />
+            Go to Production Hub <ExternalLink size={14} />
           </button>
         </div>
 
@@ -130,7 +130,7 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
               Open Chapter
             </button>
             <button className="flex-1 bg-white border border-purple-200 hover:bg-purple-50 text-purple-700 font-bold py-2 rounded-lg text-[12px] transition-colors shadow-sm">
-              Open Page Workspace
+              Open Page Studio
             </button>
           </div>
         </div>
