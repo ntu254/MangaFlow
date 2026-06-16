@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
-import { MoreVertical } from 'lucide-react'
+import { useState } from 'react'
+import { MoreVertical, ClipboardList } from 'lucide-react'
 import type { AIResult, Page, Region } from '@/api/chapter'
+import { AssignTaskModal } from './AssignTaskModal'
 
 interface PageStudioRightPanelProps {
   rightTab: 'task' | 'comments'
@@ -31,6 +32,20 @@ export function PageStudioRightPanel({
     })),
   )
   const pendingSuggestions = suggestions.filter((suggestion) => suggestion.decision === 'PENDING')
+  
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
+  const [taskTarget, setTaskTarget] = useState<{ type: 'page' | 'region', regionId?: string }>({ type: 'page' })
+
+  const handleAssignPageTask = () => {
+    setTaskTarget({ type: 'page' })
+    setIsTaskModalOpen(true)
+  }
+
+  const handleAssignRegionTask = (regionId: string) => {
+    setTaskTarget({ type: 'region', regionId })
+    setIsTaskModalOpen(true)
+  }
+
   return (
     <div className="w-80 flex flex-col border-l border-gray-200 shrink-0 bg-white overflow-hidden">
       <div className="flex items-center border-b border-gray-100 shrink-0">
@@ -66,6 +81,15 @@ export function PageStudioRightPanel({
               <InfoRow label="Regions" value={String(regions.length)} />
               <InfoRow label="AI results" value={String(aiResults.length)} />
               <InfoRow label="Pending suggestions" value={String(pendingSuggestions.length)} />
+              <div className="mt-2">
+                <button 
+                  onClick={handleAssignPageTask}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold text-[12px] transition-colors"
+                >
+                  <ClipboardList size={14} />
+                  Assign Page Task
+                </button>
+              </div>
             </Section>
 
             <Section title="Regions">
@@ -80,8 +104,16 @@ export function PageStudioRightPanel({
                         <span className="text-[11px] font-bold text-gray-500">{region.type}</span>
                       </div>
                       <div className="mt-2 text-[12px] text-gray-600">{region.status} · {region.source}</div>
-                      <div className="mt-1 text-[11px] text-gray-500">
-                        {region.bbox.width}×{region.bbox.height} at ({region.bbox.x}, {region.bbox.y})
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className="text-[11px] text-gray-500">
+                          {region.bbox.width}×{region.bbox.height} at ({region.bbox.x}, {region.bbox.y})
+                        </span>
+                        <button 
+                          onClick={() => handleAssignRegionTask(region.id)}
+                          className="text-[11px] font-bold text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded transition-colors"
+                        >
+                          Assign Task
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -147,11 +179,21 @@ export function PageStudioRightPanel({
           )}
         </div>
       )}
+      )}
+
+      <AssignTaskModal 
+        isOpen={isTaskModalOpen} 
+        onClose={() => setIsTaskModalOpen(false)} 
+        chapterId={page.chapterId} 
+        pageId={page.id} 
+        regionId={taskTarget.regionId}
+        defaultTitle={taskTarget.type === 'page' ? `Task for Page ${page.pageNumber}` : `Task for Region`}
+      />
     </div>
   )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
       <span className="text-[13px] font-extrabold text-gray-900">{title}</span>

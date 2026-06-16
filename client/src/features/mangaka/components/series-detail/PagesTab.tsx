@@ -1,8 +1,13 @@
-import { ArrowRight, ChevronRight, ExternalLink, FileText, MessageCircle, MoreHorizontal, Plus, Settings, UploadCloud } from "lucide-react"
+import { ArrowRight, ChevronRight, ExternalLink, FileText, MessageCircle, Plus, Settings, UploadCloud } from "lucide-react"
 import { useMemo, useState } from "react"
 import type { Chapter } from "@/api/chapter"
 import { useChapterPages } from "@/hooks/useChapterWorkspace"
 import { PageStudio } from "./PageStudio"
+import { MetricCard } from "@/components/ui/MetricCard"
+import { TabButton } from "@/components/ui/TabButton"
+import { ChapterCard } from "./cards/ChapterCard"
+import { PageCard } from "./cards/PageCard"
+import { labelizeStatus, statusColor } from "@/utils/formatters"
 
 interface PagesTabProps {
   seriesId: string
@@ -176,108 +181,6 @@ export function PagesTab({ seriesId, chapters }: PagesTabProps) {
   )
 }
 
-function TabButton({ icon, label, badge, active, onClick }: { icon?: React.ReactNode; label: string; badge?: string; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className={`font-bold text-[14px] border-b-[3px] pb-3 flex items-center gap-2 transition-colors ${active ? "text-purple-600 border-purple-600" : "text-gray-500 hover:text-gray-900 border-transparent"}`}>
-      {icon} {label}
-      {badge && <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${active ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"}`}>{badge}</div>}
-    </button>
-  )
-}
-
-function ChapterCard({ ch, title, status, pages, pct, target, tasks, active, onClick }: { ch: number; title: string; status: string; pages: string; pct: number; target: string; tasks?: string; active?: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className={`bg-white rounded-xl border p-4 cursor-pointer hover:shadow-sm transition-all relative overflow-hidden text-left ${active ? "border-purple-200 bg-purple-50/30" : "border-gray-200 hover:border-purple-200"}`}>
-      {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>}
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-[14px] font-extrabold text-gray-900">Ch. {ch}</span>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-purple-100 text-purple-700 border-purple-200">{status}</span>
-      </div>
-      <div className="text-[12px] font-bold text-gray-800 mb-3 line-clamp-1">{title}</div>
-      <div className="flex flex-col gap-1.5 mb-3">
-        <div className="flex justify-between items-end">
-          <span className="text-[12px] font-bold text-gray-600">{pages}</span>
-          <span className="text-[11px] font-bold text-gray-500">{pct}%</span>
-        </div>
-        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div className="bg-purple-600 h-full rounded-full" style={{ width: `${pct}%` }}></div>
-        </div>
-      </div>
-      <div className="flex justify-between items-center text-[11px] font-bold text-gray-500">
-        <span>{target}</span>
-        {tasks && <span className="text-orange-500">{tasks}</span>}
-      </div>
-    </button>
-  )
-}
-
-function PageCard({ num, status, statColor, onOpen }: { num: number; status: string; statColor: string; onOpen: () => void }) {
-  const colors: Record<string, string> = {
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    orange: "bg-orange-50 text-orange-600 border-orange-100",
-    red: "bg-red-50 text-red-600 border-red-100",
-    yellow: "bg-yellow-50 text-yellow-600 border-yellow-100",
-    gray: "bg-gray-50 text-gray-600 border-gray-100",
-  }
-
-  return (
-    <div onClick={onOpen} className="bg-white border border-gray-200 rounded-xl p-3 flex flex-col hover:border-purple-300 hover:shadow-md transition-all cursor-pointer relative group text-left">
-      <div className="absolute top-4 left-4 w-4 h-4 rounded border border-gray-300 bg-white shadow-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"></div>
-      <button type="button" className="absolute top-4 right-4 text-white bg-black/40 hover:bg-black/60 rounded p-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-        <MoreHorizontal size={14} />
-      </button>
-
-      <div className="w-full aspect-[2/3] bg-gray-100 rounded-lg overflow-hidden mb-3 border border-gray-100 relative flex items-center justify-center">
-        <FileText size={28} className="text-gray-300" />
-      </div>
-
-      <span className="text-[13px] font-extrabold text-gray-900 mb-2">Page {num}</span>
-      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border w-fit mb-3 ${colors[statColor] ?? colors.gray}`}>{status}</span>
-
-      <div className="flex items-center gap-3 text-[11px] font-bold text-gray-400 mt-auto">
-        <span className="flex items-center gap-1"><UploadCloud size={12} /> Assets</span>
-        <span className="flex items-center gap-1"><MessageCircle size={12} /> Studio</span>
-      </div>
-    </div>
-  )
-}
-
-function MetricCard({ label, value, progress, progressColor, helperText }: { label: string; value: string; progress?: number; progressColor?: string; helperText?: string }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[12px] font-bold text-gray-500">{label}</span>
-      <span className="text-[16px] font-extrabold text-gray-900">{value}</span>
-      {typeof progress === "number" && progressColor ? (
-        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mt-1">
-          <div className={`${progressColor} h-full rounded-full`} style={{ width: `${progress}%` }}></div>
-        </div>
-      ) : null}
-      {helperText ? <span className="text-[11px] font-medium text-gray-500">{helperText}</span> : null}
-    </div>
-  )
-}
-
 function LegendDot({ color, label }: { color: string; label: string }) {
   return <span className="flex items-center gap-1.5"><div className={`w-2 h-2 rounded-full ${color}`}></div> {label}</span>
-}
-
-function labelizeStatus(value: string) {
-  return value.split("_").join(" ")
-}
-
-function statusColor(status: string) {
-  switch (status) {
-    case "APPROVED":
-      return "emerald"
-    case "TASK_ASSIGNED":
-    case "IN_PROGRESS":
-      return "orange"
-    case "PROCESSING_FAILED":
-      return "red"
-    case "UNDER_REVIEW":
-    case "UPLOADED":
-      return "yellow"
-    default:
-      return "gray"
-  }
 }

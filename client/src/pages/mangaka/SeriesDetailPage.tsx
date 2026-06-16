@@ -10,6 +10,7 @@ import { useParams } from 'react-router-dom'
 import { useSeriesSummary } from '@/hooks/useSeries'
 import { useQuery } from '@tanstack/react-query'
 import { chapterApi } from '@/api/chapter'
+import { labelizeStatus } from '@/utils/formatters'
 
 type SeriesPhase = 'proposal' | 'production'
 type SubTab = 'overview' | 'manuscript' | 'editor_feedback' | 'board_review'
@@ -95,7 +96,7 @@ export default function SeriesDetailPage() {
                     <div key={comment.id || (comment as any)._id || i} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-[13px] font-bold text-gray-900">{comment.author ?? 'Unknown'} - {comment.authorRole ?? 'Member'}</span>
-                        <span className={`text-[11px] font-bold ${comment.isBlocking ? 'text-red-600' : 'text-gray-500'}`}>{labelize(comment.status)}</span>
+                        <span className={`text-[11px] font-bold ${comment.isBlocking ? 'text-red-600' : 'text-gray-500'}`}>{labelizeStatus(comment.status)}</span>
                       </div>
                       <p className="text-[13px] text-gray-600 mt-2">{comment.body}</p>
                       <span className="text-[11px] text-gray-400 mt-2 block">{formatDate(comment.updatedAt)}</span>
@@ -106,7 +107,7 @@ export default function SeriesDetailPage() {
               )}
               {activeSubTab === 'board_review' && (
                 <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-600">
-                  {summary.boardReview ? `Board review ${labelize(summary.boardReview.status)} - ${summary.boardReview.voteCount} vote(s)` : 'Board review has not started.'}
+                  {summary.boardReview ? `Board review ${labelizeStatus(summary.boardReview.status)} - ${summary.boardReview.voteCount} vote(s)` : 'Board review has not started.'}
                 </div>
               )}
             </>
@@ -117,10 +118,6 @@ export default function SeriesDetailPage() {
       </div>
     </div>
   )
-}
-
-function labelize(value: string) {
-  return value.split('_').join(' ')
 }
 
 function formatDate(value: string) {

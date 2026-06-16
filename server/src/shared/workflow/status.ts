@@ -40,16 +40,24 @@ export const CHAPTER_STATUSES = [
 export type ChapterStatus = (typeof CHAPTER_STATUSES)[number]
 
 export const PAGE_STATUSES = [
+  "UPLOADING",
   "UPLOADED",
-  "ASSIGNED",
+  "PROCESSING_FAILED",
+  "TASK_ASSIGNED",
   "IN_PROGRESS",
-  "SUBMITTED",
+  "UNDER_REVIEW",
   "APPROVED",
-  "REVISION_REQUESTED",
 ] as const
 export type PageStatus = (typeof PAGE_STATUSES)[number]
 
-export const REGION_STATUSES = ["ACTIVE", "ARCHIVED"] as const
+export const REGION_STATUSES = [
+  "CREATED",
+  "AI_SUGGESTED",
+  "ACCEPTED",
+  "REJECTED",
+  "LINKED_TO_TASK",
+  "ARCHIVED"
+] as const
 export type RegionStatus = (typeof REGION_STATUSES)[number]
 
 export const TASK_STATUSES = [
