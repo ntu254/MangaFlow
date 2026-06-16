@@ -14,7 +14,7 @@ export async function createPageRepository(chapterId: string, pageNumber: number
   return Page.create({
     chapterId,
     pageNumber,
-    status: "UPLOADED",
+    status: "UPLOADING",
     regionIds: [],
   })
 }
@@ -31,8 +31,7 @@ export async function updatePageStatus(pageId: string, status: string): Promise<
   return Page.findByIdAndUpdate(pageId, { status }, { new: true })
 }
 
-export interface ConfirmPageUploadInput {
-  pageId: string
+interface UploadAssetInput {
   fileAssetId: string
   r2Key: string
   originalName: string
@@ -40,10 +39,52 @@ export interface ConfirmPageUploadInput {
   size: number
 }
 
+export interface ConfirmPageUploadInput {
+  pageId: string
+  uploadedBy: string
+  original: UploadAssetInput
+  working: UploadAssetInput
+  thumbnail: UploadAssetInput
+}
+
+async function upsertFileAsset(input: UploadAssetInput, uploadedBy: string, slot: string) {
+  return FileAsset.findByIdAndUpdate(
+    input.fileAssetId,
+    {
+      _id: input.fileAssetId,
+      originalName: input.originalName,
+      mimeType: input.mimeType,
+      size: input.size,
+      r2Key: input.r2Key,
+      r2Bucket: process.env.R2_BUCKET || "mangaflow",
+      uploadedBy,
+      assetType: "PRODUCTION",
+      slot,
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  )
+}
+
 export async function confirmPageUploadRepository(input: ConfirmPageUploadInput): Promise<any> {
+  const existingPage = await Page.findById(input.pageId)
+  if (!existingPage) {
+    throw new Error("Page not found")
+  }
+
+  const [originalAsset, workingAsset, thumbnailAsset] = await Promise.all([
+    upsertFileAsset(input.original, input.uploadedBy, "ORIGINAL"),
+    upsertFileAsset(input.working, input.uploadedBy, "WORKING"),
+    upsertFileAsset(input.thumbnail, input.uploadedBy, "THUMBNAIL"),
+  ])
+
   const page = await Page.findByIdAndUpdate(
     input.pageId,
-    { status: "UPLOADED", originalFileAssetId: input.fileAssetId },
+    {
+      status: "UPLOADED",
+      originalFileAssetId: input.original.fileAssetId,
+      workingFileAssetId: input.working.fileAssetId,
+      thumbnailFileAssetId: input.thumbnail.fileAssetId,
+    },
     { new: true },
   )
 
@@ -51,17 +92,11 @@ export async function confirmPageUploadRepository(input: ConfirmPageUploadInput)
     throw new Error("Page not found")
   }
 
-  const fileAsset = await FileAsset.create({
-    _id: input.fileAssetId,
-    originalName: input.originalName,
-    mimeType: input.mimeType,
-    size: input.size,
-    r2Key: input.r2Key,
-    r2Bucket: process.env.R2_BUCKET || "mangaflow",
-    uploadedBy: page.chapterId,
-  })
+  return { page, originalAsset, workingAsset, thumbnailAsset }
+}
 
-  return { page, fileAsset }
+export async function markPageProcessingFailed(pageId: string): Promise<any | null> {
+  return Page.findByIdAndUpdate(pageId, { status: "PROCESSING_FAILED" }, { new: true })
 }
 
 export async function getFileAssetById(fileAssetId: string): Promise<any | null> {
@@ -69,6 +104,8 @@ export async function getFileAssetById(fileAssetId: string): Promise<any | null>
 }
 
 export async function getPageWithFileAsset(pageId: string): Promise<any | null> {
-  return Page.findById(pageId).populate("originalFileAssetId")
+  return Page.findById(pageId)
+    .populate("originalFileAssetId")
+    .populate("workingFileAssetId")
+    .populate("thumbnailFileAssetId")
 }
-

@@ -3,6 +3,7 @@ import { MANUSCRIPT_STATUSES, PUBLICATION_TYPES, SERIES_STATUSES, type Manuscrip
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
 export type SeriesMemberAccessScope = "FULL" | "TASK_ONLY"
+export type SeriesMemberStatus = "INVITED" | "ACTIVE" | "REMOVED" | "PAUSED"
 
 export interface SeriesDocument extends Document {
   title: string
@@ -64,6 +65,9 @@ export interface SeriesMemberDocument extends Document {
   seriesId: mongoose.Types.ObjectId
   userId: mongoose.Types.ObjectId
   role: SeriesMemberRole
+  /** Flow-03: status enum replaces the old isActive boolean. */
+  status: SeriesMemberStatus
+  /** @deprecated Use status === "ACTIVE" instead. Kept for backward-compat read. */
   isActive: boolean
   accessScope: SeriesMemberAccessScope
   createdAt: Date
@@ -75,6 +79,14 @@ const seriesMemberSchema = new Schema<SeriesMemberDocument>(
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     role: { type: String, enum: ["MANGAKA", "ASSISTANT", "EDITOR"], required: true },
+    status: {
+      type: String,
+      enum: ["INVITED", "ACTIVE", "REMOVED", "PAUSED"],
+      required: true,
+      default: "ACTIVE",
+      index: true,
+    },
+    /** Virtual backward-compat getter so old code reading .isActive still works. */
     isActive: { type: Boolean, default: true },
     accessScope: { type: String, enum: ["FULL", "TASK_ONLY"], required: true, default: "FULL" },
   },

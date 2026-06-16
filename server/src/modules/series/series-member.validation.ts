@@ -11,4 +11,21 @@ export const addSeriesMemberSchema = z.object({
   accessScope: z.enum(["FULL", "TASK_ONLY"]),
 })
 
+export const updateSeriesMemberSchema = z.object({
+  params: z.object({
+    seriesId: objectId,
+    memberId: objectId,
+  }),
+  body: z.object({
+    /** Flow-03: pause or reactivate a member */
+    status: z.enum(["ACTIVE", "PAUSED"]),
+  }),
+})
+
+export const memberIdParamsSchema = z.object({
+  seriesId: objectId,
+  memberId: objectId,
+})
+
 export type AddSeriesMemberInput = z.infer<typeof addSeriesMemberSchema>
+export type UpdateSeriesMemberInput = z.infer<typeof updateSeriesMemberSchema>
