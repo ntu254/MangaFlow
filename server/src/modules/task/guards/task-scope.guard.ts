@@ -22,6 +22,9 @@ export async function validateTaskCreationScope(input: {
   if (!allowedStatuses.includes(series.status as string)) {
     throw new AppError(`Task creation not allowed. Series status is ${series.status}. Must be APPROVED, ONGOING, or AT_RISK.`, 409)
   }
+  if (series.status === "APPROVED" && !series.publicationType) {
+    throw new AppError("Task creation not allowed. Approved series must have a Board-approved publication type.", 409)
+  }
 
   const chapter = await Chapter.findById(input.chapterId)
   if (!chapter) throw new AppError("Chapter not found", 404)

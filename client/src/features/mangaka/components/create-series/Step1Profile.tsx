@@ -120,18 +120,18 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
               <HelpCircle size={14} className="text-slate-400" />
             </label>
             <div className="flex items-center gap-6 mt-2">
-              {(['Weekly', 'Monthly'] as const).map((opt) => (
-                <label key={opt} className="flex items-center gap-2 cursor-pointer group">
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.publicationType === opt ? 'border-indigo-600' : 'border-slate-300 group-hover:border-indigo-400'}`}>
-                    {formData.publicationType === opt && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
+              {([{ value: 'WEEKLY', label: 'Weekly' }, { value: 'MONTHLY', label: 'Monthly' }] as const).map((opt) => (
+                <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.publicationType === opt.value ? 'border-indigo-600' : 'border-slate-300 group-hover:border-indigo-400'}`}>
+                    {formData.publicationType === opt.value && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
                   </div>
-                  <span className="text-sm font-semibold text-slate-700">{opt}</span>
+                  <span className="text-sm font-semibold text-slate-700">{opt.label}</span>
                   <input
                     type="radio"
                     className="hidden"
-                    checked={formData.publicationType === opt}
+                    checked={formData.publicationType === opt.value}
                     disabled={readOnly}
-                    onChange={() => setField('publicationType', opt)}
+                    onChange={() => setField('publicationType', opt.value)}
                   />
                 </label>
               ))}

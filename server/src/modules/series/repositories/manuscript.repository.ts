@@ -37,16 +37,20 @@ export interface CreateManuscriptUploadDraftInput {
   originalName: string
   mimeType: string
   size: number
+  slot?: string
 }
 
 export async function createManuscriptUploadDraft(input: CreateManuscriptUploadDraftInput): Promise<any> {
   const fileAsset = await FileAsset.create({
+    seriesId: input.seriesId,
     originalName: input.originalName,
     mimeType: input.mimeType,
     size: input.size,
     r2Key: input.r2Key,
     r2Bucket: config.r2Bucket,
     uploadedBy: input.uploadedBy,
+    assetType: "MANUSCRIPT",
+    slot: input.slot,
   })
 
   let manuscript
@@ -76,6 +80,33 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
   }
 
   return { manuscript, fileAsset }
+}
+
+export interface CreateSeriesFileAssetDraftInput {
+  seriesId: string
+  uploadedBy: string
+  r2Key: string
+  originalName: string
+  mimeType: string
+  size: number
+  assetType: "SUPPORTING"
+  slot?: string
+}
+
+export async function createSeriesFileAssetDraft(input: CreateSeriesFileAssetDraftInput): Promise<any> {
+  const fileAsset = await FileAsset.create({
+    seriesId: input.seriesId,
+    originalName: input.originalName,
+    mimeType: input.mimeType,
+    size: input.size,
+    r2Key: input.r2Key,
+    r2Bucket: config.r2Bucket,
+    uploadedBy: input.uploadedBy,
+    assetType: input.assetType,
+    slot: input.slot,
+  })
+
+  return { fileAsset, manuscript: null }
 }
 
 export async function updateManuscriptStatus(manuscriptId: string, status: ManuscriptStatus, reviewNote?: string): Promise<any | null> {

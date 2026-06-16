@@ -1,5 +1,5 @@
 ﻿import mongoose, { Schema, type Document } from "mongoose"
-import { AT_RISK_DECISIONS, BOARD_DECISION_STATUSES, BOARD_VOTE_VALUES, type AtRiskDecision, type BoardDecisionStatus, type BoardVoteValue } from "../../shared/workflow/status.js"
+import { AT_RISK_DECISIONS, BOARD_DECISION_STATUSES, BOARD_VOTE_VALUES, PUBLICATION_TYPES, type AtRiskDecision, type BoardDecisionStatus, type BoardVoteValue, type PublicationType } from "../../shared/workflow/status.js"
 
 export interface BoardMemberDocument extends Document {
   userId: mongoose.Types.ObjectId
@@ -20,10 +20,34 @@ const boardMemberSchema = new Schema<BoardMemberDocument>(
 
 export const BoardMember = mongoose.model<BoardMemberDocument>("BoardMember", boardMemberSchema)
 
+export interface BoardReviewSessionDocument extends Document {
+  seriesId: mongoose.Types.ObjectId
+  status: "OPEN" | "CLOSED"
+  openedBy?: mongoose.Types.ObjectId
+  closedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+const boardReviewSessionSchema = new Schema<BoardReviewSessionDocument>(
+  {
+    seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, index: true },
+    status: { type: String, enum: ["OPEN", "CLOSED"], required: true, default: "OPEN", index: true },
+    openedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    closedAt: { type: Date },
+  },
+  { timestamps: true },
+)
+boardReviewSessionSchema.index({ seriesId: 1, status: 1 })
+
+export const BoardReviewSession = mongoose.model<BoardReviewSessionDocument>("BoardReviewSession", boardReviewSessionSchema)
+
 export interface BoardVoteDocument extends Document {
   seriesId: mongoose.Types.ObjectId
+  sessionId?: mongoose.Types.ObjectId
   userId: mongoose.Types.ObjectId
   value: BoardVoteValue
+  note?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -31,12 +55,15 @@ export interface BoardVoteDocument extends Document {
 const boardVoteSchema = new Schema<BoardVoteDocument>(
   {
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, index: true },
+    sessionId: { type: Schema.Types.ObjectId, ref: "BoardReviewSession", index: true },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     value: { type: String, enum: BOARD_VOTE_VALUES, required: true },
+    note: { type: String, trim: true, maxlength: 2000 },
   },
   { timestamps: true },
 )
-boardVoteSchema.index({ seriesId: 1, userId: 1 }, { unique: true })
+boardVoteSchema.index({ sessionId: 1, userId: 1 }, { unique: true, partialFilterExpression: { sessionId: { $exists: true } } })
+boardVoteSchema.index({ seriesId: 1, userId: 1 })
 
 export const BoardVote = mongoose.model<BoardVoteDocument>("BoardVote", boardVoteSchema)
 
@@ -44,7 +71,10 @@ export interface BoardDecisionDocument extends Document {
   seriesId: mongoose.Types.ObjectId
   status: BoardDecisionStatus
   result?: BoardVoteValue
+  publicationType?: PublicationType
+  note?: string
   decidedBy?: mongoose.Types.ObjectId
+  finalizedAt?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -54,7 +84,10 @@ const boardDecisionSchema = new Schema<BoardDecisionDocument>(
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, unique: true, index: true },
     status: { type: String, enum: BOARD_DECISION_STATUSES, required: true, default: "PENDING", index: true },
     result: { type: String, enum: BOARD_VOTE_VALUES },
+    publicationType: { type: String, enum: PUBLICATION_TYPES },
+    note: { type: String, trim: true, maxlength: 2000 },
     decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    finalizedAt: { type: Date },
   },
   { timestamps: true },
 )

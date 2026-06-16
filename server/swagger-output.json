@@ -3290,7 +3290,17 @@
           {
             "bearerAuth": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardFinalizeRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/board/series/{seriesId}/decisions/tie-break": {
@@ -3410,7 +3420,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BoardVoteRequest"
+                "$ref": "#/components/schemas/BoardTieBreakRequest"
               }
             }
           }
@@ -10809,6 +10819,24 @@
           "synopsis": {
             "type": "string"
           },
+          "targetAudience": {
+            "type": "string"
+          },
+          "requestedPublicationType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "publicationType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY"
+            ],
+            "deprecated": true
+          },
           "genres": {
             "type": "array",
             "items": {
@@ -10834,7 +10862,10 @@
               "image/jpeg",
               "image/png",
               "image/webp",
-              "application/pdf"
+              "application/pdf",
+              "application/zip",
+              "image/vnd.adobe.photoshop",
+              "application/x-photoshop"
             ]
           },
           "size": {
@@ -10844,6 +10875,16 @@
           "expiresIn": {
             "type": "integer",
             "minimum": 1
+          },
+          "assetType": {
+            "type": "string",
+            "enum": [
+              "MANUSCRIPT",
+              "SUPPORTING"
+            ]
+          },
+          "slot": {
+            "type": "string"
           }
         }
       },
@@ -10860,6 +10901,58 @@
               "REJECT",
               "NEEDS_REVISION"
             ]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "BoardFinalizeRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "NEEDS_REVISION"
+            ]
+          },
+          "publicationType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "BoardTieBreakRequest": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT",
+              "NEEDS_REVISION"
+            ]
+          },
+          "publicationType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "note": {
+            "type": "string"
           }
         }
       },
@@ -10889,6 +10982,64 @@
           "reviewNote": {
             "type": "string",
             "maxLength": 2000
+          }
+        }
+      },
+      "EditorRevisionRequest": {
+        "type": "object",
+        "required": [
+          "revisionReason",
+          "feedbackSummary"
+        ],
+        "properties": {
+          "revisionReason": {
+            "type": "string"
+          },
+          "feedbackSummary": {
+            "type": "string"
+          },
+          "reviewNote": {
+            "type": "string"
+          }
+        }
+      },
+      "EditorRejectRequest": {
+        "type": "object",
+        "required": [
+          "rejectReason"
+        ],
+        "properties": {
+          "rejectReason": {
+            "type": "string"
+          },
+          "reviewNote": {
+            "type": "string"
+          }
+        }
+      },
+      "EditorForwardRequest": {
+        "type": "object",
+        "required": [
+          "editorRecommendation",
+          "feasibilityNote",
+          "suggestedPublicationType"
+        ],
+        "properties": {
+          "editorRecommendation": {
+            "type": "string"
+          },
+          "feasibilityNote": {
+            "type": "string"
+          },
+          "suggestedPublicationType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "riskNote": {
+            "type": "string"
           }
         }
       },

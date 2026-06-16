@@ -1,4 +1,4 @@
-import { Info, UploadCloud, MessageSquare, Clock, FileText, Send, Users, File, CheckCircle2 } from 'lucide-react'
+import { UploadCloud, MessageSquare, Clock, FileText, Send, Users, File, CheckCircle2 } from 'lucide-react'
 import { ManuscriptVersions } from '@/features/mangaka/components/series-detail/proposal/ManuscriptVersions'
 import { ReviewProgress } from '@/features/mangaka/components/series-detail/proposal/ReviewProgress'
 import type { SeriesSummary } from '@/api/series'

@@ -14,7 +14,11 @@ import MangakaSeriesDetailPage from '@/pages/mangaka/SeriesDetailPage'
 import MangakaCreateSeriesPage from '@/pages/mangaka/CreateSeriesPage'
 import AssistantDashboard from '@/pages/assistant/DashboardPage'
 import EditorDashboard from '@/pages/editor/DashboardPage'
+import EditorReviewQueuePage from '@/pages/editor/ReviewQueuePage'
+import EditorSeriesReviewPage from '@/pages/editor/SeriesReviewPage'
 import BoardDashboard from '@/pages/board/DashboardPage'
+import BoardSeriesReviewPage from '@/pages/board/SeriesReviewPage'
+import BoardSeriesSummaryPage from '@/pages/board/SeriesSummaryPage'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to='/login' replace /> },
@@ -42,10 +46,17 @@ const router = createBrowserRouter([
           // Editor
           { path: 'editor', element: <ProtectedRoute allowedRoles={['EDITOR']} />, children: [
             { path: 'dashboard', element: <EditorDashboard /> },
+            { path: 'manuscripts', element: <EditorReviewQueuePage /> },
+            { path: 'manuscripts/review-queue', element: <EditorReviewQueuePage /> },
+            { path: 'series/:id/review', element: <EditorSeriesReviewPage /> },
           ]},
           // Board
           { path: 'board', element: <ProtectedRoute allowedRoles={['BOARD']} />, children: [
             { path: 'dashboard', element: <BoardDashboard /> },
+            { path: 'series', element: <BoardSeriesReviewPage /> },
+            { path: 'series-review', element: <BoardSeriesReviewPage /> },
+            { path: 'series/:id/summary', element: <BoardSeriesSummaryPage /> },
+            { path: 'series/:id/voting', element: <BoardSeriesSummaryPage /> },
           ]},
         ],
       },

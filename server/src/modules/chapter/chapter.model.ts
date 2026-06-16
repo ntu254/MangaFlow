@@ -75,24 +75,30 @@ chapterSchema.set("toJSON", {
 export const Chapter = mongoose.model<ChapterDocument>("Chapter", chapterSchema)
 
 export interface FileAssetDocument extends Document {
+  seriesId?: mongoose.Types.ObjectId
   originalName: string
   mimeType: string
   size: number
   r2Key: string
   r2Bucket: string
   uploadedBy: mongoose.Types.ObjectId
+  assetType?: "MANUSCRIPT" | "SUPPORTING" | "PRODUCTION"
+  slot?: string
   createdAt: Date
   updatedAt: Date
 }
 
 const fileAssetSchema = new Schema<FileAssetDocument>(
   {
+    seriesId: { type: Schema.Types.ObjectId, ref: "Series", index: true },
     originalName: { type: String, required: true, trim: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true, min: 0 },
     r2Key: { type: String, required: true },
     r2Bucket: { type: String, required: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    assetType: { type: String, enum: ["MANUSCRIPT", "SUPPORTING", "PRODUCTION"] },
+    slot: { type: String, trim: true, maxlength: 80 },
   },
   { timestamps: true },
 )

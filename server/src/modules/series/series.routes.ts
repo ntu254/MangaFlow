@@ -39,6 +39,13 @@ router.post(
   validate(seriesIdParamsSchema, "params"),
   asyncHandler(controller.submitSeries),
 )
+router.post(
+  "/:seriesId/submit-to-editor",
+  requireAuth,
+  requireRole("MANGAKA"),
+  validate(seriesIdParamsSchema, "params"),
+  asyncHandler(controller.submitSeries),
+)
 
 router.post(
   "/:seriesId/members",

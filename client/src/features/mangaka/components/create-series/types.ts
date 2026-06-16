@@ -23,7 +23,7 @@ export type UploadSlot =
 
 export interface UploadedSeriesFile {
   fileAssetId: string
-  manuscriptId: string
+  manuscriptId?: string
   originalName: string
   size: number
   contentType: SeriesUploadContentType
@@ -43,7 +43,7 @@ export const initialFormData: CreateSeriesFormData = {
   title: "",
   genre: "",
   audience: "",
-  publicationType: "Weekly",
+  publicationType: "WEEKLY",
   tags: [],
   synopsis: "",
   logline: "",

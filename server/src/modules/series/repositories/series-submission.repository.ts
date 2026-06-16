@@ -11,11 +11,18 @@ export async function submitSeriesRepository(seriesId: string, userId: string): 
     throw new Error("Only the owner Mangaka can submit this series")
   }
 
-  if (series.status !== "DRAFT") {
-    throw new Error("Only draft series can be submitted")
+  if (!["DRAFT", "REVISION_REQUESTED"].includes(series.status)) {
+    throw new Error("Only draft or revision-requested series can be submitted")
   }
 
-  if (!series.title || !series.synopsis) {
+  if (
+    !series.title ||
+    !series.synopsis ||
+    !series.targetAudience ||
+    !Array.isArray(series.genres) ||
+    series.genres.length === 0 ||
+    !series.requestedPublicationType
+  ) {
     throw new Error("Required series fields must be completed before submit")
   }
 
@@ -23,9 +30,12 @@ export async function submitSeriesRepository(seriesId: string, userId: string): 
   if (!manuscript) {
     throw new Error("Initial manuscript is required before submit")
   }
+  if (manuscript.status !== "DRAFT") {
+    throw new Error("A new draft manuscript version is required before submit")
+  }
 
   series.status = "EDITOR_REVIEW"
-  manuscript.status = "EDITOR_REVIEW"
+  manuscript.status = "SUBMITTED"
   await series.save()
   await manuscript.save()
 
