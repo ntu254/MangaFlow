@@ -179,7 +179,6 @@ export function PageStudioRightPanel({
           )}
         </div>
       )}
-      )}
 
       <AssignTaskModal 
         isOpen={isTaskModalOpen} 

@@ -11,6 +11,10 @@ export default function AssistantDashboard() {
 
   const activeTasksList = tasks?.filter((t: Task) => ['TODO', 'IN_PROGRESS', 'REVISION_REQUESTED'].includes(t.status)) || []
   const completedTasksList = tasks?.filter((t: Task) => ['SUBMITTED', 'MANGAKA_APPROVED', 'EDITOR_APPROVED'].includes(t.status)) || []
+  
+  // Dynamic calculation for MVP
+  const pointsEarned = completedTasksList.filter((t: Task) => t.status === 'EDITOR_APPROVED').length * 150
+  const pendingPoints = completedTasksList.filter((t: Task) => ['SUBMITTED', 'MANGAKA_APPROVED'].includes(t.status)).length * 150
 
   return (
     <div className='max-w-[1400px] w-full mx-auto pb-10 space-y-8'>
@@ -33,7 +37,7 @@ export default function AssistantDashboard() {
         <StatCard label="Active Tasks" value={activeTasksList.length} icon={Briefcase} color="text-indigo-600" bg="bg-indigo-50" border="border-indigo-100" />
         <StatCard label="Due Soon" value={activeTasksList.filter((t: Task) => new Date(t.dueDate) < new Date(Date.now() + 86400000 * 2)).length} icon={AlertCircle} color="text-orange-600" bg="bg-orange-50" border="border-orange-100" />
         <StatCard label="Tasks Completed" value={completedTasksList.length} icon={CheckSquare} color="text-emerald-600" bg="bg-emerald-50" border="border-emerald-100" />
-        <StatCard label="Monthly Earnings" value="---" icon={DollarSign} color="text-purple-600" bg="bg-purple-50" border="border-purple-100" />
+        <StatCard label="Monthly Earnings" value={`${pointsEarned} pts`} icon={DollarSign} color="text-purple-600" bg="bg-purple-50" border="border-purple-100" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -64,10 +68,14 @@ export default function AssistantDashboard() {
                         <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{task.id.slice(-6)}</span>
                         <h3 className="text-[14px] font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{task.title}</h3>
                       </div>
-                      <div className="flex items-center gap-3 text-[12px] text-gray-500 font-medium">
-                        <span>Series {task.seriesId.slice(-4)}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                        <span className="text-gray-700 font-semibold">{task.status.replace(/_/g, ' ')}</span>
+                      <div className="flex items-center gap-3 text-[12px] text-gray-500 font-medium mt-1">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          task.status === 'REVISION_REQUESTED' ? 'bg-amber-100 text-amber-700' :
+                          task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {task.status.replace(/_/g, ' ')}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -95,8 +103,8 @@ export default function AssistantDashboard() {
             
             <div className="relative z-10 flex flex-col h-full">
               <span className="text-indigo-200 text-[12px] font-bold uppercase tracking-wider mb-2">Available Balance</span>
-              <div className="text-4xl font-extrabold tracking-tight mb-1">2,150 <span className="text-xl text-indigo-300">pts</span></div>
-              <p className="text-indigo-200 text-[13px] mb-6">≈ $215.00 USD</p>
+              <div className="text-4xl font-extrabold tracking-tight mb-1">{pointsEarned.toLocaleString()} <span className="text-xl text-indigo-300">pts</span></div>
+              <p className="text-indigo-200 text-[13px] mb-6">≈ ${(pointsEarned / 10).toFixed(2)} USD</p>
               
               <button className="w-full bg-white text-indigo-900 font-bold py-2.5 rounded-lg text-[13px] hover:bg-indigo-50 transition-colors shadow-sm">
                 Request Payout

@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireRole } from "../../shared/middleware/requireRole.js"
+import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js"
 import { validate } from "../../shared/middleware/validate.js"
 import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./series.controller.js"
@@ -63,10 +64,13 @@ router.post(
   asyncHandler(addSeriesMember),
 )
 
+// Flow-03: only active series members (or Admin) can read the team composition.
+// Prevents cross-series leak of team identity.
 router.get(
   "/:seriesId/members",
   requireAuth,
   validate(seriesIdParamsSchema, "params"),
+  requireSeriesRole("MANGAKA", "EDITOR", "ASSISTANT"),
   asyncHandler(listSeriesMembers),
 )
 

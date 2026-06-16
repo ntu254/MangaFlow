@@ -1,5 +1,5 @@
 ﻿import { AppError } from "../../../shared/errors/AppError.js"
-import { SeriesMember } from "../../series/series.model.js"
+import { findActiveSeriesMember } from "../../../shared/policies/seriesMember.policy.js"
 import type { UserRole } from "../../auth/auth.types.js"
 
 export interface TaskActor {
@@ -8,8 +8,8 @@ export interface TaskActor {
 }
 
 export async function assertSeriesManager(seriesId: string, actor: TaskActor): Promise<void> {
-  const member = await SeriesMember.findOne({ seriesId, userId: actor.userId })
-  if (!member || !member.isActive || !["MANGAKA", "EDITOR"].includes(member.role)) {
+  const member = await findActiveSeriesMember(seriesId, actor.userId)
+  if (!member || !["MANGAKA", "EDITOR"].includes(member.role)) {
     throw new AppError("Only active Mangaka or Editor series members can manage tasks", 403)
   }
 }
@@ -19,8 +19,8 @@ export async function assertSeriesTaskAccess(seriesId: string, actor: TaskActor,
     return
   }
 
-  const member = await SeriesMember.findOne({ seriesId, userId: actor.userId })
-  if (!member || !member.isActive) {
+  const member = await findActiveSeriesMember(seriesId, actor.userId)
+  if (!member) {
     throw new AppError("Task access denied", 403)
   }
 

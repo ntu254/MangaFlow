@@ -8,7 +8,13 @@ import {
 import type { UserRole } from "@/types"
 import logoImage from "@/assets/Logo.webp"
 
-interface NavItem { label: string; to: string; icon: React.ReactNode }
+interface NavItem {
+  label: string
+  to: string
+  icon: React.ReactNode
+  /** true when the destination route is not implemented yet — renders disabled with tooltip */
+  comingSoon?: boolean
+}
 
 const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ADMIN: [
@@ -16,28 +22,28 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Users", to: "/app/admin/users", icon: <Users size={18} /> },
     { label: "Board Members", to: "/app/admin/board-members", icon: <Shield size={18} /> },
     { label: "Task Types", to: "/app/admin/task-types", icon: <Settings size={18} /> },
-    { label: "Audit Log", to: "/app/admin/audit-log", icon: <FileText size={18} /> },
+    { label: "Audit Log", to: "/app/admin/audit-log", icon: <FileText size={18} />, comingSoon: true },
   ],
   MANGAKA: [
     { label: "Dashboard", to: "/app/mangaka/dashboard", icon: <LayoutDashboard size={18} /> },
     { label: "My Series", to: "/app/mangaka/series", icon: <BookOpen size={18} /> },
-    { label: "Payroll", to: "/app/mangaka/payroll", icon: <DollarSign size={18} /> },
+    { label: "Payroll", to: "/app/mangaka/payroll", icon: <DollarSign size={18} />, comingSoon: true },
   ],
   ASSISTANT: [
     { label: "Dashboard", to: "/app/assistant/dashboard", icon: <LayoutDashboard size={18} /> },
-    { label: "My Tasks", to: "/app/assistant/tasks", icon: <CheckSquare size={18} /> },
-    { label: "Earnings", to: "/app/assistant/earnings", icon: <DollarSign size={18} /> },
+    { label: "My Tasks", to: "/app/assistant/tasks", icon: <CheckSquare size={18} />, comingSoon: true },
+    { label: "Earnings", to: "/app/assistant/earnings", icon: <DollarSign size={18} />, comingSoon: true },
   ],
   EDITOR: [
     { label: "Dashboard", to: "/app/editor/dashboard", icon: <LayoutDashboard size={18} /> },
     { label: "Manuscripts", to: "/app/editor/manuscripts", icon: <FileText size={18} /> },
-    { label: "Chapters", to: "/app/editor/chapters", icon: <Layers size={18} /> },
+    { label: "Chapters", to: "/app/editor/chapters", icon: <Layers size={18} />, comingSoon: true },
   ],
   BOARD: [
     { label: "Dashboard", to: "/app/board/dashboard", icon: <LayoutDashboard size={18} /> },
     { label: "Series Review", to: "/app/board/series", icon: <BookOpen size={18} /> },
-    { label: "Ranking", to: "/app/board/ranking", icon: <BarChart2 size={18} /> },
-    { label: "At-Risk", to: "/app/board/at-risk", icon: <Shield size={18} /> },
+    { label: "Ranking", to: "/app/board/ranking", icon: <BarChart2 size={18} />, comingSoon: true },
+    { label: "At-Risk", to: "/app/board/at-risk", icon: <Shield size={18} />, comingSoon: true },
   ],
 }
 
@@ -63,23 +69,38 @@ export function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-purple-50 text-purple-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              )
-            }
-          >
-            {item.icon}
-            {item.label}
-          </NavLink>
-        ))}
+        {items.map((item) =>
+          item.comingSoon ? (
+            <span
+              key={item.to}
+              title="Coming soon"
+              aria-disabled="true"
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-300 cursor-not-allowed select-none"
+            >
+              {item.icon}
+              <span className="flex-1">{item.label}</span>
+              <span className="text-[10px] uppercase tracking-wider text-gray-300 border border-gray-200 px-1.5 py-0.5 rounded">
+                Soon
+              </span>
+            </span>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-purple-50 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                )
+              }
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          )
+        )}
       </nav>
 
       {/* Logout */}

@@ -6,12 +6,19 @@ import { NavLink, useNavigate } from "react-router-dom"
 import logoImage from "@/assets/Logo.webp"
 import { cn } from "@/lib/utils"
 
-const NAV_LINKS = [
+interface NavLinkItem {
+  label: string
+  to: string
+  /** true when the target page is not implemented yet */
+  comingSoon?: boolean
+}
+
+const NAV_LINKS: NavLinkItem[] = [
   { label: 'Home', to: '/app/mangaka/dashboard' },
   { label: 'Series', to: '/app/mangaka/series' },
-  { label: 'Inbox', to: '/app/mangaka/inbox' },
-  { label: 'Ranking', to: '/app/mangaka/ranking' },
-  { label: 'Payroll', to: '/app/mangaka/payroll' },
+  { label: 'Inbox', to: '/app/mangaka/inbox', comingSoon: true },
+  { label: 'Ranking', to: '/app/mangaka/ranking', comingSoon: true },
+  { label: 'Payroll', to: '/app/mangaka/payroll', comingSoon: true },
 ]
 
 export function MangakaNavbar() {
@@ -32,22 +39,36 @@ export function MangakaNavbar() {
         </div>
 
         <nav className="hidden md:flex items-center gap-4 h-full">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                cn(
-                  "px-2 h-full flex items-center text-sm font-semibold border-b-2 transition-colors",
-                  isActive
-                    ? "border-purple-600 text-purple-700"
-                    : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200"
-                )
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+          {NAV_LINKS.map((link) =>
+            link.comingSoon ? (
+              <span
+                key={link.to}
+                title="Coming soon"
+                aria-disabled="true"
+                className="px-2 h-full flex items-center gap-1.5 text-sm font-semibold border-b-2 border-transparent text-gray-300 cursor-not-allowed select-none"
+              >
+                {link.label}
+                <span className="text-[9px] uppercase tracking-wider text-gray-300 border border-gray-200 px-1 py-0.5 rounded">
+                  Soon
+                </span>
+              </span>
+            ) : (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  cn(
+                    "px-2 h-full flex items-center text-sm font-semibold border-b-2 transition-colors",
+                    isActive
+                      ? "border-purple-600 text-purple-700"
+                      : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200"
+                  )
+                }
+              >
+                {link.label}
+              </NavLink>
+            )
+          )}
         </nav>
       </div>
 

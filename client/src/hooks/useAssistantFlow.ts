@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { taskApi } from "@/api/task"
 import { submissionApi, type SubmitTaskInput } from "@/api/submission"
+import { chapterApi } from "@/api/chapter"
 
 export function useAssistantTasks(userId: string | undefined) {
   return useQuery({
@@ -34,6 +35,17 @@ export function useAssistantTaskSubmissions(taskId: string | undefined) {
       return res.data.data
     },
     enabled: !!taskId,
+  })
+}
+
+export function useAssistantPageAssets(pageId: string | undefined) {
+  return useQuery({
+    queryKey: ["page-assets", pageId],
+    queryFn: async () => {
+      const res = await chapterApi.getPageWithAssets(pageId!)
+      return res.data.data
+    },
+    enabled: !!pageId,
   })
 }
 

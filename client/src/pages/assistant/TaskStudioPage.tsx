@@ -1,8 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, Clock, Play, Send, LayoutPanelLeft, AlertCircle } from 'lucide-react'
-import { useState } from 'react'
-import bgImage from '@/assets/image-mangaka.webp'
-import { useAssistantTaskDetail, useAssistantActions } from '@/hooks/useAssistantFlow'
+import { useState, useMemo } from 'react'
+import { useAssistantTaskDetail, useAssistantActions, useAssistantPageAssets } from '@/hooks/useAssistantFlow'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -12,13 +11,21 @@ export default function TaskStudioPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'instructions' | 'comments'>('instructions')
   
-  const { data: taskData, isLoading } = useAssistantTaskDetail(taskId)
+  const { data: task, isLoading: isTaskLoading } = useAssistantTaskDetail(taskId)
   const { startTask, submitWork } = useAssistantActions(taskId)
+
+  const { data: pageData, isLoading: isPageLoading } = useAssistantPageAssets(task?.pageId)
 
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false)
   const [submitText, setSubmitText] = useState("")
 
-  const task = taskData?.data
+  // Find the target region if this is a region task
+  const targetRegion = useMemo(() => {
+    if (!task?.regionId || !pageData?.regions) return null
+    return pageData.regions.find((r: any) => r.id === task.regionId)
+  }, [task?.regionId, pageData?.regions])
+
+  const isLoading = isTaskLoading || isPageLoading
 
   const handleSubmit = async () => {
     try {
@@ -70,7 +77,10 @@ export default function TaskStudioPage() {
           </div>
           
           <div className="flex items-center gap-4 mt-4 text-[12px] font-medium text-gray-500">
-            <div className="flex items-center gap-1.5"><LayoutPanelLeft size={14} /> Page 12, Region 3</div>
+            <div className="flex items-center gap-1.5"><LayoutPanelLeft size={14} /> Page {pageData?.page.pageNumber || "-"}</div>
+            {targetRegion && (
+              <div className="flex items-center gap-1.5"><LayoutPanelLeft size={14} /> Region {targetRegion.type}</div>
+            )}
             <div className="flex items-center gap-1.5 text-orange-600 font-bold"><Clock size={14} /> Due in 2 hrs</div>
           </div>
         </div>
@@ -177,14 +187,31 @@ export default function TaskStudioPage() {
           </button>
         </div>
 
-        {/* Mock Canvas Area */}
+        {/* Canvas Area */}
         <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
           <div className="relative shadow-2xl rounded-lg overflow-hidden border-4 border-white max-w-full max-h-full">
-             <img src={bgImage} alt="Manga Page Canvas" className="w-full h-full object-contain" />
-             {/* Mock Region Highlight */}
-             <div className="absolute top-[20%] left-[30%] w-[40%] h-[30%] border-2 border-indigo-500 bg-indigo-500/20 rounded">
-                <span className="absolute -top-6 left-0 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">Target Region</span>
-             </div>
+             {pageData?.page.imageUrl ? (
+               <img src={pageData.page.imageUrl} alt="Manga Page Canvas" className="w-full h-full object-contain max-h-[80vh]" />
+             ) : (
+               <div className="w-[500px] h-[700px] bg-white flex items-center justify-center text-gray-400">No Image Available</div>
+             )}
+             
+             {/* Region Highlight */}
+             {targetRegion && (
+               <div 
+                  className="absolute border-2 border-indigo-500 bg-indigo-500/20"
+                  style={{
+                    left: `${targetRegion.bbox.x}%`,
+                    top: `${targetRegion.bbox.y}%`,
+                    width: `${targetRegion.bbox.width}%`,
+                    height: `${targetRegion.bbox.height}%`
+                  }}
+               >
+                  <span className="absolute -top-6 left-0 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                    Target Region: {targetRegion.type}
+                  </span>
+               </div>
+             )}
           </div>
         </div>
 

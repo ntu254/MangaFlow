@@ -1,6 +1,8 @@
 import { Router } from "express"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireRole } from "../../shared/middleware/requireRole.js"
+import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js"
+import { requireChapterRole } from "../../shared/middleware/requireChapterRole.js"
 import { validate } from "../../shared/middleware/validate.js"
 import * as controller from "./chapter.controller.js"
 import {
@@ -13,11 +15,12 @@ import {
 
 const router = Router()
 
+// Create needs seriesId in body — requireSeriesRole picks it up from req.body.seriesId.
 router.post(
   "/",
   requireAuth,
-  requireRole("MANGAKA", "EDITOR"),
   validate(createChapterSchema),
+  requireSeriesRole("MANGAKA", "EDITOR"),
   controller.createChapter,
 )
 
@@ -42,19 +45,21 @@ router.get(
   controller.getChapterReadiness,
 )
 
+// Chapter-scoped writes must be limited to MANGAKA/EDITOR of the chapter's series, not
+// global roles. requireChapterRole resolves seriesId from chapterId then delegates.
 router.patch(
   "/:chapterId/status",
   requireAuth,
-  requireRole("MANGAKA", "EDITOR"),
   validate(updateChapterStatusSchema),
+  requireChapterRole("MANGAKA", "EDITOR"),
   controller.updateChapterStatus,
 )
 
 router.post(
   "/:chapterId/pages",
   requireAuth,
-  requireRole("MANGAKA", "EDITOR"),
   validate(createPageSchema),
+  requireChapterRole("MANGAKA", "EDITOR"),
   controller.createPage,
 )
 
