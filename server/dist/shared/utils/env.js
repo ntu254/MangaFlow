@@ -52,6 +52,7 @@ export function buildConfig(source = process.env) {
     return {
         port: parseInt(readEnv(source, "PORT", "3001"), 10),
         clientUrl: readEnv(source, "CLIENT_URL", "http://localhost:5173"),
+        aiServiceUrl: readEnv(source, "AI_SERVICE_URL", "http://127.0.0.1:8000"),
         mongoUri,
         jwtSecret,
         jwtRefreshSecret,

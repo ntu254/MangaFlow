@@ -24,4 +24,9 @@ export declare function rejectSubmissionService(input: ReviewInput): Promise<(im
 }> & {
     __v: number;
 }) | null>;
+export declare function editorRejectSubmissionService(input: ReviewInput): Promise<(import("mongoose").Document<unknown, {}, import("../submission.model.js").SubmissionDocument, {}, {}> & import("../submission.model.js").SubmissionDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null>;
 //# sourceMappingURL=submission-command.service.d.ts.map

@@ -1,6 +1,18 @@
 import { AppError } from "../../shared/errors/AppError.js";
-import { createSeriesRepository, getSeriesById, getSeriesForActor, listSeriesForActor, submitSeriesRepository, updateSeriesRepository, createManuscriptUploadDraft, getSeriesSummaryData, } from "./series.repository.js";
+import { createSeriesRepository, getSeriesById, getSeriesForActor, listSeriesForActor, submitSeriesRepository, updateSeriesRepository, createManuscriptUploadDraft, createSeriesFileAssetDraft, getSeriesSummaryData, } from "./series.repository.js";
 import { createPresignedUploadUrl } from "../chapter/file.service.js";
+import { notifyRole, recordAuditLog } from "../../shared/workflow/events.js";
+function isDuplicateManuscriptVersionError(error) {
+    return Boolean(error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === 11000 &&
+        "keyPattern" in error &&
+        typeof error.keyPattern === "object" &&
+        error.keyPattern &&
+        "seriesId" in error.keyPattern &&
+        "version" in error.keyPattern);
+}
 export async function listSeriesService(userId, role) {
     try {
         return await listSeriesForActor(userId, role);
@@ -26,7 +38,7 @@ export async function createSeriesService(input) {
     if (!input.title?.trim() || !input.synopsis?.trim()) {
         throw new AppError("Title and synopsis are required", 400);
     }
-    return createSeriesRepository({
+    const series = await createSeriesRepository({
         title: input.title.trim(),
         synopsis: input.synopsis.trim(),
         logline: input.logline?.trim() || undefined,
@@ -34,11 +46,14 @@ export async function createSeriesService(input) {
         characters: input.characters?.trim() || undefined,
         conflict: input.conflict?.trim() || undefined,
         targetAudience: input.targetAudience?.trim() || undefined,
-        publicationType: input.publicationType?.trim() || undefined,
+        requestedPublicationType: input.requestedPublicationType ?? input.publicationType,
+        publicationType: undefined,
         tags: input.tags,
         genres: input.genres,
         ownerId: input.ownerId,
     });
+    void recordAuditLog({ event: "SERIES_CREATED", actorId: input.ownerId, entityType: "Series", entityId: series.id }).catch(() => undefined);
+    return series;
 }
 export async function createManuscriptUploadService(input) {
     const series = await getSeriesById(input.seriesId);
@@ -47,19 +62,53 @@ export async function createManuscriptUploadService(input) {
     if (series.ownerId.toString() !== input.userId) {
         throw new AppError("Only the series owner can upload manuscripts", 403);
     }
+    if (!["DRAFT", "REVISION_REQUESTED"].includes(series.status)) {
+        throw new AppError("Manuscripts can only be uploaded while the series is in DRAFT or REVISION_REQUESTED", 409);
+    }
     const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn);
-    const persisted = await createManuscriptUploadDraft({
-        seriesId: input.seriesId,
-        uploadedBy: input.userId,
-        r2Key: signed.r2Key,
-        originalName: input.originalName,
-        mimeType: input.contentType,
-        size: input.size,
-    });
+    const assetType = input.assetType ?? "MANUSCRIPT";
+    let persisted;
+    try {
+        persisted = assetType === "MANUSCRIPT"
+            ? await createManuscriptUploadDraft({
+                seriesId: input.seriesId,
+                uploadedBy: input.userId,
+                r2Key: signed.r2Key,
+                originalName: input.originalName,
+                mimeType: input.contentType,
+                size: input.size,
+                slot: input.slot,
+            })
+            : await createSeriesFileAssetDraft({
+                seriesId: input.seriesId,
+                uploadedBy: input.userId,
+                r2Key: signed.r2Key,
+                originalName: input.originalName,
+                mimeType: input.contentType,
+                size: input.size,
+                assetType,
+                slot: input.slot,
+            });
+    }
+    catch (error) {
+        if (isDuplicateManuscriptVersionError(error)) {
+            throw new AppError("Unable to allocate manuscript version. Please retry the upload.", 409);
+        }
+        throw error;
+    }
+    if (assetType === "MANUSCRIPT" && persisted.manuscript?.id) {
+        void recordAuditLog({
+            event: "MANUSCRIPT_VERSION_UPLOADED",
+            actorId: input.userId,
+            entityType: "Manuscript",
+            entityId: persisted.manuscript.id,
+            metadata: { seriesId: input.seriesId, slot: input.slot },
+        }).catch(() => undefined);
+    }
     return {
         uploadUrl: signed.uploadUrl,
         fileAssetId: persisted.fileAsset.id,
-        manuscriptId: persisted.manuscript.id,
+        manuscriptId: persisted.manuscript?.id,
         expiresIn: signed.expiresIn,
     };
 }
@@ -77,16 +126,28 @@ export async function submitSeriesService(seriesId, userId) {
     if (!series)
         throw new AppError("Series not found", 404);
     try {
-        return await submitSeriesRepository(trimmed, userId);
+        const series = await submitSeriesRepository(trimmed, userId);
+        void Promise.all([
+            notifyRole("EDITOR", {
+                event: "SERIES_SUBMITTED_TO_EDITOR",
+                title: "New series proposal submitted",
+                message: `${series.title} is ready for editor review.`,
+                link: `/app/editor/series/${series.id}/review`,
+            }),
+            recordAuditLog({ event: "SERIES_SUBMITTED_TO_EDITOR", actorId: userId, entityType: "Series", entityId: trimmed }),
+        ]).catch(() => undefined);
+        return series;
     }
     catch (error) {
         const message = String(error.message ?? "");
         if (message.includes("Only the owner Mangaka"))
             throw new AppError("Only the owner Mangaka can submit this series", 403);
-        if (message.includes("Only draft series"))
-            throw new AppError("Only draft series can be submitted", 409);
+        if (message.includes("Only draft or revision-requested series"))
+            throw new AppError("Only draft or revision-requested series can be submitted", 409);
         if (message.includes("Initial manuscript"))
             throw new AppError("Initial manuscript is required before submit", 400);
+        if (message.includes("new draft manuscript"))
+            throw new AppError("Upload a new draft manuscript version before submit", 400);
         if (message.includes("Required series fields"))
             throw new AppError("Required series fields must be completed before submit", 400);
         if (message.includes("Series not found"))
@@ -243,7 +304,7 @@ export async function getSeriesSummaryService(seriesId, userId, role) {
         },
         allowedActions: {
             canEditSeries: role === "MANGAKA" && ["DRAFT", "REVISION_REQUESTED"].includes(series.status),
-            canUploadManuscript: role === "MANGAKA" && String(series.ownerId) === userId,
+            canUploadManuscript: role === "MANGAKA" && String(series.ownerId) === userId && ["DRAFT", "REVISION_REQUESTED"].includes(series.status),
             canOpenWorkspace: ["APPROVED", "ONGOING", "AT_RISK", "COMPLETED"].includes(series.status),
         },
     };
@@ -267,8 +328,10 @@ export async function updateSeriesService(input) {
         patch.conflict = patch.conflict.trim();
     if (patch.targetAudience !== undefined)
         patch.targetAudience = patch.targetAudience.trim();
-    if (patch.publicationType !== undefined)
-        patch.publicationType = patch.publicationType.trim();
+    if (patch.publicationType !== undefined && patch.requestedPublicationType === undefined) {
+        patch.requestedPublicationType = patch.publicationType;
+        delete patch.publicationType;
+    }
     try {
         return await updateSeriesRepository(trimmed, input.userId, patch);
     }

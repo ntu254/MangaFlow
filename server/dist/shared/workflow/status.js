@@ -14,11 +14,13 @@ export const SERIES_STATUSES = [
 export const MANUSCRIPT_STATUSES = [
     "DRAFT",
     "SUBMITTED",
-    "EDITOR_REVIEW",
+    "UNDER_EDITOR_REVIEW",
     "REVISION_REQUESTED",
-    "APPROVED_TO_BOARD",
+    "FORWARDED_TO_BOARD",
+    "APPROVED",
     "REJECTED",
 ];
+export const PUBLICATION_TYPES = ["WEEKLY", "MONTHLY"];
 export const CHAPTER_STATUSES = [
     "DRAFT",
     "IN_PRODUCTION",
@@ -44,6 +46,7 @@ export const TASK_STATUSES = [
     "EDITOR_APPROVED",
     "REVISION_REQUESTED",
     "REJECTED",
+    "CANCELLED",
 ];
 export const SUBMISSION_STATUSES = [
     "SUBMITTED",
@@ -87,6 +90,7 @@ export const ASSISTANT_EARNING_STATUSES = [
     "PAID",
     "VOID",
 ];
+export const TASK_CURRENCIES = ["POINT", "VND"];
 export const TASK_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"];
 export function isSeriesStatus(value) {
     return SERIES_STATUSES.includes(value);

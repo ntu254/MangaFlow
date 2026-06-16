@@ -11,7 +11,7 @@ export async function createPageRepository(chapterId, pageNumber) {
     return Page.create({
         chapterId,
         pageNumber,
-        status: "UPLOADED",
+        status: "UPLOADING",
         regionIds: [],
     });
 }
@@ -24,26 +24,50 @@ export async function getPageById(pageId) {
 export async function updatePageStatus(pageId, status) {
     return Page.findByIdAndUpdate(pageId, { status }, { new: true });
 }
-export async function confirmPageUploadRepository(input) {
-    const page = await Page.findByIdAndUpdate(input.pageId, { status: "UPLOADED", originalFileAssetId: input.fileAssetId }, { new: true });
-    if (!page) {
-        throw new Error("Page not found");
-    }
-    const fileAsset = await FileAsset.create({
+async function upsertFileAsset(input, uploadedBy, slot) {
+    return FileAsset.findByIdAndUpdate(input.fileAssetId, {
         _id: input.fileAssetId,
         originalName: input.originalName,
         mimeType: input.mimeType,
         size: input.size,
         r2Key: input.r2Key,
         r2Bucket: process.env.R2_BUCKET || "mangaflow",
-        uploadedBy: page.chapterId,
-    });
-    return { page, fileAsset };
+        uploadedBy,
+        assetType: "PRODUCTION",
+        slot,
+    }, { new: true, upsert: true, setDefaultsOnInsert: true });
+}
+export async function confirmPageUploadRepository(input) {
+    const existingPage = await Page.findById(input.pageId);
+    if (!existingPage) {
+        throw new Error("Page not found");
+    }
+    const [originalAsset, workingAsset, thumbnailAsset] = await Promise.all([
+        upsertFileAsset(input.original, input.uploadedBy, "ORIGINAL"),
+        upsertFileAsset(input.working, input.uploadedBy, "WORKING"),
+        upsertFileAsset(input.thumbnail, input.uploadedBy, "THUMBNAIL"),
+    ]);
+    const page = await Page.findByIdAndUpdate(input.pageId, {
+        status: "UPLOADED",
+        originalFileAssetId: input.original.fileAssetId,
+        workingFileAssetId: input.working.fileAssetId,
+        thumbnailFileAssetId: input.thumbnail.fileAssetId,
+    }, { new: true });
+    if (!page) {
+        throw new Error("Page not found");
+    }
+    return { page, originalAsset, workingAsset, thumbnailAsset };
+}
+export async function markPageProcessingFailed(pageId) {
+    return Page.findByIdAndUpdate(pageId, { status: "PROCESSING_FAILED" }, { new: true });
 }
 export async function getFileAssetById(fileAssetId) {
     return FileAsset.findById(fileAssetId);
 }
 export async function getPageWithFileAsset(pageId) {
-    return Page.findById(pageId).populate("originalFileAssetId");
+    return Page.findById(pageId)
+        .populate("originalFileAssetId")
+        .populate("workingFileAssetId")
+        .populate("thumbnailFileAssetId");
 }
 //# sourceMappingURL=page.repository.js.map

@@ -3,6 +3,8 @@ import { createTaskTypeRepository, deleteTaskType, getTaskTypeById, listTaskType
 export async function createTaskTypeService(input) {
     if (!input.name?.trim())
         throw new AppError("Task type name is required", 400);
+    if (!input.code?.trim())
+        throw new AppError("Task type code is required", 400);
     if (input.description?.trim() === "")
         throw new AppError("Task type description is required", 400);
     if (typeof input.baseRate !== "number" || input.baseRate < 0)

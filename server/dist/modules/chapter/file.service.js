@@ -1,10 +1,11 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client, } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { config } from "../../shared/utils/env.js";
 import { v4 as uuidv4 } from "uuid";
+import { config } from "../../shared/utils/env.js";
 const s3 = new S3Client({
     region: config.r2Region,
     endpoint: config.r2Endpoint,
+    requestChecksumCalculation: "WHEN_REQUIRED",
     credentials: {
         accessKeyId: config.r2AccessKeyId,
         secretAccessKey: config.r2SecretAccessKey,

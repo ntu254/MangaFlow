@@ -10,6 +10,7 @@ export interface CreateChapterResult {
     chapterNumber: number;
     title: string;
     status: ChapterStatus;
+    publicationTypeSnapshot?: string;
     createdAt: Date;
     updatedAt: Date;
 }

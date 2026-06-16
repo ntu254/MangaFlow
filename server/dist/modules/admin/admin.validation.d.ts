@@ -105,37 +105,101 @@ export declare const adminTaskTypeIdParamsSchema: z.ZodObject<{
 }>;
 export declare const adminCreateTaskTypeSchema: z.ZodObject<{
     name: z.ZodString;
-    description: z.ZodString;
+    code: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
     baseRate: z.ZodNumber;
+    currency: z.ZodOptional<z.ZodEnum<["POINT", "VND"]>>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+    allowRegionTask: z.ZodOptional<z.ZodBoolean>;
+    allowPageTask: z.ZodOptional<z.ZodBoolean>;
+    requiresFileSubmission: z.ZodOptional<z.ZodBoolean>;
+    requiresTextSubmission: z.ZodOptional<z.ZodBoolean>;
+    sortOrder: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     name: string;
-    description: string;
+    code: string;
     baseRate: number;
+    isActive?: boolean | undefined;
+    description?: string | undefined;
+    currency?: "POINT" | "VND" | undefined;
+    allowRegionTask?: boolean | undefined;
+    allowPageTask?: boolean | undefined;
+    requiresFileSubmission?: boolean | undefined;
+    requiresTextSubmission?: boolean | undefined;
+    sortOrder?: number | undefined;
 }, {
     name: string;
-    description: string;
+    code: string;
     baseRate: number;
+    isActive?: boolean | undefined;
+    description?: string | undefined;
+    currency?: "POINT" | "VND" | undefined;
+    allowRegionTask?: boolean | undefined;
+    allowPageTask?: boolean | undefined;
+    requiresFileSubmission?: boolean | undefined;
+    requiresTextSubmission?: boolean | undefined;
+    sortOrder?: number | undefined;
 }>;
 export declare const adminUpdateTaskTypeSchema: z.ZodEffects<z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
+    code: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
     baseRate: z.ZodOptional<z.ZodNumber>;
+    currency: z.ZodOptional<z.ZodEnum<["POINT", "VND"]>>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+    allowRegionTask: z.ZodOptional<z.ZodBoolean>;
+    allowPageTask: z.ZodOptional<z.ZodBoolean>;
+    requiresFileSubmission: z.ZodOptional<z.ZodBoolean>;
+    requiresTextSubmission: z.ZodOptional<z.ZodBoolean>;
+    sortOrder: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
+    isActive?: boolean | undefined;
     description?: string | undefined;
+    code?: string | undefined;
     baseRate?: number | undefined;
+    currency?: "POINT" | "VND" | undefined;
+    allowRegionTask?: boolean | undefined;
+    allowPageTask?: boolean | undefined;
+    requiresFileSubmission?: boolean | undefined;
+    requiresTextSubmission?: boolean | undefined;
+    sortOrder?: number | undefined;
 }, {
     name?: string | undefined;
+    isActive?: boolean | undefined;
     description?: string | undefined;
+    code?: string | undefined;
     baseRate?: number | undefined;
+    currency?: "POINT" | "VND" | undefined;
+    allowRegionTask?: boolean | undefined;
+    allowPageTask?: boolean | undefined;
+    requiresFileSubmission?: boolean | undefined;
+    requiresTextSubmission?: boolean | undefined;
+    sortOrder?: number | undefined;
 }>, {
     name?: string | undefined;
+    isActive?: boolean | undefined;
     description?: string | undefined;
+    code?: string | undefined;
     baseRate?: number | undefined;
+    currency?: "POINT" | "VND" | undefined;
+    allowRegionTask?: boolean | undefined;
+    allowPageTask?: boolean | undefined;
+    requiresFileSubmission?: boolean | undefined;
+    requiresTextSubmission?: boolean | undefined;
+    sortOrder?: number | undefined;
 }, {
     name?: string | undefined;
+    isActive?: boolean | undefined;
     description?: string | undefined;
+    code?: string | undefined;
     baseRate?: number | undefined;
+    currency?: "POINT" | "VND" | undefined;
+    allowRegionTask?: boolean | undefined;
+    allowPageTask?: boolean | undefined;
+    requiresFileSubmission?: boolean | undefined;
+    requiresTextSubmission?: boolean | undefined;
+    sortOrder?: number | undefined;
 }>;
 export declare const adminUpdateTaskTypeStatusSchema: z.ZodObject<{
     isActive: z.ZodBoolean;

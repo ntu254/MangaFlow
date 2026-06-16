@@ -1,10 +1,6 @@
 import { createTaskTypeService, listTaskTypesService, getTaskTypeService, updateTaskTypeService, deleteTaskTypeService, } from "../task.service.js";
 export async function createTaskType(req, res, _next) {
-    const result = await createTaskTypeService({
-        name: req.body.name,
-        description: req.body.description,
-        baseRate: req.body.baseRate,
-    });
+    const result = await createTaskTypeService(req.body);
     res.status(201).json({ success: true, message: "Task type created successfully", data: result });
 }
 export async function listTaskTypes(req, res, _next) {
@@ -16,11 +12,7 @@ export async function getTaskType(req, res, _next) {
     res.json({ success: true, message: "Task type retrieved successfully", data: taskType });
 }
 export async function updateTaskType(req, res, _next) {
-    const taskType = await updateTaskTypeService(req.params.taskTypeId, {
-        description: req.body.description,
-        baseRate: req.body.baseRate,
-        isActive: req.body.isActive,
-    });
+    const taskType = await updateTaskTypeService(req.params.taskTypeId, req.body);
     res.json({ success: true, message: "Task type updated successfully", data: taskType });
 }
 export async function deleteTaskType(req, res, _next) {

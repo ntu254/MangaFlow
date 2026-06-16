@@ -5,7 +5,9 @@ import { Submission } from "../../modules/submission/submission.model.js";
 import { Task } from "../../modules/task/task.model.js";
 async function isActiveSeriesManager(seriesId, actor) {
     const member = await SeriesMember.findOne({ seriesId, userId: actor.userId });
-    return Boolean(member?.isActive && ["MANGAKA", "EDITOR"].includes(member.role));
+    // Support both the new status field (Flow-03) and the legacy isActive boolean
+    const isActive = member?.status === "ACTIVE" || (member?.status === undefined && member?.isActive === true);
+    return Boolean(isActive && ["MANGAKA", "EDITOR"].includes(member.role));
 }
 export async function canReadChapter(actor, chapterId) {
     const chapter = await Chapter.findById(chapterId);

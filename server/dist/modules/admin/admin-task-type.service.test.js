@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const listTaskTypes = vi.fn();
 const getTaskTypeByName = vi.fn();
+const getTaskTypeByCode = vi.fn();
 const createTaskType = vi.fn();
 const updateTaskType = vi.fn();
 const getTaskType = vi.fn();
@@ -9,6 +10,7 @@ const deleteTaskType = vi.fn();
 vi.mock("./admin.repository.js", () => ({
     listTaskTypes,
     getTaskTypeByName,
+    getTaskTypeByCode,
     createTaskType,
     updateTaskType,
     getTaskType,
@@ -24,13 +26,14 @@ describe("admin task type service", () => {
     });
     it("creates a unique task type with a non-negative base rate", async () => {
         getTaskTypeByName.mockResolvedValue(null);
-        createTaskType.mockResolvedValue({ name: "Cleanup", baseRate: 100, isActive: true });
-        await expect(service.createAdminTaskTypeService({ name: "Cleanup", description: "Clean page art", baseRate: 100 }))
+        getTaskTypeByCode.mockResolvedValue(null);
+        createTaskType.mockResolvedValue({ name: "Cleanup", code: "CLEANUP", baseRate: 100, isActive: true });
+        await expect(service.createAdminTaskTypeService({ name: "Cleanup", code: "CLEANUP", description: "Clean page art", baseRate: 100 }))
             .resolves.toMatchObject({ name: "Cleanup", baseRate: 100 });
     });
     it("rejects duplicate task type names", async () => {
         getTaskTypeByName.mockResolvedValue({ name: "Cleanup" });
-        await expect(service.createAdminTaskTypeService({ name: "Cleanup", description: "Clean page art", baseRate: 100 }))
+        await expect(service.createAdminTaskTypeService({ name: "Cleanup", code: "CLEANUP", description: "Clean page art", baseRate: 100 }))
             .rejects.toThrow("Task type with this name already exists");
     });
     it("updates editable task type fields", async () => {

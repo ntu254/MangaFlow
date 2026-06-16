@@ -65,11 +65,11 @@ export declare const assigneeIdParamsSchema: z.ZodObject<{
     assigneeId: string;
 }>;
 export declare const updateTaskStatusBodySchema: z.ZodObject<{
-    status: z.ZodEnum<["TODO", "IN_PROGRESS", "SUBMITTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REVISION_REQUESTED", "REJECTED"]>;
+    status: z.ZodEnum<["TODO", "IN_PROGRESS", "SUBMITTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REVISION_REQUESTED", "REJECTED", "CANCELLED"]>;
 }, "strip", z.ZodTypeAny, {
-    status: "REVISION_REQUESTED" | "REJECTED" | "SUBMITTED" | "IN_PROGRESS" | "TODO" | "MANGAKA_APPROVED" | "EDITOR_APPROVED";
+    status: "REVISION_REQUESTED" | "REJECTED" | "CANCELLED" | "SUBMITTED" | "IN_PROGRESS" | "TODO" | "MANGAKA_APPROVED" | "EDITOR_APPROVED";
 }, {
-    status: "REVISION_REQUESTED" | "REJECTED" | "SUBMITTED" | "IN_PROGRESS" | "TODO" | "MANGAKA_APPROVED" | "EDITOR_APPROVED";
+    status: "REVISION_REQUESTED" | "REJECTED" | "CANCELLED" | "SUBMITTED" | "IN_PROGRESS" | "TODO" | "MANGAKA_APPROVED" | "EDITOR_APPROVED";
 }>;
 export declare const updateTaskPriorityBodySchema: z.ZodObject<{
     priority: z.ZodEnum<["LOW", "NORMAL", "HIGH", "URGENT"]>;

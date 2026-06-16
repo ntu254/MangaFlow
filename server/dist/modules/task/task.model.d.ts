@@ -1,10 +1,17 @@
 import mongoose, { type Document } from "mongoose";
-import { type TaskStatus, type TaskPriority } from "../../shared/workflow/status.js";
+import { type TaskStatus, type TaskPriority, type TaskCurrency } from "../../shared/workflow/status.js";
 export interface TaskTypeDocument extends Document {
     name: string;
-    description: string;
+    code: string;
+    description?: string;
     baseRate: number;
+    currency: TaskCurrency;
     isActive: boolean;
+    allowRegionTask: boolean;
+    allowPageTask: boolean;
+    requiresFileSubmission: boolean;
+    requiresTextSubmission: boolean;
+    sortOrder?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -28,6 +35,12 @@ export interface TaskDocument extends Document {
     baseRate: number;
     dueDate: Date;
     contextPageIds: mongoose.Types.ObjectId[];
+    /** Flow-07: points to the latest Submission so approve/revision can resolve the current version fast. */
+    currentSubmissionId?: mongoose.Types.ObjectId;
+    /** Flow-06/07: which role last requested revision — MANGAKA or EDITOR. */
+    revisionRequestedByRole?: "MANGAKA" | "EDITOR";
+    revisionRequestedByUserId?: mongoose.Types.ObjectId;
+    revisionRequestedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }

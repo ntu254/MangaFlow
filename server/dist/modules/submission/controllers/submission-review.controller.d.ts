@@ -3,4 +3,6 @@ export declare function mangakaApproveSubmission(req: Request, res: Response, _n
 export declare function requestSubmissionRevision(req: Request, res: Response, _next: NextFunction): Promise<void>;
 export declare function rejectSubmission(req: Request, res: Response, _next: NextFunction): Promise<void>;
 export declare function editorApproveSubmission(req: Request, res: Response, _next: NextFunction): Promise<void>;
+/** Flow-07: Editor rejects MANGAKA_APPROVED work — requires a reason. */
+export declare function editorRejectSubmission(req: Request, res: Response, _next: NextFunction): Promise<void>;
 //# sourceMappingURL=submission-review.controller.d.ts.map

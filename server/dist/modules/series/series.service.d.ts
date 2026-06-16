@@ -1,4 +1,5 @@
 import type { UserRole } from "../auth/auth.types.js";
+import type { PublicationType } from "../../shared/workflow/status.js";
 export interface CreateSeriesServiceInput {
     title: string;
     synopsis: string;
@@ -7,7 +8,8 @@ export interface CreateSeriesServiceInput {
     characters?: string;
     conflict?: string;
     targetAudience?: string;
-    publicationType?: string;
+    requestedPublicationType?: PublicationType;
+    publicationType?: PublicationType;
     tags?: string[];
     genres?: string[];
     ownerId: string;
@@ -22,6 +24,8 @@ export interface CreateManuscriptUploadServiceInput {
     contentType: string;
     size: number;
     expiresIn?: number;
+    assetType?: "MANUSCRIPT" | "SUPPORTING";
+    slot?: string;
 }
 export declare function createManuscriptUploadService(input: CreateManuscriptUploadServiceInput): Promise<{
     uploadUrl: string;
@@ -192,7 +196,8 @@ export interface UpdateSeriesServiceInput {
         characters?: string;
         conflict?: string;
         targetAudience?: string;
-        publicationType?: string;
+        requestedPublicationType?: PublicationType;
+        publicationType?: PublicationType;
         tags?: string[];
         genres?: string[];
     };

@@ -11,11 +11,9 @@ export async function confirmPageUpload(req, res, _next) {
     const actor = { userId: req.user.userId, role: req.user.role };
     const result = await confirmPageUploadService({
         pageId: String(req.params.pageId),
-        fileAssetId: req.body.fileAssetId,
-        r2Key: req.body.r2Key,
-        originalName: req.body.originalName,
-        mimeType: req.body.mimeType,
-        size: req.body.size,
+        original: req.body.original,
+        working: req.body.working,
+        thumbnail: req.body.thumbnail,
         userId: req.user.userId,
         actor,
     });
@@ -29,6 +27,6 @@ export async function getPresignedDownloadUrl(req, res, _next) {
 export async function getPageWithFileAsset(req, res, _next) {
     const actor = { userId: req.user.userId, role: req.user.role };
     const page = await getPageWithFileAssetService(String(req.params.pageId), actor);
-    res.json({ success: true, message: "Page with file asset retrieved", data: page });
+    res.json({ success: true, message: "Page with file assets retrieved", data: page });
 }
 //# sourceMappingURL=page-file.controller.js.map

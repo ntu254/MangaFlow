@@ -9,6 +9,9 @@ export async function createChapterRepository(input) {
     if (!allowedStatuses.includes(series.status)) {
         throw new Error(`Chapter creation not allowed. Series status is ${series.status}. Must be APPROVED, ONGOING, or AT_RISK.`);
     }
+    if (!series.publicationType) {
+        throw new Error("Chapter creation not allowed. Series must have an official publication type.");
+    }
     const existing = await Chapter.findOne({ seriesId: input.seriesId, chapterNumber: input.chapterNumber });
     if (existing) {
         throw new Error(`Chapter ${input.chapterNumber} already exists for this series`);
@@ -18,6 +21,7 @@ export async function createChapterRepository(input) {
         chapterNumber: input.chapterNumber,
         title: input.title,
         status: "DRAFT",
+        publicationTypeSnapshot: series.publicationType,
     });
     return {
         id: chapter.id,
@@ -25,6 +29,7 @@ export async function createChapterRepository(input) {
         chapterNumber: chapter.chapterNumber,
         title: chapter.title,
         status: chapter.status,
+        publicationTypeSnapshot: chapter.publicationTypeSnapshot,
         createdAt: chapter.createdAt,
         updatedAt: chapter.updatedAt,
     };

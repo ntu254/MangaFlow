@@ -12,6 +12,7 @@ export async function createSeriesRepository(input) {
         characters: input.characters,
         conflict: input.conflict,
         targetAudience: input.targetAudience,
+        requestedPublicationType: input.requestedPublicationType,
         publicationType: input.publicationType,
         tags: input.tags ?? [],
         genres: input.genres ?? [],
@@ -34,6 +35,7 @@ export async function createSeriesRepository(input) {
         characters: series.characters,
         conflict: series.conflict,
         targetAudience: series.targetAudience,
+        requestedPublicationType: series.requestedPublicationType,
         publicationType: series.publicationType,
         tags: series.tags ?? [],
         genres: series.genres,
@@ -98,6 +100,8 @@ export async function updateSeriesRepository(seriesId, userId, input) {
         patch.conflict = input.conflict;
     if (input.targetAudience !== undefined)
         patch.targetAudience = input.targetAudience;
+    if (input.requestedPublicationType !== undefined)
+        patch.requestedPublicationType = input.requestedPublicationType;
     if (input.publicationType !== undefined)
         patch.publicationType = input.publicationType;
     if (input.tags !== undefined)
@@ -121,6 +125,7 @@ export async function updateSeriesRepository(seriesId, userId, input) {
         characters: series.characters,
         conflict: series.conflict,
         targetAudience: series.targetAudience,
+        requestedPublicationType: series.requestedPublicationType,
         publicationType: series.publicationType,
         tags: series.tags ?? [],
         genres: series.genres ?? [],

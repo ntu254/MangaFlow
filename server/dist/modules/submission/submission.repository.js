@@ -15,7 +15,7 @@ export async function createSubmissionRecord(input) {
         return null;
     const latest = await getLatestSubmissionForTask(input.taskId);
     const version = latest ? latest.version + 1 : 1;
-    return Submission.create({
+    const submission = await Submission.create({
         taskId: task._id,
         seriesId: task.seriesId,
         chapterId: task.chapterId,
@@ -27,12 +27,17 @@ export async function createSubmissionRecord(input) {
         fileAssetId: input.fileAssetId,
         status: "SUBMITTED",
     });
+    await Task.findByIdAndUpdate(task._id, { currentSubmissionId: submission._id });
+    return submission;
 }
 export async function updateSubmissionStatus(submissionId, status, reviewerNote) {
     return Submission.findByIdAndUpdate(submissionId, { status, reviewerNote }, { new: true });
 }
 export async function updateTaskStatusForSubmission(taskId, status) {
     return Task.findByIdAndUpdate(taskId, { status }, { new: true });
+}
+export async function updateTaskReviewState(taskId, patch) {
+    return Task.findByIdAndUpdate(taskId, patch, { new: true });
 }
 export async function listSubmissionsByTask(taskId) {
     return Submission.find({ taskId })

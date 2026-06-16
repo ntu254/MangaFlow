@@ -1,7 +1,8 @@
 import mongoose, { type Document } from "mongoose";
-import { type ManuscriptStatus, type SeriesStatus } from "../../shared/workflow/status.js";
+import { type ManuscriptStatus, type PublicationType, type SeriesStatus } from "../../shared/workflow/status.js";
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR";
 export type SeriesMemberAccessScope = "FULL" | "TASK_ONLY";
+export type SeriesMemberStatus = "INVITED" | "ACTIVE" | "REMOVED" | "PAUSED";
 export interface SeriesDocument extends Document {
     title: string;
     slug: string;
@@ -11,7 +12,8 @@ export interface SeriesDocument extends Document {
     characters?: string;
     conflict?: string;
     targetAudience?: string;
-    publicationType?: string;
+    requestedPublicationType?: PublicationType;
+    publicationType?: PublicationType;
     tags?: string[];
     genres: string[];
     ownerId: mongoose.Types.ObjectId;
@@ -28,6 +30,9 @@ export interface SeriesMemberDocument extends Document {
     seriesId: mongoose.Types.ObjectId;
     userId: mongoose.Types.ObjectId;
     role: SeriesMemberRole;
+    /** Flow-03: status enum replaces the old isActive boolean. */
+    status: SeriesMemberStatus;
+    /** @deprecated Use status === "ACTIVE" instead. Kept for backward-compat read. */
     isActive: boolean;
     accessScope: SeriesMemberAccessScope;
     createdAt: Date;
@@ -45,6 +50,10 @@ export interface ManuscriptDocument extends Document {
     status: ManuscriptStatus;
     fileAssetId?: mongoose.Types.ObjectId;
     reviewNote?: string;
+    editorRecommendation?: string;
+    feasibilityNote?: string;
+    suggestedPublicationType?: PublicationType;
+    riskNote?: string;
     createdAt: Date;
     updatedAt: Date;
 }

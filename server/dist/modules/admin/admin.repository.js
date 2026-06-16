@@ -52,7 +52,7 @@ export function countTaskTypes() {
     return TaskType.countDocuments({ isActive: true });
 }
 export function listTaskTypes() {
-    return TaskType.find().sort({ name: 1 }).lean();
+    return TaskType.find().sort({ sortOrder: 1, name: 1 }).lean();
 }
 export function getTaskType(taskTypeId) {
     return TaskType.findById(taskTypeId);
@@ -60,11 +60,15 @@ export function getTaskType(taskTypeId) {
 export function getTaskTypeByName(name) {
     return TaskType.findOne({ name });
 }
+export function getTaskTypeByCode(code) {
+    return TaskType.findOne({ code: code.toUpperCase() });
+}
 export function createTaskType(input) {
-    return TaskType.create(input);
+    return TaskType.create({ ...input, code: input.code.toUpperCase() });
 }
 export function updateTaskType(taskTypeId, updates) {
-    return TaskType.findByIdAndUpdate(taskTypeId, updates, { new: true });
+    const patch = updates.code ? { ...updates, code: updates.code.toUpperCase() } : updates;
+    return TaskType.findByIdAndUpdate(taskTypeId, patch, { new: true });
 }
 export function taskTypeInUse(taskTypeId) {
     return Task.exists({ taskTypeId });

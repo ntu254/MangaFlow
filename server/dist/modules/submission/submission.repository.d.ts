@@ -35,6 +35,11 @@ export declare function updateTaskStatusForSubmission(taskId: string, status: st
 }> & {
     __v: number;
 }) | null>;
+export declare function updateTaskReviewState(taskId: string, patch: Record<string, unknown>): Promise<(import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskDocument, {}, {}> & import("../task/task.model.js").TaskDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null>;
 export declare function listSubmissionsByTask(taskId: string): Promise<(import("mongoose").FlattenMaps<import("./submission.model.js").SubmissionDocument> & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {

@@ -1,4 +1,4 @@
-import { editorApproveSubmissionService, mangakaApproveSubmissionService, rejectSubmissionService, requestSubmissionRevisionService, } from "../submission.service.js";
+import { editorApproveSubmissionService, editorRejectSubmissionService, mangakaApproveSubmissionService, rejectSubmissionService, requestSubmissionRevisionService, } from "../submission.service.js";
 export async function mangakaApproveSubmission(req, res, _next) {
     const submission = await mangakaApproveSubmissionService({
         submissionId: req.params.submissionId,
@@ -30,5 +30,14 @@ export async function editorApproveSubmission(req, res, _next) {
         reviewerNote: req.body.reviewerNote,
     });
     res.json({ success: true, message: "Submission final-approved by Editor", data: submission });
+}
+/** Flow-07: Editor rejects MANGAKA_APPROVED work — requires a reason. */
+export async function editorRejectSubmission(req, res, _next) {
+    const submission = await editorRejectSubmissionService({
+        submissionId: req.params.submissionId,
+        actor: req.user,
+        reviewerNote: req.body.reviewerNote,
+    });
+    res.json({ success: true, message: "Submission rejected by Editor", data: submission });
 }
 //# sourceMappingURL=submission-review.controller.js.map

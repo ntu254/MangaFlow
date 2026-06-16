@@ -4,7 +4,16 @@ import { SeriesMember } from "../series/series.model.js";
 import { Task } from "./task.model.js";
 describe("TASK_STATUSES", () => {
     it("contains expected statuses", () => {
-        expect(TASK_STATUSES).toEqual(["TODO", "IN_PROGRESS", "SUBMITTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REVISION_REQUESTED", "REJECTED"]);
+        expect(TASK_STATUSES).toEqual([
+            "TODO",
+            "IN_PROGRESS",
+            "SUBMITTED",
+            "MANGAKA_APPROVED",
+            "EDITOR_APPROVED",
+            "REVISION_REQUESTED",
+            "REJECTED",
+            "CANCELLED",
+        ]);
     });
     it("is used by the Task model enum", () => {
         const statusPath = Task.schema.path("status");

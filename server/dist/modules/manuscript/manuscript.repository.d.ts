@@ -4,12 +4,22 @@ export declare function getManuscriptById(manuscriptId: string): Promise<(import
 }> & {
     __v: number;
 }) | null>;
+export declare function getLatestManuscriptForSeries(seriesId: string): Promise<(import("mongoose").Document<unknown, {}, import("../series/series.model.js").ManuscriptDocument, {}, {}> & import("../series/series.model.js").ManuscriptDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null>;
 export declare function getSeriesForManuscript(seriesId: string): Promise<(import("mongoose").Document<unknown, {}, import("../series/series.model.js").SeriesDocument, {}, {}> & import("../series/series.model.js").SeriesDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
 }) | null>;
-export declare function updateManuscriptReviewStatus(manuscriptId: string, status: ManuscriptStatus, reviewNote?: string): Promise<(import("mongoose").Document<unknown, {}, import("../series/series.model.js").ManuscriptDocument, {}, {}> & import("../series/series.model.js").ManuscriptDocument & Required<{
+export declare function updateManuscriptReviewStatus(manuscriptId: string, status: ManuscriptStatus, reviewNote?: string, metadata?: {
+    editorRecommendation?: string;
+    feasibilityNote?: string;
+    suggestedPublicationType?: string;
+    riskNote?: string;
+}): Promise<(import("mongoose").Document<unknown, {}, import("../series/series.model.js").ManuscriptDocument, {}, {}> & import("../series/series.model.js").ManuscriptDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
@@ -19,4 +29,12 @@ export declare function updateSeriesReviewStatus(seriesId: string, status: Serie
 }> & {
     __v: number;
 }) | null>;
+export declare function listEditorReviewQueue(): Promise<{
+    series: import("mongoose").FlattenMaps<import("../series/series.model.js").SeriesDocument> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    };
+    manuscript: any;
+}[]>;
 //# sourceMappingURL=manuscript.repository.d.ts.map

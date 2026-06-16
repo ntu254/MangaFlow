@@ -1,19 +1,41 @@
 import { AppError } from "../../shared/errors/AppError.js";
-import { Page } from "./chapter.model.js";
+import { Page, Region, AIResult } from "./chapter.model.js";
+import { assertCanReadPage } from "../../shared/policies/accessPolicy.service.js";
 import { Task } from "../task/task.model.js";
-export async function getPageWorkspaceService(pageId, _userId, _role) {
-    const page = await Page.findById(pageId).populate("fileAssetId");
+export async function getPageWorkspaceService(pageId, userId, role) {
+    const trimmed = pageId.trim();
+    if (!trimmed)
+        throw new AppError("Page id is required", 400);
+    await assertCanReadPage({ userId, role }, trimmed);
+    const page = await Page.findById(trimmed)
+        .populate("originalFileAssetId")
+        .populate("workingFileAssetId")
+        .populate("thumbnailFileAssetId")
+        .lean();
     if (!page)
         throw new AppError("Page not found", 404);
-    // In a real implementation we would fetch regions, tasks assigned to regions, etc.
-    // We mock a detailed workspace view for the frontend canvas
-    const tasks = await Task.find({ pageId }).populate("taskTypeId");
+    // Flow-02/04: UPLOADED means all 3 assets exist and Page Studio is open.
+    // PROCESSING_FAILED blocks Studio until the page is re-uploaded.
+    if (page.status === "UPLOADING" || page.status === "PROCESSING_FAILED") {
+        throw new AppError(`Page Studio unavailable: page status is ${page.status}`, 409);
+    }
+    if (!page.workingFileAssetId)
+        throw new AppError("Page Studio unavailable because working image is missing", 409);
+    const [regions, aiResults, tasks] = await Promise.all([
+        Region.find({ pageId: trimmed }).sort({ regionIndex: 1 }).lean(),
+        AIResult.find({ pageId: trimmed }).sort({ createdAt: -1 }).lean(),
+        Task.find({ $or: [{ pageId: trimmed }, { contextPageIds: trimmed }] }).populate("taskTypeId").lean(),
+    ]);
     return {
         page,
+        workingFileAsset: page.workingFileAssetId,
+        originalFileAsset: page.originalFileAssetId,
+        thumbnailFileAsset: page.thumbnailFileAssetId,
+        regions,
+        aiResults,
         tasks,
-        regions: [],
         feedbackPoints: [],
-        collaborators: []
+        collaborators: [],
     };
 }
 //# sourceMappingURL=page.service.js.map

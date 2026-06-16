@@ -1,9 +1,9 @@
-import { createRegionService, deleteRegionService, getRegionService, listRegionsService, updateRegionStatusService, } from "../chapter.service.js";
+import { createRegionService, deleteRegionService, getRegionService, listRegionsService, updateRegionService, } from "../chapter.service.js";
 export async function createRegion(req, res, _next) {
     const actor = { userId: req.user.userId, role: req.user.role };
     const region = await createRegionService({
         pageId: String(req.params.pageId),
-        regionIndex: req.body.regionIndex,
+        type: req.body.type,
         bbox: req.body.bbox,
         actor,
     });
@@ -19,10 +19,14 @@ export async function getRegion(req, res, _next) {
     const region = await getRegionService(String(req.params.regionId), actor);
     res.json({ success: true, message: "Region retrieved successfully", data: region });
 }
-export async function updateRegionStatus(req, res, _next) {
+export async function updateRegion(req, res, _next) {
     const actor = { userId: req.user.userId, role: req.user.role };
-    const region = await updateRegionStatusService(String(req.params.regionId), req.body.status, actor);
-    res.json({ success: true, message: "Region status updated successfully", data: region });
+    const region = await updateRegionService(String(req.params.regionId), {
+        type: req.body.type,
+        bbox: req.body.bbox,
+        actor,
+    });
+    res.json({ success: true, message: "Region updated successfully", data: region });
 }
 export async function deleteRegion(req, res, _next) {
     const actor = { userId: req.user.userId, role: req.user.role };

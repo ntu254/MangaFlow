@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TASK_CURRENCIES } from "../../shared/workflow/status.js";
 const roles = ["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD"];
 export const adminUserIdParamsSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
@@ -38,13 +39,29 @@ export const adminTaskTypeIdParamsSchema = z.object({
 });
 export const adminCreateTaskTypeSchema = z.object({
     name: z.string().min(1, "Task type name is required").max(100),
-    description: z.string().min(1, "Task type description is required").max(500),
+    code: z.string().min(1, "Task type code is required").max(80),
+    description: z.string().max(500).optional(),
     baseRate: z.number().int().nonnegative("Base rate must be non-negative"),
+    currency: z.enum(TASK_CURRENCIES).optional(),
+    isActive: z.boolean().optional(),
+    allowRegionTask: z.boolean().optional(),
+    allowPageTask: z.boolean().optional(),
+    requiresFileSubmission: z.boolean().optional(),
+    requiresTextSubmission: z.boolean().optional(),
+    sortOrder: z.number().int().optional(),
 });
 export const adminUpdateTaskTypeSchema = z.object({
     name: z.string().min(1, "Task type name is required").max(100).optional(),
-    description: z.string().min(1).max(500).optional(),
+    code: z.string().min(1, "Task type code is required").max(80).optional(),
+    description: z.string().max(500).optional(),
     baseRate: z.number().int().nonnegative().optional(),
+    currency: z.enum(TASK_CURRENCIES).optional(),
+    isActive: z.boolean().optional(),
+    allowRegionTask: z.boolean().optional(),
+    allowPageTask: z.boolean().optional(),
+    requiresFileSubmission: z.boolean().optional(),
+    requiresTextSubmission: z.boolean().optional(),
+    sortOrder: z.number().int().optional(),
 }).refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required to update",
 });

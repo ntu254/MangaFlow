@@ -1,5 +1,5 @@
 import mongoose, { type Document } from "mongoose";
-import { type AtRiskDecision, type BoardDecisionStatus, type BoardVoteValue } from "../../shared/workflow/status.js";
+import { type AtRiskDecision, type BoardDecisionStatus, type BoardVoteValue, type PublicationType } from "../../shared/workflow/status.js";
 export interface BoardMemberDocument extends Document {
     userId: mongoose.Types.ObjectId;
     isActive: boolean;
@@ -12,10 +12,25 @@ export declare const BoardMember: mongoose.Model<BoardMemberDocument, {}, {}, {}
 }> & {
     __v: number;
 }, any>;
+export interface BoardReviewSessionDocument extends Document {
+    seriesId: mongoose.Types.ObjectId;
+    status: "OPEN" | "CLOSED";
+    openedBy?: mongoose.Types.ObjectId;
+    closedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+export declare const BoardReviewSession: mongoose.Model<BoardReviewSessionDocument, {}, {}, {}, mongoose.Document<unknown, {}, BoardReviewSessionDocument, {}, {}> & BoardReviewSessionDocument & Required<{
+    _id: mongoose.Types.ObjectId;
+}> & {
+    __v: number;
+}, any>;
 export interface BoardVoteDocument extends Document {
     seriesId: mongoose.Types.ObjectId;
+    sessionId?: mongoose.Types.ObjectId;
     userId: mongoose.Types.ObjectId;
     value: BoardVoteValue;
+    note?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -28,7 +43,10 @@ export interface BoardDecisionDocument extends Document {
     seriesId: mongoose.Types.ObjectId;
     status: BoardDecisionStatus;
     result?: BoardVoteValue;
+    publicationType?: PublicationType;
+    note?: string;
     decidedBy?: mongoose.Types.ObjectId;
+    finalizedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }

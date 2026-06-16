@@ -5,6 +5,7 @@ interface RawEnv {
 export declare function buildConfig(source?: RawEnv): {
     port: number;
     clientUrl: string;
+    aiServiceUrl: string;
     mongoUri: string;
     jwtSecret: string;
     jwtRefreshSecret: string;
@@ -26,6 +27,7 @@ export declare function buildConfig(source?: RawEnv): {
 export declare const config: {
     port: number;
     clientUrl: string;
+    aiServiceUrl: string;
     mongoUri: string;
     jwtSecret: string;
     jwtRefreshSecret: string;

@@ -1,4 +1,4 @@
-import type { SeriesStatus } from "../../../shared/workflow/status.js";
+import type { PublicationType, SeriesStatus } from "../../../shared/workflow/status.js";
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR";
 export interface CreateSeriesInput {
     title: string;
@@ -8,7 +8,8 @@ export interface CreateSeriesInput {
     characters?: string;
     conflict?: string;
     targetAudience?: string;
-    publicationType?: string;
+    requestedPublicationType?: PublicationType;
+    publicationType?: PublicationType;
     tags?: string[];
     genres?: string[];
     ownerId: string;
@@ -23,7 +24,8 @@ export interface CreateSeriesResult {
     characters?: string;
     conflict?: string;
     targetAudience?: string;
-    publicationType?: string;
+    requestedPublicationType?: PublicationType;
+    publicationType?: PublicationType;
     tags: string[];
     genres: string[];
     ownerId: string;
@@ -45,7 +47,8 @@ export interface UpdateSeriesInput {
     characters?: string;
     conflict?: string;
     targetAudience?: string;
-    publicationType?: string;
+    requestedPublicationType?: PublicationType;
+    publicationType?: PublicationType;
     tags?: string[];
     genres?: string[];
 }

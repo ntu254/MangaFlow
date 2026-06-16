@@ -1,45 +1,58 @@
 import { AppError } from "../../../shared/errors/AppError.js";
-import { FileAsset } from "../chapter.model.js";
-import { confirmPageUploadRepository, getFileAssetById, getPageWithFileAsset } from "../chapter.repository.js";
+import { confirmPageUploadRepository, getFileAssetById, getPageWithFileAsset, markPageProcessingFailed } from "../chapter.repository.js";
 import { createPresignedDownloadUrl, createPresignedUploadUrl, validateFileSize, validateFileType } from "../file.service.js";
 import { assertCanReadFileAsset, assertCanReadPage, assertCanWritePage } from "../../../shared/policies/accessPolicy.service.js";
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 export async function getPresignedUploadUrlService(input) {
     if (!input.originalName?.trim())
         throw new AppError("Original file name is required", 400);
     if (!input.contentType?.trim())
         throw new AppError("Content type is required", 400);
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-    if (!validateFileType(input.contentType, allowedTypes)) {
+    if (!validateFileType(input.contentType, ALLOWED_TYPES)) {
         throw new AppError("File type not allowed. Use JPEG, PNG, WebP, or PDF", 400);
     }
     return createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn);
+}
+function assertAsset(asset, label) {
+    if (!asset)
+        throw new AppError(`${label} file asset is required`, 400);
+    if (!asset.fileAssetId?.trim() || !asset.r2Key?.trim() || !asset.originalName?.trim() || !asset.mimeType?.trim()) {
+        throw new AppError(`All ${label} file asset fields are required`, 400);
+    }
+    if (!validateFileType(asset.mimeType, ALLOWED_TYPES)) {
+        throw new AppError(`${label} file type not allowed`, 400);
+    }
+    if (!validateFileSize(asset.size, 100))
+        throw new AppError(`${label} file size exceeds 100MB limit`, 400);
 }
 export async function confirmPageUploadService(input) {
     const trimmedPageId = input.pageId.trim();
     if (!trimmedPageId)
         throw new AppError("Page id is required", 400);
     await assertCanWritePage(input.actor, trimmedPageId);
-    if (!input.fileAssetId?.trim() || !input.r2Key?.trim() || !input.originalName?.trim() || !input.mimeType?.trim()) {
-        throw new AppError("All file asset fields are required", 400);
-    }
-    if (!validateFileSize(input.size, 100))
-        throw new AppError("File size exceeds 100MB limit", 400);
+    assertAsset(input.original, "Original");
+    assertAsset(input.working, "Working");
+    assertAsset(input.thumbnail, "Thumbnail");
     try {
         const result = await confirmPageUploadRepository({
             pageId: trimmedPageId,
-            fileAssetId: input.fileAssetId,
-            r2Key: input.r2Key,
-            originalName: input.originalName,
-            mimeType: input.mimeType,
-            size: input.size,
+            uploadedBy: input.userId,
+            original: input.original,
+            working: input.working,
+            thumbnail: input.thumbnail,
         });
-        const fileAsset = await FileAsset.findByIdAndUpdate(input.fileAssetId, { uploadedBy: input.userId }, { new: true });
-        return { page: result.page, fileAsset: fileAsset || result.fileAsset };
+        return {
+            page: result.page,
+            originalAsset: result.originalAsset,
+            workingAsset: result.workingAsset,
+            thumbnailAsset: result.thumbnailAsset,
+        };
     }
     catch (error) {
         const message = String(error.message ?? "");
         if (message.includes("Page not found"))
             throw new AppError("Page not found", 404);
+        await markPageProcessingFailed(trimmedPageId).catch(() => undefined);
         throw new AppError("Unable to confirm page upload", 400);
     }
 }

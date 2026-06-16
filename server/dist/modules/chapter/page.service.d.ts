@@ -1,16 +1,28 @@
 import type { UserRole } from "../auth/auth.types.js";
-export declare function getPageWorkspaceService(pageId: string, _userId: string, _role: UserRole): Promise<{
-    page: import("mongoose").Document<unknown, {}, import("./chapter.model.js").PageDocument, {}, {}> & import("./chapter.model.js").PageDocument & Required<{
+export declare function getPageWorkspaceService(pageId: string, userId: string, role: UserRole): Promise<{
+    page: import("mongoose").FlattenMaps<import("./chapter.model.js").PageDocument> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
     };
-    tasks: (import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskDocument, {}, {}> & import("../task/task.model.js").TaskDocument & Required<{
+    workingFileAsset: import("mongoose").Types.ObjectId;
+    originalFileAsset: import("mongoose").Types.ObjectId | undefined;
+    thumbnailFileAsset: import("mongoose").Types.ObjectId | undefined;
+    regions: (import("mongoose").FlattenMaps<import("./chapter.model.js").RegionDocument> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
     })[];
-    regions: never[];
+    aiResults: (import("mongoose").FlattenMaps<import("./chapter.model.js").AIResultDocument> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    })[];
+    tasks: (import("mongoose").FlattenMaps<import("../task/task.model.js").TaskDocument> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    })[];
     feedbackPoints: never[];
     collaborators: never[];
 }>;

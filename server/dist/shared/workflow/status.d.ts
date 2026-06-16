@@ -2,15 +2,17 @@ export declare const USER_STATUSES: readonly ["ACTIVE", "SUSPENDED", "DEACTIVATE
 export type UserStatus = (typeof USER_STATUSES)[number];
 export declare const SERIES_STATUSES: readonly ["DRAFT", "EDITOR_REVIEW", "REVISION_REQUESTED", "BOARD_REVIEW", "APPROVED", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"];
 export type SeriesStatus = (typeof SERIES_STATUSES)[number];
-export declare const MANUSCRIPT_STATUSES: readonly ["DRAFT", "SUBMITTED", "EDITOR_REVIEW", "REVISION_REQUESTED", "APPROVED_TO_BOARD", "REJECTED"];
+export declare const MANUSCRIPT_STATUSES: readonly ["DRAFT", "SUBMITTED", "UNDER_EDITOR_REVIEW", "REVISION_REQUESTED", "FORWARDED_TO_BOARD", "APPROVED", "REJECTED"];
 export type ManuscriptStatus = (typeof MANUSCRIPT_STATUSES)[number];
+export declare const PUBLICATION_TYPES: readonly ["WEEKLY", "MONTHLY"];
+export type PublicationType = (typeof PUBLICATION_TYPES)[number];
 export declare const CHAPTER_STATUSES: readonly ["DRAFT", "IN_PRODUCTION", "IN_REVIEW", "READY_FOR_PUBLICATION", "PUBLISHED", "REVISION_REQUIRED"];
 export type ChapterStatus = (typeof CHAPTER_STATUSES)[number];
 export declare const PAGE_STATUSES: readonly ["UPLOADED", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "REVISION_REQUESTED"];
 export type PageStatus = (typeof PAGE_STATUSES)[number];
 export declare const REGION_STATUSES: readonly ["ACTIVE", "ARCHIVED"];
 export type RegionStatus = (typeof REGION_STATUSES)[number];
-export declare const TASK_STATUSES: readonly ["TODO", "IN_PROGRESS", "SUBMITTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REVISION_REQUESTED", "REJECTED"];
+export declare const TASK_STATUSES: readonly ["TODO", "IN_PROGRESS", "SUBMITTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REVISION_REQUESTED", "REJECTED", "CANCELLED"];
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export declare const SUBMISSION_STATUSES: readonly ["SUBMITTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REVISION_REQUESTED", "REJECTED"];
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
@@ -26,6 +28,8 @@ export declare const AT_RISK_DECISIONS: readonly ["CONTINUE", "WARNING", "REQUES
 export type AtRiskDecision = (typeof AT_RISK_DECISIONS)[number];
 export declare const ASSISTANT_EARNING_STATUSES: readonly ["PENDING", "CONFIRMED", "PAID", "VOID"];
 export type AssistantEarningStatus = (typeof ASSISTANT_EARNING_STATUSES)[number];
+export declare const TASK_CURRENCIES: readonly ["POINT", "VND"];
+export type TaskCurrency = (typeof TASK_CURRENCIES)[number];
 export declare const TASK_PRIORITIES: readonly ["LOW", "NORMAL", "HIGH", "URGENT"];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export declare function isSeriesStatus(value: string): value is SeriesStatus;

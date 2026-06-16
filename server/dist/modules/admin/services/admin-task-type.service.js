@@ -3,19 +3,25 @@ import * as repository from "../admin.repository.js";
 export async function listAdminTaskTypesService() {
     return repository.listTaskTypes();
 }
+async function assertUniqueTaskTypeIdentity(input, taskTypeId) {
+    if (input.name) {
+        const existing = await repository.getTaskTypeByName(input.name);
+        if (existing && String(existing.id) !== taskTypeId)
+            throw new AppError("Task type with this name already exists", 409);
+    }
+    if (input.code) {
+        const existingCode = await repository.getTaskTypeByCode(input.code);
+        if (existingCode && String(existingCode.id) !== taskTypeId) {
+            throw new AppError("Task type with this code already exists", 409);
+        }
+    }
+}
 export async function createAdminTaskTypeService(input) {
-    const existing = await repository.getTaskTypeByName(input.name);
-    if (existing)
-        throw new AppError("Task type with this name already exists", 409);
+    await assertUniqueTaskTypeIdentity(input);
     return repository.createTaskType(input);
 }
 export async function updateAdminTaskTypeService(taskTypeId, updates) {
-    if (updates.name) {
-        const existing = await repository.getTaskTypeByName(updates.name);
-        if (existing && String(existing.id) !== taskTypeId) {
-            throw new AppError("Task type with this name already exists", 409);
-        }
-    }
+    await assertUniqueTaskTypeIdentity(updates, taskTypeId);
     const taskType = await repository.updateTaskType(taskTypeId, updates);
     if (!taskType)
         throw new AppError("Task type not found", 404);

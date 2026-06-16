@@ -1,4 +1,4 @@
-import { verifyAccessToken } from "../../modules/auth/auth.service.js";
+import { toAuthUser, verifyAccessToken } from "../../modules/auth/auth.service.js";
 export async function requireAuth(req, res, next) {
     const header = req.headers.authorization;
     if (!header || !header.startsWith("Bearer ")) {
@@ -8,6 +8,11 @@ export async function requireAuth(req, res, next) {
     const token = header.slice(7);
     try {
         const payload = await verifyAccessToken(token);
+        const user = await toAuthUser(payload.userId);
+        if (!user || user.role !== payload.role) {
+            res.status(401).json({ success: false, message: "Inactive or invalid user" });
+            return;
+        }
         req.user = payload;
         next();
     }

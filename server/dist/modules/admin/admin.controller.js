@@ -175,9 +175,16 @@ function toAdminTaskTypeResponse(taskType) {
     return {
         id: String(taskType._id ?? taskType.id),
         name: taskType.name,
+        code: taskType.code,
         description: taskType.description,
         baseRate: Number(taskType.baseRate),
+        currency: taskType.currency,
         isActive: Boolean(taskType.isActive),
+        allowRegionTask: Boolean(taskType.allowRegionTask),
+        allowPageTask: Boolean(taskType.allowPageTask),
+        requiresFileSubmission: Boolean(taskType.requiresFileSubmission),
+        requiresTextSubmission: Boolean(taskType.requiresTextSubmission),
+        sortOrder: taskType.sortOrder,
         createdAt: taskType.createdAt,
         updatedAt: taskType.updatedAt,
     };

@@ -1,3 +1,4 @@
+import type { TaskTypeInput, TaskTypeUpdateInput } from "../task/task-type.types.js";
 export declare function listUsers(): import("mongoose").Query<(import("mongoose").FlattenMaps<import("../auth/auth.model.js").UserDocument> & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
@@ -161,21 +162,21 @@ export declare function getTaskTypeByName(name: string): import("mongoose").Quer
 }> & {
     __v: number;
 }, {}, import("../task/task.model.js").TaskTypeDocument, "findOne", {}>;
-export declare function createTaskType(input: {
-    name: string;
-    description: string;
-    baseRate: number;
-}): Promise<import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskTypeDocument, {}, {}> & import("../task/task.model.js").TaskTypeDocument & Required<{
+export declare function getTaskTypeByCode(code: string): import("mongoose").Query<(import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskTypeDocument, {}, {}> & import("../task/task.model.js").TaskTypeDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null, import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskTypeDocument, {}, {}> & import("../task/task.model.js").TaskTypeDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}, {}, import("../task/task.model.js").TaskTypeDocument, "findOne", {}>;
+export declare function createTaskType(input: TaskTypeInput): Promise<import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskTypeDocument, {}, {}> & import("../task/task.model.js").TaskTypeDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
 }>;
-export declare function updateTaskType(taskTypeId: string, updates: {
-    name?: string;
-    description?: string;
-    baseRate?: number;
-    isActive?: boolean;
-}): import("mongoose").Query<(import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskTypeDocument, {}, {}> & import("../task/task.model.js").TaskTypeDocument & Required<{
+export declare function updateTaskType(taskTypeId: string, updates: TaskTypeUpdateInput): import("mongoose").Query<(import("mongoose").Document<unknown, {}, import("../task/task.model.js").TaskTypeDocument, {}, {}> & import("../task/task.model.js").TaskTypeDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;

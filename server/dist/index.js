@@ -9,6 +9,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import seriesRoutes from "./modules/series/series.routes.js";
 import boardRoutes from "./modules/board/board.routes.js";
+import editorRoutes from "./modules/editor/editor.routes.js";
 import manuscriptRoutes from "./modules/manuscript/manuscript.routes.js";
 import rankingRoutes from "./modules/ranking/ranking.routes.js";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
@@ -24,10 +25,23 @@ import publicationRoutes from "./modules/publication/publication.routes.js";
 import { errorHandler } from "./shared/middleware/errorHandler.js";
 import { seedAdminFromEnv } from "./infrastructure/seed/seedAdmin.js";
 const app = express();
-const allowedOrigins = [config.clientUrl, "http://localhost:5174", "http://127.0.0.1:5174"];
+const allowedOrigins = new Set([
+    config.clientUrl,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+]);
+function isAllowedDevOrigin(origin) {
+    if (config.isProduction)
+        return false;
+    return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+}
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.has(origin) || isAllowedDevOrigin(origin)) {
             callback(null, true);
         }
         else {
@@ -45,6 +59,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/series", seriesRoutes);
+app.use("/api/editor", editorRoutes);
 app.use("/api/board", boardRoutes);
 app.use("/api/manuscripts", manuscriptRoutes);
 app.use("/api/rankings", rankingRoutes);

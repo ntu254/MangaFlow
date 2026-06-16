@@ -1,22 +1,15 @@
+import type { TaskTypeInput, TaskTypeUpdateInput } from "../../task/task-type.types.js";
 export declare function listAdminTaskTypesService(): Promise<(import("mongoose").FlattenMaps<import("../../task/task.model.js").TaskTypeDocument> & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
 })[]>;
-export declare function createAdminTaskTypeService(input: {
-    name: string;
-    description: string;
-    baseRate: number;
-}): Promise<import("mongoose").Document<unknown, {}, import("../../task/task.model.js").TaskTypeDocument, {}, {}> & import("../../task/task.model.js").TaskTypeDocument & Required<{
+export declare function createAdminTaskTypeService(input: TaskTypeInput): Promise<import("mongoose").Document<unknown, {}, import("../../task/task.model.js").TaskTypeDocument, {}, {}> & import("../../task/task.model.js").TaskTypeDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
 }>;
-export declare function updateAdminTaskTypeService(taskTypeId: string, updates: {
-    name?: string;
-    description?: string;
-    baseRate?: number;
-}): Promise<import("mongoose").Document<unknown, {}, import("../../task/task.model.js").TaskTypeDocument, {}, {}> & import("../../task/task.model.js").TaskTypeDocument & Required<{
+export declare function updateAdminTaskTypeService(taskTypeId: string, updates: TaskTypeUpdateInput): Promise<import("mongoose").Document<unknown, {}, import("../../task/task.model.js").TaskTypeDocument, {}, {}> & import("../../task/task.model.js").TaskTypeDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
