@@ -48,7 +48,7 @@ export default function TaskStudioPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[calc(100vh-64px)] items-center justify-center bg-gray-50">
+      <div className="flex h-[calc(100vh-64px)] items-center justify-center bg-slate-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
@@ -56,7 +56,7 @@ export default function TaskStudioPage() {
 
   if (!task) {
     return (
-      <div className="flex h-[calc(100vh-64px)] flex-col items-center justify-center bg-gray-50">
+      <div className="flex h-[calc(100vh-64px)] flex-col items-center justify-center bg-slate-50">
         <AlertCircle className="mb-4 h-12 w-12 text-muted-foreground" />
         <h2 className="text-xl font-semibold">Task not found</h2>
         <Button variant="ghost" onClick={() => navigate('/app/assistant/dashboard')} className="mt-4 gap-2">
@@ -67,25 +67,25 @@ export default function TaskStudioPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -m-6 bg-gray-50 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] -m-6 bg-slate-50 overflow-hidden">
       
       {/* Left Panel: Task Context */}
-      <div className="w-[400px] flex flex-col bg-white border-r border-gray-200 z-10 shrink-0 shadow-sm">
+      <div className="w-[400px] flex flex-col bg-white border-r border-slate-200 z-10 shrink-0 shadow-sm">
         
         {/* Header */}
-        <div className="p-4 border-b border-gray-100">
-          <button onClick={() => navigate('/app/assistant/dashboard')} className="flex items-center gap-2 text-[13px] font-bold text-gray-500 hover:text-gray-900 transition-colors mb-3">
+        <div className="p-4 border-b border-slate-100">
+          <button onClick={() => navigate('/app/assistant/dashboard')} className="flex items-center gap-2 text-[13px] font-bold text-slate-500 hover:text-slate-900 transition-colors mb-3">
             <ArrowLeft size={16} /> Back to Hub
           </button>
           
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider w-fit">Task {taskId?.slice(-6)}</span>
-              <h1 className="text-[20px] font-extrabold text-gray-900 tracking-tight leading-tight">{task.title}</h1>
+              <span className="text-[11px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded uppercase tracking-wider w-fit">Task {taskId?.slice(-6)}</span>
+              <h1 className="text-[20px] font-extrabold text-slate-900 tracking-tight leading-tight">{task.title}</h1>
             </div>
           </div>
           
-          <div className="flex items-center gap-4 mt-4 text-[12px] font-medium text-gray-500">
+          <div className="flex items-center gap-4 mt-4 text-[12px] font-medium text-slate-500">
             <div className="flex items-center gap-1.5"><LayoutPanelLeft size={14} /> Page {pageData?.page.pageNumber || "-"}</div>
             {targetRegion && (
               <div className="flex items-center gap-1.5"><LayoutPanelLeft size={14} /> Region {targetRegion.type}</div>
@@ -95,16 +95,16 @@ export default function TaskStudioPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex px-4 border-b border-gray-100 pt-2">
+        <div className="flex px-4 border-b border-slate-100 pt-2">
           <button 
             onClick={() => setActiveTab('instructions')}
-            className={`pb-3 text-[13px] font-bold px-4 border-b-2 transition-colors ${activeTab === 'instructions' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`pb-3 text-[13px] font-bold px-4 border-b-2 transition-colors ${activeTab === 'instructions' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
           >
             Instructions
           </button>
           <button 
             onClick={() => setActiveTab('comments')}
-            className={`pb-3 text-[13px] font-bold px-4 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === 'comments' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`pb-3 text-[13px] font-bold px-4 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === 'comments' ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
           >
             Comments <span className="bg-gray-100 text-gray-600 px-1.5 rounded-full text-[10px]">2</span>
           </button>
@@ -115,21 +115,21 @@ export default function TaskStudioPage() {
           {activeTab === 'instructions' ? (
             <div className="space-y-6">
               <div className="space-y-2">
-                <h3 className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Description</h3>
-                <p className="text-[14px] text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100 whitespace-pre-wrap">
+                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Description</h3>
+                <p className="text-[14px] text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 whitespace-pre-wrap">
                   {task.description || "No description provided."}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Reference Materials</h3>
-                <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer group">
-                  <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Reference Materials</h3>
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 transition-colors cursor-pointer group">
+                  <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center text-violet-600 group-hover:bg-indigo-100 transition-colors">
                     <Play size={18} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[13px] font-bold text-gray-900">Tutorial: Pattern cloning</span>
-                    <span className="text-[11px] text-gray-500">Video · 2:15</span>
+                    <span className="text-[13px] font-bold text-slate-900">Tutorial: Pattern cloning</span>
+                    <span className="text-[11px] text-slate-500">Video · 2:15</span>
                   </div>
                 </div>
               </div>
@@ -139,14 +139,14 @@ export default function TaskStudioPage() {
               <div className="flex-1 space-y-4">
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold shrink-0">MG</div>
-                  <div className="bg-gray-50 p-3 rounded-xl rounded-tl-none border border-gray-100 text-[13px] text-gray-700">
+                  <div className="bg-slate-50 p-3 rounded-xl rounded-tl-none border border-slate-100 text-[13px] text-slate-700">
                     Make sure to use the 45-degree angle brush for the screentone reconstruction!
                   </div>
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <input type="text" placeholder="Type a message..." className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-indigo-400" />
-                <button className="bg-indigo-600 text-white w-9 h-9 rounded-lg flex items-center justify-center shrink-0 hover:bg-indigo-700">
+                <input type="text" placeholder="Type a message..." className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-indigo-400" />
+                <button className="bg-violet-600 text-white w-9 h-9 rounded-lg flex items-center justify-center shrink-0 hover:bg-violet-700">
                   <Send size={14} />
                 </button>
               </div>
@@ -155,10 +155,10 @@ export default function TaskStudioPage() {
         </div>
 
         {/* Footer / Actions */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50">
+        <div className="p-4 border-t border-slate-100 bg-slate-50">
           {task.status === "TODO" ? (
             <Button 
-              className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-6 rounded-xl"
+              className="w-full bg-violet-600 hover:bg-violet-700 font-bold py-6 rounded-xl"
               onClick={() => startTask.mutate()}
               disabled={startTask.isPending}
             >
@@ -180,7 +180,7 @@ export default function TaskStudioPage() {
       <div className="flex-1 flex flex-col relative bg-slate-100">
         
         {/* Toolbar */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur shadow-sm border border-gray-200 rounded-xl px-2 py-1.5 flex items-center gap-1 z-10">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur shadow-sm border border-slate-200 rounded-xl px-2 py-1.5 flex items-center gap-1 z-10">
           <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Select Tool">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
           </button>
@@ -188,7 +188,7 @@ export default function TaskStudioPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
           </button>
           <div className="w-px h-6 bg-gray-200 mx-1"></div>
-          <button className="p-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-[12px] px-3 border border-indigo-100 hover:bg-indigo-100 transition-colors">
+          <button className="p-2 bg-violet-50 text-violet-600 rounded-lg font-bold text-[12px] px-3 border border-indigo-100 hover:bg-indigo-100 transition-colors">
             Download Region
           </button>
           <button className="p-2 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[12px] px-3 border border-emerald-100 hover:bg-emerald-100 transition-colors ml-1">
@@ -208,7 +208,7 @@ export default function TaskStudioPage() {
              {/* Region Highlight */}
              {targetRegion && (
                <div 
-                  className="absolute border-2 border-indigo-500 bg-indigo-500/20"
+                  className="absolute border-2 border-violet-500 bg-violet-500/20"
                   style={{
                     left: `${targetRegion.bbox.x}%`,
                     top: `${targetRegion.bbox.y}%`,
@@ -216,7 +216,7 @@ export default function TaskStudioPage() {
                     height: `${targetRegion.bbox.height}%`
                   }}
                >
-                  <span className="absolute -top-6 left-0 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                  <span className="absolute -top-6 left-0 bg-violet-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
                     Target Region: {targetRegion.type}
                   </span>
                </div>

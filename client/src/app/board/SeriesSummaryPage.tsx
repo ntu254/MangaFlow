@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import type { ReactNode } from "react"
+
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, CheckCircle2, GitPullRequest, ThumbsDown, Vote } from "lucide-react"
 import { useBoardQueue } from "@/features/reviews/hooks/useBoardFlow"
@@ -7,12 +7,10 @@ import { useBoardActions } from "@/features/reviews/hooks/useBoardFlow"
 import { useSeriesSummary } from "@/features/series/hooks/useSeries"
 import type { BoardVoteValue } from "@/features/reviews/services/board.api"
 import type { PublicationType } from "@/features/series/services/series.api"
-
-const VOTES: Array<{ value: BoardVoteValue; label: string; icon: ReactNode }> = [
-  { value: "APPROVE", label: "Approve", icon: <CheckCircle2 size={16} /> },
-  { value: "REJECT", label: "Reject", icon: <ThumbsDown size={16} /> },
-  { value: "NEEDS_REVISION", label: "Needs Revision", icon: <GitPullRequest size={16} /> },
-]
+import { RankingReportCard } from "@/features/board/components/RankingReportCard"
+import { VoteSummary } from "@/features/board/components/VoteSummary"
+import { BoardDecisionPanel } from "@/features/board/components/BoardDecisionPanel"
+import { ReasonRequiredComposer } from "@/features/board/components/ReasonRequiredComposer"
 
 export default function BoardSeriesSummaryPage() {
   const { id } = useParams()
@@ -40,7 +38,17 @@ export default function BoardSeriesSummaryPage() {
       </button>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_420px]">
-        <section className="rounded-lg border bg-white p-6">
+        <section className="space-y-6">
+          <RankingReportCard data={{
+             rank: (summary as any)?.ranking?.rank || '-', 
+             score: (summary as any)?.ranking?.score || '-', 
+             trend: (summary as any)?.ranking?.trend || 'UP', 
+             trendValue: (summary as any)?.ranking?.trendValue || '+0',
+             atRisk: (summary as any)?.ranking?.atRisk || false,
+             atRiskReason: (summary as any)?.ranking?.atRiskReason
+          }} />
+
+          <div className="rounded-2xl border border-slate-200 shadow-sm bg-white p-6">
           <div className="flex items-start justify-between gap-6">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{summary.series.title}</h1>
@@ -65,63 +73,70 @@ export default function BoardSeriesSummaryPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <VoteStat label="Approve" value={queueItem?.voteSummary.APPROVE ?? 0} />
-            <VoteStat label="Reject" value={queueItem?.voteSummary.REJECT ?? 0} />
-            <VoteStat label="Needs Revision" value={queueItem?.voteSummary.NEEDS_REVISION ?? 0} />
           </div>
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded-lg border bg-white p-4">
-            <h2 className="text-sm font-bold text-slate-900">Cast Vote</h2>
-            <div className="mt-3 grid grid-cols-1 gap-2">
-              {VOTES.map((vote) => (
+        <aside className="space-y-6">
+          <VoteSummary 
+             votes={(summary as any)?.boardReview?.votes || []}
+             pendingCount={Math.max(0, 3 - (summary?.boardReview?.voteCount || 0))}
+             isFinalized={summary?.boardReview?.status === "FINALIZED"}
+          />
+
+          <BoardDecisionPanel title="Cast Vote" icon={<Vote size={18} className="text-violet-600"/>} tone="violet">
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { value: "APPROVE", label: "Approve", icon: <CheckCircle2 size={16} /> },
+                { value: "REJECT", label: "Reject", icon: <ThumbsDown size={16} /> },
+                { value: "NEEDS_REVISION", label: "Needs Revision", icon: <GitPullRequest size={16} /> }
+              ].map((vote) => (
                 <button
                   key={vote.value}
-                  onClick={() => setVoteValue(vote.value)}
-                  className={`inline-flex h-10 items-center justify-center gap-2 rounded-md border text-sm font-bold ${voteValue === vote.value ? "border-purple-600 bg-purple-50 text-purple-700" : "border-slate-200 text-slate-700"}`}
+                  onClick={() => setVoteValue(vote.value as BoardVoteValue)}
+                  className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-[13px] font-bold shadow-sm transition-all ${voteValue === vote.value ? "border-violet-500 bg-violet-50 text-violet-700 ring-2 ring-violet-50" : "border-slate-200 text-slate-700 bg-white hover:bg-slate-50"}`}
                 >
                   {vote.icon} {vote.label}
                 </button>
               ))}
             </div>
-            <textarea
+            
+            <ReasonRequiredComposer 
+              label="Vote Note"
               value={voteNote}
-              onChange={(event) => setVoteNote(event.target.value)}
-              placeholder="Vote note"
-              className="mt-3 min-h-20 w-full resize-none rounded-md border border-slate-200 p-3 text-sm"
+              onChange={(e) => setVoteNote(e.target.value)}
+              placeholder="Add your note..."
             />
             <button
-              disabled={busy || summary.series.status !== "BOARD_REVIEW"}
+              disabled={busy || summary.series.status !== "BOARD_REVIEW" || !voteNote.trim()}
               onClick={() => actions.vote.mutate({ value: voteValue, note: voteNote || undefined })}
-              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-slate-900 text-sm font-bold text-white disabled:opacity-50"
+              className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-[13px] font-bold text-white shadow-sm hover:bg-violet-700 disabled:opacity-50 disabled:hover:bg-violet-600 transition-colors"
             >
               <Vote size={16} /> Submit Vote
             </button>
-          </div>
+          </BoardDecisionPanel>
 
-          <div className="rounded-lg border bg-white p-4">
-            <h2 className="text-sm font-bold text-slate-900">{isTieBreak ? "Tie-Break Decision" : "Finalize Decision"}</h2>
-            <label className="mt-3 block text-xs font-bold uppercase text-slate-500">
+          <BoardDecisionPanel title={isTieBreak ? "Tie-Break Decision" : "Finalize Decision"} icon={<ArrowLeft size={18} className="text-emerald-600 rotate-180"/>} tone="emerald">
+            <label className="block text-[11px] font-bold uppercase text-slate-500 tracking-wider">
               Publication type for approval
               <select
                 value={publicationType}
                 onChange={(event) => setPublicationType(event.target.value as PublicationType)}
-                className="mt-1 h-10 w-full rounded-md border border-slate-200 px-3 text-sm text-slate-900"
+                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all shadow-sm"
               >
                 <option value="WEEKLY">WEEKLY</option>
                 <option value="MONTHLY">MONTHLY</option>
               </select>
             </label>
-            <textarea
+            
+            <ReasonRequiredComposer 
+              label="Decision Note"
               value={decisionNote}
-              onChange={(event) => setDecisionNote(event.target.value)}
-              placeholder="Decision note"
-              className="mt-3 min-h-20 w-full resize-none rounded-md border border-slate-200 p-3 text-sm"
+              onChange={(e) => setDecisionNote(e.target.value)}
+              placeholder="Finalize note..."
             />
+            
             <button
-              disabled={busy || summary.series.status !== "BOARD_REVIEW"}
+              disabled={busy || summary.series.status !== "BOARD_REVIEW" || !decisionNote.trim()}
               onClick={() => {
                 if (isTieBreak) {
                   actions.tieBreak.mutate({ value: voteValue, publicationType: voteValue === "APPROVE" ? publicationType : undefined, note: decisionNote || undefined })
@@ -129,11 +144,11 @@ export default function BoardSeriesSummaryPage() {
                   actions.finalize.mutate({ publicationType, note: decisionNote || undefined })
                 }
               }}
-              className="mt-3 h-10 w-full rounded-md bg-emerald-600 text-sm font-bold text-white disabled:opacity-50"
+              className="mt-2 h-11 w-full rounded-xl bg-emerald-600 text-[13px] font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:hover:bg-emerald-600 transition-colors"
             >
               {isTieBreak ? "Finalize Tie-Break" : "Finalize Vote Result"}
             </button>
-          </div>
+          </BoardDecisionPanel>
         </aside>
       </div>
     </div>
@@ -145,15 +160,6 @@ function Info({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
-    </div>
-  )
-}
-
-function VoteStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md bg-slate-50 p-3 text-center">
-      <p className="text-lg font-black text-slate-900">{value}</p>
-      <p className="text-xs font-semibold text-slate-500">{label}</p>
     </div>
   )
 }

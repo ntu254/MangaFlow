@@ -7,11 +7,14 @@ import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, FileText, Vote, Flag } f
 import { useBoardActions } from "@/features/reviews/hooks/useBoardFlow"
 import { seriesApi } from "@/features/series/services/series.api"
 import { Button } from "@/shared/components/ui/button"
-import { Textarea } from "@/shared/components/ui/textarea"
 import { Badge } from "@/shared/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog"
+import { RankingReportCard } from "@/features/board/components/RankingReportCard"
+import { VoteSummary } from "@/features/board/components/VoteSummary"
+import { BoardDecisionPanel } from "@/features/board/components/BoardDecisionPanel"
+import { ReasonRequiredComposer } from "@/features/board/components/ReasonRequiredComposer"
 
 export default function BoardSeriesReviewPage() {
   const { id } = useParams<{ id: string }>()
@@ -96,6 +99,15 @@ export default function BoardSeriesReviewPage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Main Content Area */}
         <div className="md:col-span-2 space-y-6">
+          <RankingReportCard data={{
+             rank: (summary as any)?.ranking?.rank || '-', 
+             score: (summary as any)?.ranking?.score || '-', 
+             trend: (summary as any)?.ranking?.trend || 'UP', 
+             trendValue: (summary as any)?.ranking?.trendValue || '+0',
+             atRisk: (summary as any)?.ranking?.atRisk || false,
+             atRiskReason: (summary as any)?.ranking?.atRiskReason
+          }} />
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -161,69 +173,58 @@ export default function BoardSeriesReviewPage() {
 
         {/* Action Sidebar */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader className="bg-muted/30">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Vote className="h-5 w-5 text-primary" />
-                Cast Your Vote
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <Textarea 
-                placeholder="Add your review notes here..." 
-                value={voteNote}
-                onChange={(e) => setVoteNote(e.target.value)}
-                className="min-h-[100px] resize-none"
-              />
-              <div className="grid gap-2">
-                <Button 
-                  onClick={() => handleVote("APPROVE")} 
-                  disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED"}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
-                </Button>
-                <Button 
-                  onClick={() => handleVote("NEEDS_REVISION")}
-                  variant="outline"
-                  disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED"}
-                >
-                  <AlertCircle className="mr-2 h-4 w-4" /> Request Revision
-                </Button>
-                <Button 
-                  onClick={() => handleVote("REJECT")}
-                  variant="destructive"
-                  disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED"}
-                >
-                  <XCircle className="mr-2 h-4 w-4" /> Reject
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <VoteSummary 
+             votes={(summary as any)?.boardReview?.votes || []}
+             pendingCount={Math.max(0, 3 - (summary?.boardReview?.voteCount || 0))}
+             isFinalized={summary?.boardReview?.status === "FINALIZED"}
+          />
 
-          <Card className="border-primary/20">
-            <CardHeader className="bg-primary/5">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Flag className="h-5 w-5 text-primary" />
-                Finalize Decision
-              </CardTitle>
-              <CardDescription>
-                Close the voting session and apply the board's decision.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="mb-4 rounded-md bg-muted p-3">
-                <p className="text-sm font-medium">Current Votes: {summary?.boardReview?.voteCount || 0}</p>
-              </div>
+          <BoardDecisionPanel title="Cast Your Vote" icon={<Vote className="h-5 w-5 text-violet-600" />} tone="violet">
+            <ReasonRequiredComposer 
+              label="Review Notes" 
+              value={voteNote}
+              onChange={(e) => setVoteNote(e.target.value)}
+              placeholder="Add your review notes here..." 
+            />
+            <div className="grid gap-2">
               <Button 
-                className="w-full" 
-                onClick={() => setIsFinalizeDialogOpen(true)}
-                disabled={summary?.boardReview?.status === "FINALIZED"}
+                onClick={() => handleVote("APPROVE")} 
+                disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED" || !voteNote.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700"
               >
-                Finalize Results
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
               </Button>
-            </CardContent>
-          </Card>
+              <Button 
+                onClick={() => handleVote("NEEDS_REVISION")}
+                variant="outline"
+                className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED" || !voteNote.trim()}
+              >
+                <AlertCircle className="mr-2 h-4 w-4" /> Request Revision
+              </Button>
+              <Button 
+                onClick={() => handleVote("REJECT")}
+                variant="destructive"
+                className="bg-red-600 hover:bg-red-700"
+                disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED" || !voteNote.trim()}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Reject
+              </Button>
+            </div>
+          </BoardDecisionPanel>
+
+          <BoardDecisionPanel title="Finalize Decision" icon={<Flag className="h-5 w-5 text-amber-600" />} tone="amber">
+            <div className="mb-4 rounded-md bg-amber-100/50 p-3">
+              <p className="text-sm font-medium text-amber-900">Current Votes: {summary?.boardReview?.voteCount || 0}</p>
+            </div>
+            <Button 
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
+              onClick={() => setIsFinalizeDialogOpen(true)}
+              disabled={summary?.boardReview?.status === "FINALIZED"}
+            >
+              Finalize Results
+            </Button>
+          </BoardDecisionPanel>
         </div>
       </div>
 

@@ -3,14 +3,28 @@ import { useNavigate } from 'react-router-dom'
 import coverMock from '@/assets/image-mangaka.webp'
 import type { SeriesViewModel } from './series-view-model'
 
-const getStatusTheme = (status: string) => {
+import { seriesStatusUi, type StatusUiConfig } from '@/shared/lib/status-ui'
+import { StatusBadge } from '@/shared/components/ui/status-badge'
+
+const getStatusConfig = (status: string): StatusUiConfig => {
+  const s = status.toUpperCase().replace(' ', '_');
+  if (seriesStatusUi[s]) return seriesStatusUi[s];
+  if (s === 'IN_PRODUCTION') return seriesStatusUi['ONGOING'];
+  if (s === 'SUBMITTED') return seriesStatusUi['EDITOR_REVIEW'];
+  if (s === 'AT_RISK') return { ...seriesStatusUi['CANCELLED'], label: 'At Risk' };
+  if (s === 'APPROVED') return seriesStatusUi['ONGOING'];
+  if (s === 'READY') return seriesStatusUi['ONGOING'];
+  return seriesStatusUi['DRAFT'];
+}
+
+const getSnapshotTheme = (status: string) => {
   const s = status.toLowerCase();
-  if (s.includes('editor')) return { dot: 'bg-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', snapshot: 'bg-[#F8F9FE]' };
-  if (s.includes('board')) return { dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', snapshot: 'bg-[#FFF9F5]' };
-  if (s.includes('production') || s.includes('ongoing') || s.includes('approved')) return { dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', snapshot: 'bg-[#F6FDF9]' };
-  if (s.includes('risk')) return { dot: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', snapshot: 'bg-[#FFFDF5]' };
-  if (s.includes('draft')) return { dot: 'bg-gray-500', bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', snapshot: 'bg-gray-50' };
-  return { dot: 'bg-gray-500', bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', snapshot: 'bg-gray-50' };
+  if (s.includes('editor')) return 'bg-[#F8F9FE]';
+  if (s.includes('board')) return 'bg-[#FFF9F5]';
+  if (s.includes('production') || s.includes('ongoing') || s.includes('approved')) return 'bg-[#F6FDF9]';
+  if (s.includes('risk')) return 'bg-[#FFFDF5]';
+  if (s.includes('draft')) return 'bg-gray-50';
+  return 'bg-gray-50';
 }
 
 const getStageNodes = (status: string) => {
@@ -78,7 +92,8 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
       {/* Table Body */}
       <div className="flex flex-col">
         {seriesData.map((series, index) => {
-          const theme = getStatusTheme(series.status);
+          const config = getStatusConfig(series.status);
+          const snapshotTheme = getSnapshotTheme(series.status);
           const { nodes, activeIndex } = getStageNodes(series.status);
           const snapshotItems = getSnapshotData(series.status, series);
           const isLast = index === seriesData.length - 1;
@@ -87,13 +102,13 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
             <div 
               key={series.id} 
               tabIndex={0}
-              className={`grid grid-cols-[280px_1fr_1fr_140px_100px] gap-6 px-6 py-5 items-center bg-white hover:bg-slate-50/80 transition-all ${!isLast ? 'border-b border-slate-100' : ''} hover:-translate-y-px hover:shadow-sm hover:z-10 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-inset`}
+              className={`grid grid-cols-[280px_1fr_1fr_140px_100px] gap-6 px-6 py-5 items-center bg-white hover:bg-slate-50/80 transition-all ${!isLast ? 'border-b border-slate-100' : ''} hover:-translate-y-px hover:shadow-sm hover:z-10 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-inset`}
             >
               
               {/* Column 1: Series Identity */}
               <div className="flex items-center gap-4">
                 <div 
-                  className="w-[52px] h-[72px] rounded overflow-hidden shrink-0 shadow-sm border border-slate-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600" 
+                  className="w-[52px] h-[72px] rounded overflow-hidden shrink-0 shadow-sm border border-slate-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600" 
                   tabIndex={0}
                   onClick={() => navigate(`/app/mangaka/series/${series.id}`)}
                 >
@@ -101,7 +116,7 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <h2 
-                    className="text-[15px] font-bold text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors truncate mb-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 rounded" 
+                    className="text-[15px] font-bold text-slate-900 cursor-pointer hover:text-violet-600 transition-colors truncate mb-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 rounded" 
                     tabIndex={0}
                     onClick={() => navigate(`/app/mangaka/series/${series.id}`)}
                   >
@@ -112,7 +127,7 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
                     {series.genres.map((g: string) => (
                       <span key={g} className="px-1.5 py-0.5 bg-slate-50 text-slate-600 rounded-md text-[9px] font-semibold border border-slate-100">{g}</span>
                     ))}
-                    <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[9px] font-bold ml-1">v1.0</span>
+                    <span className="px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-md text-[9px] font-bold ml-1">v1.0</span>
                   </div>
                 </div>
               </div>
@@ -120,10 +135,7 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
               {/* Column 2: Status & Stage */}
               <div className="flex flex-col pr-4">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${theme.bg} ${theme.text} ${theme.border}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${theme.dot}`}></div>
-                    {series.status === 'In Production' ? 'Ongoing' : series.status}
-                  </div>
+                  <StatusBadge config={config} size="sm" showIcon={true} />
                 </div>
                 <div className="text-[11px] font-bold text-slate-700 mb-2">
                   Stage: {series.status === 'In Production' ? `Chapter ${series.chapters} Production` : series.status}
@@ -132,15 +144,26 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
                 <div className="flex items-center w-full max-w-[240px] relative">
                   <div className="absolute top-1.5 left-1 right-1 h-0.5 bg-slate-200 z-0"></div>
                   <div className="flex justify-between w-full z-10">
-                    {nodes.map((node, i) => (
+                    {nodes.map((node, i) => {
+                      // Resolve node dot colors since we removed theme.dot
+                      let dotColor = 'bg-slate-500';
+                      if (activeIndex >= 0) {
+                        if (config.tone === 'emerald') dotColor = 'bg-emerald-500';
+                        else if (config.tone === 'amber') dotColor = 'bg-amber-500';
+                        else if (config.tone === 'purple') dotColor = 'bg-purple-500';
+                        else if (config.tone === 'red') dotColor = 'bg-red-500';
+                        else if (config.tone === 'violet') dotColor = 'bg-violet-500';
+                      }
+
+                      return (
                       <div key={node} className="flex flex-col items-center gap-1 relative group cursor-help">
-                        <div className={`w-3.5 h-3.5 rounded-full border-2 ${i <= activeIndex ? (i === activeIndex ? theme.dot + ' border-white shadow-sm ring-2 ring-offset-1 ring-' + theme.dot.split('-')[1] + '-400' : 'bg-emerald-500 border-white') : 'bg-white border-slate-300'}`}></div>
+                        <div className={`w-3.5 h-3.5 rounded-full border-2 ${i <= activeIndex ? (i === activeIndex ? dotColor + ' border-white shadow-sm ring-2 ring-offset-1 ring-' + dotColor.split('-')[1] + '-400' : 'bg-emerald-500 border-white') : 'bg-white border-slate-300'}`}></div>
                         <div className="absolute bottom-6 opacity-0 group-hover:opacity-100 whitespace-nowrap bg-slate-800 text-white text-[10px] font-medium py-1 px-2 rounded shadow-md pointer-events-none transition-opacity z-20">
                           {node}
                           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </div>
               </div>
@@ -148,7 +171,7 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
               {/* Column 3: Snapshot */}
               <div className="flex items-center w-full">
                 <div 
-                  className={`grid gap-3 px-5 py-3.5 rounded-xl w-full ${theme.snapshot}`}
+                  className={`grid gap-3 px-5 py-3.5 rounded-xl w-full ${snapshotTheme}`}
                   style={{ gridTemplateColumns: `repeat(${snapshotItems.length}, minmax(0, 1fr))` }}
                 >
                   {snapshotItems.map((item, i) => (
@@ -172,7 +195,7 @@ export function SeriesListView({ seriesData }: SeriesListViewProps) {
               <div className="flex items-center justify-end gap-2 pr-2">
                 <button 
                   onClick={() => navigate(`/app/mangaka/series/${series.id}`)}
-                  className="px-4 h-8 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[11px] rounded-lg transition-colors"
+                  className="px-4 h-8 bg-white border border-violet-200 text-violet-600 hover:bg-violet-50 font-bold text-[11px] rounded-lg transition-colors"
                 >
                   {series.status.includes('Review') || series.status.includes('Risk') ? 'View' : 'Continue'}
                 </button>

@@ -12,6 +12,7 @@ import { SeriesGridView } from '@/features/series/components/series-list/SeriesG
 import { SeriesGridSkeleton } from '@/features/series/components/series-list/SeriesGridSkeleton'
 import { SeriesListSkeleton } from '@/features/series/components/series-list/SeriesListSkeleton'
 import { SeriesEmptyState } from '@/features/series/components/series-list/SeriesEmptyState'
+import { PageHeader } from '@/shared/components/ui/page-header'
 import { useSeriesList } from '@/features/series/hooks/useSeries'
 import { toSeriesViewModel } from '@/features/series/components/series-list/series-view-model'
 
@@ -72,16 +73,16 @@ export default function MangakaSeriesPage() {
 
   return (
     <div className='max-w-[1400px] w-full mx-auto pb-10 space-y-6'>
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-1">My Series</h1>
-          <p className="text-[13px] text-slate-500">Create, manage, and track your manga series proposals and active projects.</p>
-        </div>
-        <button onClick={() => navigate('/app/mangaka/series/create')} className="flex items-center gap-2 bg-indigo-600 text-white h-10 px-5 rounded-lg text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
-          <Plus size={18} />
-          Create New Series
-        </button>
-      </div>
+      <PageHeader
+        title="My Series"
+        description="Create, manage, and track your manga series proposals and active projects."
+        primaryAction={
+          <button onClick={() => navigate('/app/mangaka/series/create')} className="flex items-center gap-2 bg-violet-600 text-white h-10 px-5 rounded-lg text-sm font-semibold shadow-sm hover:bg-violet-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600">
+            <Plus size={18} />
+            Create New Series
+          </button>
+        }
+      />
 
       <SeriesStatCards seriesData={seriesData} />
 
