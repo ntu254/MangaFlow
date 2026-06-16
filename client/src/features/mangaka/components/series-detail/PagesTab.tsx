@@ -31,7 +31,7 @@ export function PagesTab({ seriesId, chapters }: PagesTabProps) {
   const approvedPages = pages.filter((page) => page.status === "APPROVED").length
   const inProgressPages = pages.filter((page) => ["TASK_ASSIGNED", "IN_PROGRESS", "UNDER_REVIEW"].includes(page.status)).length
   const needsAttentionPages = pages.filter((page) => ["PROCESSING_FAILED"].includes(page.status)).length
-  const readyPages = pages.filter((page) => ["UPLOADED", "READY_FOR_REGION"].includes(page.status)).length
+  const readyPages = pages.filter((page) => ["UPLOADED"].includes(page.status)).length
 
   return (
     <div className="flex flex-col w-full h-full gap-6 px-8 py-6 max-w-[1600px] mx-auto">
@@ -123,7 +123,7 @@ export function PagesTab({ seriesId, chapters }: PagesTabProps) {
             <MetricCard label="Pages" value={pagesLoading ? "Loading..." : String(pages.length)} progress={pages.length ? Math.round((approvedPages / pages.length) * 100) : 0} progressColor="bg-purple-500" />
             <MetricCard label="Approved" value={String(approvedPages)} progress={pages.length ? Math.round((approvedPages / pages.length) * 100) : 0} progressColor="bg-emerald-500" />
             <MetricCard label="In Progress" value={String(inProgressPages)} progress={pages.length ? Math.round((inProgressPages / pages.length) * 100) : 0} progressColor="bg-orange-500" />
-            <MetricCard label="Needs Attention" value={String(needsAttentionPages + readyPages)} helperText={`Failed: ${needsAttentionPages} · Ready for region: ${readyPages}`} />
+            <MetricCard label="Needs Attention" value={String(needsAttentionPages + readyPages)} helperText={`Failed: ${needsAttentionPages} · Ready: ${readyPages}`} />
           </div>
 
           <div className="flex items-center gap-6 border-b border-gray-200 mb-6">
@@ -274,7 +274,6 @@ function statusColor(status: string) {
       return "orange"
     case "PROCESSING_FAILED":
       return "red"
-    case "READY_FOR_REGION":
     case "UNDER_REVIEW":
     case "UPLOADED":
       return "yellow"

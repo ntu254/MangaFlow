@@ -1,26 +1,29 @@
 ## 1. Tổng quan
 
-Flow 05 tập trung vào task lifecycle phía Assistant: Mangaka tạo Task trên Page hoặc Region, assign Assistant, Assistant start và submit nhiều version, resubmit sau khi bị revision. Phần Mangaka review queue chi tiết (approve / request revision / reject) được mô tả riêng ở Flow 06.
+Flow 05 mô tả task lifecycle phía Assistant: Mangaka tạo Page-level hoặc Region-level Task, assign Assistant, Assistant start task và submit nhiều version.
+
+Task là đơn vị giao việc thật. Task Studio là UI screen cho Assistant làm task được assign, không phải database entity.
 
 ## 2. Mục tiêu nghiệp vụ
 
 - Dùng Task làm đơn vị công việc chính.
 - Assign Assistant thuộc Production Team.
 - Quản lý Submission theo version.
-- Cho phép Mangaka approve, request revision hoặc reject.
+- Cho phép Assistant submit/resubmit work.
 - Feedback gắn đúng Task, Page/Region và Submission version.
+- Chống nhiều Assistant cùng làm trùng một target/task type trong MVP.
 
 ## 3. Phạm vi
 
 In scope: create task, assign assistant, assistant start task, submit v1/v2/v3, resubmit version, notification, audit log.
 
-Out of scope: Mangaka review queue chi tiết (Flow 06), Editor final approval, payroll, publication, Board decision.
+Out of scope: Mangaka review queue chi tiết, Editor final approval, payroll, publication, Board decision, Workspace entity.
 
 ## 4. Actor tham gia
 
 | Actor | Vai trò |
 | --- | --- |
-| Mangaka | Tạo Task, assign, review, approve/revision/reject |
+| Mangaka | Tạo Task, assign Assistant |
 | Assistant | Nhận Task, làm việc, submit version mới |
 | System | Validate, versioning, status, notification |
 | Editor | Final review ở Flow 07 |
@@ -44,7 +47,7 @@ Kết thúc chính khi:
 Task.status = MANGAKA_APPROVED
 ```
 
-Hoặc thất bại/kết thúc phụ khi Task bị `REJECTED` hoặc `CANCELLED`.
+Hoặc kết thúc phụ khi Task bị `REJECTED` hoặc `CANCELLED`.
 
 ## 6. Entity liên quan
 
@@ -61,6 +64,13 @@ Notification
 AuditLog
 ```
 
+Không phải core entity:
+
+```
+Task Studio
+Workspace
+```
+
 ## 7. Task Status
 
 | Status | Ý nghĩa |
@@ -68,7 +78,7 @@ AuditLog
 | TODO | Task mới assign, chưa bắt đầu |
 | IN_PROGRESS | Assistant đang làm |
 | SUBMITTED | Assistant đã nộp current version |
-| REVISION_REQUESTED | Mangaka yêu cầu sửa |
+| REVISION_REQUESTED | Mangaka hoặc Editor yêu cầu sửa |
 | MANGAKA_APPROVED | Mangaka đã approve |
 | EDITOR_APPROVED | Editor đã approve cuối |
 | REJECTED | Task bị từ chối |
@@ -93,6 +103,8 @@ Mangaka creates Page-level or Region-level Task
 ↓
 System validates Assistant eligibility
 ↓
+System checks duplicate active task for same target + taskType
+↓
 Assign Assistant A
 ↓
 Task.status = TODO
@@ -108,9 +120,7 @@ Assistant submits v1
 Submission.version = 1
 Task.status = SUBMITTED
 ↓
-Mangaka reviews current submission
-↓
-Approve / Request Revision / Reject
+Task enters Mangaka Review Queue in Flow 06
 ```
 
 ## 10. Revision loop
@@ -118,12 +128,11 @@ Approve / Request Revision / Reject
 ```
 Assistant submit v1
 ↓
-Mangaka review v1
+Reviewer requests revision
 ↓
-If not good:
-    Task.status = REVISION_REQUESTED
-    Submission.status = REVISION_REQUESTED
-    Mangaka creates comment/annotation
+Task.status = REVISION_REQUESTED
+Submission.status = REVISION_REQUESTED
+Feedback/comment/annotation created
 ↓
 Assistant fixes
 ↓
@@ -131,9 +140,7 @@ Assistant submit v2
 ↓
 Task.status = SUBMITTED
 ↓
-Mangaka review v2
-↓
-Loop until MANGAKA_APPROVED or REJECTED
+Loop until approved, rejected, or cancelled
 ```
 
 Submission không được ghi đè. Mỗi lần submit tạo version mới.
@@ -146,11 +153,12 @@ Submission không được ghi đè. Mỗi lần submit tạo version mới.
 | Create Task | Có | Không | Không | Optional | Không |
 | Assign Task | Có | Không | Không | Optional | Không |
 | View assigned Task | Có | Có | Không | Có | Không |
+| Open Task Studio | Không | Có nếu assigned | Không | Optional review | Không |
 | Start Task | Không | Có | Không | Không | Không |
 | Submit work | Không | Có | Không | Không | Không |
-| Review submission | Có | Không | Không | Flow 07 | Không |
-| Request revision | Có | Không | Không | Flow 07 | Không |
-| Approve | Có | Không | Không | Flow 07 | Không |
+| Review submission | Flow 06 | Không | Không | Flow 07 | Không |
+| Request revision | Flow 06 | Không | Không | Flow 07 | Không |
+| Approve | Flow 06 | Không | Không | Flow 07 | Không |
 
 ## 12. API đề xuất
 
@@ -176,6 +184,8 @@ POST   /api/pages/:pageId/annotations
 /app/assistant/tasks
 /app/assistant/tasks/:taskId/studio
 ```
+
+`Task Studio` là UI screen cho assigned Task, không phải database entity.
 
 ## 14. Notification events
 
@@ -213,8 +223,10 @@ ANNOTATION_CREATED
 - Submission không ghi đè version cũ.
 - Request revision bắt buộc có feedback.
 - Annotation dùng coordinates trên Working Image.
-- Không tạo 2 active Task trùng `targetType + targetId + taskType` khi Task trước chưa kết thúc (`EDITOR_APPROVED`, `REJECTED` hoặc `CANCELLED`). Ví dụ: `Page 01 - COLORING - Assistant A - IN_PROGRESS` thì chưa được tạo `Page 01 - COLORING - Assistant B - TODO`. Mục tiêu: tránh 2 Assistant cùng sửa một Page/Region.
+- Không tạo 2 active Task trùng `targetType + targetId + taskType` khi Task trước chưa kết thúc.
+- Active Task kết thúc khi `EDITOR_APPROVED`, `REJECTED` hoặc `CANCELLED`.
 - Payroll chưa tính ở `MANGAKA_APPROVED`.
+- Task Studio là UI screen, không phải core entity.
 
 ## 17. Edge cases
 
@@ -226,7 +238,7 @@ ANNOTATION_CREATED
 | Approve submission cũ | Block |
 | Request revision thiếu comment | Block |
 | Task cancelled | Block submit |
-| Tạo active Task trùng target + taskType | Block tới khi task cũ EDITOR_APPROVED/REJECTED/CANCELLED |
+| Tạo active Task trùng target + taskType | Block tới khi task cũ kết thúc |
 
 ## 18. Mermaid activity flow
 
@@ -251,22 +263,25 @@ flowchart TD
 - Mangaka tạo được Page/Region Task.
 - Chỉ assign được Assistant eligible.
 - Assistant thấy và submit Task của mình.
+- Assistant mở được Task Studio cho assigned Task.
 - Submit lại tạo version mới.
-- Mangaka request revision có feedback.
-- Loop lặp tới khi approve/reject.
+- Request revision phải có feedback.
+- Loop lặp tới khi approve/reject/cancel.
 - Task `MANGAKA_APPROVED` sẵn sàng cho Editor final review.
+- Không tạo active task trùng target + taskType.
 
 ## 20. MVP implementation priority
 
 ```
 1. Task model
 2. Eligibility check
-3. Assign Assistant
-4. Assistant Task Studio
-5. Submission upload
-6. Submission versioning
-7. Mangaka review action
-8. Revision comment
-9. Notification
-10. AuditLog
+3. Duplicate active task guard
+4. Assign Assistant
+5. Assistant Task Studio
+6. Submission upload
+7. Submission versioning
+8. Mangaka review action handoff
+9. Revision comment
+10. Notification
+11. AuditLog
 ```

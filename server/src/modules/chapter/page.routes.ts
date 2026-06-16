@@ -11,10 +11,10 @@ const pageIdParamsSchema = z.object({
 })
 
 router.get(
-  "/:pageId/workspace",
+  "/:pageId/studio",
   requireAuth,
   validate(pageIdParamsSchema, "params"),
-  controller.getPageWorkspace,
+  controller.getPageStudio,
 )
 
 export default router

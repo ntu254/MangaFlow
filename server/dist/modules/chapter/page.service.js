@@ -2,7 +2,7 @@ import { AppError } from "../../shared/errors/AppError.js";
 import { Page, Region, AIResult } from "./chapter.model.js";
 import { assertCanReadPage } from "../../shared/policies/accessPolicy.service.js";
 import { Task } from "../task/task.model.js";
-export async function getPageWorkspaceService(pageId, userId, role) {
+export async function getPageStudioService(pageId, userId, role) {
     const trimmed = pageId.trim();
     if (!trimmed)
         throw new AppError("Page id is required", 400);

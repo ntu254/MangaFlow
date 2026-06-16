@@ -124,7 +124,7 @@ export interface ConfirmPageUploadResponse {
   thumbnailAsset: FileAssetRef
 }
 
-export interface PageWorkspaceResponse {
+export interface PageStudioResponse {
   page: Page
   workingFileAsset?: FileAssetRef
   originalFileAsset?: FileAssetRef
@@ -230,6 +230,6 @@ export const aiApi = {
 }
 
 export const pageApi = {
-  getWorkspace: (pageId: string) =>
-    apiClient.get<ApiResponse<PageWorkspaceResponse>>(`/pages/${pageId}/workspace`),
+  getStudio: (pageId: string) =>
+    apiClient.get<ApiResponse<PageStudioResponse>>(`/pages/${pageId}/studio`),
 }

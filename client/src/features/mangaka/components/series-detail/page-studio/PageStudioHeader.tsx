@@ -13,7 +13,7 @@ export function PageStudioHeader({ onBack, chapterId, page, title }: PageStudioH
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2 text-[12px] font-bold text-gray-500">
-          <button type="button" className="hover:text-gray-900 cursor-pointer transition-colors" onClick={onBack}>Workspace</button>
+          <button type="button" className="hover:text-gray-900 cursor-pointer transition-colors" onClick={onBack}>Production Hub</button>
           <ChevronRight size={14} />
           <button type="button" className="hover:text-gray-900 cursor-pointer transition-colors" onClick={onBack}>Chapter {chapterId}</button>
           <ChevronRight size={14} />

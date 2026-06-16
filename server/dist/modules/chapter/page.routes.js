@@ -7,6 +7,6 @@ const router = Router();
 const pageIdParamsSchema = z.object({
     pageId: z.string().min(1, "Page ID is required"),
 });
-router.get("/:pageId/workspace", requireAuth, validate(pageIdParamsSchema, "params"), controller.getPageWorkspace);
+router.get("/:pageId/studio", requireAuth, validate(pageIdParamsSchema, "params"), controller.getPageStudio);
 export default router;
 //# sourceMappingURL=page.routes.js.map

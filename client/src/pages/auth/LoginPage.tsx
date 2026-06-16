@@ -53,7 +53,7 @@ export default function LoginPage() {
                 Assistants, and Board.
               </h2>
               <p className="text-gray-300 text-base xl:text-lg max-w-xl leading-relaxed">
-                From ideation to publication. Plan, create, review, and publish with one connected workspace built for manga teams.
+                From ideation to publication. Plan, create, review, and publish with one connected platform built for manga teams.
               </p>
             </div>
           </div>

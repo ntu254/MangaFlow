@@ -19,6 +19,8 @@ import EditorSeriesReviewPage from '@/pages/editor/SeriesReviewPage'
 import BoardDashboard from '@/pages/board/DashboardPage'
 import BoardSeriesReviewPage from '@/pages/board/SeriesReviewPage'
 import BoardSeriesSummaryPage from '@/pages/board/SeriesSummaryPage'
+import PageStudioPage from '@/pages/mangaka/PageStudioPage'
+import TaskStudioPage from '@/pages/assistant/TaskStudioPage'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to='/login' replace /> },
@@ -42,6 +44,7 @@ const router = createBrowserRouter([
           // Assistant
           { path: 'assistant', element: <ProtectedRoute allowedRoles={['ASSISTANT']} />, children: [
             { path: 'dashboard', element: <AssistantDashboard /> },
+            { path: 'tasks/:taskId/studio', element: <TaskStudioPage /> },
           ]},
           // Editor
           { path: 'editor', element: <ProtectedRoute allowedRoles={['EDITOR']} />, children: [
@@ -49,6 +52,7 @@ const router = createBrowserRouter([
             { path: 'manuscripts', element: <EditorReviewQueuePage /> },
             { path: 'manuscripts/review-queue', element: <EditorReviewQueuePage /> },
             { path: 'series/:id/review', element: <EditorSeriesReviewPage /> },
+            { path: 'pages/:pageId/studio', element: <PageStudioPage /> },
           ]},
           // Board
           { path: 'board', element: <ProtectedRoute allowedRoles={['BOARD']} />, children: [
@@ -69,6 +73,7 @@ const router = createBrowserRouter([
             { path: 'series', element: <MangakaSeriesPage /> },
             { path: 'series/create', element: <MangakaCreateSeriesPage /> },
             { path: 'series/:id', element: <MangakaSeriesDetailPage /> },
+            { path: 'pages/:pageId/studio', element: <PageStudioPage /> },
             { path: 'inbox', element: <div className="p-6">Inbox content</div> },
             { path: 'ranking', element: <div className="p-6">Ranking content</div> },
             { path: 'payroll', element: <div className="p-6">Payroll content</div> },

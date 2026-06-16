@@ -1,5 +1,5 @@
 import type { UserRole } from "../auth/auth.types.js";
-export declare function getPageWorkspaceService(pageId: string, userId: string, role: UserRole): Promise<{
+export declare function getPageStudioService(pageId: string, userId: string, role: UserRole): Promise<{
     page: import("mongoose").FlattenMaps<import("./chapter.model.js").PageDocument> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {

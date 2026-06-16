@@ -1,14 +1,17 @@
 ## 1. Tổng quan
 
-Flow 06 mô tả review queue của Mangaka sau khi Assistant submit Task. Đây là bước Mangaka kiểm tra chất lượng trước khi chuyển sang Editor final review. Việc tạo Task, assign và Assistant start/submit được mô tả ở Flow 05; Flow 06 chỉ tập trung vào review queue (approve / request revision / reject + comment/annotation).
+Flow 06 mô tả review queue của Mangaka sau khi Assistant submit Task. Đây là bước Mangaka kiểm tra chất lượng trước khi Task được chuyển sang Editor final review.
+
+Flow 06 chỉ tập trung vào review queue. Việc tạo Task, assign và Assistant submit thuộc Flow 05.
 
 ## 2. Mục tiêu nghiệp vụ
 
 - Gom các Submission đang chờ Mangaka review.
 - Cho phép Mangaka xem current Submission.
-- Approve, request revision hoặc reject.
+- Cho phép Mangaka approve, request revision hoặc reject.
 - Đảm bảo feedback gắn đúng version.
 - Chỉ current Submission được approve.
+- Không tính earning ở bước Mangaka approval.
 
 ## 3. Phạm vi
 
@@ -83,10 +86,7 @@ System loads current Submission
 ↓
 Mangaka reviews result, task description, comments, working image
 ↓
-Mangaka chooses:
-    Approve
-    Request Revision
-    Reject
+Mangaka chooses: Approve / Request Revision / Reject
 ```
 
 ## 10. Revision loop
@@ -179,6 +179,7 @@ ANNOTATION_CREATED
 - Annotation coordinates dùng trên Working Image.
 - Khi request revision, Assistant phải submit version mới.
 - `MANGAKA_APPROVED` chưa đủ để tính earning.
+- Task `MANGAKA_APPROVED` sẽ đi tiếp sang Editor final review ở Flow 07.
 
 ## 17. Edge cases
 
@@ -213,6 +214,7 @@ flowchart TD
 - Request revision chuyển Task sang `REVISION_REQUESTED`.
 - Reject chuyển Task sang `REJECTED`.
 - Feedback gắn đúng submission version.
+- `MANGAKA_APPROVED` không tạo earning.
 - Notification và AuditLog được tạo.
 
 ## 20. MVP implementation priority
@@ -225,6 +227,7 @@ flowchart TD
 5. Request revision with comment
 6. Reject action
 7. Annotation support
-8. Notification
-9. AuditLog
+8. Handoff to Editor final review
+9. Notification
+10. AuditLog
 ```

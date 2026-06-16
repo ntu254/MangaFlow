@@ -137,7 +137,7 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
               )}
             </div>
             <button className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors text-[12px] mt-1 border border-purple-100 shadow-sm">
-              {isProposal ? 'View Submission' : 'Open Workspace'} <ArrowRight size={14} />
+              {isProposal ? 'View Submission' : 'Open Production Hub'} <ArrowRight size={14} />
             </button>
           </div>
 

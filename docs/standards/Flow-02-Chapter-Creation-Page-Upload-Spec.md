@@ -24,22 +24,23 @@ Thumbnail
 - Tạo Working Image cho Page Studio và AI.
 - Tạo Thumbnail cho grid/list.
 - Chuẩn bị Page cho Region, AI segmentation và Task Assignment ở flow sau.
+- Giữ Production Hub là UI layer, không phải core entity.
 
 ## 3. Phạm vi
 
 In scope: create Chapter, upload Page, validate file, save Original, generate Working Image, generate Thumbnail, create Page/FileAsset records, update Chapter status.
 
-Out of scope: Region creation, AI execution, Production Team setup, Task Assignment, Assistant Submission, Editor final approval, Publication.
+Out of scope: Region creation, AI execution, Production Team setup, Task Assignment, Assistant Submission, Editor final approval, Publication, Workspace entity management.
 
 ## 4. Actor tham gia
 
-| Actor           | Vai trò                                                  |
-| --------------- | -------------------------------------------------------- |
-| Mangaka         | Tạo Chapter, upload Page, reorder/delete page trước task |
-| Tantou Editor   | Monitor progress                                         |
-| System          | Validate, store files, generate images, create records   |
-| Assistant       | Chưa tham gia                                            |
-| Editorial Board | Không vote từng Chapter trong MVP                        |
+| Actor | Vai trò |
+| --- | --- |
+| Mangaka | Tạo Chapter, upload Page, reorder/delete page trước task |
+| Tantou Editor | Monitor progress |
+| System | Validate, store files, generate images, create records |
+| Assistant | Chưa tham gia |
+| Editorial Board | Không vote từng Chapter trong MVP |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -76,42 +77,40 @@ Notification
 AuditLog
 ```
 
-Chưa tạo trong flow này:
+Không phải core entity trong MVP:
 
 ```
-Region
-Task
-Submission
-AIResult
-Publication
-AssistantEarning
+Workspace
+Production Hub
 ```
+
+`Production Hub` là UI aggregate của Series, không phải database entity.
 
 ## 7. Chapter Status
 
-| Status                | Ý nghĩa                               |
-| --------------------- | ------------------------------------- |
-| DRAFT                 | Chapter mới tạo, chưa có page         |
-| IN_PRODUCTION         | Chapter đã có page và đang production |
-| READY_FOR_PUBLICATION | Chapter đủ điều kiện publish          |
-| PUBLISHED             | Chapter đã xuất bản                   |
-| ARCHIVED              | Chapter không còn active              |
+| Status | Ý nghĩa |
+| --- | --- |
+| DRAFT | Chapter mới tạo, chưa có page |
+| IN_PRODUCTION | Chapter đã có page và đang production |
+| READY_FOR_PUBLICATION | Chapter đủ điều kiện publish |
+| PUBLISHED | Chapter đã xuất bản |
+| ARCHIVED | Chapter không còn active |
 
 Flow này dùng chính: `DRAFT`, `IN_PRODUCTION`.
 
 ## 8. Page Status
 
-| Status            | Ý nghĩa                                                                            |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| UPLOADING         | File đang upload/xử lý                                                             |
-| UPLOADED          | Page có đủ Original/Working/Thumbnail — sẵn sàng mở Page Studio và tạo Region/AI  |
-| PROCESSING_FAILED | Lỗi tạo Working Image hoặc Thumbnail                                               |
-| TASK_ASSIGNED     | Page đã có Task                                                                    |
-| IN_PROGRESS       | Task đang làm                                                                      |
-| UNDER_REVIEW      | Submission đang review                                                             |
-| APPROVED          | Page approved                                                                      |
+| Status | Ý nghĩa |
+| --- | --- |
+| UPLOADING | File đang upload/xử lý |
+| UPLOADED | Page có đủ Original/Working/Thumbnail, sẵn sàng mở Page Studio và tạo Region |
+| PROCESSING_FAILED | Lỗi tạo Working Image hoặc Thumbnail |
+| TASK_ASSIGNED | Page đã có Task |
+| IN_PROGRESS | Task đang làm |
+| UNDER_REVIEW | Submission đang review |
+| APPROVED | Page approved |
 
-> **Lưu ý:** `READY_FOR_REGION` đã bị loại bỏ. `UPLOADED` là trạng thái duy nhất xác nhận page đủ điều kiện mở Page Studio và tạo Region/chạy AI — không cần trạng thái trung gian.
+MVP không dùng `READY_FOR_REGION` riêng. `UPLOADED` đã đồng nghĩa với việc Page có đủ Original + Working Image + Thumbnail và đủ điều kiện mở Page Studio.
 
 ## 9. Step-by-step flow
 
@@ -165,14 +164,15 @@ Nếu chưa có background worker, MVP nên rollback toàn bộ upload khi proce
 
 ## 11. Permission Matrix
 
-| Action                  | Mangaka | Co-Mangaka      | Editor   | Board        | Assistant      | Admin    |
-| ----------------------- | ------- | --------------- | -------- | ------------ | -------------- | -------- |
-| ---                     | ---:    | ---:            | ---:     | ---:         | ---:           | ---:     |
-| Create Chapter          | Có      | Có nếu có quyền | Optional | Không        | Không          | Optional |
-| Upload Page             | Có      | Có nếu có quyền | Optional | Không        | Không          | Optional |
-| Reorder Page            | Có      | Có nếu có quyền | Optional | Không        | Không          | Optional |
-| Delete Page before task | Có      | Có nếu có quyền | Optional | Không        | Không          | Optional |
-| View progress           | Có      | Có              | Có       | Summary only | Không mặc định | Có       |
+| Action | Mangaka | Co-Mangaka | Editor | Board | Assistant | Admin |
+| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create Chapter | Có | Có nếu có quyền | Optional | Không | Không | Optional |
+| Upload Page | Có | Có nếu có quyền | Optional | Không | Không | Optional |
+| Reorder Page | Có | Có nếu có quyền | Optional | Không | Không | Optional |
+| Delete Page before task | Có | Có nếu có quyền | Optional | Không | Không | Optional |
+| View progress | Có | Có | Có | Summary only | Không mặc định | Có |
+| Open Production Hub | Có | Có nếu có quyền | Có nếu có quyền | Summary only | Không mặc định | Có |
 
 ## 12. API đề xuất
 
@@ -192,12 +192,20 @@ GET    /api/file-assets/:fileAssetId/signed-url
 ## 13. UI screens đề xuất
 
 ```
-/app/mangaka/series/:seriesId
+/app/mangaka/series/:seriesId/overview
 /app/mangaka/series/:seriesId/chapters
 /app/mangaka/series/:seriesId/chapters/create
 /app/mangaka/chapters/:chapterId
 /app/mangaka/chapters/:chapterId/pages/upload
 /app/editor/chapters/:chapterId/progress
+```
+
+Naming rule:
+
+```
+Production Hub = Series-level UI aggregate
+Page Studio = Page-level UI screen
+Task Studio = Task-level UI screen
 ```
 
 ## 14. Notification events
@@ -238,21 +246,23 @@ CHAPTER_ENTERED_PRODUCTION
 - Không tạo riêng Preview và AI copy trong MVP.
 - Assistant không thấy Page chỉ vì Page đã upload.
 - Page delete/reorder nên block nếu đã có Task.
+- Production Hub chỉ là UI aggregate của Series, không phải core entity.
+- Không tạo Workspace entity trong MVP.
 
 ## 17. Edge cases
 
-| Case                         | Expected behavior               |
-| ---------------------------- | ------------------------------- |
-| Series chưa approved         | Block create Chapter            |
-| Series thiếu publicationType | Block create Chapter            |
-| Chapter number trùng         | Block                           |
-| Upload quá 50 files          | Block batch                     |
-| File > max size              | Block                           |
-| Unsupported file type        | Block                           |
-| Storage fail                 | Rollback hoặc PROCESSING_FAILED |
-| Working Image fail           | Rollback hoặc retry             |
-| Reorder sau khi có Task      | MVP block                       |
-| Delete Page đã có Task       | Block                           |
+| Case | Expected behavior |
+| --- | --- |
+| Series chưa approved | Block create Chapter |
+| Series thiếu publicationType | Block create Chapter |
+| Chapter number trùng | Block |
+| Upload quá 50 files | Block batch |
+| File > max size | Block |
+| Unsupported file type | Block |
+| Storage fail | Rollback hoặc PROCESSING_FAILED |
+| Working Image fail | Rollback hoặc retry |
+| Reorder sau khi có Task | MVP block |
+| Delete Page đã có Task | Block |
 
 ## 18. Mermaid activity flow
 
@@ -281,7 +291,9 @@ flowchart TD
 - Page record có 3 fileAsset IDs.
 - Không tạo AI copy riêng.
 - Chapter có Page chuyển `IN_PRODUCTION`.
+- Page `UPLOADED` mở được Page Studio ở Flow 04.
 - Assistant chưa thấy Page nếu chưa được assign Task.
+- Không có dependency vào Workspace entity trong MVP.
 
 ## 20. MVP implementation priority
 

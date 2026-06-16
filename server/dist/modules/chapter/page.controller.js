@@ -1,6 +1,6 @@
-import { getPageWorkspaceService } from "./page.service.js";
-export async function getPageWorkspace(req, res) {
-    const data = await getPageWorkspaceService(String(req.params.pageId), req.user.userId, req.user.role);
-    res.json({ success: true, message: "Page workspace retrieved", data });
+import { getPageStudioService } from "./page.service.js";
+export async function getPageStudio(req, res) {
+    const data = await getPageStudioService(String(req.params.pageId), req.user.userId, req.user.role);
+    res.json({ success: true, message: "Page studio retrieved", data });
 }
 //# sourceMappingURL=page.controller.js.map

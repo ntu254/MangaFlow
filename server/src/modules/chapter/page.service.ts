@@ -4,7 +4,7 @@ import { assertCanReadPage } from "../../shared/policies/accessPolicy.service.js
 import type { UserRole } from "../auth/auth.types.js"
 import { Task } from "../task/task.model.js"
 
-export async function getPageWorkspaceService(pageId: string, userId: string, role: UserRole) {
+export async function getPageStudioService(pageId: string, userId: string, role: UserRole) {
   const trimmed = pageId.trim()
   if (!trimmed) throw new AppError("Page id is required", 400)
 

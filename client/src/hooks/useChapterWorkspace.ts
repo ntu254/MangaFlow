@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { aiApi, chapterApi, fileApi, pageApi, regionApi, type Page, type Region, type AIResult } from "@/api/chapter"
 
-export interface PageWorkspaceData {
+export interface PageStudioData {
   page: Page & {
     originalFileAssetId?: { id?: string; _id?: string; originalName: string; mimeType: string; size: number; r2Key: string }
     workingFileAssetId?: { id?: string; _id?: string; originalName: string; mimeType: string; size: number; r2Key: string }
@@ -29,13 +29,13 @@ export function useChapterPages(chapterId: string | undefined) {
   })
 }
 
-export function usePageWorkspace(pageId: string | undefined) {
+export function usePageStudio(pageId: string | undefined) {
   return useQuery({
-    queryKey: ["pages", pageId, "workspace"],
+    queryKey: ["pages", pageId, "studio"],
     queryFn: async () => {
       if (!pageId) throw new Error("No page ID")
-      const { data } = await pageApi.getWorkspace(pageId)
-      return data.data as PageWorkspaceData
+      const { data } = await pageApi.getStudio(pageId)
+      return data.data as PageStudioData
     },
     enabled: !!pageId,
   })
@@ -63,7 +63,7 @@ export function useCreateRegion(pageId: string | undefined) {
       return data.data
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "workspace"] })
+      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "studio"] })
     },
   })
 }
@@ -77,7 +77,7 @@ export function useRunAISegmentation(pageId: string | undefined) {
       return data.data
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "workspace"] })
+      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "studio"] })
     },
   })
 }
@@ -90,7 +90,7 @@ export function useAcceptAISuggestion(pageId: string | undefined) {
       return data.data
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "workspace"] })
+      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "studio"] })
     },
   })
 }
@@ -103,7 +103,7 @@ export function useRejectAISuggestion(pageId: string | undefined) {
       return data.data
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "workspace"] })
+      void queryClient.invalidateQueries({ queryKey: ["pages", pageId, "studio"] })
     },
   })
 }

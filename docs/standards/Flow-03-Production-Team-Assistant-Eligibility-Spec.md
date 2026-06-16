@@ -1,6 +1,8 @@
 ## 1. Tổng quan
 
-Flow 03 mô tả cách tạo Production Team cho một Series. Assistant chỉ đủ điều kiện nhận Task nếu đã là member active của Production Team trong Series đó.
+Flow 03 mô tả cách quản lý Production Team cho một Series. Assistant chỉ đủ điều kiện nhận Task nếu là member active của Series đó.
+
+Production Team hiển thị trong Production Hub UI, nhưng entity thật dùng để lưu membership là `SeriesMember`.
 
 ## 2. Mục tiêu nghiệp vụ
 
@@ -8,22 +10,23 @@ Flow 03 mô tả cách tạo Production Team cho một Series. Assistant chỉ �
 - Cho phép Mangaka thêm Assistant vào team.
 - Chặn assign Task cho Assistant không thuộc team.
 - Tạo nền permission trước khi giao Page/Region Task.
+- Tách rõ Production Hub là UI layer, không phải entity.
 
 ## 3. Phạm vi
 
-In scope: add member, remove member, check assistant eligibility, team member status, notification, audit log.
+In scope: add member, remove member, pause/reactivate member, check assistant eligibility, notification, audit log.
 
-Out of scope: Task creation, submission, payroll, board decision, publication.
+Out of scope: Task creation, submission, payroll, board decision, publication, Workspace management.
 
 ## 4. Actor tham gia
 
-| Actor         | Vai trò                         |
-| ------------- | ------------------------------- |
-| Mangaka       | Quản lý Production Team         |
-| Assistant     | Được thêm vào team để nhận Task |
-| Tantou Editor | Monitor team                    |
-| System        | Validate user/team/status       |
-| Admin         | Quản lý tài khoản user          |
+| Actor | Vai trò |
+| --- | --- |
+| Mangaka | Quản lý Production Team |
+| Assistant | Được thêm vào team để nhận Task |
+| Tantou Editor | Monitor team |
+| System | Validate user/team/status |
+| Admin | Quản lý tài khoản user |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -48,14 +51,22 @@ Notification
 AuditLog
 ```
 
+Không phải core entity:
+
+```
+Workspace
+Production Hub
+Production Team tab
+```
+
 ## 7. SeriesMember Status
 
-| Status  | Ý nghĩa                       |
-| ------- | ----------------------------- |
-| INVITED | Đã mời nhưng chưa active      |
-| ACTIVE  | Đang thuộc Production Team    |
-| REMOVED | Đã rời khỏi team              |
-| PAUSED  | Tạm dừng nhận việc trong team |
+| Status | Ý nghĩa |
+| --- | --- |
+| INVITED | Đã mời nhưng chưa active |
+| ACTIVE | Đang thuộc Production Team |
+| REMOVED | Đã rời khỏi team |
+| PAUSED | Tạm dừng nhận việc trong team |
 
 ## 8. Assistant Eligibility Status
 
@@ -116,19 +127,20 @@ Member active
 ↓
 Pause/remove if needed
 ↓
-Re-add later if allowed
+Re-add/reactivate later if allowed
 ```
 
 ## 11. Permission Matrix
 
-| Action            | Mangaka | Assistant     | Editor   | Board | Admin    |
-| ----------------- | ------- | ------------- | -------- | ----- | -------- |
-| ---               | ---:    | ---:          | ---:     | ---:  | ---:     |
-| View team         | Có      | Có nếu member | Có       | Không | Có       |
-| Add Assistant     | Có      | Không         | Optional | Không | Optional |
-| Remove Assistant  | Có      | Không         | Optional | Không | Optional |
-| Check eligibility | Có      | Không         | Có       | Không | Có       |
-| Assign Task       | Flow 05 | Không         | Optional | Không | Optional |
+| Action | Mangaka | Assistant | Editor | Board | Admin |
+| --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| View team | Có | Có nếu member | Có | Không | Có |
+| Add Assistant | Có | Không | Optional | Không | Optional |
+| Remove Assistant | Có | Không | Optional | Không | Optional |
+| Pause/reactivate member | Có | Không | Optional | Không | Optional |
+| Check eligibility | Có | Không | Có | Không | Có |
+| Assign Task | Flow 05 | Không | Optional | Không | Optional |
 
 ## 12. API đề xuất
 
@@ -145,10 +157,11 @@ GET    /api/assistants/search
 
 ```
 /app/mangaka/series/:seriesId/team
-/app/mangaka/series/:seriesId/team/add
 /app/editor/series/:seriesId/team
 /app/assistant/series
 ```
+
+`Team` là tab/screen trong Series Production Hub UI.
 
 ## 14. Notification events
 
@@ -175,17 +188,20 @@ ASSISTANT_ELIGIBILITY_CHECK_FAILED
 - Team membership không đồng nghĩa được xem toàn bộ Page/Chapter.
 - Assistant chỉ thấy Task được assign.
 - Remove Assistant không xóa lịch sử Task/Submission.
-- Không nên remove Assistant nếu đang có active Task, trừ khi reassign/cancel trước.
+- Không nên remove/pause Assistant nếu đang có active Task, trừ khi reassign/cancel trước.
+- Production Hub chỉ là UI layer; không tạo Workspace/Hub entity trong MVP.
+- SeriesMember là source of truth cho membership trong Series.
 
 ## 17. Edge cases
 
-| Case                            | Expected behavior                 |
-| ------------------------------- | --------------------------------- |
-| Add Assistant inactive          | Block                             |
-| Add duplicate Assistant         | Block hoặc return existing member |
-| Remove Assistant có active Task | Block hoặc require reassignment   |
-| Series cancelled                | Block add new member              |
-| Assistant removed               | Cannot receive new task           |
+| Case | Expected behavior |
+| --- | --- |
+| Add Assistant inactive | Block |
+| Add duplicate Assistant | Block hoặc return existing member |
+| Remove Assistant có active Task | Block hoặc require reassignment |
+| Series cancelled | Block add new member |
+| Assistant removed | Cannot receive new task |
+| Assistant paused | Cannot receive new task until reactivated |
 
 ## 18. Mermaid activity flow
 
@@ -205,17 +221,18 @@ flowchart TD
 - Mangaka thêm được Assistant active vào team.
 - Assistant active trong team mới nhận Task được.
 - Assistant không thuộc team bị block khi assign.
-- Remove member chặn nếu còn active Task.
-- Add/remove member có AuditLog.
+- Removed/paused member không nhận task mới.
+- Remove/pause member chặn nếu còn active Task hoặc yêu cầu xử lý task trước.
+- Add/remove/pause/reactivate member có AuditLog.
 
 ## 20. MVP implementation priority
 
 ```
 1. SeriesMember model
 2. Add Assistant to team
-3. Remove Assistant from team
+3. Remove/pause/reactivate Assistant
 4. Eligible assistants API
 5. Eligibility check in Task Assignment
-6. Team UI
+6. Team UI inside Production Hub
 7. Notification + AuditLog
 ```

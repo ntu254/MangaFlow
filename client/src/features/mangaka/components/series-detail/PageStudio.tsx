@@ -5,7 +5,7 @@ import {
   useChapterPages,
   useCreateRegion,
   usePageImageDownloadUrl,
-  usePageWorkspace,
+  usePageStudio,
   useRejectAISuggestion,
   useRunAISegmentation,
 } from '@/hooks/useChapterWorkspace'
@@ -31,7 +31,7 @@ export function PageStudio({ onBack, chapterId, initialPageId }: PageStudioProps
   const [selectedPageId, setSelectedPageId] = useState<string | undefined>(initialPageId)
   const activePageId = selectedPageId ?? initialPageId ?? fallbackPageId
 
-  const { data: workspace, isLoading, isError, error } = usePageWorkspace(activePageId)
+  const { data: workspace, isLoading, isError, error } = usePageStudio(activePageId)
   const workingAssetId = (workspace?.workingFileAsset as { id?: string; _id?: string } | undefined)?.id
     ?? (workspace?.workingFileAsset as { id?: string; _id?: string } | undefined)?._id
   const { data: workingDownload } = usePageImageDownloadUrl(workingAssetId)

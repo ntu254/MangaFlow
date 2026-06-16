@@ -42,6 +42,28 @@ export async function createTaskService(input: CreateTaskServiceInput) {
     assignedBy: input.assignedBy,
   })
 
+  // Strict duplicate task prevention logic
+  const activeStatuses = ["TODO", "IN_PROGRESS", "UNDER_REVIEW", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
+  const duplicateQuery: any = {
+    taskTypeId: input.taskTypeId,
+    status: { $in: activeStatuses },
+  }
+  if (input.regionId) {
+    duplicateQuery.regionId = input.regionId
+  } else if (input.pageId) {
+    duplicateQuery.pageId = input.pageId
+  } else {
+    duplicateQuery.chapterId = input.chapterId
+    duplicateQuery.pageId = { $exists: false }
+    duplicateQuery.regionId = { $exists: false }
+  }
+
+  const { Task } = await import("../task.model.js")
+  const existingActiveTask = await Task.findOne(duplicateQuery)
+  if (existingActiveTask) {
+    throw new AppError("An active task of this type already exists for the specified target", 409)
+  }
+
   const task = await createTaskRecord({
     seriesId: input.seriesId,
     chapterId: input.chapterId,
