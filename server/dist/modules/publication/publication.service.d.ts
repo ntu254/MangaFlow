@@ -26,5 +26,22 @@ export declare function publishPublicationService(publicationId: string, actor: 
 }> & {
     __v: number;
 }) | null>;
+export declare function patchPublicationService(input: {
+    publicationId: string;
+    scheduledFor?: string | Date;
+    actor: PublicationActor;
+}): Promise<(import("mongoose").Document<unknown, {}, import("./publication.model.js").PublicationDocument, {}, {}> & import("./publication.model.js").PublicationDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null>;
+export declare function cancelPublicationService(input: {
+    publicationId: string;
+    actor: PublicationActor;
+}): Promise<(import("mongoose").Document<unknown, {}, import("./publication.model.js").PublicationDocument, {}, {}> & import("./publication.model.js").PublicationDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null>;
 export {};
 //# sourceMappingURL=publication.service.d.ts.map

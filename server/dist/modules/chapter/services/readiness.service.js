@@ -1,5 +1,6 @@
 import { AppError } from "../../../shared/errors/AppError.js";
 import { getChapterReadinessData } from "../chapter.repository.js";
+import { Chapter } from "../chapter.model.js";
 export async function getChapterReadinessService(chapterId) {
     const trimmed = chapterId.trim();
     if (!trimmed)
@@ -25,5 +26,15 @@ export async function getChapterReadinessService(chapterId) {
         ready: items.every((item) => item.passed),
         items,
     };
+}
+export async function markChapterReadyService(chapterId) {
+    const readiness = await getChapterReadinessService(chapterId);
+    if (!readiness.ready) {
+        throw new AppError("Chapter is not ready for publication. Please resolve all readiness blockers first.", 400);
+    }
+    const chapter = await Chapter.findByIdAndUpdate(readiness.chapterId, { status: "READY_FOR_PUBLICATION" }, { new: true });
+    if (!chapter)
+        throw new AppError("Chapter not found", 404);
+    return chapter;
 }
 //# sourceMappingURL=readiness.service.js.map

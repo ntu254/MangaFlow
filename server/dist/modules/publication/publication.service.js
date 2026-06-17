@@ -1,7 +1,7 @@
 import { AppError } from "../../shared/errors/AppError.js";
 import { getChapterReadinessService } from "../chapter/chapter.service.js";
 import { findActiveSeriesMember } from "../../shared/policies/seriesMember.policy.js";
-import { createPublicationRecord, getPublicationById, getPublicationChapter, markPublicationPublished, updateChapterDraftSchedule, updateChapterPublicationStatus, updatePublicationSchedule, } from "./publication.repository.js";
+import { createPublicationRecord, cancelPublication, getPublicationById, getPublicationChapter, markPublicationPublished, updateChapterDraftSchedule, updateChapterPublicationStatus, updatePublicationSchedule, } from "./publication.repository.js";
 async function assertEditorForSeries(seriesId, actor) {
     if (actor.role !== "EDITOR") {
         throw new AppError("Publication access denied", 403);
@@ -62,5 +62,29 @@ export async function publishPublicationService(publicationId, actor) {
     await updateChapterPublicationStatus(String(publication.chapterId), "READY_FOR_PUBLICATION");
     await updateChapterPublicationStatus(String(publication.chapterId), "PUBLISHED");
     return markPublicationPublished(publicationId, actor.userId, new Date());
+}
+export async function patchPublicationService(input) {
+    const publication = await getPublicationById(input.publicationId);
+    if (!publication) {
+        throw new AppError("Publication not found", 404);
+    }
+    await assertEditorForSeries(String(publication.seriesId), input.actor);
+    if (input.scheduledFor) {
+        const scheduledFor = parseScheduleDate(input.scheduledFor);
+        await updateChapterDraftSchedule(String(publication.chapterId), scheduledFor);
+        return updatePublicationSchedule(input.publicationId, scheduledFor, input.actor.userId);
+    }
+    return publication;
+}
+export async function cancelPublicationService(input) {
+    const publication = await getPublicationById(input.publicationId);
+    if (!publication) {
+        throw new AppError("Publication not found", 404);
+    }
+    await assertEditorForSeries(String(publication.seriesId), input.actor);
+    if (publication.status === "PUBLISHED") {
+        throw new AppError("Cannot cancel an already published publication", 400);
+    }
+    return cancelPublication(input.publicationId, input.actor.userId);
 }
 //# sourceMappingURL=publication.service.js.map

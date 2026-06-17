@@ -2,6 +2,7 @@ import mongoose, { type Document } from "mongoose";
 export interface PublicationDocument extends Document {
     chapterId: mongoose.Types.ObjectId;
     seriesId: mongoose.Types.ObjectId;
+    status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CANCELLED";
     scheduledFor?: Date;
     publishedAt?: Date;
     createdBy: mongoose.Types.ObjectId;

@@ -1,6 +1,6 @@
 import { Ranking } from "./ranking.model.js";
 export async function upsertRanking(input) {
-    return Ranking.findOneAndUpdate({ period: input.period, seriesId: input.seriesId }, { ...input, status: "IMPORTED" }, { new: true, upsert: true, setDefaultsOnInsert: true });
+    return Ranking.findOneAndUpdate({ period: input.period, seriesId: input.seriesId }, { ...input, status: "DRAFT" }, { new: true, upsert: true, setDefaultsOnInsert: true });
 }
 export async function listRankings() {
     return Ranking.find()
@@ -19,5 +19,11 @@ export async function getRankingById(rankingId) {
 }
 export async function updateRankingStatus(rankingId, status) {
     return Ranking.findByIdAndUpdate(rankingId, { status }, { new: true });
+}
+export async function submitRanking(rankingId) {
+    return Ranking.findByIdAndUpdate(rankingId, { status: "SUBMITTED" }, { new: true });
+}
+export async function voidRanking(rankingId) {
+    return Ranking.findByIdAndUpdate(rankingId, { status: "VOIDED" }, { new: true });
 }
 //# sourceMappingURL=ranking.repository.js.map

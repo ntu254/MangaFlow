@@ -45,6 +45,14 @@ router.get(
   controller.getChapterReadiness,
 )
 
+router.post(
+  "/:chapterId/mark-ready",
+  requireAuth,
+  requireChapterRole("EDITOR"),
+  validate(chapterIdParamsSchema, "params"),
+  controller.markChapterReady,
+)
+
 // Chapter-scoped writes must be limited to MANGAKA/EDITOR of the chapter's series, not
 // global roles. requireChapterRole resolves seriesId from chapterId then delegates.
 router.patch(

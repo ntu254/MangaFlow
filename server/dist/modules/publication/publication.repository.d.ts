@@ -33,6 +33,11 @@ export declare function markPublicationPublished(publicationId: string, actorId:
 }> & {
     __v: number;
 }) | null>;
+export declare function cancelPublication(publicationId: string, actorId: string): Promise<(import("mongoose").Document<unknown, {}, import("./publication.model.js").PublicationDocument, {}, {}> & import("./publication.model.js").PublicationDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}) | null>;
 export declare function updateChapterDraftSchedule(chapterId: string, scheduledFor: Date): Promise<(import("mongoose").Document<unknown, {}, import("../chapter/chapter.model.js").ChapterDocument, {}, {}> & import("../chapter/chapter.model.js").ChapterDocument & Required<{
     _id: import("mongoose").Types.ObjectId;
 }> & {

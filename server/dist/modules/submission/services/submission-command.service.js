@@ -22,12 +22,7 @@ export async function mangakaApproveSubmissionService(input) {
     assertMangakaApprovalState(submission.status, task.status);
     const updated = await updateSubmissionStatus(input.submissionId, "MANGAKA_APPROVED", input.reviewerNote);
     await updateTaskStatusForSubmission(String(task._id), "MANGAKA_APPROVED");
-    await updateTaskReviewState(String(task._id), {
-        currentSubmissionId: submission._id,
-        revisionRequestedByRole: undefined,
-        revisionRequestedByUserId: undefined,
-        revisionRequestedAt: undefined,
-    });
+    // Preserve revision audit metadata (revisionRound, revisionRequestedByRole, etc.) on approval
     return updated;
 }
 export async function editorApproveSubmissionService(input) {
@@ -36,12 +31,7 @@ export async function editorApproveSubmissionService(input) {
     assertEditorApprovalState(submission.status, task.status);
     const updated = await updateSubmissionStatus(input.submissionId, "EDITOR_APPROVED", input.reviewerNote);
     await updateTaskStatusForSubmission(String(task._id), "EDITOR_APPROVED");
-    await updateTaskReviewState(String(task._id), {
-        currentSubmissionId: submission._id,
-        revisionRequestedByRole: undefined,
-        revisionRequestedByUserId: undefined,
-        revisionRequestedAt: undefined,
-    });
+    // Preserve revision audit metadata (revisionRound, revisionRequestedByRole, etc.) on approval
     void triggerEarningCandidate(String(task._id));
     return updated;
 }
@@ -73,6 +63,9 @@ export async function rejectSubmissionService(input) {
     const { submission, task } = await getSubmissionWithTask(input.submissionId);
     await assertSubmissionSeriesMember(String(task.seriesId), input.actor, ["MANGAKA"]);
     assertMangakaRejectState(submission.status, task.status);
+    if (!input.reviewerNote?.trim()) {
+        throw new AppError("Mangaka rejection requires a reason", 400);
+    }
     const updated = await updateSubmissionStatus(input.submissionId, "REJECTED", input.reviewerNote);
     await updateTaskStatusForSubmission(String(task._id), "REJECTED");
     return updated;

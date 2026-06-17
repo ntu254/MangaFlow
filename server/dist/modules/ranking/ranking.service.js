@@ -1,5 +1,5 @@
 import { AppError } from "../../shared/errors/AppError.js";
-import { getRankingById, listRankings, listRankingsBySeriesIds, updateRankingStatus, upsertRanking } from "./ranking.repository.js";
+import { getRankingById, listRankings, listRankingsBySeriesIds, updateRankingStatus, upsertRanking, submitRanking, voidRanking } from "./ranking.repository.js";
 import { listSeriesForActor } from "../series/repositories/series.repository.js";
 export function calculateFinalScore(voteCount, readerScore) {
     return Number((voteCount * 0.7 + (readerScore * 10) * 0.3).toFixed(2));
@@ -22,14 +22,32 @@ export async function importRankingService(input) {
 export async function listRankingsService() {
     return listRankings();
 }
+export async function submitRankingService(rankingId) {
+    const ranking = await getRankingById(rankingId);
+    if (!ranking)
+        throw new AppError("Ranking not found", 404);
+    if (ranking.status !== "DRAFT") {
+        throw new AppError("Only DRAFT ranking can be submitted", 409);
+    }
+    return submitRanking(rankingId);
+}
 export async function finalizeRankingService(rankingId) {
     const ranking = await getRankingById(rankingId);
     if (!ranking)
         throw new AppError("Ranking not found", 404);
-    if (ranking.status !== "IMPORTED" && ranking.status !== "REVIEWED") {
-        throw new AppError("Only imported or reviewed ranking can be finalized", 409);
+    if (ranking.status !== "SUBMITTED") {
+        throw new AppError("Only SUBMITTED ranking can be finalized", 409);
     }
     return updateRankingStatus(rankingId, "FINALIZED");
+}
+export async function voidRankingService(rankingId) {
+    const ranking = await getRankingById(rankingId);
+    if (!ranking)
+        throw new AppError("Ranking not found", 404);
+    if (!["DRAFT", "SUBMITTED"].includes(ranking.status)) {
+        throw new AppError("Only DRAFT or SUBMITTED ranking can be voided", 409);
+    }
+    return voidRanking(rankingId);
 }
 export async function listMangakaRankingsService(mangakaId) {
     const series = await listSeriesForActor(mangakaId, "MANGAKA");

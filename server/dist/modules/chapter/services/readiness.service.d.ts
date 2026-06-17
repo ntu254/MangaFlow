@@ -9,4 +9,9 @@ export declare function getChapterReadinessService(chapterId: string): Promise<{
     ready: boolean;
     items: PublicationReadinessItemResult[];
 }>;
+export declare function markChapterReadyService(chapterId: string): Promise<import("mongoose").Document<unknown, {}, import("../chapter.model.js").ChapterDocument, {}, {}> & import("../chapter.model.js").ChapterDocument & Required<{
+    _id: import("mongoose").Types.ObjectId;
+}> & {
+    __v: number;
+}>;
 //# sourceMappingURL=readiness.service.d.ts.map

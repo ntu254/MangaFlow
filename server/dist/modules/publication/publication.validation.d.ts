@@ -23,4 +23,11 @@ export declare const schedulePublicationBodySchema: z.ZodObject<{
 }, {
     scheduledFor: string;
 }>;
+export declare const patchPublicationBodySchema: z.ZodObject<{
+    scheduledFor: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    scheduledFor?: string | undefined;
+}, {
+    scheduledFor?: string | undefined;
+}>;
 //# sourceMappingURL=publication.validation.d.ts.map

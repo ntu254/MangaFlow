@@ -11,6 +11,12 @@ type RequestOptions = {
   body?: unknown;
 };
 
+// Hardcoded tokens for testing MVP
+export const TEST_TOKENS = {
+  EDITOR: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTMyMjBiZWI1ZDc0NjZlZGM4YzNlOTQiLCJyb2xlIjoiRURJVE9SIiwiaWF0IjoxNzgxNjcwMDc4LCJleHAiOjE3ODE2NzA5Nzh9.52jAeFIHc3LxRN_4NjzP7vNP7DNuX5zOg76iSbQ7zTg",
+  BOARD: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTMyMjBiZWI1ZDc0NjZlZGM4YzNlYWMiLCJyb2xlIjoiQk9BUkQiLCJpYXQiOjE3ODE2NzAwNzgsImV4cCI6MTc4MTY3MDk3OH0.IkZsnN8wfle4Up084k50VST9StABD4D1xzl0a04hlNk"
+}
+
 export async function requestMangaFlow<T>(
   path: string,
   options: RequestOptions = {}
@@ -34,11 +40,13 @@ export async function requestMangaFlow<T>(
 
 export const mobileEndpoints = {
   dashboard(role: MobileRole) {
-    return role === "EDITOR" ? "/dashboard/editor" : "/dashboard/board";
+    return role === "EDITOR" ? "/dashboard/editor/summary" : "/dashboard/board/summary";
   },
-  editorSeries: "/series?scope=assigned-editor",
-  editorComments: "/comments?role=editor",
+  editorSeries: "/series?roles=EDITOR",
+  reviewQueue: "/submissions/review-queue",
+  editorComments: "/comments?role=editor", // mock path, adjust if needed
   boardApprovals: "/series?status=BOARD_REVIEW",
+  notifications: "/notifications",
   rankingsByPeriod(period: string) {
     return `/rankings/periods/${period}`;
   },
@@ -47,6 +55,12 @@ export const mobileEndpoints = {
   },
   tieBreak(seriesId: string) {
     return `/series/${seriesId}/decisions/tie-break`;
+  },
+  approveSubmission(submissionId: string) {
+    return `/submissions/${submissionId}/approve`;
+  },
+  rejectSubmission(submissionId: string) {
+    return `/submissions/${submissionId}/reject`;
   }
 } as const;
 

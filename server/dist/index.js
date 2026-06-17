@@ -22,6 +22,9 @@ import submissionRoutes from "./modules/submission/submission.routes.js";
 import commentRoutes from "./modules/comment/comment.routes.js";
 import payrollRoutes from "./modules/payroll/payroll.routes.js";
 import publicationRoutes from "./modules/publication/publication.routes.js";
+import publicRoutes from "./modules/public/public.routes.js";
+import auditLogRoutes from "./modules/audit-log/audit-log.routes.js";
+import notificationRoutes from "./modules/notification/notification.routes.js";
 import { errorHandler } from "./shared/middleware/errorHandler.js";
 import { seedAdminFromEnv } from "./infrastructure/seed/seedAdmin.js";
 const app = express();
@@ -72,6 +75,9 @@ app.use("/api", submissionRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/payroll", payrollRoutes);
 app.use("/api/publications", publicationRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/admin/audit-logs", auditLogRoutes);
+app.use("/api/notifications", notificationRoutes);
 // Load Swagger document conditionally to avoid crashing if it hasn't been generated yet
 try {
     const swaggerDocument = JSON.parse(fs.readFileSync(new URL("../swagger-output.json", import.meta.url), "utf-8"));

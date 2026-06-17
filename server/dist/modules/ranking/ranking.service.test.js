@@ -24,7 +24,7 @@ describe("ranking.service", () => {
         expect(listRankings).toHaveBeenCalled();
     });
     it("finalizes imported ranking", async () => {
-        getRankingById.mockResolvedValue({ id: "ranking-1", status: "IMPORTED" });
+        getRankingById.mockResolvedValue({ id: "ranking-1", status: "SUBMITTED" });
         updateRankingStatus.mockResolvedValue({ id: "ranking-1", status: "FINALIZED" });
         await finalizeRankingService("ranking-1");
         expect(updateRankingStatus).toHaveBeenCalledWith("ranking-1", "FINALIZED");

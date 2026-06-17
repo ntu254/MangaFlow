@@ -34,6 +34,7 @@ export async function listPagesService(chapterId, actor) {
     }).sort({ createdAt: -1 })
         .populate("assignedTo", "name")
         .populate("taskTypeId", "name")
+        .populate("currentSubmissionId", "version reviewerNote status")
         .lean();
     return pages.map(page => {
         const pageTask = tasks.find(t => String(t.pageId) === String(page._id));
@@ -50,7 +51,14 @@ export async function listPagesService(chapterId, actor) {
                     id: String(pageTask.taskTypeId._id),
                     name: pageTask.taskTypeId.name
                 } : undefined,
-                currentSubmissionId: pageTask.currentSubmissionId ? String(pageTask.currentSubmissionId) : undefined
+                currentSubmissionId: pageTask.currentSubmissionId ? String(pageTask.currentSubmissionId._id) : undefined,
+                revisionRequestedByRole: pageTask.revisionRequestedByRole,
+                revisionFeedback: pageTask.currentSubmissionId ? {
+                    submissionId: String(pageTask.currentSubmissionId._id),
+                    version: pageTask.currentSubmissionId.version,
+                    reviewerNote: pageTask.currentSubmissionId.reviewerNote,
+                    reviewerRole: pageTask.revisionRequestedByRole
+                } : undefined
             };
         }
         return { ...page, activeTask };

@@ -9,4 +9,7 @@ export const publicationIdParamsSchema = z.object({
 export const schedulePublicationBodySchema = z.object({
     scheduledFor: z.string().datetime("scheduledFor must be an ISO date"),
 });
+export const patchPublicationBodySchema = z.object({
+    scheduledFor: z.string().datetime("scheduledFor must be an ISO date").optional(),
+});
 //# sourceMappingURL=publication.validation.js.map

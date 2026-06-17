@@ -20,6 +20,7 @@ export async function createPublicationRecord(input: { chapterId: string; series
       chapterId: input.chapterId,
       seriesId: input.seriesId,
       createdBy: input.createdBy,
+      status: input.scheduledFor ? "SCHEDULED" : "DRAFT",
       ...(input.scheduledFor ? { scheduledFor: input.scheduledFor, scheduleManagedBy: input.createdBy } : {}),
     },
     { new: true, upsert: true, setDefaultsOnInsert: true },
@@ -27,11 +28,15 @@ export async function createPublicationRecord(input: { chapterId: string; series
 }
 
 export async function updatePublicationSchedule(publicationId: string, scheduledFor: Date, actorId: string) {
-  return Publication.findByIdAndUpdate(publicationId, { scheduledFor, scheduleManagedBy: actorId }, { new: true })
+  return Publication.findByIdAndUpdate(publicationId, { status: "SCHEDULED", scheduledFor, scheduleManagedBy: actorId }, { new: true })
 }
 
 export async function markPublicationPublished(publicationId: string, actorId: string, publishedAt: Date) {
-  return Publication.findByIdAndUpdate(publicationId, { publishedAt, publishedBy: actorId }, { new: true })
+  return Publication.findByIdAndUpdate(publicationId, { publishedAt, publishedBy: actorId, status: "PUBLISHED" }, { new: true })
+}
+
+export async function cancelPublication(publicationId: string, actorId: string) {
+  return Publication.findByIdAndUpdate(publicationId, { status: "CANCELLED", scheduleManagedBy: actorId }, { new: true })
 }
 
 export async function updateChapterDraftSchedule(chapterId: string, scheduledFor: Date) {

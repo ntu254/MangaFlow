@@ -53,7 +53,9 @@ describe("listPagesService", () => {
       sort: vi.fn().mockReturnValue({
         populate: vi.fn().mockReturnValue({
           populate: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue(mockTasks),
+            populate: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue(mockTasks),
+            }),
           }),
         }),
       }),
@@ -84,7 +86,9 @@ describe("listPagesService", () => {
       sort: vi.fn().mockReturnValue({
         populate: vi.fn().mockReturnValue({
           populate: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue([]),
+            populate: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([]),
+            }),
           }),
         }),
       }),
@@ -120,7 +124,9 @@ describe("listPagesService", () => {
       sort: vi.fn().mockReturnValue({
         populate: vi.fn().mockReturnValue({
           populate: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue(mockTasks),
+            populate: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue(mockTasks),
+            }),
           }),
         }),
       }),

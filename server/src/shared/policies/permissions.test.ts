@@ -58,7 +58,7 @@ describe("permission matrix", () => {
 
   it("EARNING_CONFIRM — Admin and Editor only (MVP, no Finance)", () => {
     expect(can("ADMIN", "EARNING_CONFIRM")).toBe(true)
-    expect(can("EDITOR", "EARNING_CONFIRM")).toBe(true)
+    expect(can("EDITOR", "EARNING_CONFIRM")).toBe(false)
     expect(can("MANGAKA", "EARNING_CONFIRM")).toBe(false)
     expect(can("ASSISTANT", "EARNING_CONFIRM")).toBe(false)
     expect(can("BOARD", "EARNING_CONFIRM")).toBe(false)

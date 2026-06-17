@@ -9,7 +9,9 @@ const router = Router()
 
 router.get("/", requireAuth, requireRole("BOARD"), controller.listRankings)
 router.post("/import", requireAuth, requireRole("BOARD"), validate(importRankingSchema), controller.importRanking)
+router.post("/:rankingId/submit", requireAuth, requireRole("BOARD"), validate(rankingIdParamsSchema, "params"), controller.submitRanking)
 router.post("/:rankingId/finalize", requireAuth, requireRole("BOARD"), validate(rankingIdParamsSchema, "params"), controller.finalizeRanking)
+router.post("/:rankingId/void", requireAuth, requireRole("BOARD", "ADMIN"), validate(rankingIdParamsSchema, "params"), controller.voidRanking)
 
 router.get("/my-rankings", requireAuth, requireRole("MANGAKA"), controller.listMangakaRankings)
 

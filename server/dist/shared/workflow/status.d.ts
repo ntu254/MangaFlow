@@ -22,7 +22,7 @@ export declare const BOARD_VOTE_VALUES: readonly ["APPROVE", "REJECT", "NEEDS_RE
 export type BoardVoteValue = (typeof BOARD_VOTE_VALUES)[number];
 export declare const BOARD_DECISION_STATUSES: readonly ["PENDING", "APPROVED", "REJECTED", "NEEDS_REVISION", "TIE_BREAK_REQUIRED", "FINALIZED"];
 export type BoardDecisionStatus = (typeof BOARD_DECISION_STATUSES)[number];
-export declare const RANKING_STATUSES: readonly ["DRAFT", "IMPORTED", "REVIEWED", "FINALIZED", "WARNING", "AT_RISK"];
+export declare const RANKING_STATUSES: readonly ["DRAFT", "SUBMITTED", "FINALIZED", "VOIDED"];
 export type RankingStatus = (typeof RANKING_STATUSES)[number];
 export declare const AT_RISK_DECISIONS: readonly ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"];
 export type AtRiskDecision = (typeof AT_RISK_DECISIONS)[number];

@@ -12,6 +12,7 @@ router.post("/", requireAuth, validate(createChapterSchema), requireSeriesRole("
 router.get("/series/:seriesId", requireAuth, controller.listChapters);
 router.get("/:chapterId", requireAuth, validate(chapterIdParamsSchema, "params"), controller.getChapter);
 router.get("/:chapterId/readiness", requireAuth, requireRole("ADMIN", "MANGAKA", "EDITOR"), validate(chapterIdParamsSchema, "params"), controller.getChapterReadiness);
+router.post("/:chapterId/mark-ready", requireAuth, requireChapterRole("EDITOR"), validate(chapterIdParamsSchema, "params"), controller.markChapterReady);
 // Chapter-scoped writes must be limited to MANGAKA/EDITOR of the chapter's series, not
 // global roles. requireChapterRole resolves seriesId from chapterId then delegates.
 router.patch("/:chapterId/status", requireAuth, validate(updateChapterStatusSchema), requireChapterRole("MANGAKA", "EDITOR"), controller.updateChapterStatus);

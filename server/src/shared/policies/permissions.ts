@@ -44,8 +44,8 @@ const MATRIX: Record<Permission, UserRole[]> = {
 
   // Flow-11: Assistants must never trigger their own earning calculation.
   EARNING_CALCULATE: ["ADMIN", "MANGAKA", "EDITOR"],
-  // MVP: no Finance role yet → Editor and Admin can confirm.
-  EARNING_CONFIRM: ["ADMIN", "EDITOR"],
+  // MVP: confirm is Admin only.
+  EARNING_CONFIRM: ["ADMIN"],
   // Mark-paid is a hard money action — Admin only.
   EARNING_MARK_PAID: ["ADMIN"],
   // List endpoint itself is open to all roles; service-layer filters per actor.

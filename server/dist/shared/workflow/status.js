@@ -80,11 +80,9 @@ export const BOARD_DECISION_STATUSES = [
 ];
 export const RANKING_STATUSES = [
     "DRAFT",
-    "IMPORTED",
-    "REVIEWED",
+    "SUBMITTED",
     "FINALIZED",
-    "WARNING",
-    "AT_RISK",
+    "VOIDED",
 ];
 export const AT_RISK_DECISIONS = [
     "CONTINUE",

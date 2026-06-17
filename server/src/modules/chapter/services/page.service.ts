@@ -32,6 +32,7 @@ export async function listPagesService(chapterId: string, actor: AccessActor) {
   }).sort({ createdAt: -1 })
     .populate("assignedTo", "name")
     .populate("taskTypeId", "name")
+    .populate("currentSubmissionId", "version reviewerNote status")
     .lean()
 
   return pages.map(page => {
@@ -49,7 +50,14 @@ export async function listPagesService(chapterId: string, actor: AccessActor) {
           id: String((pageTask.taskTypeId as any)._id),
           name: (pageTask.taskTypeId as any).name
         } : undefined,
-        currentSubmissionId: pageTask.currentSubmissionId ? String(pageTask.currentSubmissionId) : undefined
+        currentSubmissionId: pageTask.currentSubmissionId ? String((pageTask.currentSubmissionId as any)._id) : undefined,
+        revisionRequestedByRole: pageTask.revisionRequestedByRole,
+        revisionFeedback: pageTask.currentSubmissionId ? {
+          submissionId: String((pageTask.currentSubmissionId as any)._id),
+          version: (pageTask.currentSubmissionId as any).version,
+          reviewerNote: (pageTask.currentSubmissionId as any).reviewerNote,
+          reviewerRole: pageTask.revisionRequestedByRole
+        } : undefined
       }
     }
     return { ...page, activeTask }

@@ -9,6 +9,7 @@ export interface NotificationDocument extends Document {
   message: string
   link?: string
   isRead: boolean
+  isArchived: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -21,6 +22,7 @@ const notificationSchema = new Schema<NotificationDocument>(
     message: { type: String, required: true, trim: true, maxlength: 1000 },
     link: { type: String, trim: true, maxlength: 500 },
     isRead: { type: Boolean, default: false, index: true },
+    isArchived: { type: Boolean, default: false, index: true },
   },
   { timestamps: true },
 )

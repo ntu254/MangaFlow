@@ -62,10 +62,10 @@ export declare const atRiskDecisionBodySchema: z.ZodObject<{
     decision: z.ZodEnum<["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"]>;
     note: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    decision: "WARNING" | "CONTINUE" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL";
+    decision: "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL";
     note?: string | undefined;
 }, {
-    decision: "WARNING" | "CONTINUE" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL";
+    decision: "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL";
     note?: string | undefined;
 }>;
 //# sourceMappingURL=board.validation.d.ts.map

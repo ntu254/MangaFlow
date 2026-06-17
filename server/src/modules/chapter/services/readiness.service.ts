@@ -1,5 +1,6 @@
-﻿import { AppError } from "../../../shared/errors/AppError.js"
+import { AppError } from "../../../shared/errors/AppError.js"
 import { getChapterReadinessData } from "../chapter.repository.js"
+import { Chapter } from "../chapter.model.js"
 
 export interface PublicationReadinessItemResult {
   key: "allPagesUploaded" | "allTasksApproved" | "allSubmissionsApproved" | "allCommentsResolved" | "editorFinalApprovalExists" | "publicationDateExists"
@@ -34,4 +35,21 @@ export async function getChapterReadinessService(chapterId: string) {
     ready: items.every((item) => item.passed),
     items,
   }
+}
+
+export async function markChapterReadyService(chapterId: string) {
+  const readiness = await getChapterReadinessService(chapterId)
+  if (!readiness.ready) {
+    throw new AppError("Chapter is not ready for publication. Please resolve all readiness blockers first.", 400)
+  }
+
+  const chapter = await Chapter.findByIdAndUpdate(
+    readiness.chapterId,
+    { status: "READY_FOR_PUBLICATION" },
+    { new: true }
+  )
+
+  if (!chapter) throw new AppError("Chapter not found", 404)
+
+  return chapter
 }

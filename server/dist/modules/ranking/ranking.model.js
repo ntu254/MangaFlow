@@ -6,7 +6,7 @@ const rankingSchema = new Schema({
     voteCount: { type: Number, required: true, min: 0 },
     readerScore: { type: Number, required: true, min: 1, max: 10 },
     finalScore: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: RANKING_STATUSES, required: true, default: "IMPORTED", index: true },
+    status: { type: String, enum: RANKING_STATUSES, required: true, default: "DRAFT", index: true },
 }, { timestamps: true });
 rankingSchema.index({ period: 1, seriesId: 1 }, { unique: true });
 export const Ranking = mongoose.model("Ranking", rankingSchema);

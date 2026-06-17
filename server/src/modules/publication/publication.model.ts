@@ -3,6 +3,7 @@ import mongoose, { Schema, type Document } from "mongoose"
 export interface PublicationDocument extends Document {
   chapterId: mongoose.Types.ObjectId
   seriesId: mongoose.Types.ObjectId
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CANCELLED"
   scheduledFor?: Date
   publishedAt?: Date
   createdBy: mongoose.Types.ObjectId
@@ -16,6 +17,7 @@ const publicationSchema = new Schema<PublicationDocument>(
   {
     chapterId: { type: Schema.Types.ObjectId, ref: "Chapter", required: true, unique: true, index: true },
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, index: true },
+    status: { type: String, enum: ["DRAFT", "SCHEDULED", "PUBLISHED", "CANCELLED"], default: "DRAFT" },
     scheduledFor: { type: Date, index: true },
     publishedAt: { type: Date, index: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
