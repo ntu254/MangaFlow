@@ -1,71 +1,118 @@
-import { Bell, Settings, Search, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Bell, Search, Sparkles, HelpCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/store/authStore"
 import { useLocation } from "react-router-dom"
 
-const getPageInfo = (pathname: string) => {
-  if (pathname.includes('/admin/users')) {
-    return { title: 'User Management', subtitle: 'Create, search, and manage user accounts.' };
-  }
-  if (pathname.includes('/admin/board-members')) {
-    return { title: 'Board Members', subtitle: 'Manage editorial board composition and status.' };
-  }
-  if (pathname.includes('/admin/task-types')) {
-    return { title: 'Task Types', subtitle: 'Configure production task templates.' };
-  }
-  if (pathname.includes('/mangaka/dashboard')) {
-    return { title: 'Home', subtitle: "Your manga production command center." };
-  }
-  if (pathname.includes('/admin/dashboard')) {
-    return { title: 'Admin Dashboard', subtitle: 'Monitor users, board governance, and health.' };
-  }
-  return { title: 'MangaFlow', subtitle: 'Studio Management System' };
+type PageMeta = {
+  eyebrow: string
+  title: string
+}
+
+const matchPage = (pathname: string): PageMeta => {
+  const map: Array<[RegExp, PageMeta]> = [
+    [/\/admin\/dashboard/,       { eyebrow: "Admin",     title: "Studio overview" }],
+    [/\/admin\/users\/create/,   { eyebrow: "Admin",     title: "Invite a new member" }],
+    [/\/admin\/users/,           { eyebrow: "Admin",     title: "Users" }],
+    [/\/admin\/board-members/,   { eyebrow: "Admin",     title: "Editorial board" }],
+    [/\/admin\/task-types/,      { eyebrow: "Admin",     title: "Task templates" }],
+    [/\/admin\/audit-log/,       { eyebrow: "Admin",     title: "Audit log" }],
+    [/\/mangaka\/dashboard/,     { eyebrow: "Mangaka",   title: "Home" }],
+    [/\/mangaka\/series\/create/,{ eyebrow: "Mangaka",   title: "New series proposal" }],
+    [/\/mangaka\/series\/\w+/,   { eyebrow: "Mangaka",   title: "Series workspace" }],
+    [/\/mangaka\/series/,        { eyebrow: "Mangaka",   title: "My series" }],
+    [/\/mangaka\/inbox/,         { eyebrow: "Mangaka",   title: "Inbox" }],
+    [/\/mangaka\/ranking/,       { eyebrow: "Mangaka",   title: "Ranking" }],
+    [/\/mangaka\/payroll/,       { eyebrow: "Mangaka",   title: "Payroll" }],
+    [/\/assistant\/dashboard/,   { eyebrow: "Assistant", title: "Today's tasks" }],
+    [/\/assistant\/tasks/,       { eyebrow: "Assistant", title: "My tasks" }],
+    [/\/assistant\/earnings/,    { eyebrow: "Assistant", title: "Earnings" }],
+    [/\/editor\/dashboard/,      { eyebrow: "Editor",    title: "Review queue" }],
+    [/\/board\/dashboard/,       { eyebrow: "Board",     title: "Decision desk" }],
+    [/\/board\/series/,          { eyebrow: "Board",     title: "Series review" }],
+    [/\/board\/ranking/,         { eyebrow: "Board",     title: "Ranking" }],
+  ]
+  const match = map.find(([re]) => re.test(pathname))
+  return match ? match[1] : { eyebrow: "MangaFlow", title: "Studio" }
 }
 
 export function AppNavbar() {
   const { user } = useAuthStore()
   const location = useLocation()
-  const pageInfo = getPageInfo(location.pathname)
+  const meta = matchPage(location.pathname)
 
   return (
-    <header className="h-16 border-b bg-background flex items-center px-6 shrink-0 z-10">
-      <div className="flex-1 flex flex-col min-w-0 pr-4">
-        <h1 className="text-[17px] font-bold tracking-tight text-gray-900 leading-tight truncate">{pageInfo.title}</h1>
-        <p className="text-[11px] text-muted-foreground truncate">{pageInfo.subtitle}</p>
-      </div>
-
-      <div className="w-full max-w-md relative hidden md:block">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input 
-          type="text" 
-          placeholder="Search users, tasks, series, or settings..." 
-          className="w-full pl-9 bg-gray-50/50 border-gray-200 h-9 rounded-lg focus-visible:ring-primary shadow-sm text-sm"
-        />
-      </div>
-      
-      <div className="flex-1 flex items-center justify-end gap-2 pl-4">
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="relative text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100">
-            <Bell className="h-5 w-5" />
-            <div className="absolute top-1.5 right-1.5 h-4 w-4 flex items-center justify-center text-[10px] bg-primary text-white font-bold border-2 border-white rounded-full">
-              3
-            </div>
-          </Button>
-          <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100">
-            <Settings className="h-5 w-5" />
-          </Button>
+    <header
+      className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/85 px-4 sm:px-6 lg:px-8 backdrop-blur supports-[backdrop-filter]:bg-card/75"
+      data-testid="app-navbar"
+    >
+      {/* Page title block */}
+      <div className="min-w-0 flex-1 sm:flex-none sm:w-72">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-primary truncate" data-testid="navbar-eyebrow">
+          {meta.eyebrow}
         </div>
-        
-        <div className="w-px h-6 bg-gray-200 mx-2"></div>
+        <h1 className="text-[15px] font-semibold leading-tight tracking-tight text-foreground truncate" data-testid="navbar-title">
+          {meta.title}
+        </h1>
+      </div>
 
-        <button className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded-full pr-3 transition-colors border border-transparent hover:border-gray-200">
-          <div className="w-8 h-8 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-primary font-bold">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+      {/* Search */}
+      <div className="relative hidden lg:block flex-1 max-w-xl">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search series, chapters, tasks, people…"
+          data-testid="navbar-search"
+          className="h-10 pl-10 pr-16 bg-secondary/60 border-transparent shadow-none placeholder:text-muted-foreground focus-visible:bg-card focus-visible:border-border"
+        />
+        <kbd className="kbd pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden md:inline-flex">
+          <span>⌘</span>K
+        </kbd>
+      </div>
+
+      {/* Right cluster */}
+      <div className="ml-auto flex items-center gap-1.5">
+        <Button
+          variant="soft"
+          size="sm"
+          className="hidden sm:inline-flex gap-1.5"
+          data-testid="navbar-assistant"
+        >
+          <Sparkles size={14} />
+          Assist
+        </Button>
+
+        <Button variant="ghost" size="icon" aria-label="Help">
+          <HelpCircle size={18} className="text-muted-foreground" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          data-testid="navbar-notifications"
+          className="relative"
+          aria-label="Notifications"
+        >
+          <Bell size={18} className="text-muted-foreground" />
+          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-card" />
+        </Button>
+
+        <div className="hidden sm:flex items-center gap-2 border-l border-border pl-3 ml-1">
+          <div className="relative">
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-soft">
+              {(user?.name ?? "M").charAt(0).toUpperCase()}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-card" aria-hidden />
           </div>
-          <span className="text-sm font-medium text-gray-700">{user?.name || "Akira S."}</span>
-          <ChevronDown className="h-4 w-4 text-gray-400" />
-        </button>
+          <div className="hidden lg:flex flex-col leading-tight">
+            <span className="text-[13px] font-medium text-foreground" data-testid="navbar-user-name">
+              {user?.name ?? "Studio user"}
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {user?.email ?? user?.role}
+            </span>
+          </div>
+        </div>
       </div>
     </header>
   )

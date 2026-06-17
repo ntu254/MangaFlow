@@ -1,41 +1,241 @@
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────────────────
+   MangaFlow Design System — Light SaaS Dashboard
+   Primary: Violet · Surfaces: White · Neutrals: Slate · Font: Outfit
+   ────────────────────────────────────────────────────────────────────────── */
+
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(240 10% 3.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(240 10% 3.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(240 10% 3.9%);
-  --color-primary: hsl(271 91% 65%);
-  --color-primary-foreground: hsl(0 0% 98%);
-  --color-secondary: hsl(240 4.8% 95.9%);
-  --color-secondary-foreground: hsl(240 5.9% 10%);
-  --color-muted: hsl(240 4.8% 95.9%);
-  --color-muted-foreground: hsl(240 3.8% 46.1%);
-  --color-accent: hsl(240 4.8% 95.9%);
-  --color-accent-foreground: hsl(240 5.9% 10%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(0 0% 98%);
-  --color-border: hsl(240 5.9% 90%);
-  --color-input: hsl(240 5.9% 90%);
-  --color-ring: hsl(271 91% 65%);
-  --color-sidebar: hsl(240 5.9% 10%);
-  --color-sidebar-foreground: hsl(240 4.8% 95.9%);
-  --color-sidebar-primary: hsl(271 91% 65%);
-  --color-sidebar-primary-foreground: hsl(0 0% 98%);
-  --color-sidebar-accent: hsl(240 3.7% 15.9%);
-  --color-sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --color-sidebar-border: hsl(240 3.7% 15.9%);
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  /* Surfaces */
+  --color-background: #f8fafc;          /* slate-50 */
+  --color-foreground: #0f172a;          /* slate-900 */
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+
+  /* Brand — Violet 600 */
+  --color-primary: #7c3aed;             /* violet-600 */
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft: #f5f3ff;        /* violet-50 */
+  --color-primary-soft-2: #ede9fe;      /* violet-100 */
+  --color-primary-hover: #6d28d9;       /* violet-700 */
+  --color-ring: #8b5cf6;                /* violet-500 */
+
+  /* Neutral surfaces */
+  --color-secondary: #f1f5f9;           /* slate-100 */
+  --color-secondary-foreground: #334155;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;    /* slate-500 */
+  --color-accent: #f5f3ff;              /* violet-50 used for soft accents */
+  --color-accent-foreground: #5b21b6;   /* violet-800 */
+
+  /* Borders & inputs */
+  --color-border: #e2e8f0;              /* slate-200 */
+  --color-border-strong: #cbd5e1;       /* slate-300 */
+  --color-input: #e2e8f0;
+
+  /* Semantic statuses */
+  --color-success: #059669;             /* emerald-600 */
+  --color-success-foreground: #ffffff;
+  --color-success-soft: #ecfdf5;        /* emerald-50 */
+  --color-warning: #d97706;             /* amber-600 */
+  --color-warning-foreground: #ffffff;
+  --color-warning-soft: #fffbeb;        /* amber-50 */
+  --color-destructive: #dc2626;         /* red-600 */
+  --color-destructive-foreground: #ffffff;
+  --color-destructive-soft: #fef2f2;    /* red-50 */
+  --color-info: #2563eb;                /* blue-600 */
+  --color-info-soft: #eff6ff;
+  --color-review: #9333ea;              /* purple-600 (review/editor) */
+  --color-review-soft: #faf5ff;
+  --color-board: #ea580c;               /* orange-600 (board/ranking) */
+  --color-board-soft: #fff7ed;
+  --color-ai: #c026d3;                  /* fuchsia-600 (AI features) */
+  --color-ai-soft: #fdf4ff;
+  --color-task: #2563eb;
+  --color-task-soft: #eff6ff;
+
+  /* Sidebar */
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #0f172a;
+  --color-sidebar-primary: #7c3aed;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #f5f3ff;
+  --color-sidebar-accent-foreground: #5b21b6;
+  --color-sidebar-border: #e2e8f0;
+
+  /* Radii — soft modern */
+  --radius-sm: 0.375rem;   /* 6px */
+  --radius-md: 0.5rem;     /* 8px */
+  --radius-lg: 0.75rem;    /* 12px */
+  --radius-xl: 1rem;       /* 16px */
+  --radius-2xl: 1.25rem;   /* 20px */
+
+  /* Shadows — soft */
+  --shadow-soft: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-soft-md: 0 4px 16px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+
+  /* Fonts */
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
 }
 
+/* ─── Base ─────────────────────────────────────────────────────────────── */
+
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: #ddd6fe;
+    color: #5b21b6;
+  }
+
+  /* Scrollbar — slim slate */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+    background-clip: content-box;
+  }
+
+  /* Focus ring */
+  *:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ─── Utilities ─────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  /* tabular-nums helper */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Soft gradient backdrop used in login */
+  .bg-aurora {
+    background:
+      radial-gradient(60% 50% at 80% 0%, rgba(168, 85, 247, 0.16) 0%, transparent 60%),
+      radial-gradient(50% 40% at 0% 100%, rgba(99, 102, 241, 0.14) 0%, transparent 55%),
+      radial-gradient(40% 30% at 100% 100%, rgba(236, 72, 153, 0.10) 0%, transparent 60%),
+      #ffffff;
+  }
+
+  /* Soft mesh pattern */
+  .bg-dots {
+    background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.06) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  /* Animated reveal */
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .reveal {
+    animation: reveal-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Soft pulse for live indicators */
+  @keyframes soft-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.65; transform: scale(0.95); }
+  }
+  .soft-pulse {
+    animation: soft-pulse 1.8s ease-in-out infinite;
+  }
+
+  /* Status dot */
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Interactive surface — used on clickable cards */
+  .surface-interactive {
+    transition:
+      transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.18s ease,
+      border-color 0.18s ease,
+      background-color 0.18s ease;
+  }
+  .surface-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft-md);
+    border-color: #c4b5fd; /* violet-300 */
+  }
+
+  /* Gradient text — used sparingly on display headings */
+  .gradient-violet {
+    background: linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #f43f5e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Soft chip / kbd */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.06);
   }
 }
