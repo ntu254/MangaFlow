@@ -1,16 +1,21 @@
 import { Router } from "express";
 import { requireAuth } from "../../shared/middleware/requireAuth.js";
 import { requireRole } from "../../shared/middleware/requireRole.js";
+import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js";
+import { requireChapterRole } from "../../shared/middleware/requireChapterRole.js";
 import { validate } from "../../shared/middleware/validate.js";
 import * as controller from "./chapter.controller.js";
 import { createChapterSchema, chapterIdParamsSchema, updateChapterStatusSchema, createPageSchema, listPagesParamsSchema, } from "./chapter.validation.js";
 const router = Router();
-router.post("/", requireAuth, requireRole("MANGAKA", "EDITOR"), validate(createChapterSchema), controller.createChapter);
+// Create needs seriesId in body — requireSeriesRole picks it up from req.body.seriesId.
+router.post("/", requireAuth, validate(createChapterSchema), requireSeriesRole("MANGAKA", "EDITOR"), controller.createChapter);
 router.get("/series/:seriesId", requireAuth, controller.listChapters);
 router.get("/:chapterId", requireAuth, validate(chapterIdParamsSchema, "params"), controller.getChapter);
 router.get("/:chapterId/readiness", requireAuth, requireRole("ADMIN", "MANGAKA", "EDITOR"), validate(chapterIdParamsSchema, "params"), controller.getChapterReadiness);
-router.patch("/:chapterId/status", requireAuth, requireRole("MANGAKA", "EDITOR"), validate(updateChapterStatusSchema), controller.updateChapterStatus);
-router.post("/:chapterId/pages", requireAuth, requireRole("MANGAKA", "EDITOR"), validate(createPageSchema), controller.createPage);
+// Chapter-scoped writes must be limited to MANGAKA/EDITOR of the chapter's series, not
+// global roles. requireChapterRole resolves seriesId from chapterId then delegates.
+router.patch("/:chapterId/status", requireAuth, validate(updateChapterStatusSchema), requireChapterRole("MANGAKA", "EDITOR"), controller.updateChapterStatus);
+router.post("/:chapterId/pages", requireAuth, validate(createPageSchema), requireChapterRole("MANGAKA", "EDITOR"), controller.createPage);
 router.get("/:chapterId/pages", requireAuth, validate(listPagesParamsSchema, "params"), controller.listPages);
 export default router;
 //# sourceMappingURL=chapter.routes.js.map

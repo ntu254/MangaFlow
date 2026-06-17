@@ -1,19 +1,20 @@
 import { useState } from 'react'
-import { SeriesSidebar } from '@/features/series/components/series-detail/SeriesSidebar'
-import { SeriesMainHeader } from '@/features/series/components/series-detail/SeriesMainHeader'
 import { ProposalOverviewTab } from '@/features/series/components/series-detail/ProposalOverviewTab'
 import { ProductionOverviewTab } from '@/features/series/components/series-detail/ProductionOverviewTab'
 import { ManuscriptTab } from '@/features/series/components/series-detail/ManuscriptTab'
+import { ChaptersTab } from '@/features/series/components/series-detail/ChaptersTab'
 import { PagesTab } from '@/features/series/components/series-detail/PagesTab'
-import { FileText, MessageSquare, ShieldAlert, BarChart3 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { useSeriesSummary } from '@/features/series/hooks/useSeries'
 import { useQuery } from '@tanstack/react-query'
 import { chapterApi } from '@/features/chapters/services/chapter.api'
-import { labelizeStatus } from '@/shared/utils/formatters'
+import { PageHeader } from '@/shared/components/ui/page-header'
+import { StatusBadge } from '@/shared/components/ui/status-badge'
+import { seriesStatusUi } from '@/shared/lib/status-ui'
+import { Edit, Send } from 'lucide-react'
 
 type SeriesPhase = 'proposal' | 'production'
-type SubTab = 'overview' | 'manuscript' | 'editor_feedback' | 'board_review'
+type MainTab = 'overview' | 'manuscript' | 'chapters' | 'pages' | 'team' | 'reviews' | 'settings'
 
 export default function SeriesDetailPage() {
   const { id } = useParams()
@@ -27,99 +28,97 @@ export default function SeriesDetailPage() {
     },
     enabled: !!id,
   })
-  const [activeMainTab, setActiveMainTab] = useState<string>('overview')
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('overview')
+  
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('overview')
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center text-gray-500">Loading series detail...</div>
+    return <div className="flex h-[calc(100vh-64px)] items-center justify-center text-gray-500">Loading series detail...</div>
   }
 
   if (isError || !summary || !id) {
-    return <div className="flex h-screen items-center justify-center text-red-500">Failed to load series detail</div>
+    return <div className="flex h-[calc(100vh-64px)] items-center justify-center text-red-500">Failed to load series detail</div>
   }
 
-  const productionStatuses = ['APPROVED', 'ONGOING', 'AT_RISK', 'COMPLETED']
-  const seriesPhase: SeriesPhase = productionStatuses.includes(summary.series.status) ? 'production' : 'proposal'
+  const productionStatuses = ['APPROVED', 'ONGOING', 'AT_RISK', 'COMPLETED', 'IN PRODUCTION']
+  const seriesPhase: SeriesPhase = productionStatuses.includes(summary.series.status.toUpperCase()) ? 'production' : 'proposal'
+
+  const getStatusConfig = (status: string) => {
+    const s = status.toUpperCase().replace(' ', '_')
+    if (seriesStatusUi[s]) return seriesStatusUi[s]
+    if (s === 'IN_PRODUCTION') return seriesStatusUi['ONGOING']
+    return seriesStatusUi['DRAFT']
+  }
+
+  const statusConfig = getStatusConfig(summary.series.status)
 
   return (
-    <div className="flex -m-6 h-[calc(100vh-64px)] bg-white overflow-hidden">
-      <SeriesSidebar 
-        summary={summary}
-        seriesPhase={seriesPhase} 
-        activeTab={activeMainTab}
-        onChangeTab={setActiveMainTab}
-      />
-
-      <div className="flex-1 flex flex-col h-full overflow-y-auto bg-gray-50/30">
-        <div className={`flex flex-col w-full mx-auto flex-1 ${activeMainTab === 'pages' ? '' : 'px-10 py-8 max-w-[1600px]'}`}>
-          {/* Main Header (Only for non-pages tabs) */}
-          {activeMainTab !== 'pages' && <SeriesMainHeader summary={summary} seriesPhase={seriesPhase} />}
-          {activeMainTab === 'overview' && (
-            <div className="flex items-center gap-8 border-b border-gray-200 mb-6 mt-4">
-              <button 
-                onClick={() => setActiveSubTab('overview')}
-                className={`font-bold text-[13px] border-b-2 pb-3 flex items-center gap-2 transition-colors ${activeSubTab === 'overview' ? 'text-purple-600 border-purple-600' : 'text-gray-500 hover:text-gray-900 border-transparent'}`}
-              >
-                <BarChart3 size={16} /> {seriesPhase === 'proposal' ? 'Review Overview' : 'Production Overview'}
-              </button>
-              <button 
-                onClick={() => setActiveSubTab('manuscript')}
-                className={`font-bold text-[13px] border-b-2 pb-3 flex items-center gap-2 transition-colors ${activeSubTab === 'manuscript' ? 'text-purple-600 border-purple-600' : 'text-gray-500 hover:text-gray-900 border-transparent'}`}
-              >
-                <FileText size={16} /> Manuscript
-              </button>
-              <button 
-                onClick={() => setActiveSubTab('editor_feedback')}
-                className={`font-bold text-[13px] border-b-2 pb-3 flex items-center gap-2 transition-colors ${activeSubTab === 'editor_feedback' ? 'text-purple-600 border-purple-600' : 'text-gray-500 hover:text-gray-900 border-transparent'}`}
-              >
-                <MessageSquare size={16} /> Editor Feedback
-                <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold ml-1">{summary.commentSummary.open}</div>
-              </button>
-              <button 
-                onClick={() => setActiveSubTab('board_review')}
-                className={`font-bold text-[13px] border-b-2 pb-3 flex items-center gap-2 transition-colors ${activeSubTab === 'board_review' ? 'text-purple-600 border-purple-600' : 'text-gray-500 hover:text-gray-900 border-transparent'}`}
-              >
-                <ShieldAlert size={16} /> Board Review
-              </button>
+    <div className="flex flex-col h-full bg-white w-full max-w-[1400px] mx-auto pb-10">
+      <div className="pt-6 pb-2">
+        <PageHeader
+          title={summary.series.title}
+          description={`Series • Last updated ${new Date(summary.series.updatedAt).toLocaleDateString()}`}
+          primaryAction={
+            <div className="flex items-center gap-3">
+              <StatusBadge config={statusConfig} />
+              {seriesPhase === 'proposal' ? (
+                <button className="flex items-center gap-2 bg-violet-600 text-white h-9 px-4 rounded-lg text-sm font-semibold shadow-sm hover:bg-violet-700 transition-colors">
+                  <Send size={16} /> Submit for Review
+                </button>
+              ) : (
+                <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 h-9 px-4 rounded-lg text-sm font-semibold shadow-sm hover:bg-slate-50 transition-colors">
+                  <Edit size={16} /> Edit Details
+                </button>
+              )}
             </div>
-          )}
+          }
+        />
+      </div>
 
-          {activeMainTab === 'overview' && (
-            <>
-              {activeSubTab === 'overview' && (
-                seriesPhase === 'proposal' ? <ProposalOverviewTab summary={summary} /> : <ProductionOverviewTab summary={summary} />
-              )}
-              {activeSubTab === 'manuscript' && <ManuscriptTab summary={summary} />}
-              {activeSubTab === 'editor_feedback' && (
-                <div className="space-y-3">
-                  {summary.recentComments.map((comment, i) => (
-                    <div key={comment.id || (comment as any)._id || i} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[13px] font-bold text-gray-900">{comment.author ?? 'Unknown'} - {comment.authorRole ?? 'Member'}</span>
-                        <span className={`text-[11px] font-bold ${comment.isBlocking ? 'text-red-600' : 'text-gray-500'}`}>{labelizeStatus(comment.status)}</span>
-                      </div>
-                      <p className="text-[13px] text-gray-600 mt-2">{comment.body}</p>
-                      <span className="text-[11px] text-gray-400 mt-2 block">{formatDate(comment.updatedAt)}</span>
-                    </div>
-                  ))}
-                  {summary.recentComments.length === 0 && <div className="p-8 text-center text-gray-500">No editor feedback yet.</div>}
-                </div>
-              )}
-              {activeSubTab === 'board_review' && (
-                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-600">
-                  {summary.boardReview ? `Board review ${labelizeStatus(summary.boardReview.status)} - ${summary.boardReview.voteCount} vote(s)` : 'Board review has not started.'}
-                </div>
-              )}
-            </>
-          )}
-          
-          {activeMainTab === 'pages' && <PagesTab seriesId={id} chapters={chapters} />}
-        </div>
+      {/* Horizontal Tabs */}
+      <div className="flex items-center gap-8 border-b border-slate-200 mb-6">
+        <TabButton label="Overview" active={activeMainTab === 'overview'} onClick={() => setActiveMainTab('overview')} />
+        <TabButton label="Manuscript" active={activeMainTab === 'manuscript'} onClick={() => setActiveMainTab('manuscript')} />
+        <TabButton label="Chapters" active={activeMainTab === 'chapters'} onClick={() => setActiveMainTab('chapters')} />
+        <TabButton label="Pages" active={activeMainTab === 'pages'} onClick={() => setActiveMainTab('pages')} />
+        <TabButton label="Team" active={activeMainTab === 'team'} onClick={() => setActiveMainTab('team')} />
+        <TabButton label="Reviews" active={activeMainTab === 'reviews'} onClick={() => setActiveMainTab('reviews')} />
+        <TabButton label="Settings" active={activeMainTab === 'settings'} onClick={() => setActiveMainTab('settings')} />
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 flex flex-col min-h-[500px]">
+        {activeMainTab === 'overview' && (
+          seriesPhase === 'proposal' ? <ProposalOverviewTab summary={summary} /> : <ProductionOverviewTab summary={summary} />
+        )}
+        
+        {activeMainTab === 'manuscript' && <ManuscriptTab summary={summary} />}
+        
+        {activeMainTab === 'chapters' && <ChaptersTab chapters={chapters} />}
+        
+        {activeMainTab === 'pages' && <PagesTab seriesId={id} chapters={chapters} />}
+
+        {['team', 'reviews', 'settings'].includes(activeMainTab) && (
+          <div className="flex items-center justify-center h-full text-slate-400">
+            {activeMainTab.charAt(0).toUpperCase() + activeMainTab.slice(1)} configuration (Coming soon)
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleString()
+function TabButton({ label, badge, active, onClick }: { label: string, badge?: string, active: boolean, onClick: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`font-bold text-[14px] border-b-2 pb-3 mb-[-1px] flex items-center gap-2 transition-colors ${active ? 'text-violet-600 border-violet-600' : 'text-slate-500 hover:text-slate-800 border-transparent'}`}
+    >
+      {label}
+      {badge && (
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'}`}>
+          {badge}
+        </span>
+      )}
+    </button>
+  )
 }

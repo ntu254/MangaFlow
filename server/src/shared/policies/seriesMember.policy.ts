@@ -45,7 +45,7 @@ export function isActiveMember(member: MemberShape): boolean {
  * Returns null when the user is not a member, or the membership is not active.
  */
 export async function findActiveSeriesMember(seriesId: string, userId: string) {
-  return SeriesMember.findOne({ seriesId, userId, ...ACTIVE_MEMBER_QUERY }).lean()
+  return SeriesMember.findOne({ seriesId, userId, ...ACTIVE_MEMBER_QUERY })
 }
 
 /**
@@ -62,5 +62,5 @@ export async function findActiveSeriesMemberWithRole(
     userId,
     role: { $in: allowedRoles },
     ...ACTIVE_MEMBER_QUERY,
-  }).lean()
+  })
 }

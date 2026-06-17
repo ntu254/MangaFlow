@@ -30,14 +30,22 @@ export const CHAPTER_STATUSES = [
     "REVISION_REQUIRED",
 ];
 export const PAGE_STATUSES = [
+    "UPLOADING",
     "UPLOADED",
-    "ASSIGNED",
+    "PROCESSING_FAILED",
+    "TASK_ASSIGNED",
     "IN_PROGRESS",
-    "SUBMITTED",
+    "UNDER_REVIEW",
     "APPROVED",
-    "REVISION_REQUESTED",
 ];
-export const REGION_STATUSES = ["ACTIVE", "ARCHIVED"];
+export const REGION_STATUSES = [
+    "CREATED",
+    "AI_SUGGESTED",
+    "ACCEPTED",
+    "REJECTED",
+    "LINKED_TO_TASK",
+    "ARCHIVED"
+];
 export const TASK_STATUSES = [
     "TODO",
     "IN_PROGRESS",

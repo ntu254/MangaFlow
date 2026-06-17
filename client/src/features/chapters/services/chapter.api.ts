@@ -13,7 +13,6 @@ export type PageStatus =
   | "UPLOADING"
   | "UPLOADED"
   | "PROCESSING_FAILED"
-  | "TASK_ASSIGNED"
   | "IN_PROGRESS"
   | "UNDER_REVIEW"
   | "APPROVED"
@@ -42,6 +41,13 @@ export interface FileAssetRef {
   r2Key: string
 }
 
+export type ActiveTaskStatus =
+  | "TODO"
+  | "IN_PROGRESS"
+  | "SUBMITTED"
+  | "REVISION_REQUESTED"
+  | "MANGAKA_APPROVED"
+
 export interface Page {
   id: string
   chapterId: string
@@ -51,6 +57,13 @@ export interface Page {
   workingFileAssetId?: string
   thumbnailFileAssetId?: string
   regionIds: string[]
+  activeTask?: {
+    id: string
+    status: ActiveTaskStatus
+    assignedTo?: { id: string; name: string }
+    taskType?: { id: string; name: string }
+    currentSubmissionId?: string
+  }
   createdAt: string
   updatedAt: string
 }

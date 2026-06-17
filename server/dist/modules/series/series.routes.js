@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../../shared/middleware/requireAuth.js";
 import { requireRole } from "../../shared/middleware/requireRole.js";
+import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js";
 import { validate } from "../../shared/middleware/validate.js";
 import { asyncHandler } from "../../shared/middleware/asyncHandler.js";
 import * as controller from "./series.controller.js";
@@ -18,7 +19,9 @@ router.patch("/:seriesId", requireAuth, requireRole("MANGAKA"), validate(seriesI
 router.post("/:seriesId/submit", requireAuth, requireRole("MANGAKA"), validate(seriesIdParamsSchema, "params"), asyncHandler(controller.submitSeries));
 router.post("/:seriesId/submit-to-editor", requireAuth, requireRole("MANGAKA"), validate(seriesIdParamsSchema, "params"), asyncHandler(controller.submitSeries));
 router.post("/:seriesId/members", requireAuth, requireRole("MANGAKA", "EDITOR"), validate(seriesIdParamsSchema, "params"), validate(addSeriesMemberSchema), asyncHandler(addSeriesMember));
-router.get("/:seriesId/members", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(listSeriesMembers));
+// Flow-03: only active series members (or Admin) can read the team composition.
+// Prevents cross-series leak of team identity.
+router.get("/:seriesId/members", requireAuth, validate(seriesIdParamsSchema, "params"), requireSeriesRole("MANGAKA", "EDITOR", "ASSISTANT"), asyncHandler(listSeriesMembers));
 router.patch("/:seriesId/members/:memberId", requireAuth, requireRole("MANGAKA", "EDITOR"), validate(updateSeriesMemberSchema), asyncHandler(updateSeriesMember));
 router.delete("/:seriesId/members/:memberId", requireAuth, requireRole("MANGAKA", "EDITOR"), validate(z.object({ seriesId: z.string().min(1), memberId: z.string().min(1) }), "params"), asyncHandler(removeSeriesMember));
 router.get("/:seriesId/eligible-assistants", requireAuth, requireRole("MANGAKA", "EDITOR", "ADMIN"), validate(seriesIdParamsSchema, "params"), asyncHandler(getEligibleAssistants));

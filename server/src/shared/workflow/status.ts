@@ -104,11 +104,9 @@ export type BoardDecisionStatus = (typeof BOARD_DECISION_STATUSES)[number]
 
 export const RANKING_STATUSES = [
   "DRAFT",
-  "IMPORTED",
-  "REVIEWED",
+  "SUBMITTED",
   "FINALIZED",
-  "WARNING",
-  "AT_RISK",
+  "VOIDED",
 ] as const
 export type RankingStatus = (typeof RANKING_STATUSES)[number]
 

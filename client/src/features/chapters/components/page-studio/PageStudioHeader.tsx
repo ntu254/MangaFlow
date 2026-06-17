@@ -13,12 +13,12 @@ export function PageStudioHeader({ onBack, chapterId, page, title }: PageStudioH
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2 text-[12px] font-bold text-gray-500">
-          <button type="button" className="hover:text-gray-900 cursor-pointer transition-colors" onClick={onBack}>Production Hub</button>
-          <ChevronRight size={14} />
-          <button type="button" className="hover:text-gray-900 cursor-pointer transition-colors" onClick={onBack}>Chapter {chapterId}</button>
-          <ChevronRight size={14} />
-          <span className="text-gray-900">Page {page.pageNumber}</span>
-          <span className="bg-purple-50 text-purple-600 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider border border-purple-100 ml-2">{page.status}</span>
+          <button type="button" className="hover:text-slate-900 cursor-pointer transition-colors" onClick={onBack}>Production Hub</button>
+          <ChevronRight size={14} className="text-slate-400" />
+          <button type="button" className="hover:text-slate-900 cursor-pointer transition-colors" onClick={onBack}>Chapter {chapterId}</button>
+          <ChevronRight size={14} className="text-slate-400" />
+          <span className="text-slate-900">Page {page.pageNumber}</span>
+          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 ml-2">{page.status}</span>
         </div>
         <h1 className="text-[20px] font-extrabold text-gray-900 tracking-tight">{title}</h1>
         <span className="text-[12px] font-medium text-gray-500">Annotate regions, review AI suggestions, and prepare task assignment.</span>

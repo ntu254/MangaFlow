@@ -26,7 +26,7 @@ export async function createTaskService(input) {
         assignedBy: input.assignedBy,
     });
     // Strict duplicate task prevention logic
-    const activeStatuses = ["TODO", "IN_PROGRESS", "UNDER_REVIEW", "REVISION_REQUESTED", "MANGAKA_APPROVED"];
+    const activeStatuses = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"];
     const duplicateQuery = {
         taskTypeId: input.taskTypeId,
         status: { $in: activeStatuses },

@@ -2,25 +2,26 @@ import { useMemo, useState } from 'react'
 import { Plus, Info, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { SeriesStatCards } from '@/features/series/components/series-list/SeriesStatCards'
-import {
-  SeriesViewControls,
-  type SeriesSort,
-  type SeriesStatusFilter,
-} from '@/features/series/components/series-list/SeriesViewControls'
+import { type SeriesSort, type SeriesStatusFilter } from '@/features/series/components/series-list/SeriesViewControls'
 import { SeriesListView } from '@/features/series/components/series-list/SeriesListView'
-import { SeriesGridView } from '@/features/series/components/series-list/SeriesGridView'
-import { SeriesGridSkeleton } from '@/features/series/components/series-list/SeriesGridSkeleton'
 import { SeriesListSkeleton } from '@/features/series/components/series-list/SeriesListSkeleton'
 import { SeriesEmptyState } from '@/features/series/components/series-list/SeriesEmptyState'
 import { PageHeader } from '@/shared/components/ui/page-header'
+import { FilterBar } from '@/shared/components/ui/filter-bar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 import { useSeriesList } from '@/features/series/hooks/useSeries'
 import { toSeriesViewModel } from '@/features/series/components/series-list/series-view-model'
+import type { SeriesDisplayStatus } from '@/features/series/components/series-list/series-view-model'
 
 const SERIES_PER_PAGE = 10
 
+const statuses: SeriesDisplayStatus[] = [
+  'Draft', 'Editor Review', 'Revision Requested', 'Board Review', 
+  'Approved', 'In Production', 'At Risk', 'Rejected', 'Cancelled', 'Completed',
+]
+
 export default function MangakaSeriesPage() {
   const navigate = useNavigate()
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>('ALL')
   const [genreFilter, setGenreFilter] = useState('ALL')
@@ -53,15 +54,11 @@ export default function MangakaSeriesPage() {
         return b.updatedAtTimestamp - a.updatedAtTimestamp
       })
   }, [seriesData, searchQuery, statusFilter, genreFilter, sort])
+  
   const totalPages = Math.max(1, Math.ceil(filteredSeries.length / SERIES_PER_PAGE))
   const activePage = Math.min(currentPage, totalPages)
   const pageStart = (activePage - 1) * SERIES_PER_PAGE
   const paginatedSeries = filteredSeries.slice(pageStart, pageStart + SERIES_PER_PAGE)
-
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query)
-    setCurrentPage(1)
-  }
 
   const clearFilters = () => {
     setSearchQuery('')
@@ -108,26 +105,40 @@ export default function MangakaSeriesPage() {
       </div>}
       
       <div className="pt-2">
-         <SeriesViewControls 
-            viewMode={viewMode} 
-            setViewMode={setViewMode} 
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            genreFilter={genreFilter}
-            sort={sort}
-            genres={genres}
-            hasActiveFilters={searchQuery.trim().length > 0 || statusFilter !== 'ALL' || genreFilter !== 'ALL' || sort !== 'UPDATED_DESC'}
-            setSearchQuery={handleSearchChange}
-            setStatusFilter={(value) => { setStatusFilter(value); setCurrentPage(1) }}
-            setGenreFilter={(value) => { setGenreFilter(value); setCurrentPage(1) }}
-            setSort={(value) => { setSort(value); setCurrentPage(1) }}
-            onClearFilters={clearFilters}
-          />
+        <FilterBar
+          searchPlaceholder="Search series or genre..."
+          onSearchChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+        >
+          <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value as SeriesStatusFilter); setCurrentPage(1) }}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              {statuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={genreFilter} onValueChange={(value) => { setGenreFilter(value); setCurrentPage(1) }}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Genre" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Genres</SelectItem>
+              {genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={sort} onValueChange={(value) => { setSort(value as SeriesSort); setCurrentPage(1) }}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="UPDATED_DESC">Recently Updated</SelectItem>
+              <SelectItem value="UPDATED_ASC">Oldest Updated</SelectItem>
+              <SelectItem value="TITLE_ASC">Title A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterBar>
       </div>
 
       <div className="pt-2">
         {isLoading ? (
-          viewMode === 'grid' ? <SeriesGridSkeleton /> : <SeriesListSkeleton />
+          <SeriesListSkeleton />
         ) : isError ? (
           <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-red-200 bg-white px-6 py-20 text-center shadow-sm">
             <div>
@@ -147,12 +158,10 @@ export default function MangakaSeriesPage() {
           <SeriesEmptyState
             isFiltered={searchQuery.trim().length > 0 || statusFilter !== 'ALL' || genreFilter !== 'ALL'}
             onCreate={() => navigate('/app/mangaka/series/create')}
-            onClear={() => {
-              clearFilters()
-            }}
+            onClear={() => clearFilters()}
           />
         ) : (
-          viewMode === 'grid' ? <SeriesGridView seriesData={paginatedSeries} /> : <SeriesListView seriesData={paginatedSeries} />
+          <SeriesListView seriesData={paginatedSeries} isLoading={isLoading} />
         )}
       </div>
 

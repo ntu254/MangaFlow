@@ -1,6 +1,7 @@
-﻿import { AppError } from "../../../shared/errors/AppError.js"
+import { AppError } from "../../../shared/errors/AppError.js"
 import { createPageRepository, getPagesByChapter } from "../chapter.repository.js"
 import { assertCanReadChapter, assertCanWriteChapter, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import { Task } from "../../task/task.model.js"
 
 export async function createPageService(chapterId: string, pageNumber: number, actor: AccessActor) {
   const trimmed = chapterId.trim()
@@ -22,5 +23,35 @@ export async function listPagesService(chapterId: string, actor: AccessActor) {
   const trimmed = chapterId.trim()
   if (!trimmed) throw new AppError("Chapter id is required", 400)
   await assertCanReadChapter(actor, trimmed)
-  return getPagesByChapter(trimmed)
+  const pages = await getPagesByChapter(trimmed)
+  
+  const activeLockStatuses = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
+  const tasks = await Task.find({ 
+    chapterId: trimmed, 
+    status: { $in: activeLockStatuses } 
+  }).sort({ createdAt: -1 })
+    .populate("assignedTo", "name")
+    .populate("taskTypeId", "name")
+    .lean()
+
+  return pages.map(page => {
+    const pageTask = tasks.find(t => String(t.pageId) === String(page._id))
+    let activeTask = undefined
+    if (pageTask) {
+      activeTask = {
+        id: String(pageTask._id),
+        status: pageTask.status,
+        assignedTo: pageTask.assignedTo ? {
+          id: String((pageTask.assignedTo as any)._id),
+          name: (pageTask.assignedTo as any).name
+        } : undefined,
+        taskType: pageTask.taskTypeId ? {
+          id: String((pageTask.taskTypeId as any)._id),
+          name: (pageTask.taskTypeId as any).name
+        } : undefined,
+        currentSubmissionId: pageTask.currentSubmissionId ? String(pageTask.currentSubmissionId) : undefined
+      }
+    }
+    return { ...page, activeTask }
+  })
 }

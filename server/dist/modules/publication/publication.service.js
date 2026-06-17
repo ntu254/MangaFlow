@@ -1,13 +1,13 @@
 import { AppError } from "../../shared/errors/AppError.js";
 import { getChapterReadinessService } from "../chapter/chapter.service.js";
-import { SeriesMember } from "../series/series.model.js";
+import { findActiveSeriesMember } from "../../shared/policies/seriesMember.policy.js";
 import { createPublicationRecord, getPublicationById, getPublicationChapter, markPublicationPublished, updateChapterDraftSchedule, updateChapterPublicationStatus, updatePublicationSchedule, } from "./publication.repository.js";
 async function assertEditorForSeries(seriesId, actor) {
     if (actor.role !== "EDITOR") {
         throw new AppError("Publication access denied", 403);
     }
-    const member = await SeriesMember.findOne({ seriesId, userId: actor.userId });
-    if (!member || !member.isActive || member.role !== "EDITOR") {
+    const member = await findActiveSeriesMember(seriesId, actor.userId);
+    if (!member || member.role !== "EDITOR") {
         throw new AppError("Publication access denied", 403);
     }
 }

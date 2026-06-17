@@ -31,7 +31,6 @@ export function PageStudioRightPanel({
       aiStatus: result.status,
     })),
   )
-  const pendingSuggestions = suggestions.filter((suggestion) => suggestion.decision === 'PENDING')
   
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [taskTarget, setTaskTarget] = useState<{ type: 'page' | 'region', regionId?: string }>({ type: 'page' })
@@ -80,15 +79,91 @@ export function PageStudioRightPanel({
               <InfoRow label="Status" value={page.status} />
               <InfoRow label="Regions" value={String(regions.length)} />
               <InfoRow label="AI results" value={String(aiResults.length)} />
-              <InfoRow label="Pending suggestions" value={String(pendingSuggestions.length)} />
-              <div className="mt-2">
-                <button 
-                  onClick={handleAssignPageTask}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold text-[12px] transition-colors"
-                >
-                  <ClipboardList size={14} />
-                  Assign Page Task
-                </button>
+              
+              <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[12px] font-bold text-slate-900 block mb-2">Task Lock Status</span>
+                {page.activeTask?.status === 'IN_PROGRESS' ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-amber-700 bg-amber-50 px-2 py-1 rounded w-fit font-bold border border-amber-200">
+                      Locked: Active Task
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      <span className="font-bold">{page.activeTask.assignedTo?.name || 'Assistant'}</span> is currently working on:
+                      <br/>"{page.activeTask.taskType?.name || 'Unknown Task'}"
+                    </div>
+                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-amber-600 text-white font-bold text-[11px] hover:bg-amber-700 transition-colors shadow-sm">
+                      View Active Task
+                    </button>
+                  </div>
+                ) : page.activeTask?.status === 'SUBMITTED' ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-blue-700 bg-blue-50 px-2 py-1 rounded w-fit font-bold border border-blue-200">
+                      Submitted: chờ Mangaka review
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      Task: {page.activeTask.taskType?.name || 'Unknown Task'}
+                    </div>
+                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-blue-600 text-white font-bold text-[11px] hover:bg-blue-700 transition-colors shadow-sm">
+                      Review Submission
+                    </button>
+                  </div>
+                ) : page.activeTask?.status === 'TODO' ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-purple-700 bg-purple-50 px-2 py-1 rounded w-fit font-bold border border-purple-200">
+                      Assigned: Not started
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      <span className="font-bold">{page.activeTask.assignedTo?.name || 'Assistant'}</span> is assigned to:
+                      <br/>"{page.activeTask.taskType?.name || 'Unknown Task'}"
+                    </div>
+                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-purple-600 text-white font-bold text-[11px] hover:bg-purple-700 transition-colors shadow-sm">
+                      View Task
+                    </button>
+                  </div>
+                ) : page.activeTask?.status === 'REVISION_REQUESTED' ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-rose-700 bg-rose-50 px-2 py-1 rounded w-fit font-bold border border-rose-200">
+                      Revision Requested
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      Task: {page.activeTask.taskType?.name || 'Unknown Task'}
+                    </div>
+                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-rose-600 text-white font-bold text-[11px] hover:bg-rose-700 transition-colors shadow-sm">
+                      View Task
+                    </button>
+                  </div>
+                ) : page.activeTask?.status === 'MANGAKA_APPROVED' ? (
+                   <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit font-bold border border-emerald-200">
+                      Waiting Editor Final Review
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      Task: {page.activeTask.taskType?.name || 'Unknown Task'}
+                    </div>
+                  </div>
+                ) : (page.status === 'APPROVED' || page.status === 'UPLOADED') ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit font-bold border border-emerald-200">
+                      Ready / Completed
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      All tasks completed. Ready for final review.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-[12px] text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded w-fit font-bold">
+                      Available
+                    </div>
+                    <button 
+                      onClick={handleAssignPageTask}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 font-bold text-[12px] transition-colors shadow-sm"
+                    >
+                      <ClipboardList size={14} />
+                      Create New Task
+                    </button>
+                  </div>
+                )}
               </div>
             </Section>
 

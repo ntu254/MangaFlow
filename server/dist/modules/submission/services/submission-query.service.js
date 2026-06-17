@@ -42,11 +42,11 @@ export async function listReviewQueueSubmissionsService(actor) {
     }
     const role = actor.role;
     const { SeriesMember } = await import("../../series/series.model.js");
-    // Support both new status field (Flow-03) and legacy isActive boolean
+    const { ACTIVE_MEMBER_QUERY } = await import("../../../shared/policies/seriesMember.policy.js");
     const members = await SeriesMember.find({
         userId: actor.userId,
         role,
-        $or: [{ status: "ACTIVE" }, { isActive: true }],
+        ...ACTIVE_MEMBER_QUERY,
     }).lean();
     const seriesIds = members.map((member) => String(member.seriesId));
     if (seriesIds.length === 0) {
