@@ -1,0 +1,103 @@
+{
+  "theme": "light",
+  "archetype": "Editorial & Studio (Swiss High-Contrast + Organic Washi)",
+  "colors": {
+    "background": "#F9F8F6",
+    "foreground": "#1A1918",
+    "card": "#FFFFFF",
+    "card_foreground": "#1A1918",
+    "popover": "#FFFFFF",
+    "popover_foreground": "#1A1918",
+    "primary": "#1A1918",
+    "primary_foreground": "#F9F8F6",
+    "secondary": "#EAE8E3",
+    "secondary_foreground": "#1A1918",
+    "muted": "#F2F0EB",
+    "muted_foreground": "#6B6A65",
+    "accent": "#E03C31",
+    "accent_foreground": "#FFFFFF",
+    "destructive": "#E03C31",
+    "destructive_foreground": "#FFFFFF",
+    "border": "#E5E3DC",
+    "input": "#E5E3DC",
+    "ring": "#1A1918",
+    "status": {
+      "success": "#4A7A59",
+      "warning": "#C28B00",
+      "danger": "#E03C31",
+      "info": "#5A729A"
+    }
+  },
+  "typography": {
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap",
+    "fonts": {
+      "sans": "'Inter', sans-serif",
+      "serif": "'Playfair Display', serif",
+      "mono": "'IBM Plex Mono', monospace"
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl font-serif tracking-tight text-foreground",
+      "h2": "text-2xl sm:text-3xl font-serif tracking-tight text-foreground",
+      "h3": "text-xl sm:text-2xl font-serif tracking-tight text-foreground",
+      "h4": "text-lg font-sans font-semibold tracking-tight text-foreground",
+      "body": "text-base font-sans leading-relaxed text-foreground",
+      "metadata": "text-xs font-mono uppercase tracking-widest text-muted-foreground"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "px-4 sm:px-6 lg:px-8",
+    "section_gap": "gap-12 lg:gap-16",
+    "element_gap": "gap-4 lg:gap-6",
+    "radius": "0.25rem",
+    "shadows": {
+      "card": "none",
+      "popover": "0 10px 40px -10px rgba(26,25,24,0.1)",
+      "focus_ring": "ring-2 ring-primary ring-offset-2 ring-offset-background"
+    }
+  },
+  "motifs": {
+    "halftone_pattern": "background-image: radial-gradient(circle, #D1CFC7 1px, transparent 1px); background-size: 16px 16px;",
+    "washi_noise": "Use an SVG noise filter overlay with opacity 0.03 for a paper texture on the main background.",
+    "hairline_border": "border-[0.5px] border-border"
+  },
+  "component_overrides": {
+    "card": "Remove default shadow. Use bg-card text-card-foreground. Add border-[0.5px] border-border. Use rounded-sm (4px) for sharp editorial feel. Add generous padding p-6.",
+    "button": "Primary uses bg-primary text-primary-foreground hover:bg-primary/90. Radius rounded-sm. Accent CTA uses bg-accent text-accent-foreground. Secondary uses transparent bg with border-primary.",
+    "badge": "Use font-mono text-[10px] uppercase tracking-widest. Remove pill rounding, use rounded-sm. Add border border-border.",
+    "input": "border-border focus-visible:ring-1 focus-visible:ring-primary rounded-sm h-10 px-3 bg-transparent.",
+    "sidebar": "bg-[#F5F4F1] border-r border-border. Active nav item: text-primary font-medium with a 2px vertical left border in accent color (#E03C31). Inactive items: text-muted-foreground hover:text-primary.",
+    "tabs": "Override default pill/card tabs. Use editorial underline style: border-b border-border, active tab has border-b-2 border-primary text-primary font-medium, inactive has text-muted-foreground hover:text-primary. px-4 py-2.",
+    "table": "Dense layout. Use font-mono for numbers/stats. border-b border-border on rows. hover:bg-muted/50."
+  },
+  "page_layouts": {
+    "Login": "Split layout. Left: Clean login form, centered, minimal. Right: 'Manga panel' aesthetic – a collage or abstract ink brush image with halftone background pattern.",
+    "App_Shell": "Sidebar on left (collapsible). Topbar with global search (kbd shortcut ⌘K visibly indicated), notifications bell, user menu. Content area with soft washi background (#F9F8F6).",
+    "Admin_Dashboard": "Bento grid (Control Room mode). Strict borders (border-collapse). Role distribution chart (Recharts). Quick actions row. Task health table.",
+    "Mangaka_Dashboard": "Split view: 2/3 main, 1/3 sidebar. Main: Active Series Pipeline (visual track), Recent Activity Timeline. Sidebar: Next Actions (Action Inbox), Ranking Snapshot.",
+    "My_Series": "Grid view for series covers. Covers have a 1px inner border. Badges absolutely positioned over covers. Filters on top: Status, Genre, Search.",
+    "Create_Series_Wizard": "3-step stepper horizontally. Clean forms. Center aligned card with max-w-2xl.",
+    "Series_Detail": "Large Serif H1 for Title. Metadata row below (font-mono). Editorial Tabs (Proposal, Production, Workspace, Manuscript). Content renders inside tab area.",
+    "Page_Workspace": "Konva canvas takes up max height (vh-100 minus topbar). Left sidebar for Page tasks/regions. Right sidebar for AI Review & Comments. Canvas area bg is slightly darker (#EAE8E3) to frame the white page.",
+    "Assistant_Dashboard": "Focus on Task List. List view with priority flags. Earnings points highlighted in a large Serif display stat.",
+    "Editor_Dashboard": "Review queue centric. Wide tables. 'Manuscripts to review' with quick action 'Review' buttons.",
+    "Board_Dashboard": "Voting queue. Series cards with large 'Approve' / 'Reject' / 'Needs Revision' actions. Ranking charts using Recharts.",
+    "Settings_Profile": "Standard 2-column layout (sidebar nav + settings form). Clean, dense inputs."
+  },
+  "image_urls": [
+    {
+      "url": "https://images.unsplash.com/photo-1622542796157-af7cb80b5a62?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwzfHxibGFjayUyMGluayUyMGJydXNoJTIwc3Ryb2tlJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzgxNjg2NTA0fDA&ixlib=rb-4.1.0&q=85",
+      "category": "login_banner",
+      "description": "Abstract ink brush stroke for the login screen. Apply CSS filter: invert(1) or mix-blend-mode: multiply to integrate with light theme, serving as a sumi ink motif."
+    }
+  ],
+  "testing_attributes": "All interactive elements (buttons, nav links, form inputs, tabs) MUST include a 'data-testid' attribute (e.g., 'data-testid=\"login-submit-button\"').",
+  "instructions_to_main_agent": [
+    "IMPORTANT: The project requires .js/.jsx files for React components, NOT .tsx. Generate standard ES6 React components.",
+    "Use Tailwind v4 syntax and patterns. Ensure all colors and radius tokens are mapped in the main CSS file using @theme inline or variables.",
+    "Apply the Washi Paper + Editorial Ink aesthetic as described in colors and motifs. AVOID generic SaaS purple/blue.",
+    "Ensure 'data-testid' attributes are added to all interactive elements for robust testing.",
+    "For Shadcn components, directly modify the generated files to match the `component_overrides` (e.g., sharp corners, no shadows, mono text for badges).",
+    "Use `lucide-react` for icons, keeping them minimal and avoiding emojis.",
+    "Incorporate the halftone pattern or ink brush motifs strategically, especially in empty states and the login page."
+  ]
+}
