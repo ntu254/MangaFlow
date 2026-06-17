@@ -8,6 +8,7 @@ import UsersPage from '@/app/admin/UsersPage'
 import CreateUserPage from '@/app/admin/CreateUserPage'
 import BoardMembersPage from '@/app/admin/BoardMembersPage'
 import TaskTypesPage from '@/app/admin/TaskTypesPage'
+import AuditLogsPage from '@/app/admin/AuditLogsPage'
 import MangakaDashboard from '@/app/mangaka/DashboardPage'
 import MangakaSeriesPage from '@/app/mangaka/SeriesPage'
 import MangakaSeriesDetailPage from '@/app/mangaka/SeriesDetailPage'
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
             { path: 'users/create', element: <CreateUserPage /> },
             { path: 'board-members', element: <BoardMembersPage /> },
             { path: 'task-types', element: <TaskTypesPage /> },
+            { path: 'audit-logs', element: <AuditLogsPage /> },
           ]},
           // Assistant
           { path: 'assistant', element: <ProtectedRoute allowedRoles={['ASSISTANT']} />, children: [

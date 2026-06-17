@@ -5,18 +5,16 @@ import {
   type TaskTypeSort,
   type TaskTypeStatusFilter,
 } from '@/features/chapters/components/task-types/TaskTypesTableFilters'
-import { TaskTypesTable } from '@/features/chapters/components/task-types/TaskTypesTable'
-import { TaskTypesPagination } from '@/features/chapters/components/task-types/TaskTypesPagination'
 import { useAdminTaskTypes } from '@/features/chapters/hooks/useAdminTaskTypes'
-
-const PAGE_SIZE = 10
+import { PageHeader } from '@/shared/components/ui/page-header'
+import { ConfigCard } from '@/features/admin/components/ConfigCard'
+import { DangerZone } from '@/shared/components/ui/danger-zone'
 
 export default function TaskTypesPage() {
   const { data: taskTypes = [], isLoading, isError } = useAdminTaskTypes()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<TaskTypeStatusFilter>('ALL')
   const [sort, setSort] = useState<TaskTypeSort>('UPDATED_DESC')
-  const [currentPage, setCurrentPage] = useState(1)
 
   const filteredTaskTypes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -34,32 +32,56 @@ export default function TaskTypesPage() {
       })
   }, [taskTypes, searchQuery, statusFilter, sort])
 
-  const totalPages = Math.max(1, Math.ceil(filteredTaskTypes.length / PAGE_SIZE))
-  const activePage = Math.min(currentPage, totalPages)
-  const pageItems = filteredTaskTypes.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
-  const resetPage = () => setCurrentPage(1)
-
   return (
     <div className='max-w-7xl mx-auto space-y-6 pb-10'>
+      <PageHeader 
+        title="Task Types Configuration"
+        description="Manage the types of tasks assistants can perform, their default rates, and active status."
+      />
       <TaskTypesStatCardsRow />
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-12 flex flex-col">
-          <TaskTypesTableFilters
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            sort={sort}
-            onSearchChange={(value) => { setSearchQuery(value); resetPage() }}
-            onStatusChange={(value) => { setStatusFilter(value); resetPage() }}
-            onSortChange={(value) => { setSort(value); resetPage() }}
-          />
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden mt-2">
-            <div className="flex-1 overflow-auto">
-              <TaskTypesTable taskTypes={pageItems} isLoading={isLoading} isError={isError} />
-            </div>
-            {!isLoading && !isError && (
-              <TaskTypesPagination currentPage={activePage} totalPages={totalPages} totalItems={filteredTaskTypes.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
-            )}
+      
+      <div className="flex flex-col gap-6">
+        <TaskTypesTableFilters
+          statusFilter={statusFilter}
+          sort={sort}
+          onSearchChange={setSearchQuery}
+          onStatusChange={setStatusFilter}
+          onSortChange={setSort}
+        />
+        
+        {isLoading ? (
+          <div className="p-6 text-center text-muted-foreground">Loading configurations...</div>
+        ) : isError ? (
+          <div className="p-6 text-center text-destructive">Failed to load configurations.</div>
+        ) : filteredTaskTypes.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground bg-white rounded-xl border border-border/50">
+            No task types found matching the criteria.
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTaskTypes.map((task) => (
+              <ConfigCard
+                key={task.id}
+                title={task.name}
+                description={task.description}
+                status={task.isActive ? 'active' : 'inactive'}
+                lastUpdated={new Date(task.updatedAt).toLocaleDateString()}
+                primaryActionLabel="Edit Config"
+                secondaryActionLabel="Rates"
+                onPrimaryAction={() => console.log('Edit config', task.id)}
+                onSecondaryAction={() => console.log('Edit rates', task.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="mt-8">
+          <DangerZone
+            title="Archive Unused Task Types"
+            description="Permanently archive task types that have not been used in the last 12 months. This will not affect historical data."
+            actionLabel="Archive Types"
+            onAction={() => console.log('DangerZone: Archive triggered')}
+          />
         </div>
       </div>
     </div>

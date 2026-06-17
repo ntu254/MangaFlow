@@ -9,6 +9,8 @@ import {
 import { UsersTable } from '@/features/users/components/users/UsersTable'
 import { UsersPagination } from '@/features/users/components/users/UsersPagination'
 import { useAdminUsers } from '@/features/users/hooks/useAdminUsers'
+import { PageHeader } from '@/shared/components/ui/page-header'
+import { DangerZone } from '@/shared/components/ui/danger-zone'
 
 const PAGE_SIZE = 10
 
@@ -44,11 +46,15 @@ export default function UsersPage() {
 
   return (
     <div className='max-w-7xl mx-auto space-y-6 pb-10'>
+      <PageHeader 
+        title="User Management"
+        description="Manage system users, their roles, and platform access."
+      />
       <UsersStatCardsRow />
+      
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-12 flex flex-col">
           <UsersTableFilters
-            searchQuery={searchQuery}
             roleFilter={roleFilter}
             statusFilter={statusFilter}
             sort={sort}
@@ -70,6 +76,15 @@ export default function UsersPage() {
                 onPageChange={setCurrentPage}
               />
             )}
+          </div>
+
+          <div className="mt-8">
+            <DangerZone
+              title="Bulk Suspend Inactive Users"
+              description="This will suspend all users who have not logged in for 90 days. Their data will be retained, but they won't be able to log in."
+              actionLabel="Suspend Users"
+              onAction={() => console.log("DangerZone: Suspend triggered")}
+            />
           </div>
         </div>
       </div>
