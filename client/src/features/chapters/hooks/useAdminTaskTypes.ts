@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { isAxiosError } from "axios"
 import { toast } from "sonner"
 import {
   adminTaskTypesApi,
@@ -66,6 +67,13 @@ export function useDeleteAdminTaskType() {
       toast.success("Task type deleted")
       invalidateAdmin(queryClient)
     },
-    onError: () => toast.error("Failed to delete task type"),
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.status === 409) {
+        toast.info(error.response.data?.message ?? "Task type is in use and was deactivated.")
+        invalidateAdmin(queryClient)
+        return
+      }
+      toast.error("Failed to delete task type")
+    },
   })
 }

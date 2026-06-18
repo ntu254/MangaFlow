@@ -63,6 +63,13 @@ export interface Page {
     assignedTo?: { id: string; name: string }
     taskType?: { id: string; name: string }
     currentSubmissionId?: string
+    revisionRequestedByRole?: "MANGAKA" | "EDITOR"
+    revisionFeedback?: {
+      submissionId: string
+      version: number
+      reviewerNote: string
+      reviewerRole: "MANGAKA" | "EDITOR"
+    }
   }
   createdAt: string
   updatedAt: string

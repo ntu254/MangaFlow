@@ -59,6 +59,12 @@ export const submissionApi = {
   create: (taskId: string, input: SubmitTaskInput) =>
     apiClient.post<ApiResponse<Submission>>(`/tasks/${taskId}/submissions`, input),
 
+  getUploadUrl: (taskId: string, input: { originalName: string; contentType: string; size: number }) =>
+    apiClient.post<ApiResponse<{ uploadUrl: string; fileAssetId: string }>>(
+      `/tasks/${taskId}/submissions/upload-url`,
+      input,
+    ),
+
   listByTask: (taskId: string) =>
     apiClient.get<ApiResponse<Submission[]>>(`/tasks/${taskId}/submissions`),
 

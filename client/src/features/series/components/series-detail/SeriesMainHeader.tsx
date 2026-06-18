@@ -40,7 +40,7 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
           <div className="flex items-center gap-3">
             <h1 className="text-[28px] font-extrabold text-gray-900 tracking-tight">{summary.series.title}</h1>
             <div className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider border ${
-              isProposal ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+              isProposal ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'
             }`}>
               {isProposal ? labelize(summary.series.status) : `${labelize(summary.series.status)} Production`}
             </div>
@@ -53,7 +53,7 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-bold text-gray-500">Owner</span>
               <div className="flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">{summary.owner?.name?.charAt(0).toUpperCase() ?? '?'}</span>
+                <span className="w-4 h-4 rounded-full bg-violet-100 flex items-center justify-center text-[9px] font-bold text-violet-700">{summary.owner?.name?.charAt(0).toUpperCase() ?? '?'}</span>
                 <span className="text-[13px] font-bold text-gray-900">{summary.owner?.name ?? 'Unknown'}</span>
               </div>
             </div>
@@ -109,12 +109,12 @@ export function SeriesMainHeader({ summary, seriesPhase = 'proposal' }: SeriesMa
               </div>
             </div>
             <div className="text-[12px] font-bold text-gray-500 mt-6 flex items-center gap-1.5">
-              Current Phase: <span className={isProposal ? "text-orange-500" : "text-emerald-500"}>{isProposal ? 'Editor Review' : 'Production'}</span>
+              Current Phase: <span className={isProposal ? "text-amber-500" : "text-emerald-500"}>{isProposal ? 'Editor Review' : 'Production'}</span>
             </div>
             
             {/* Context Alert Banner */}
-            <div className={`mt-2 border rounded-xl p-3 flex gap-3 items-start shadow-sm ${isProposal ? 'bg-purple-50 border-purple-100' : 'bg-indigo-50 border-indigo-100'}`}>
-              <div className={`bg-white w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow-sm ${isProposal ? 'text-purple-600' : 'text-indigo-600'}`}>
+            <div className={`mt-2 border rounded-xl p-3 flex gap-3 items-start shadow-sm ${isProposal ? 'bg-purple-50 border-purple-100' : 'bg-violet-50 border-violet-100'}`}>
+              <div className={`bg-white w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow-sm ${isProposal ? 'text-purple-600' : 'text-violet-600'}`}>
                 <Info size={14} />
               </div>
               <div className="flex flex-col">

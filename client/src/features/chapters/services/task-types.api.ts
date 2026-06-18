@@ -4,24 +4,48 @@ import type { ApiResponse } from "@/shared/types"
 // ==================== TASK TYPES ====================
 export interface AdminTaskType {
   id: string
+  _id?: string
   name: string
-  description: string
+  code: string
+  description?: string
   baseRate: number
+  currency: "POINT" | "VND"
   isActive: boolean
+  allowRegionTask: boolean
+  allowPageTask: boolean
+  requiresFileSubmission: boolean
+  requiresTextSubmission: boolean
+  sortOrder?: number
   createdAt: string
   updatedAt: string
 }
 
 export interface CreateTaskTypeInput {
   name: string
-  description: string
+  code: string
+  description?: string
   baseRate: number
+  currency?: "POINT" | "VND"
+  isActive?: boolean
+  allowRegionTask?: boolean
+  allowPageTask?: boolean
+  requiresFileSubmission?: boolean
+  requiresTextSubmission?: boolean
+  sortOrder?: number
 }
 
 export interface UpdateTaskTypeInput {
   name?: string
+  code?: string
   description?: string
   baseRate?: number
+  currency?: "POINT" | "VND"
+  isActive?: boolean
+  allowRegionTask?: boolean
+  allowPageTask?: boolean
+  requiresFileSubmission?: boolean
+  requiresTextSubmission?: boolean
+  sortOrder?: number
 }
 
 export interface UpdateTaskTypeStatusInput {
@@ -39,4 +63,8 @@ export const adminTaskTypesApi = {
     apiClient.patch<ApiResponse<AdminTaskType>>(`/admin/task-types/${taskTypeId}/status`, data),
   delete: (taskTypeId: string) =>
     apiClient.delete<ApiResponse<AdminTaskType | null>>(`/admin/task-types/${taskTypeId}`),
+}
+
+export function taskTypeId(taskType: AdminTaskType): string {
+  return taskType.id ?? taskType._id ?? ""
 }

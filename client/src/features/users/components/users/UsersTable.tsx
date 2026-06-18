@@ -109,14 +109,13 @@ export function UsersTable({ users, isLoading, isError }: UsersTableProps) {
     },
   ]
 
-  if (isError) return <div className="p-6 text-center text-red-500">Failed to load users</div>
-
   return (
     <>
       <DataTable
         data={users}
         columns={columns}
         loading={isLoading}
+        error={isError}
         rowKey={(user) => user.id}
         className="border-0 rounded-none bg-transparent"
       />
@@ -143,7 +142,7 @@ export function UsersTable({ users, isLoading, isError }: UsersTableProps) {
             <AlertDialogCancel disabled={deleteUser.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={deleteUser.isPending}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-rose-600 text-white hover:bg-rose-700"
               onClick={(event) => {
                 event.preventDefault()
                 if (!deletingUser) return

@@ -1,3 +1,3 @@
-export { createTaskSubmissionService, listTaskSubmissionsService, listReviewQueueSubmissionsService } from "./services/submission-query.service.js";
+export { createTaskSubmissionService, listTaskSubmissionsService, listReviewQueueSubmissionsService, getTaskUploadUrlService } from "./services/submission-query.service.js";
 export { mangakaApproveSubmissionService, editorApproveSubmissionService, requestSubmissionRevisionService, rejectSubmissionService, editorRejectSubmissionService } from "./services/submission-command.service.js";
 //# sourceMappingURL=submission.service.js.map

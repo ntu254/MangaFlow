@@ -29,9 +29,9 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
             activities.map((activity) => (
               <div key={activity.id} className="flex gap-4 relative z-10">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 border-white shadow-sm mt-0.5 ${
-                  activity.status === 'pending' ? 'bg-indigo-100 text-indigo-600' :
+                  activity.status === 'pending' ? 'bg-violet-100 text-violet-600' :
                   activity.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                  'bg-orange-100 text-orange-600'
+                  'bg-amber-100 text-amber-600'
                 }`}>
                   <Clock size={10} strokeWidth={3} />
                 </div>

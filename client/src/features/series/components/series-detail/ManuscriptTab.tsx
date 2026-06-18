@@ -196,7 +196,7 @@ function VersionCard({
     >
       {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>}
       <div className="flex items-center gap-2 mb-3">
-        <span className={`${isCurrent ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'} px-2 py-0.5 rounded text-[10px] font-bold border`}>
+        <span className={`${isCurrent ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'} px-2 py-0.5 rounded text-[10px] font-bold border`}>
           {isCurrent ? 'Current' : labelize(manuscript.status)}
         </span>
       </div>
@@ -243,7 +243,7 @@ function FileRow({ icon, name, type, typeColor, pages, size, date, time, isLast 
     purple: 'bg-purple-50 text-purple-600 border-purple-100',
     fuchsia: 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100',
     emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    orange: 'bg-orange-50 text-orange-600 border-orange-100',
+    orange: 'bg-amber-50 text-amber-600 border-amber-100',
     blue: 'bg-blue-50 text-blue-600 border-blue-100',
   }
 
@@ -292,7 +292,7 @@ function FileRow({ icon, name, type, typeColor, pages, size, date, time, isLast 
 function fileIcon(mimeType: string) {
   if (mimeType.includes('zip')) return <FileArchive size={16} className="text-blue-500" />
   if (mimeType.includes('image')) return <FileImage size={16} className="text-emerald-500" />
-  return <FileText size={16} className="text-red-500" />
+  return <FileText size={16} className="text-rose-500" />
 }
 
 function fileBadgeColor(mimeType: string) {

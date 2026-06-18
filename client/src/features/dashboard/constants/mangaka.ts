@@ -73,9 +73,9 @@ export const activeSeriesData = [
     name: "Starlight Days",
     genre: "Romance - School",
     stage: "At Risk",
-    stageColor: "bg-red-50 text-red-700",
+    stageColor: "bg-rose-50 text-rose-700",
     milestoneIcon: "AlertTriangle",
-    milestoneIconColor: "text-red-500",
+    milestoneIconColor: "text-rose-500",
     milestoneTitle: "Revise Chapter 5",
     milestoneDate: "Due May 25, 2025 (Late)",
     chapters: "5 / 10",
@@ -100,7 +100,7 @@ export const dueSoonData = [
   {
     id: 1,
     status: "Late",
-    statusColor: "text-red-500",
+    statusColor: "text-rose-500",
     icon: "AlertTriangle",
     title: "Revise Chapter 5",
     subtitle: "Starlight Days",
@@ -109,7 +109,7 @@ export const dueSoonData = [
   {
     id: 2,
     status: "Blocking",
-    statusColor: "text-red-500",
+    statusColor: "text-rose-500",
     icon: "MessageSquare",
     title: "Editor feedback on Ch. 11",
     subtitle: "Eclipse of Eternity",
@@ -118,7 +118,7 @@ export const dueSoonData = [
   {
     id: 3,
     status: "At Risk",
-    statusColor: "text-orange-500",
+    statusColor: "text-amber-500",
     icon: "AlertCircle",
     title: "Submit Chapter 8",
     subtitle: "Neon Reverie",
@@ -172,7 +172,7 @@ export const recentActivityData = [
   {
     id: 4,
     icon: "ShieldCheck",
-    iconColor: "text-indigo-600 bg-indigo-50",
+    iconColor: "text-violet-600 bg-violet-50",
     title: "Board review completed",
     subtitle: "Starlight Days - Chapter 4",
     time: "Yesterday"

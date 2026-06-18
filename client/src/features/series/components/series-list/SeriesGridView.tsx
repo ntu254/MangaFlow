@@ -23,7 +23,7 @@ const getFillColor = (tone: string) => {
     case 'emerald': return 'bg-emerald-500';
     case 'purple': return 'bg-purple-500';
     case 'amber': return 'bg-amber-500';
-    case 'red': return 'bg-red-500';
+    case 'red': return 'bg-rose-500';
     case 'blue': return 'bg-blue-500';
     default: return 'bg-slate-500';
   }
@@ -34,7 +34,7 @@ const getTextColor = (tone: string) => {
     case 'emerald': return 'text-emerald-600';
     case 'purple': return 'text-purple-600';
     case 'amber': return 'text-amber-600';
-    case 'red': return 'text-red-600';
+    case 'red': return 'text-rose-600';
     case 'blue': return 'text-blue-600';
     default: return 'text-slate-600';
   }

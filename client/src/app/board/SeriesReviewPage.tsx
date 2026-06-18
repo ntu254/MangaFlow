@@ -205,7 +205,7 @@ export default function BoardSeriesReviewPage() {
               <Button 
                 onClick={() => handleVote("REJECT")}
                 variant="destructive"
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-rose-600 hover:bg-rose-700"
                 disabled={vote.isPending || summary?.boardReview?.status === "FINALIZED" || !voteNote.trim()}
               >
                 <XCircle className="mr-2 h-4 w-4" /> Reject

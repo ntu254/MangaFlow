@@ -20,4 +20,15 @@ export declare function listReviewQueueSubmissionsService(actor: SubmissionActor
 }> & {
     __v: number;
 })[]>;
+export interface GetTaskUploadUrlInput {
+    taskId: string;
+    actor: SubmissionActor;
+    originalName: string;
+    contentType: string;
+    size: number;
+}
+export declare function getTaskUploadUrlService(input: GetTaskUploadUrlInput): Promise<{
+    uploadUrl: string;
+    fileAssetId: any;
+}>;
 //# sourceMappingURL=submission-query.service.d.ts.map

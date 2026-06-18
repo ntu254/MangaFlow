@@ -132,7 +132,7 @@ function EditUserDialogContent({ user, onOpenChange }: { user: AdminUser; onOpen
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-rose-500">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateUser.isPending}>Cancel</Button>

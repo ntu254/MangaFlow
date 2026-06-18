@@ -18,7 +18,7 @@ export function DraftSummary({ formData, title = "Draft Summary" }: DraftSummary
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col w-full">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-bold text-indigo-700">{title}</h3>
+        <h3 className="text-sm font-bold text-violet-700">{title}</h3>
       </div>
 
       <div className="flex gap-4 mb-6">

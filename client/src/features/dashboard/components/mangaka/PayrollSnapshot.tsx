@@ -12,7 +12,7 @@ export function PayrollSnapshot() {
       <div className="flex flex-col justify-center flex-1 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+            <div className="w-12 h-12 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center border border-violet-100">
               <Wallet size={20} />
             </div>
             <div className="flex flex-col">

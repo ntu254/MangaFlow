@@ -7,6 +7,7 @@ import {
   reviewActionBodySchema,
   submissionIdParamsSchema,
   taskIdParamsSchema,
+  getTaskUploadUrlBodySchema,
 } from "./submission.validation.js"
 
 const router = Router()
@@ -17,6 +18,14 @@ router.post(
   validate(taskIdParamsSchema, "params"),
   validate(createSubmissionBodySchema),
   controller.createTaskSubmission,
+)
+
+router.post(
+  "/tasks/:taskId/submissions/upload-url",
+  requireAuth,
+  validate(taskIdParamsSchema, "params"),
+  validate(getTaskUploadUrlBodySchema),
+  controller.getTaskUploadUrl,
 )
 
 router.get(

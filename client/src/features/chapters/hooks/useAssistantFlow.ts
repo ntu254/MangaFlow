@@ -3,6 +3,7 @@ import { toast } from "sonner"
 import { taskApi } from "@/features/chapters/services/task.api"
 import { submissionApi, type SubmitTaskInput } from "@/features/reviews/services/submission.api"
 import { pageApi } from "@/features/chapters/services/chapter.api"
+import { putToPresignedUrl } from "@/features/series/services/series.api"
 
 export function useAssistantTasks(userId: string | undefined) {
   return useQuery({
@@ -79,4 +80,24 @@ export function useAssistantActions(taskId: string | undefined) {
   })
 
   return { startTask, submitWork }
+}
+
+export function useUploadTaskResult(taskId: string | undefined) {
+  return useMutation({
+    mutationFn: async ({ file, onProgress }: { file: File; onProgress?: (loaded: number, total: number) => void }) => {
+      if (!taskId) throw new Error("Task ID is required")
+      
+      const { data } = await submissionApi.getUploadUrl(taskId, {
+        originalName: file.name,
+        contentType: file.type,
+        size: file.size,
+      })
+      
+      const { uploadUrl, fileAssetId } = data.data
+      await putToPresignedUrl(uploadUrl, file, onProgress)
+      
+      return fileAssetId
+    },
+    onError: () => toast.error("Failed to upload result image"),
+  })
 }

@@ -12,7 +12,7 @@ interface Step3SubmitProps {
 const REQUIRED_SLOTS: UploadSlot[] = ['PROPOSAL_PDF', 'SAMPLE_PAGE']
 
 function iconForFile(file: UploadedSeriesFile) {
-  if (file.contentType === 'application/pdf') return { icon: <FileText className="text-red-600" size={20} />, bg: 'bg-red-50' }
+  if (file.contentType === 'application/pdf') return { icon: <FileText className="text-rose-600" size={20} />, bg: 'bg-rose-50' }
   if (file.contentType === 'application/zip') return { icon: <FileArchive className="text-emerald-600" size={20} />, bg: 'bg-emerald-50' }
   if (file.contentType.startsWith('image/')) return { icon: <ImageIcon className="text-blue-600" size={20} />, bg: 'bg-blue-50' }
   return { icon: <FileIcon className="text-slate-500" size={20} />, bg: 'bg-slate-50' }
@@ -27,7 +27,7 @@ export function Step3Submit({ formData, uploadedFiles, editorMessage, setEditorM
       {/* 1. Submission Summary */}
       <div className="bg-white border border-slate-200 rounded-2xl p-8 flex flex-col w-full shadow-sm">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-lg font-bold text-indigo-900">1. Submission Summary</h2>
+          <h2 className="text-lg font-bold text-violet-900">1. Submission Summary</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
@@ -61,9 +61,9 @@ export function Step3Submit({ formData, uploadedFiles, editorMessage, setEditorM
       {/* 2. Submitted Materials */}
       <div className="bg-white border border-slate-200 rounded-2xl flex flex-col w-full shadow-sm overflow-hidden">
         <div className="p-8 pb-6 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-indigo-900 mb-6">2. Submitted Materials</h2>
+          <h2 className="text-lg font-bold text-violet-900 mb-6">2. Submitted Materials</h2>
           <div className="flex items-center gap-2">
-            <span className="px-4 py-1.5 bg-indigo-600 text-white text-[12px] font-bold rounded-full">All ({uploadedFiles.length})</span>
+            <span className="px-4 py-1.5 bg-violet-600 text-white text-[12px] font-bold rounded-full">All ({uploadedFiles.length})</span>
             <span className="px-4 py-1.5 bg-slate-100 text-slate-600 text-[12px] font-bold rounded-full">Required ({requiredCount})</span>
             <span className="px-4 py-1.5 bg-slate-100 text-slate-600 text-[12px] font-bold rounded-full">Optional ({optionalCount})</span>
           </div>
@@ -97,12 +97,12 @@ export function Step3Submit({ formData, uploadedFiles, editorMessage, setEditorM
 
       {/* 3. Message to Editor */}
       <div className="bg-white border border-slate-200 rounded-2xl p-8 flex flex-col w-full shadow-sm mb-8">
-        <h2 className="text-lg font-bold text-indigo-900 mb-2">3. Message to Editor <span className="text-slate-400 font-medium text-[15px]">(Optional)</span></h2>
+        <h2 className="text-lg font-bold text-violet-900 mb-2">3. Message to Editor <span className="text-slate-400 font-medium text-[15px]">(Optional)</span></h2>
         <p className="text-[13px] text-slate-500 mb-6">Add any notes or context that may help the editor understand your series better.</p>
 
         <div className="relative">
           <textarea
-            className="w-full min-h-[120px] p-4 border border-slate-200 rounded-xl text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 resize-none transition-all"
+            className="w-full min-h-[120px] p-4 border border-slate-200 rounded-xl text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-violet-600 resize-none transition-all"
             placeholder="Write your message here..."
             maxLength={1000}
             value={editorMessage}

@@ -21,8 +21,13 @@ export * from "./switch"
 export * from "./tabs"
 export * from "./textarea"
 
+export * from "./table"
+
 // Custom MangaFlow primitives
 export * from "./status-badge"
 export * from "./page-header"
 export * from "./empty-state"
 export * from "./stat-card"
+export * from "./command-bar"
+export * from "./TabButton"
+export * from "./MetricCard"

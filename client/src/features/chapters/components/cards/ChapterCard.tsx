@@ -30,7 +30,7 @@ export function ChapterCard({ ch, title, status, pages, pct, target, tasks, acti
       </div>
       <div className="flex justify-between items-center text-[11px] font-bold text-gray-500">
         <span>{target}</span>
-        {tasks && <span className="text-orange-500">{tasks}</span>}
+        {tasks && <span className="text-amber-500">{tasks}</span>}
       </div>
     </button>
   )

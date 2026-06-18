@@ -75,10 +75,10 @@ function PageListItem({ page, active, onClick }: { page: Page; active?: boolean;
   const colors: Record<string, string> = {
     APPROVED: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     IN_PROGRESS: 'bg-purple-50 text-purple-600 border-purple-100',
-    UNDER_REVIEW: 'bg-orange-50 text-orange-600 border-orange-100',
+    UNDER_REVIEW: 'bg-amber-50 text-amber-600 border-amber-100',
     UPLOADED: 'bg-blue-50 text-blue-600 border-blue-100',
     READY_FOR_REGION: 'bg-yellow-50 text-yellow-700 border-yellow-100',
-    PROCESSING_FAILED: 'bg-red-50 text-red-600 border-red-100',
+    PROCESSING_FAILED: 'bg-rose-50 text-rose-600 border-rose-100',
   }
 
   return (

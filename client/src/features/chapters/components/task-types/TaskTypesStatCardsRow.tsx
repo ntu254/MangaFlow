@@ -13,10 +13,10 @@ export function TaskTypesStatCardsRow() {
   return (
     <div className='grid grid-cols-2 md:grid-cols-5 gap-4 w-full'>
       <StatCard icon={<Layers className="text-purple-600" size={20}/>} title="Active Task Types" value={isLoading ? '...' : active} sub={<span className="text-purple-600">{inactive} inactive</span>} iconBg="bg-purple-100" />
-      <StatCard icon={<Ban className="text-orange-500" size={20}/>} title="Inactive" value={isLoading ? '...' : inactive} sub={<span className="text-orange-500">Deactivated</span>} iconBg="bg-orange-100" />
+      <StatCard icon={<Ban className="text-amber-500" size={20}/>} title="Inactive" value={isLoading ? '...' : inactive} sub={<span className="text-amber-500">Deactivated</span>} iconBg="bg-amber-100" />
       <StatCard icon={<TrendingUp className="text-emerald-600" size={20}/>} title="Used This Month" value="-" sub={<span className="text-gray-400 font-medium">Usage analytics pending</span>} iconBg="bg-emerald-100" />
       <StatCard icon={<JapaneseYen className="text-purple-600" size={20}/>} title="Average Base Rate" value={`${averageRate.toLocaleString()} VND`} sub="All task types" iconBg="bg-purple-100" />
-      <StatCard icon={<AlertTriangle className="text-red-500" size={20}/>} title="Conflicts" value="0" sub={<span className="text-emerald-600">No conflicts</span>} iconBg="bg-red-100" />
+      <StatCard icon={<AlertTriangle className="text-rose-500" size={20}/>} title="Conflicts" value="0" sub={<span className="text-emerald-600">No conflicts</span>} iconBg="bg-rose-100" />
     </div>
   )
 }

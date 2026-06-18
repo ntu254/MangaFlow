@@ -1,11 +1,15 @@
 import axios from "axios";
 import mongoose from "mongoose";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api";
 
 async function login(email, password) {
   const res = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
   return res.data.data.accessToken;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function runE2E() {
@@ -19,8 +23,10 @@ async function runE2E() {
 
     console.log("-> Getting User IDs...");
     const usersRes = await adminClient.get("/admin/users");
-    const assistantUser = usersRes.data.data.find((u) => u.role === "ASSISTANT");
-    const editorUser = usersRes.data.data.find((u) => u.role === "EDITOR");
+    const assistantUser = usersRes.data.data.find((u) => u.email === "assistant@mangaflow.local")
+      ?? usersRes.data.data.find((u) => u.role === "ASSISTANT");
+    const editorUser = usersRes.data.data.find((u) => u.email === "editor@mangaflow.local")
+      ?? usersRes.data.data.find((u) => u.role === "EDITOR");
     if (!assistantUser) throw new Error("Assistant user not found. Run seed script.");
     if (!editorUser) throw new Error("Editor user not found. Run seed script.");
     const assistantId = assistantUser.id;
@@ -29,13 +35,15 @@ async function runE2E() {
     console.log(`-> Editor ID: ${editorId}`);
 
     console.log("-> Getting Task Type...");
-    const existingTypesRes = await adminClient.get("/tasks/types");
+    const existingTypesRes = await adminClient.get("/task-types");
     let taskTypeId;
     if (existingTypesRes.data.data.length > 0) {
       taskTypeId = existingTypesRes.data.data[0]._id || existingTypesRes.data.data[0].id;
     } else {
-      const taskTypeRes = await adminClient.post("/tasks/types", {
-        name: "Inking Test " + Date.now(),
+      const suffix = Date.now();
+      const taskTypeRes = await adminClient.post("/admin/task-types", {
+        name: "Inking Test " + suffix,
+        code: "INKING_TEST_" + suffix,
         description: "Inking pages",
         baseRate: 500,
       });
@@ -51,6 +59,8 @@ async function runE2E() {
     const seriesRes = await mangakaClient.post("/series", {
       title: "E2E Full Workflow Series " + Date.now(),
       synopsis: "This is a comprehensive test series",
+      targetAudience: "Shonen readers",
+      requestedPublicationType: "WEEKLY",
       genres: ["Shonen"],
     });
     const seriesId = seriesRes.data.data.id;
@@ -73,7 +83,9 @@ async function runE2E() {
     const editorClient = axios.create({ baseURL: API_BASE_URL, headers: { Authorization: `Bearer ${editorToken}` } });
 
     await editorClient.post(`/manuscripts/${manuscriptId}/forward-to-board`, {
-      notes: "Looks good, forward to Board.",
+      editorRecommendation: "Looks good, forward to Board.",
+      feasibilityNote: "Production scope is feasible for a weekly schedule.",
+      suggestedPublicationType: "WEEKLY",
     });
     console.log("-> Series Forwarded to Board.");
 
@@ -83,7 +95,11 @@ async function runE2E() {
     const boardClient = axios.create({ baseURL: API_BASE_URL, headers: { Authorization: `Bearer ${boardToken}` } });
 
     await boardClient.post(`/board/series/${seriesId}/votes`, { value: "APPROVE" });
-    await boardClient.post(`/board/series/${seriesId}/decisions/finalize`);
+    await boardClient.post(`/board/series/${seriesId}/decisions/finalize`, {
+      decision: "APPROVED",
+      publicationType: "WEEKLY",
+      note: "Approved for weekly publication.",
+    });
     console.log("-> Series APPROVED by Board.");
 
     // 4. Chapter Production & Team Assignment
@@ -184,13 +200,23 @@ async function runE2E() {
 
     // 8. Payroll
     console.log("\n[8] Workflow 5: Payroll & Earnings...");
-    console.log("-> Calculating Task Earning...");
-    const payrollRes = await mangakaClient.post(`/payroll/tasks/${taskId}/calculate`);
-    const earningId = payrollRes.data.data.id;
-    console.log(`-> Earning Calculated: ${earningId}`);
+    console.log("-> Waiting for Task Earning...");
+    let earning;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const earningsRes = await adminClient.get("/payroll/earnings");
+      earning = earningsRes.data.data.find((item) => {
+        const earningTaskId = item.taskId?._id || item.taskId?.id || item.taskId;
+        return String(earningTaskId) === String(taskId);
+      });
+      if (earning) break;
+      await sleep(500);
+    }
+    if (!earning) throw new Error("Task earning was not auto-calculated after editor approval.");
+    const earningId = earning._id || earning.id;
+    console.log(`-> Earning Found: ${earningId}`);
 
-    console.log("-> Mangaka confirming Task Earning...");
-    await mangakaClient.post(`/payroll/tasks/${taskId}/confirm`);
+    console.log("-> Admin confirming Task Earning...");
+    await adminClient.post(`/payroll/tasks/${taskId}/confirm`);
     console.log("-> Earning CONFIRMED.");
 
     // 9. Publication Readiness
@@ -216,6 +242,9 @@ async function runE2E() {
     const rankingId = rankingRes.data.data._id || rankingRes.data.data.id;
     console.log(`-> Ranking Imported: ${rankingId}`);
     
+    console.log("-> Submitting Ranking...");
+    await boardClient.post(`/rankings/${rankingId}/submit`);
+
     console.log("-> Finalizing Ranking...");
     await boardClient.post(`/rankings/${rankingId}/finalize`);
     
@@ -242,6 +271,7 @@ async function runE2E() {
     } else {
       console.error(error.message);
     }
+    process.exitCode = 1;
   } finally {
     if (mongoose.connection.readyState === 1) {
       await mongoose.disconnect();

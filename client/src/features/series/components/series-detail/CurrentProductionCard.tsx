@@ -10,7 +10,7 @@ export function CurrentProductionCard() {
       
       <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
         <h3 className="text-[15px] font-bold text-gray-900">Current Production</h3>
-        <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-orange-200 uppercase tracking-wider">
+        <span className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-amber-200 uppercase tracking-wider">
           {currentManuscript.status}
         </span>
       </div>
@@ -42,8 +42,8 @@ export function CurrentProductionCard() {
           <ExternalLink size={14} className="text-gray-400" />
           Open Production
         </button>
-        <button className="w-full bg-red-50/30 border border-red-300 hover:bg-red-50 text-red-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-[12px] shadow-sm">
-          <RefreshCw size={14} className="text-red-500" />
+        <button className="w-full bg-rose-50/30 border border-rose-300 hover:bg-rose-50 text-rose-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-[12px] shadow-sm">
+          <RefreshCw size={14} className="text-rose-500" />
           Request Revision
         </button>
       </div>

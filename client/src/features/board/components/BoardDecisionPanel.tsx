@@ -10,7 +10,7 @@ interface BoardDecisionPanelProps extends React.HTMLAttributes<HTMLDivElement> {
 const toneMap = {
   emerald: "border-emerald-200 bg-emerald-50/50",
   amber: "border-amber-200 bg-amber-50/50",
-  red: "border-red-200 bg-red-50/50",
+  red: "border-rose-200 bg-rose-50/50",
   violet: "border-violet-200 bg-violet-50/50",
 }
 

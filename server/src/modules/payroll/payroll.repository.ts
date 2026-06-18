@@ -1,3 +1,4 @@
+import type { PopulateOptions } from "mongoose"
 import type { AssistantEarningStatus } from "../../shared/workflow/status.js"
 import { Task } from "../task/task.model.js"
 import { AssistantEarning } from "./payroll.model.js"
@@ -41,6 +42,20 @@ export async function getEarningById(earningId: string) {
   return AssistantEarning.findById(earningId)
 }
 
+/**
+ * Shared populate config so single-record mutations (confirm/mark-paid) return
+ * the same assistant + task(+type) shape as the list endpoint. Keeps the client
+ * able to render names/titles instead of falling back to raw ids.
+ */
+const EARNING_POPULATE = [
+  { path: "assistantId", select: "name email role" },
+  {
+    path: "taskId",
+    select: "title status taskTypeId",
+    populate: { path: "taskTypeId", select: "name code" },
+  },
+] satisfies PopulateOptions[]
+
 export async function updateEarningStatus(
   earningId: string,
   status: AssistantEarningStatus,
@@ -53,8 +68,13 @@ export async function updateEarningStatus(
     { status, [actorField]: actorId, [timestampField]: new Date() },
     { new: true },
   )
+    .populate(EARNING_POPULATE)
+    .lean()
 }
 
 export async function listEarnings(query: Record<string, unknown>) {
-  return AssistantEarning.find(query).sort({ createdAt: -1 }).lean()
+  return AssistantEarning.find(query)
+    .sort({ createdAt: -1 })
+    .populate(EARNING_POPULATE)
+    .lean()
 }

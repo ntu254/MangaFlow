@@ -1,21 +1,29 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Clock, Play, Send, LayoutPanelLeft, AlertCircle } from 'lucide-react'
-import { useState, useMemo } from 'react'
-import { useAssistantTaskDetail, useAssistantActions, useAssistantPageAssets } from '@/features/chapters/hooks/useAssistantFlow'
+import { ArrowLeft, CheckCircle2, Clock, Play, Send, LayoutPanelLeft, AlertCircle, Loader2 } from 'lucide-react'
+import { useState, useMemo, useRef } from 'react'
+import { useAssistantTaskDetail, useAssistantActions, useAssistantPageAssets, useUploadTaskResult } from '@/features/chapters/hooks/useAssistantFlow'
 import { usePageImageDownloadUrl } from '@/features/chapters/hooks/useChapterWorkspace'
 import { Button } from '@/shared/components/ui/button'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog"
+import { usePageChrome } from '@/shared/components/layout/page-chrome'
+import { EmptyState } from '@/shared/components/ui/empty-state'
+import { useAuthStore } from '@/features/auth/store/authStore'
 
 export default function TaskStudioPage() {
   const { taskId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState<'instructions' | 'comments'>('instructions')
-  
-  const { data: task, isLoading: isTaskLoading } = useAssistantTaskDetail(taskId)
-  const { startTask, submitWork } = useAssistantActions(taskId)
 
-  const { data: pageData, isLoading: isPageLoading } = useAssistantPageAssets(task?.pageId)
+  // Full-screen focused task studio.
+  usePageChrome({ sidebar: 'hidden', bleed: true })
+  
+  const { data: task, isLoading: isTaskLoading, isError: isTaskError } = useAssistantTaskDetail(taskId)
+  const { startTask, submitWork } = useAssistantActions(taskId)
+  const uploadTaskResult = useUploadTaskResult(taskId)
+
+  const { data: pageData, isLoading: isPageLoading, isError: isPageError } = useAssistantPageAssets(task?.pageId)
 
   // Fetch download URL of the page working file asset
   const fileAssetId = pageData?.workingFileAsset?.id || 
@@ -27,6 +35,9 @@ export default function TaskStudioPage() {
 
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false)
   const [submitText, setSubmitText] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadedAssetId, setUploadedAssetId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Find the target region if this is a region task
   const targetRegion = useMemo(() => {
@@ -38,7 +49,12 @@ export default function TaskStudioPage() {
 
   const handleSubmit = async () => {
     try {
-      await submitWork.mutateAsync({ resultText: submitText })
+      let finalAssetId = uploadedAssetId;
+      if (selectedFile && !uploadedAssetId) {
+        finalAssetId = await uploadTaskResult.mutateAsync({ file: selectedFile })
+      }
+      
+      await submitWork.mutateAsync({ resultText: submitText, fileAssetId: finalAssetId || undefined })
       setIsSubmitDialogOpen(false)
       navigate('/app/assistant/dashboard')
     } catch {
@@ -48,18 +64,25 @@ export default function TaskStudioPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[calc(100vh-64px)] items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex h-screen items-center justify-center bg-slate-50 flex-col gap-4 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+        <span className="text-sm font-medium">Loading workspace...</span>
       </div>
     )
   }
 
-  if (!task) {
+  if (!task || isTaskError || isPageError) {
     return (
-      <div className="flex h-[calc(100vh-64px)] flex-col items-center justify-center bg-slate-50">
-        <AlertCircle className="mb-4 h-12 w-12 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Task not found</h2>
-        <Button variant="ghost" onClick={() => navigate('/app/assistant/dashboard')} className="mt-4 gap-2">
+      <div className="flex h-screen flex-col items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md">
+          <EmptyState 
+            icon={AlertCircle}
+            title="Task not found"
+            description="The task you are looking for does not exist or you don't have permission to view it."
+            className="bg-white border-slate-200"
+          />
+        </div>
+        <Button variant="ghost" onClick={() => navigate('/app/assistant/dashboard')} className="mt-6 gap-2 text-slate-500 hover:text-slate-900">
           <ArrowLeft className="h-4 w-4" /> Back to Hub
         </Button>
       </div>
@@ -67,8 +90,8 @@ export default function TaskStudioPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -m-6 bg-slate-50 overflow-hidden">
-      
+    <div className="flex h-full bg-slate-50 overflow-hidden">
+
       {/* Left Panel: Task Context */}
       <div className="w-[400px] flex flex-col bg-white border-r border-slate-200 z-10 shrink-0 shadow-sm">
         
@@ -90,7 +113,7 @@ export default function TaskStudioPage() {
             {targetRegion && (
               <div className="flex items-center gap-1.5"><LayoutPanelLeft size={14} /> Region {targetRegion.type}</div>
             )}
-            <div className="flex items-center gap-1.5 text-orange-600 font-bold"><Clock size={14} /> Due in 2 hrs</div>
+            <div className="flex items-center gap-1.5 text-amber-600 font-bold"><Clock size={14} /> Due in 2 hrs</div>
           </div>
         </div>
 
@@ -123,8 +146,8 @@ export default function TaskStudioPage() {
 
               <div className="space-y-2">
                 <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Reference Materials</h3>
-                <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 transition-colors cursor-pointer group">
-                  <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center text-violet-600 group-hover:bg-indigo-100 transition-colors">
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-violet-300 transition-colors cursor-pointer group">
+                  <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center text-violet-600 group-hover:bg-violet-100 transition-colors">
                     <Play size={18} />
                   </div>
                   <div className="flex flex-col">
@@ -145,7 +168,7 @@ export default function TaskStudioPage() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <input type="text" placeholder="Type a message..." className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-indigo-400" />
+                <input type="text" placeholder="Type a message..." className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-violet-400" />
                 <button className="bg-violet-600 text-white w-9 h-9 rounded-lg flex items-center justify-center shrink-0 hover:bg-violet-700">
                   <Send size={14} />
                 </button>
@@ -156,7 +179,11 @@ export default function TaskStudioPage() {
 
         {/* Footer / Actions */}
         <div className="p-4 border-t border-slate-100 bg-slate-50">
-          {task.status === "TODO" ? (
+          {user?._id !== task.assignedTo ? (
+            <div className="bg-slate-100 text-slate-500 rounded-xl py-4 text-center font-bold text-sm border border-slate-200">
+              Not Assignee
+            </div>
+          ) : task.status === "TODO" ? (
             <Button 
               className="w-full bg-violet-600 hover:bg-violet-700 font-bold py-6 rounded-xl"
               onClick={() => startTask.mutate()}
@@ -187,11 +214,24 @@ export default function TaskStudioPage() {
           <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom In">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
           </button>
-          <div className="w-px h-6 bg-gray-200 mx-1"></div>
-          <button className="p-2 bg-violet-50 text-violet-600 rounded-lg font-bold text-[12px] px-3 border border-indigo-100 hover:bg-indigo-100 transition-colors">
+          <button 
+            className="p-2 bg-violet-50 text-violet-600 rounded-lg font-bold text-[12px] px-3 border border-violet-100 hover:bg-violet-100 transition-colors"
+            onClick={() => {
+              if (imageUrl) {
+                const a = document.createElement('a')
+                a.href = imageUrl
+                a.download = `page_${pageData?.page?.pageNumber || 'download'}.png`
+                a.click()
+              }
+            }}
+          >
             Download Region
           </button>
-          <button className="p-2 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[12px] px-3 border border-emerald-100 hover:bg-emerald-100 transition-colors ml-1">
+          <button 
+            className="p-2 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[12px] px-3 border border-emerald-100 hover:bg-emerald-100 transition-colors ml-1"
+            onClick={() => setIsSubmitDialogOpen(true)}
+            disabled={task.status !== "IN_PROGRESS" && task.status !== "REVISION_REQUESTED"}
+          >
             Upload Result
           </button>
         </div>
@@ -234,7 +274,44 @@ export default function TaskStudioPage() {
               Submit your work for Mangaka review. You can add an optional note describing your changes.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {/* File Upload Area */}
+            <div 
+              className="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/png, image/jpeg, image/webp" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setSelectedFile(file)
+                    setUploadedAssetId(null) // reset if they pick a new file
+                  }
+                }} 
+              />
+              {selectedFile ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <div className="text-sm font-bold text-slate-700">{selectedFile.name}</div>
+                  <div className="text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3">
+                    <AlertCircle size={24} />
+                  </div>
+                  <div className="text-sm font-bold text-slate-700 mb-1">Click to upload result image</div>
+                  <div className="text-xs text-slate-500">PNG, JPG or WEBP (max. 100MB)</div>
+                </>
+              )}
+            </div>
+
             <Textarea
               placeholder="I removed the raw text and reconstructed the screentone..."
               value={submitText}
@@ -244,7 +321,13 @@ export default function TaskStudioPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsSubmitDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={submitWork.isPending}>Submit Work</Button>
+            <Button onClick={handleSubmit} disabled={submitWork.isPending || uploadTaskResult.isPending}>
+              {(submitWork.isPending || uploadTaskResult.isPending) ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+              ) : (
+                "Submit Work"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

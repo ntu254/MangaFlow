@@ -12,7 +12,7 @@ export function SeriesSummaryWidget({ formData, uploadedFiles }: SeriesSummaryWi
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col w-full">
-      <h3 className="text-sm font-bold text-indigo-900 mb-6">Series Summary</h3>
+      <h3 className="text-sm font-bold text-violet-900 mb-6">Series Summary</h3>
 
       <div className="flex gap-4 mb-6">
         <div className="w-20 h-28 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-slate-200" />

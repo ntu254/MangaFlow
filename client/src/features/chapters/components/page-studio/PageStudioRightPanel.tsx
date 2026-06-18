@@ -1,7 +1,12 @@
 import { useState } from 'react'
-import { MoreVertical, ClipboardList } from 'lucide-react'
+import { MoreVertical, ClipboardList, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import type { AIResult, Page, Region } from '@/features/chapters/services/chapter.api'
 import { AssignTaskModal } from './AssignTaskModal'
+import { ReviewActionModal } from './ReviewActionModal'
+import { useAuthStore } from '@/features/auth/store/authStore'
+import { toast } from 'sonner'
+import { useMangakaApprove, useMangakaRequestRevision, useMangakaReject } from '@/features/reviews/hooks/useMangakaReview'
+import { useEditorPageApprove, useEditorPageRequestRevision, useEditorPageReject } from '@/features/reviews/hooks/useEditorFlow'
 
 interface PageStudioRightPanelProps {
   rightTab: 'task' | 'comments'
@@ -32,8 +37,54 @@ export function PageStudioRightPanel({
     })),
   )
   
+  const { user } = useAuthStore()
+  const isMangaka = user?.role === 'MANGAKA'
+  const isEditor = user?.role === 'EDITOR'
+  
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [taskTarget, setTaskTarget] = useState<{ type: 'page' | 'region', regionId?: string }>({ type: 'page' })
+
+  // Review Actions State
+  const [reviewModalState, setReviewModalState] = useState<{
+    isOpen: boolean
+    actionType: 'approve' | 'revision' | 'reject' | null
+  }>({ isOpen: false, actionType: null })
+
+  // Review Actions Hooks
+  const mangakaApprove = useMangakaApprove()
+  const mangakaRequestRevision = useMangakaRequestRevision()
+  const mangakaReject = useMangakaReject()
+  const editorApprove = useEditorPageApprove()
+  const editorRequestRevision = useEditorPageRequestRevision()
+  const editorReject = useEditorPageReject()
+
+  const handleReviewSubmit = async (note: string) => {
+    const submissionId = page.activeTask?.currentSubmissionId
+    if (!submissionId) {
+      toast.error('No submission ID found for this task')
+      return
+    }
+
+    try {
+      if (isMangaka && page.activeTask?.status === 'SUBMITTED') {
+        if (reviewModalState.actionType === 'approve') await mangakaApprove.mutateAsync({ submissionId, reviewerNote: note })
+        if (reviewModalState.actionType === 'revision') await mangakaRequestRevision.mutateAsync({ submissionId, reviewerNote: note })
+        if (reviewModalState.actionType === 'reject') await mangakaReject.mutateAsync({ submissionId, reviewerNote: note })
+      } else if (isEditor && page.activeTask?.status === 'MANGAKA_APPROVED') {
+        if (reviewModalState.actionType === 'approve') await editorApprove.mutateAsync({ submissionId, reviewerNote: note })
+        if (reviewModalState.actionType === 'revision') await editorRequestRevision.mutateAsync({ submissionId, reviewerNote: note })
+        if (reviewModalState.actionType === 'reject') await editorReject.mutateAsync({ submissionId, reviewerNote: note })
+      }
+      toast.success(`Submission ${reviewModalState.actionType} successful!`)
+    } catch (err) {
+      // Error handled by mutation (or query client), toast here if needed
+    } finally {
+      setReviewModalState({ isOpen: false, actionType: null })
+    }
+  }
+
+  const isReviewPending = mangakaApprove.isPending || mangakaRequestRevision.isPending || mangakaReject.isPending || editorApprove.isPending || editorRequestRevision.isPending || editorReject.isPending
+
 
   const handleAssignPageTask = () => {
     setTaskTarget({ type: 'page' })
@@ -102,10 +153,33 @@ export function PageStudioRightPanel({
                     </div>
                     <div className="text-[11px] text-slate-600">
                       Task: {page.activeTask.taskType?.name || 'Unknown Task'}
+                      <br/>
+                      By: <span className="font-bold">{page.activeTask.assignedTo?.name || 'Assistant'}</span>
                     </div>
-                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-blue-600 text-white font-bold text-[11px] hover:bg-blue-700 transition-colors shadow-sm">
-                      Review Submission
-                    </button>
+                    {isMangaka && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        <button 
+                          onClick={() => setReviewModalState({ isOpen: true, actionType: 'approve' })}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                          <CheckCircle size={14} /> Approve Submission
+                        </button>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setReviewModalState({ isOpen: true, actionType: 'revision' })}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-100 text-amber-700 font-bold text-[11px] hover:bg-amber-200 transition-colors"
+                          >
+                            <AlertCircle size={14} /> Request Revision
+                          </button>
+                          <button 
+                            onClick={() => setReviewModalState({ isOpen: true, actionType: 'reject' })}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-rose-100 text-rose-700 font-bold text-[11px] hover:bg-rose-200 transition-colors"
+                          >
+                            <XCircle size={14} /> Reject
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : page.activeTask?.status === 'TODO' ? (
                   <div className="flex flex-col gap-2">
@@ -116,9 +190,6 @@ export function PageStudioRightPanel({
                       <span className="font-bold">{page.activeTask.assignedTo?.name || 'Assistant'}</span> is assigned to:
                       <br/>"{page.activeTask.taskType?.name || 'Unknown Task'}"
                     </div>
-                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-purple-600 text-white font-bold text-[11px] hover:bg-purple-700 transition-colors shadow-sm">
-                      View Task
-                    </button>
                   </div>
                 ) : page.activeTask?.status === 'REVISION_REQUESTED' ? (
                   <div className="flex flex-col gap-2">
@@ -127,10 +198,22 @@ export function PageStudioRightPanel({
                     </div>
                     <div className="text-[11px] text-slate-600">
                       Task: {page.activeTask.taskType?.name || 'Unknown Task'}
+                      <br/>
+                      By: <span className="font-bold">{page.activeTask.assignedTo?.name || 'Assistant'}</span>
                     </div>
-                    <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-rose-600 text-white font-bold text-[11px] hover:bg-rose-700 transition-colors shadow-sm">
-                      View Task
-                    </button>
+                    <div className="mt-2 p-3 bg-rose-50/50 border border-rose-100 rounded-lg">
+                      <span className="text-[11px] font-bold text-rose-800 block mb-1">Feedback from {page.activeTask.revisionFeedback?.reviewerRole === 'EDITOR' ? 'Editor' : 'Mangaka'}:</span>
+                      {page.activeTask.revisionFeedback?.reviewerNote ? (
+                        <p className="text-[11px] text-rose-700 italic">"{page.activeTask.revisionFeedback.reviewerNote}"</p>
+                      ) : (
+                        <p className="text-[11px] text-rose-700 italic text-muted-foreground">No feedback note available.</p>
+                      )}
+                    </div>
+                    {user?.role === 'ASSISTANT' && (
+                      <button className="mt-1 w-full flex items-center justify-center py-2 rounded-lg bg-violet-600 text-white font-bold text-[11px] hover:bg-violet-700 transition-colors shadow-sm">
+                        Submit Revision
+                      </button>
+                    )}
                   </div>
                 ) : page.activeTask?.status === 'MANGAKA_APPROVED' ? (
                    <div className="flex flex-col gap-2">
@@ -140,6 +223,22 @@ export function PageStudioRightPanel({
                     <div className="text-[11px] text-slate-600">
                       Task: {page.activeTask.taskType?.name || 'Unknown Task'}
                     </div>
+                    {isEditor && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        <button 
+                          onClick={() => setReviewModalState({ isOpen: true, actionType: 'approve' })}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                          <CheckCircle size={14} /> Final Approve
+                        </button>
+                        <button 
+                          onClick={() => setReviewModalState({ isOpen: true, actionType: 'revision' })}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-100 text-amber-700 font-bold text-[11px] hover:bg-amber-200 transition-colors"
+                        >
+                          <AlertCircle size={14} /> Request Revision
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (page.status === 'APPROVED' || page.status === 'UPLOADED') ? (
                   <div className="flex flex-col gap-2">
@@ -262,6 +361,14 @@ export function PageStudioRightPanel({
         pageId={page.id} 
         regionId={taskTarget.regionId}
         defaultTitle={taskTarget.type === 'page' ? `Task for Page ${page.pageNumber}` : `Task for Region`}
+      />
+
+      <ReviewActionModal
+        isOpen={reviewModalState.isOpen}
+        onClose={() => setReviewModalState({ isOpen: false, actionType: null })}
+        actionType={reviewModalState.actionType}
+        onSubmit={handleReviewSubmit}
+        isSubmitting={isReviewPending}
       />
     </div>
   )

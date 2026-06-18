@@ -1,100 +1,100 @@
 import { format } from "date-fns"
-import { CheckCircle2, FileText, Image as ImageIcon, Clock } from "lucide-react"
-import { Link } from "react-router-dom"
+import { CheckCircle2, FileText, Image as ImageIcon, ArrowLeft } from "lucide-react"
+import { useState } from "react"
 import { useMangakaReviewQueue } from "@/features/reviews/hooks/useMangakaReview"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card"
-import { Badge } from "@/shared/components/ui/badge"
-import { Button } from "@/shared/components/ui/button"
+import { MangakaReviewDetailPane } from "@/features/reviews/components/MangakaReviewDetailPane"
+import { MasterDetailLayout } from "@/shared/components/layout/MasterDetailLayout"
+import { usePageChrome } from "@/shared/components/layout/page-chrome"
+import { cn } from "@/shared/lib/utils"
 
 export default function MangakaReviewQueuePage() {
-  const { data: queueData, isLoading } = useMangakaReviewQueue()
-  
-  const submissions = queueData ?? []
+  const { data: queueData = [], isLoading, isError } = useMangakaReviewQueue()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p>Loading your review queue...</p>
+  usePageChrome(
+    {
+      bleed: true,
+      contextHeader: {
+        title: "Review Queue",
+        breadcrumb: "Mangaka",
+        status: (
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-secondary-foreground">
+            {queueData.length}
+          </span>
+        ),
+      },
+    },
+    [queueData.length]
+  )
+
+  const list = (
+    <div className="flex flex-col">
+      {isLoading ? (
+        <div className="p-6 text-sm text-muted-foreground">Loading queue...</div>
+      ) : isError ? (
+        <div className="p-6 text-sm text-rose-500">Failed to load review queue.</div>
+      ) : queueData.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+          <CheckCircle2 size={40} strokeWidth={1.5} className="mb-3 text-emerald-500/50" />
+          <p className="text-sm font-medium text-slate-900">You're all caught up!</p>
+          <p className="text-xs mt-1">There are no pending submissions waiting for your review.</p>
         </div>
-      </div>
-    )
-  }
-
-  if (submissions.length === 0) {
-    return (
-      <div className="container py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Review Queue</h1>
-          <p className="text-muted-foreground">
-            Approve or request revisions for tasks submitted by your assistants.
-          </p>
-        </div>
-        
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-8 text-center">
-          <CheckCircle2 className="mb-4 h-12 w-12 text-muted-foreground/50" />
-          <h2 className="text-xl font-semibold">You're all caught up!</h2>
-          <p className="mt-2 text-muted-foreground">
-            There are no pending submissions waiting for your review.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="container py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Review Queue</h1>
-        <p className="text-muted-foreground">
-          You have {submissions.length} submission{submissions.length !== 1 ? 's' : ''} waiting for your review.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {submissions.map((item: any) => (
-          <Card key={item.id} className="flex flex-col transition-colors hover:bg-muted/50">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-                  Version {item.version}
-                </Badge>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  {format(new Date(item.updatedAt), "MMM d, yyyy")}
-                </div>
+      ) : (
+        queueData.map((item: any) => {
+          const active = selectedId === item.taskId
+          return (
+            <button
+              key={item.id}
+              onClick={() => setSelectedId(item.taskId)}
+              className={cn(
+                "flex flex-col gap-2 border-b border-border px-4 py-4 text-left transition-colors hover:bg-secondary/50",
+                active && "bg-violet-50 hover:bg-violet-50"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={cn("truncate text-sm font-bold", active ? "text-violet-700" : "text-slate-900")}>
+                  Task Review (v{item.version})
+                </span>
+                <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                  {format(new Date(item.updatedAt), "MMM d")}
+                </span>
               </div>
-              <CardTitle className="mt-2 line-clamp-1 text-lg">
-                Task Review
-              </CardTitle>
-              <CardDescription className="line-clamp-1">
+              <span className="line-clamp-1 text-xs text-muted-foreground">
                 Submitted by {item.submittedBy?.name || "Assistant"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col justify-end gap-4 pt-0">
-              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="line-clamp-1 text-xs">Series: {item.seriesId}</span>
-                </div>
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                <FileText size={12} /> Series: {item.seriesId}
                 {item.fileAssetId && (
-                  <div className="flex items-center gap-2 text-emerald-500">
-                    <ImageIcon className="h-4 w-4" />
-                    <span className="line-clamp-1 text-xs">Has File Attachment</span>
-                  </div>
+                  <>
+                    <span className="mx-1 opacity-50">·</span>
+                    <ImageIcon size={12} className="text-emerald-500" /> Attached
+                  </>
                 )}
-              </div>
-              
-              <Button asChild className="w-full">
-                <Link to={`/app/mangaka/tasks/${item.taskId}/review`}>
-                  Review Submission
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </span>
+            </button>
+          )
+        })
+      )}
     </div>
   )
+
+  const detail = selectedId ? (
+    <div>
+      <button
+        onClick={() => setSelectedId(null)}
+        className="flex items-center gap-2 px-6 py-3 text-[13px] font-bold text-slate-500 transition-colors hover:text-slate-900 md:hidden"
+      >
+        <ArrowLeft size={16} /> Back to queue
+      </button>
+      <MangakaReviewDetailPane taskId={selectedId} />
+    </div>
+  ) : (
+    <div className="flex h-full flex-col items-center justify-center p-12 text-center text-muted-foreground bg-slate-50/30">
+      <FileText size={48} strokeWidth={1} className="mb-4 text-slate-300" />
+      <p className="text-base font-bold text-slate-900">Select a submission to review</p>
+      <p className="text-[13px] mt-1 text-slate-500">Pick an item from the queue to see the assistant's work.</p>
+    </div>
+  )
+
+  return <MasterDetailLayout list={list} detail={detail} listWidth="24rem" hasSelection={!!selectedId} />
 }

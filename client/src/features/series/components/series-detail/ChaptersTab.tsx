@@ -3,8 +3,18 @@ import { StatusBadge } from '@/shared/components/ui/status-badge'
 import { seriesStatusUi } from '@/shared/lib/status-ui'
 import { ExternalLink, UploadCloud, Plus } from 'lucide-react'
 import type { Chapter } from '@/features/chapters/services/chapter.api'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/shared/components/ui/sheet'
 
 interface ChaptersTabProps {
+  seriesId: string
   chapters: Chapter[]
 }
 
@@ -14,8 +24,10 @@ const getStatusConfig = (status: string) => {
   return seriesStatusUi['DRAFT']
 }
 
-export function ChaptersTab({ chapters }: ChaptersTabProps) {
+export function ChaptersTab({ seriesId, chapters }: ChaptersTabProps) {
+  const navigate = useNavigate()
   const sortedChapters = [...chapters].sort((a, b) => b.chapterNumber - a.chapterNumber)
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null)
 
   const columns: DataTableColumn<Chapter>[] = [
     {
@@ -106,9 +118,56 @@ export function ChaptersTab({ chapters }: ChaptersTabProps) {
           data={sortedChapters}
           columns={columns}
           rowKey={(c) => c.id}
+          onRowClick={(c) => setSelectedChapter(c)}
           className="border-0 rounded-none bg-transparent"
         />
       </div>
+
+      <Sheet open={!!selectedChapter} onOpenChange={(open) => !open && setSelectedChapter(null)}>
+        <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col bg-slate-50 border-l border-slate-200">
+          {selectedChapter && (
+            <>
+              <div className="h-32 bg-gradient-to-r from-violet-900 to-purple-900 relative p-6 flex flex-col justify-end">
+                <SheetHeader className="text-left text-white relative z-10">
+                  <StatusBadge config={getStatusConfig(selectedChapter.status)} size="sm" className="mb-2 w-fit bg-white/20 backdrop-blur border border-white/30 text-white" />
+                  <SheetTitle className="text-2xl font-extrabold text-white">Chapter {selectedChapter.chapterNumber}</SheetTitle>
+                  <SheetDescription className="text-violet-200 font-medium text-sm">
+                    {selectedChapter.title}
+                  </SheetDescription>
+                </SheetHeader>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</h4>
+                    <span className="text-[13px] font-semibold text-slate-900">{selectedChapter.status}</span>
+                  </div>
+                  <div>
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Production</h4>
+                    <span className="text-[13px] font-semibold text-slate-900">100% (24 Pages)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white border-t border-slate-100 flex gap-3">
+                <button 
+                  onClick={() => navigate(`/app/mangaka/series/${seriesId}/pages`)}
+                  className="flex-1 h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                >
+                  Manage Pages <ExternalLink size={16} />
+                </button>
+                <button 
+                  onClick={() => setSelectedChapter(null)}
+                  className="px-6 h-12 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold rounded-xl flex items-center justify-center transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

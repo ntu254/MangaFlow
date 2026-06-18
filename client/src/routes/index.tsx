@@ -1,7 +1,7 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from '@/shared/components/layout/ProtectedRoute'
 import { AppLayout } from '@/shared/components/layout/AppLayout'
-import { MangakaLayout } from '@/shared/components/layout/MangakaLayout'
+
 import LoginPage from '@/app/auth/LoginPage'
 import AdminDashboard from '@/app/admin/DashboardPage'
 import UsersPage from '@/app/admin/UsersPage'
@@ -9,6 +9,7 @@ import CreateUserPage from '@/app/admin/CreateUserPage'
 import BoardMembersPage from '@/app/admin/BoardMembersPage'
 import TaskTypesPage from '@/app/admin/TaskTypesPage'
 import AuditLogsPage from '@/app/admin/AuditLogsPage'
+import AdminEarningsPage from '@/app/admin/EarningsPage'
 import MangakaDashboard from '@/app/mangaka/DashboardPage'
 import MangakaSeriesPage from '@/app/mangaka/SeriesPage'
 import MangakaSeriesDetailPage from '@/app/mangaka/SeriesDetailPage'
@@ -20,10 +21,18 @@ import EditorSeriesReviewPage from '@/app/editor/SeriesReviewPage'
 import BoardDashboard from '@/app/board/DashboardPage'
 import BoardSeriesReviewPage from '@/app/board/SeriesReviewPage'
 import BoardSeriesSummaryPage from '@/app/board/SeriesSummaryPage'
+import BoardRankingPage from '@/app/board/RankingPage'
 import PageStudioPage from '@/app/mangaka/PageStudioPage'
 import TaskStudioPage from '@/app/assistant/TaskStudioPage'
 import MangakaReviewQueuePage from '@/app/mangaka/ReviewQueuePage'
 import MangakaTaskReviewPage from '@/app/mangaka/TaskReviewPage'
+import {
+  SeriesOverviewRoute,
+  SeriesManuscriptRoute,
+  SeriesChaptersRoute,
+  SeriesPagesRoute,
+  SeriesComingSoonRoute,
+} from '@/app/mangaka/series-tabs'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to='/login' replace /> },
@@ -43,6 +52,7 @@ const router = createBrowserRouter([
             { path: 'users/create', element: <CreateUserPage /> },
             { path: 'board-members', element: <BoardMembersPage /> },
             { path: 'task-types', element: <TaskTypesPage /> },
+            { path: 'earnings', element: <AdminEarningsPage /> },
             { path: 'audit-logs', element: <AuditLogsPage /> },
           ]},
           // Assistant
@@ -65,18 +75,32 @@ const router = createBrowserRouter([
             { path: 'series-review', element: <BoardSeriesReviewPage /> },
             { path: 'series/:id/summary', element: <BoardSeriesSummaryPage /> },
             { path: 'series/:id/voting', element: <BoardSeriesSummaryPage /> },
+            { path: 'ranking', element: <BoardRankingPage /> },
           ]},
         ],
       },
       {
-        element: <MangakaLayout />,
+        element: <AppLayout />,
         children: [
           // Mangaka
           { path: 'mangaka', element: <ProtectedRoute allowedRoles={['MANGAKA']} />, children: [
             { path: 'dashboard', element: <MangakaDashboard /> },
             { path: 'series', element: <MangakaSeriesPage /> },
             { path: 'series/create', element: <MangakaCreateSeriesPage /> },
-            { path: 'series/:id', element: <MangakaSeriesDetailPage /> },
+            {
+              path: 'series/:id',
+              element: <MangakaSeriesDetailPage />,
+              children: [
+                { index: true, element: <Navigate to='overview' replace /> },
+                { path: 'overview', element: <SeriesOverviewRoute /> },
+                { path: 'manuscript', element: <SeriesManuscriptRoute /> },
+                { path: 'chapters', element: <SeriesChaptersRoute /> },
+                { path: 'pages', element: <SeriesPagesRoute /> },
+                { path: 'team', element: <SeriesComingSoonRoute label='Team' /> },
+                { path: 'reviews', element: <SeriesComingSoonRoute label='Reviews' /> },
+                { path: 'settings', element: <SeriesComingSoonRoute label='Settings' /> },
+              ],
+            },
             { path: 'pages/:pageId/studio', element: <PageStudioPage /> },
             { path: 'reviews', element: <MangakaReviewQueuePage /> },
             { path: 'tasks/:taskId/review', element: <MangakaTaskReviewPage /> },

@@ -12,7 +12,7 @@ interface PageStudioCanvasProps {
 const REGION_COLORS: Record<string, string> = {
   PANEL: 'border-emerald-500 bg-emerald-500/10',
   BUBBLE: 'border-purple-500 bg-purple-500/10',
-  SFX: 'border-orange-500 bg-orange-500/10',
+  SFX: 'border-amber-500 bg-amber-500/10',
   AREA: 'border-blue-500 bg-blue-500/10',
   OTHER: 'border-gray-500 bg-gray-500/10',
 }

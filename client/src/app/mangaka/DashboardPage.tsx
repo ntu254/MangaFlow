@@ -8,48 +8,61 @@ import { PayrollSnapshot } from '@/features/dashboard/components/mangaka/Payroll
 import { CurrentChapterProgress } from '@/features/dashboard/components/mangaka/CurrentChapterProgress'
 import { ActionInbox } from '@/features/dashboard/components/mangaka/ActionInbox'
 import { QuickActionsGrid } from '@/features/dashboard/components/mangaka/QuickActionsGrid'
+import { MangakaReviewQueue } from '@/features/dashboard/components/mangaka/MangakaReviewQueue'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
+import { BentoGrid, BentoCard } from '@/shared/components/layout/BentoGrid'
+import { usePageChrome } from '@/shared/components/layout/page-chrome'
 
 export default function MangakaDashboardPage() {
-  return (
-    <div className='max-w-[1400px] w-full mx-auto pb-10 space-y-6'>
-      <div className="flex items-end justify-between">
-        <div className="flex flex-col">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">Home</h1>
-          <p className="text-[13px] text-muted-foreground">Your manga production command center. Track today's work across all series.</p>
-        </div>
-        <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-lg text-[13px] font-semibold border border-purple-100 shadow-sm">
+  usePageChrome({
+    contextHeader: {
+      title: 'Home',
+      breadcrumb: 'Production Hub',
+      actions: (
+        <div className="flex items-center gap-2 rounded-lg border border-violet-100 bg-violet-50 px-4 py-2 text-[13px] font-semibold text-violet-700 shadow-sm">
           <Calendar size={16} />
-          Today - May 27, 2025 (Tue)
+          Today
         </div>
-      </div>
+      ),
+    },
+  })
 
-      <div className="w-full mb-6">
-        <NextActionsRow />
-      </div>
+  return (
+    <div className="mx-auto w-full max-w-[1400px] space-y-6 pb-10">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="review-queue">Review Queue</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column - 70% */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          <ActiveSeriesPipeline />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DueSoonList />
-            <RecentActivityTimeline />
-          </div>
+        <TabsContent value="overview" className="mt-0 space-y-6">
+          <NextActionsRow />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RankingSnapshot />
-            <PayrollSnapshot />
-          </div>
-        </div>
+          <BentoGrid>
+            <BentoCard bare colSpan={8} className="flex flex-col gap-6">
+              <ActiveSeriesPipeline />
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <DueSoonList />
+                <RecentActivityTimeline />
+              </div>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <RankingSnapshot />
+                <PayrollSnapshot />
+              </div>
+            </BentoCard>
 
-        {/* Right Column - 30% */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <CurrentChapterProgress />
-          <ActionInbox />
-          <QuickActionsGrid />
-        </div>
-      </div>
+            <BentoCard bare colSpan={4} className="flex flex-col gap-6">
+              <CurrentChapterProgress />
+              <ActionInbox />
+              <QuickActionsGrid />
+            </BentoCard>
+          </BentoGrid>
+        </TabsContent>
+
+        <TabsContent value="review-queue" className="mt-0">
+          <MangakaReviewQueue />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

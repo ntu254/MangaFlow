@@ -12,7 +12,7 @@ export function UsersStatCardsRow() {
     <div className='grid grid-cols-2 md:grid-cols-4 gap-2 w-full'>
       <StatCard icon={<Users className="text-purple-600" size={20}/>} title="Total Users" value={isLoading ? '...' : total} sub={<span className="text-emerald-600 flex items-center gap-1"><ArrowUpRight size={14}/> Live from server</span>} iconBg="bg-purple-100" />
       <StatCard icon={<UserCheck className="text-emerald-600" size={20}/>} title="Active Users" value={isLoading ? '...' : active} sub={total ? `${Math.round((active / total) * 100)}% of total` : 'No users'} iconBg="bg-emerald-100" />
-      <StatCard icon={<UserX className="text-orange-500" size={20}/>} title="Suspended Users" value={isLoading ? '...' : suspended} sub={<span className="text-orange-500">{total ? `${Math.round((suspended / total) * 100)}% of total` : 'No suspended users'}</span>} iconBg="bg-orange-100" />
+      <StatCard icon={<UserX className="text-amber-500" size={20}/>} title="Suspended Users" value={isLoading ? '...' : suspended} sub={<span className="text-amber-500">{total ? `${Math.round((suspended / total) * 100)}% of total` : 'No suspended users'}</span>} iconBg="bg-amber-100" />
       <StatCard icon={<Mail className="text-purple-600" size={20}/>} title="Pending Invitations" value="0" sub="Invitation flow not configured" iconBg="bg-purple-100" />
     </div>
   )

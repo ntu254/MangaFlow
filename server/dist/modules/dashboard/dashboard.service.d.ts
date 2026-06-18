@@ -82,14 +82,8 @@ export declare function getAssistantSummaryService(_userId: string): Promise<{
     };
     recentActivity: never[];
 }>;
-export declare function getEditorSummaryService(_userId: string): Promise<{
-    nextActions: {
-        id: string;
-        type: string;
-        label: string;
-        isUrgent: boolean;
-        targetId: string;
-    }[];
+export declare function getEditorSummaryService(userId: string): Promise<{
+    nextActions: never[];
     reviewQueue: {
         manuscripts: number;
         productions: number;
@@ -104,13 +98,7 @@ export declare function getEditorSummaryService(_userId: string): Promise<{
     recentActivity: never[];
 }>;
 export declare function getBoardSummaryService(_userId: string): Promise<{
-    nextActions: {
-        id: string;
-        type: string;
-        label: string;
-        isUrgent: boolean;
-        targetId: string;
-    }[];
+    nextActions: never[];
     boardQueue: {
         pendingVotes: number;
         atRiskReviews: number;

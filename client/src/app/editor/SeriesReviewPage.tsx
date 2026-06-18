@@ -21,9 +21,10 @@ export default function EditorSeriesReviewPage() {
   const [riskNote, setRiskNote] = useState("")
 
   if (isLoading) return <div className="p-12 text-center text-gray-500 font-medium">Loading series review...</div>
-  if (isError || !data) return <div className="p-12 text-center text-red-500 font-medium">Failed to load series review.</div>
+  if (isError || !data) return <div className="p-12 text-center text-rose-500 font-medium">Failed to load series review.</div>
 
-  const busy = actions.requestRevision.isPending || actions.reject.isPending || actions.forwardToBoard.isPending
+  const isSubmitMode = data?.series.status === "SUBMITTED"
+  const busy = actions.requestRevision.isPending || actions.reject.isPending || actions.forwardToBoard.isPending || !isSubmitMode
 
   return (
     <div className="max-w-[1400px] w-full mx-auto pb-10 space-y-6">
@@ -94,6 +95,12 @@ export default function EditorSeriesReviewPage() {
 
         {/* Sidebar Actions - 30% */}
         <div className="xl:col-span-4 space-y-6">
+          {!isSubmitMode && (
+            <div className="bg-slate-100 text-slate-500 rounded-xl py-4 mb-4 text-center font-bold text-[13px] border border-slate-200">
+              Series is not in SUBMITTED state. Review actions are disabled.
+            </div>
+          )}
+
           <ReviewDecisionPanel title="Request Revision" icon={<RefreshCcw size={16} className="text-amber-500"/>} tone="amber">
             <RevisionComposer label="Revision reason" value={revisionReason} onChange={(e) => setRevisionReason(e.target.value)} placeholder="Explain what needs to change..." />
             <RevisionComposer label="Feedback summary" value={feedbackSummary} onChange={(e) => setFeedbackSummary(e.target.value)} placeholder="Summarize feedback for the author..." />
@@ -130,13 +137,13 @@ export default function EditorSeriesReviewPage() {
             </Button>
           </ReviewDecisionPanel>
 
-          <ReviewDecisionPanel title="Reject Series" icon={<XCircle size={16} className="text-red-500"/>} tone="red">
+          <ReviewDecisionPanel title="Reject Series" icon={<XCircle size={16} className="text-rose-500"/>} tone="red">
             <RevisionComposer label="Reject reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason for rejection..." />
             <Button
               disabled={busy || !rejectReason.trim()}
               onClick={() => actions.reject.mutate({ rejectReason })}
               variant="outline"
-              className="mt-2 w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="mt-2 w-full border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
             >
               Reject Series
             </Button>

@@ -66,7 +66,7 @@ export function ProposalOverviewTab({ summary }: { summary: SeriesSummary }) {
           <h3 className="text-[15px] font-bold text-gray-900 mb-6">What Happens Next?</h3>
           <div className="flex flex-col gap-5 relative before:content-[''] before:absolute before:left-3.5 before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-100">
             <NextStepItem icon={<Clock size={12} className="text-purple-600" />} bgClass="bg-purple-100 border-purple-200" title="Editor Review" desc={summary.commentSummary.open > 0 ? 'Feedback available' : 'In progress'} active />
-            <NextStepItem icon={<MessageSquare size={12} className="text-orange-500" />} bgClass="bg-orange-50 border-orange-100" title="Editor Feedback" desc="You'll receive comments or revision requests." />
+            <NextStepItem icon={<MessageSquare size={12} className="text-amber-500" />} bgClass="bg-amber-50 border-amber-100" title="Editor Feedback" desc="You'll receive comments or revision requests." />
             <NextStepItem icon={<Users size={12} className="text-blue-500" />} bgClass="bg-blue-50 border-blue-100" title="Board Review" desc="If approved by editor, it will be sent to the Editorial Board." />
             <NextStepItem icon={<CheckCircle2 size={12} className="text-emerald-500" />} bgClass="bg-emerald-50 border-emerald-100" title="Final Decision" desc="You'll be notified of the board's decision." />
           </div>
@@ -95,8 +95,8 @@ export function ProposalOverviewTab({ summary }: { summary: SeriesSummary }) {
         <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col hover:shadow-md transition-shadow">
           <h3 className="text-[15px] font-bold text-gray-900 mb-6">Editor Information</h3>
           <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-indigo-100 border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
-              <span className="text-indigo-700 font-bold text-[18px]">{(editor?.name ?? 'E').charAt(0).toUpperCase()}</span>
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-violet-100 border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
+              <span className="text-violet-700 font-bold text-[18px]">{(editor?.name ?? 'E').charAt(0).toUpperCase()}</span>
             </div>
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2">

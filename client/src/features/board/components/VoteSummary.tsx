@@ -6,8 +6,8 @@ export function VoteSummary({ votes, pendingCount, isFinalized }: { votes: any[]
     APPROVE: { icon: CheckCircle, tone: 'text-emerald-600 bg-emerald-50', label: 'Approve' },
     CONTINUE: { icon: PlayCircle, tone: 'text-emerald-600 bg-emerald-50', label: 'Continue' },
     WARNING: { icon: AlertCircle, tone: 'text-amber-600 bg-amber-50', label: 'Warning' },
-    CANCEL: { icon: XCircle, tone: 'text-red-600 bg-red-50', label: 'Cancel' },
-    REJECT: { icon: XCircle, tone: 'text-red-600 bg-red-50', label: 'Reject' }
+    CANCEL: { icon: XCircle, tone: 'text-rose-600 bg-rose-50', label: 'Cancel' },
+    REJECT: { icon: XCircle, tone: 'text-rose-600 bg-rose-50', label: 'Reject' }
   }
 
   return (

@@ -63,17 +63,17 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
     <div className="flex flex-col gap-6">
       {/* 1. Basic Information */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col w-full">
-        <h2 className="text-lg font-bold text-indigo-700 mb-6 flex items-center gap-2">1. Basic Information</h2>
+        <h2 className="text-lg font-bold text-violet-700 mb-6 flex items-center gap-2">1. Basic Information</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="flex flex-col gap-1.5 md:col-span-2 lg:col-span-1">
-            <label className="text-[13px] font-bold text-slate-900">Series Title <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Series Title <span className="text-rose-500">*</span></label>
             <div className="relative">
               <input
                 type="text"
                 placeholder="Enter your series title"
                 disabled={readOnly}
-                className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
+                className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
                 value={formData.title}
                 maxLength={100}
                 onChange={(e) => setField('title', e.target.value)}
@@ -83,9 +83,9 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
           </div>
 
           <div className="flex flex-col gap-1.5 lg:col-span-1">
-            <label className="text-[13px] font-bold text-slate-900">Genre <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Genre <span className="text-rose-500">*</span></label>
             <Select value={formData.genre} onValueChange={(val) => setField('genre', val)} disabled={readOnly}>
-              <SelectTrigger className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-0 bg-white">
+              <SelectTrigger className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-600 focus:ring-offset-0 bg-white">
                 <SelectValue placeholder="Select genre" />
               </SelectTrigger>
               <SelectContent>
@@ -100,9 +100,9 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
           </div>
 
           <div className="flex flex-col gap-1.5 lg:col-span-1">
-            <label className="text-[13px] font-bold text-slate-900">Target Audience <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Target Audience <span className="text-rose-500">*</span></label>
             <Select value={formData.audience} onValueChange={(val) => setField('audience', val)} disabled={readOnly}>
-              <SelectTrigger className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-0 bg-white">
+              <SelectTrigger className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-600 focus:ring-offset-0 bg-white">
                 <SelectValue placeholder="Select target audience" />
               </SelectTrigger>
               <SelectContent>
@@ -116,14 +116,14 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
 
           <div className="flex flex-col gap-1.5 lg:col-span-1">
             <label className="text-[13px] font-bold text-slate-900 flex items-center gap-1.5">
-              Proposed Publication Type <span className="text-red-500">*</span>
+              Proposed Publication Type <span className="text-rose-500">*</span>
               <HelpCircle size={14} className="text-slate-400" />
             </label>
             <div className="flex items-center gap-6 mt-2">
               {([{ value: 'WEEKLY', label: 'Weekly' }, { value: 'MONTHLY', label: 'Monthly' }] as const).map((opt) => (
                 <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.publicationType === opt.value ? 'border-indigo-600' : 'border-slate-300 group-hover:border-indigo-400'}`}>
-                    {formData.publicationType === opt.value && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.publicationType === opt.value ? 'border-violet-600' : 'border-slate-300 group-hover:border-violet-400'}`}>
+                    {formData.publicationType === opt.value && <div className="w-2 h-2 rounded-full bg-violet-600"></div>}
                   </div>
                   <span className="text-sm font-semibold text-slate-700">{opt.label}</span>
                   <input
@@ -148,7 +148,7 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
                 type="text"
                 placeholder="Add tags (press Enter)"
                 disabled={readOnly}
-                className="w-full h-11 pl-4 pr-24 border border-slate-200 rounded-xl text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
+                className="w-full h-11 pl-4 pr-24 border border-slate-200 rounded-xl text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -177,7 +177,7 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
                       disabled={readOnly}
-                      className="text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 rounded disabled:opacity-60"
+                      className="text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 rounded disabled:opacity-60"
                     >
                       <X size={12} />
                     </button>
@@ -224,7 +224,7 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
                     type="button"
                     onClick={clearCover}
                     disabled={readOnly}
-                    className="px-3 h-8 border border-red-200 rounded-lg text-xs font-bold text-red-600 bg-white hover:bg-red-50 disabled:opacity-60"
+                    className="px-3 h-8 border border-rose-200 rounded-lg text-xs font-bold text-rose-600 bg-white hover:bg-rose-50 disabled:opacity-60"
                   >
                     Remove
                   </button>
@@ -235,13 +235,13 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
                 type="button"
                 onClick={() => coverInputRef.current?.click()}
                 disabled={readOnly}
-                className="w-full h-[88px] border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center gap-4 px-4 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors group disabled:opacity-60"
+                className="w-full h-[88px] border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center gap-4 px-4 hover:border-violet-400 hover:bg-violet-50/50 transition-colors group disabled:opacity-60"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
-                  <UploadCloud size={18} className="text-slate-500 group-hover:text-indigo-600 transition-colors" />
+                <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-violet-100 flex items-center justify-center shrink-0 transition-colors">
+                  <UploadCloud size={18} className="text-slate-500 group-hover:text-violet-600 transition-colors" />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-sm font-bold text-indigo-600">Click to upload <span className="text-slate-600 font-medium">or drag and drop</span></span>
+                  <span className="text-sm font-bold text-violet-600">Click to upload <span className="text-slate-600 font-medium">or drag and drop</span></span>
                   <span className="text-[11px] text-slate-500">PNG, JPG, WEBP up to 5MB</span>
                 </div>
               </button>
@@ -251,13 +251,13 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-bold text-slate-900">Synopsis / Description <span className="text-red-500">*</span></label>
+          <label className="text-[13px] font-bold text-slate-900">Synopsis / Description <span className="text-rose-500">*</span></label>
           <div className="relative">
             <textarea
               placeholder="Write a brief synopsis or description of your series."
               disabled={readOnly}
               maxLength={1000}
-              className="w-full h-32 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
+              className="w-full h-32 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
               value={formData.synopsis}
               onChange={(e) => setField('synopsis', e.target.value)}
             />
@@ -268,18 +268,18 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
 
       {/* 2. Required Story Info */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col w-full">
-        <h2 className="text-lg font-bold text-indigo-700 mb-6 flex items-center gap-2">2. Required Story Info</h2>
+        <h2 className="text-lg font-bold text-violet-700 mb-6 flex items-center gap-2">2. Required Story Info</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-bold text-slate-900">Logline <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Logline <span className="text-rose-500">*</span></label>
             <div className="relative">
               <input
                 type="text"
                 placeholder="A one-sentence hook that captures your series."
                 disabled={readOnly}
                 maxLength={150}
-                className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
+                className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
                 value={formData.logline}
                 onChange={(e) => setField('logline', e.target.value)}
               />
@@ -288,13 +288,13 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-bold text-slate-900">Story Premise <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Story Premise <span className="text-rose-500">*</span></label>
             <div className="relative">
               <textarea
                 placeholder="What is the main concept and premise of your story?"
                 disabled={readOnly}
                 maxLength={500}
-                className="w-full h-24 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
+                className="w-full h-24 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
                 value={formData.premise}
                 onChange={(e) => setField('premise', e.target.value)}
               />
@@ -303,13 +303,13 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-bold text-slate-900">Main Characters <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Main Characters <span className="text-rose-500">*</span></label>
             <div className="relative">
               <textarea
                 placeholder="Introduce the main characters and their key traits."
                 disabled={readOnly}
                 maxLength={500}
-                className="w-full h-24 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
+                className="w-full h-24 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
                 value={formData.characters}
                 onChange={(e) => setField('characters', e.target.value)}
               />
@@ -318,13 +318,13 @@ export function Step1Profile({ formData, setFormData, pendingCover, setPendingCo
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-bold text-slate-900">Conflict / Hook <span className="text-red-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-900">Conflict / Hook <span className="text-rose-500">*</span></label>
             <div className="relative">
               <textarea
                 placeholder="What challenge or conflict drives the story forward?"
                 disabled={readOnly}
                 maxLength={500}
-                className="w-full h-24 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
+                className="w-full h-24 p-4 border border-slate-200 rounded-xl text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:border-violet-600 transition-all placeholder:text-slate-400 disabled:bg-slate-50"
                 value={formData.conflict}
                 onChange={(e) => setField('conflict', e.target.value)}
               />

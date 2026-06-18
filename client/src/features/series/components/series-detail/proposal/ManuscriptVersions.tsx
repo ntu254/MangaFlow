@@ -14,7 +14,7 @@ export function ManuscriptVersions({ summary }: { summary: SeriesSummary }) {
 
       <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 flex flex-col gap-4">
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
             <FileText size={20} />
           </div>
           

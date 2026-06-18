@@ -29,7 +29,7 @@ export function TaskCard({ task }: { task: Task }) {
               {task.id.slice(-6)}
             </span>
             {isUrgent && (
-              <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 uppercase tracking-wider">
                 {task.priority}
               </span>
             )}
@@ -46,7 +46,7 @@ export function TaskCard({ task }: { task: Task }) {
       <div className="flex items-center gap-4 sm:gap-6 ml-14 sm:ml-0">
         <div className="flex flex-col sm:items-end">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Deadline</span>
-          <span className={`text-[13px] font-bold ${isDueSoon ? 'text-orange-600' : 'text-slate-900'}`}>
+          <span className={`text-[13px] font-bold ${isDueSoon ? 'text-amber-600' : 'text-slate-900'}`}>
             {format(new Date(task.dueDate), "MMM d, h:mm a")}
           </span>
         </div>

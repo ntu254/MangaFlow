@@ -38,9 +38,9 @@ export function SubmissionChecklist({ formData, uploadedFiles }: SubmissionCheck
         <ChecklistItem completed={worldComplete} title="World / Setting" sub={worldComplete ? 'Uploaded' : 'Optional'} />
       </div>
 
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
-        <Lightbulb size={18} className="text-indigo-600 shrink-0 mt-0.5" />
-        <p className="text-[12px] text-indigo-900 leading-relaxed font-medium">
+      <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 flex gap-3">
+        <Lightbulb size={18} className="text-violet-600 shrink-0 mt-0.5" />
+        <p className="text-[12px] text-violet-900 leading-relaxed font-medium">
           More materials help editors and the board better understand your story and world.
         </p>
       </div>

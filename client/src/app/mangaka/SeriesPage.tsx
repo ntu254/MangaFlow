@@ -140,7 +140,7 @@ export default function MangakaSeriesPage() {
         {isLoading ? (
           <SeriesListSkeleton />
         ) : isError ? (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-red-200 bg-white px-6 py-20 text-center shadow-sm">
+          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-rose-200 bg-white px-6 py-20 text-center shadow-sm">
             <div>
               <h3 className="text-lg font-bold text-slate-900">Could not load your series</h3>
               <p className="mt-1 text-sm text-slate-500">Check the API connection and try again.</p>
@@ -148,7 +148,7 @@ export default function MangakaSeriesPage() {
             <button
               onClick={() => void refetch()}
               disabled={isFetching}
-              className="flex h-10 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60"
+              className="flex h-10 items-center gap-2 rounded-lg bg-violet-600 px-4 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60"
             >
               <RefreshCw size={16} className={isFetching ? 'animate-spin' : ''} />
               Try again
@@ -174,17 +174,17 @@ export default function MangakaSeriesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage(Math.max(1, activePage - 1))}
-              className="px-3 py-1.5 text-[13px] font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+              className="px-3 py-1.5 text-[13px] font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600"
               disabled={activePage === 1}
             >
               Previous
             </button>
-            <span className="px-3 py-1.5 text-[13px] font-semibold text-white bg-indigo-600 rounded-lg shadow-sm">
+            <span className="px-3 py-1.5 text-[13px] font-semibold text-white bg-violet-600 rounded-lg shadow-sm">
               {activePage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, activePage + 1))}
-              className="px-3 py-1.5 text-[13px] font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+              className="px-3 py-1.5 text-[13px] font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600"
               disabled={activePage === totalPages}
             >
               Next

@@ -16,4 +16,9 @@ export const createSubmissionBodySchema = z
 export const reviewActionBodySchema = z.object({
     reviewerNote: z.string().max(2000).optional(),
 });
+export const getTaskUploadUrlBodySchema = z.object({
+    originalName: z.string().min(1, "Original name is required"),
+    contentType: z.string().min(1, "Content type is required"),
+    size: z.number().int().positive("Size must be positive"),
+});
 //# sourceMappingURL=submission.validation.js.map

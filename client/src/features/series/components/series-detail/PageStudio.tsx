@@ -61,7 +61,7 @@ export function PageStudio({ onBack, chapterId, initialPageId }: PageStudioProps
   }
 
   if (isError || !workspace) {
-    return <div className="flex h-full items-center justify-center text-red-500">{String((error as Error | undefined)?.message ?? 'Failed to load page workspace')}</div>
+    return <div className="flex h-full items-center justify-center text-rose-500">{String((error as Error | undefined)?.message ?? 'Failed to load page workspace')}</div>
   }
 
   return (

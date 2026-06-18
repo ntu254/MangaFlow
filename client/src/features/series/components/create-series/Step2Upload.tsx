@@ -164,8 +164,8 @@ export function Step2Upload({
           />
           <SupportingMaterialSlot
             slot="COVER_DRAFT"
-            icon={<ImageIcon className="text-orange-600" size={20} />}
-            iconBg="bg-orange-50"
+            icon={<ImageIcon className="text-amber-600" size={20} />}
+            iconBg="bg-amber-50"
             title="Cover Draft"
             desc="Upload your cover concept or key visual."
             accept={ACCEPT_BY_SLOT.COVER_DRAFT}
@@ -176,8 +176,8 @@ export function Step2Upload({
           />
           <SupportingMaterialSlot
             slot="REFERENCE_IMAGE"
-            icon={<Briefcase className="text-indigo-600" size={20} />}
-            iconBg="bg-indigo-50"
+            icon={<Briefcase className="text-violet-600" size={20} />}
+            iconBg="bg-violet-50"
             title="Reference Images"
             desc="Reference photos, mood boards, or scenes."
             accept={ACCEPT_BY_SLOT.REFERENCE_IMAGE}
@@ -221,8 +221,8 @@ function SingleFileSlot({ title, description, accept, file, isUploading, onPick,
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 mb-1">
-        <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center shrink-0">
-          <FileText size={16} className="text-indigo-600" />
+        <div className="w-8 h-8 rounded bg-violet-50 flex items-center justify-center shrink-0">
+          <FileText size={16} className="text-violet-600" />
         </div>
         <div className="flex flex-col">
           <span className="text-[13px] font-bold text-slate-900">{title}</span>
@@ -245,7 +245,7 @@ function SingleFileSlot({ title, description, accept, file, isUploading, onPick,
       {file ? (
         <div className="w-full border border-slate-200 rounded-xl p-4 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3 min-w-0">
-            <FileText size={20} className="text-indigo-600 shrink-0" />
+            <FileText size={20} className="text-violet-600 shrink-0" />
             <div className="flex flex-col min-w-0">
               <span className="text-[13px] font-bold text-slate-900 truncate">{file.originalName}</span>
               <span className="text-[11px] text-slate-500">{formatFileSize(file.size)}</span>
@@ -262,7 +262,7 @@ function SingleFileSlot({ title, description, accept, file, isUploading, onPick,
             <button
               onClick={onRemove}
               disabled={isUploading}
-              className="px-3 h-8 border border-red-200 rounded-lg text-xs font-bold text-red-600 bg-white hover:bg-red-50 disabled:opacity-50"
+              className="px-3 h-8 border border-rose-200 rounded-lg text-xs font-bold text-rose-600 bg-white hover:bg-rose-50 disabled:opacity-50"
             >
               Remove
             </button>
@@ -273,9 +273,9 @@ function SingleFileSlot({ title, description, accept, file, isUploading, onPick,
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={isUploading}
-          className="w-full h-[220px] border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors disabled:opacity-60"
+          className="w-full h-[220px] border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-violet-400 hover:bg-violet-50/30 transition-colors disabled:opacity-60"
         >
-          <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm text-indigo-600">
+          <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm text-violet-600">
             {isUploading ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={24} />}
           </div>
           <span className="text-[13px] font-bold text-slate-900">Click to upload</span>
@@ -343,7 +343,7 @@ function MultiFileSlot({ title, description, accept, files, isUploading, onPick,
                 </div>
                 <button
                   onClick={() => onRemove(file.fileAssetId)}
-                  className="text-slate-400 hover:text-red-600 p-1"
+                  className="text-slate-400 hover:text-rose-600 p-1"
                   aria-label="Remove"
                 >
                   <X size={14} />
@@ -360,7 +360,7 @@ function MultiFileSlot({ title, description, accept, files, isUploading, onPick,
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={isUploading}
-            className="w-full h-10 bg-white border border-dashed border-indigo-300 text-indigo-600 rounded-lg flex items-center justify-center gap-2 font-bold text-[13px] hover:bg-indigo-50 disabled:opacity-60"
+            className="w-full h-10 bg-white border border-dashed border-violet-300 text-violet-600 rounded-lg flex items-center justify-center gap-2 font-bold text-[13px] hover:bg-violet-50 disabled:opacity-60"
           >
             {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
             Add pages
@@ -401,7 +401,7 @@ function SupportingMaterialSlot({
   const myFiles = uploadedFiles.filter((f) => f.slot === slot)
 
   return (
-    <div className="border border-slate-200 rounded-xl p-5 flex flex-col items-center text-center hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
+    <div className="border border-slate-200 rounded-xl p-5 flex flex-col items-center text-center hover:border-violet-300 hover:shadow-sm transition-all bg-white">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors ${iconBg}`}>
         {icon}
       </div>
@@ -424,7 +424,7 @@ function SupportingMaterialSlot({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={isUploading}
-        className="w-full h-8 border border-slate-200 rounded-lg text-xs font-bold text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors disabled:opacity-60"
+        className="w-full h-8 border border-slate-200 rounded-lg text-xs font-bold text-violet-600 hover:bg-violet-50 hover:border-violet-200 transition-colors disabled:opacity-60"
       >
         {isUploading ? 'Uploading...' : 'Upload'}
       </button>
@@ -435,7 +435,7 @@ function SupportingMaterialSlot({
           {myFiles.map((file) => (
             <li key={file.fileAssetId} className="flex items-center justify-between text-[11px] bg-slate-50 rounded px-2 py-1">
               <span className="truncate font-semibold text-slate-700">{file.originalName}</span>
-              <button onClick={() => onRemove(file.fileAssetId)} className="text-slate-400 hover:text-red-600 ml-1">
+              <button onClick={() => onRemove(file.fileAssetId)} className="text-slate-400 hover:text-rose-600 ml-1">
                 <X size={12} />
               </button>
             </li>

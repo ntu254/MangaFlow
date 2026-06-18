@@ -6,12 +6,20 @@ import type { SeriesViewModel } from './series-view-model'
 import { seriesStatusUi, type StatusUiConfig } from '@/shared/lib/status-ui'
 import { StatusBadge } from '@/shared/components/ui/status-badge'
 import { DataTable, type DataTableColumn } from '@/shared/components/ui/data-table'
+import { useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/shared/components/ui/sheet'
 
 const getStatusConfig = (status: string): StatusUiConfig => {
   const s = status.toUpperCase().replace(' ', '_');
@@ -31,6 +39,7 @@ interface SeriesListViewProps {
 
 export function SeriesListView({ seriesData, isLoading }: SeriesListViewProps) {
   const navigate = useNavigate();
+  const [selectedSeries, setSelectedSeries] = useState<SeriesViewModel | null>(null);
 
   const columns: DataTableColumn<SeriesViewModel>[] = [
     {
@@ -120,14 +129,70 @@ export function SeriesListView({ seriesData, isLoading }: SeriesListViewProps) {
   ]
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
-      <DataTable
-        data={seriesData}
-        columns={columns}
-        loading={isLoading}
-        rowKey={(s) => s.id}
-        className="border-0 rounded-none bg-transparent"
-      />
-    </div>
+    <>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
+        <DataTable
+          data={seriesData}
+          columns={columns}
+          loading={isLoading}
+          rowKey={(s) => s.id}
+          onRowClick={(s) => setSelectedSeries(s)}
+          className="border-0 rounded-none bg-transparent"
+        />
+      </div>
+
+      <Sheet open={!!selectedSeries} onOpenChange={(open) => !open && setSelectedSeries(null)}>
+        <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col bg-slate-50 border-l border-slate-200">
+          {selectedSeries && (
+            <>
+              <div className="h-40 bg-gradient-to-r from-violet-900 to-purple-900 relative p-6 flex flex-col justify-end">
+                <SheetHeader className="text-left text-white relative z-10">
+                  <StatusBadge config={getStatusConfig(selectedSeries.status)} size="sm" showIcon className="mb-2 w-fit bg-white/20 backdrop-blur border border-white/30 text-white" />
+                  <SheetTitle className="text-2xl font-extrabold text-white">{selectedSeries.title}</SheetTitle>
+                  <SheetDescription className="text-violet-200 font-medium text-sm">
+                    {selectedSeries.type} • {selectedSeries.chapters} Chapters • {selectedSeries.pages} Pages
+                  </SheetDescription>
+                </SheetHeader>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
+                <div>
+                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Synopsis</h4>
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    A short synopsis of the series goes here. This would typically be fetched from the API as part of the series details.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Last Updated</h4>
+                    <span className="text-[13px] font-semibold text-slate-900">{selectedSeries.updatedAt}</span>
+                  </div>
+                  <div>
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Current Phase</h4>
+                    <span className="text-[13px] font-semibold text-slate-900">{selectedSeries.status}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white border-t border-slate-100 flex flex-col gap-3">
+                <button 
+                  onClick={() => navigate(`/app/mangaka/series/${selectedSeries.id}`)}
+                  className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                >
+                  Open Production Hub <ExternalLink size={16} />
+                </button>
+                <button 
+                  onClick={() => setSelectedSeries(null)}
+                  className="w-full h-10 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold rounded-xl flex items-center justify-center transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

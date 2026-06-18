@@ -28,7 +28,7 @@ export function ConfigCard({
       case 'active': return 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-transparent'
       case 'inactive': return 'bg-slate-500/10 text-slate-500 hover:bg-slate-500/20 border-transparent'
       case 'draft': return 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-transparent'
-      case 'archived': return 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border-transparent'
+      case 'archived': return 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border-transparent'
       default: return 'bg-slate-500/10 text-slate-500 hover:bg-slate-500/20 border-transparent'
     }
   }

@@ -36,4 +36,17 @@ export declare const reviewActionBodySchema: z.ZodObject<{
 }, {
     reviewerNote?: string | undefined;
 }>;
+export declare const getTaskUploadUrlBodySchema: z.ZodObject<{
+    originalName: z.ZodString;
+    contentType: z.ZodString;
+    size: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    originalName: string;
+    size: number;
+    contentType: string;
+}, {
+    originalName: string;
+    size: number;
+    contentType: string;
+}>;
 //# sourceMappingURL=submission.validation.d.ts.map

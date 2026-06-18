@@ -76,26 +76,28 @@ export async function getAssistantSummaryService(_userId) {
         recentActivity: []
     };
 }
-export async function getEditorSummaryService(_userId) {
+import { Series } from "../series/series.model.js";
+import { Submission } from "../submission/submission.model.js";
+export async function getEditorSummaryService(userId) {
+    const assignedSeries = await Series.countDocuments({ editorId: userId });
+    const pendingApprovals = await Submission.countDocuments({ status: "EDITOR_FINAL_REVIEW" });
     return {
-        nextActions: [
-            { id: "1", type: "REVIEW_MANUSCRIPT", label: "Review new manuscript for Series X", isUrgent: true, targetId: "series-x" }
-        ],
-        reviewQueue: { manuscripts: 2, productions: 5, publications: 1 },
+        nextActions: [],
+        reviewQueue: { manuscripts: 0, productions: pendingApprovals, publications: 0 },
         dueSoon: [],
         atRiskItems: [],
-        quickStats: { assignedSeries: 12, pendingApprovals: 8 },
+        quickStats: { assignedSeries, pendingApprovals },
         recentActivity: []
     };
 }
 export async function getBoardSummaryService(_userId) {
+    const pendingVotes = await Series.countDocuments({ status: "BOARD_REVIEW" });
+    const atRiskReviews = await Series.countDocuments({ status: "AT_RISK" });
     return {
-        nextActions: [
-            { id: "1", type: "VOTE_SERIES", label: "Vote on Series Y Proposal", isUrgent: true, targetId: "series-y" }
-        ],
-        boardQueue: { pendingVotes: 3, atRiskReviews: 1 },
+        nextActions: [],
+        boardQueue: { pendingVotes, atRiskReviews },
         dueSoon: [],
-        quickStats: { activeSeries: 24, totalVotesCast: 102 },
+        quickStats: { activeSeries: await Series.countDocuments(), totalVotesCast: 0 },
         recentActivity: []
     };
 }

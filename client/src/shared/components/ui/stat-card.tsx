@@ -22,7 +22,7 @@ const toneMap = {
   amber: "bg-amber-100 text-amber-600",
   blue: "bg-blue-100 text-blue-600",
   purple: "bg-purple-100 text-purple-600",
-  red: "bg-red-100 text-red-600",
+  red: "bg-rose-100 text-rose-600",
 }
 
 export function StatCard({
@@ -52,7 +52,7 @@ export function StatCard({
           {trend && (
             <span className={cn(
               "text-xs font-semibold flex items-center gap-0.5",
-              trend.isPositive ? "text-emerald-600" : "text-red-600"
+              trend.isPositive ? "text-emerald-600" : "text-rose-600"
             )}>
               {trend.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {trend.value}%

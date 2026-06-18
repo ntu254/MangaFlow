@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useParams } from "react-router-dom"
-import { X } from "lucide-react"
+import { X, Loader2 } from "lucide-react"
 import {
   useCreateTask,
   useTaskTypes,
@@ -91,7 +91,7 @@ export function AssignTaskModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Task Type <span className="text-red-500">*</span>
+                Task Type <span className="text-rose-500">*</span>
               </label>
               <select
                 required
@@ -111,7 +111,7 @@ export function AssignTaskModal({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Assignee <span className="text-red-500">*</span>
+                Assignee <span className="text-rose-500">*</span>
               </label>
               <select
                 required
@@ -132,7 +132,7 @@ export function AssignTaskModal({
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-              Task Title <span className="text-red-500">*</span>
+              Task Title <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
@@ -175,7 +175,7 @@ export function AssignTaskModal({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Due Date <span className="text-red-500">*</span>
+                Due Date <span className="text-rose-500">*</span>
               </label>
               <input
                 type="datetime-local"
@@ -198,9 +198,16 @@ export function AssignTaskModal({
             <button
               type="submit"
               disabled={createTask.isPending}
-              className="px-5 py-2.5 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors text-sm shadow-sm disabled:opacity-60 flex items-center justify-center min-w-[120px]"
+              className="px-5 py-2.5 rounded-xl font-bold text-white bg-violet-600 hover:bg-violet-700 transition-colors text-sm shadow-sm disabled:opacity-60 flex items-center justify-center min-w-[120px]"
             >
-              {createTask.isPending ? "Assigning..." : "Assign Task"}
+              {createTask.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                "Assign Task"
+              )}
             </button>
           </div>
         </form>

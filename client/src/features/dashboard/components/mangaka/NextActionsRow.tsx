@@ -16,7 +16,7 @@ const getColorClass = (color: string) => {
   switch(color) {
     case 'purple': return 'text-purple-600 bg-purple-50 border-purple-100'
     case 'blue': return 'text-blue-600 bg-blue-50 border-blue-100'
-    case 'indigo': return 'text-indigo-600 bg-indigo-50 border-indigo-100'
+    case 'indigo': return 'text-violet-600 bg-violet-50 border-violet-100'
     case 'teal': return 'text-teal-600 bg-teal-50 border-teal-100'
     default: return 'text-gray-600 bg-gray-50 border-gray-100'
   }

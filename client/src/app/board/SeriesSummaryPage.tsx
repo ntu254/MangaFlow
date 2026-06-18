@@ -25,7 +25,7 @@ export default function BoardSeriesSummaryPage() {
   const [decisionNote, setDecisionNote] = useState("")
 
   if (isLoading) return <div className="p-6 text-gray-500">Loading Board summary...</div>
-  if (isError || !summary) return <div className="p-6 text-red-500">Failed to load Board summary.</div>
+  if (isError || !summary) return <div className="p-6 text-rose-500">Failed to load Board summary.</div>
 
   const busy = actions.vote.isPending || actions.finalize.isPending || actions.tieBreak.isPending
   const decisionStatus = queueItem?.decisionStatus ?? summary.boardReview?.status ?? "PENDING"
@@ -54,7 +54,7 @@ export default function BoardSeriesSummaryPage() {
               <h1 className="text-2xl font-bold tracking-tight">{summary.series.title}</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{summary.series.synopsis}</p>
             </div>
-            <span className="rounded-md bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">{summary.series.status}</span>
+            <span className="rounded-md bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">{summary.series.status}</span>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">

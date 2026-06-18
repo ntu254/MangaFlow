@@ -1,5 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/shared/lib/utils'
+import { EmptyState } from '@/shared/components/ui/empty-state'
+import { AlertCircle, FileQuestion, Loader2 } from 'lucide-react'
 
 export interface DataTableColumn<T> {
   header: React.ReactNode
@@ -13,8 +15,10 @@ export interface DataTableProps<T> {
   columns: DataTableColumn<T>[]
   emptyState?: React.ReactNode
   loading?: boolean
+  error?: Error | string | boolean
   className?: string
   rowKey: (item: T) => string
+  onRowClick?: (item: T) => void
 }
 
 export function DataTable<T>({
@@ -22,8 +26,10 @@ export function DataTable<T>({
   columns,
   emptyState,
   loading,
+  error,
   className,
   rowKey,
+  onRowClick,
 }: DataTableProps<T>) {
   return (
     <div className={cn("w-full overflow-auto rounded-lg border border-border/50 bg-card", className)}>
@@ -38,24 +44,43 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody className="divide-y divide-border/50">
-          {loading ? (
+          {error ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 rounded-full border-2 border-primary border-r-transparent animate-spin"></span>
-                  Loading data...
+              <td colSpan={columns.length} className="p-4">
+                <EmptyState 
+                  icon={AlertCircle}
+                  title="Failed to load data"
+                  description={typeof error === 'string' ? error : (error instanceof Error ? error.message : "An unexpected error occurred while fetching data.")}
+                  className="bg-rose-50/50 border-rose-200"
+                />
+              </td>
+            </tr>
+          ) : loading ? (
+            <tr>
+              <td colSpan={columns.length} className="px-4 py-8">
+                <div className="flex flex-col items-center justify-center p-12 text-slate-500 gap-4">
+                  <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+                  <span className="text-sm font-medium">Loading data...</span>
                 </div>
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
-                {emptyState || "No data available."}
+              <td colSpan={columns.length} className="p-4">
+                {typeof emptyState === 'string' ? (
+                  <EmptyState icon={FileQuestion} title={emptyState} />
+                ) : (
+                  emptyState || <EmptyState icon={FileQuestion} title="No data found" description="There are no records to display." />
+                )}
               </td>
             </tr>
           ) : (
             data.map((item) => (
-              <tr key={rowKey(item)} className="transition-colors hover:bg-muted/30">
+              <tr 
+                key={rowKey(item)} 
+                className={cn("transition-colors hover:bg-muted/30", onRowClick && "cursor-pointer")}
+                onClick={() => onRowClick?.(item)}
+              >
                 {columns.map((col, colIndex) => (
                   <td key={colIndex} className={cn("px-4 py-3 align-middle", col.className)}>
                     {col.cell ? col.cell(item) : col.accessorKey ? String(item[col.accessorKey]) : null}

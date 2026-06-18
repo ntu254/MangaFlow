@@ -58,7 +58,7 @@ export function SeriesViewControls({
         <Input
           type="text"
           placeholder="Search title or genre..."
-          className="w-full pl-9 h-10 border-gray-200 rounded-lg text-sm bg-white shadow-sm focus-visible:ring-indigo-600"
+          className="w-full pl-9 h-10 border-gray-200 rounded-lg text-sm bg-white shadow-sm focus-visible:ring-violet-600"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
         />
@@ -99,14 +99,14 @@ export function SeriesViewControls({
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
           <button
             onClick={() => setViewMode('grid')}
-            className={`flex items-center justify-center p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center justify-center p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-violet-600' : 'text-gray-500 hover:text-gray-700'}`}
             title="Grid View"
           >
             <LayoutGrid size={16} />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`flex items-center justify-center p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center justify-center p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-violet-600' : 'text-gray-500 hover:text-gray-700'}`}
             title="List View"
           >
             <List size={16} />

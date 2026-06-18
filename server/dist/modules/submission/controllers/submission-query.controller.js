@@ -1,4 +1,4 @@
-import { createTaskSubmissionService, listReviewQueueSubmissionsService, listTaskSubmissionsService, } from "../submission.service.js";
+import { createTaskSubmissionService, listReviewQueueSubmissionsService, listTaskSubmissionsService, getTaskUploadUrlService, } from "../submission.service.js";
 export async function createTaskSubmission(req, res, _next) {
     const submission = await createTaskSubmissionService({
         taskId: req.params.taskId,
@@ -15,5 +15,15 @@ export async function listTaskSubmissions(req, res, _next) {
 export async function listReviewQueueSubmissions(req, res, _next) {
     const submissions = await listReviewQueueSubmissionsService(req.user);
     res.json({ success: true, message: "Review queue retrieved successfully", data: submissions });
+}
+export async function getTaskUploadUrl(req, res, _next) {
+    const result = await getTaskUploadUrlService({
+        taskId: req.params.taskId,
+        actor: req.user,
+        originalName: req.body.originalName,
+        contentType: req.body.contentType,
+        size: req.body.size,
+    });
+    res.json({ success: true, message: "Upload URL generated", data: result });
 }
 //# sourceMappingURL=submission-query.controller.js.map

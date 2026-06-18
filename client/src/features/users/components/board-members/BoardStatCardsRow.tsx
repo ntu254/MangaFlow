@@ -13,7 +13,7 @@ export function BoardStatCardsRow() {
     <div className='grid grid-cols-2 md:grid-cols-5 gap-4 w-full'>
       <StatCard icon={<Users className="text-purple-600" size={20}/>} title="Total Board Members" value={isLoading ? '...' : total} sub="Registered board members" iconBg="bg-purple-100" />
       <StatCard icon={<UserCheck className="text-emerald-600" size={20}/>} title="Active Members" value={isLoading ? '...' : active} sub={total ? `${Math.round((active / total) * 100)}% of total` : 'No active members'} iconBg="bg-emerald-100" />
-      <StatCard icon={<UserX className="text-orange-500" size={20}/>} title="Inactive Members" value={isLoading ? '...' : inactive} sub={total ? `${Math.round((inactive / total) * 100)}% of total` : 'No inactive members'} iconBg="bg-orange-100" />
+      <StatCard icon={<UserX className="text-amber-500" size={20}/>} title="Inactive Members" value={isLoading ? '...' : inactive} sub={total ? `${Math.round((inactive / total) * 100)}% of total` : 'No inactive members'} iconBg="bg-amber-100" />
       <StatCard icon={<Crown className="text-purple-600" size={20}/>} title="Chair Assigned" value={chairAssigned ? 'Yes' : 'No'} sub={chairAssigned ? 'Chair is assigned' : 'Chair not set'} iconBg="bg-purple-100" />
       <StatCard icon={<ShieldCheck className="text-purple-600" size={20}/>} title="Quorum Readiness" value={active >= 5 ? 'Ready' : 'Not Ready'} sub={`${active} of ${total} active`} iconBg="bg-purple-100" />
     </div>

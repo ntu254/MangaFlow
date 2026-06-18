@@ -18,7 +18,7 @@ export function RankingReportCard({ data }: { data: any }) {
         </div>
         <div className="flex flex-col items-start gap-1 ml-auto">
           {data.atRisk ? (
-             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 rounded-md border border-red-100 text-[12px] font-bold">
+             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md border border-rose-100 text-[12px] font-bold">
                <AlertTriangle size={14} /> At Risk: {data.atRiskReason}
              </div>
           ) : (

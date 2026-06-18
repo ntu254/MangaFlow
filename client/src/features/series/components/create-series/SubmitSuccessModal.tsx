@@ -18,9 +18,9 @@ export function SubmitSuccessModal({ open, onOpenChange, seriesId, title, author
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[700px] p-10 flex flex-col items-center border-0 shadow-2xl rounded-3xl" hideClose>
         <div className="relative w-32 h-32 flex items-center justify-center mb-6">
-          <div className="absolute inset-0 bg-indigo-50 rounded-full animate-pulse"></div>
-          <div className="absolute w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center">
-            <Send size={40} className="text-indigo-600 -ml-1 mt-1" strokeWidth={1.5} />
+          <div className="absolute inset-0 bg-violet-50 rounded-full animate-pulse"></div>
+          <div className="absolute w-24 h-24 bg-violet-100 rounded-full flex items-center justify-center">
+            <Send size={40} className="text-violet-600 -ml-1 mt-1" strokeWidth={1.5} />
           </div>
         </div>
 
@@ -34,7 +34,7 @@ export function SubmitSuccessModal({ open, onOpenChange, seriesId, title, author
           {' '}You will be notified when the editor starts the review.
         </p>
 
-        <div className="w-full bg-slate-50/50 border border-indigo-100/50 rounded-2xl p-6 flex items-center justify-between mb-8 shadow-sm">
+        <div className="w-full bg-slate-50/50 border border-violet-100/50 rounded-2xl p-6 flex items-center justify-between mb-8 shadow-sm">
           <div className="flex flex-col gap-1.5 min-w-0">
             <span className="text-[12px] font-bold text-slate-400 uppercase">Series ID</span>
             <span className="text-[13px] font-extrabold text-slate-800 tracking-wide truncate">{seriesId ?? '-'}</span>
@@ -61,7 +61,7 @@ export function SubmitSuccessModal({ open, onOpenChange, seriesId, title, author
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/app/mangaka/series')}
-            className="flex items-center justify-center gap-2 h-12 px-8 rounded-xl border border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 shadow-sm"
+            className="flex items-center justify-center gap-2 h-12 px-8 rounded-xl border border-violet-200 text-violet-700 font-bold hover:bg-violet-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 shadow-sm"
           >
             <FileText size={18} />
             Back to My Series
@@ -69,7 +69,7 @@ export function SubmitSuccessModal({ open, onOpenChange, seriesId, title, author
           {seriesId && (
             <button
               onClick={() => navigate(`/app/mangaka/series/${seriesId}`)}
-              className="flex items-center justify-center gap-2 h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 shadow-sm"
+              className="flex items-center justify-center gap-2 h-12 px-8 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 shadow-sm"
             >
               View Submission
             </button>

@@ -10,8 +10,8 @@ interface PageCardProps {
 export function PageCard({ num, status, statColor, onOpen }: PageCardProps) {
   const colors: Record<string, string> = {
     emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    orange: "bg-orange-50 text-orange-600 border-orange-100",
-    red: "bg-red-50 text-red-600 border-red-100",
+    orange: "bg-amber-50 text-amber-600 border-amber-100",
+    red: "bg-rose-50 text-rose-600 border-rose-100",
     yellow: "bg-yellow-50 text-yellow-600 border-yellow-100",
     gray: "bg-gray-50 text-gray-600 border-gray-100",
   }

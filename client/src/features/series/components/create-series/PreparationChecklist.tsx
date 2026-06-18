@@ -3,13 +3,13 @@ import { FileText, Image as ImageIcon, Users, LayoutDashboard, Briefcase } from 
 export function PreparationChecklist() {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col w-full">
-      <h3 className="text-sm font-bold text-indigo-700 mb-1">What to Prepare</h3>
+      <h3 className="text-sm font-bold text-violet-700 mb-1">What to Prepare</h3>
       <p className="text-[12px] text-slate-500 mb-6">Prepare the following materials for submission.</p>
 
       <div className="flex flex-col gap-4">
         <ChecklistItem 
-          icon={<FileText size={16} className="text-red-500" />}
-          iconBg="bg-red-50 border-red-100"
+          icon={<FileText size={16} className="text-rose-500" />}
+          iconBg="bg-rose-50 border-rose-100"
           title="Proposal Manuscript (PDF)"
           desc="Full story proposal and synopsis"
           badge="Required"
@@ -29,15 +29,15 @@ export function PreparationChecklist() {
           badge="Optional"
         />
         <ChecklistItem 
-          icon={<LayoutDashboard size={16} className="text-orange-500" />}
-          iconBg="bg-orange-50 border-orange-100"
+          icon={<LayoutDashboard size={16} className="text-amber-500" />}
+          iconBg="bg-amber-50 border-amber-100"
           title="Cover Draft"
           desc="Draft cover or key visual"
           badge="Optional"
         />
         <ChecklistItem 
-          icon={<Briefcase size={16} className="text-indigo-500" />}
-          iconBg="bg-indigo-50 border-indigo-100"
+          icon={<Briefcase size={16} className="text-violet-500" />}
+          iconBg="bg-violet-50 border-violet-100"
           title="Reference Images"
           desc="World, locations, mood, etc."
           badge="Optional"

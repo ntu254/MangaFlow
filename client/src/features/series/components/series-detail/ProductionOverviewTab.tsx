@@ -98,7 +98,7 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
           
           <div className="flex items-center gap-3 mb-6">
             <span className="text-[20px] font-extrabold text-gray-900">{currentChapter ? `Chapter ${currentChapter.chapterNumber}` : 'No chapter'}</span>
-            <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded border border-orange-100">{currentChapter ? labelize(currentChapter.status) : '-'}</span>
+            <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-100">{currentChapter ? labelize(currentChapter.status) : '-'}</span>
           </div>
 
           <div className="flex flex-col gap-2 mb-6">
@@ -176,7 +176,7 @@ export function ProductionOverviewTab({ summary }: { summary: SeriesSummary }) {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 text-gray-600">
-                <span className="w-5 h-5 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-[11px] font-bold">{Math.max(0, summary.commentSummary.open - summary.commentSummary.blocking)}</span>
+                <span className="w-5 h-5 rounded bg-amber-100 text-amber-600 flex items-center justify-center text-[11px] font-bold">{Math.max(0, summary.commentSummary.open - summary.commentSummary.blocking)}</span>
                 <span className="text-[13px] font-bold">Needs Fix</span>
               </div>
               <span className="text-[14px] font-extrabold text-gray-900">{Math.max(0, summary.commentSummary.open - summary.commentSummary.blocking)}</span>
@@ -264,7 +264,7 @@ function SubmissionItem({ chap, page, author, status = 'Pending Mangaka Review' 
         <span className="text-[13px] font-bold text-gray-900">Chapter {chap} - Page {page}</span>
         <span className="text-[11px] font-medium text-gray-500">By {author}</span>
       </div>
-      <div className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-orange-100">
+      <div className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-amber-100">
         {status}
       </div>
     </div>
@@ -273,7 +273,7 @@ function SubmissionItem({ chap, page, author, status = 'Pending Mangaka Review' 
 
 function ChapterRow({ ch, pages, pct, status, date }: any) {
   const getStatusColor = (s: string) => {
-    if (s === 'In Progress') return 'bg-orange-50 text-orange-600 border-orange-100'
+    if (s === 'In Progress') return 'bg-amber-50 text-amber-600 border-amber-100'
     if (s === 'Editor Approved') return 'bg-emerald-50 text-emerald-600 border-emerald-100'
     if (s === 'Published') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
     return 'bg-gray-50 text-gray-600'

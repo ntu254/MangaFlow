@@ -43,7 +43,7 @@ export function SeriesSidebar({ summary, seriesPhase = 'production', activeTab, 
             <span className="text-[12px] font-medium text-gray-500">{summary.series.genres.join(', ') || 'No genres'}</span>
 
             {isProposal ? (
-              <div className="inline-flex items-center justify-center bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider w-fit mt-1">
+              <div className="inline-flex items-center justify-center bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider w-fit mt-1">
                 {summary.series.status.split('_').join(' ')}
               </div>
             ) : (

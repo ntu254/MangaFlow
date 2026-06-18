@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
-import { ArrowLeft, CheckCircle2, AlertCircle, XCircle } from "lucide-react"
+import { ArrowLeft, CheckCircle2, AlertCircle, XCircle, Loader2, FileQuestion } from "lucide-react"
 
 import { taskApi } from "@/features/chapters/services/task.api"
 import { submissionApi } from "@/features/reviews/services/submission.api"
@@ -13,6 +13,7 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { Badge } from "@/shared/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/shared/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog"
+import { EmptyState } from "@/shared/components/ui/empty-state"
 
 export default function MangakaTaskReviewPage() {
   const { taskId } = useParams()
@@ -90,22 +91,25 @@ export default function MangakaTaskReviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="container max-w-4xl py-20 flex flex-col items-center justify-center gap-4 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+        <span className="text-sm font-medium">Loading review data...</span>
       </div>
     )
   }
 
   if (!task || !currentSubmission) {
     return (
-      <div className="container py-10">
+      <div className="container max-w-4xl py-10">
         <Button variant="ghost" onClick={() => navigate("/app/mangaka/reviews")} className="mb-6 gap-2">
           <ArrowLeft className="h-4 w-4" /> Back to Queue
         </Button>
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <AlertCircle className="mx-auto mb-4 h-8 w-8 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">Task or Submission not found</h2>
-        </div>
+        <EmptyState 
+          icon={FileQuestion}
+          title="Task not found"
+          description="The task or submission you are looking for does not exist or you don't have permission to view it."
+          className="bg-white border-slate-200"
+        />
       </div>
     )
   }
@@ -162,7 +166,10 @@ export default function MangakaTaskReviewPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 text-sm font-medium text-muted-foreground">Your Review Note (Optional for Approve)</h3>
+              <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                Your Review Note <span className="text-rose-500">*</span> 
+                <span className="text-xs text-slate-400 font-normal ml-2">(Required for Revision/Reject)</span>
+              </h3>
               <Textarea
                 placeholder="Great job! / Please fix the shading here..."
                 value={reviewNote}

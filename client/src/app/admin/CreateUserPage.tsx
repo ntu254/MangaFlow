@@ -110,22 +110,22 @@ export default function CreateUserPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-gray-700">Full Name <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="fullName" className="text-gray-700">Full Name <span className="text-rose-500">*</span></Label>
                   <Input id="fullName" placeholder="e.g. Yuki Tanaka" value={formData.fullName} onChange={(e) => handleChange('fullName', e.target.value)} aria-invalid={Boolean(fieldErrors.fullName)} />
-                  {fieldErrors.fullName && <p className="text-xs text-red-500">{fieldErrors.fullName}</p>}
+                  {fieldErrors.fullName && <p className="text-xs text-rose-500">{fieldErrors.fullName}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-700">Email Address <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="email" className="text-gray-700">Email Address <span className="text-rose-500">*</span></Label>
                   <Input id="email" type="email" placeholder="e.g. yuki.tanaka@mangaflow.studio" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} aria-invalid={Boolean(fieldErrors.email)} />
-                  {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
+                  {fieldErrors.email && <p className="text-xs text-rose-500">{fieldErrors.email}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="displayName" className="text-gray-700">Display Name <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="displayName" className="text-gray-700">Display Name <span className="text-rose-500">*</span></Label>
                   <Input id="displayName" placeholder="e.g. Yuki Tanaka" value={formData.displayName} onChange={(e) => handleChange('displayName', e.target.value)} aria-invalid={Boolean(fieldErrors.displayName)} />
-                  {fieldErrors.displayName && <p className="text-xs text-red-500">{fieldErrors.displayName}</p>}
+                  {fieldErrors.displayName && <p className="text-xs text-rose-500">{fieldErrors.displayName}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Team <span className="text-red-500">*</span></Label>
+                  <Label className="text-gray-700">Team <span className="text-rose-500">*</span></Label>
                   <Select value={formData.team} onValueChange={(val) => handleChange('team', val)}>
                     <SelectTrigger className="bg-white">
                       <SelectValue placeholder="Select team" />
@@ -134,7 +134,7 @@ export default function CreateUserPage() {
                       {teams.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {fieldErrors.team && <p className="text-xs text-red-500">{fieldErrors.team}</p>}
+                  {fieldErrors.team && <p className="text-xs text-rose-500">{fieldErrors.team}</p>}
                 </div>
               </div>
 
@@ -163,10 +163,10 @@ export default function CreateUserPage() {
                 </RadioGroup>
                 {formData.inviteMode === 'manual' && (
                   <div className="mt-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 space-y-2">
-                    <Label htmlFor="password">Initial Password <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="password">Initial Password <span className="text-rose-500">*</span></Label>
                     <Input id="password" type="text" placeholder="Enter a secure initial password..." value={formData.password} onChange={(e) => handleChange('password', e.target.value)} aria-invalid={Boolean(fieldErrors.password)} />
                     <p className="text-xs text-gray-500">The user must use this password to log in for the first time.</p>
-                    {fieldErrors.password && <p className="text-xs text-red-500">{fieldErrors.password}</p>}
+                    {fieldErrors.password && <p className="text-xs text-rose-500">{fieldErrors.password}</p>}
                   </div>
                 )}
               </div>
@@ -184,7 +184,7 @@ export default function CreateUserPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Role <span className="text-red-500">*</span></Label>
+                  <Label className="text-gray-700">Role <span className="text-rose-500">*</span></Label>
                   <Select value={formData.role} onValueChange={(val) => handleChange('role', val)}>
                     <SelectTrigger className="bg-white">
                       <SelectValue placeholder="Select a role" />
@@ -193,10 +193,10 @@ export default function CreateUserPage() {
                       {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {fieldErrors.role && <p className="text-xs text-red-500">{fieldErrors.role}</p>}
+                  {fieldErrors.role && <p className="text-xs text-rose-500">{fieldErrors.role}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Account Status <span className="text-red-500">*</span></Label>
+                  <Label className="text-gray-700">Account Status <span className="text-rose-500">*</span></Label>
                   <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
                     <SelectTrigger className="bg-white">
                       <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function CreateUserPage() {
                 maxLength={1000}
                 aria-invalid={Boolean(fieldErrors.notes)}
               />
-              {fieldErrors.notes && <p className="mt-2 text-xs text-red-500">{fieldErrors.notes}</p>}
+              {fieldErrors.notes && <p className="mt-2 text-xs text-rose-500">{fieldErrors.notes}</p>}
             </CardContent>
           </Card>
 
@@ -329,7 +329,7 @@ export default function CreateUserPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {submitError && (
-                <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+                <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600">
                   {submitError}
                 </div>
               )}

@@ -29,7 +29,7 @@ export function BoardDecisionCard({ series, linkTo }: { series: any, linkTo: str
             {series.voteCount} vote(s)
           </div>
           {!isResolved && series.riskLevel === 'HIGH' && (
-            <div className="flex items-center gap-1.5 text-[13px] text-red-600 font-medium">
+            <div className="flex items-center gap-1.5 text-[13px] text-rose-600 font-medium">
               <AlertTriangle size={14} /> High Risk
             </div>
           )}

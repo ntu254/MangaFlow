@@ -38,7 +38,7 @@ export function CreateSeriesLayout({
     <div className="max-w-[1400px] w-full mx-auto pb-24 space-y-6 relative">
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-[13px] text-slate-500 mb-2">
-        <Link to="/app/mangaka/series" className="hover:text-indigo-600 transition-colors">My Series</Link>
+        <Link to="/app/mangaka/series" className="hover:text-violet-600 transition-colors">My Series</Link>
         <ChevronRight size={14} />
         <span className="text-slate-900 font-medium">Create New Series</span>
         {currentStep === 2 && (
@@ -64,9 +64,9 @@ export function CreateSeriesLayout({
       {/* Stepper */}
       <div className="flex items-center w-full max-w-3xl mb-10">
         <StepItem number={1} title="Series Profile" active={currentStep === 1} completed={currentStep > 1} />
-        <div className={`flex-1 h-px mx-4 ${currentStep > 1 ? 'bg-indigo-600' : 'bg-slate-200'}`}></div>
+        <div className={`flex-1 h-px mx-4 ${currentStep > 1 ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
         <StepItem number={2} title="Upload Draft" active={currentStep === 2} completed={currentStep > 2} />
-        <div className={`flex-1 h-px mx-4 ${currentStep > 2 ? 'bg-indigo-600' : 'bg-slate-200'}`}></div>
+        <div className={`flex-1 h-px mx-4 ${currentStep > 2 ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
         <StepItem number={3} title="Submit to Editor" active={currentStep === 3} completed={currentStep > 3} />
       </div>
 
@@ -86,11 +86,11 @@ export function CreateSeriesLayout({
           {currentStep === 2 && <SubmissionChecklist uploadedFiles={uploadedFiles} formData={formData} />}
           {currentStep === 3 && <SubmissionChecklist uploadedFiles={uploadedFiles} formData={formData} />}
           {currentStep === 3 && (
-            <div className="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100 flex gap-3">
-              <Info className="text-indigo-600 shrink-0 mt-0.5" size={18} />
+            <div className="bg-violet-50/50 rounded-2xl p-5 border border-violet-100 flex gap-3">
+              <Info className="text-violet-600 shrink-0 mt-0.5" size={18} />
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-bold text-indigo-900">What happens next?</span>
-                <span className="text-[13px] text-indigo-700 leading-relaxed">
+                <span className="text-sm font-bold text-violet-900">What happens next?</span>
+                <span className="text-[13px] text-violet-700 leading-relaxed">
                   Your submission will be sent to the editor. You can track the review progress in the <strong className="font-bold">My Series</strong> page.
                 </span>
               </div>
@@ -127,13 +127,13 @@ export function CreateSeriesLayout({
               type="button"
               onClick={onSaveDraft}
               disabled={!onSaveDraft || saveDraftLoading || saveDraftDisabled || nextLoading}
-              className="flex items-center gap-2 px-6 h-11 rounded-lg text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition-colors disabled:opacity-60"
+              className="flex items-center gap-2 px-6 h-11 rounded-lg text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 transition-colors disabled:opacity-60"
             >
               {saveDraftLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Save as Draft
             </button>
             <button
-              className="flex items-center gap-2 px-6 h-11 rounded-lg text-sm font-bold text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60"
+              className="flex items-center gap-2 px-6 h-11 rounded-lg text-sm font-bold text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 transition-colors bg-violet-600 hover:bg-violet-700 disabled:opacity-60"
               onClick={onNext}
               disabled={nextDisabled}
             >
@@ -152,9 +152,9 @@ function StepItem({ number, title, active, completed }: { number: number; title:
   if (completed) {
     return (
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">?</div>
+        <div className="w-8 h-8 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold text-sm shrink-0">?</div>
         <div className="flex flex-col">
-          <span className="text-[13px] font-bold text-indigo-900">{title}</span>
+          <span className="text-[13px] font-bold text-violet-900">{title}</span>
           <span className="text-[11px] font-semibold text-emerald-600">Completed</span>
         </div>
       </div>
@@ -163,11 +163,11 @@ function StepItem({ number, title, active, completed }: { number: number; title:
 
   return (
     <div className="flex items-center gap-3">
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${active ? 'bg-indigo-600 text-white shadow-md ring-4 ring-indigo-50' : 'bg-slate-100 text-slate-500'}`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${active ? 'bg-violet-600 text-white shadow-md ring-4 ring-violet-50' : 'bg-slate-100 text-slate-500'}`}>
         {number}
       </div>
       <div className="flex flex-col">
-        <span className={`text-[13px] font-bold ${active ? 'text-indigo-900' : 'text-slate-500'}`}>{title}</span>
+        <span className={`text-[13px] font-bold ${active ? 'text-violet-900' : 'text-slate-500'}`}>{title}</span>
       </div>
     </div>
   )

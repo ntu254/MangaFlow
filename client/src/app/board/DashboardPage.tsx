@@ -5,6 +5,7 @@ import { PageHeader } from "@/shared/components/ui/page-header"
 import { BoardDecisionCard } from "@/features/board/components/BoardDecisionCard"
 import { EmptyState } from "@/shared/components/ui/empty-state"
 import { CheckCircle2 } from "lucide-react"
+import { BentoGrid, BentoCard } from "@/shared/components/layout/BentoGrid"
 
 export default function BoardDashboardPage() {
   const { user } = useAuthStore()
@@ -46,11 +47,15 @@ export default function BoardDashboardPage() {
             description="There are currently no series proposals awaiting board review."
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <BentoGrid>
             {pendingSeries.map((series) => (
-              <BoardDecisionCard key={series.id} series={series} linkTo={`/app/board/series/${series.id}/voting`} />
+              <BentoCard bare colSpan={4} key={series.id} className="h-full">
+                <div className="h-full">
+                  <BoardDecisionCard series={series} linkTo={`/app/board/series/${series.id}/voting`} />
+                </div>
+              </BentoCard>
             ))}
-          </div>
+          </BentoGrid>
         )}
       </section>
 
@@ -59,11 +64,15 @@ export default function BoardDashboardPage() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[18px] font-bold tracking-tight text-slate-900">Recently Resolved</h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <BentoGrid>
             {resolvedSeries.map((series) => (
-              <BoardDecisionCard key={series.id} series={series} linkTo={`/app/board/series/${series.id}/summary`} />
+              <BentoCard bare colSpan={4} key={series.id} className="h-full">
+                <div className="h-full">
+                  <BoardDecisionCard series={series} linkTo={`/app/board/series/${series.id}/summary`} />
+                </div>
+              </BentoCard>
             ))}
-          </div>
+          </BentoGrid>
         </section>
       )}
     </div>

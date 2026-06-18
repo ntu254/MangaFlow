@@ -10,7 +10,7 @@ interface ReviewDecisionPanelProps extends React.HTMLAttributes<HTMLDivElement> 
 const toneMap = {
   amber: "border-amber-200 bg-amber-50/50",
   emerald: "border-emerald-200 bg-emerald-50/50",
-  red: "border-red-200 bg-red-50/50",
+  red: "border-rose-200 bg-rose-50/50",
   slate: "border-slate-200 bg-slate-50/50",
 }
 

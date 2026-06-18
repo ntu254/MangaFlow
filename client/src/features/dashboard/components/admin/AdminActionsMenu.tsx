@@ -44,7 +44,7 @@ export function AdminActionsMenu({ items, disabled }: AdminActionsMenuProps) {
             <DropdownMenuItem
               disabled={item.disabled}
               onSelect={item.onSelect}
-              className={item.destructive ? 'text-red-600 focus:text-red-600' : undefined}
+              className={item.destructive ? 'text-rose-600 focus:text-rose-600' : undefined}
             >
               {item.icon}
               <span>{item.label}</span>
