@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { editorHome, editorReadinessResult, finalApprovals, manuscripts, productionComments } from "@/data/editor"
-import type { EditorFinalApprovalAction, EditorProposalAction } from "@/domain/workflow"
+import type { EditorFinalApprovalAction, EditorProposalAction, SeriesProposalSummary } from "@/domain/workflow"
 import { mobileWorkflowDataSource, type EditorCommentsPayload, type EditorHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
 
 export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource) {
@@ -9,6 +9,8 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   const [submissionItems, setSubmissionItems] = useState(finalApprovals)
   const [commentsPayload, setCommentsPayload] = useState<EditorCommentsPayload>({ metrics: [], comments: productionComments, activity: [] })
   const [readiness, setReadiness] = useState(editorReadinessResult)
+  const [selectedProposalSummary, setSelectedProposalSummary] = useState<SeriesProposalSummary | null>(null)
+  const [proposalSummaryLoading, setProposalSummaryLoading] = useState(false)
   const [selectedManuscriptId, setSelectedManuscriptId] = useState(manuscripts[0]?.id ?? "")
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(finalApprovals[0]?.id ?? "")
   const [selectedCommentId, setSelectedCommentId] = useState(productionComments[0]?.id ?? "")
@@ -20,6 +22,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   const [actionBusy, setActionBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [proposalNote, setProposalNote] = useState("")
+  const [proposalPublicationType, setProposalPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY")
   const [finalApprovalNote, setFinalApprovalNote] = useState("")
 
   const reload = useCallback(async () => {
@@ -60,6 +63,31 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     [manuscriptItems, selectedManuscriptId],
   )
 
+  useEffect(() => {
+    const seriesId = selectedManuscript?.id
+    if (!seriesId) {
+      setSelectedProposalSummary(null)
+      return
+    }
+
+    let cancelled = false
+    setProposalSummaryLoading(true)
+    void dataSource.getSeriesProposalSummary(seriesId, "editor")
+      .then((summary) => {
+        if (!cancelled) setSelectedProposalSummary(summary)
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedProposalSummary(null)
+      })
+      .finally(() => {
+        if (!cancelled) setProposalSummaryLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [dataSource, selectedManuscript?.id])
+
   const selectedSubmission = useMemo(
     () => submissionItems.find((item) => item.id === selectedSubmissionId) ?? submissionItems[0],
     [submissionItems, selectedSubmissionId],
@@ -73,6 +101,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   function startProposalAction(action: EditorProposalAction) {
     setActionError(null)
     setProposalNote("")
+    setProposalPublicationType(selectedProposalSummary?.requestedPublicationType ?? selectedManuscript?.requestedPublicationType ?? "MONTHLY")
     setPendingProposalAction(action)
   }
 
@@ -107,7 +136,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
         await dataSource.forwardEditorProposalToBoard(target.id, {
           editorRecommendation: note || target.editorRecommendation || "Forwarded for Board review.",
           feasibilityNote: note || "Production scope reviewed by editor.",
-          suggestedPublicationType: "MONTHLY",
+          suggestedPublicationType: proposalPublicationType,
         })
       }
       setLastMockAction(`Proposal ${action} sent for ${target.title}.`)
@@ -221,6 +250,8 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     selectedManuscript,
     selectedSubmission,
     selectedComment,
+    selectedProposalSummary,
+    proposalSummaryLoading,
     selectedManuscriptId,
     selectedSubmissionId,
     selectedCommentId,
@@ -240,6 +271,8 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     reopenSelectedComment,
     proposalNote,
     setProposalNote,
+    proposalPublicationType,
+    setProposalPublicationType,
     finalApprovalNote,
     setFinalApprovalNote,
     actionBusy,

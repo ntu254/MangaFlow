@@ -220,6 +220,109 @@ Verify:
 
 ---
 
+## Phiên (2026-06-20) — Audit API thật cho Editor mobile review/comments/readiness
+
+Yêu cầu kiểm:
+- Trang review về manuscripts.
+- Trang comments.
+- Trang readiness/readlines (đối chiếu code hiện tại là `Readiness`).
+- Liệt kê phần còn mock/fallback.
+
+Kết luận nhanh:
+- Manuscripts/review đã gọi API thật cho queue và các action an toàn.
+- Comments đã gọi API thật cho task comments + resolve/reopen, nhưng context hiện lấy theo task đầu tiên từ final submission queue; vẫn fallback mock nếu thiếu `taskId` hoặc API lỗi.
+- Readiness đã gọi API thật theo `chapterId`, nhưng vẫn fallback mock nếu thiếu `chapterId` hoặc API lỗi; một số nút trên UI vẫn là placeholder.
+
+API thật đang được gọi:
+- `GET /api/editor/manuscripts/review-queue` qua `getEditorManuscripts()`.
+- `POST /api/editor/series/:seriesId/start-review`.
+- `POST /api/editor/series/:seriesId/request-revision`.
+- `POST /api/editor/series/:seriesId/reject`.
+- `POST /api/editor/series/:seriesId/forward-to-board`.
+- `GET /api/submissions/review-queue` qua `getEditorSubmissions()`.
+- `GET /api/tasks/:taskId` để enrich final approval detail.
+- `GET /api/chapters/:chapterId` để enrich final approval detail.
+- `GET /api/chapters/:chapterId/pages` để lấy page metadata read-only.
+- `GET /api/comments/task/:taskId` qua `getEditorComments()`.
+- `POST /api/comments` trong action add-comment của final approval.
+- `POST /api/comments/:commentId/resolve`.
+- `POST /api/comments/:commentId/reopen`.
+- `GET /api/chapters/:chapterId/readiness` qua `getEditorReadiness()`.
+
+Phần vẫn còn mock/fallback có chủ đích:
+- `mobileWorkflowDataSource` vẫn là live API data source có mock fallback cho read methods. Mutation không fallback âm thầm; mutation gọi live API trực tiếp và surface lỗi backend.
+- Manuscripts/review:
+  - Nếu `/editor/manuscripts/review-queue` lỗi thì fallback về `manuscripts` mock.
+  - Visual cover vẫn dùng `coverTone`/local UI asset, chưa có signed file URL.
+  - Một số field display có default text như subtitle, editor recommendation, version khi backend thiếu dữ liệu.
+  - `forward-to-board` hiện gửi `suggestedPublicationType: "MONTHLY"` cố định từ hook vì mobile chưa có control chọn publication type trong panel.
+  - Không auto-call `GET /api/editor/series/:seriesId/review` vì route/service backend có thể start review theo side effect; mobile dùng explicit `POST /start-review` để người dùng chủ động.
+- Comments:
+  - Nếu live submission queue không có `taskId`, hoặc comments API lỗi, màn Comments fallback về `commentMetrics`, `productionComments`, `commentActivity`.
+  - Comments tab hiện chọn context bằng task đầu tiên có `taskId` trong final submission queue, chưa có task/comment scope selector riêng.
+  - Thumbnail/cover/page visual vẫn là local display (`coverTone`, page text), chưa tải signed file assets.
+  - Nút `Open blockers` trong comments callout vẫn là UI placeholder, chưa route/filter riêng.
+- Readiness:
+  - Nếu live submission queue không có `chapterId`, hoặc readiness API lỗi, màn Readiness fallback về `editorReadinessResult`.
+  - Readiness screen chỉ đọc backend result, chưa wire mutation publish/mark-ready/schedule.
+  - Nút `Open blockers` và `Schedule publication mock` trên Readiness vẫn là placeholder UI.
+  - Readiness logic vẫn do backend `PublicationReadinessService` sở hữu; mobile không tự tính lại checklist.
+- Editor Home:
+  - Home đã gọi `/dashboard/editor/summary`, manuscripts, submissions, readiness.
+  - Card `Resolve comments` vẫn lấy số từ `commentMetrics[0]?.value` thay vì live comments count vì comments cần task context trước.
+
+Ranh giới còn giữ:
+- Không wire signed URL/file access.
+- Không wire publish/mark-ready/schedule publication.
+- Không tự tính readiness/ranking/workflow transition trên mobile.
+- Không gọi Admin/Assistant/Payroll lanes từ mobile Editor scope.
+
+---
+
+## Phiên (2026-06-20) — MF-HIOS-108 Mangaka -> Editor -> Board mobile proposal summary flow
+
+Branch:
+- `codex/mf-hios-108-mobile-proposal-summary-flow`
+
+Scope khóa trước khi code:
+- Mangaka vẫn tạo/upload/submit series bằng web hiện có.
+- Mobile không thêm Mangaka role.
+- Mobile chỉ cho Editor/Board xem proposal summary, duyệt, vote, finalize bằng API thật.
+- Không mở signed file download/preview trên mobile; chỉ hiển thị manuscript metadata.
+
+Backend thay đổi:
+- `GET /api/board/queue` bổ sung read-only decision readiness fields:
+  - `eligibleBoardCount`
+  - `quorum`
+  - `canFinalize`
+- Backend vẫn là nguồn quyết định thật; `canFinalize` chỉ để UI phản ánh trạng thái, `POST /decisions/finalize` vẫn tự kiểm eligible/quorum/plurality.
+
+Mobile data/API wiring:
+- `mobile/src/domain/workflow.ts`: thêm `SeriesProposalSummary`; `EditorManuscriptReviewItem` có `requestedPublicationType`; `BoardVoteSummary` có optional `quorum/canFinalize`.
+- `mobile/src/services/mobile-workflow-data-source.ts`:
+  - thêm `getSeriesProposalSummary(seriesId, role)`.
+  - gọi live `GET /api/series/:seriesId/summary` bằng token Editor hoặc Board.
+  - map pitch fields, requested publication type, current manuscript metadata, board review summary.
+  - fallback read-only summary từ queue card nếu live summary lỗi.
+  - Board queue mapper dùng `eligibleBoardCount/quorum/canFinalize`.
+- Mutation vẫn gọi live API trực tiếp, không fallback mock âm thầm.
+
+Mobile UI/hook:
+- `useEditorMobileFlow`: selected manuscript tự fetch proposal summary; forward-to-board lấy default cadence từ summary/requestedPublicationType.
+- `useBoardMobileFlow`: selected Board review tự fetch proposal summary.
+- `SeriesProposalSummaryPanel`: dùng chung cho Editor/Board, hiển thị pitch + manuscript metadata + Board decision summary; không request signed URL.
+- `EditorProposalDecisionPanel`: thêm selector `WEEKLY/MONTHLY`, gửi `suggestedPublicationType` từ UI thay vì hardcode `"MONTHLY"`.
+- `BoardVotePanel`: hiển thị quorum từ backend và disable finalize khi `canFinalize === false`.
+
+Verify:
+- `npm --prefix mobile run test` -> pass 23/23.
+- `npm --prefix server run test -- src/modules/board/board.service.test.ts src/modules/manuscript/manuscript.service.test.ts src/modules/series/series.service.test.ts` -> pass 27/27.
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run build` -> pass.
+- `npm --prefix server run test` -> fail ngoài scope ở `src/shared/policies/accessPolicy.service.test.ts` và `src/modules/submission/submission.service.test.ts`; Board service test của slice này pass trong full run.
+
+---
+
 ## Phiên (2026-06-20) — MF-HIOS-107 mobile safe Editor API actions
 
 Branch:

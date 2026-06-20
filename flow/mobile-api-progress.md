@@ -35,6 +35,7 @@ Mobile still must not own backend permissions, workflow transitions, readiness c
 - `GET /api/tasks/:taskId`
 - `GET /api/chapters/:chapterId`
 - `GET /api/chapters/:chapterId/pages`
+- `GET /api/series/:seriesId/summary`
 - `GET /api/comments/task/:taskId`
 - `GET /api/chapters/:chapterId/readiness`
 
@@ -44,6 +45,7 @@ Mobile still must not own backend permissions, workflow transitions, readiness c
 - `GET /api/auth/me`
 - `GET /api/dashboard/board/summary`
 - `GET /api/board/queue`
+- `GET /api/series/:seriesId/summary`
 - `GET /api/rankings`
 
 ## Mutation Endpoints Wired
@@ -76,6 +78,7 @@ Mutation calls go to the live API directly and surface backend errors in the con
 - Editor comments fall back to mock only when the live submission queue does not expose a task id or the comments API fails.
 - Editor readiness falls back to mock only when the live submission queue does not expose a chapter id or the readiness API fails.
 - Board decision history is derived from live review/ranking reads plus mock-safe display shape.
+- Series proposal summary on mobile falls back to queue-card metadata if `/api/series/:seriesId/summary` fails.
 
 ## Mutation Endpoints Not Wired Yet
 
@@ -114,6 +117,20 @@ npm --prefix mobile run lint
 npm --prefix mobile run test
 npm --prefix mobile run build
 ```
+
+Latest MF-HIOS-108 verification:
+
+```bash
+npm --prefix mobile run test
+npm --prefix server run test -- src/modules/board/board.service.test.ts src/modules/manuscript/manuscript.service.test.ts src/modules/series/series.service.test.ts
+npm --prefix mobile run lint
+npm --prefix mobile run build
+```
+
+Notes:
+- Mobile tests passed 23/23.
+- Targeted server scope passed 27/27.
+- Full `npm --prefix server run test` still has pre-existing failures in `accessPolicy.service.test.ts` and `submission.service.test.ts`; MF-HIOS-108 Board service test passed inside that run.
 
 For live API smoke:
 

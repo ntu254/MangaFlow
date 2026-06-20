@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { atRiskTitles, boardDecisionHistory, boardHome, boardRankings, boardSeries } from "@/data/board"
-import type { AtRiskDecision, BoardVoteValue } from "@/domain/workflow"
+import type { AtRiskDecision, BoardVoteValue, SeriesProposalSummary } from "@/domain/workflow"
 import { mobileWorkflowDataSource, type BoardHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
 
 export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource) {
@@ -10,6 +10,8 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mobile
   const [rankings, setRankings] = useState(boardRankings)
   const [atRiskCases, setAtRiskCases] = useState(atRiskTitles)
   const [decisionHistory, setDecisionHistory] = useState(boardDecisionHistory)
+  const [selectedProposalSummary, setSelectedProposalSummary] = useState<SeriesProposalSummary | null>(null)
+  const [proposalSummaryLoading, setProposalSummaryLoading] = useState(false)
   const [selectedSeriesId, setSelectedSeriesId] = useState(boardSeries[0]?.id ?? "")
   const [selectedAtRiskId, setSelectedAtRiskId] = useState(atRiskTitles[0]?.id ?? "")
   const [selectedRankingId, setSelectedRankingId] = useState(boardRankings[0]?.id ?? "")
@@ -67,6 +69,31 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mobile
     () => seriesReviews.find((item) => item.id === selectedSeriesId) ?? seriesReviews[0],
     [seriesReviews, selectedSeriesId],
   )
+
+  useEffect(() => {
+    const seriesId = selectedSeries?.id
+    if (!seriesId) {
+      setSelectedProposalSummary(null)
+      return
+    }
+
+    let cancelled = false
+    setProposalSummaryLoading(true)
+    void dataSource.getSeriesProposalSummary(seriesId, "board")
+      .then((summary) => {
+        if (!cancelled) setSelectedProposalSummary(summary)
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedProposalSummary(null)
+      })
+      .finally(() => {
+        if (!cancelled) setProposalSummaryLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [dataSource, selectedSeries?.id])
 
   const selectedAtRiskCase = useMemo(
     () => atRiskCases.find((item) => item.id === selectedAtRiskId) ?? atRiskCases[0],
@@ -215,6 +242,8 @@ export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mobile
     atRiskCases,
     decisionHistory,
     selectedSeries,
+    selectedProposalSummary,
+    proposalSummaryLoading,
     selectedAtRiskCase,
     selectedRanking,
     selectedSeriesId,

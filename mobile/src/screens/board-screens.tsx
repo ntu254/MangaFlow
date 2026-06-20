@@ -18,6 +18,7 @@ import { BoardAtRiskDecisionPanel, BoardFinalizeConfirmationPanel, BoardTieBreak
 import { colors, radius, spacing } from "@/design/tokens"
 import { useBoardMobileFlow } from "@/hooks/use-board-mobile-flow"
 import { BoardDecisionHistoryPanel, BoardRankingInsightPanel } from "@/screens/board-panels"
+import { SeriesProposalSummaryPanel } from "@/screens/series-proposal-summary-panel"
 
 export function BoardHomeScreen() {
   const flow = useBoardMobileFlow()
@@ -59,7 +60,12 @@ export function BoardReviewsScreen() {
           />
         )) : <MFEmptyState title="No Board reviews" subtitle="When the Board queue is empty, the vote route still renders a stable review state." icon="check-circle" tone="success" />}
       </View>
-      {selected ? <BoardVotePanel item={selected} onVote={flow.startVote} onFinalize={flow.startFinalizeDecision} /> : null}
+      {selected ? (
+        <>
+          <SeriesProposalSummaryPanel summary={flow.selectedProposalSummary} loading={flow.proposalSummaryLoading} role="board" />
+          <BoardVotePanel item={selected} onVote={flow.startVote} onFinalize={flow.startFinalizeDecision} />
+        </>
+      ) : null}
       <BoardVoteConfirmationPanel
         pendingVote={flow.pendingVote}
         selectedTitle={selected?.title}

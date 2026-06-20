@@ -64,6 +64,7 @@ describe("board.service", () => {
     }])
     getOpenBoardReviewSession.mockResolvedValue({ id: "session-1" })
     listBoardVotes.mockResolvedValue([{ value: "APPROVE" }, { value: "REJECT" }])
+    listEligibleBoardUsers.mockResolvedValue([{ userId: "board-1" }, { userId: "board-2" }, { userId: "board-3" }])
     getDecisionBySeries.mockResolvedValue({ status: "PENDING" })
 
     const result = await listBoardQueueService()
@@ -75,6 +76,10 @@ describe("board.service", () => {
       seriesStatus: "BOARD_REVIEW",
       decisionStatus: "PENDING",
       voteSummary: { APPROVE: 1, REJECT: 1, NEEDS_REVISION: 0 },
+      voteCount: 2,
+      eligibleBoardCount: 3,
+      quorum: 2,
+      canFinalize: true,
     })
   })
 

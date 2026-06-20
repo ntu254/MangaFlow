@@ -88,10 +88,39 @@ export type EditorProposalAction = "start-review" | "request-revision" | "reject
 
 export type EditorFinalApprovalAction = "request-revision" | "add-comment" | "editor-approve"
 
+export interface SeriesProposalSummary {
+  seriesId: string
+  title: string
+  status: SeriesStatus | string
+  synopsis: string
+  logline: string
+  premise: string
+  characters: string
+  conflict: string
+  targetAudience: string
+  requestedPublicationType: "WEEKLY" | "MONTHLY"
+  genres: string[]
+  tags: string[]
+  currentManuscript?: {
+    id: string
+    version: string
+    status: ManuscriptStatus | string
+    fileName: string
+    fileType: string
+    fileSize: string
+  }
+  boardReview?: {
+    status: string
+    result: string
+    voteCount: string
+  }
+}
+
 export interface EditorManuscriptReviewItem extends SeriesCard {
   manuscriptStatus: ManuscriptStatus
   seriesStatus: SeriesStatus
   version: string
+  requestedPublicationType: "WEEKLY" | "MONTHLY"
   editorRecommendation: string
   decisionActions: EditorProposalAction[]
 }
@@ -135,6 +164,8 @@ export interface BoardVoteSummary {
   needsRevision: number
   pending: number
   eligible: number
+  quorum?: number
+  canFinalize?: boolean
 }
 
 export interface BoardSeriesReviewItem extends SeriesCard {

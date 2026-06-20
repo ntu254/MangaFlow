@@ -11,6 +11,8 @@ export function EditorProposalDecisionPanel({
   onCancel,
   noteValue,
   onChangeNote,
+  selectedPublicationType,
+  onChangePublicationType,
   busy = false,
   errorText,
 }: {
@@ -21,6 +23,8 @@ export function EditorProposalDecisionPanel({
   onCancel: () => void
   noteValue: string
   onChangeNote: (value: string) => void
+  selectedPublicationType: "WEEKLY" | "MONTHLY"
+  onChangePublicationType: (value: "WEEKLY" | "MONTHLY") => void
   busy?: boolean
   errorText?: string | null
 }) {
@@ -43,22 +47,34 @@ export function EditorProposalDecisionPanel({
         <MFButton tone="success" style={styles.actionButtonFull} onPress={() => onStartAction("forward-to-board")}>Forward to Board</MFButton>
       </MFCard>
       {pendingAction ? (
-        <MFConfirmationPanel
-          title={proposalActionTitle(pendingAction)}
-          body={`${proposalActionLabel(pendingAction)} for ${item.title}. Backend validation, permissions, notification, and audit stay server-owned.`}
-          confirmLabel={proposalActionConfirmLabel(pendingAction)}
-          tone={proposalActionTone(pendingAction)}
-          endpointHint={proposalActionEndpoint(pendingAction)}
-          onConfirm={onConfirm}
-          onCancel={onCancel}
-          noteValue={noteValue}
-          onChangeNote={onChangeNote}
-          noteLabel={proposalActionNoteLabel(pendingAction)}
-          notePlaceholder={proposalActionNotePlaceholder(pendingAction)}
-          errorText={errorText}
-          busy={busy}
-          confirmDisabled={requiresNote && noteValue.trim().length === 0}
-        />
+        <>
+          {pendingAction === "forward-to-board" ? (
+            <MFCard>
+              <Text style={styles.link}>Publication cadence sent to Board</Text>
+              <Text style={styles.body}>Mobile sends this as `suggestedPublicationType`; backend still owns the workflow transition.</Text>
+              <View style={styles.buttonRow}>
+                <MFButton tone={selectedPublicationType === "WEEKLY" ? "success" : "neutral"} variant="soft" style={styles.actionButtonHalf} onPress={() => onChangePublicationType("WEEKLY")}>Weekly</MFButton>
+                <MFButton tone={selectedPublicationType === "MONTHLY" ? "success" : "neutral"} variant="soft" style={styles.actionButtonHalf} onPress={() => onChangePublicationType("MONTHLY")}>Monthly</MFButton>
+              </View>
+            </MFCard>
+          ) : null}
+          <MFConfirmationPanel
+            title={proposalActionTitle(pendingAction)}
+            body={`${proposalActionLabel(pendingAction)} for ${item.title}. Backend validation, permissions, notification, and audit stay server-owned.`}
+            confirmLabel={proposalActionConfirmLabel(pendingAction)}
+            tone={proposalActionTone(pendingAction)}
+            endpointHint={proposalActionEndpoint(pendingAction)}
+            onConfirm={onConfirm}
+            onCancel={onCancel}
+            noteValue={noteValue}
+            onChangeNote={onChangeNote}
+            noteLabel={proposalActionNoteLabel(pendingAction)}
+            notePlaceholder={proposalActionNotePlaceholder(pendingAction)}
+            errorText={errorText}
+            busy={busy}
+            confirmDisabled={requiresNote && noteValue.trim().length === 0}
+          />
+        </>
       ) : null}
     </>
   )

@@ -24,6 +24,7 @@ import type {
   BoardVoteValue,
   CommentItem,
   CommentStatus,
+  SeriesProposalSummary,
   Tone,
 } from "@/domain/workflow"
 
@@ -113,6 +114,7 @@ export interface MobileWorkflowDataSource {
   getEditorSubmissions(): Promise<EditorSubmissionReviewItem[]>
   getEditorComments(): Promise<EditorCommentsPayload>
   getEditorReadiness(): Promise<EditorReadinessResult>
+  getSeriesProposalSummary(seriesId: string, role: MobileApiRole): Promise<SeriesProposalSummary>
   getBoardHome(): Promise<BoardHomePayload>
   getBoardSeriesReviews(): Promise<BoardSeriesReviewItem[]>
   getBoardTieBreaks(): Promise<BoardSeriesReviewItem[]>
@@ -131,7 +133,7 @@ interface ApiEnvelope<T> {
   message?: string
 }
 
-type MobileApiRole = "editor" | "board"
+export type MobileApiRole = "editor" | "board"
 
 const EDITOR_EMAIL = process.env.EXPO_PUBLIC_EDITOR_EMAIL ?? "editor@mangaflow.local"
 const EDITOR_PASSWORD = process.env.EXPO_PUBLIC_EDITOR_PASSWORD ?? "editor@mangaflow.local"
@@ -174,6 +176,14 @@ function text(value: unknown, fallback = "Unknown"): string {
 
 function numberText(value: unknown, fallback = "0"): string {
   return typeof value === "number" ? String(value) : fallback
+}
+
+function fileSizeText(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value) ? `${Math.max(1, Math.round(value / 1024))} KB` : "Metadata only"
+}
+
+function publicationType(value: unknown): "WEEKLY" | "MONTHLY" {
+  return value === "WEEKLY" ? "WEEKLY" : "MONTHLY"
 }
 
 function toneForStatus(status: string | undefined): Tone {
@@ -225,6 +235,71 @@ function readinessTitle(key: string): string {
     publicationDateExists: "Publication date exists",
   }
   return labels[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())
+}
+
+function summaryFromCard(card?: EditorManuscriptReviewItem | BoardSeriesReviewItem): SeriesProposalSummary {
+  return {
+    seriesId: card?.id ?? "mock-series",
+    title: card?.title ?? "Series proposal",
+    status: "seriesStatus" in (card ?? {}) ? (card as EditorManuscriptReviewItem | BoardSeriesReviewItem).seriesStatus : "EDITOR_REVIEW",
+    synopsis: card?.subtitle ?? "Proposal details are available when the live summary API responds.",
+    logline: card?.meta ?? "Metadata only preview.",
+    premise: "Mobile summary fallback keeps review context visible without granting file access.",
+    characters: "Read-only mobile detail.",
+    conflict: "Read-only mobile detail.",
+    targetAudience: "General audience",
+    requestedPublicationType: publicationType("requestedPublicationType" in (card ?? {}) ? (card as EditorManuscriptReviewItem).requestedPublicationType : (card as BoardSeriesReviewItem | undefined)?.publicationType),
+    genres: card?.tags ?? [],
+    tags: card?.tags ?? [],
+    currentManuscript: {
+      id: `${card?.id ?? "mock"}-manuscript`,
+      version: "version" in (card ?? {}) ? (card as EditorManuscriptReviewItem).version : "API",
+      status: "manuscriptStatus" in (card ?? {}) ? (card as EditorManuscriptReviewItem).manuscriptStatus : "FORWARDED_TO_BOARD",
+      fileName: "Signed file access not requested on mobile",
+      fileType: "metadata",
+      fileSize: "metadata only",
+    },
+    boardReview: "decisionStatus" in (card ?? {}) ? {
+      status: (card as BoardSeriesReviewItem).decisionStatus,
+      result: (card as BoardSeriesReviewItem).decisionStatus,
+      voteCount: `${(card as BoardSeriesReviewItem).voteSummary.eligible - (card as BoardSeriesReviewItem).voteSummary.pending}`,
+    } : undefined,
+  }
+}
+
+function mapSeriesProposalSummary(summary: any, fallbackId: string): SeriesProposalSummary {
+  const series = summary?.series ?? summary ?? {}
+  const manuscript = summary?.currentManuscript ?? asArray<any>(summary?.manuscripts)[0]
+  const file = manuscript?.file ?? {}
+  const boardReview = summary?.boardReview
+
+  return {
+    seriesId: itemId(series, fallbackId),
+    title: text(series?.title, "Untitled proposal"),
+    status: text(series?.status, "EDITOR_REVIEW"),
+    synopsis: text(series?.synopsis, "No synopsis provided."),
+    logline: text(series?.logline, "No logline provided."),
+    premise: text(series?.premise, "No premise provided."),
+    characters: text(series?.characters, "No character notes provided."),
+    conflict: text(series?.conflict, "No conflict notes provided."),
+    targetAudience: text(series?.targetAudience, "Audience not specified"),
+    requestedPublicationType: publicationType(series?.requestedPublicationType ?? series?.publicationType),
+    genres: asArray<string>(series?.genres),
+    tags: asArray<string>(series?.tags),
+    currentManuscript: manuscript ? {
+      id: itemId(manuscript, `${fallbackId}-manuscript`),
+      version: text(manuscript?.version === undefined ? undefined : `v${manuscript.version}`, "v1"),
+      status: text(manuscript?.status, "SUBMITTED"),
+      fileName: text(file?.originalName, "Signed file access not requested on mobile"),
+      fileType: text(file?.mimeType, "metadata"),
+      fileSize: fileSizeText(file?.size),
+    } : undefined,
+    boardReview: boardReview ? {
+      status: text(boardReview?.status, "PENDING"),
+      result: text(boardReview?.result, "PENDING"),
+      voteCount: numberText(boardReview?.voteCount, "0"),
+    } : undefined,
+  }
 }
 
 async function apiMutate(path: string, role: MobileApiRole, body: Record<string, unknown>): Promise<void> {
@@ -313,6 +388,7 @@ function fallbackDataSource(primary: MobileWorkflowDataSource, fallback: MobileW
     getEditorSubmissions: async () => primary.getEditorSubmissions().catch(() => fallback.getEditorSubmissions()),
     getEditorComments: async () => primary.getEditorComments().catch(() => fallback.getEditorComments()),
     getEditorReadiness: async () => primary.getEditorReadiness().catch(() => fallback.getEditorReadiness()),
+    getSeriesProposalSummary: async (seriesId, role) => primary.getSeriesProposalSummary(seriesId, role).catch(() => fallback.getSeriesProposalSummary(seriesId, role)),
     getBoardHome: async () => primary.getBoardHome().catch(() => fallback.getBoardHome()),
     getBoardSeriesReviews: async () => primary.getBoardSeriesReviews().catch(() => fallback.getBoardSeriesReviews()),
     getBoardTieBreaks: async () => primary.getBoardTieBreaks().catch(() => fallback.getBoardTieBreaks()),
@@ -341,6 +417,12 @@ export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
   getEditorSubmissions: () => resolveMock(finalApprovals),
   getEditorComments: () => resolveMock({ metrics: commentMetrics, comments: productionComments, activity: commentActivity }),
   getEditorReadiness: () => resolveMock(editorReadinessResult),
+  getSeriesProposalSummary: async (seriesId, role) => {
+    const card = role === "editor"
+      ? manuscripts.find((item) => item.id === seriesId) ?? manuscripts[0]
+      : boardSeries.find((item) => item.id === seriesId) ?? boardSeries[0]
+    return summaryFromCard(card)
+  },
   getBoardHome: () => resolveMock(boardHome),
   getBoardSeriesReviews: () => resolveMock(boardSeries),
   getBoardTieBreaks: () => resolveMock(boardSeries.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED")),
@@ -491,6 +573,7 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         manuscriptStatus: "EDITOR_REVIEW",
         seriesStatus: status === "REVISION_REQUESTED" ? "REVISION_REQUESTED" : "EDITOR_REVIEW",
         version: String(manuscript?.version ?? 1),
+        requestedPublicationType: publicationType(series?.requestedPublicationType ?? series?.publicationType),
         editorRecommendation: text(manuscript?.editorRecommendation ?? series?.synopsis, "Review proposal before forwarding to Board."),
         decisionActions: ["start-review", "request-revision", "reject", "forward-to-board"],
       } satisfies EditorManuscriptReviewItem
@@ -613,6 +696,11 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
     } satisfies EditorReadinessResult
   },
 
+  getSeriesProposalSummary: async (seriesId, role) => {
+    const summary = await apiRequest<any>(`/series/${seriesId}/summary`, role)
+    return mapSeriesProposalSummary(summary, seriesId)
+  },
+
   getBoardHome: async () => {
     const [summary, seriesReviews, atRiskCases] = await Promise.all([
       apiRequest<any>("/dashboard/board/summary", "board"),
@@ -652,7 +740,8 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
     const items = await apiRequest<any[]>("/board/queue", "board")
     return asArray<any>(items).filter((item) => item.seriesStatus === "BOARD_REVIEW").map((item, index) => {
       const summary = item?.voteSummary ?? {}
-      const eligible = typeof item?.voteCount === "number" ? Math.max(item.voteCount, 1) : 1
+      const eligible = typeof item?.eligibleBoardCount === "number" ? Math.max(item.eligibleBoardCount, 1) : typeof item?.voteCount === "number" ? Math.max(item.voteCount, 1) : 1
+      const quorum = typeof item?.quorum === "number" ? item.quorum : Math.ceil(eligible / 2)
       const submitted = Number(summary.APPROVE ?? summary.approve ?? 0) + Number(summary.REJECT ?? summary.reject ?? 0) + Number(summary.NEEDS_REVISION ?? summary.needsRevision ?? 0)
       return {
         id: itemId(item, `board-series-${index}`),
@@ -674,6 +763,8 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
           needsRevision: Number(summary.NEEDS_REVISION ?? summary.needsRevision ?? 0),
           pending: Math.max(eligible - submitted, 0),
           eligible,
+          quorum,
+          canFinalize: Boolean(item?.canFinalize),
         },
         voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"],
       } satisfies BoardSeriesReviewItem

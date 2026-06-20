@@ -82,6 +82,9 @@ async function getOpenSessionOrThrow(seriesId: string, session?: mongoose.Client
 }
 
 export async function listBoardQueueService() {
+  const eligible = await listEligibleBoardUsers()
+  const eligibleBoardCount = eligible.length
+  const quorum = Math.ceil(eligibleBoardCount / 2)
   const seriesList = await listBoardQueueSeries()
   return Promise.all(seriesList.map(async (series) => {
     const reviewSession = await getOpenBoardReviewSession(series.id)
@@ -99,6 +102,9 @@ export async function listBoardQueueService() {
       decisionStatus: decision?.status ?? (series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "APPROVED" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : "NEEDS_REVISION"),
       voteSummary: summarize(votes),
       voteCount: votes.length,
+      eligibleBoardCount,
+      quorum,
+      canFinalize: eligibleBoardCount > 0 && series.status === "BOARD_REVIEW" && Boolean(reviewSession) && votes.length >= quorum,
       sessionId: reviewSession?.id ?? null,
       updatedAt: series.updatedAt,
     }

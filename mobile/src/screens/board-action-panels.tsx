@@ -32,8 +32,8 @@ export function BoardVotePanel({
       </View>
       <MFButton tone="warning" variant="soft" style={styles.actionButtonFull} onPress={() => onVote("NEEDS_REVISION")}>Needs revision</MFButton>
       <View style={styles.finalizeBlock}>
-        <Text style={styles.muted}>Finalize is backend-owned: quorum, plurality, tie-break status, notifications, and audit are resolved server-side.</Text>
-        <MFButton style={styles.actionButtonFull} onPress={onFinalize}>Finalize Board decision</MFButton>
+        <Text style={styles.muted}>Finalize is backend-owned: quorum {item.voteSummary.quorum ?? "API"}, plurality, tie-break status, notifications, and audit are resolved server-side.</Text>
+        <MFButton style={styles.actionButtonFull} onPress={onFinalize} disabled={item.voteSummary.canFinalize === false}>Finalize Board decision</MFButton>
       </View>
     </MFCard>
   )

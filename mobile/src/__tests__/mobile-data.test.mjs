@@ -22,6 +22,7 @@ const boardPanelsSource = readFileSync(new URL("../screens/board-panels.tsx", im
 const editorPanelsSource = readFileSync(new URL("../screens/editor-panels.tsx", import.meta.url), "utf8")
 const boardActionPanelsSource = readFileSync(new URL("../screens/board-action-panels.tsx", import.meta.url), "utf8")
 const editorActionPanelsSource = readFileSync(new URL("../screens/editor-action-panels.tsx", import.meta.url), "utf8")
+const proposalSummaryPanelSource = readFileSync(new URL("../screens/series-proposal-summary-panel.tsx", import.meta.url), "utf8")
 
 test("mobile mock data covers board and editor reference screens", () => {
   for (const symbol of [
@@ -316,6 +317,15 @@ test("mobile rich detail previews preserve backend-owned workflow boundaries", (
   assert.match(dataBoundarySource, /\/tasks\/\$\{taskId\}/)
   assert.match(dataBoundarySource, /\/chapters\/\$\{chapterId\}/)
   assert.match(dataBoundarySource, /\/chapters\/\$\{chapterId\}\/pages/)
+  assert.match(dataBoundarySource, /getSeriesProposalSummary/)
+  assert.match(dataBoundarySource, /\/series\/\$\{seriesId\}\/summary/)
+  assert.match(domainSource, /SeriesProposalSummary/)
+  assert.match(editorHookSource, /selectedProposalSummary/)
+  assert.match(boardHookSource, /selectedProposalSummary/)
+  assert.match(editorSource, /SeriesProposalSummaryPanel/)
+  assert.match(boardSource, /SeriesProposalSummaryPanel/)
+  assert.match(proposalSummaryPanelSource, /Live proposal summary/)
+  assert.match(proposalSummaryPanelSource, /does not request signed manuscript download URLs/)
   assert.match(dataBoundarySource, /\/comments\/\$\{commentId\}\/reopen/)
   assert.match(editorSource, /Task detail/)
   assert.match(editorSource, /Chapter detail/)
@@ -335,6 +345,19 @@ test("mobile rich detail previews preserve backend-owned workflow boundaries", (
   assert.match(boardPanelsSource, /Ranking formula remains backend-owned/)
   assert.match(boardPanelsSource, /Manual Board attention is required; cancellation is not automatic/)
   assert.match(boardPanelsSource, /immutable record/)
+})
+
+test("mobile proposal handoff summary and cadence stay API-backed", () => {
+  assert.match(dataBoundarySource, /mapSeriesProposalSummary/)
+  assert.match(dataBoundarySource, /requestedPublicationType/)
+  assert.match(editorActionPanelsSource, /Publication cadence sent to Board/)
+  assert.match(editorActionPanelsSource, /suggestedPublicationType/)
+  assert.match(editorHookSource, /proposalPublicationType/)
+  assert.match(editorHookSource, /selectedProposalSummary\?\.requestedPublicationType/)
+  assert.doesNotMatch(editorHookSource, /suggestedPublicationType: "MONTHLY"/)
+  assert.match(boardActionPanelsSource, /canFinalize/)
+  assert.match(boardActionPanelsSource, /quorum/)
+  assert.match(dataBoundarySource, /eligibleBoardCount/)
 })
 
 test("mobile detail panels are componentized out of role screen files", () => {

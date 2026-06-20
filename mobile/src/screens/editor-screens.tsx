@@ -25,6 +25,7 @@ import { colors, radius, spacing } from "@/design/tokens"
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow"
 import { EditorFinalApprovalDecisionPanel, EditorProposalDecisionPanel } from "@/screens/editor-action-panels"
 import { EditorCommentDetailPanel, EditorReadinessEvidencePanel } from "@/screens/editor-panels"
+import { SeriesProposalSummaryPanel } from "@/screens/series-proposal-summary-panel"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
 const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg")
@@ -84,17 +85,22 @@ export function EditorManuscriptsScreen() {
         )) : <MFEmptyState title="No manuscripts waiting" subtitle="When the API returns an empty proposal queue, this panel keeps the review route stable." icon="file-text" />}
       </View>
       {selected ? (
-        <EditorProposalDecisionPanel
-          item={selected}
-          pendingAction={flow.pendingProposalAction}
-          onStartAction={flow.startProposalAction}
-          onConfirm={flow.confirmProposalAction}
-          onCancel={flow.cancelProposalAction}
-          noteValue={flow.proposalNote}
-          onChangeNote={flow.setProposalNote}
-          busy={flow.actionBusy}
-          errorText={flow.actionError}
-        />
+        <>
+          <SeriesProposalSummaryPanel summary={flow.selectedProposalSummary} loading={flow.proposalSummaryLoading} role="editor" />
+          <EditorProposalDecisionPanel
+            item={selected}
+            pendingAction={flow.pendingProposalAction}
+            onStartAction={flow.startProposalAction}
+            onConfirm={flow.confirmProposalAction}
+            onCancel={flow.cancelProposalAction}
+            noteValue={flow.proposalNote}
+            onChangeNote={flow.setProposalNote}
+            selectedPublicationType={flow.proposalPublicationType}
+            onChangePublicationType={flow.setProposalPublicationType}
+            busy={flow.actionBusy}
+            errorText={flow.actionError}
+          />
+        </>
       ) : null}
       <EditorFinalApprovalsPanel />
     </>
