@@ -40,7 +40,7 @@ const editorTabs: TabItem[] = [
 const authHighlights = [
   "Board and Editor mobile scope",
   "Live API login",
-  "Mock fallback stays available",
+  "Read fallback stays available",
 ]
 
 export function MangaFlowMobileApp() {
@@ -277,13 +277,13 @@ function RoleProfile({ role, name, onLogout, isLoggingOut }: { role: "BOARD" | "
       </MFCard>
       <MFDetailList items={[
         { id: "scope", label: "Mobile scope", value: isBoard ? "Board and Board Chair surfaces only. No Admin override is represented." : "Tantou Editor surfaces only. Proposal review and final approval stay visually separate.", tone: "primary", icon: isBoard ? "scale-balance" : "shield-check" },
-        { id: "data", label: "Data boundary", value: "Live API data-source now attempts read calls first, then falls back to mock data so screen ownership stays stable.", tone: "neutral", icon: "file-check" },
+        { id: "data", label: "Data boundary", value: "Live API data-source attempts read calls first, then falls back to local reference data so screen ownership stays stable.", tone: "neutral", icon: "file-check" },
         { id: "security", label: "Backend-owned", value: "Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and payroll remain backend-owned.", tone: "danger", icon: "lock" },
       ]} />
       <MFTimeline items={[
-        { id: "current", title: isBoard ? "Review Board queues" : "Review Editor queues", subtitle: isBoard ? "Votes, tie-breaks, ranking, and at-risk cases stay auditable backend workflows later." : "Proposal, final approval, comments, and readiness are displayed with local mock state.", tone: "primary", icon: "file-text" },
-        { id: "handoff", title: isBoard ? "Receive Editor-forwarded proposals" : "Forward proposal to Board", subtitle: "Mobile handoff copy explains the next surface but does not call workflow endpoints.", tone: "warning", icon: "chevron-right" },
-        { id: "future", title: "Future API story", subtitle: "mobileWorkflowDataSource wraps live read calls and mockMobileWorkflowDataSource fallback; mutations stay in high-risk stories.", tone: "success", icon: "check-circle" },
+        { id: "current", title: isBoard ? "Review Board queues" : "Review Editor queues", subtitle: isBoard ? "Votes, finalize, tie-break, ranking, and at-risk cases are routed through backend-owned workflows." : "Proposal review, final approval, comments, and readiness read live APIs with fallback reference states.", tone: "primary", icon: "file-text" },
+        { id: "handoff", title: isBoard ? "Receive Editor-forwarded proposals" : "Forward proposal to Board", subtitle: "Mobile handoff copy follows the live workflow surfaces while backend owns transitions and audit.", tone: "warning", icon: "chevron-right" },
+        { id: "future", title: "Remaining API stories", subtitle: "Publication scheduling, signed file previews, and Board decision history remain separate follow-up slices.", tone: "success", icon: "check-circle" },
       ]} />
       <MFButton tone="danger" variant="soft" onPress={onLogout}>
         {isLoggingOut ? "Logging out..." : "Logout"}
@@ -302,8 +302,8 @@ function RoleHandoffSummary({ role }: { role: Role }) {
         <Text style={styles.handoffTitle}>{isBoard ? "Board handoff from Editor review" : "Editor handoff to Board review"}</Text>
         <Text style={styles.handoffBody}>
           {isBoard
-            ? "Proposals appear here only after Editor forwards them. Tie-break and at-risk actions are shown as confirmed mock UI, not final backend decisions."
-            : "Proposal review, final approval, comments, and readiness stay separate so future API wiring can target the correct workflow endpoint."}
+            ? "Proposals appear here only after Editor forwards them. Votes, finalize, tie-break, and at-risk actions call live Board endpoints."
+            : "Proposal review, final approval, comments, and readiness stay separate so each mobile action targets the correct workflow endpoint."}
         </Text>
       </View>
     </MFCard>

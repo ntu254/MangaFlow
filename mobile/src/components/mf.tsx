@@ -173,7 +173,7 @@ export function MFStateNotice({
       <MFCard style={styles.stateNoticeError}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={38} />
         <View style={styles.stateNoticeBody}>
-          <Text style={styles.stateNoticeTitle}>Could not load this mock flow</Text>
+          <Text style={styles.stateNoticeTitle}>Could not load this mobile flow</Text>
           <Text style={styles.stateNoticeText}>{error}</Text>
         </View>
       </MFCard>

@@ -132,6 +132,20 @@ Notes:
 - Targeted server scope passed 27/27.
 - Full `npm --prefix server run test` still has pre-existing failures in `accessPolicy.service.test.ts` and `submission.service.test.ts`; MF-HIOS-108 Board service test passed inside that run.
 
+Latest MF-HIOS-109 polish:
+
+```bash
+npm --prefix mobile run test
+npm --prefix mobile run lint
+npm --prefix mobile run build
+```
+
+Notes:
+- Editor Comments `Open blockers` now toggles a blocking-comments filter instead of acting as a placeholder.
+- Editor Readiness `Open blockers` now toggles failed-check filtering.
+- `Schedule publication mock` was replaced with a non-action boundary card; publication scheduling stays a follow-up workflow slice.
+- Mobile shell/loading copy now describes live API + local reference fallback rather than mock-only flows.
+
 For live API smoke:
 
 ```bash

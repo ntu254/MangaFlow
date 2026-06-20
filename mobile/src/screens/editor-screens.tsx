@@ -1,4 +1,5 @@
 import { Image } from "expo-image"
+import { useState } from "react"
 import { Pressable, Text, View, StyleSheet } from "react-native"
 import {
   ActivityList,
@@ -37,7 +38,7 @@ export function EditorHomeScreen() {
   return (
     <>
       <MFHero title="Today" subtitle="Review and publication companion" />
-      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading mock Editor home..." />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Editor home..." />
       <SectionTitle title="Next actions" action="View all" />
       <MFActionCards items={flow.home.actions} />
       <SectionTitle title="Review queues" />
@@ -109,8 +110,11 @@ export function EditorManuscriptsScreen() {
 
 export function EditorReadinessScreen() {
   const flow = useEditorMobileFlow()
+  const [showBlockersOnly, setShowBlockersOnly] = useState(false)
   const passed = flow.readiness.checks.filter((check) => check.passed).length
   const readinessChecks = flow.readiness.checks.map(readinessCheckToQueueItem)
+  const visibleReadinessChecks = showBlockersOnly ? flow.readiness.checks.filter((check) => !check.passed) : flow.readiness.checks
+  const blockerItems = readinessChecks.filter((check) => check.tone === "danger")
 
   return (
     <>
@@ -131,29 +135,40 @@ export function EditorReadinessScreen() {
         </View>
       </MFCard>
       <MFCard>
-        {flow.readiness.checks.map((check) => <ReadinessRow key={check.id} check={check} />)}
+        {visibleReadinessChecks.length > 0 ? visibleReadinessChecks.map((check) => <ReadinessRow key={check.id} check={check} />) : (
+          <MFEmptyState title="No blockers" subtitle="Backend readiness returned no failing checks for this chapter context." icon="check-circle" tone="success" />
+        )}
       </MFCard>
       <EditorReadinessEvidencePanel readiness={flow.readiness} />
       <SectionTitle title="Blockers" />
-      <MFQueueList items={readinessChecks.filter((check) => check.tone === "danger")} />
-      <MFButton tone="primary" variant="soft">Open blockers</MFButton>
-      <MFButton>Schedule publication mock</MFButton>
+      <MFQueueList items={blockerItems} />
+      <MFButton tone="primary" variant="soft" onPress={() => setShowBlockersOnly((value) => !value)}>
+        {showBlockersOnly ? "Show all checks" : "Open blockers"}
+      </MFButton>
+      <MFCard>
+        <Text style={styles.title}>Publication scheduling boundary</Text>
+        <Text style={styles.body}>Mobile displays readiness evidence only. Schedule and publish actions remain outside this Editor mobile slice.</Text>
+      </MFCard>
     </>
   )
 }
 
 export function EditorCommentsScreen() {
   const flow = useEditorMobileFlow()
+  const [showBlockingOnly, setShowBlockingOnly] = useState(false)
   const blockingCount = flow.commentsPayload.comments.filter((comment) => "blocking" in comment && comment.blocking).length
+  const visibleComments = showBlockingOnly
+    ? flow.commentsPayload.comments.filter((comment) => "blocking" in comment && comment.blocking)
+    : flow.commentsPayload.comments
 
   return (
     <>
       <MFHero title="Comments" subtitle="Resolve production feedback through the canonical lifecycle." />
       <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading comment lifecycle..." />
       <MFMetricStrip items={flow.commentsPayload.metrics} />
-      <SegmentedControl labels={["All", "Open", "Fixed", "Verified", "Resolved"]} />
+      <SegmentedControl labels={showBlockingOnly ? ["Blocking", "All", "Fixed", "Verified", "Resolved"] : ["All", "Open", "Fixed", "Verified", "Resolved"]} />
       <View style={styles.stack}>
-        {flow.commentsPayload.comments.length > 0 ? flow.commentsPayload.comments.map((comment) => (
+        {visibleComments.length > 0 ? visibleComments.map((comment) => (
           <CommentReviewRow
             key={comment.id}
             item={comment as EditorCommentItem}
@@ -161,7 +176,7 @@ export function EditorCommentsScreen() {
             onPress={() => flow.setSelectedCommentId(comment.id)}
           />
         )) : (
-          <MFEmptyState title="No production comments" subtitle="Resolved or empty comment states remain visible without hiding the lifecycle route." icon="message-circle" tone="success" />
+          <MFEmptyState title={showBlockingOnly ? "No blocking comments" : "No production comments"} subtitle={showBlockingOnly ? "The current live task context has no unresolved blocking comments." : "Resolved or empty comment states remain visible without hiding the lifecycle route."} icon="message-circle" tone="success" />
         )}
       </View>
       {flow.selectedComment ? (
@@ -179,7 +194,9 @@ export function EditorCommentsScreen() {
           <Text style={styles.title}>Blocking publication</Text>
           <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED_BY_EDITOR.</Text>
         </View>
-        <MFButton tone="danger" variant="soft" style={styles.calloutButton}>Open blockers</MFButton>
+        <MFButton tone={showBlockingOnly ? "neutral" : "danger"} variant="soft" style={styles.calloutButton} onPress={() => setShowBlockingOnly((value) => !value)}>
+          {showBlockingOnly ? "Show all" : "Open blockers"}
+        </MFButton>
       </MFCard>
       <SectionTitle title="Recent activity" action="View all" />
       <ActivityList items={flow.commentsPayload.activity} />

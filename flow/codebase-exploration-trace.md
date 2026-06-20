@@ -323,6 +323,42 @@ Verify:
 
 ---
 
+## Phiên (2026-06-21) — MF-HIOS-109 mobile placeholder polish
+
+Branch:
+- `codex/mf-hios-109-mobile-placeholder-polish`
+
+Scope:
+- Dọn các placeholder an toàn trên mobile Editor.
+- Không thêm API mutation mới, không mở publication scheduling hoặc signed file access.
+
+Scope đã hoàn thiện:
+- `mobile/src/screens/editor-screens.tsx`:
+  - Comments `Open blockers` chuyển thành toggle filter thật cho blocking comments.
+  - Readiness `Open blockers` chuyển thành toggle filter thật cho failed readiness checks.
+  - `Schedule publication mock` được thay bằng boundary card giải thích schedule/publish nằm ngoài slice mobile Editor hiện tại.
+  - Loading label `Loading mock Editor home...` đổi thành `Loading Editor home...`.
+- `mobile/src/MangaFlowMobileApp.tsx`:
+  - Cập nhật copy từ mock-only sang live API + local reference fallback.
+  - Board handoff copy phản ánh votes/finalize/tie-break/at-risk đã gọi live endpoints.
+  - Profile timeline ghi rõ các story còn lại: publication scheduling, signed file previews, Board decision history.
+- `mobile/src/components/mf.tsx`:
+  - Error title đổi từ `Could not load this mock flow` sang `Could not load this mobile flow`.
+- `mobile/src/__tests__/mobile-data.test.mjs`:
+  - Guard blocker filter state, publication scheduling boundary, và copy live/fallback mới.
+
+Verify:
+- `npm --prefix mobile run test` -> pass 23/23.
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run build` -> pass.
+
+Ranh giới giữ nguyên:
+- Publication scheduling/publish chưa wire.
+- Signed file preview/download chưa wire.
+- Board decision history vẫn là follow-up.
+
+---
+
 ## Phiên (2026-06-20) — MF-HIOS-107 mobile safe Editor API actions
 
 Branch:
