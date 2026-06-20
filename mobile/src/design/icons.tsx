@@ -15,6 +15,8 @@ import {
   FileCheck2,
   FileText,
   Home,
+  Eye,
+  EyeOff,
   Lock,
   MessageCircle,
   MessageSquare,
@@ -38,6 +40,8 @@ export type IconName =
   | "chevron-right"
   | "circle"
   | "circle-user"
+  | "eye"
+  | "eye-off"
   | "file-check"
   | "file-text"
   | "home"
@@ -70,6 +74,8 @@ const lucideIcons: Record<Exclude<IconName, "scale-balance">, ComponentType<Luci
   "chevron-right": ChevronRight,
   circle: Circle,
   "circle-user": CircleUserRound,
+  eye: Eye,
+  "eye-off": EyeOff,
   "file-check": FileCheck2,
   "file-text": FileText,
   home: Home,
