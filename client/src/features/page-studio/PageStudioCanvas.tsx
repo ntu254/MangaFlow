@@ -35,7 +35,13 @@ interface Props {
   workingImageUrl?: string | null;
 }
 
-export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImageUrl, workingImageUrl }: Props) {
+export function PageStudioCanvas({
+  regions,
+  pageId,
+  onSelectRegion,
+  originalImageUrl,
+  workingImageUrl,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
 
@@ -57,7 +63,12 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
-  const [draftRegion, setDraftRegion] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [draftRegion, setDraftRegion] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   const { mutate: createRegion } = useCreateRegion(pageId);
   const { mutate: updateRegion } = useUpdateRegion(pageId);
@@ -72,7 +83,7 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
   } = useCanvasViewport(IMG_W, IMG_H);
 
   const [image, imageStatus] = useKonvaImage(
-    compareOriginal ? originalImageUrl || undefined : workingImageUrl || undefined
+    compareOriginal ? originalImageUrl || "" : workingImageUrl || "",
   );
 
   // ── measure container ───────────────────────────────────────────────
@@ -122,9 +133,10 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
       viewportOnMouseDown(e);
       return;
     }
-    
-    const isDrawingTool = activeTool === "rect" || activeTool === "bubble" || activeTool === "polygon";
-    
+
+    const isDrawingTool =
+      activeTool === "rect" || activeTool === "bubble" || activeTool === "polygon";
+
     if (isDrawingTool && !isSpaceDown && !isPanning) {
       const pos = getRelativePointerPosition();
       if (pos) {
@@ -135,12 +147,12 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
         return;
       }
     }
-    
+
     // Check if clicked on empty stage to deselect
     if (e.target === stageRef.current || e.target.name() === "working-image") {
       onSelectRegion(null);
     }
-    
+
     viewportOnMouseDown(e);
   };
 
@@ -169,43 +181,43 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
       if (rw > 5 && rh > 5) {
         const rx = draftRegion.w < 0 ? draftRegion.x + draftRegion.w : draftRegion.x;
         const ry = draftRegion.h < 0 ? draftRegion.y + draftRegion.h : draftRegion.y;
-        
+
         // Clamp and normalize coordinates
         const clamp = (val: number) => Math.max(0, Math.min(1, val));
-        
+
         let nx = rx / IMG_W;
         let ny = ry / IMG_H;
         let nw = rw / IMG_W;
         let nh = rh / IMG_H;
-        
+
         // Ensure x+w <= 1 and y+h <= 1
         nx = clamp(nx);
         ny = clamp(ny);
         nw = clamp(nw);
         nh = clamp(nh);
-        
+
         if (nx + nw > 1) nw = 1 - nx;
         if (ny + nh > 1) nh = 1 - ny;
-        
+
         const normalized = {
           x: nx,
           y: ny,
           w: nw,
           h: nh,
         };
-        
+
         createRegion({
           type: activeTool === "rect" ? "panel" : activeTool,
           coords: normalized,
         });
-        
+
         // Reset tool
         setActiveTool("select");
       }
       setDraftRegion(null);
       return;
     }
-    viewportOnMouseUp(e);
+    viewportOnMouseUp();
   };
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>, r: Region) => {
@@ -214,15 +226,15 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
     const clamp = (val: number) => Math.max(0, Math.min(1, val));
     let newX = clamp(node.x() / IMG_W);
     let newY = clamp(node.y() / IMG_H);
-    
+
     if (newX + r.coords.w > 1) newX = 1 - r.coords.w;
     if (newY + r.coords.h > 1) newY = 1 - r.coords.h;
-    
+
     updateRegion({
       regionId: r.id,
       payload: {
-        coords: { ...r.coords, x: newX, y: newY }
-      }
+        coords: { ...r.coords, x: newX, y: newY },
+      },
     });
   };
 
@@ -233,12 +245,12 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
     const scaleY = node.scaleY();
     node.scaleX(1);
     node.scaleY(1);
-    
+
     const clamp = (val: number) => Math.max(0, Math.min(1, val));
-    let newX = clamp(node.x() / IMG_W);
-    let newY = clamp(node.y() / IMG_H);
-    let newW = clamp((Math.max(5, node.width() * scaleX)) / IMG_W);
-    let newH = clamp((Math.max(5, node.height() * scaleY)) / IMG_H);
+    const newX = clamp(node.x() / IMG_W);
+    const newY = clamp(node.y() / IMG_H);
+    let newW = clamp(Math.max(5, node.width() * scaleX) / IMG_W);
+    let newH = clamp(Math.max(5, node.height() * scaleY) / IMG_H);
 
     if (newX + newW > 1) newW = 1 - newX;
     if (newY + newH > 1) newH = 1 - newY;
@@ -246,20 +258,20 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
     updateRegion({
       regionId: r.id,
       payload: {
-        coords: { x: newX, y: newY, w: newW, h: newH }
-      }
+        coords: { x: newX, y: newY, w: newW, h: newH },
+      },
     });
   };
 
   // ── cursor ──────────────────────────────────────────────────────────
-  const cursor =
-    isPanning
-      ? "grabbing"
-      : activeTool === "pan" || isSpaceDown
-        ? "grab"
-        : (!compareOriginal && (activeTool === "rect" || activeTool === "bubble" || activeTool === "polygon"))
-          ? "crosshair"
-          : "default";
+  const cursor = isPanning
+    ? "grabbing"
+    : activeTool === "pan" || isSpaceDown
+      ? "grab"
+      : !compareOriginal &&
+          (activeTool === "rect" || activeTool === "bubble" || activeTool === "polygon")
+        ? "crosshair"
+        : "default";
 
   // ── Transformer attachment ──────────────────────────────────────────
   const trRef = useRef<Konva.Transformer>(null);
@@ -289,8 +301,7 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage:
-            "radial-gradient(circle, var(--canvas-dots) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, var(--canvas-dots) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
@@ -438,7 +449,7 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
                   </Group>
                 );
               })}
-              
+
           {/* Transformer */}
           {!compareOriginal && (
             <Transformer
@@ -476,10 +487,7 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
 
       {/* Contextual Task Popup */}
       {selectedRegion && selectedRegion.status !== "rejected" && !compareOriginal && (
-        <ContextualTaskPopup
-          region={selectedRegion}
-          onClose={() => onSelectRegion(null)}
-        />
+        <ContextualTaskPopup region={selectedRegion} onClose={() => onSelectRegion(null)} />
       )}
 
       {/* Hover tooltip for tasks */}
@@ -508,7 +516,7 @@ export function PageStudioCanvas({ regions, pageId, onSelectRegion, originalImag
           </div>
         );
       })()}
-      
+
       {compareOriginal && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-sky-500 text-white px-4 py-1.5 rounded-full font-bold uppercase tracking-wider text-[10px] shadow-lg pointer-events-none">
           Read-Only Mode

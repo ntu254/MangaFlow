@@ -36,7 +36,7 @@ const LABELS: Record<string, string> = {
   editor: "Editor",
   "series-review": "Series review",
   vote: "Vote",
-  proposal: "Proposal"
+  proposal: "Proposal",
 };
 
 export function Topbar() {
@@ -44,12 +44,12 @@ export function Topbar() {
   // Skip the "app" prefix to simplify breadcrumbs
   const rawParts = pathname.split("/").filter(Boolean);
   const parts = rawParts[0] === "app" ? rawParts.slice(1) : rawParts;
-  
+
   const { user, logout, role } = useRole();
   const navigate = useNavigate();
 
   // Look for a MongoDB ObjectId in the URL parts
-  const seriesId = rawParts.find(p => p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p));
+  const seriesId = rawParts.find((p) => p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p));
   const { data: summary } = useSeriesSummary(seriesId || "");
   const seriesTitle = summary?.series?.title?.trim();
 
@@ -63,9 +63,9 @@ export function Topbar() {
       <nav className="flex items-center text-[13px] text-foreground/60">
         {parts.map((p, i) => {
           const isObjectId = p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p);
-          
+
           let label = LABELS[p] ?? decodeURIComponent(p);
-          
+
           if (isObjectId) {
             label = seriesTitle || "Untitled draft";
             // Truncate if too long
@@ -83,11 +83,18 @@ export function Topbar() {
             <span key={href} className="flex items-center">
               {i > 0 && <span className="mx-2 text-foreground/30">/</span>}
               {isLast ? (
-                <span className="font-medium text-foreground" title={isObjectId ? seriesTitle : undefined}>
+                <span
+                  className="font-medium text-foreground"
+                  title={isObjectId ? seriesTitle : undefined}
+                >
                   {label}
                 </span>
               ) : (
-                <Link to={href} className="hover:text-foreground" title={isObjectId ? seriesTitle : undefined}>
+                <Link
+                  to={href}
+                  className="hover:text-foreground"
+                  title={isObjectId ? seriesTitle : undefined}
+                >
                   {label}
                 </Link>
               )}

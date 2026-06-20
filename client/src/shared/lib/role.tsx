@@ -41,7 +41,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     setRoleState(r);
     try {
       localStorage.setItem(KEY, r);
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleLogout = async () => {
@@ -77,7 +79,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
               setRoleState(apiRole);
               try {
                 localStorage.setItem(KEY, apiRole);
-              } catch {}
+              } catch {
+                /* ignore */
+              }
             }
           }
         })

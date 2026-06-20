@@ -4,6 +4,17 @@ import type { Task, Submission } from "@/entities";
 import { computeBlockers, isReadyForPublication, readinessChecklist } from "../lib/readiness";
 import { PHASE_LABEL, type ProductionPhase } from "../lib/productionPhase";
 import type { ChapterPerms } from "../lib/chapterPermissions";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export function ReadinessRail({
   tasks,
@@ -20,6 +31,8 @@ export function ReadinessRail({
   const blockers = computeBlockers(tasks, subs);
   const ready = isReadyForPublication(tasks);
   const canMark = perms.canMarkReady && ready;
+
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <aside className="space-y-3 lg:sticky lg:top-4 self-start">
@@ -44,9 +57,7 @@ export function ReadinessRail({
               </li>
             ))}
             {checklist.length > 5 && (
-              <li className="pl-5 text-[11px] text-foreground/55">
-                + {checklist.length - 5} more
-              </li>
+              <li className="pl-5 text-[11px] text-foreground/55">+ {checklist.length - 5} more</li>
             )}
           </ul>
         )}
@@ -81,8 +92,7 @@ export function ReadinessRail({
           <button
             disabled={!canMark}
             onClick={() => {
-              if (!confirm("Mark this chapter as ready for publication?")) return;
-              toast.success("Chapter marked as ready for publication.");
+              setDialogOpen(true);
             }}
             title={
               !canMark
@@ -108,6 +118,27 @@ export function ReadinessRail({
           {phase === "published" && "This chapter is live."}
         </div>
       </section>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ready for Publication</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mark this chapter as ready for publication?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                toast.success("Chapter marked as ready for publication.");
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }

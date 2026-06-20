@@ -6,6 +6,15 @@ import { validateTaskCreationScope } from "../guards/task-scope.guard.js"
 import { assertTaskAssignmentAllowed } from "../policies/task-assignment.policy.js"
 import { toCreateTaskResult } from "../mappers/task.mapper.js"
 
+const REVIEW_OWNED_TASK_STATUSES: TaskStatus[] = [
+  "SUBMITTED",
+  "MANGAKA_APPROVED",
+  "EDITOR_APPROVED",
+  "REVISION_REQUESTED",
+  "REJECTED",
+]
+const GENERIC_MUTABLE_TASK_STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS"]
+
 export interface CreateTaskServiceInput {
   seriesId: string
   chapterId: string
@@ -86,6 +95,7 @@ export async function createTaskService(input: CreateTaskServiceInput) {
 async function loadManagedTask(taskId: string, actor: TaskActor) {
   const existing = await getTaskById(taskId)
   if (!existing) throw new AppError("Task not found", 404)
+
   await assertSeriesManager(String(existing.seriesId), actor)
   return existing
 }
@@ -93,16 +103,33 @@ async function loadManagedTask(taskId: string, actor: TaskActor) {
 export async function updateTaskStatusService(taskId: string, actor: TaskActor, status: TaskStatus) {
   const existing = await getTaskById(taskId)
   if (!existing) throw new AppError("Task not found", 404)
-  
+
   if (actor.role === "ASSISTANT") {
     if (String(existing.assignedTo) !== actor.userId) {
       throw new AppError("Task access denied", 403)
     }
+  } else {
+    await assertSeriesManager(String(existing.seriesId), actor)
+  }
+
+  if (!GENERIC_MUTABLE_TASK_STATUSES.includes(existing.status as TaskStatus)) {
+    throw new AppError(
+      "Only TODO or IN_PROGRESS tasks can be changed through the generic task endpoint",
+      409,
+    )
+  }
+
+  if (actor.role === "ASSISTANT") {
     if (status !== "IN_PROGRESS" && status !== "TODO") {
       throw new AppError("Only active Mangaka or Editor series members can manage tasks", 403)
     }
   } else {
-    await assertSeriesManager(String(existing.seriesId), actor)
+    if (REVIEW_OWNED_TASK_STATUSES.includes(status)) {
+      throw new AppError(
+        "Submission review statuses cannot be changed through the generic task endpoint",
+        409,
+      )
+    }
   }
 
   const task = await updateTaskStatus(taskId, status)

@@ -21,8 +21,8 @@ export type Task = {
   deadline: string;
   payout: number;
   status: TaskStatus;
-  // Optional richer metadata used by Assistant workspace
   title?: string;
+  assigneeName?: string;
   regionId?: string;
   pageId?: string;
   pageNumber?: number;
@@ -49,8 +49,7 @@ export const tasks: Task[] = [
     regionId: "rg_4",
     priority: "high",
     assignedById: "s_man_kei",
-    instruction:
-      "Render full cityscape backgrounds for the rooftop chase. Match lighting on p.3.",
+    instruction: "Render full cityscape backgrounds for the rooftop chase. Match lighting on p.3.",
     currentVersion: 1,
     requiredFiles: ["PSD with layers", "Flattened PNG"],
   },

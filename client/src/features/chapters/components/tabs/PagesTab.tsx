@@ -18,7 +18,10 @@ export function PagesTab({
   seriesId: string;
 }) {
   const series = findSeries(seriesId)!;
-  const idx = Math.max(0, pages.findIndex((p) => p.id === selectedId));
+  const idx = Math.max(
+    0,
+    pages.findIndex((p) => p.id === selectedId),
+  );
   const current = pages[idx];
   if (!current)
     return (
@@ -52,6 +55,7 @@ export function PagesTab({
           <Link
             to="/app/pages/$id/studio"
             params={{ id: current.id }}
+            search={(prev: any) => ({ seriesId: prev?.seriesId })}
             className="inline-flex items-center gap-1 rounded-md border border-foreground/15 px-2 py-1 text-[11px] hover:bg-foreground/5"
           >
             <ExternalLink className="h-3 w-3" /> Open Page Studio

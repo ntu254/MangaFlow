@@ -1,7 +1,6 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
 import {
-  findSeries,
   proposalBySeries,
   manuscriptBySeries,
   versionsByManuscript,
@@ -18,30 +17,36 @@ import { logAudit } from "@/shared/lib/audit";
 import { notify } from "@/shared/lib/notifications";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import { useSeriesSummary } from "@/shared/queries/useSeries";
 
 export const Route = createFileRoute("/app/series/$id/revisions")({
   loader: ({ params }) => {
-    const s = findSeries(params.id);
-    if (!s) throw notFound();
-    return { series: s };
+    return { id: params.id };
   },
   component: RevisionsPage,
 });
 
 function RevisionsPage() {
-  const { series } = Route.useLoaderData();
+  const { id } = Route.useLoaderData();
+  const { data: summary, isLoading } = useSeriesSummary(id);
   const { role } = useRole();
   const me = currentUserByRole[role];
-  const perm = canSubmitProposal(role, series);
 
-  const proposal = proposalBySeries(series.id);
-  const manuscript = manuscriptBySeries(series.id);
+  const manuscript = manuscriptBySeries(id);
   const [versions, setVersions] = useState(() =>
     manuscript ? versionsByManuscript(manuscript.id) : [],
   );
+  const [note, setNote] = useState("");
+
+  if (isLoading)
+    return <div className="p-8 text-sm text-foreground/55 animate-pulse">Loading revisions...</div>;
+  if (!summary) return <div className="p-8 text-sm text-foreground/55">Series not found.</div>;
+
+  const { series } = summary;
+  const perm = canSubmitProposal(role, series);
+  const proposal = proposalBySeries(series.id);
   const reviews = reviewsBySeries(series.id);
   const votes = votesBySeries(series.id);
-  const [note, setNote] = useState("");
 
   function uploadVersion() {
     if (!manuscript) return toast.error("No manuscript exists.");
@@ -85,7 +90,11 @@ function RevisionsPage() {
           title={`${series.title} · Revisions`}
           jp="改訂履歴"
           description={
-            <Link to="/app/series/$id" params={{ id: series.id }} className="underline-offset-2 hover:underline">
+            <Link
+              to="/app/series/$id"
+              params={{ id: series.id }}
+              className="underline-offset-2 hover:underline"
+            >
               ← Back to series
             </Link>
           }
@@ -143,7 +152,8 @@ function RevisionsPage() {
                 onClick={uploadVersion}
                 className="mt-2 h-8 rounded-md bg-foreground px-3 text-xs font-bold text-background"
               >
-                <Upload className="mr-1 inline h-3 w-3" /> Upload v{(versions.at(-1)?.version ?? 0) + 1}
+                <Upload className="mr-1 inline h-3 w-3" /> Upload v
+                {(versions.at(-1)?.version ?? 0) + 1}
               </button>
             </div>
           )}

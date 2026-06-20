@@ -20,12 +20,12 @@ Out of scope: production task review, payment tracking, board decision, advanced
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Reader | Đọc Chapter đã publish |
-| System | Hiển thị nội dung, ghi metric/ranking input |
-| Editor/Admin | Kiểm tra published state và ranking input |
-| Board | Sử dụng ranking report ở Flow 10 |
+| Actor        | Vai trò                                     |
+| ------------ | ------------------------------------------- |
+| Reader       | Đọc Chapter đã publish                      |
+| System       | Hiển thị nội dung, ghi metric/ranking input |
+| Editor/Admin | Kiểm tra published state và ranking input   |
+| Board        | Sử dụng ranking report ở Flow 10            |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -63,20 +63,20 @@ AuditLog
 
 ## 7. Chapter Publication Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| READY_FOR_PUBLICATION | Chapter đã sẵn sàng nhưng chưa publish |
-| PUBLISHED | Chapter đã publish và reader có thể xem |
-| ARCHIVED | Chapter không còn active trong reader listing |
+| Status                | Ý nghĩa                                       |
+| --------------------- | --------------------------------------------- |
+| READY_FOR_PUBLICATION | Chapter đã sẵn sàng nhưng chưa publish        |
+| PUBLISHED             | Chapter đã publish và reader có thể xem       |
+| ARCHIVED              | Chapter không còn active trong reader listing |
 
 ## 8. RankingInput Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| DRAFT | Ranking input đang được chuẩn bị |
-| SUBMITTED | Đã submit cho kỳ đánh giá |
-| FINALIZED | Đã chốt cho Flow 10 |
-| VOIDED | Bị hủy/không dùng |
+| Status    | Ý nghĩa                          |
+| --------- | -------------------------------- |
+| DRAFT     | Ranking input đang được chuẩn bị |
+| SUBMITTED | Đã submit cho kỳ đánh giá        |
+| FINALIZED | Đã chốt cho Flow 10              |
+| VOIDED    | Bị hủy/không dùng                |
 
 ## 9. Step-by-step flow
 
@@ -114,15 +114,15 @@ AuditLog records correction
 
 ## 11. Permission Matrix
 
-| Action | Reader | Mangaka | Editor | Admin | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View published chapter | Có | Có | Có | Có | Có |
-| View unpublished chapter | Không | Có nếu có quyền | Có | Có | Không |
-| View internal task/submission | Không | Có nếu có quyền | Có | Có | Không |
-| Create ranking input | Không | Không | Optional | Có | Không |
-| Finalize ranking input | Không | Không | Optional | Có | Không |
-| View ranking report | Không | Optional | Có | Có | Có |
+| Action                        | Reader | Mangaka         | Editor   | Admin | Board |
+| ----------------------------- | ------ | --------------- | -------- | ----- | ----- |
+| ---                           | ---:   | ---:            | ---:     | ---:  | ---:  |
+| View published chapter        | Có     | Có              | Có       | Có    | Có    |
+| View unpublished chapter      | Không  | Có nếu có quyền | Có       | Có    | Không |
+| View internal task/submission | Không  | Có nếu có quyền | Có       | Có    | Không |
+| Create ranking input          | Không  | Không           | Optional | Có    | Không |
+| Finalize ranking input        | Không  | Không           | Optional | Có    | Không |
+| View ranking report           | Không  | Optional        | Có       | Có    | Có    |
 
 ## 12. API đề xuất
 
@@ -176,13 +176,13 @@ RANKING_INPUT_VOIDED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Reader mở unpublished chapter | Return not found/forbidden |
-| Publication published nhưng Chapter chưa PUBLISHED | Block reader view, require data fix |
-| Missing page asset | Hide page or show controlled error |
-| Duplicate ranking input for same period/series/chapter | Block or merge by rule |
-| Finalized ranking input bị sai | Void/correct with AuditLog |
+| Case                                                   | Expected behavior                   |
+| ------------------------------------------------------ | ----------------------------------- |
+| Reader mở unpublished chapter                          | Return not found/forbidden          |
+| Publication published nhưng Chapter chưa PUBLISHED     | Block reader view, require data fix |
+| Missing page asset                                     | Hide page or show controlled error  |
+| Duplicate ranking input for same period/series/chapter | Block or merge by rule              |
+| Finalized ranking input bị sai                         | Void/correct with AuditLog          |
 
 ## 18. Mermaid activity flow
 

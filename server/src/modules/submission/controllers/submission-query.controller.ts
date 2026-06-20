@@ -23,7 +23,8 @@ export async function listTaskSubmissions(req: Request, res: Response, _next: Ne
 }
 
 export async function listReviewQueueSubmissions(req: Request, res: Response, _next: NextFunction): Promise<void> {
-  const submissions = await listReviewQueueSubmissionsService(req.user!)
+  const seriesId = req.query.seriesId as string | undefined
+  const submissions = await listReviewQueueSubmissionsService(req.user!, seriesId)
   res.json({ success: true, message: "Review queue retrieved successfully", data: submissions })
 }
 

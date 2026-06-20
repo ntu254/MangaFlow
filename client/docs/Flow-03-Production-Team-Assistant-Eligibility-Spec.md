@@ -20,13 +20,13 @@ Out of scope: Task creation, submission, payroll, board decision, publication, W
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Mangaka | Quản lý Production Team |
-| Assistant | Được thêm vào team để nhận Task |
-| Tantou Editor | Monitor team |
-| System | Validate user/team/status |
-| Admin | Quản lý tài khoản user |
+| Actor         | Vai trò                         |
+| ------------- | ------------------------------- |
+| Mangaka       | Quản lý Production Team         |
+| Assistant     | Được thêm vào team để nhận Task |
+| Tantou Editor | Monitor team                    |
+| System        | Validate user/team/status       |
+| Admin         | Quản lý tài khoản user          |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -61,12 +61,12 @@ Production Team tab
 
 ## 7. SeriesMember Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| INVITED | Đã mời nhưng chưa active |
-| ACTIVE | Đang thuộc Production Team |
-| REMOVED | Đã rời khỏi team |
-| PAUSED | Tạm dừng nhận việc trong team |
+| Status  | Ý nghĩa                       |
+| ------- | ----------------------------- |
+| INVITED | Đã mời nhưng chưa active      |
+| ACTIVE  | Đang thuộc Production Team    |
+| REMOVED | Đã rời khỏi team              |
+| PAUSED  | Tạm dừng nhận việc trong team |
 
 ## 8. Assistant Eligibility Status
 
@@ -132,15 +132,15 @@ Re-add/reactivate later if allowed
 
 ## 11. Permission Matrix
 
-| Action | Mangaka | Assistant | Editor | Board | Admin |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View team | Có | Có nếu member | Có | Không | Có |
-| Add Assistant | Có | Không | Optional | Không | Optional |
-| Remove Assistant | Có | Không | Optional | Không | Optional |
-| Pause/reactivate member | Có | Không | Optional | Không | Optional |
-| Check eligibility | Có | Không | Có | Không | Có |
-| Assign Task | Flow 05 | Không | Optional | Không | Optional |
+| Action                  | Mangaka | Assistant     | Editor   | Board | Admin    |
+| ----------------------- | ------- | ------------- | -------- | ----- | -------- |
+| ---                     | ---:    | ---:          | ---:     | ---:  | ---:     |
+| View team               | Có      | Có nếu member | Có       | Không | Có       |
+| Add Assistant           | Có      | Không         | Optional | Không | Optional |
+| Remove Assistant        | Có      | Không         | Optional | Không | Optional |
+| Pause/reactivate member | Có      | Không         | Optional | Không | Optional |
+| Check eligibility       | Có      | Không         | Có       | Không | Có       |
+| Assign Task             | Flow 05 | Không         | Optional | Không | Optional |
 
 ## 12. API đề xuất
 
@@ -194,14 +194,14 @@ ASSISTANT_ELIGIBILITY_CHECK_FAILED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Add Assistant inactive | Block |
-| Add duplicate Assistant | Block hoặc return existing member |
-| Remove Assistant có active Task | Block hoặc require reassignment |
-| Series cancelled | Block add new member |
-| Assistant removed | Cannot receive new task |
-| Assistant paused | Cannot receive new task until reactivated |
+| Case                            | Expected behavior                         |
+| ------------------------------- | ----------------------------------------- |
+| Add Assistant inactive          | Block                                     |
+| Add duplicate Assistant         | Block hoặc return existing member         |
+| Remove Assistant có active Task | Block hoặc require reassignment           |
+| Series cancelled                | Block add new member                      |
+| Assistant removed               | Cannot receive new task                   |
+| Assistant paused                | Cannot receive new task until reactivated |
 
 ## 18. Mermaid activity flow
 

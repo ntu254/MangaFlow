@@ -25,9 +25,7 @@ export function ReviewQueueWidget({ reviews }: ReviewQueueWidgetProps) {
               <div className="text-[12px] font-bold text-foreground group-hover:text-sky-600 transition-colors">
                 {r.page}
               </div>
-              <div className="text-[10px] font-semibold text-foreground/40 shrink-0">
-                {r.time}
-              </div>
+              <div className="text-[10px] font-semibold text-foreground/40 shrink-0">{r.time}</div>
             </div>
             <div className="text-[10px] font-medium text-foreground/50 truncate">
               Submitted by {r.submitter}

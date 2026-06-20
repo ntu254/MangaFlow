@@ -11,7 +11,21 @@ import {
   requestSubmissionRevisionService,
 } from "./submission.service.js"
 
+const fileAssetMocks = vi.hoisted(() => ({
+  findById: vi.fn(),
+}))
+const fileServiceMocks = vi.hoisted(() => ({
+  checkObjectExists: vi.fn(),
+}))
+
 vi.mock("./submission.repository.js")
+vi.mock("../chapter/chapter.model.js", () => ({
+  FileAsset: { findById: fileAssetMocks.findById },
+}))
+vi.mock("../chapter/file.service.js", () => ({
+  createPresignedUploadUrl: vi.fn(),
+  checkObjectExists: fileServiceMocks.checkObjectExists,
+}))
 vi.mock("../series/series.model.js", () => ({
   SeriesMember: {
     findOne: vi.fn(),
@@ -28,11 +42,16 @@ describe("submission review service", () => {
     status: "TODO",
   }
 
-  const submittedTask = { ...task, status: "SUBMITTED" }
-  const mangakaApprovedTask = { ...task, status: "MANGAKA_APPROVED" }
+  const submittedTask = { ...task, status: "SUBMITTED", currentSubmissionId: "submission1" }
+  const mangakaApprovedTask = {
+    ...task,
+    status: "MANGAKA_APPROVED",
+    currentSubmissionId: "submission1",
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    fileServiceMocks.checkObjectExists.mockResolvedValue(true)
   })
 
   it("lets the assigned Assistant create a new submitted version and moves task to SUBMITTED", async () => {
@@ -43,9 +62,15 @@ describe("submission review service", () => {
       accessScope: "TASK_ONLY",
     } as any)
     vi.mocked(repository.createSubmissionRecord).mockResolvedValue({
+      _id: "submission1",
       id: "submission1",
       status: "SUBMITTED",
       version: 1,
+    } as any)
+    vi.mocked(repository.updateTaskForNewSubmission).mockResolvedValue({
+      ...task,
+      status: "SUBMITTED",
+      currentSubmissionId: "submission1",
     } as any)
 
     const result = await createTaskSubmissionService({
@@ -55,10 +80,136 @@ describe("submission review service", () => {
     })
 
     expect(result).toMatchObject({ status: "SUBMITTED", version: 1 })
-    expect(repository.updateTaskStatusForSubmission).toHaveBeenCalledWith(
+    expect(repository.updateTaskForNewSubmission).toHaveBeenCalledWith(
       "task1",
-      "SUBMITTED",
+      "submission1",
     )
+  })
+
+  it("rejects a submission when its file asset does not exist", async () => {
+    vi.mocked(repository.getTaskForSubmission).mockResolvedValue(task as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "ASSISTANT",
+      accessScope: "TASK_ONLY",
+    } as any)
+    fileAssetMocks.findById.mockResolvedValue(null)
+
+    await expect(
+      createTaskSubmissionService({
+        taskId: "task1",
+        actor: { userId: "assistant1", role: "ASSISTANT" },
+        fileAssetId: "missing-file",
+      }),
+    ).rejects.toThrow("Submission file asset not found")
+
+    expect(repository.createSubmissionRecord).not.toHaveBeenCalled()
+  })
+
+  it("rejects a submission when its file asset is not active or uploaded", async () => {
+    vi.mocked(repository.getTaskForSubmission).mockResolvedValue(task as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "ASSISTANT",
+      accessScope: "TASK_ONLY",
+    } as any)
+    fileAssetMocks.findById.mockResolvedValue({
+      _id: "file1",
+      uploadedBy: "assistant1",
+      assetType: "PRODUCTION",
+      status: "ACTIVE",
+      r2Key: "uploads/file1.psd",
+    })
+    fileServiceMocks.checkObjectExists.mockResolvedValue(false)
+
+    await expect(
+      createTaskSubmissionService({
+        taskId: "task1",
+        actor: { userId: "assistant1", role: "ASSISTANT" },
+        fileAssetId: "file1",
+      }),
+    ).rejects.toThrow("Submission file upload is not complete")
+
+    expect(repository.createSubmissionRecord).not.toHaveBeenCalled()
+  })
+
+  it("rejects a submission when the file asset lifecycle status is not active", async () => {
+    vi.mocked(repository.getTaskForSubmission).mockResolvedValue(task as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "ASSISTANT",
+      accessScope: "TASK_ONLY",
+    } as any)
+    fileAssetMocks.findById.mockResolvedValue({
+      _id: "file1",
+      uploadedBy: "assistant1",
+      assetType: "PRODUCTION",
+      status: "MISSING",
+      r2Key: "uploads/file1.psd",
+    })
+
+    await expect(
+      createTaskSubmissionService({
+        taskId: "task1",
+        actor: { userId: "assistant1", role: "ASSISTANT" },
+        fileAssetId: "file1",
+      }),
+    ).rejects.toThrow("Submission file asset is not active")
+
+    expect(fileServiceMocks.checkObjectExists).not.toHaveBeenCalled()
+    expect(repository.createSubmissionRecord).not.toHaveBeenCalled()
+  })
+
+  it("rejects a submission when the file asset belongs to another user", async () => {
+    vi.mocked(repository.getTaskForSubmission).mockResolvedValue(task as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "ASSISTANT",
+      accessScope: "TASK_ONLY",
+    } as any)
+    fileAssetMocks.findById.mockResolvedValue({
+      _id: "file1",
+      uploadedBy: "assistant2",
+      assetType: "PRODUCTION",
+      status: "ACTIVE",
+      r2Key: "uploads/file1.psd",
+    })
+
+    await expect(
+      createTaskSubmissionService({
+        taskId: "task1",
+        actor: { userId: "assistant1", role: "ASSISTANT" },
+        fileAssetId: "file1",
+      }),
+    ).rejects.toThrow("Submission file asset belongs to another user")
+
+    expect(repository.createSubmissionRecord).not.toHaveBeenCalled()
+  })
+
+  it("rejects a submission when the file asset is not a production asset", async () => {
+    vi.mocked(repository.getTaskForSubmission).mockResolvedValue(task as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "ASSISTANT",
+      accessScope: "TASK_ONLY",
+    } as any)
+    fileAssetMocks.findById.mockResolvedValue({
+      _id: "file1",
+      uploadedBy: "assistant1",
+      assetType: "MANUSCRIPT",
+      status: "ACTIVE",
+      r2Key: "uploads/file1.pdf",
+    })
+
+    await expect(
+      createTaskSubmissionService({
+        taskId: "task1",
+        actor: { userId: "assistant1", role: "ASSISTANT" },
+        fileAssetId: "file1",
+      }),
+    ).rejects.toThrow("Submission requires a production file asset")
+
+    expect(repository.createSubmissionRecord).not.toHaveBeenCalled()
   })
 
   it("blocks Assistants from submitting someone else's task", async () => {
@@ -114,6 +265,28 @@ describe("submission review service", () => {
       "task1",
       "MANGAKA_APPROVED",
     )
+  })
+
+  it("blocks review actions against a superseded submission version", async () => {
+    vi.mocked(repository.getSubmissionById).mockResolvedValue({
+      _id: "submission1",
+      taskId: "task1",
+      status: "SUBMITTED",
+    } as any)
+    vi.mocked(repository.getTaskForSubmission).mockResolvedValue({
+      ...submittedTask,
+      currentSubmissionId: "submission2",
+    } as any)
+
+    await expect(
+      mangakaApproveSubmissionService({
+        submissionId: "submission1",
+        actor: { userId: "mangaka1", role: "MANGAKA" },
+      }),
+    ).rejects.toThrow("Review action must target the task's current submission")
+
+    expect(repository.updateSubmissionStatus).not.toHaveBeenCalled()
+    expect(repository.updateTaskStatusForSubmission).not.toHaveBeenCalled()
   })
 
   it("blocks Editor final approval before Mangaka approval", async () => {

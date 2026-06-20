@@ -21,14 +21,14 @@ Out of scope: chat realtime phức tạp, external email provider nâng cao, ana
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Mangaka | Nhận notification, comment, annotation |
-| Assistant | Nhận task/revision notification, comment |
-| Editor | Comment, annotation, audit-sensitive actions |
-| Board | Board decision actions cần audit |
-| Admin | User/config/payment tracking actions cần audit |
-| System | Gửi notification, lưu comment/annotation/audit |
+| Actor     | Vai trò                                        |
+| --------- | ---------------------------------------------- |
+| Mangaka   | Nhận notification, comment, annotation         |
+| Assistant | Nhận task/revision notification, comment       |
+| Editor    | Comment, annotation, audit-sensitive actions   |
+| Board     | Board decision actions cần audit               |
+| Admin     | User/config/payment tracking actions cần audit |
+| System    | Gửi notification, lưu comment/annotation/audit |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -64,19 +64,19 @@ AssistantEarning
 
 ## 7. Notification Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| UNREAD | User chưa đọc |
-| READ | User đã đọc |
+| Status   | Ý nghĩa                         |
+| -------- | ------------------------------- |
+| UNREAD   | User chưa đọc                   |
+| READ     | User đã đọc                     |
 | ARCHIVED | User đã ẩn/lưu trữ notification |
 
 ## 8. Comment / Annotation Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| OPEN | Comment/annotation còn cần xử lý |
-| RESOLVED | Đã xử lý |
-| REOPENED | Đã mở lại sau khi resolved |
+| Status   | Ý nghĩa                          |
+| -------- | -------------------------------- |
+| OPEN     | Comment/annotation còn cần xử lý |
+| RESOLVED | Đã xử lý                         |
+| REOPENED | Đã mở lại sau khi resolved       |
 
 ## 9. Step-by-step flow
 
@@ -134,15 +134,15 @@ Reviewer resolves or reopens feedback
 
 ## 11. Permission Matrix
 
-| Action | Admin | Mangaka | Assistant | Editor | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View own notifications | Có | Có | Có | Có | Có |
-| Mark own notification read | Có | Có | Có | Có | Có |
-| Create task comment | Optional | Có | Có nếu assigned | Có | Không |
-| Create page annotation | Optional | Có | Có nếu assigned | Có | Không |
-| Resolve comment | Có | Có nếu owner/reviewer | Có nếu assigned/allowed | Có | Không |
-| View AuditLog | Có | Không mặc định | Không | Optional | Optional summary |
+| Action                     | Admin    | Mangaka               | Assistant               | Editor   | Board            |
+| -------------------------- | -------- | --------------------- | ----------------------- | -------- | ---------------- |
+| ---                        | ---:     | ---:                  | ---:                    | ---:     | ---:             |
+| View own notifications     | Có       | Có                    | Có                      | Có       | Có               |
+| Mark own notification read | Có       | Có                    | Có                      | Có       | Có               |
+| Create task comment        | Optional | Có                    | Có nếu assigned         | Có       | Không            |
+| Create page annotation     | Optional | Có                    | Có nếu assigned         | Có       | Không            |
+| Resolve comment            | Có       | Có nếu owner/reviewer | Có nếu assigned/allowed | Có       | Không            |
+| View AuditLog              | Có       | Không mặc định        | Không                   | Optional | Optional summary |
 
 ## 12. API đề xuất
 
@@ -220,14 +220,14 @@ CONFIG_UPDATED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Notification recipient missing | Do not create invalid notification, log error |
-| Comment target missing | Block create comment |
-| Annotation coordinate invalid | Block save |
-| User tries to view another user's notification | Block |
-| AuditLog write fails for critical action | Rollback or outbox retry depending design |
-| AuditLog write fails for non-critical action | Monitor and alert; business action may continue if accepted by policy |
+| Case                                           | Expected behavior                                                     |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| Notification recipient missing                 | Do not create invalid notification, log error                         |
+| Comment target missing                         | Block create comment                                                  |
+| Annotation coordinate invalid                  | Block save                                                            |
+| User tries to view another user's notification | Block                                                                 |
+| AuditLog write fails for critical action       | Rollback or outbox retry depending design                             |
+| AuditLog write fails for non-critical action   | Monitor and alert; business action may continue if accepted by policy |
 
 ## 18. Mermaid activity flow
 

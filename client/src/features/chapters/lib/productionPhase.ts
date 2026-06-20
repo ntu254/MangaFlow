@@ -47,8 +47,7 @@ export function derivePhase(
     return { phase: "in-production", substate: "editor-final-review" };
   if (subs.some((s) => !s.mangakaApproved && !s.rejected))
     return { phase: "in-production", substate: "mangaka-review" };
-  if (tasks.some(isTaskActive))
-    return { phase: "in-production", substate: "tasks-in-progress" };
+  if (tasks.some(isTaskActive)) return { phase: "in-production", substate: "tasks-in-progress" };
   return { phase: "in-production", substate: "tasks-in-progress" };
 }
 

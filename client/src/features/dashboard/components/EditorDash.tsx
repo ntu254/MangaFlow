@@ -3,14 +3,7 @@ import { StatGrid } from "./StatGrid";
 import { Panel } from "./Panel";
 import { Row } from "./Row";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
-import {
-  series,
-  chapters,
-  submissions,
-  publications,
-  findChapter,
-  findSeries,
-} from "@/entities";
+import { series, chapters, submissions, publications, findChapter, findSeries } from "@/entities";
 import { ArrowRight } from "lucide-react";
 
 export function EditorDash() {

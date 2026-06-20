@@ -11,6 +11,7 @@ import {
   Save,
 } from "lucide-react";
 import { useStudioStore, type Tool } from "./useStudioStore";
+import { toast } from "sonner";
 
 interface ToolItem {
   id: Tool;
@@ -41,7 +42,7 @@ export function HeaderToolBar() {
 
   const handleToolClick = (toolId: Tool) => {
     if (toolId === "save") {
-      alert("Canvas changes saved to workspace.");
+      toast.success("Canvas changes saved to workspace.");
       return;
     }
     setActiveTool(toolId);
@@ -66,9 +67,7 @@ export function HeaderToolBar() {
             >
               <t.icon className="h-3.5 w-3.5" />
             </button>
-            {isDividerAfter && (
-              <div className="mx-1 h-3.5 w-px bg-border" />
-            )}
+            {isDividerAfter && <div className="mx-1 h-3.5 w-px bg-border" />}
           </div>
         );
       })}

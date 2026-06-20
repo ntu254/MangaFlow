@@ -13,9 +13,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
   if (isStudioPage) {
     return (
       <div className="flex min-h-screen w-full bg-[#141414] text-foreground">
-        <main className="flex-1 flex flex-col min-w-0">
-          {children}
-        </main>
+        <main className="flex-1 flex flex-col min-w-0">{children}</main>
       </div>
     );
   }
@@ -25,9 +23,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 px-10 py-5">
-          {children}
-        </main>
+        <main className="flex-1 px-10 py-5">{children}</main>
       </div>
     </div>
   );
@@ -42,7 +38,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     </ThemeProvider>
   );
 }
-
 
 export function PageHeader({
   title,
@@ -90,7 +85,9 @@ export function EmptyState({
         </div>
       )}
       <div className="text-[14px] font-semibold text-foreground">{title}</div>
-      {hint && <div className="max-w-[280px] text-[12px] leading-relaxed text-foreground/50">{hint}</div>}
+      {hint && (
+        <div className="max-w-[280px] text-[12px] leading-relaxed text-foreground/50">{hint}</div>
+      )}
       {action && (
         <button
           onClick={action.onClick}

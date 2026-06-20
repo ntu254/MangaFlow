@@ -62,7 +62,11 @@ export function TaskToolbar({
         ))}
       </select>
 
-      <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={selectCls}>
+      <select
+        value={typeFilter}
+        onChange={(e) => setTypeFilter(e.target.value)}
+        className={selectCls}
+      >
         <option value="all">All types</option>
         {typeOptions.map((t) => (
           <option key={t} value={t}>

@@ -53,9 +53,7 @@ export function ReviewStep({ manuscripts, onJump }: Props) {
         rows={[
           [
             "Files",
-            manuscripts.length === 0
-              ? "None uploaded"
-              : manuscripts.map((m) => m.name).join(", "),
+            manuscripts.length === 0 ? "None uploaded" : manuscripts.map((m) => m.name).join(", "),
           ],
         ]}
       />

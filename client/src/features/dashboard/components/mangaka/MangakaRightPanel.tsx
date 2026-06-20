@@ -8,7 +8,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-export function MangakaRightPanel() {
+export function MangakaRightPanel({ data }: { data?: any }) {
   return (
     <div className="w-full lg:w-[320px] shrink-0 space-y-6">
       {/* Schedule */}

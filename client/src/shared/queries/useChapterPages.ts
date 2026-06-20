@@ -38,7 +38,7 @@ export function useCancelChapter() {
 export function useDeletePage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ chapterId, pageId }: { chapterId: string; pageId: string }) => 
+    mutationFn: ({ chapterId, pageId }: { chapterId: string; pageId: string }) =>
       chaptersApi.deletePage(chapterId, pageId),
     onSuccess: (_, { chapterId }) => {
       qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
@@ -50,8 +50,15 @@ export function useDeletePage() {
 export function useReplacePage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ chapterId, pageId, originalFileAssetId }: { chapterId: string; pageId: string; originalFileAssetId: string }) => 
-      chaptersApi.replacePage(chapterId, pageId, originalFileAssetId),
+    mutationFn: ({
+      chapterId,
+      pageId,
+      originalFileAssetId,
+    }: {
+      chapterId: string;
+      pageId: string;
+      originalFileAssetId: string;
+    }) => chaptersApi.replacePage(chapterId, pageId, originalFileAssetId),
     onSuccess: (_, { chapterId }) => {
       qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
     },

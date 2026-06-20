@@ -1,16 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  findChapter,
-  findSeries,
-  findStaff,
-  findTask,
-  submissionsByTask,
-} from "@/entities";
-import { useRole } from "@/shared/lib/role";
-import { currentUserByRole } from "@/entities";
+import { findChapter, findSeries, findStaff, submissionsByTask, type Task } from "@/entities";
+import { extractErrorMessage } from "@/shared/api/_client";
+import { useMyTasks } from "@/shared/queries/useTasks";
+import { useSubmitTaskSubmission, useTaskSubmissions } from "@/shared/queries/useSubmissions";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
-import { canOpenAssistantTask } from "../lib/access";
 import { normalizeStatus } from "../lib/taskLifecycle";
 import { deadlineClass, deadlineLabel, deadlineTone } from "@/features/tasks/lib/deadline";
 import {
@@ -32,12 +26,18 @@ type Tab = "info" | "feedback" | "history";
 
 export function AssistantTaskStudio({ taskId }: { taskId: string }) {
   const navigate = useNavigate();
-  const { role } = useRole();
-  const me = currentUserByRole[role];
-  const task = findTask(taskId);
-  const verdict = canOpenAssistantTask(task, me.id);
+  const { data: tasks = [], isLoading, error } = useMyTasks();
+  const task = tasks.find((item) => item.id === taskId);
 
-  if (!verdict.allowed || !task) {
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[80vh] items-center justify-center text-[13px] text-foreground/55">
+        Loading task studio…
+      </div>
+    );
+  }
+
+  if (error || !task) {
     return (
       <div className="flex min-h-[80vh] items-center justify-center p-6">
         <div className="max-w-md rounded-lg border border-foreground/10 bg-card p-6 text-center">
@@ -46,7 +46,7 @@ export function AssistantTaskStudio({ taskId }: { taskId: string }) {
           </div>
           <div className="text-[15px] font-semibold text-foreground">Task not available</div>
           <p className="mt-1.5 text-[13px] text-foreground/60">
-            {verdict.reason ?? "You do not have access to this task."}
+            {error ? extractErrorMessage(error) : "This task is not assigned to your account."}
           </p>
           <Link
             to="/app/assistant/tasks"
@@ -59,49 +59,65 @@ export function AssistantTaskStudio({ taskId }: { taskId: string }) {
     );
   }
 
-  return <StudioBody taskId={task.id} onBack={() => navigate({ to: "/app/assistant/tasks" })} />;
+  return <StudioBody task={task} onBack={() => navigate({ to: "/app/assistant/tasks" })} />;
 }
 
-function StudioBody({ taskId, onBack }: { taskId: string; onBack: () => void }) {
-  const task = findTask(taskId)!;
+function StudioBody({ task, onBack }: { task: Task; onBack: () => void }) {
   const ch = findChapter(task.chapterId);
   const series = ch ? findSeries(ch.seriesId) : null;
   const assignedBy = task.assignedById ? findStaff(task.assignedById) : null;
-  const submissions = useMemo(() => submissionsByTask(taskId), [taskId]);
-  const latest = submissions[submissions.length - 1];
+  const submissionsQuery = useTaskSubmissions(task.id);
+  const submissions = submissionsQuery.data ?? [];
+  const latestVersion = submissions.reduce((latest, item) => Math.max(latest, item.version), 0);
+  const submitMutation = useSubmitTaskSubmission(task.pageId);
   const tone = deadlineTone(task.deadline);
   const normalized = normalizeStatus(task.status);
 
-  const [tab, setTab] = useState<Tab>(
-    normalized === "revision-requested" ? "feedback" : "info",
-  );
+  const [tab, setTab] = useState<Tab>(normalized === "revision-requested" ? "feedback" : "info");
   const [note, setNote] = useState("");
-  const [fileList, setFileList] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
-  const nextVersion = (latest?.version ?? task.currentVersion ?? 0) + 1;
+  const nextVersion = Math.max(latestVersion, task.currentVersion ?? 0) + 1;
+  const canSubmit =
+    normalized === "todo" || normalized === "in-progress" || normalized === "revision-requested";
 
-  function handleAddMockFile() {
-    const n = fileList.length + 1;
-    setFileList((arr) => [...arr, `submission_v${nextVersion}_part${n}.psd`]);
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    setFile(event.target.files?.[0] ?? null);
   }
 
   function handleSubmit() {
-    if (fileList.length === 0) {
-      setToast("Add at least one file before submitting.");
-      setTimeout(() => setToast(null), 2500);
+    if (!file && !note.trim()) {
+      setNotice({ tone: "error", message: "Add a result file or a note before submitting." });
       return;
     }
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setToast(`Submitted v${nextVersion} for Mangaka review (mock).`);
-      setFileList([]);
-      setNote("");
-      setTimeout(() => setToast(null), 2800);
-    }, 600);
+    setNotice(null);
+    submitMutation.mutate(
+      { taskId: task.id, resultText: note, file: file ?? undefined },
+      {
+        onSuccess: (submission) => {
+          setFile(null);
+          setNote("");
+          setNotice({
+            tone: "success",
+            message: `Submitted v${submission.version} for Mangaka review.`,
+          });
+        },
+        onError: (mutationError) => {
+          setNotice({ tone: "error", message: extractErrorMessage(mutationError) });
+        },
+      },
+    );
+  }
+
+  function handleSaveLocalDraft() {
+    try {
+      window.localStorage.setItem(`assistant.task-draft.${task.id}`, note);
+      setNotice({ tone: "success", message: "Draft note saved locally for development only." });
+    } catch {
+      setNotice({ tone: "error", message: "Could not save the local draft note." });
+    }
   }
 
   return (
@@ -132,30 +148,26 @@ function StudioBody({ taskId, onBack }: { taskId: string; onBack: () => void }) 
                 v{task.currentVersion ?? 0} → v{nextVersion}
               </span>
               <span className={deadlineClass(tone)}>{deadlineLabel(task.deadline, tone)}</span>
-              {assignedBy && (
-                <span className="text-foreground/55">From {assignedBy.name}</span>
-              )}
+              {assignedBy && <span className="text-foreground/55">From {assignedBy.name}</span>}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                setToast("Draft saved (mock).");
-                setTimeout(() => setToast(null), 1500);
-              }}
+              onClick={handleSaveLocalDraft}
+              disabled={submitMutation.isPending}
               className="inline-flex h-9 items-center gap-1.5 rounded-md border border-foreground/15 bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
             >
-              <Save className="h-3.5 w-3.5" /> Save draft
+              <Save className="h-3.5 w-3.5" /> Save local draft (dev)
             </button>
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting || normalized === "editor-approved"}
+              disabled={submitMutation.isPending || !canSubmit || (!file && !note.trim())}
               className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" />
-              {submitting ? "Submitting…" : `Submit v${nextVersion}`}
+              {submitMutation.isPending ? "Uploading & submitting…" : `Submit v${nextVersion}`}
             </button>
           </div>
         </div>
@@ -187,11 +199,13 @@ function StudioBody({ taskId, onBack }: { taskId: string; onBack: () => void }) 
         {/* Inspector */}
         <aside className="flex w-full shrink-0 flex-col border-l border-foreground/10 bg-card lg:w-[360px]">
           <nav className="flex border-b border-foreground/10">
-            {([
-              { key: "info", label: "Task info", icon: Info },
-              { key: "feedback", label: "Feedback", icon: MessageSquare },
-              { key: "history", label: "History", icon: Paperclip },
-            ] as { key: Tab; label: string; icon: typeof Info }[]).map((t) => {
+            {(
+              [
+                { key: "info", label: "Task info", icon: Info },
+                { key: "feedback", label: "Feedback", icon: MessageSquare },
+                { key: "history", label: "History", icon: Paperclip },
+              ] as { key: Tab; label: string; icon: typeof Info }[]
+            ).map((t) => {
               const active = tab === t.key;
               return (
                 <button
@@ -213,9 +227,9 @@ function StudioBody({ taskId, onBack }: { taskId: string; onBack: () => void }) 
           </nav>
 
           <div className="flex-1 overflow-y-auto p-4 text-[12px]">
-            {tab === "info" && <InfoPanel taskId={taskId} />}
-            {tab === "feedback" && <FeedbackPanel taskId={taskId} />}
-            {tab === "history" && <HistoryPanel taskId={taskId} />}
+            {tab === "info" && <InfoPanel task={task} />}
+            {tab === "feedback" && <FeedbackPanel taskId={task.id} />}
+            {tab === "history" && <HistoryPanel taskId={task.id} />}
           </div>
         </aside>
       </div>
@@ -231,56 +245,52 @@ function StudioBody({ taskId, onBack }: { taskId: string; onBack: () => void }) 
             <Upload className="h-3.5 w-3.5" />
             Submission · v{nextVersion}
           </span>
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4 rotate-90" />}
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4 rotate-90" />
+          )}
         </button>
         {!collapsed && (
           <div className="grid gap-3 border-t border-foreground/10 px-5 py-4 lg:grid-cols-[1fr_280px]">
             <div className="space-y-3">
               <div>
                 <div className="mb-1 text-[11px] uppercase tracking-wider text-foreground/55">
-                  Files
+                  Result file
                 </div>
                 <div className="rounded-md border border-dashed border-foreground/15 bg-background p-3">
-                  {fileList.length === 0 ? (
+                  {!file ? (
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[12px] text-foreground/55">
-                        Drop files here (or click below). Mock-only.
+                        Select one production result file to upload.
+                      </span>
+                      <label
+                        htmlFor={`task-submission-file-${task.id}`}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-foreground/15 bg-background px-2 text-[11px] hover:bg-muted"
+                      >
+                        <Paperclip className="h-3 w-3" /> Choose file
+                      </label>
+                      <input
+                        id={`task-submission-file-${task.id}`}
+                        type="file"
+                        onChange={handleFileChange}
+                        disabled={submitMutation.isPending}
+                        className="sr-only"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between rounded border border-foreground/10 bg-muted px-2 py-1.5 text-[12px]">
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Paperclip className="h-3 w-3 shrink-0 text-foreground/55" />
+                        <span className="truncate">{file.name}</span>
                       </span>
                       <button
                         type="button"
-                        onClick={handleAddMockFile}
-                        className="inline-flex h-7 items-center gap-1 rounded-md border border-foreground/15 bg-background px-2 text-[11px] hover:bg-muted"
+                        onClick={() => setFile(null)}
+                        disabled={submitMutation.isPending}
+                        className="text-[11px] text-foreground/55 hover:text-destructive disabled:opacity-50"
                       >
-                        <Paperclip className="h-3 w-3" /> Add file
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {fileList.map((f) => (
-                        <div
-                          key={f}
-                          className="flex items-center justify-between rounded border border-foreground/10 bg-muted px-2 py-1.5 text-[12px]"
-                        >
-                          <span className="inline-flex items-center gap-1.5">
-                            <Paperclip className="h-3 w-3 text-foreground/55" /> {f}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFileList((arr) => arr.filter((x) => x !== f))
-                            }
-                            className="text-[11px] text-foreground/55 hover:text-destructive"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={handleAddMockFile}
-                        className="inline-flex h-7 items-center gap-1 rounded-md border border-foreground/15 bg-background px-2 text-[11px] hover:bg-muted"
-                      >
-                        <Paperclip className="h-3 w-3" /> Add another
+                        Remove
                       </button>
                     </div>
                   )}
@@ -311,17 +321,22 @@ function StudioBody({ taskId, onBack }: { taskId: string; onBack: () => void }) 
         )}
       </section>
 
-      {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md border border-foreground/15 bg-card px-4 py-2 text-[12px] font-medium text-foreground shadow-lg">
-          {toast}
+      {notice && (
+        <div
+          className={`pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md border px-4 py-2 text-[12px] font-medium shadow-lg ${
+            notice.tone === "error"
+              ? "border-destructive/25 bg-destructive/10 text-destructive"
+              : "border-emerald-500/25 bg-card text-foreground"
+          }`}
+        >
+          {notice.message}
         </div>
       )}
     </div>
   );
 }
 
-function InfoPanel({ taskId }: { taskId: string }) {
-  const task = findTask(taskId)!;
+function InfoPanel({ task }: { task: Task }) {
   return (
     <dl className="space-y-3">
       <Field label="Task type" value={task.type} />
@@ -370,10 +385,7 @@ function FeedbackPanel({ taskId }: { taskId: string }) {
       {feedback.map((f, i) => {
         const author = findStaff(f.userId);
         return (
-          <div
-            key={i}
-            className="rounded-md border border-foreground/10 bg-background p-3"
-          >
+          <div key={i} className="rounded-md border border-foreground/10 bg-background p-3">
             <div className="flex items-center justify-between text-[11px]">
               <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-foreground/70">
@@ -390,7 +402,9 @@ function FeedbackPanel({ taskId }: { taskId: string }) {
                   {f.role}
                 </span>
               </span>
-              <span className="text-foreground/50">v{f.version} · {f.at}</span>
+              <span className="text-foreground/50">
+                v{f.version} · {f.at}
+              </span>
             </div>
             <p className="mt-2 text-[12px] leading-relaxed text-foreground/80">{f.message}</p>
           </div>
@@ -412,10 +426,7 @@ function HistoryPanel({ taskId }: { taskId: string }) {
   return (
     <ol className="space-y-2">
       {subs.map((s) => (
-        <li
-          key={s.id}
-          className="rounded-md border border-foreground/10 bg-background p-3"
-        >
+        <li key={s.id} className="rounded-md border border-foreground/10 bg-background p-3">
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-medium text-foreground">Version v{s.version}</span>
             <StatusBadge status={s.status} />

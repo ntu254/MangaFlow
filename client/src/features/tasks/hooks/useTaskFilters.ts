@@ -19,10 +19,7 @@ export function useTaskFilters(allTasks: Task[]) {
     return Array.from(map, ([id, label]) => ({ id, label }));
   }, [allTasks]);
 
-  const typeOptions = useMemo(
-    () => Array.from(new Set(allTasks.map((t) => t.type))),
-    [allTasks],
-  );
+  const typeOptions = useMemo(() => Array.from(new Set(allTasks.map((t) => t.type))), [allTasks]);
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -48,7 +45,10 @@ export function useTaskFilters(allTasks: Task[]) {
         const d = parseDeadline(t.deadline);
         if (!d) return false;
         if (dueFilter === "overdue" && d.getTime() >= now.getTime()) return false;
-        if (dueFilter === "week" && (d.getTime() < now.getTime() || d.getTime() > weekAhead.getTime()))
+        if (
+          dueFilter === "week" &&
+          (d.getTime() < now.getTime() || d.getTime() > weekAhead.getTime())
+        )
           return false;
       }
 

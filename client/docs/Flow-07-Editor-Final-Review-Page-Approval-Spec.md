@@ -18,12 +18,12 @@ Out of scope: Assistant doing work, Mangaka review queue, actual payment, public
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Tantou Editor | Final review và quyết định |
-| Mangaka | Nhận thông tin nếu Editor request revision/reject |
-| Assistant | Nhận revision nếu cần sửa |
-| System | Validate, update status, notify, audit |
+| Actor         | Vai trò                                           |
+| ------------- | ------------------------------------------------- |
+| Tantou Editor | Final review và quyết định                        |
+| Mangaka       | Nhận thông tin nếu Editor request revision/reject |
+| Assistant     | Nhận revision nếu cần sửa                         |
+| System        | Validate, update status, notify, audit            |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -61,21 +61,21 @@ AssistantEarning
 
 ## 7. Task Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| MANGAKA_APPROVED | Chờ Editor final review |
-| EDITOR_APPROVED | Editor đã approve cuối |
-| REVISION_REQUESTED | Editor yêu cầu sửa |
-| REJECTED | Editor reject task/submission |
+| Status             | Ý nghĩa                       |
+| ------------------ | ----------------------------- |
+| MANGAKA_APPROVED   | Chờ Editor final review       |
+| EDITOR_APPROVED    | Editor đã approve cuối        |
+| REVISION_REQUESTED | Editor yêu cầu sửa            |
+| REJECTED           | Editor reject task/submission |
 
 ## 8. Submission Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| MANGAKA_APPROVED | Version đã được Mangaka approve |
-| EDITOR_APPROVED | Version đã được Editor approve cuối |
-| REVISION_REQUESTED | Version cần sửa tiếp |
-| REJECTED | Version bị reject |
+| Status             | Ý nghĩa                             |
+| ------------------ | ----------------------------------- |
+| MANGAKA_APPROVED   | Version đã được Mangaka approve     |
+| EDITOR_APPROVED    | Version đã được Editor approve cuối |
+| REVISION_REQUESTED | Version cần sửa tiếp                |
+| REJECTED           | Version bị reject                   |
 
 ## 9. Step-by-step flow
 
@@ -128,15 +128,15 @@ Back to Editor final review if Mangaka approves
 
 ## 11. Permission Matrix
 
-| Action | Editor | Mangaka | Assistant | Board | Admin |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View final review queue | Có | Optional | Không | Không | Có |
-| View current submission | Có | Có | Có nếu own task | Không | Có |
-| Final approve | Có | Không | Không | Không | Optional |
-| Request revision | Có | Không | Không | Không | Optional |
-| Reject | Có | Không | Không | Không | Optional |
-| Trigger earning eligibility | System | Không | Không | Không | Optional |
+| Action                      | Editor | Mangaka  | Assistant       | Board | Admin    |
+| --------------------------- | ------ | -------- | --------------- | ----- | -------- |
+| ---                         | ---:   | ---:     | ---:            | ---:  | ---:     |
+| View final review queue     | Có     | Optional | Không           | Không | Có       |
+| View current submission     | Có     | Có       | Có nếu own task | Không | Có       |
+| Final approve               | Có     | Không    | Không           | Không | Optional |
+| Request revision            | Có     | Không    | Không           | Không | Optional |
+| Reject                      | Có     | Không    | Không           | Không | Optional |
+| Trigger earning eligibility | System | Không    | Không           | Không | Optional |
 
 ## 12. API đề xuất
 
@@ -190,13 +190,13 @@ PAGE_APPROVED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Task chưa MANGAKA_APPROVED | Block Editor final action |
-| Approve old submission | Block |
-| Request revision thiếu feedback | Block |
-| Duplicate final approve | Idempotent hoặc block |
-| Page còn Task chưa EDITOR_APPROVED | Page chưa APPROVED |
+| Case                               | Expected behavior         |
+| ---------------------------------- | ------------------------- |
+| Task chưa MANGAKA_APPROVED         | Block Editor final action |
+| Approve old submission             | Block                     |
+| Request revision thiếu feedback    | Block                     |
+| Duplicate final approve            | Idempotent hoặc block     |
+| Page còn Task chưa EDITOR_APPROVED | Page chưa APPROVED        |
 
 ## 18. Mermaid activity flow
 

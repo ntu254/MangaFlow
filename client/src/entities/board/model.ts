@@ -30,4 +30,3 @@ export const ballots: Ballot[] = [
     votes: [{ staffId: "s_bd_kojiro", vote: "approve", note: "Strong finale." }],
   },
 ];
-

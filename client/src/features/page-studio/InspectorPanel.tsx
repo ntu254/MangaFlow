@@ -113,9 +113,7 @@ export function InspectorPanel({
             {regions.map((r) => (
               <button
                 key={r.id}
-                onClick={() =>
-                  setSelectedRegionId(r.id === selectedRegionId ? null : r.id)
-                }
+                onClick={() => setSelectedRegionId(r.id === selectedRegionId ? null : r.id)}
                 className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition-colors ${
                   r.id === selectedRegionId
                     ? "bg-foreground/10 ring-1 ring-foreground/15"
@@ -144,15 +142,10 @@ export function InspectorPanel({
             </span>
           </div>
           {results.length === 0 && (
-            <div className="py-4 text-center text-[11px] text-foreground/25">
-              No AI runs yet.
-            </div>
+            <div className="py-4 text-center text-[11px] text-foreground/25">No AI runs yet.</div>
           )}
           {results.map((r) => (
-            <div
-              key={r.id}
-              className="mb-1.5 rounded-lg border border-border bg-card p-2.5"
-            >
+            <div key={r.id} className="mb-1.5 rounded-lg border border-border bg-card p-2.5">
               <div className="flex items-center justify-between">
                 <span
                   className={`text-[10px] font-bold uppercase ${

@@ -1,4 +1,8 @@
+import mongoose from "mongoose"
 import * as repository from "./dashboard.repository.js"
+import { Series } from "../series/series.model.js"
+import { Submission } from "../submission/submission.model.js"
+import { Task } from "../task/task.model.js"
 
 export async function getAdminSidebarSummaryService() {
   const [
@@ -64,19 +68,47 @@ export async function getAdminSidebarSummaryService() {
   }
 }
 
-export async function getMangakaSummaryService(_userId: string) {
+export async function getMangakaSummaryService(userId: string) {
   // Parallel fast queries
-  const seriesCount = await repository.countSeries() // should filter by owner
+  const userObjectId = new mongoose.Types.ObjectId(userId)
+
+  const [
+    seriesCount,
+    seriesByStatus,
+  ] = await Promise.all([
+    repository.countSeries({ ownerId: userObjectId }),
+    Series.aggregate([
+      { $match: { ownerId: userObjectId } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ])
+  ])
+
+  // Map series status to pipeline counts
+  const pipeline = { draft: 0, boardReview: 0, production: 0, published: 0 }
+  seriesByStatus.forEach(stat => {
+    if (stat._id === "DRAFT" || stat._id === "EDITOR_REVIEW") pipeline.draft += stat.count
+    if (stat._id === "BOARD_REVIEW") pipeline.boardReview += stat.count
+    if (stat._id === "ONGOING") pipeline.production += stat.count
+    if (stat._id === "COMPLETED") pipeline.published += stat.count
+  })
+
+  // To properly filter tasks and submissions by owner's series:
+  // Since we don't have a direct ownerId on Task/Submission, we find series first.
+  const mySeriesIds = (await Series.find({ ownerId: userObjectId }).select("_id").lean()).map(s => s._id)
+  
+  const realPendingReviews = await Submission.countDocuments({ seriesId: { $in: mySeriesIds }, status: "SUBMITTED" })
+  const realCompletedTasks = await Task.countDocuments({ seriesId: { $in: mySeriesIds }, status: { $in: ["MANGAKA_APPROVED", "EDITOR_APPROVED"] } })
+
   return {
     nextActions: [
       { id: "1", type: "REVIEW_SUBMISSION", label: "Review 2 assistant submissions", isUrgent: true, targetId: "series-1" },
       { id: "2", type: "UPLOAD_MANUSCRIPT", label: "Upload Chapter 12 manuscript", isUrgent: false, targetId: "series-1" }
     ],
-    activeSeriesPipeline: { draft: 1, boardReview: 1, production: 2, published: 5 },
+    activeSeriesPipeline: pipeline,
     currentChapterProgress: { chapterId: "ch1", progressPercent: 65, totalPages: 20, completedPages: 13 },
     dueSoon: [],
     atRiskItems: [],
-    quickStats: { activeSeries: seriesCount, completedTasks: 45, pendingReviews: 2 },
+    quickStats: { activeSeries: seriesCount, completedTasks: realCompletedTasks, pendingReviews: realPendingReviews },
     recentActivity: []
   }
 }
@@ -93,8 +125,6 @@ export async function getAssistantSummaryService(_userId: string) {
   }
 }
 
-import { Series } from "../series/series.model.js"
-import { Submission } from "../submission/submission.model.js"
 
 export async function getEditorSummaryService(userId: string) {
   const assignedSeries = await Series.countDocuments({ editorId: userId })

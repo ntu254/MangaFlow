@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useRole } from "@/shared/lib/role";
 import { currentUserByRole } from "@/entities";
 import { useNotifications, markRead, markAllRead } from "@/shared/lib/notifications";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/shared/ui/shadcn/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/shadcn/popover";
 
 export function NotificationBell() {
   const { role } = useRole();
@@ -44,7 +40,9 @@ export function NotificationBell() {
         </div>
         <div className="max-h-96 divide-y divide-foreground/10 overflow-y-auto">
           {items.length === 0 && (
-            <div className="px-3 py-8 text-center text-xs text-foreground/55">No notifications.</div>
+            <div className="px-3 py-8 text-center text-xs text-foreground/55">
+              No notifications.
+            </div>
           )}
           {items.map((n) => (
             <Link
@@ -57,11 +55,15 @@ export function NotificationBell() {
               className={`block px-3 py-2.5 text-xs hover:bg-foreground/5 ${n.read ? "opacity-60" : ""}`}
             >
               <div className="flex items-start gap-2">
-                {!n.read && <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />}
+                {!n.read && (
+                  <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-foreground">{n.title}</div>
                   <div className="mt-0.5 line-clamp-2 text-foreground/65">{n.body}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-wide text-foreground/45">{n.at}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-wide text-foreground/45">
+                    {n.at}
+                  </div>
                 </div>
                 {n.read && <Check className="mt-0.5 h-3 w-3 text-foreground/40" />}
               </div>

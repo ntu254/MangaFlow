@@ -14,9 +14,7 @@ export function PitchStep() {
     <section className="space-y-5 rounded-2xl border border-foreground/10 bg-white dark:bg-card p-6 shadow-sm">
       <header>
         <h2 className="text-base font-semibold">The pitch</h2>
-        <p className="mt-0.5 text-[12px] text-foreground/55">
-          What your editor will read first.
-        </p>
+        <p className="mt-0.5 text-[12px] text-foreground/55">What your editor will read first.</p>
       </header>
 
       <Field

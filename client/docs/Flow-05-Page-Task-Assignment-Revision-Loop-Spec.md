@@ -21,13 +21,13 @@ Out of scope: Mangaka review queue chi tiết, Editor final approval, payroll, p
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Mangaka | Tạo Task, assign Assistant |
-| Assistant | Nhận Task, làm việc, submit version mới |
-| System | Validate, versioning, status, notification |
-| Editor | Final review ở Flow 07 |
-| Board | Không tham gia |
+| Actor     | Vai trò                                    |
+| --------- | ------------------------------------------ |
+| Mangaka   | Tạo Task, assign Assistant                 |
+| Assistant | Nhận Task, làm việc, submit version mới    |
+| System    | Validate, versioning, status, notification |
+| Editor    | Final review ở Flow 07                     |
+| Board     | Không tham gia                             |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -73,26 +73,26 @@ Workspace
 
 ## 7. Task Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| TODO | Task mới assign, chưa bắt đầu |
-| IN_PROGRESS | Assistant đang làm |
-| SUBMITTED | Assistant đã nộp current version |
-| REVISION_REQUESTED | Mangaka hoặc Editor yêu cầu sửa |
-| MANGAKA_APPROVED | Mangaka đã approve |
-| EDITOR_APPROVED | Editor đã approve cuối |
-| REJECTED | Task bị từ chối |
-| CANCELLED | Task bị hủy |
+| Status             | Ý nghĩa                          |
+| ------------------ | -------------------------------- |
+| TODO               | Task mới assign, chưa bắt đầu    |
+| IN_PROGRESS        | Assistant đang làm               |
+| SUBMITTED          | Assistant đã nộp current version |
+| REVISION_REQUESTED | Mangaka hoặc Editor yêu cầu sửa  |
+| MANGAKA_APPROVED   | Mangaka đã approve               |
+| EDITOR_APPROVED    | Editor đã approve cuối           |
+| REJECTED           | Task bị từ chối                  |
+| CANCELLED          | Task bị hủy                      |
 
 ## 8. Submission Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| SUBMITTED | Assistant đã nộp |
-| REVISION_REQUESTED | Version này cần sửa |
-| MANGAKA_APPROVED | Version được Mangaka approve |
-| EDITOR_APPROVED | Version được Editor approve |
-| REJECTED | Version bị reject |
+| Status             | Ý nghĩa                      |
+| ------------------ | ---------------------------- |
+| SUBMITTED          | Assistant đã nộp             |
+| REVISION_REQUESTED | Version này cần sửa          |
+| MANGAKA_APPROVED   | Version được Mangaka approve |
+| EDITOR_APPROVED    | Version được Editor approve  |
+| REJECTED           | Version bị reject            |
 
 ## 9. Step-by-step flow
 
@@ -147,18 +147,18 @@ Submission không được ghi đè. Mỗi lần submit tạo version mới.
 
 ## 11. Permission Matrix
 
-| Action | Mangaka | Assigned Assistant | Other Assistant | Editor | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Create Task | Có | Không | Không | Optional | Không |
-| Assign Task | Có | Không | Không | Optional | Không |
-| View assigned Task | Có | Có | Không | Có | Không |
-| Open Task Studio | Không | Có nếu assigned | Không | Optional review | Không |
-| Start Task | Không | Có | Không | Không | Không |
-| Submit work | Không | Có | Không | Không | Không |
-| Review submission | Flow 06 | Không | Không | Flow 07 | Không |
-| Request revision | Flow 06 | Không | Không | Flow 07 | Không |
-| Approve | Flow 06 | Không | Không | Flow 07 | Không |
+| Action             | Mangaka | Assigned Assistant | Other Assistant | Editor          | Board |
+| ------------------ | ------- | ------------------ | --------------- | --------------- | ----- |
+| ---                | ---:    | ---:               | ---:            | ---:            | ---:  |
+| Create Task        | Có      | Không              | Không           | Optional        | Không |
+| Assign Task        | Có      | Không              | Không           | Optional        | Không |
+| View assigned Task | Có      | Có                 | Không           | Có              | Không |
+| Open Task Studio   | Không   | Có nếu assigned    | Không           | Optional review | Không |
+| Start Task         | Không   | Có                 | Không           | Không           | Không |
+| Submit work        | Không   | Có                 | Không           | Không           | Không |
+| Review submission  | Flow 06 | Không              | Không           | Flow 07         | Không |
+| Request revision   | Flow 06 | Không              | Không           | Flow 07         | Không |
+| Approve            | Flow 06 | Không              | Không           | Flow 07         | Không |
 
 ## 12. API đề xuất
 
@@ -230,14 +230,14 @@ ANNOTATION_CREATED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Assistant không thuộc team | Block assign |
-| Assistant inactive | Block assign |
-| Submit khi không assigned | Block |
-| Approve submission cũ | Block |
-| Request revision thiếu comment | Block |
-| Task cancelled | Block submit |
+| Case                                    | Expected behavior              |
+| --------------------------------------- | ------------------------------ |
+| Assistant không thuộc team              | Block assign                   |
+| Assistant inactive                      | Block assign                   |
+| Submit khi không assigned               | Block                          |
+| Approve submission cũ                   | Block                          |
+| Request revision thiếu comment          | Block                          |
+| Task cancelled                          | Block submit                   |
 | Tạo active Task trùng target + taskType | Block tới khi task cũ kết thúc |
 
 ## 18. Mermaid activity flow

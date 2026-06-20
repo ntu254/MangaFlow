@@ -8,9 +8,7 @@ export function useKonvaImage(
   src: string,
 ): [HTMLImageElement | null, "loading" | "loaded" | "error"] {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">(
-    "loading",
-  );
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   useEffect(() => {
     if (!src) return;
