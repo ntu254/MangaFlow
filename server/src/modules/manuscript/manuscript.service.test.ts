@@ -7,12 +7,21 @@ import {
 } from "./manuscript.service.js"
 
 vi.mock("./manuscript.repository.js")
+vi.mock("../board/board.repository.js", () => ({
+  createBoardReviewSession: vi.fn().mockResolvedValue({ id: "session1" }),
+  getOrCreateDecision: vi.fn().mockResolvedValue({ status: "PENDING" }),
+}))
+vi.mock("../../shared/workflow/events.js", () => ({
+  notifyRole: vi.fn().mockResolvedValue([]),
+  notifyUsers: vi.fn().mockResolvedValue([]),
+  recordAuditLog: vi.fn().mockResolvedValue(null),
+}))
 
 describe("manuscript review service", () => {
   const manuscript = {
     _id: "manuscript1",
     seriesId: "series1",
-    status: "EDITOR_REVIEW",
+    status: "SUBMITTED",
   }
   const series = {
     _id: "series1",
@@ -42,6 +51,12 @@ describe("manuscript review service", () => {
       "manuscript1",
       "REVISION_REQUESTED",
       "Please revise",
+      {
+        editorRecommendation: undefined,
+        feasibilityNote: undefined,
+        riskNote: undefined,
+        suggestedPublicationType: undefined,
+      },
     )
     expect(repository.updateSeriesReviewStatus).toHaveBeenCalledWith(
       "series1",
@@ -52,18 +67,27 @@ describe("manuscript review service", () => {
   it("forwards manuscript to Board and sets Series BOARD_REVIEW", async () => {
     vi.mocked(repository.updateManuscriptReviewStatus).mockResolvedValue({
       id: "manuscript1",
-      status: "APPROVED_TO_BOARD",
+      status: "FORWARDED_TO_BOARD",
     } as any)
 
     await forwardManuscriptToBoardService({
       manuscriptId: "manuscript1",
       actor: { userId: "editor1", role: "EDITOR" },
+      editorRecommendation: "Strong proposal",
+      feasibilityNote: "Feasible for weekly serialization",
+      suggestedPublicationType: "WEEKLY",
     })
 
     expect(repository.updateManuscriptReviewStatus).toHaveBeenCalledWith(
       "manuscript1",
-      "APPROVED_TO_BOARD",
+      "FORWARDED_TO_BOARD",
       undefined,
+      {
+        editorRecommendation: "Strong proposal",
+        feasibilityNote: "Feasible for weekly serialization",
+        riskNote: undefined,
+        suggestedPublicationType: "WEEKLY",
+      },
     )
     expect(repository.updateSeriesReviewStatus).toHaveBeenCalledWith(
       "series1",
@@ -80,6 +104,7 @@ describe("manuscript review service", () => {
     await rejectManuscriptService({
       manuscriptId: "manuscript1",
       actor: { userId: "editor1", role: "EDITOR" },
+      rejectReason: "Not aligned with magazine direction",
     })
 
     expect(repository.updateSeriesReviewStatus).toHaveBeenCalledWith(
@@ -107,6 +132,9 @@ describe("manuscript review service", () => {
       forwardManuscriptToBoardService({
         manuscriptId: "manuscript1",
         actor: { userId: "editor1", role: "EDITOR" },
+        editorRecommendation: "Strong proposal",
+        feasibilityNote: "Feasible",
+        suggestedPublicationType: "WEEKLY",
       }),
     ).rejects.toThrow("Series must be in EDITOR_REVIEW")
   })
@@ -121,7 +149,10 @@ describe("manuscript review service", () => {
       forwardManuscriptToBoardService({
         manuscriptId: "manuscript1",
         actor: { userId: "editor1", role: "EDITOR" },
+        editorRecommendation: "Strong proposal",
+        feasibilityNote: "Feasible",
+        suggestedPublicationType: "WEEKLY",
       }),
-    ).rejects.toThrow("Manuscript must be in EDITOR_REVIEW")
+    ).rejects.toThrow("Manuscript must be SUBMITTED or UNDER_EDITOR_REVIEW")
   })
 })

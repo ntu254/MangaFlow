@@ -1,5 +1,5 @@
 import { Series, SeriesMember } from "../series.model.js"
-import type { SeriesStatus } from "../../../shared/workflow/status.js"
+import type { PublicationType, SeriesStatus } from "../../../shared/workflow/status.js"
 import { buildSlug } from "../utils/series-slug.js"
 
 export type SeriesMemberRole = "MANGAKA" | "ASSISTANT" | "EDITOR"
@@ -12,7 +12,8 @@ export interface CreateSeriesInput {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags?: string[]
   genres?: string[]
   ownerId: string
@@ -28,7 +29,8 @@ export interface CreateSeriesResult {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags: string[]
   genres: string[]
   ownerId: string
@@ -50,6 +52,7 @@ export async function createSeriesRepository(input: CreateSeriesInput): Promise<
     characters: input.characters,
     conflict: input.conflict,
     targetAudience: input.targetAudience,
+    requestedPublicationType: input.requestedPublicationType,
     publicationType: input.publicationType,
     tags: input.tags ?? [],
     genres: input.genres ?? [],
@@ -74,6 +77,7 @@ export async function createSeriesRepository(input: CreateSeriesInput): Promise<
     characters: series.characters,
     conflict: series.conflict,
     targetAudience: series.targetAudience,
+    requestedPublicationType: series.requestedPublicationType,
     publicationType: series.publicationType,
     tags: series.tags ?? [],
     genres: series.genres,
@@ -128,7 +132,8 @@ export interface UpdateSeriesInput {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags?: string[]
   genres?: string[]
 }
@@ -161,6 +166,7 @@ export async function updateSeriesRepository(
   if (input.characters !== undefined) patch.characters = input.characters
   if (input.conflict !== undefined) patch.conflict = input.conflict
   if (input.targetAudience !== undefined) patch.targetAudience = input.targetAudience
+  if (input.requestedPublicationType !== undefined) patch.requestedPublicationType = input.requestedPublicationType
   if (input.publicationType !== undefined) patch.publicationType = input.publicationType
   if (input.tags !== undefined) patch.tags = input.tags
   if (input.genres !== undefined) patch.genres = input.genres
@@ -184,6 +190,7 @@ export async function updateSeriesRepository(
     characters: series.characters,
     conflict: series.conflict,
     targetAudience: series.targetAudience,
+    requestedPublicationType: series.requestedPublicationType,
     publicationType: series.publicationType,
     tags: series.tags ?? [],
     genres: series.genres ?? [],

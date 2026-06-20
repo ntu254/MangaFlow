@@ -1,4 +1,4 @@
-﻿import "dotenv/config"
+import "dotenv/config"
 
 interface RawEnv {
   [key: string]: string | undefined
@@ -66,6 +66,7 @@ export function buildConfig(source: RawEnv = process.env) {
   return {
     port: parseInt(readEnv(source, "PORT", "3001"), 10),
     clientUrl: readEnv(source, "CLIENT_URL", "http://localhost:5173"),
+    aiServiceUrl: readEnv(source, "AI_SERVICE_URL", "http://127.0.0.1:8000"),
     mongoUri,
     jwtSecret,
     jwtRefreshSecret,
@@ -87,3 +88,4 @@ export function buildConfig(source: RawEnv = process.env) {
 }
 
 export const config = buildConfig()
+

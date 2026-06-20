@@ -1,5 +1,6 @@
+import { deleteDraftSeriesService, withdrawSeriesProposalService, cancelSeriesService, hardDeleteSeriesService } from "./series.service.js"
 ﻿import type { Request, Response } from "express"
-import { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, updateSeriesService, getSeriesSummaryService } from "./series.service.js"
+import { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, updateSeriesService, getSeriesSummaryService, deleteManuscriptFileService, downloadManuscriptFileService, verifyManuscriptFilesService } from "./series.service.js"
 
 export async function listSeries(req: Request, res: Response): Promise<void> {
   const series = await listSeriesService(req.user!.userId, req.user!.role)
@@ -29,6 +30,8 @@ export async function createManuscriptUpload(req: Request, res: Response): Promi
     contentType: req.body.contentType,
     size: req.body.size,
     expiresIn: req.body.expiresIn,
+    assetType: req.body.assetType,
+    slot: req.body.slot,
   })
 
   res.status(201).json({ success: true, message: "Manuscript upload URL created", data: result })
@@ -47,4 +50,39 @@ export async function updateSeries(req: Request, res: Response): Promise<void> {
     patch: req.body,
   })
   res.json({ success: true, message: "Series updated successfully", data: series })
+}
+
+export async function deleteManuscriptFile(req: Request, res: Response): Promise<void> {
+  await deleteManuscriptFileService(String(req.params.seriesId), String(req.params.fileAssetId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "File deleted successfully", data: null })
+}
+
+export async function downloadManuscriptFile(req: Request, res: Response): Promise<void> {
+  const result = await downloadManuscriptFileService(String(req.params.seriesId), String(req.params.fileAssetId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Download URL generated successfully", data: result })
+}
+
+export async function verifyManuscriptFiles(req: Request, res: Response): Promise<void> {
+  const result = await verifyManuscriptFilesService(String(req.params.seriesId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Files verified successfully", data: result })
+}
+
+export async function deleteDraftSeries(req: Request, res: Response): Promise<void> {
+  await deleteDraftSeriesService(String(req.params.seriesId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Draft deleted successfully" })
+}
+
+export async function withdrawSeriesProposal(req: Request, res: Response): Promise<void> {
+  await withdrawSeriesProposalService(String(req.params.seriesId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Proposal withdrawn successfully" })
+}
+
+export async function cancelSeries(req: Request, res: Response): Promise<void> {
+  await cancelSeriesService(String(req.params.seriesId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Series cancelled successfully" })
+}
+
+export async function hardDeleteSeries(req: Request, res: Response): Promise<void> {
+  await hardDeleteSeriesService(String(req.params.seriesId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Series hard deleted successfully" })
 }

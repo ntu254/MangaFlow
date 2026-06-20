@@ -12,37 +12,114 @@ export async function getLatestManuscriptBySeries(seriesId: string): Promise<any
   return Manuscript.findOne({ seriesId }).sort({ version: -1 })
 }
 
+function isDuplicateManuscriptVersionError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 11000 &&
+      "keyPattern" in error &&
+      typeof error.keyPattern === "object" &&
+      error.keyPattern &&
+      "seriesId" in error.keyPattern &&
+      "version" in error.keyPattern,
+  )
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export interface CreateManuscriptUploadDraftInput {
+  fileAssetId?: string
+  versionId?: string
   seriesId: string
   uploadedBy: string
   r2Key: string
   originalName: string
   mimeType: string
   size: number
+  slot?: string
 }
 
 export async function createManuscriptUploadDraft(input: CreateManuscriptUploadDraftInput): Promise<any> {
   const fileAsset = await FileAsset.create({
+    _id: input.fileAssetId ? input.fileAssetId : undefined,
+    seriesId: input.seriesId,
     originalName: input.originalName,
     mimeType: input.mimeType,
     size: input.size,
     r2Key: input.r2Key,
     r2Bucket: config.r2Bucket,
     uploadedBy: input.uploadedBy,
+    assetType: "MANUSCRIPT",
+    slot: input.slot,
   })
 
+  let manuscript;
+  
   const latest = await getLatestManuscriptBySeries(input.seriesId)
-  const version = latest ? latest.version + 1 : 1
+  if (latest && latest.status === "DRAFT") {
+    latest.fileAssetId = fileAsset.id;
+    await latest.save();
+    manuscript = latest;
+  } else {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const version = latest ? latest.version + 1 : 1
 
-  const manuscript = await Manuscript.create({
-    seriesId: input.seriesId,
-    uploadedBy: input.uploadedBy,
-    version,
-    status: "DRAFT",
-    fileAssetId: fileAsset.id,
-  })
+      try {
+        manuscript = await Manuscript.create({
+          _id: input.versionId ? input.versionId : undefined,
+          seriesId: input.seriesId,
+          uploadedBy: input.uploadedBy,
+          version,
+          status: "DRAFT",
+          fileAssetId: fileAsset.id,
+        })
+        break
+      } catch (error) {
+        if (!isDuplicateManuscriptVersionError(error) || attempt === 7) {
+          throw error
+        }
+        await delay(20 * (attempt + 1))
+      }
+    }
+  }
+
+  if (!manuscript) {
+    throw new Error("Unable to create manuscript draft")
+  }
 
   return { manuscript, fileAsset }
+}
+
+export interface CreateSeriesFileAssetDraftInput {
+  fileAssetId?: string
+  seriesId: string
+  uploadedBy: string
+  r2Key: string
+  originalName: string
+  mimeType: string
+  size: number
+  assetType: "SUPPORTING"
+  slot?: string
+}
+
+export async function createSeriesFileAssetDraft(input: CreateSeriesFileAssetDraftInput): Promise<any> {
+  const fileAsset = await FileAsset.create({
+    _id: input.fileAssetId ? input.fileAssetId : undefined,
+    seriesId: input.seriesId,
+    originalName: input.originalName,
+    mimeType: input.mimeType,
+    size: input.size,
+    r2Key: input.r2Key,
+    r2Bucket: config.r2Bucket,
+    uploadedBy: input.uploadedBy,
+    assetType: input.assetType,
+    slot: input.slot,
+  })
+
+  return { fileAsset, manuscript: null }
 }
 
 export async function updateManuscriptStatus(manuscriptId: string, status: ManuscriptStatus, reviewNote?: string): Promise<any | null> {

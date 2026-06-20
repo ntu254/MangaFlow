@@ -1,4 +1,4 @@
-﻿import type { NextFunction, Request, Response } from "express"
+import type { NextFunction, Request, Response } from "express"
 import {
   confirmPageUploadService,
   getPageWithFileAssetService,
@@ -19,11 +19,9 @@ export async function confirmPageUpload(req: Request, res: Response, _next: Next
   const actor = { userId: req.user!.userId, role: req.user!.role }
   const result = await confirmPageUploadService({
     pageId: String(req.params.pageId),
-    fileAssetId: req.body.fileAssetId,
-    r2Key: req.body.r2Key,
-    originalName: req.body.originalName,
-    mimeType: req.body.mimeType,
-    size: req.body.size,
+    original: req.body.original,
+    working: req.body.working,
+    thumbnail: req.body.thumbnail,
     userId: req.user!.userId,
     actor,
   })
@@ -35,7 +33,7 @@ export async function getPresignedDownloadUrl(req: Request, res: Response, _next
   const result = await getPresignedDownloadUrlService(
     String(req.params.fileAssetId),
     actor,
-    req.query.expiresIn ? Number(req.query.expiresIn) : undefined
+    req.query.expiresIn ? Number(req.query.expiresIn) : undefined,
   )
   res.json({ success: true, message: "Presigned download URL generated", data: result })
 }
@@ -43,5 +41,5 @@ export async function getPresignedDownloadUrl(req: Request, res: Response, _next
 export async function getPageWithFileAsset(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const actor = { userId: req.user!.userId, role: req.user!.role }
   const page = await getPageWithFileAssetService(String(req.params.pageId), actor)
-  res.json({ success: true, message: "Page with file asset retrieved", data: page })
+  res.json({ success: true, message: "Page with file assets retrieved", data: page })
 }

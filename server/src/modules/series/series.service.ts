@@ -1,4 +1,10 @@
-﻿import { AppError } from "../../shared/errors/AppError.js"
+import { Series } from "./series.model.js"
+import { Manuscript } from "./series.model.js"
+import { Chapter, Page, FileAsset } from "../chapter/chapter.model.js"
+import { Task } from "../task/task.model.js"
+import { Submission } from "../submission/submission.model.js"
+import { Comment } from "../comment/comment.model.js"
+import { AppError } from "../../shared/errors/AppError.js"
 import type { UserRole } from "../auth/auth.types.js"
 import {
   createSeriesRepository,
@@ -8,9 +14,35 @@ import {
   submitSeriesRepository,
   updateSeriesRepository,
   createManuscriptUploadDraft,
+  createSeriesFileAssetDraft,
   getSeriesSummaryData,
+  getLatestManuscriptBySeries,
 } from "./series.repository.js"
-import { createPresignedUploadUrl } from "../chapter/file.service.js"
+import { createPresignedUploadUrl, deleteFileAsset, checkObjectExists, createPresignedDownloadUrl } from "../chapter/file.service.js"
+import { Types } from "mongoose"
+import type { PublicationType } from "../../shared/workflow/status.js"
+import { notifyRole, recordAuditLog } from "../../shared/workflow/events.js"
+
+function assertIsSeriesOwner(series: any, userId: string, role: string) {
+  if (role === "ADMIN") return;
+  if (String(series.ownerId) !== userId) {
+    throw new AppError("Only the owner Mangaka or Admin can perform this action", 403);
+  }
+}
+
+function isDuplicateManuscriptVersionError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 11000 &&
+      "keyPattern" in error &&
+      typeof error.keyPattern === "object" &&
+      error.keyPattern &&
+      "seriesId" in error.keyPattern &&
+      "version" in error.keyPattern,
+  )
+}
 
 export interface CreateSeriesServiceInput {
   title: string
@@ -20,7 +52,8 @@ export interface CreateSeriesServiceInput {
   characters?: string
   conflict?: string
   targetAudience?: string
-  publicationType?: string
+  requestedPublicationType?: PublicationType
+  publicationType?: PublicationType
   tags?: string[]
   genres?: string[]
   ownerId: string
@@ -50,7 +83,7 @@ export async function createSeriesService(input: CreateSeriesServiceInput) {
     throw new AppError("Title and synopsis are required", 400)
   }
 
-  return createSeriesRepository({
+  const series = await createSeriesRepository({
     title: input.title.trim(),
     synopsis: input.synopsis.trim(),
     logline: input.logline?.trim() || undefined,
@@ -58,11 +91,14 @@ export async function createSeriesService(input: CreateSeriesServiceInput) {
     characters: input.characters?.trim() || undefined,
     conflict: input.conflict?.trim() || undefined,
     targetAudience: input.targetAudience?.trim() || undefined,
-    publicationType: input.publicationType?.trim() || undefined,
+    requestedPublicationType: input.requestedPublicationType ?? input.publicationType,
+    publicationType: undefined,
     tags: input.tags,
     genres: input.genres,
     ownerId: input.ownerId,
   })
+  void recordAuditLog({ event: "SERIES_CREATED", actorId: input.ownerId, entityType: "Series", entityId: series.id }).catch(() => undefined)
+  return series
 }
 
 
@@ -73,6 +109,8 @@ export interface CreateManuscriptUploadServiceInput {
   contentType: string
   size: number
   expiresIn?: number
+  assetType?: "MANUSCRIPT" | "SUPPORTING"
+  slot?: string
 }
 
 export async function createManuscriptUploadService(input: CreateManuscriptUploadServiceInput) {
@@ -82,20 +120,73 @@ export async function createManuscriptUploadService(input: CreateManuscriptUploa
     throw new AppError("Only the series owner can upload manuscripts", 403)
   }
 
-  const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
-  const persisted = await createManuscriptUploadDraft({
-    seriesId: input.seriesId,
-    uploadedBy: input.userId,
-    r2Key: signed.r2Key,
-    originalName: input.originalName,
-    mimeType: input.contentType,
-    size: input.size,
-  })
+  if (!["DRAFT", "REVISION_REQUESTED"].includes(series.status)) {
+    throw new AppError("Manuscripts can only be uploaded while the series is in DRAFT or REVISION_REQUESTED", 409)
+  }
+
+  const latest = await getLatestManuscriptBySeries(input.seriesId)
+  const isDraft = latest && latest.status === "DRAFT"
+  const version = isDraft ? latest.version : (latest ? latest.version + 1 : 1)
+  const versionId = isDraft ? String(latest._id) : new Types.ObjectId().toString()
+  const fileAssetId = new Types.ObjectId().toString()
+  const assetType = input.assetType ?? "MANUSCRIPT"
+  const typeKey = (input.slot || assetType).toLowerCase()
+  const ext = input.originalName.split(".").pop()?.toLowerCase() || "bin"
+  
+  const seriesSlug = series.slug
+  const seriesShortId = String(input.seriesId).slice(-6)
+  const versionShortId = String(versionId).slice(-6)
+  const fileAssetShortId = String(fileAssetId).slice(-6)
+  
+  const customR2Key = `series/${seriesSlug}-${seriesShortId}/manuscripts/v${version}-${versionShortId}/${typeKey}/${fileAssetShortId}.${ext}`
+
+  const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn, customR2Key)
+  let persisted
+  try {
+    persisted = assetType === "MANUSCRIPT"
+      ? await createManuscriptUploadDraft({
+          fileAssetId,
+          versionId,
+          seriesId: input.seriesId,
+          uploadedBy: input.userId,
+          r2Key: signed.r2Key,
+          originalName: input.originalName,
+          mimeType: input.contentType,
+          size: input.size,
+          slot: input.slot,
+        })
+      : await createSeriesFileAssetDraft({
+          fileAssetId,
+          seriesId: input.seriesId,
+          uploadedBy: input.userId,
+          r2Key: signed.r2Key,
+          originalName: input.originalName,
+          mimeType: input.contentType,
+          size: input.size,
+          assetType,
+          slot: input.slot,
+        })
+  } catch (error) {
+    if (isDuplicateManuscriptVersionError(error)) {
+      throw new AppError("Unable to allocate manuscript version. Please retry the upload.", 409)
+    }
+    throw error
+  }
+
+  if (assetType === "MANUSCRIPT" && persisted.manuscript?.id) {
+    void recordAuditLog({
+      event: "MANUSCRIPT_VERSION_UPLOADED",
+      actorId: input.userId,
+      entityType: "Manuscript",
+      entityId: persisted.manuscript.id,
+      metadata: { seriesId: input.seriesId, slot: input.slot },
+    }).catch(() => undefined)
+  }
 
   return {
     uploadUrl: signed.uploadUrl,
     fileAssetId: persisted.fileAsset.id,
-    manuscriptId: persisted.manuscript.id,
+    manuscriptId: persisted.manuscript?.id,
     expiresIn: signed.expiresIn,
   }
 }
@@ -113,12 +204,23 @@ export async function submitSeriesService(seriesId: string, userId: string) {
   if (!series) throw new AppError("Series not found", 404)
 
   try {
-    return await submitSeriesRepository(trimmed, userId)
+    const series = await submitSeriesRepository(trimmed, userId)
+    void Promise.all([
+      notifyRole("EDITOR", {
+        event: "SERIES_SUBMITTED_TO_EDITOR",
+        title: "New series proposal submitted",
+        message: `${series.title} is ready for editor review.`,
+        link: `/app/editor/series/${series.id}/review`,
+      }),
+      recordAuditLog({ event: "SERIES_SUBMITTED_TO_EDITOR", actorId: userId, entityType: "Series", entityId: trimmed }),
+    ]).catch(() => undefined)
+    return series
   } catch (error) {
     const message = String((error as Error).message ?? "")
     if (message.includes("Only the owner Mangaka")) throw new AppError("Only the owner Mangaka can submit this series", 403)
-    if (message.includes("Only draft series")) throw new AppError("Only draft series can be submitted", 409)
+    if (message.includes("Only draft or revision-requested series")) throw new AppError("Only draft or revision-requested series can be submitted", 409)
     if (message.includes("Initial manuscript")) throw new AppError("Initial manuscript is required before submit", 400)
+    if (message.includes("new draft manuscript")) throw new AppError("Upload a new draft manuscript version before submit", 400)
     if (message.includes("Required series fields")) throw new AppError("Required series fields must be completed before submit", 400)
     if (message.includes("Series not found")) throw new AppError("Series not found", 404)
     throw new AppError("Unable to submit series", 400)
@@ -205,6 +307,15 @@ export async function getSeriesSummaryService(seriesId: string, userId: string, 
     })),
     manuscripts,
     currentManuscript: manuscripts[0] ?? null,
+    files: data.files.map((file: any) => ({
+      id: String(file._id),
+      originalName: file.originalName,
+      mimeType: file.mimeType,
+      size: file.size,
+      assetType: file.assetType,
+      status: file.status || "ACTIVE",
+      createdAt: file.createdAt,
+    })),
     chapters,
     currentChapter,
     chapterSummary: {
@@ -279,7 +390,7 @@ export async function getSeriesSummaryService(seriesId: string, userId: string, 
     },
     allowedActions: {
       canEditSeries: role === "MANGAKA" && ["DRAFT", "REVISION_REQUESTED"].includes(series.status),
-      canUploadManuscript: role === "MANGAKA" && String(series.ownerId) === userId,
+      canUploadManuscript: role === "MANGAKA" && String(series.ownerId) === userId && ["DRAFT", "REVISION_REQUESTED"].includes(series.status),
       canOpenWorkspace: ["APPROVED", "ONGOING", "AT_RISK", "COMPLETED"].includes(series.status),
     },
   }
@@ -299,7 +410,8 @@ export interface UpdateSeriesServiceInput {
     characters?: string
     conflict?: string
     targetAudience?: string
-    publicationType?: string
+    requestedPublicationType?: PublicationType
+    publicationType?: PublicationType
     tags?: string[]
     genres?: string[]
   }
@@ -317,7 +429,10 @@ export async function updateSeriesService(input: UpdateSeriesServiceInput) {
   if (patch.characters !== undefined) patch.characters = patch.characters.trim()
   if (patch.conflict !== undefined) patch.conflict = patch.conflict.trim()
   if (patch.targetAudience !== undefined) patch.targetAudience = patch.targetAudience.trim()
-  if (patch.publicationType !== undefined) patch.publicationType = patch.publicationType.trim()
+  if (patch.publicationType !== undefined && patch.requestedPublicationType === undefined) {
+    patch.requestedPublicationType = patch.publicationType
+    delete patch.publicationType
+  }
 
   try {
     return await updateSeriesRepository(trimmed, input.userId, patch)
@@ -328,4 +443,145 @@ export async function updateSeriesService(input: UpdateSeriesServiceInput) {
     if (message.includes("Series not found")) throw new AppError("Series not found", 404)
     throw new AppError("Unable to update series", 400)
   }
+}
+
+export async function deleteManuscriptFileService(seriesId: string, fileAssetId: string, userId: string, role: string) {
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  assertIsSeriesOwner(series, userId, role)
+
+  const fileAsset = await FileAsset.findOne({ _id: fileAssetId, seriesId })
+  if (!fileAsset) throw new AppError("File not found or doesn't belong to this series", 404)
+
+  if (fileAsset.status === "DELETED") return
+
+  // Mark deleted
+  fileAsset.status = "DELETED"
+  await fileAsset.save()
+
+  // Attempt to delete from R2, ignore if it fails or already missing
+  try {
+    await deleteFileAsset(fileAsset.r2Key)
+  } catch (error) {
+    console.error(`Failed to delete object from R2: ${fileAsset.r2Key}`, error)
+  }
+}
+
+export async function downloadManuscriptFileService(seriesId: string, fileAssetId: string, _userId: string, _role: string) {
+  // Can add specific membership checks here. Currently checking if series exists.
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+
+  const fileAsset = await FileAsset.findOne({ _id: fileAssetId, seriesId, status: { $ne: "DELETED" } })
+  if (!fileAsset) throw new AppError("File not found", 404)
+
+  // Check existence
+  const exists = await checkObjectExists(fileAsset.r2Key)
+  if (!exists) {
+    fileAsset.status = "MISSING"
+    await fileAsset.save()
+    throw new AppError("File missing from storage", 404)
+  }
+
+  return createPresignedDownloadUrl(fileAsset.r2Key)
+}
+
+export async function verifyManuscriptFilesService(seriesId: string, _userId: string, _role: string) {
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+
+  const files = await FileAsset.find({ seriesId, status: { $ne: "DELETED" } })
+
+  await Promise.all(
+    files.map(async (file) => {
+      try {
+        const exists = await checkObjectExists(file.r2Key)
+        const nextStatus = exists ? "ACTIVE" : "MISSING"
+        if (file.status !== nextStatus) {
+          file.status = nextStatus
+          await file.save()
+        }
+      } catch (error) {
+        console.error(`Failed to verify file asset ${String(file._id)} (${file.r2Key})`, error)
+      }
+    }),
+  )
+
+  return files.map((file) => ({
+    id: String(file._id),
+    status: file.status,
+  }))
+}
+
+export async function deleteDraftSeriesService(seriesId: string, userId: string, role: string) {
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  assertIsSeriesOwner(series, userId, role)
+
+  if (series.status !== "DRAFT") {
+    throw new AppError("Only draft series can be soft deleted", 400)
+  }
+
+  await Series.updateOne(
+    { _id: seriesId },
+    { 
+      $set: { 
+        deletedAt: new Date(), 
+        deletedBy: userId, 
+        deleteReason: "Mangaka deleted draft" 
+      } 
+    }
+  )
+}
+
+export async function withdrawSeriesProposalService(seriesId: string, userId: string, role: string) {
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  assertIsSeriesOwner(series, userId, role)
+
+  const allowedStatuses = ["EDITOR_REVIEW", "REVISION_REQUESTED", "BOARD_REVIEW"]
+  if (!allowedStatuses.includes(series.status)) {
+    throw new AppError("Only proposals under review can be withdrawn", 400)
+  }
+
+  await Series.updateOne(
+    { _id: seriesId },
+    { $set: { status: "WITHDRAWN" } }
+  )
+}
+
+export async function cancelSeriesService(seriesId: string, userId: string, role: string) {
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  assertIsSeriesOwner(series, userId, role)
+
+  const allowedStatuses = ["APPROVED", "ONGOING", "AT_RISK"]
+  if (!allowedStatuses.includes(series.status)) {
+    throw new AppError("Only approved or ongoing series can be cancelled", 400)
+  }
+
+  await Series.updateOne(
+    { _id: seriesId },
+    { $set: { status: "CANCELLED", cancelledAt: new Date() } }
+  )
+}
+
+export async function hardDeleteSeriesService(seriesId: string, _userId: string, role: string) {
+  if (role !== "ADMIN") {
+    throw new AppError("Only admins can perform a hard delete", 403)
+  }
+  const series = await getSeriesById(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+
+  // Cascade delete logic (simplified MVP version)
+  await Promise.all([
+    Series.deleteOne({ _id: seriesId }),
+    Manuscript.deleteMany({ seriesId }),
+    Chapter.deleteMany({ seriesId }),
+    Page.deleteMany({ seriesId }), // assuming Page schema has seriesId, if not chapterId need to be fetched
+    FileAsset.deleteMany({ seriesId }),
+    Task.deleteMany({ seriesId }),
+    Submission.deleteMany({ seriesId }),
+    Comment.deleteMany({ seriesId }),
+  ])
 }

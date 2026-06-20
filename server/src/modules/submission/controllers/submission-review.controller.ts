@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express"
 import {
   editorApproveSubmissionService,
+  editorRejectSubmissionService,
   mangakaApproveSubmissionService,
   rejectSubmissionService,
   requestSubmissionRevisionService,
@@ -12,7 +13,6 @@ export async function mangakaApproveSubmission(req: Request, res: Response, _nex
     actor: req.user!,
     reviewerNote: req.body.reviewerNote,
   })
-
   res.json({ success: true, message: "Submission approved by Mangaka", data: submission })
 }
 
@@ -22,7 +22,6 @@ export async function requestSubmissionRevision(req: Request, res: Response, _ne
     actor: req.user!,
     reviewerNote: req.body.reviewerNote,
   })
-
   res.json({ success: true, message: "Submission revision requested", data: submission })
 }
 
@@ -32,7 +31,6 @@ export async function rejectSubmission(req: Request, res: Response, _next: NextF
     actor: req.user!,
     reviewerNote: req.body.reviewerNote,
   })
-
   res.json({ success: true, message: "Submission rejected", data: submission })
 }
 
@@ -42,6 +40,15 @@ export async function editorApproveSubmission(req: Request, res: Response, _next
     actor: req.user!,
     reviewerNote: req.body.reviewerNote,
   })
-
   res.json({ success: true, message: "Submission final-approved by Editor", data: submission })
+}
+
+/** Flow-07: Editor rejects MANGAKA_APPROVED work — requires a reason. */
+export async function editorRejectSubmission(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const submission = await editorRejectSubmissionService({
+    submissionId: req.params.submissionId as string,
+    actor: req.user!,
+    reviewerNote: req.body.reviewerNote,
+  })
+  res.json({ success: true, message: "Submission rejected by Editor", data: submission })
 }

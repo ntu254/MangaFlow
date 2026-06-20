@@ -43,8 +43,7 @@ export async function getSeriesSummaryData(seriesId: string, ownerId: string) {
     ? await Page.find({ chapterId: { $in: chapterIds } }).sort({ pageNumber: 1 }).lean()
     : []
 
-  const fileIds = manuscripts.flatMap((manuscript) => manuscript.fileAssetId ? [manuscript.fileAssetId] : [])
-  const files = fileIds.length > 0 ? await FileAsset.find({ _id: { $in: fileIds } }).lean() : []
+  const files = await FileAsset.find({ seriesId, status: { $ne: "DELETED" } }).sort({ createdAt: -1 }).lean()
 
   return {
     owner,

@@ -7,6 +7,7 @@ import {
   reviewActionBodySchema,
   submissionIdParamsSchema,
   taskIdParamsSchema,
+  getTaskUploadUrlBodySchema,
 } from "./submission.validation.js"
 
 const router = Router()
@@ -17,6 +18,14 @@ router.post(
   validate(taskIdParamsSchema, "params"),
   validate(createSubmissionBodySchema),
   controller.createTaskSubmission,
+)
+
+router.post(
+  "/tasks/:taskId/submissions/upload-url",
+  requireAuth,
+  validate(taskIdParamsSchema, "params"),
+  validate(getTaskUploadUrlBodySchema),
+  controller.getTaskUploadUrl,
 )
 
 router.get(
@@ -62,6 +71,15 @@ router.post(
   validate(submissionIdParamsSchema, "params"),
   validate(reviewActionBodySchema),
   controller.editorApproveSubmission,
+)
+
+/** Flow-07: Editor reject from MANGAKA_APPROVED state — requires reviewerNote. */
+router.post(
+  "/submissions/:submissionId/editor-reject",
+  requireAuth,
+  validate(submissionIdParamsSchema, "params"),
+  validate(reviewActionBodySchema),
+  controller.editorRejectSubmission,
 )
 
 export default router

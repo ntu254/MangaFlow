@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireRole } from "../../shared/middleware/requireRole.js"
 import { validate } from "../../shared/middleware/validate.js"
+import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as fileController from "./file.controller.js"
 import {
   getPresignedUploadUrlSchema,
@@ -11,8 +12,9 @@ import {
   fileAssetIdParamsSchema,
   createRegionSchema,
   regionIdParamsSchema,
-  updateRegionStatusSchema,
+  updateRegionSchema,
   listRegionsParamsSchema,
+  aiSuggestionDecisionSchema,
 } from "./file.validation.js"
 
 const router = Router()
@@ -24,82 +26,125 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 })
 
+// ── File upload ─────────────────────────────────────────────────────────────
+
 router.post(
   "/presigned-upload",
   requireAuth,
   requireRole("MANGAKA", "EDITOR", "ASSISTANT"),
   validate(getPresignedUploadUrlSchema),
-  fileController.getPresignedUploadUrl,
+  asyncHandler(fileController.getPresignedUploadUrl),
 )
 
+/**
+ * Flow-02: Confirm upload with all 3 assets (original / working / thumbnail).
+ */
 router.post(
   "/pages/:pageId/confirm-upload",
   requireAuth,
   requireRole("MANGAKA", "EDITOR"),
   validate(confirmPageUploadSchema),
-  fileController.confirmPageUpload,
+  asyncHandler(fileController.confirmPageUpload),
 )
 
 router.get(
-  "/files/:fileAssetId/presigned-download",
+  "/:fileAssetId/presigned-download",
   requireAuth,
   validate(fileAssetIdParamsSchema, "params"),
-  fileController.getPresignedDownloadUrl,
+  asyncHandler(fileController.getPresignedDownloadUrl),
 )
 
 router.get(
   "/pages/:pageId",
   requireAuth,
   validate(pageIdParamsSchema, "params"),
-  fileController.getPageWithFileAsset,
+  asyncHandler(fileController.getPageWithFileAsset),
 )
 
+// ── AI segmentation (Flow-04) ────────────────────────────────────────────────
+
+/**
+ * POST /api/files/pages/:pageId/ai/segment
+ * Spec: POST /api/pages/:pageId/ai/segment — run AI segmentation using workingFileAssetId.
+ */
 router.post(
-  "/pages/:pageId/ai/bubble-detect",
+  "/pages/:pageId/ai/segment",
   requireAuth,
-  requireRole("MANGAKA", "EDITOR", "ASSISTANT"),
+  requireRole("MANGAKA", "EDITOR"),
   aiLimiter,
   validate(pageIdParamsSchema, "params"),
-  fileController.detectBubbles,
+  asyncHandler(fileController.runAISegmentation),
 )
 
-router.post(
-  "/pages/:pageId/ai/bubble-process",
+/**
+ * GET /api/files/pages/:pageId/ai-results
+ * Spec: GET /api/pages/:pageId/ai-results
+ */
+router.get(
+  "/pages/:pageId/ai-results",
   requireAuth,
-  requireRole("MANGAKA", "EDITOR", "ASSISTANT"),
-  aiLimiter,
   validate(pageIdParamsSchema, "params"),
-  fileController.processBubbles,
+  asyncHandler(fileController.listAIResults),
 )
+
+/**
+ * POST /api/files/ai-results/:aiResultId/accept-region
+ * Spec: POST /api/ai-results/:aiResultId/accept-region
+ */
+router.post(
+  "/ai-results/:aiResultId/accept-region",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR"),
+  validate(aiSuggestionDecisionSchema),
+  asyncHandler(fileController.acceptAISuggestion),
+)
+
+/**
+ * POST /api/files/ai-results/:aiResultId/reject-region
+ * Spec: POST /api/ai-results/:aiResultId/reject-region
+ */
+router.post(
+  "/ai-results/:aiResultId/reject-region",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR"),
+  validate(aiSuggestionDecisionSchema),
+  asyncHandler(fileController.rejectAISuggestion),
+)
+
+// ── Region CRUD (Flow-04) ────────────────────────────────────────────────────
 
 router.post(
   "/pages/:pageId/regions",
   requireAuth,
   requireRole("MANGAKA", "EDITOR"),
   validate(createRegionSchema),
-  fileController.createRegion,
+  asyncHandler(fileController.createRegion),
 )
 
 router.get(
   "/pages/:pageId/regions",
   requireAuth,
   validate(listRegionsParamsSchema, "params"),
-  fileController.listRegions,
+  asyncHandler(fileController.listRegions),
 )
 
 router.get(
   "/regions/:regionId",
   requireAuth,
   validate(regionIdParamsSchema, "params"),
-  fileController.getRegion,
+  asyncHandler(fileController.getRegion),
 )
 
+/**
+ * PATCH /api/files/regions/:regionId
+ * Flow-04: update region type and/or bbox coordinates (not status).
+ */
 router.patch(
-  "/regions/:regionId/status",
+  "/regions/:regionId",
   requireAuth,
   requireRole("MANGAKA", "EDITOR"),
-  validate(updateRegionStatusSchema),
-  fileController.updateRegionStatus,
+  validate(updateRegionSchema),
+  asyncHandler(fileController.updateRegion),
 )
 
 router.delete(
@@ -107,7 +152,7 @@ router.delete(
   requireAuth,
   requireRole("MANGAKA", "EDITOR"),
   validate(regionIdParamsSchema, "params"),
-  fileController.deleteRegion,
+  asyncHandler(fileController.deleteRegion),
 )
 
 export default router

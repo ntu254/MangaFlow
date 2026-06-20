@@ -1,7 +1,7 @@
 import type { Request, Response } from "express"
-import { getPageWorkspaceService } from "./page.service.js"
+import { getPageStudioService } from "./page.service.js"
 
-export async function getPageWorkspace(req: Request, res: Response): Promise<void> {
-  const data = await getPageWorkspaceService(String(req.params.pageId), req.user!.userId, req.user!.role)
-  res.json({ success: true, message: "Page workspace retrieved", data })
+export async function getPageStudio(req: Request, res: Response): Promise<void> {
+  const data = await getPageStudioService(String(req.params.pageId), req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Page studio retrieved", data })
 }

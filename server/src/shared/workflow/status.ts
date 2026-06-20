@@ -12,18 +12,24 @@ export const SERIES_STATUSES = [
   "REJECTED",
   "CANCELLED",
   "COMPLETED",
+  "WITHDRAWN",
+  "ARCHIVED",
 ] as const
 export type SeriesStatus = (typeof SERIES_STATUSES)[number]
 
 export const MANUSCRIPT_STATUSES = [
   "DRAFT",
   "SUBMITTED",
-  "EDITOR_REVIEW",
+  "UNDER_EDITOR_REVIEW",
   "REVISION_REQUESTED",
-  "APPROVED_TO_BOARD",
+  "FORWARDED_TO_BOARD",
+  "APPROVED",
   "REJECTED",
 ] as const
 export type ManuscriptStatus = (typeof MANUSCRIPT_STATUSES)[number]
+
+export const PUBLICATION_TYPES = ["WEEKLY", "MONTHLY"] as const
+export type PublicationType = (typeof PUBLICATION_TYPES)[number]
 
 export const CHAPTER_STATUSES = [
   "DRAFT",
@@ -36,16 +42,24 @@ export const CHAPTER_STATUSES = [
 export type ChapterStatus = (typeof CHAPTER_STATUSES)[number]
 
 export const PAGE_STATUSES = [
+  "UPLOADING",
   "UPLOADED",
-  "ASSIGNED",
+  "PROCESSING_FAILED",
+  "TASK_ASSIGNED",
   "IN_PROGRESS",
-  "SUBMITTED",
+  "UNDER_REVIEW",
   "APPROVED",
-  "REVISION_REQUESTED",
 ] as const
 export type PageStatus = (typeof PAGE_STATUSES)[number]
 
-export const REGION_STATUSES = ["ACTIVE", "ARCHIVED"] as const
+export const REGION_STATUSES = [
+  "CREATED",
+  "AI_SUGGESTED",
+  "ACCEPTED",
+  "REJECTED",
+  "LINKED_TO_TASK",
+  "ARCHIVED"
+] as const
 export type RegionStatus = (typeof REGION_STATUSES)[number]
 
 export const TASK_STATUSES = [
@@ -56,6 +70,7 @@ export const TASK_STATUSES = [
   "EDITOR_APPROVED",
   "REVISION_REQUESTED",
   "REJECTED",
+  "CANCELLED",
 ] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 
@@ -91,11 +106,9 @@ export type BoardDecisionStatus = (typeof BOARD_DECISION_STATUSES)[number]
 
 export const RANKING_STATUSES = [
   "DRAFT",
-  "IMPORTED",
-  "REVIEWED",
+  "SUBMITTED",
   "FINALIZED",
-  "WARNING",
-  "AT_RISK",
+  "VOIDED",
 ] as const
 export type RankingStatus = (typeof RANKING_STATUSES)[number]
 
@@ -114,6 +127,9 @@ export const ASSISTANT_EARNING_STATUSES = [
   "VOID",
 ] as const
 export type AssistantEarningStatus = (typeof ASSISTANT_EARNING_STATUSES)[number]
+
+export const TASK_CURRENCIES = ["POINT", "VND"] as const
+export type TaskCurrency = (typeof TASK_CURRENCIES)[number]
 
 export const TASK_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]

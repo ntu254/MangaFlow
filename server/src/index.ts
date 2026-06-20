@@ -9,6 +9,7 @@ import authRoutes from "./modules/auth/auth.routes.js"
 import adminRoutes from "./modules/admin/admin.routes.js"
 import seriesRoutes from "./modules/series/series.routes.js"
 import boardRoutes from "./modules/board/board.routes.js"
+import editorRoutes from "./modules/editor/editor.routes.js"
 import manuscriptRoutes from "./modules/manuscript/manuscript.routes.js"
 import rankingRoutes from "./modules/ranking/ranking.routes.js"
 import dashboardRoutes from "./modules/dashboard/dashboard.routes.js"
@@ -21,16 +22,33 @@ import submissionRoutes from "./modules/submission/submission.routes.js"
 import commentRoutes from "./modules/comment/comment.routes.js"
 import payrollRoutes from "./modules/payroll/payroll.routes.js"
 import publicationRoutes from "./modules/publication/publication.routes.js"
+import publicRoutes from "./modules/public/public.routes.js"
+import auditLogRoutes from "./modules/audit-log/audit-log.routes.js"
+import notificationRoutes from "./modules/notification/notification.routes.js"
 import { errorHandler } from "./shared/middleware/errorHandler.js"
 import { seedAdminFromEnv } from "./infrastructure/seed/seedAdmin.js"
 
 const app = express()
 
-const allowedOrigins = [config.clientUrl, "http://localhost:5174", "http://127.0.0.1:5174"]
+const allowedOrigins = new Set([
+  config.clientUrl,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+  "http://localhost:5175",
+  "http://127.0.0.1:5175",
+])
+
+function isAllowedDevOrigin(origin: string) {
+  if (config.isProduction) return false
+  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(origin) || isAllowedDevOrigin(origin)) {
         callback(null, true)
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS`))
@@ -50,6 +68,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/series", seriesRoutes)
+app.use("/api/editor", editorRoutes)
 app.use("/api/board", boardRoutes)
 app.use("/api/manuscripts", manuscriptRoutes)
 app.use("/api/rankings", rankingRoutes)
@@ -62,6 +81,9 @@ app.use("/api", submissionRoutes)
 app.use("/api/comments", commentRoutes)
 app.use("/api/payroll", payrollRoutes)
 app.use("/api/publications", publicationRoutes)
+app.use("/api/public", publicRoutes)
+app.use("/api/admin/audit-logs", auditLogRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 // Load Swagger document conditionally to avoid crashing if it hasn't been generated yet
 try {

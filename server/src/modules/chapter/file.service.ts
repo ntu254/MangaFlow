@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
+  HeadObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -39,9 +40,10 @@ export async function createPresignedUploadUrl(
   originalName: string,
   contentType: string,
   expiresIn = 3600,
+  customR2Key?: string,
 ): Promise<PresignedUploadResult> {
   const fileAssetId = uuidv4();
-  const r2Key = buildR2Key(fileAssetId, originalName);
+  const r2Key = customR2Key || buildR2Key(fileAssetId, originalName);
 
   const command = new PutObjectCommand({
     Bucket: config.r2Bucket,
@@ -124,4 +126,20 @@ export function validateFileType(
 
 export function validateFileSize(size: number, maxSizeMB: number): boolean {
   return size <= maxSizeMB * 1024 * 1024
+}
+
+export async function checkObjectExists(r2Key: string): Promise<boolean> {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: config.r2Bucket,
+      Key: r2Key,
+    });
+    await s3.send(command);
+    return true;
+  } catch (error: any) {
+    if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    throw error;
+  }
 }

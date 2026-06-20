@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { createPublicationService, publishPublicationService, schedulePublicationService } from "./publication.service.js"
+import { cancelPublicationService, createPublicationService, patchPublicationService, publishPublicationService, schedulePublicationService } from "./publication.service.js"
 
 export async function createPublication(req: Request, res: Response): Promise<void> {
   const publication = await createPublicationService({
@@ -22,4 +22,21 @@ export async function schedulePublication(req: Request, res: Response): Promise<
 export async function publishPublication(req: Request, res: Response): Promise<void> {
   const publication = await publishPublicationService(String(req.params.publicationId), req.user!)
   res.json({ success: true, message: "Publication published", data: publication })
+}
+
+export async function patchPublication(req: Request, res: Response): Promise<void> {
+  const publication = await patchPublicationService({
+    publicationId: String(req.params.publicationId),
+    scheduledFor: req.body.scheduledFor,
+    actor: req.user!,
+  })
+  res.json({ success: true, message: "Publication updated", data: publication })
+}
+
+export async function cancelPublication(req: Request, res: Response): Promise<void> {
+  const publication = await cancelPublicationService({
+    publicationId: String(req.params.publicationId),
+    actor: req.user!,
+  })
+  res.json({ success: true, message: "Publication cancelled", data: publication })
 }

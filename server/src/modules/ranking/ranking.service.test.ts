@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const upsertRanking = vi.fn()
 const getRankingById = vi.fn()
@@ -33,7 +33,7 @@ describe("ranking.service", () => {
   })
 
   it("finalizes imported ranking", async () => {
-    getRankingById.mockResolvedValue({ id: "ranking-1", status: "IMPORTED" })
+    getRankingById.mockResolvedValue({ id: "ranking-1", status: "SUBMITTED" })
     updateRankingStatus.mockResolvedValue({ id: "ranking-1", status: "FINALIZED" })
     await finalizeRankingService("ranking-1")
     expect(updateRankingStatus).toHaveBeenCalledWith("ranking-1", "FINALIZED")

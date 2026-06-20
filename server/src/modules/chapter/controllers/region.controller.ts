@@ -1,17 +1,17 @@
-﻿import type { NextFunction, Request, Response } from "express"
+import type { NextFunction, Request, Response } from "express"
 import {
   createRegionService,
   deleteRegionService,
   getRegionService,
   listRegionsService,
-  updateRegionStatusService,
+  updateRegionService,
 } from "../chapter.service.js"
 
 export async function createRegion(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const actor = { userId: req.user!.userId, role: req.user!.role }
   const region = await createRegionService({
     pageId: String(req.params.pageId),
-    regionIndex: req.body.regionIndex,
+    type: req.body.type,
     bbox: req.body.bbox,
     actor,
   })
@@ -30,10 +30,14 @@ export async function getRegion(req: Request, res: Response, _next: NextFunction
   res.json({ success: true, message: "Region retrieved successfully", data: region })
 }
 
-export async function updateRegionStatus(req: Request, res: Response, _next: NextFunction): Promise<void> {
+export async function updateRegion(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const actor = { userId: req.user!.userId, role: req.user!.role }
-  const region = await updateRegionStatusService(String(req.params.regionId), req.body.status, actor)
-  res.json({ success: true, message: "Region status updated successfully", data: region })
+  const region = await updateRegionService(String(req.params.regionId), {
+    type: req.body.type,
+    bbox: req.body.bbox,
+    actor,
+  })
+  res.json({ success: true, message: "Region updated successfully", data: region })
 }
 
 export async function deleteRegion(req: Request, res: Response, _next: NextFunction): Promise<void> {

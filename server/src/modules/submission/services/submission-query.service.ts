@@ -9,6 +9,9 @@ import {
 import type { SubmissionActor } from "../policies/submission-access.policy.js"
 import { assertSubmissionSeriesMember } from "../policies/submission-access.policy.js"
 import { assertSubmissionPayload, assertTaskSubmittable } from "../guards/submission-transition.guard.js"
+import { createPresignedUploadUrl } from "../../chapter/file.service.js"
+import { FileAsset } from "../../chapter/chapter.model.js"
+import { config } from "../../../shared/utils/env.js"
 
 export interface SubmitTaskInput {
   taskId: string
@@ -67,7 +70,12 @@ export async function listReviewQueueSubmissionsService(actor: SubmissionActor) 
 
   const role = actor.role as "MANGAKA" | "EDITOR"
   const { SeriesMember } = await import("../../series/series.model.js")
-  const members = await SeriesMember.find({ userId: actor.userId, role, isActive: true }).lean()
+  const { ACTIVE_MEMBER_QUERY } = await import("../../../shared/policies/seriesMember.policy.js")
+  const members = await SeriesMember.find({
+    userId: actor.userId,
+    role,
+    ...ACTIVE_MEMBER_QUERY,
+  }).lean()
   const seriesIds = members.map((member: any) => String(member.seriesId))
   if (seriesIds.length === 0) {
     return []
@@ -75,5 +83,43 @@ export async function listReviewQueueSubmissionsService(actor: SubmissionActor) 
 
   const status = role === "MANGAKA" ? "SUBMITTED" : "MANGAKA_APPROVED"
   return listReviewQueueSubmissions(seriesIds, status)
+}
+
+export interface GetTaskUploadUrlInput {
+  taskId: string
+  actor: SubmissionActor
+  originalName: string
+  contentType: string
+  size: number
+}
+
+export async function getTaskUploadUrlService(input: GetTaskUploadUrlInput) {
+  const task = await getTaskForSubmission(input.taskId)
+  if (!task) {
+    throw new AppError("Task not found", 404)
+  }
+
+  if (String(task.assignedTo) !== input.actor.userId) {
+    throw new AppError("Only assignee can upload task results", 403)
+  }
+
+  assertTaskSubmittable(task.status)
+
+  const signed = await createPresignedUploadUrl(input.originalName, input.contentType)
+
+  const fileAsset = await FileAsset.create({
+    originalName: input.originalName,
+    mimeType: input.contentType,
+    size: input.size,
+    r2Key: signed.r2Key,
+    r2Bucket: config.r2Bucket,
+    uploadedBy: input.actor.userId,
+    assetType: "PRODUCTION",
+  })
+
+  return {
+    uploadUrl: signed.uploadUrl,
+    fileAssetId: fileAsset.id,
+  }
 }
 

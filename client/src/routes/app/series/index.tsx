@@ -1,0 +1,414 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { StatusBadge } from "@/shared/ui/site/StatusBadge";
+import { useRole } from "@/shared/lib/role";
+import { useState } from "react";
+import { EmptyState } from "@/layouts/AppShell";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/shared/lib/api";
+import {
+  Search,
+  ChevronDown,
+  Grid as GridIcon,
+  List as ListIcon,
+  MoreHorizontal,
+  ArrowUpCircle,
+  Plus,
+  ArrowRight,
+} from "lucide-react";
+
+export const Route = createFileRoute("/app/series/")({
+  component: SeriesList,
+});
+
+const TABS = [
+  { id: "all", label: "All" },
+  { id: "draft", label: "Draft" },
+  { id: "editor-review", label: "In Review" },
+  { id: "approved", label: "Approved" },
+  { id: "ongoing", label: "Ongoing" },
+  { id: "at-risk", label: "At Risk" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+];
+
+const getTaskColor = (count: number = 0) => {
+  if (count === 0) return "text-foreground/50";
+  if (count <= 3) return "text-[#061A2B] dark:text-blue-400 font-medium";
+  if (count <= 9) return "text-amber-500 font-medium";
+  return "text-destructive font-bold";
+};
+
+const getActionColor = (action?: string) => {
+  if (!action) return "text-foreground";
+  const a = action.toLowerCase();
+  if (a.includes("asap"))
+    return "text-amber-600 dark:text-amber-400 font-bold hover:text-amber-700";
+  if (a.includes("finalize"))
+    return "text-purple-600 dark:text-purple-400 font-bold hover:opacity-80";
+  if (a.includes("archives")) return "text-foreground/60 font-medium hover:text-foreground/80";
+  if (a.includes("wait for board")) return "text-purple-600/60 dark:text-purple-400/60";
+  if (a.includes("wait for feedback")) return "text-sky-600/60 dark:text-sky-400/60";
+  if (a.includes("wait")) return "text-foreground/60";
+  return "text-[#061A2B] dark:text-blue-400 font-bold hover:opacity-80";
+};
+
+function SeriesList() {
+  const { role } = useRole();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const { data: apiResponse, isLoading } = useQuery({
+    queryKey: ["series"],
+    queryFn: async () => {
+      const res = await api.get("/series");
+      return res.data;
+    },
+  });
+
+  const seriesList: any[] = apiResponse?.data || [];
+
+  const counts = {
+    all: seriesList.length,
+    draft: seriesList.filter((s) => s.status === "draft").length,
+    "editor-review": seriesList.filter((s) =>
+      ["editor-review", "board-review", "revision-requested"].includes(s.status),
+    ).length,
+    approved: seriesList.filter((s) => s.status === "approved").length,
+    ongoing: seriesList.filter((s) => s.status === "ongoing").length,
+    "at-risk": seriesList.filter((s) => s.status === "at-risk").length,
+    completed: seriesList.filter((s) => s.status === "completed").length,
+    cancelled: seriesList.filter((s) => s.status === "cancelled").length,
+  };
+
+  const filtered = seriesList.filter((s) => {
+    if (q && !`${s.title} ${s.jp || ""}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (activeTab !== "all") {
+      if (
+        activeTab === "editor-review" &&
+        !["editor-review", "board-review", "revision-requested"].includes(s.status)
+      )
+        return false;
+      if (activeTab !== "editor-review" && s.status !== activeTab) return false;
+    }
+    return true;
+  });
+
+  const handleActionClick = (e: React.MouseEvent, s: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (s.nextAction?.includes("Review")) navigate({ to: `/app/series/${s.id}/reviews` });
+    else if (s.nextAction?.includes("Upload"))
+      navigate({ to: `/app/series/${s.id}/chapters/current/pages/upload` });
+    else if (s.nextAction?.includes("archives")) navigate({ to: `/app/series/${s.id}/archives` });
+    else if (s.nextAction?.includes("Finalize")) navigate({ to: `/app/series/${s.id}/proposal` });
+  };
+
+  return (
+    <div className="bg-background min-h-screen pb-12">
+      {/* Hero Banner */}
+      <div className="relative h-[160px] w-full overflow-hidden bg-[#F7F5F0]">
+        <div
+          className="absolute inset-0 opacity-40 mix-blend-multiply"
+          style={{
+            backgroundImage: "radial-gradient(#1e293b 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        ></div>
+        <div className="absolute inset-0 flex items-center justify-center opacity-30 mix-blend-luminosity">
+          <img
+            src="https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop"
+            className="w-full h-full object-cover"
+            alt="Hero background"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F7F5F0] to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#F7F5F0] via-[#F7F5F0]/80 to-transparent"></div>
+
+        <div className="absolute inset-0 flex flex-col justify-center">
+          <div className="mx-auto w-full max-w-[1280px] px-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-[#061A2B]">My Series</h1>
+              <p className="mt-1 text-[13px] text-[#061A2B]/70 font-medium">
+                Manage all of your series proposals and ongoing works.
+              </p>
+            </div>
+            {role === "mangaka" && (
+              <Link
+                to="/app/series/new"
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-[#061A2B] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#061A2B]/90 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                New Series Proposal
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-[1280px] px-8 mt-2">
+        {/* Tabs */}
+        <div className="flex items-center gap-6 border-b border-foreground/10 overflow-x-auto scrollbar-none">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`relative flex items-center gap-2 pb-4 pt-2 text-[13px] font-semibold transition-colors whitespace-nowrap ${
+                activeTab === t.id ? "text-primary" : "text-foreground/50 hover:text-foreground/80"
+              }`}
+            >
+              <span>{t.label}</span>
+              <span
+                className={`flex h-5 items-center justify-center rounded-full px-2 text-[10px] font-bold ${
+                  activeTab === t.id
+                    ? "bg-foreground/10 text-primary"
+                    : "bg-foreground/5 text-foreground/40"
+                }`}
+              >
+                {counts[t.id as keyof typeof counts]}
+              </span>
+              {activeTab === t.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-t-full bg-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 flex flex-col gap-6">
+          {/* Secondary Toolbar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search series by title..."
+                  className="h-10 w-[240px] rounded-md border border-foreground/10 bg-card pl-9 pr-4 text-[13px] font-medium outline-none placeholder:text-foreground/40 focus:border-primary/30 focus:ring-1 focus:ring-primary/30 shadow-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-card border border-foreground/10 rounded-md h-10 px-3 cursor-pointer hover:bg-foreground/5 shadow-sm">
+                <span className="text-[13px] font-medium text-foreground/60">Status:</span>
+                <span className="text-[13px] font-semibold text-primary">All</span>
+                <ChevronDown className="h-4 w-4 text-foreground/40 ml-1" />
+              </div>
+
+              <div className="flex items-center gap-2 bg-card border border-foreground/10 rounded-md h-10 px-3 cursor-pointer hover:bg-foreground/5 shadow-sm">
+                <span className="text-[13px] font-medium text-foreground/60">
+                  Publication Type:
+                </span>
+                <span className="text-[13px] font-semibold text-primary">All</span>
+                <ChevronDown className="h-4 w-4 text-foreground/40 ml-1" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-card border border-foreground/10 rounded-md h-10 px-3 cursor-pointer hover:bg-foreground/5 shadow-sm">
+                <span className="text-[13px] font-semibold text-primary">Last Updated</span>
+                <ArrowUpCircle className="h-4 w-4 text-foreground/40 ml-1 rotate-180" />
+              </div>
+
+              <div className="flex items-center rounded-md border border-foreground/10 bg-card p-1 shadow-sm">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`flex h-8 w-8 items-center justify-center rounded shadow-sm transition-colors ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-foreground/40 hover:text-foreground/70"}`}
+                >
+                  <GridIcon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`flex h-8 w-8 items-center justify-center rounded shadow-sm transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-foreground/40 hover:text-foreground/70"}`}
+                >
+                  <ListIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Series Container */}
+          {isLoading ? (
+            <div className="py-20 text-center text-sm text-foreground/50">Loading series...</div>
+          ) : filtered.length === 0 ? (
+            <EmptyState title="No series found" hint="Try adjusting your search or filters." />
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filtered.map((s) => {
+                const isAtRisk = s.status === "at-risk";
+                const progress = Math.floor(Math.random() * 60) + 20; // Mock progress percentage
+
+                return (
+                  <Link
+                    key={s.id || s._id}
+                    to={s.status === "draft" ? "/app/series/new" : "/app/series/$id"}
+                    search={s.status === "draft" ? { id: s.id || s._id } : undefined}
+                    params={s.status === "draft" ? undefined : { id: s.id || s._id }}
+                    className={`group relative flex flex-col justify-end overflow-hidden rounded-xl aspect-[3/4] transition-all hover:-translate-y-1 hover:shadow-xl shadow-sm border ${
+                      isAtRisk ? "border-red-500/50" : "border-foreground/10"
+                    }`}
+                  >
+                    {/* Background Image */}
+                    {s.cover && (
+                      <img
+                        src={s.cover}
+                        alt={s.title}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    )}
+
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#061A2B] via-[#061A2B]/60 to-transparent opacity-90 transition-opacity group-hover:opacity-100"></div>
+
+                    {/* Top Actions & Badge */}
+                    <div className="absolute top-3 left-3 z-10">
+                      <StatusBadge status={s.status} variant="solid" />
+                    </div>
+                    <div className="absolute top-3 right-3 z-10">
+                      <button className="flex h-8 w-8 items-center justify-center rounded-md bg-black/20 text-white backdrop-blur-md transition-colors hover:bg-black/40">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Content (Overlaid) */}
+                    <div className="relative z-10 flex flex-col p-5">
+                      <div className="min-w-0 mb-3">
+                        <div className="truncate text-[16px] font-bold text-white drop-shadow-sm">
+                          {s.title}
+                        </div>
+                        <div className="truncate font-jp text-[12px] text-white/70 font-medium mt-0.5">
+                          {s.jp || ""}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1 text-[11px] text-white/80 font-medium mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="capitalize">{s.publicationType || "Weekly"}</span>
+                          <span className="opacity-50">•</span>
+                          <span>Ch. {s.currentChapter || 0}</span>
+                          <span className="opacity-50">•</span>
+                          <span>1h ago</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-white/60 mb-1.5 uppercase tracking-wider">
+                          <span>Progress</span>
+                          <span className="text-white/90">{progress}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${isAtRisk ? "bg-red-400" : s.status === "completed" ? "bg-purple-400" : "bg-white"}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filtered.map((s) => {
+                const isWait = s.nextAction?.toLowerCase().includes("wait");
+                const isAtRisk = s.status === "at-risk";
+
+                return (
+                  <Link
+                    key={s.id || s._id}
+                    to={s.status === "draft" ? "/app/series/new" : "/app/series/$id"}
+                    search={s.status === "draft" ? { id: s.id || s._id } : undefined}
+                    params={s.status === "draft" ? undefined : { id: s.id || s._id }}
+                    className={`group flex h-[160px] overflow-hidden rounded-md border transition-all hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(5,24,38,0.08)] ${
+                      isAtRisk
+                        ? "border-red-200 bg-card hover:border-red-300"
+                        : "border-foreground/10 bg-card hover:border-foreground/20"
+                    }`}
+                  >
+                    <div className="h-full w-[110px] flex-none bg-foreground/5">
+                      {s.cover && (
+                        <img
+                          src={s.cover}
+                          alt={s.title}
+                          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                        />
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col p-4 relative">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-bold text-foreground">
+                            {s.title}
+                          </div>
+                          <div className="truncate font-jp text-[11px] text-foreground/55">
+                            {s.jp || ""}
+                          </div>
+                        </div>
+                        <StatusBadge status={s.status} variant="solid" />
+                      </div>
+
+                      <div className="mt-4 flex flex-1 flex-col justify-end gap-2 text-[11px] text-foreground/70">
+                        <div className="flex items-center justify-between">
+                          <span className="capitalize">{s.publicationType || "Weekly"}</span>
+                          <span className="font-medium text-foreground">
+                            {s.currentChapter ? `Ch. ${s.currentChapter}` : ""}
+                          </span>
+                        </div>
+                        <div className="text-[10px]">
+                          Pages {s.pages?.uploaded || 0}/{s.pages?.total || 0} &middot; Tasks{" "}
+                          <span className={getTaskColor(s.pendingTasks)}>
+                            {s.pendingTasks || 0}{" "}
+                            {s.status === "board-review" || s.status === "editor-review"
+                              ? "waiting"
+                              : "pending"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between rounded bg-foreground/5 px-2 py-1.5 mt-1">
+                          <span className="text-[#8A8F98]">{isWait ? "Status" : "Action"}</span>
+                          <button
+                            onClick={(e) => (isWait ? e.preventDefault() : handleActionClick(e, s))}
+                            className={`flex items-center gap-1 transition-opacity ${getActionColor(s.nextAction)}`}
+                          >
+                            {s.nextAction || "Continue"} {!isWait && "→"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagination Placeholder */}
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-center gap-1 mt-4">
+              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/40 hover:bg-foreground/5 transition-colors">
+                &lt;
+              </button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm shadow-sm">
+                1
+              </button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 font-semibold text-sm hover:bg-foreground/5 transition-colors">
+                2
+              </button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 font-semibold text-sm hover:bg-foreground/5 transition-colors">
+                3
+              </button>
+              <span className="flex h-8 w-8 items-center justify-center text-foreground/40 text-sm">
+                ...
+              </span>
+              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 font-semibold text-sm hover:bg-foreground/5 transition-colors">
+                8
+              </button>
+              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/40 hover:bg-foreground/5 transition-colors">
+                &gt;
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

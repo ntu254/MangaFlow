@@ -1,3 +1,6 @@
+import { Chapter, Page } from "../chapter.model.js"
+import { Task } from "../../task/task.model.js"
+import { Submission } from "../../submission/submission.model.js"
 ﻿import { AppError } from "../../../shared/errors/AppError.js"
 import { createChapterRepository, getChapterById, listChaptersBySeries, updateChapterStatus } from "../chapter.repository.js"
 import { assertCanReadChapter, assertCanWriteChapter, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
@@ -57,4 +60,58 @@ export async function updateChapterStatusService(chapterId: string, status: stri
   const chapter = await updateChapterStatus(trimmed, status as ChapterStatus)
   if (!chapter) throw new AppError("Chapter not found", 404)
   return chapter
+}
+export async function deleteChapterService(chapterId: string, actor: AccessActor) {
+  const trimmed = chapterId.trim()
+  if (!trimmed) throw new AppError("Chapter id is required", 400)
+  await assertCanWriteChapter(actor, trimmed)
+
+  const chapter = await getChapterById(trimmed)
+  if (!chapter) throw new AppError("Chapter not found", 404)
+
+  if (chapter.status === "READY_FOR_PUBLICATION" || chapter.status === "PUBLISHED") {
+    throw new AppError(`Cannot delete a chapter that is ${chapter.status}. Archive it instead.`, 400)
+  }
+
+  const tasksCount = await Task.countDocuments({ chapterId: trimmed })
+  const submissionsCount = await Submission.countDocuments({ chapterId: trimmed })
+
+  if (tasksCount > 0 || submissionsCount > 0) {
+    throw new AppError("Cannot delete chapter with active tasks or submissions. Cancel tasks first.", 400)
+  }
+
+  await Chapter.updateOne({ _id: trimmed }, { 
+    $set: { 
+      deletedAt: new Date(), 
+      deletedBy: actor.userId,
+      deleteReason: "User initiated soft delete" 
+    } 
+  })
+
+  await Page.updateMany({ chapterId: trimmed }, {
+    $set: {
+      deletedAt: new Date(),
+      deletedBy: actor.userId,
+      deleteReason: "Cascade delete from chapter"
+    }
+  })
+}
+
+export async function cancelChapterService(chapterId: string, actor: AccessActor) {
+  const trimmed = chapterId.trim()
+  if (!trimmed) throw new AppError("Chapter id is required", 400)
+  await assertCanWriteChapter(actor, trimmed)
+
+  const chapter = await getChapterById(trimmed)
+  if (!chapter) throw new AppError("Chapter not found", 404)
+
+  if (chapter.status !== "IN_PRODUCTION") {
+    throw new AppError("Only IN_PRODUCTION chapters can be cancelled", 400)
+  }
+
+  await Chapter.updateOne({ _id: trimmed }, { 
+    $set: { 
+      status: "CANCELLED"
+    } 
+  })
 }

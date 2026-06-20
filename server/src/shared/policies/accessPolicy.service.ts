@@ -1,7 +1,7 @@
 ﻿import { AppError } from "../errors/AppError.js"
 import type { UserRole } from "../../modules/auth/auth.types.js"
 import { Chapter, FileAsset, Page, Region } from "../../modules/chapter/chapter.model.js"
-import { SeriesMember } from "../../modules/series/series.model.js"
+import { findActiveSeriesMember } from "./seriesMember.policy.js"
 import { Submission } from "../../modules/submission/submission.model.js"
 import { Task } from "../../modules/task/task.model.js"
 
@@ -11,8 +11,8 @@ export interface AccessActor {
 }
 
 async function isActiveSeriesManager(seriesId: string, actor: AccessActor): Promise<boolean> {
-  const member = await SeriesMember.findOne({ seriesId, userId: actor.userId })
-  return Boolean(member?.isActive && ["MANGAKA", "EDITOR"].includes(member.role))
+  const member = await findActiveSeriesMember(seriesId, actor.userId)
+  return Boolean(member && ["MANGAKA", "EDITOR"].includes(member.role))
 }
 
 export async function canReadChapter(actor: AccessActor, chapterId: string): Promise<boolean> {

@@ -2,6 +2,7 @@ import { Router } from "express"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js"
 import { validate } from "../../shared/middleware/validate.js"
+import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as taskController from "./task.controller.js"
 import {
   createTaskSchema,
@@ -22,7 +23,7 @@ router.post(
   requireAuth,
   requireSeriesRole("MANGAKA", "EDITOR"),
   validate(createTaskSchema),
-  taskController.createTask,
+  asyncHandler(taskController.createTask),
 )
 
 router.patch(
@@ -30,7 +31,7 @@ router.patch(
   requireAuth,
   validate(taskIdParamsSchema, "params"),
   validate(updateTaskStatusBodySchema),
-  taskController.updateTaskStatus,
+  asyncHandler(taskController.updateTaskStatus),
 )
 
 router.patch(
@@ -38,7 +39,7 @@ router.patch(
   requireAuth,
   validate(taskIdParamsSchema, "params"),
   validate(updateTaskPriorityBodySchema),
-  taskController.updateTaskPriority,
+  asyncHandler(taskController.updateTaskPriority),
 )
 
 router.patch(
@@ -46,35 +47,35 @@ router.patch(
   requireAuth,
   validate(taskIdParamsSchema, "params"),
   validate(updateTaskDueDateBodySchema),
-  taskController.updateTaskDueDate,
+  asyncHandler(taskController.updateTaskDueDate),
 )
 
 router.get(
   "/series/:seriesId",
   requireAuth,
   validate(seriesIdParamsSchema, "params"),
-  taskController.listTasksBySeries,
+  asyncHandler(taskController.listTasksBySeries),
 )
 
 router.get(
   "/chapter/:chapterId",
   requireAuth,
   validate(chapterIdParamsSchema, "params"),
-  taskController.listTasksByChapter,
+  asyncHandler(taskController.listTasksByChapter),
 )
 
 router.get(
   "/assignee/:assigneeId",
   requireAuth,
   validate(assigneeIdParamsSchema, "params"),
-  taskController.listTasksByAssignee,
+  asyncHandler(taskController.listTasksByAssignee),
 )
 
 router.get(
   "/:taskId",
   requireAuth,
   validate(taskIdParamsSchema, "params"),
-  taskController.getTask,
+  asyncHandler(taskController.getTask),
 )
 
 export default router

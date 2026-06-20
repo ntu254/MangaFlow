@@ -11,7 +11,7 @@ export interface ImportRankingInput {
 export async function upsertRanking(input: ImportRankingInput): Promise<any> {
   return Ranking.findOneAndUpdate(
     { period: input.period, seriesId: input.seriesId },
-    { ...input, status: "IMPORTED" },
+    { ...input, status: "DRAFT" },
     { new: true, upsert: true, setDefaultsOnInsert: true },
   )
 }
@@ -38,4 +38,12 @@ export async function getRankingById(rankingId: string): Promise<any | null> {
 
 export async function updateRankingStatus(rankingId: string, status: string): Promise<any | null> {
   return Ranking.findByIdAndUpdate(rankingId, { status }, { new: true })
+}
+
+export async function submitRanking(rankingId: string): Promise<any | null> {
+  return Ranking.findByIdAndUpdate(rankingId, { status: "SUBMITTED" }, { new: true })
+}
+
+export async function voidRanking(rankingId: string): Promise<any | null> {
+  return Ranking.findByIdAndUpdate(rankingId, { status: "VOIDED" }, { new: true })
 }

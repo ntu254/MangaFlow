@@ -39,4 +39,6 @@ router.patch("/task-types/:taskTypeId", validate(adminTaskTypeIdParamsSchema, "p
 router.patch("/task-types/:taskTypeId/status", validate(adminTaskTypeIdParamsSchema, "params"), validate(adminUpdateTaskTypeStatusSchema), controller.updateAdminTaskTypeStatus)
 router.delete("/task-types/:taskTypeId", validate(adminTaskTypeIdParamsSchema, "params"), controller.deleteAdminTaskType)
 
+router.post("/reconcile-files", controller.reconcileFiles)
+
 export default router

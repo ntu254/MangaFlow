@@ -1,8 +1,10 @@
+/// <reference types="node" />
+
 import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3"
 import { config } from "../src/shared/utils/env.js"
 
-const origins = Array.from(
-  new Set([
+const origins: string[] = Array.from(
+  new Set<string>([
     config.clientUrl,
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -10,7 +12,7 @@ const origins = Array.from(
     "http://127.0.0.1:5174",
     ...(process.env.R2_CORS_ORIGINS ?? "")
       .split(",")
-      .map((origin) => origin.trim())
+      .map((origin: string) => origin.trim())
       .filter(Boolean),
   ]),
 )

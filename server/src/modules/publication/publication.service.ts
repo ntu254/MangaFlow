@@ -1,9 +1,10 @@
 import { AppError } from "../../shared/errors/AppError.js"
 import type { UserRole } from "../auth/auth.types.js"
 import { getChapterReadinessService } from "../chapter/chapter.service.js"
-import { SeriesMember } from "../series/series.model.js"
+import { findActiveSeriesMember } from "../../shared/policies/seriesMember.policy.js"
 import {
   createPublicationRecord,
+  cancelPublication,
   getPublicationById,
   getPublicationChapter,
   markPublicationPublished,
@@ -21,8 +22,8 @@ async function assertEditorForSeries(seriesId: string, actor: PublicationActor) 
   if (actor.role !== "EDITOR") {
     throw new AppError("Publication access denied", 403)
   }
-  const member = await SeriesMember.findOne({ seriesId, userId: actor.userId })
-  if (!member || !member.isActive || member.role !== "EDITOR") {
+  const member = await findActiveSeriesMember(seriesId, actor.userId)
+  if (!member || member.role !== "EDITOR") {
     throw new AppError("Publication access denied", 403)
   }
 }
@@ -87,4 +88,34 @@ export async function publishPublicationService(publicationId: string, actor: Pu
   await updateChapterPublicationStatus(String(publication.chapterId), "READY_FOR_PUBLICATION")
   await updateChapterPublicationStatus(String(publication.chapterId), "PUBLISHED")
   return markPublicationPublished(publicationId, actor.userId, new Date())
+}
+
+export async function patchPublicationService(input: { publicationId: string; scheduledFor?: string | Date; actor: PublicationActor }) {
+  const publication = await getPublicationById(input.publicationId)
+  if (!publication) {
+    throw new AppError("Publication not found", 404)
+  }
+  await assertEditorForSeries(String(publication.seriesId), input.actor)
+  
+  if (input.scheduledFor) {
+    const scheduledFor = parseScheduleDate(input.scheduledFor)
+    await updateChapterDraftSchedule(String(publication.chapterId), scheduledFor)
+    return updatePublicationSchedule(input.publicationId, scheduledFor, input.actor.userId)
+  }
+
+  return publication
+}
+
+export async function cancelPublicationService(input: { publicationId: string; actor: PublicationActor }) {
+  const publication = await getPublicationById(input.publicationId)
+  if (!publication) {
+    throw new AppError("Publication not found", 404)
+  }
+  await assertEditorForSeries(String(publication.seriesId), input.actor)
+  
+  if (publication.status === "PUBLISHED") {
+    throw new AppError("Cannot cancel an already published publication", 400)
+  }
+
+  return cancelPublication(input.publicationId, input.actor.userId)
 }
