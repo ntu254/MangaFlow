@@ -54,7 +54,7 @@ export function MangaFlowMobileApp() {
   const activeTab = role === "board" ? boardTab : editorTab
   const setActiveTab = role === "board" ? setBoardTab : setEditorTab
   const userName = session?.user.name ?? (role === "board" ? "Aiko Mori" : "Rin Sato")
-  const userSubtitle = role === "board" ? "Board Chair" : "Tantou Editor"
+  const userSubtitle = role === "board" ? "Board Member" : "Tantou Editor"
 
   const handleAuthenticated = (nextSession: MobileAuthSession) => {
     setSession(nextSession)
@@ -107,12 +107,7 @@ export function MangaFlowMobileApp() {
           <Text style={styles.logoutText}>{isLoggingOut ? "Logging out..." : `${role === "board" ? "Board" : "Editor"} logout`}</Text>
         </Pressable>
       </View>
-      <View style={styles.roleSwitch}>
-        <RoleButton active={role === "board"} label="Board" onPress={() => setRole("board")} />
-        <RoleButton active={role === "editor"} label="Tantou Editor" onPress={() => setRole("editor")} />
-      </View>
       <RoleHandoffSummary role={role} />
-      <RoleLogoutTestCard role={role} onLogout={handleLogout} isLoggingOut={isLoggingOut} />
       {screen}
     </MFScreen>
   )
@@ -265,36 +260,6 @@ function DemoAccountButton({ title, subtitle, tone, loading, onPress }: { title:
   )
 }
 
-function RoleLogoutTestCard({ role, onLogout, isLoggingOut }: { role: Role; onLogout: () => void; isLoggingOut: boolean }) {
-  const isBoard = role === "board"
-  const tone = isBoard ? "warning" : "primary"
-  const label = isBoard ? "Logout Board session" : "Logout Editor session"
-  const description = isBoard
-    ? "Use this to verify Board login, live Board API reads, and logout cleanup in one pass."
-    : "Use this to verify Editor login, live Editor API reads, and logout cleanup in one pass."
-
-  return (
-    <MFCard style={[styles.logoutTestCard, isBoard ? styles.logoutTestCardBoard : styles.logoutTestCardEditor]}>
-      <MFIconCircle tone={tone} icon={isBoard ? "scale-balance" : "file-text"} size={44} />
-      <View style={styles.logoutTestText}>
-        <Text style={styles.logoutTestTitle}>{label}</Text>
-        <Text style={styles.logoutTestBody}>{description}</Text>
-      </View>
-      <Pressable accessibilityRole="button" onPress={onLogout} disabled={isLoggingOut} style={[styles.logoutTestButton, isBoard ? styles.logoutTestButtonBoard : styles.logoutTestButtonEditor]}>
-        <Text style={styles.logoutTestButtonText}>{isLoggingOut ? "Logging out..." : "Logout"}</Text>
-      </Pressable>
-    </MFCard>
-  )
-}
-
-function RoleButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.roleButton, active && styles.roleButtonActive]}>
-      <Text style={[styles.roleButtonText, active && styles.roleButtonTextActive]}>{label}</Text>
-    </Pressable>
-  )
-}
-
 function RoleProfile({ role, name, onLogout, isLoggingOut }: { role: "BOARD" | "EDITOR"; name: string; onLogout: () => void; isLoggingOut: boolean }) {
   const isBoard = role === "BOARD"
 
@@ -305,14 +270,11 @@ function RoleProfile({ role, name, onLogout, isLoggingOut }: { role: "BOARD" | "
         <View style={styles.profileHeroText}>
           <View style={styles.profileTitleBlock}>
             <Text style={styles.profileTitle}>{name}</Text>
-            <MFBadge tone={isBoard ? "warning" : "primary"}>{isBoard ? "Board Chair" : "Tantou Editor"}</MFBadge>
+            <MFBadge tone={isBoard ? "warning" : "primary"}>{isBoard ? "Board Member" : "Tantou Editor"}</MFBadge>
           </View>
           <Text style={styles.profileText}>{isBoard ? "Board governance companion for votes, tie-breaks, ranking, and at-risk review." : "Editor companion for proposal review, final approval, comments, and readiness evidence."}</Text>
         </View>
       </MFCard>
-      <MFButton tone="danger" variant="soft" onPress={onLogout}>
-        {isLoggingOut ? "Logging out..." : "Logout from mobile"}
-      </MFButton>
       <MFDetailList items={[
         { id: "scope", label: "Mobile scope", value: isBoard ? "Board and Board Chair surfaces only. No Admin override is represented." : "Tantou Editor surfaces only. Proposal review and final approval stay visually separate.", tone: "primary", icon: isBoard ? "scale-balance" : "shield-check" },
         { id: "data", label: "Data boundary", value: "Live API data-source now attempts read calls first, then falls back to mock data so screen ownership stays stable.", tone: "neutral", icon: "file-check" },
@@ -323,6 +285,9 @@ function RoleProfile({ role, name, onLogout, isLoggingOut }: { role: "BOARD" | "
         { id: "handoff", title: isBoard ? "Receive Editor-forwarded proposals" : "Forward proposal to Board", subtitle: "Mobile handoff copy explains the next surface but does not call workflow endpoints.", tone: "warning", icon: "chevron-right" },
         { id: "future", title: "Future API story", subtitle: "mobileWorkflowDataSource wraps live read calls and mockMobileWorkflowDataSource fallback; mutations stay in high-risk stories.", tone: "success", icon: "check-circle" },
       ]} />
+      <MFButton tone="danger" variant="soft" onPress={onLogout}>
+        {isLoggingOut ? "Logging out..." : "Logout"}
+      </MFButton>
     </>
   )
 }
@@ -386,21 +351,6 @@ const styles = StyleSheet.create({
   sessionText: { flex: 1, color: colors.textMuted, fontSize: 12, fontWeight: "800" },
   logoutChip: { minHeight: 34, alignItems: "center", justifyContent: "center", borderRadius: radius.full, backgroundColor: colors.dangerSoft, paddingHorizontal: spacing.sm },
   logoutText: { color: colors.danger, fontSize: 12, fontWeight: "900" },
-  logoutTestCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderWidth: 1 },
-  logoutTestCardBoard: { backgroundColor: colors.warningSoft, borderColor: "#f4cf8a" },
-  logoutTestCardEditor: { backgroundColor: colors.primarySoft, borderColor: "#d7ccff" },
-  logoutTestText: { flex: 1, minWidth: 0 },
-  logoutTestTitle: { color: colors.text, fontSize: 14, fontWeight: "900" },
-  logoutTestBody: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 2 },
-  logoutTestButton: { minHeight: 40, borderRadius: radius.full, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },
-  logoutTestButtonBoard: { backgroundColor: colors.warning },
-  logoutTestButtonEditor: { backgroundColor: colors.primary },
-  logoutTestButtonText: { color: colors.surface, fontSize: 12, fontWeight: "900" },
-  roleSwitch: { flexDirection: "row", gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radius.full, padding: 4, borderWidth: 1, borderColor: colors.outlineVariant },
-  roleButton: { flex: 1, minHeight: 42, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
-  roleButtonActive: { backgroundColor: colors.primary },
-  roleButtonText: { color: colors.textMuted, fontWeight: "800" },
-  roleButtonTextActive: { color: colors.surface },
   handoffCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surfaceLow, borderColor: colors.outlineVariant },
   handoffText: { flex: 1 },
   handoffTitle: { color: colors.text, fontSize: 15, fontWeight: "900" },
