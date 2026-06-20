@@ -8,8 +8,8 @@ export function countActiveUsers() {
   return User.countDocuments({ isActive: true })
 }
 
-export function countSeries() {
-  return Series.countDocuments()
+export function countSeries(query: any = {}) {
+  return Series.countDocuments(query)
 }
 
 export function countActiveTasks() {
