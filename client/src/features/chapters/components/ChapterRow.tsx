@@ -137,18 +137,16 @@ export function ChapterRow({
         )}
       </div>
 
-      <Link
-        to="/app/pages/$id/studio"
-        params={{ id: "pg_ch_g2_1" }}
-        search={{ seriesId }}
+      <button
+        type="button"
         className={`col-start-2 inline-flex h-8 w-fit items-center justify-center rounded-md px-3 text-[10px] font-extrabold transition-all sm:col-start-auto sm:w-full whitespace-nowrap text-center ${
           chapter.active
             ? "bg-[#061A2B] text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg dark:bg-blue-600"
             : "border border-foreground/12 bg-card text-[#061A2B] shadow-sm hover:bg-foreground/5 dark:text-blue-300"
         }`}
       >
-        {chapter.action || "Open chapter"}
-      </Link>
+        View Pages
+      </button>
       <button className="col-start-2 flex h-8 w-8 items-center justify-center rounded-md border border-foreground/12 bg-card text-foreground/55 shadow-sm hover:bg-foreground/5 sm:col-start-auto">
         <MoreHorizontal className="h-4 w-4" />
       </button>

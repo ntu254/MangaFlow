@@ -20,7 +20,9 @@ const listeners = new Set<() => void>();
 function emit() {
   try {
     if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(store));
-  } catch {}
+  } catch {
+    /* ignore */
+  }
   listeners.forEach((l) => l());
 }
 

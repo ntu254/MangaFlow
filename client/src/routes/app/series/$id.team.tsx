@@ -165,7 +165,7 @@ function TeamPage() {
                 <tbody className="divide-y divide-border">
                   {filteredMembers.map((m: any) => {
                     const user = m.user || { name: "Unknown User", email: "unknown@example.com" };
-                    let statusLabel = m.status.toUpperCase();
+                    const statusLabel = m.status.toUpperCase();
                     const initials = user.name.substring(0, 2).toUpperCase();
 
                     return (

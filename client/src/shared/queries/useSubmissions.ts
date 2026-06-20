@@ -1,8 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  submissionsApi,
-  type SubmitTaskSubmissionInput,
-} from "@/shared/api/submissions";
+import { submissionsApi, type SubmitTaskSubmissionInput } from "@/shared/api/submissions";
 import { qk } from "./keys";
 
 export function useReviewQueue(seriesId?: string) {
@@ -41,6 +38,19 @@ export function useApproveSubmission() {
   return useMutation({
     mutationFn: ({ id, note }: { id: string; note?: string }) =>
       submissionsApi.mangakaApprove(id, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.dashboard.root });
+      queryClient.invalidateQueries({ queryKey: qk.tasks.root });
+      queryClient.invalidateQueries({ queryKey: qk.submissions.root });
+    },
+  });
+}
+
+export function useEditorApproveSubmission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) =>
+      submissionsApi.editorApprove(id, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.dashboard.root });
       queryClient.invalidateQueries({ queryKey: qk.tasks.root });

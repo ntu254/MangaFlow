@@ -114,7 +114,6 @@ export function useProposalForm(initialSeriesId: string | null): UseProposalForm
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valuesJson, manuscriptsJson, seriesId, hydrated]);
 
   const setSeriesId = useCallback((id: string) => {

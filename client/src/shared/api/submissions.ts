@@ -88,6 +88,8 @@ export const submissionsApi = {
     api.get(`/submissions/review-queue`, { params: { seriesId } }).then(unwrap<Submission[]>),
   mangakaApprove: (id: string, reviewerNote?: string) =>
     api.post(`/submissions/${id}/mangaka-approve`, { reviewerNote }).then(unwrap<Submission>),
+  editorApprove: (id: string, reviewerNote?: string) =>
+    api.post(`/submissions/${id}/editor-approve`, { reviewerNote }).then(unwrap<Submission>),
   requestRevision: (id: string, reviewerNote?: string) =>
     api.post(`/submissions/${id}/request-revision`, { reviewerNote }).then(unwrap<Submission>),
 };

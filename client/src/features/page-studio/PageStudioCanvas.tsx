@@ -247,8 +247,8 @@ export function PageStudioCanvas({
     node.scaleY(1);
 
     const clamp = (val: number) => Math.max(0, Math.min(1, val));
-    let newX = clamp(node.x() / IMG_W);
-    let newY = clamp(node.y() / IMG_H);
+    const newX = clamp(node.x() / IMG_W);
+    const newY = clamp(node.y() / IMG_H);
     let newW = clamp(Math.max(5, node.width() * scaleX) / IMG_W);
     let newH = clamp(Math.max(5, node.height() * scaleY) / IMG_H);
 

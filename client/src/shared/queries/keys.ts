@@ -21,8 +21,7 @@ export const qk = {
   submissions: {
     root: ["submissions"] as const,
     byTask: (taskId: string) => ["submissions", "task", taskId] as const,
-    reviewQueue: (seriesId?: string) =>
-      ["submissions", "review-queue", seriesId ?? "all"] as const,
+    reviewQueue: (seriesId?: string) => ["submissions", "review-queue", seriesId ?? "all"] as const,
   },
   pages: {
     studio: (pageId: string) => ["page", pageId, "studio"] as const,

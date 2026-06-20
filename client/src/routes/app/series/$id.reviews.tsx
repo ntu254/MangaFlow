@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   useReviewQueue,
   useApproveSubmission,
+  useEditorApproveSubmission,
   useRequestRevision,
 } from "@/shared/queries/useSubmissions";
 import { findTask, findChapter, findSeries, findStaff } from "@/entities";
@@ -35,11 +36,15 @@ function SeriesReviews() {
   const actualSelectedId = selectedSub?.id || null;
 
   const approveMutation = useApproveSubmission();
+  const editorApproveMutation = useEditorApproveSubmission();
   const requestRevisionMutation = useRequestRevision();
 
   const handleApprove = () => {
-    if (!actualSelectedId) return;
-    approveMutation.mutate(
+    if (!actualSelectedId || !selectedSub) return;
+    const isEditorPhase = selectedSub.status === "MANGAKA_APPROVED";
+    const mutation = isEditorPhase ? editorApproveMutation : approveMutation;
+
+    mutation.mutate(
       { id: actualSelectedId, note: commentText },
       {
         onSuccess: () => setCommentText(""),
@@ -262,7 +267,7 @@ function SeriesReviews() {
               </button>
               <button
                 onClick={handleApprove}
-                disabled={approveMutation.isPending || requestRevisionMutation.isPending}
+                disabled={approveMutation.isPending || editorApproveMutation.isPending || requestRevisionMutation.isPending}
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-[#061A2B] py-2 text-[12px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-blue-600 disabled:opacity-50"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />

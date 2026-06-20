@@ -42,7 +42,9 @@ export function AssistantTasksList() {
     setView(v);
     try {
       window.localStorage.setItem(VIEW_KEY, v);
-    } catch {}
+    } catch {
+      // View preference persistence is non-critical.
+    }
   }
 
   const scoped = useMemo(

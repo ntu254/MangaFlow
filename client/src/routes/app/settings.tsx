@@ -17,8 +17,8 @@ function SettingsRoute() {
         <section className="rounded-md border border-foreground/10 bg-card p-4">
           <h2 className="text-[13px] font-semibold">AI bubble service</h2>
           <p className="mt-1 text-[12px] text-foreground/55">
-            Default: <code>{DEFAULT_AI_URL}</code>. The browser calls this URL directly; the
-            service must allow CORS from this origin.
+            Default: <code>{DEFAULT_AI_URL}</code>. The browser calls this URL directly; the service
+            must allow CORS from this origin.
           </p>
           <div className="mt-3 flex gap-2">
             <input

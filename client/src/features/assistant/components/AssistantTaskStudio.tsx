@@ -3,10 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { findChapter, findSeries, findStaff, submissionsByTask, type Task } from "@/entities";
 import { extractErrorMessage } from "@/shared/api/_client";
 import { useMyTasks } from "@/shared/queries/useTasks";
-import {
-  useSubmitTaskSubmission,
-  useTaskSubmissions,
-} from "@/shared/queries/useSubmissions";
+import { useSubmitTaskSubmission, useTaskSubmissions } from "@/shared/queries/useSubmissions";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { normalizeStatus } from "../lib/taskLifecycle";
 import { deadlineClass, deadlineLabel, deadlineTone } from "@/features/tasks/lib/deadline";
@@ -79,13 +76,12 @@ function StudioBody({ task, onBack }: { task: Task; onBack: () => void }) {
   const [tab, setTab] = useState<Tab>(normalized === "revision-requested" ? "feedback" : "info");
   const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
   const nextVersion = Math.max(latestVersion, task.currentVersion ?? 0) + 1;
-  const canSubmit = normalized === "todo" || normalized === "in-progress" || normalized === "revision-requested";
+  const canSubmit =
+    normalized === "todo" || normalized === "in-progress" || normalized === "revision-requested";
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFile(event.target.files?.[0] ?? null);

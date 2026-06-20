@@ -19,7 +19,8 @@ export function mapApiTask(apiTask: APITask): Task {
 
   let type: Task["type"] = "Linework";
   const taskType = typeof apiTask.taskTypeId === "string" ? undefined : apiTask.taskTypeId;
-  const typeSource = `${taskType?.name ?? ""} ${taskType?.code ?? ""} ${apiTask.title}`.toLowerCase();
+  const typeSource =
+    `${taskType?.name ?? ""} ${taskType?.code ?? ""} ${apiTask.title}`.toLowerCase();
   if (typeSource.includes("tone")) type = "Tone";
   if (typeSource.includes("background")) type = "Background";
   if (typeSource.includes("letter")) type = "Lettering";
@@ -39,11 +40,11 @@ export function mapApiTask(apiTask: APITask): Task {
     chapterId: apiTask.chapterId,
     type,
     assigneeId:
-      typeof assignedTo === "string" ? assignedTo : assignedTo?.id ?? assignedTo?._id ?? "",
+      typeof assignedTo === "string" ? assignedTo : (assignedTo?.id ?? assignedTo?._id ?? ""),
     assigneeName:
       typeof assignedTo === "string"
         ? "Assigned assistant"
-        : assignedTo?.displayName ?? assignedTo?.name ?? "Assigned assistant",
+        : (assignedTo?.displayName ?? assignedTo?.name ?? "Assigned assistant"),
     pageRange: apiTask.pageId ? `Page ${apiTask.pageId}` : "Full Chapter",
     deadline: new Date(apiTask.dueDate).toLocaleDateString("en-US", {
       month: "short",
@@ -53,8 +54,7 @@ export function mapApiTask(apiTask: APITask): Task {
     status,
     title: apiTask.title,
     priority,
-    assignedById:
-      typeof assignedBy === "string" ? assignedBy : assignedBy.id ?? assignedBy._id,
+    assignedById: typeof assignedBy === "string" ? assignedBy : (assignedBy.id ?? assignedBy._id),
     instruction: apiTask.description,
   };
 }

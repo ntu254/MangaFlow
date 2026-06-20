@@ -92,24 +92,38 @@ function SeriesChapters() {
   const mappedChapters = useMemo(() => {
     if (!summary?.chapters) return [];
     return summary.chapters
-      .map((ch: { id: string; chapterNumber?: number | string; title?: string; status?: string; updatedAt: string; pageCount: number; approvedPages: number }) => {
-        const progress = ch.pageCount > 0 ? Math.round((ch.approvedPages / ch.pageCount) * 100) : 0;
-        return {
-          id: ch.id,
-          chapter: ch.chapterNumber?.toString(),
-          title: ch.title || `Chapter ${ch.chapterNumber}`,
-          routeId: ch.id,
-          status: ch.status?.toLowerCase() || "draft",
-          cadence: "Weekly",
-          updated: `Updated ${new Date(ch.updatedAt).toLocaleDateString()}`,
-          pages: `${ch.approvedPages} / ${ch.pageCount} pages`,
-          meta: ch.pageCount === 0 ? "No pages yet" : "In progress",
-          progress,
-          action: ch.status === "PUBLISHED" ? "View publication" : "Open studio",
-          active: ch.status === "IN_PRODUCTION",
-        };
-      })
-      .sort((a: { chapter: string }, b: { chapter: string }) => parseInt(b.chapter) - parseInt(a.chapter));
+      .map(
+        (ch: {
+          id: string;
+          chapterNumber?: number | string;
+          title?: string;
+          status?: string;
+          updatedAt: string;
+          pageCount: number;
+          approvedPages: number;
+        }) => {
+          const progress =
+            ch.pageCount > 0 ? Math.round((ch.approvedPages / ch.pageCount) * 100) : 0;
+          return {
+            id: ch.id,
+            chapter: ch.chapterNumber?.toString(),
+            title: ch.title || `Chapter ${ch.chapterNumber}`,
+            routeId: ch.id,
+            status: ch.status?.toLowerCase() || "draft",
+            cadence: "Weekly",
+            updated: `Updated ${new Date(ch.updatedAt).toLocaleDateString()}`,
+            pages: `${ch.approvedPages} / ${ch.pageCount} pages`,
+            meta: ch.pageCount === 0 ? "No pages yet" : "In progress",
+            progress,
+            action: ch.status === "PUBLISHED" ? "View publication" : "Open studio",
+            active: ch.status === "IN_PRODUCTION",
+          };
+        },
+      )
+      .sort(
+        (a: { chapter: string }, b: { chapter: string }) =>
+          parseInt(b.chapter) - parseInt(a.chapter),
+      );
   }, [summary?.chapters]);
 
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -174,17 +188,32 @@ function SeriesChapters() {
 
         <div className="flex-1 divide-y divide-foreground/7">
           {mappedChapters.length > 0 ? (
-            mappedChapters.map((chapter: { id: string; chapter: string; title: string; routeId: string; status: string; cadence: string; updated: string; pages: string; meta: string; progress: number; action: string; active: boolean }) => (
-              <ChapterRow
-                key={chapter.id}
-                chapter={chapter}
-                seriesId={id}
-                chapterBadgeClass={chapterBadgeClass}
-                chapterBadgeLabel={chapterBadgeLabel}
-                isSelected={chapter.id === selectedChapterId}
-                onClick={() => setSelectedChapterId(chapter.id)}
-              />
-            ))
+            mappedChapters.map(
+              (chapter: {
+                id: string;
+                chapter: string;
+                title: string;
+                routeId: string;
+                status: string;
+                cadence: string;
+                updated: string;
+                pages: string;
+                meta: string;
+                progress: number;
+                action: string;
+                active: boolean;
+              }) => (
+                <ChapterRow
+                  key={chapter.id}
+                  chapter={chapter}
+                  seriesId={id}
+                  chapterBadgeClass={chapterBadgeClass}
+                  chapterBadgeLabel={chapterBadgeLabel}
+                  isSelected={chapter.id === selectedChapterId}
+                  onClick={() => setSelectedChapterId(chapter.id)}
+                />
+              ),
+            )
           ) : (
             <div className="p-8 text-center text-[12px] font-medium text-foreground/50">
               No chapters found for this series.
@@ -329,119 +358,134 @@ function SeriesChapters() {
                   No pages uploaded yet.
                 </div>
               ) : (
-                pages.slice(0, visiblePagesCount).map((page: { id: string; status: string; workingFileAssetId?: string; thumbnailFileAssetId?: string; sequenceNumber?: number; pageNumber?: number }) => {
-                  const isApproved = page.status === "APPROVED";
-                  const isUnderReview = page.status === "UNDER_REVIEW";
-                  const isTaskAssigned = page.status === "TASK_ASSIGNED";
-                  const isUploaded = page.status === "UPLOADED";
-                  const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(page.status);
-                  const isFailed = ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(page.status);
+                pages
+                  .slice(0, visiblePagesCount)
+                  .map(
+                    (page: {
+                      id: string;
+                      status: string;
+                      workingFileAssetId?: string;
+                      thumbnailFileAssetId?: string;
+                      sequenceNumber?: number;
+                      pageNumber?: number;
+                    }) => {
+                      const isApproved = page.status === "APPROVED";
+                      const isUnderReview = page.status === "UNDER_REVIEW";
+                      const isTaskAssigned = page.status === "TASK_ASSIGNED";
+                      const isUploaded = page.status === "UPLOADED";
+                      const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(
+                        page.status,
+                      );
+                      const isFailed = ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(page.status);
 
-                  // Open Studio Gate
-                  const canOpenStudio = isUploaded && Boolean(page.workingFileAssetId);
+                      // Open Studio Gate
+                      const canOpenStudio = isUploaded && Boolean(page.workingFileAssetId);
 
-                  return (
-                    <div
-                      key={page.id}
-                      className="relative aspect-[3/4] rounded-md overflow-hidden group border border-foreground/10 block bg-foreground/5"
-                    >
-                      <PageThumbnail page={page} />
+                      return (
+                        <div
+                          key={page.id}
+                          className="relative aspect-[3/4] rounded-md overflow-hidden group border border-foreground/10 block bg-foreground/5"
+                        >
+                          <PageThumbnail page={page} />
 
-                      {/* Number Badge */}
-                      <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-1.5 py-0.5 rounded-sm min-w-[20px] text-center z-10">
-                        {page.pageNumber}
-                      </div>
-
-                      {/* Status Dot */}
-                      <div
-                        title={page.status}
-                        className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white shadow-sm z-10 ${
-                          isApproved
-                            ? "bg-emerald-500"
-                            : isUnderReview
-                              ? "bg-blue-500"
-                              : isTaskAssigned
-                                ? "bg-orange-500"
-                                : isFailed
-                                  ? "bg-destructive"
-                                  : isProcessing
-                                    ? "bg-sky-400 animate-pulse"
-                                    : "bg-white"
-                        }`}
-                      />
-
-                      {/* Hover Overlay */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-20 gap-2">
-                        <div className="absolute top-2 left-2 flex gap-1">
-                          {!isTaskAssigned && !isApproved && !isUnderReview ? (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setDialogConfig({ open: true, pageId: page.id });
-                                }}
-                                className="w-6 h-6 flex items-center justify-center bg-red-500/80 text-white rounded hover:bg-red-600 transition-colors"
-                                title="Delete Page"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  const newId = prompt("Enter new originalFileAssetId to replace:");
-                                  if (newId)
-                                    replacePage.mutate({
-                                      chapterId: selectedChapterId!,
-                                      pageId: page.id,
-                                      originalFileAssetId: newId,
-                                    });
-                                }}
-                                className="w-6 h-6 flex items-center justify-center bg-blue-500/80 text-white rounded hover:bg-blue-600 transition-colors"
-                                title="Replace Page"
-                              >
-                                <RefreshCw className="w-3 h-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <div
-                              title="This page has active tasks/submissions. Cancel or reassign tasks first to modify."
-                              className="w-6 h-6 flex items-center justify-center bg-foreground/20 text-white/50 rounded cursor-not-allowed"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </div>
-                          )}
-                        </div>
-                        {canOpenStudio ? (
-                          <Link
-                            to="/app/pages/$id/studio"
-                            params={{ id: page.id }}
-                            search={{ seriesId: id }}
-                            className="bg-white text-black px-3 py-1.5 rounded text-[10px] font-bold shadow hover:bg-gray-100 transition-colors"
-                          >
-                            Open Studio
-                          </Link>
-                        ) : isProcessing ? (
-                          <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
-                            <Clock className="w-4 h-4 mb-1" />
-                            <span>Processing assets...</span>
+                          {/* Number Badge */}
+                          <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-1.5 py-0.5 rounded-sm min-w-[20px] text-center z-10">
+                            {page.pageNumber}
                           </div>
-                        ) : isFailed ? (
-                          <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
-                            <span className="text-red-300">Upload Failed</span>
-                          </div>
-                        ) : (
+
+                          {/* Status Dot */}
                           <div
-                            className="flex flex-col items-center gap-1 text-white/80 text-[10px] font-semibold text-center px-2"
-                            title="Studio is only available for UPLOADED pages with a working image"
-                          >
-                            <Lock className="w-4 h-4 mb-1" />
-                            <span>Studio Locked</span>
+                            title={page.status}
+                            className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white shadow-sm z-10 ${
+                              isApproved
+                                ? "bg-emerald-500"
+                                : isUnderReview
+                                  ? "bg-blue-500"
+                                  : isTaskAssigned
+                                    ? "bg-orange-500"
+                                    : isFailed
+                                      ? "bg-destructive"
+                                      : isProcessing
+                                        ? "bg-sky-400 animate-pulse"
+                                        : "bg-white"
+                            }`}
+                          />
+
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-20 gap-2">
+                            <div className="absolute top-2 left-2 flex gap-1">
+                              {!isTaskAssigned && !isApproved && !isUnderReview ? (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setDialogConfig({ open: true, pageId: page.id });
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center bg-red-500/80 text-white rounded hover:bg-red-600 transition-colors"
+                                    title="Delete Page"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      const newId = prompt(
+                                        "Enter new originalFileAssetId to replace:",
+                                      );
+                                      if (newId)
+                                        replacePage.mutate({
+                                          chapterId: selectedChapterId!,
+                                          pageId: page.id,
+                                          originalFileAssetId: newId,
+                                        });
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center bg-blue-500/80 text-white rounded hover:bg-blue-600 transition-colors"
+                                    title="Replace Page"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                  </button>
+                                </>
+                              ) : (
+                                <div
+                                  title="This page has active tasks/submissions. Cancel or reassign tasks first to modify."
+                                  className="w-6 h-6 flex items-center justify-center bg-foreground/20 text-white/50 rounded cursor-not-allowed"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </div>
+                              )}
+                            </div>
+                            {canOpenStudio ? (
+                              <Link
+                                to="/app/pages/$id/studio"
+                                params={{ id: page.id }}
+                                search={{ seriesId: id }}
+                                className="bg-white text-black px-3 py-1.5 rounded text-[10px] font-bold shadow hover:bg-gray-100 transition-colors"
+                              >
+                                Open Studio
+                              </Link>
+                            ) : isProcessing ? (
+                              <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
+                                <Clock className="w-4 h-4 mb-1" />
+                                <span>Processing assets...</span>
+                              </div>
+                            ) : isFailed ? (
+                              <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
+                                <span className="text-red-300">Upload Failed</span>
+                              </div>
+                            ) : (
+                              <div
+                                className="flex flex-col items-center gap-1 text-white/80 text-[10px] font-semibold text-center px-2"
+                                title="Studio is only available for UPLOADED pages with a working image"
+                              >
+                                <Lock className="w-4 h-4 mb-1" />
+                                <span>Studio Locked</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
+                        </div>
+                      );
+                    },
+                  )
               )}
             </div>
 

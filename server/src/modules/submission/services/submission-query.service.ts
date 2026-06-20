@@ -64,6 +64,11 @@ export async function listTaskSubmissionsService(taskId: string, actor: Submissi
 }
 
 export async function listReviewQueueSubmissionsService(actor: SubmissionActor, seriesIdFilter?: string) {
+  if (actor.role === "ADMIN") {
+    const { listReviewQueueSubmissionsAdmin } = await import("../submission.repository.js")
+    return listReviewQueueSubmissionsAdmin(["SUBMITTED", "MANGAKA_APPROVED"], seriesIdFilter)
+  }
+
   if (!["MANGAKA", "EDITOR"].includes(actor.role)) {
     throw new AppError("Review queue access denied", 403)
   }
