@@ -26,7 +26,7 @@ export function BoardHomeScreen() {
   return (
     <>
       <MFHero role="board" title="Board Today" subtitle="Governance and decision companion" />
-      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading mock Board home..." />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Board home..." />
       <SectionTitle title="Next decisions" />
       <MFActionCards items={flow.home.decisionCards} />
       <SectionTitle title="Decision queues" />
