@@ -3,6 +3,17 @@ import { toast } from "sonner";
 import type { Task, Submission } from "@/entities";
 import { computeBlockers, isReadyForPublication, readinessChecklist } from "../../lib/readiness";
 import type { ChapterPerms } from "../../lib/chapterPermissions";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export function ReadinessTab({
   tasks,
@@ -16,6 +27,8 @@ export function ReadinessTab({
   const checklist = readinessChecklist(tasks);
   const blockers = computeBlockers(tasks, subs);
   const ready = isReadyForPublication(tasks);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <div className="space-y-5">
@@ -75,8 +88,7 @@ export function ReadinessTab({
           <button
             disabled={!ready}
             onClick={() => {
-              if (!confirm("Mark this chapter as ready for publication?")) return;
-              toast.success("Chapter marked as ready for publication.");
+              setDialogOpen(true);
             }}
             className="h-8 rounded-md bg-primary px-3 text-[12px] font-medium text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40"
           >
@@ -84,6 +96,27 @@ export function ReadinessTab({
           </button>
         )}
       </div>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ready for Publication</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mark this chapter as ready for publication?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                toast.success("Chapter marked as ready for publication.");
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

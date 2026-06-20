@@ -12,7 +12,6 @@ interface Props {
 export function MobileActionBar(p: Props) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-foreground/10 bg-background/95 p-3 backdrop-blur md:hidden">
-
       <button
         type="button"
         onClick={p.onSubmit}

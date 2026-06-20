@@ -41,9 +41,21 @@ export async function createSubmissionRecord(input: CreateSubmissionInput) {
     status: "SUBMITTED",
   })
 
-  await Task.findByIdAndUpdate(task._id, { currentSubmissionId: submission._id })
-
   return submission
+}
+
+export async function updateTaskForNewSubmission(taskId: string, submissionId: string) {
+  return Task.findOneAndUpdate(
+    {
+      _id: taskId,
+      status: { $in: ["TODO", "IN_PROGRESS", "REVISION_REQUESTED"] },
+    },
+    {
+      status: "SUBMITTED",
+      currentSubmissionId: submissionId,
+    },
+    { new: true },
+  )
 }
 
 export async function updateSubmissionStatus(
@@ -70,17 +82,32 @@ export async function updateTaskReviewState(
 }
 
 export async function listSubmissionsByTask(taskId: string) {
-  return Submission.find({ taskId })
+  const docs = await Submission.find({ taskId })
     .sort({ version: -1 })
     .populate("submittedBy", "name role")
     .populate("fileAssetId", "originalName")
     .lean()
+  return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }
 
 export async function listReviewQueueSubmissions(seriesIds: string[], status: SubmissionStatus) {
-  return Submission.find({ seriesId: { $in: seriesIds }, status })
+  const docs = await Submission.find({ seriesId: { $in: seriesIds }, status })
     .sort({ updatedAt: -1 })
     .populate("submittedBy", "name role")
     .populate("fileAssetId", "originalName")
     .lean()
+  return docs.map((d: any) => ({ ...d, id: String(d._id) }))
+}
+
+export async function listReviewQueueSubmissionsAdmin(statuses: SubmissionStatus[], seriesIdFilter?: string) {
+  const query: any = { status: { $in: statuses } }
+  if (seriesIdFilter) {
+    query.seriesId = seriesIdFilter
+  }
+  const docs = await Submission.find(query)
+    .sort({ updatedAt: -1 })
+    .populate("submittedBy", "name role")
+    .populate("fileAssetId", "originalName")
+    .lean()
+  return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }

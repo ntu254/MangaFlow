@@ -236,7 +236,7 @@ function SeriesList() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map((s) => {
                 const isAtRisk = s.status === "at-risk";
-                const progress = Math.floor(Math.random() * 60) + 20; // Mock progress percentage
+                const progress = s.progressPercent || 0;
 
                 return (
                   <Link
@@ -378,33 +378,6 @@ function SeriesList() {
                   </Link>
                 );
               })}
-            </div>
-          )}
-
-          {/* Pagination Placeholder */}
-          {filtered.length > 0 && (
-            <div className="flex items-center justify-center gap-1 mt-4">
-              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/40 hover:bg-foreground/5 transition-colors">
-                &lt;
-              </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm shadow-sm">
-                1
-              </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 font-semibold text-sm hover:bg-foreground/5 transition-colors">
-                2
-              </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 font-semibold text-sm hover:bg-foreground/5 transition-colors">
-                3
-              </button>
-              <span className="flex h-8 w-8 items-center justify-center text-foreground/40 text-sm">
-                ...
-              </span>
-              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/60 font-semibold text-sm hover:bg-foreground/5 transition-colors">
-                8
-              </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/40 hover:bg-foreground/5 transition-colors">
-                &gt;
-              </button>
             </div>
           )}
         </div>

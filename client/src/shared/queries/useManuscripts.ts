@@ -45,7 +45,6 @@ export function useGetManuscriptDownloadUrl() {
   });
 }
 
-
 /**
  * Verify on mount that every manuscript file still exists in storage and sync
  * the FileAsset status (ACTIVE/MISSING). Runs once when the tab opens so users

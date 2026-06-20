@@ -63,7 +63,12 @@ export async function listTaskSubmissionsService(taskId: string, actor: Submissi
   return listSubmissionsByTask(taskId)
 }
 
-export async function listReviewQueueSubmissionsService(actor: SubmissionActor) {
+export async function listReviewQueueSubmissionsService(actor: SubmissionActor, seriesIdFilter?: string) {
+  if (actor.role === "ADMIN") {
+    const { listReviewQueueSubmissionsAdmin } = await import("../submission.repository.js")
+    return listReviewQueueSubmissionsAdmin(["SUBMITTED", "MANGAKA_APPROVED"], seriesIdFilter)
+  }
+
   if (!["MANGAKA", "EDITOR"].includes(actor.role)) {
     throw new AppError("Review queue access denied", 403)
   }
@@ -76,7 +81,10 @@ export async function listReviewQueueSubmissionsService(actor: SubmissionActor) 
     role,
     ...ACTIVE_MEMBER_QUERY,
   }).lean()
-  const seriesIds = members.map((member: any) => String(member.seriesId))
+  let seriesIds = members.map((member: any) => String(member.seriesId))
+  if (seriesIdFilter) {
+    seriesIds = seriesIds.filter(id => id === seriesIdFilter)
+  }
   if (seriesIds.length === 0) {
     return []
   }

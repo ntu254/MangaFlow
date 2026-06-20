@@ -1,8 +1,4 @@
-import {
-  assistantEarnings,
-  type AssistantEarning,
-  type AssistantEarningStatus,
-} from "@/entities";
+import { assistantEarnings, type AssistantEarning, type AssistantEarningStatus } from "@/entities";
 
 export const EARNING_STATUSES: AssistantEarningStatus[] = [
   "calculated",

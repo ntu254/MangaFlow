@@ -2,10 +2,7 @@ import type { Task } from "@/entities";
 
 export type ColumnKey = "assigned" | "in-progress" | "submitted" | "rejected" | "approved";
 
-export const COLUMN_META: Record<
-  ColumnKey,
-  { label: string; hint: string; order: number }
-> = {
+export const COLUMN_META: Record<ColumnKey, { label: string; hint: string; order: number }> = {
   assigned: { label: "Todo", hint: "New tasks waiting to start", order: 0 },
   "in-progress": { label: "In progress", hint: "Currently being worked on", order: 1 },
   submitted: { label: "Waiting review", hint: "Submitted, awaiting Mangaka/Editor", order: 2 },

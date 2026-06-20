@@ -4,6 +4,7 @@ export * from "./users";
 export * from "./dashboard";
 export * from "./series";
 export * from "./manuscripts";
+export * from "./submissions";
 export * from "./tasks";
 export * from "./chapters";
 export * from "./files";

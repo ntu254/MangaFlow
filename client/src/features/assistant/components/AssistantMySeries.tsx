@@ -1,12 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
 import { useRole } from "@/shared/lib/role";
-import {
-  currentUserByRole,
-  findSeries,
-  seriesMembers,
-  tasks,
-} from "@/entities";
+import { currentUserByRole, findSeries, seriesMembers, tasks } from "@/entities";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { ArrowRight, Inbox } from "lucide-react";
 import { normalizeStatus, isOpenTask } from "../lib/taskLifecycle";
@@ -15,9 +10,7 @@ export function AssistantMySeries() {
   const { role } = useRole();
   const me = currentUserByRole[role];
 
-  const memberships = seriesMembers.filter(
-    (m) => m.userId === me.id && m.status === "active",
-  );
+  const memberships = seriesMembers.filter((m) => m.userId === me.id && m.status === "active");
 
   return (
     <div className="space-y-5">

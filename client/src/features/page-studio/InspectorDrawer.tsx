@@ -14,10 +14,13 @@ import {
   AlertCircle,
   Plus,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import type { Region, AIResult } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { staff, findStaff } from "@/entities";
+import { useRunAISegmentation } from "@/shared/queries/usePageStudio";
+import { useDeleteRegion } from "@/shared/queries/useRegions";
 
 interface Props {
   regions: Region[];
@@ -33,11 +36,7 @@ const STATUS_COLOR: Record<string, string> = {
   "linked-to-task": "text-amber-400 bg-amber-400/10 border-amber-400/20",
 };
 
-export function InspectorDrawer({
-  regions,
-  results = [],
-  pageId,
-}: Props) {
+export function InspectorDrawer({ regions, results = [], pageId }: Props) {
   const {
     selectedRegionId,
     setSelectedRegionId,
@@ -51,13 +50,13 @@ export function InspectorDrawer({
   const selectedRegion = regions.find((r) => r.id === selectedRegionId);
 
   // useDeleteRegion hook
-  const { mutate: deleteRegion, isPending: isDeleting } =
-    import.meta.env.SSR ? { mutate: () => {}, isPending: false } : require("@/shared/queries/useRegions").useDeleteRegion(pageId);
+  const { mutate: deleteRegion, isPending: isDeleting } = useDeleteRegion(pageId);
+  const { mutate: runAI, isPending: isRunningAI } = useRunAISegmentation(pageId);
 
   const handleDeleteRegion = () => {
     if (!selectedRegion) return;
     deleteRegion(selectedRegion.id, {
-      onSuccess: () => setSelectedRegionId(null)
+      onSuccess: () => setSelectedRegionId(null),
     });
   };
 
@@ -164,7 +163,8 @@ export function InspectorDrawer({
                       </button>
                       {hasActiveTask && (
                         <div className="absolute bottom-full right-0 mb-1 hidden w-48 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
-                          This region has active tasks. Cancel or finish those tasks before deleting.
+                          This region has active tasks. Cancel or finish those tasks before
+                          deleting.
                         </div>
                       )}
                     </div>
@@ -218,11 +218,7 @@ export function InspectorDrawer({
                             <User className="h-3.5 w-3.5" /> Assignee:
                           </span>
                           <span className="font-semibold text-foreground/85">
-                            {
-                              findStaff(
-                                regionTasks[selectedRegion.id].assigneeId
-                              )?.name
-                            }
+                            {findStaff(regionTasks[selectedRegion.id].assigneeId)?.name}
                           </span>
                         </div>
 
@@ -232,11 +228,9 @@ export function InspectorDrawer({
                           </span>
                           <span
                             className={`font-semibold capitalize ${
-                              regionTasks[selectedRegion.id].priority ===
-                              "high"
+                              regionTasks[selectedRegion.id].priority === "high"
                                 ? "text-red-400"
-                                : regionTasks[selectedRegion.id].priority ===
-                                    "medium"
+                                : regionTasks[selectedRegion.id].priority === "medium"
                                   ? "text-amber-400"
                                   : "text-blue-400"
                             }`}
@@ -293,9 +287,7 @@ export function InspectorDrawer({
                   return (
                     <button
                       key={r.id}
-                      onClick={() =>
-                        setSelectedRegionId(r.id === selectedRegionId ? null : r.id)
-                      }
+                      onClick={() => setSelectedRegionId(r.id === selectedRegionId ? null : r.id)}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors border ${
                         isSelected
                           ? "bg-foreground/8 border-border text-foreground ring-1 ring-foreground/10"
@@ -307,9 +299,7 @@ export function InspectorDrawer({
                         {r.type} #{idxStr || idx + 1}
                       </span>
                       <div className="flex items-center gap-1.5">
-                        {hasTask && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                        )}
+                        {hasTask && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
                         <span
                           className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                             STATUS_COLOR[r.status] ?? ""
@@ -329,11 +319,20 @@ export function InspectorDrawer({
           {activeTab === "ai" && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
               <button
-                disabled
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-900/20 transition-all opacity-40 cursor-not-allowed"
+                onClick={() => runAI()}
+                disabled={isRunningAI}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-900/20 transition-all ${
+                  isRunningAI
+                    ? "opacity-70 cursor-not-allowed"
+                    : "hover:shadow-sky-900/40 hover:-translate-y-[1px]"
+                }`}
               >
-                <Sparkles className="h-4 w-4" />
-                Run AI Segmentation (Out of scope)
+                {isRunningAI ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {isRunningAI ? "Running AI..." : "Run AI Segmentation"}
               </button>
 
               <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/30 mb-1 pt-2">
@@ -347,10 +346,7 @@ export function InspectorDrawer({
                   </div>
                 )}
                 {results.map((r) => (
-                  <div
-                    key={r.id}
-                    className="rounded-xl border border-border bg-card p-3"
-                  >
+                  <div key={r.id} className="rounded-xl border border-border bg-card p-3">
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-[10px] font-bold uppercase ${
@@ -366,8 +362,7 @@ export function InspectorDrawer({
                       <span className="text-[9px] text-foreground/30">{r.at}</span>
                     </div>
                     <div className="mt-1.5 text-[10px] text-foreground/40">
-                      {r.suggestionsCount} suggestions · {r.acceptedCount}{" "}
-                      accepted
+                      {r.suggestionsCount} suggestions · {r.acceptedCount} accepted
                     </div>
                   </div>
                 ))}
@@ -394,9 +389,7 @@ export function InspectorDrawer({
                       </span>
                       <span className="text-foreground/25">{c.time}</span>
                     </div>
-                    <p className="mt-1 leading-relaxed text-foreground/60">
-                      {c.content}
-                    </p>
+                    <p className="mt-1 leading-relaxed text-foreground/60">{c.content}</p>
                   </div>
                 ))}
               </div>

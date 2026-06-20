@@ -33,7 +33,13 @@ function NotificationsPage() {
       />
 
       <div className="rounded-md border border-foreground/10 bg-card divide-y divide-foreground/10">
-        {items.length === 0 && <EmptyState title="You're all caught up" hint="No notifications yet. You'll be notified when something needs your attention." icon={Bell} />}
+        {items.length === 0 && (
+          <EmptyState
+            title="You're all caught up"
+            hint="No notifications yet. You'll be notified when something needs your attention."
+            icon={Bell}
+          />
+        )}
         {items.map((n) => (
           <Link
             to={n.link ?? "/app/notifications"}

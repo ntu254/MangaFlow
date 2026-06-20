@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Search, ChevronDown, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { useTasksBySeries } from "@/shared/queries/useTasks";
-import type { Task } from "@/shared/api/tasks";
+import type { Task } from "@/entities/task/model";
 
 export const Route = createFileRoute("/app/series/$id/tasks")({
   component: TasksPage,
@@ -17,32 +17,66 @@ function TasksPage() {
     switch (status?.toLowerCase()) {
       case "in-progress":
       case "in_progress":
-        return <span className="rounded bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-600 uppercase tracking-wider">In progress</span>;
+        return (
+          <span className="rounded bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+            In progress
+          </span>
+        );
       case "submitted":
-        return <span className="rounded bg-indigo-100 px-2 py-1 text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Waiting Mangaka review</span>;
+        return (
+          <span className="rounded bg-indigo-100 px-2 py-1 text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
+            Waiting Mangaka review
+          </span>
+        );
       case "mangaka-approved":
       case "mangaka_approved":
-        return <span className="rounded bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Waiting Editor final review</span>;
+        return (
+          <span className="rounded bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+            Waiting Editor final review
+          </span>
+        );
       case "editor-approved":
       case "editor_approved":
-        return <span className="rounded bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Final approved</span>;
+        return (
+          <span className="rounded bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+            Final approved
+          </span>
+        );
       case "revision-requested":
       case "revision_requested":
-        return <span className="rounded bg-orange-100 px-2 py-1 text-[10px] font-bold text-orange-600 uppercase tracking-wider">Revision requested</span>;
+        return (
+          <span className="rounded bg-orange-100 px-2 py-1 text-[10px] font-bold text-orange-600 uppercase tracking-wider">
+            Revision requested
+          </span>
+        );
       case "rejected":
-        return <span className="rounded bg-red-100 px-2 py-1 text-[10px] font-bold text-red-600 uppercase tracking-wider">Rejected</span>;
+        return (
+          <span className="rounded bg-red-100 px-2 py-1 text-[10px] font-bold text-red-600 uppercase tracking-wider">
+            Rejected
+          </span>
+        );
       case "cancelled":
-        return <span className="rounded bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-700 uppercase tracking-wider">Cancelled</span>;
+        return (
+          <span className="rounded bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+            Cancelled
+          </span>
+        );
       case "pending":
       case "todo":
       default:
-        return <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 uppercase tracking-wider border border-border">Assigned</span>;
+        return (
+          <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 uppercase tracking-wider border border-border">
+            Assigned
+          </span>
+        );
     }
   };
 
   const getPriority = (priorityStr: string) => {
-    if (priorityStr === "high" || priorityStr === "HIGH") return { label: "High", color: "bg-red-500" };
-    if (priorityStr === "medium" || priorityStr === "MEDIUM") return { label: "Medium", color: "bg-orange-500" };
+    if (priorityStr === "high" || priorityStr === "HIGH")
+      return { label: "High", color: "bg-red-500" };
+    if (priorityStr === "medium" || priorityStr === "MEDIUM")
+      return { label: "Medium", color: "bg-orange-500" };
     return { label: "Low", color: "bg-emerald-500" };
   };
 
@@ -68,23 +102,23 @@ function TasksPage() {
     return <div className="p-8 text-center text-foreground/50 text-sm">Loading tasks...</div>;
   }
 
-  const filteredTasks = tasks.filter((t: Task) => 
-    t.title?.toLowerCase().includes(search.toLowerCase()) || 
-    t.assignedTo?.name.toLowerCase().includes(search.toLowerCase())
+  const filteredTasks = tasks.filter(
+    (t: Task) =>
+      t.title?.toLowerCase().includes(search.toLowerCase()) ||
+      t.assigneeName?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
     <div className="mx-auto max-w-7xl pb-12">
       {/* Main Content Area */}
       <div className="rounded-xl border border-[#E5DFD3] bg-card dark:border-border overflow-hidden shadow-sm mt-6">
-        
         {/* Header */}
         <div className="p-6 pb-5 border-b border-[#E5DFD3] dark:border-border">
           <h2 className="text-xl font-bold tracking-tight text-foreground">All Tasks</h2>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Region and page tasks created from Page Studio and chapter workflow.
           </p>
-          
+
           {/* Top Filter Bar */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <div className="relative w-72">
@@ -126,19 +160,21 @@ function TasksPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5DFD3] dark:divide-border">
-              {filteredTasks.map((task, idx) => {
+              {filteredTasks.map((task: Task, idx: number) => {
                 const title = task.title || "Untitled Task";
-                const staffName = task.assignedTo?.displayName || task.assignedTo?.name || "Unassigned";
-                const initial = staffName !== "Unassigned" ? staffName.charAt(0).toUpperCase() : "?";
-                const priority = getPriority(task.priority);
-                
+                const staffName = task.assigneeName || "Unassigned";
+                const initial =
+                  staffName !== "Unassigned" ? staffName.charAt(0).toUpperCase() : "?";
+                const priority = getPriority(task.priority || "medium");
+
                 const rowHighlight = idx === 0 ? "bg-[#FCFAEF] dark:bg-muted/20" : "bg-transparent";
 
                 return (
-                  <tr key={task.id} className={`transition-colors hover:bg-[#F5EFE6] dark:hover:bg-muted/30 ${rowHighlight} group`}>
-                    <td className="px-6 py-4 font-bold text-foreground">
-                      {title}
-                    </td>
+                  <tr
+                    key={task.id}
+                    className={`transition-colors hover:bg-[#F5EFE6] dark:hover:bg-muted/30 ${rowHighlight} group`}
+                  >
+                    <td className="px-6 py-4 font-bold text-foreground">{title}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
@@ -147,11 +183,9 @@ function TasksPage() {
                         <span className="font-medium text-foreground">{staffName}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      {getStatusBadge(task.status)}
-                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(task.status)}</td>
                     <td className="px-6 py-4 font-medium text-foreground">
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}
+                      {task.deadline ? task.deadline : "—"}
                     </td>
                     <td className="px-6 py-4 font-medium text-foreground">
                       {getSubmission(task.status)}
@@ -188,7 +222,9 @@ function TasksPage() {
 
         {/* Pagination Footer */}
         <div className="flex items-center justify-between border-t border-[#E5DFD3] p-4 px-6 text-[13px] text-muted-foreground dark:border-border bg-[#FCFAEF]/30 dark:bg-muted/10">
-          <div>Showing 1-{filteredTasks.length} of {tasks.length} tasks</div>
+          <div>
+            Showing 1-{filteredTasks.length} of {tasks.length} tasks
+          </div>
           <div className="flex items-center gap-1">
             <button className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5DFD3] bg-background hover:bg-[#F5EFE6] dark:border-border dark:bg-muted/50 dark:hover:bg-muted">
               &lt;
@@ -207,7 +243,6 @@ function TasksPage() {
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

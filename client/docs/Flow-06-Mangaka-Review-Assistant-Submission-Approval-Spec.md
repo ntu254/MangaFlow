@@ -21,12 +21,12 @@ Out of scope: create Task, Assistant doing work, Editor final approval, payroll,
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Mangaka | Review submission và quyết định |
-| Assistant | Nhận feedback hoặc approval |
-| System | Quản lý queue, status, notification, audit |
-| Editor | Nhận task sau Mangaka approval |
+| Actor     | Vai trò                                    |
+| --------- | ------------------------------------------ |
+| Mangaka   | Review submission và quyết định            |
+| Assistant | Nhận feedback hoặc approval                |
+| System    | Quản lý queue, status, notification, audit |
+| Editor    | Nhận task sau Mangaka approval             |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -57,21 +57,21 @@ AuditLog
 
 ## 7. Task Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| SUBMITTED | Chờ Mangaka review |
-| REVISION_REQUESTED | Mangaka yêu cầu sửa |
-| MANGAKA_APPROVED | Mangaka approved current submission |
-| REJECTED | Mangaka reject task/submission |
+| Status             | Ý nghĩa                             |
+| ------------------ | ----------------------------------- |
+| SUBMITTED          | Chờ Mangaka review                  |
+| REVISION_REQUESTED | Mangaka yêu cầu sửa                 |
+| MANGAKA_APPROVED   | Mangaka approved current submission |
+| REJECTED           | Mangaka reject task/submission      |
 
 ## 8. Submission Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| SUBMITTED | Current version đang chờ review |
-| REVISION_REQUESTED | Version này bị yêu cầu sửa |
-| MANGAKA_APPROVED | Version này được Mangaka approve |
-| REJECTED | Version này bị reject |
+| Status             | Ý nghĩa                          |
+| ------------------ | -------------------------------- |
+| SUBMITTED          | Current version đang chờ review  |
+| REVISION_REQUESTED | Version này bị yêu cầu sửa       |
+| MANGAKA_APPROVED   | Version này được Mangaka approve |
+| REJECTED           | Version này bị reject            |
 
 ## 9. Step-by-step flow
 
@@ -109,14 +109,14 @@ Back to Mangaka review queue
 
 ## 11. Permission Matrix
 
-| Action | Mangaka | Assigned Assistant | Other Assistant | Editor | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View review queue | Có | Không | Không | Optional | Không |
-| View current submission | Có | Có nếu own task | Không | Có | Không |
-| Approve submission | Có | Không | Không | Không | Không |
-| Request revision | Có | Không | Không | Không | Không |
-| Reject submission | Có | Không | Không | Optional | Không |
+| Action                  | Mangaka | Assigned Assistant | Other Assistant | Editor   | Board |
+| ----------------------- | ------- | ------------------ | --------------- | -------- | ----- |
+| ---                     | ---:    | ---:               | ---:            | ---:     | ---:  |
+| View review queue       | Có      | Không              | Không           | Optional | Không |
+| View current submission | Có      | Có nếu own task    | Không           | Có       | Không |
+| Approve submission      | Có      | Không              | Không           | Không    | Không |
+| Request revision        | Có      | Không              | Không           | Không    | Không |
+| Reject submission       | Có      | Không              | Không           | Optional | Không |
 
 ## 12. API đề xuất
 
@@ -183,13 +183,13 @@ ANNOTATION_CREATED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Submission không phải current | Block approve |
-| Missing feedback when revision | Block |
-| Task already approved | Block duplicate action |
+| Case                                | Expected behavior         |
+| ----------------------------------- | ------------------------- |
+| Submission không phải current       | Block approve             |
+| Missing feedback when revision      | Block                     |
+| Task already approved               | Block duplicate action    |
 | Assistant submits while review open | Reload current submission |
-| Mangaka lacks permission | Block |
+| Mangaka lacks permission            | Block                     |
 
 ## 18. Mermaid activity flow
 

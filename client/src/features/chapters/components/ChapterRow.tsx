@@ -3,6 +3,16 @@ import { MoreHorizontal, CheckCircle2, Trash2, XCircle } from "lucide-react";
 import { Progress } from "@/shared/ui/shadcn/progress";
 import { useState } from "react";
 import { useDeleteChapter, useCancelChapter } from "@/shared/queries/useChapterPages";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export interface ChapterRowProps {
   chapter: any; // Using any for mock data compatibility
@@ -13,29 +23,41 @@ export interface ChapterRowProps {
   onClick?: () => void;
 }
 
-export function ChapterRow({ chapter, seriesId, chapterBadgeClass = {}, chapterBadgeLabel = {}, isSelected, onClick }: ChapterRowProps) {
+export function ChapterRow({
+  chapter,
+  seriesId,
+  chapterBadgeClass = {},
+  chapterBadgeLabel = {},
+  isSelected,
+  onClick,
+}: ChapterRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const deleteChapter = useDeleteChapter();
   const cancelChapter = useCancelChapter();
-  
+
+  const [dialogConfig, setDialogConfig] = useState<{
+    open: boolean;
+    action: "delete" | "cancel" | null;
+  }>({
+    open: false,
+    action: null,
+  });
+
   // Note: For MVP we use basic tasks check. In reality, chapter object would need `tasksCount` returned from summary API.
   // Assuming if progress/active is truthy it might have tasks.
   const hasTasks = Boolean(chapter.active || (chapter.progress && chapter.progress > 0));
-  const isDraftOrEarly = chapter.status === "DRAFT" || (chapter.status === "IN_PRODUCTION" && !hasTasks);
+  const isDraftOrEarly =
+    chapter.status === "DRAFT" || (chapter.status === "IN_PRODUCTION" && !hasTasks);
   const isInProductionWithTasks = chapter.status === "IN_PRODUCTION" && hasTasks;
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this chapter? This action cannot be undone.")) {
-      deleteChapter.mutate(chapter.id);
-    }
+    setDialogConfig({ open: true, action: "delete" });
   };
 
   const handleCancel = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to cancel this chapter?")) {
-      cancelChapter.mutate(chapter.id);
-    }
+    setDialogConfig({ open: true, action: "cancel" });
   };
 
   return (
@@ -45,8 +67,8 @@ export function ChapterRow({ chapter, seriesId, chapterBadgeClass = {}, chapterB
         isSelected
           ? "bg-sky-500/10 ring-1 ring-inset ring-sky-500/70"
           : chapter.active
-          ? "bg-sky-500/5 ring-1 ring-inset ring-sky-500/30"
-          : "hover:bg-foreground/[0.022]"
+            ? "bg-sky-500/5 ring-1 ring-inset ring-sky-500/30"
+            : "hover:bg-foreground/[0.022]"
       }`}
     >
       <div className="flex h-9 w-9 items-center justify-center rounded-md bg-foreground/8 text-[12px] font-black tabular-nums text-foreground/70">
@@ -59,7 +81,8 @@ export function ChapterRow({ chapter, seriesId, chapterBadgeClass = {}, chapterB
           </h3>
           <span
             className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase leading-none tracking-wide ${
-              chapterBadgeClass[chapter.status?.toLowerCase()] ?? "bg-foreground/10 text-foreground/60"
+              chapterBadgeClass[chapter.status?.toLowerCase()] ??
+              "bg-foreground/10 text-foreground/60"
             }`}
           >
             {chapterBadgeLabel[chapter.status?.toLowerCase()] ?? chapter.status}
@@ -86,11 +109,14 @@ export function ChapterRow({ chapter, seriesId, chapterBadgeClass = {}, chapterB
             chapter.meta || "No tasks yet"
           )}
         </div>
-        {chapter.status?.toLowerCase() === "published" || chapter.status?.toLowerCase() === "archived" ? (
+        {chapter.status?.toLowerCase() === "published" ||
+        chapter.status?.toLowerCase() === "archived" ? (
           <div className="mt-2 flex h-1.5 items-center justify-end">
             <CheckCircle2
               className={`h-3.5 w-3.5 ${
-                chapter.status?.toLowerCase() === "published" ? "text-emerald-500" : "text-slate-400"
+                chapter.status?.toLowerCase() === "published"
+                  ? "text-emerald-500"
+                  : "text-slate-400"
               }`}
             />
           </div>
@@ -111,21 +137,53 @@ export function ChapterRow({ chapter, seriesId, chapterBadgeClass = {}, chapterB
         )}
       </div>
 
-      <Link
-        to="/app/pages/$id/studio"
-        params={{ id: "pg_ch_g2_1" }}
-        search={{ seriesId }}
+      <button
+        type="button"
         className={`col-start-2 inline-flex h-8 w-fit items-center justify-center rounded-md px-3 text-[10px] font-extrabold transition-all sm:col-start-auto sm:w-full whitespace-nowrap text-center ${
           chapter.active
             ? "bg-[#061A2B] text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg dark:bg-blue-600"
             : "border border-foreground/12 bg-card text-[#061A2B] shadow-sm hover:bg-foreground/5 dark:text-blue-300"
         }`}
       >
-        {chapter.action || "Open chapter"}
-      </Link>
+        View Pages
+      </button>
       <button className="col-start-2 flex h-8 w-8 items-center justify-center rounded-md border border-foreground/12 bg-card text-foreground/55 shadow-sm hover:bg-foreground/5 sm:col-start-auto">
         <MoreHorizontal className="h-4 w-4" />
       </button>
+
+      <AlertDialog
+        open={dialogConfig.open}
+        onOpenChange={(open) => setDialogConfig((p) => ({ ...p, open }))}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {dialogConfig.action === "delete" ? "Delete Chapter" : "Cancel Chapter"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {dialogConfig.action === "delete"
+                ? "Are you sure you want to delete this chapter? This action cannot be undone."
+                : "Are you sure you want to cancel this chapter?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (dialogConfig.action === "delete") deleteChapter.mutate(chapter.id);
+                if (dialogConfig.action === "cancel") cancelChapter.mutate(chapter.id);
+              }}
+              className={
+                dialogConfig.action === "delete"
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-orange-600 text-white hover:bg-orange-700"
+              }
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

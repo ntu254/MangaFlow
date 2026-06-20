@@ -35,10 +35,11 @@ export function PageGrid({ pages, selectedPage, onSelectPage }: PageGridProps) {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold border transition-colors ${activeFilter === filter
+              className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold border transition-colors ${
+                activeFilter === filter
                   ? "bg-[#061A2B] border-[#061A2B] text-white dark:bg-blue-600 dark:border-blue-600"
                   : "bg-card border-foreground/10 text-foreground/70 hover:bg-foreground/5"
-                }`}
+              }`}
             >
               {filter}
             </button>
@@ -63,11 +64,21 @@ export function PageGrid({ pages, selectedPage, onSelectPage }: PageGridProps) {
 
       {/* Status Legend */}
       <div className="flex flex-wrap items-center gap-4 mt-6 text-[10px] font-bold text-foreground/50 uppercase tracking-wider">
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Approved</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Under Review</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Task Assigned</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#e5e1d8]"></span> Uploaded</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-foreground/20"></span> Not Started</span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Approved
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-blue-500"></span> Under Review
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-orange-500"></span> Task Assigned
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#e5e1d8]"></span> Uploaded
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-foreground/20"></span> Not Started
+        </span>
       </div>
     </section>
   );

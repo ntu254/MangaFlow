@@ -23,7 +23,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", theme === "dark");
     try {
       localStorage.setItem("br-theme", theme);
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   }, [theme]);
 
   return (

@@ -43,7 +43,7 @@ function PageUploadPage() {
   const perm = canUploadPage(role, series);
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<PendingItem[]>([]);
-  
+
   const queryClient = useQueryClient();
   const { data: existingPagesResponse } = useChapterPages(chapter.id);
   const existingPages = existingPagesResponse?.data || [];
@@ -59,7 +59,7 @@ function PageUploadPage() {
       // 1. Create Page Record if not already created (for retries)
       let pageId = item.pageId;
       let pageNumber = item.pageNumber;
-      
+
       if (!pageId) {
         pageNumber = startPageNumber + offsetIndex;
         const pageRes = await chaptersApi.createPage(chapter.id, { pageNumber });
@@ -76,7 +76,7 @@ function PageUploadPage() {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl, true);
         xhr.setRequestHeader("Content-Type", item.file.type);
-        
+
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             const percent = Math.round((e.loaded / e.total) * 100);
@@ -126,11 +126,10 @@ function PageUploadPage() {
         entityId: chapter.id,
         payload: { file: item.name },
       });
-
     } catch (err: any) {
-      updateItem(item.id, { 
-        status: "failed", 
-        error: err.message || "Upload failed" 
+      updateItem(item.id, {
+        status: "failed",
+        error: err.message || "Upload failed",
       });
     }
   }
@@ -138,27 +137,29 @@ function PageUploadPage() {
   function onPick(files: FileList | null) {
     if (!files) return;
     if (!perm.allowed) return toast.error(perm.reason);
-    
+
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
     const maxSize = 100 * 1024 * 1024; // 100MB
 
     const newItems: PendingItem[] = [];
     let rejectedCount = 0;
 
-    Array.from(files).slice(0, 50).forEach((f, i) => {
-      if (!validTypes.includes(f.type) || f.size > maxSize) {
-        rejectedCount++;
-        return;
-      }
-      newItems.push({
-        id: `p_${Date.now()}_${i}`,
-        file: f,
-        name: f.name,
-        size: f.size,
-        status: "pending",
-        progress: 0,
+    Array.from(files)
+      .slice(0, 50)
+      .forEach((f, i) => {
+        if (!validTypes.includes(f.type) || f.size > maxSize) {
+          rejectedCount++;
+          return;
+        }
+        newItems.push({
+          id: `p_${Date.now()}_${i}`,
+          file: f,
+          name: f.name,
+          size: f.size,
+          status: "pending",
+          progress: 0,
+        });
       });
-    });
 
     if (rejectedCount > 0) {
       toast.error(`${rejectedCount} file(s) rejected. Only JPEG, PNG, WEBP under 100MB allowed.`);
@@ -194,11 +195,11 @@ function PageUploadPage() {
   }
 
   function retry(id: string) {
-    const item = items.find(p => p.id === id);
+    const item = items.find((p) => p.id === id);
     if (item) {
       // Just reuse its existing pageNumber if it has one, otherwise we don't increment anything
       // Passing 0 for startPageNumber/offset is fine since uploadItem will reuse item.pageNumber if item.pageId exists.
-      // If it failed before getting a pageId, it will create one. But wait, if it failed before page creation, 
+      // If it failed before getting a pageId, it will create one. But wait, if it failed before page creation,
       // it won't have a pageNumber. Let's just pass the max existing page number at retry time.
       const startPageNumber = Math.max(0, ...existingPages.map((p: any) => p.pageNumber ?? 0)) + 1;
       uploadItem(item, startPageNumber, 0);
@@ -235,13 +236,16 @@ function PageUploadPage() {
           onPick(e.dataTransfer.files);
         }}
         className={`flex flex-col items-center justify-center rounded-md border-2 border-dashed border-foreground/20 bg-card p-12 text-center transition-colors ${
-          perm.allowed ? "cursor-pointer hover:border-foreground/40 hover:bg-foreground/5" : "opacity-50"
+          perm.allowed
+            ? "cursor-pointer hover:border-foreground/40 hover:bg-foreground/5"
+            : "opacity-50"
         }`}
       >
         <Upload className="mb-3 h-8 w-8 text-foreground/40" />
         <div className="text-sm font-semibold">Drop pages here or click to browse</div>
         <div className="mt-1 text-xs text-foreground/55">
-          PNG/JPG/WEBP under 100MB, up to 50 files. Each Page generates 3 FileAssets (Original / Working / Thumbnail).
+          PNG/JPG/WEBP under 100MB, up to 50 files. Each Page generates 3 FileAssets (Original /
+          Working / Thumbnail).
         </div>
         <input
           ref={inputRef}
@@ -279,8 +283,14 @@ function PageUploadPage() {
                     )}
                     {p.status === "failed" && (
                       <div className="flex items-center gap-2">
-                        <span className="text-destructive font-medium" title={p.error}>Upload Failed</span>
-                        <button onClick={() => retry(p.id)} className="text-foreground/60 hover:text-foreground p-1" title="Retry">
+                        <span className="text-destructive font-medium" title={p.error}>
+                          Upload Failed
+                        </span>
+                        <button
+                          onClick={() => retry(p.id)}
+                          className="text-foreground/60 hover:text-foreground p-1"
+                          title="Retry"
+                        >
                           <RotateCcw className="h-3 w-3" />
                         </button>
                       </div>
@@ -293,18 +303,18 @@ function PageUploadPage() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Progress bar */}
                 {p.status !== "pending" && (
                   <div className="h-1 w-full bg-foreground/5 rounded overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-300 ${p.status === 'failed' ? 'bg-destructive' : p.status === 'uploaded' ? 'bg-emerald-500' : 'bg-sky-500'}`} 
-                      style={{ width: `${p.progress}%` }} 
+                    <div
+                      className={`h-full transition-all duration-300 ${p.status === "failed" ? "bg-destructive" : p.status === "uploaded" ? "bg-emerald-500" : "bg-sky-500"}`}
+                      style={{ width: `${p.progress}%` }}
                     />
                   </div>
                 )}
-                
-                {p.status === 'failed' && p.error && (
+
+                {p.status === "failed" && p.error && (
                   <div className="text-[10px] text-destructive/80 mt-0.5">
                     {p.error}. Retry upload or replace the page.
                   </div>

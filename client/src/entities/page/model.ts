@@ -7,12 +7,22 @@ export type PageStatus =
   | "task-assigned"
   | "in-progress"
   | "under-review"
-  | "approved";
+  | "approved"
+  | "PENDING"
+  | "UPLOADING"
+  | "PROCESSING"
+  | "PROCESSING_FAILED"
+  | "UPLOADED"
+  | "TASK_ASSIGNED"
+  | "IN_PROGRESS"
+  | "UNDER_REVIEW"
+  | "APPROVED";
 
 export type Page = {
   id: string;
   chapterId: string;
   order: number;
+  pageNumber?: number;
   status: PageStatus;
   originalFileAssetId: string;
   workingFileAssetId: string;

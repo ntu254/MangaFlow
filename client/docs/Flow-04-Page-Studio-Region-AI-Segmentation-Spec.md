@@ -21,13 +21,13 @@ Out of scope: Assistant submission, Mangaka review, Editor final approval, publi
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Mangaka | Tạo/sửa/xóa Region, chạy AI suggestion |
-| Tantou Editor | Xem/annotate, optional tạo Region |
-| Assistant | Chỉ thấy Region nếu Task liên quan được assign |
-| AI Service | Gợi ý panel/bubble/area |
-| System | Lưu Region, AIResult, audit |
+| Actor         | Vai trò                                        |
+| ------------- | ---------------------------------------------- |
+| Mangaka       | Tạo/sửa/xóa Region, chạy AI suggestion         |
+| Tantou Editor | Xem/annotate, optional tạo Region              |
+| Assistant     | Chỉ thấy Region nếu Task liên quan được assign |
+| AI Service    | Gợi ý panel/bubble/area                        |
+| System        | Lưu Region, AIResult, audit                    |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -68,21 +68,21 @@ Workspace
 
 ## 7. Region Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| CREATED | Region được tạo thủ công |
-| AI_SUGGESTED | AI gợi ý nhưng chưa accept |
-| ACCEPTED | AI suggestion đã được accept thành Region production |
-| REJECTED | AI suggestion bị bỏ qua |
-| LINKED_TO_TASK | Region đã được dùng trong Task |
+| Status         | Ý nghĩa                                              |
+| -------------- | ---------------------------------------------------- |
+| CREATED        | Region được tạo thủ công                             |
+| AI_SUGGESTED   | AI gợi ý nhưng chưa accept                           |
+| ACCEPTED       | AI suggestion đã được accept thành Region production |
+| REJECTED       | AI suggestion bị bỏ qua                              |
+| LINKED_TO_TASK | Region đã được dùng trong Task                       |
 
 ## 8. AIResult Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| PENDING | Đang chờ xử lý AI |
-| COMPLETED | AI trả kết quả thành công |
-| FAILED | AI xử lý lỗi |
+| Status             | Ý nghĩa                         |
+| ------------------ | ------------------------------- |
+| PENDING            | Đang chờ xử lý AI               |
+| COMPLETED          | AI trả kết quả thành công       |
+| FAILED             | AI xử lý lỗi                    |
 | PARTIALLY_ACCEPTED | Một phần suggestion được accept |
 
 ## 9. Step-by-step flow
@@ -147,15 +147,15 @@ System creates new AIResult
 
 ## 11. Permission Matrix
 
-| Action | Mangaka | Editor | Assistant assigned | Assistant khác | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Open Page Studio | Có | Có | Có nếu task assigned | Không | Không |
-| Create Region | Có | Optional | Không | Không | Không |
-| Run AI | Có | Optional | Không | Không | Không |
-| Accept AI suggestion | Có | Optional | Không | Không | Không |
-| View assigned Region | Có | Có | Có | Không | Không |
-| Edit Region linked to active Task | Warn/block | Warn/block | Không | Không | Không |
+| Action                            | Mangaka    | Editor     | Assistant assigned   | Assistant khác | Board |
+| --------------------------------- | ---------- | ---------- | -------------------- | -------------- | ----- |
+| ---                               | ---:       | ---:       | ---:                 | ---:           | ---:  |
+| Open Page Studio                  | Có         | Có         | Có nếu task assigned | Không          | Không |
+| Create Region                     | Có         | Optional   | Không                | Không          | Không |
+| Run AI                            | Có         | Optional   | Không                | Không          | Không |
+| Accept AI suggestion              | Có         | Optional   | Không                | Không          | Không |
+| View assigned Region              | Có         | Có         | Có                   | Không          | Không |
+| Edit Region linked to active Task | Warn/block | Warn/block | Không                | Không          | Không |
 
 ## 12. API đề xuất
 
@@ -225,14 +225,14 @@ AI_REGION_REJECTED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Missing working image | Block Page Studio |
-| Page chưa UPLOADED | Block Page Studio |
-| AI service timeout | AIResult = FAILED |
-| User reject all suggestions | No Region created |
-| Edit Region linked to Task | Warn hoặc block |
-| Assistant mở Page không assigned | Block |
+| Case                             | Expected behavior |
+| -------------------------------- | ----------------- |
+| Missing working image            | Block Page Studio |
+| Page chưa UPLOADED               | Block Page Studio |
+| AI service timeout               | AIResult = FAILED |
+| User reject all suggestions      | No Region created |
+| Edit Region linked to Task       | Warn hoặc block   |
+| Assistant mở Page không assigned | Block             |
 
 ## 18. Mermaid activity flow
 

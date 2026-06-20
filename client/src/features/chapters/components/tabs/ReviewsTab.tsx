@@ -59,9 +59,7 @@ function ReviewCard({
         </button>
         <button
           disabled={!canAct}
-          onClick={() =>
-            toast.success(step === 1 ? "Mangaka approved." : "Editor approved.")
-          }
+          onClick={() => toast.success(step === 1 ? "Mangaka approved." : "Editor approved.")}
           className="h-7 rounded-md bg-primary px-2.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:bg-foreground/10 disabled:text-foreground/40"
         >
           {step === 1 ? "Approve (Mangaka)" : "Approve final (Editor)"}
@@ -82,9 +80,7 @@ export function ReviewsTab({
 }) {
   const taskOf = (id: string) => tasks.find((t) => t.id === id)!;
   const pendingMangaka = subs.filter((s) => !s.mangakaApproved && !s.rejected);
-  const pendingEditor = subs.filter(
-    (s) => s.mangakaApproved && !s.editorApproved && !s.rejected,
-  );
+  const pendingEditor = subs.filter((s) => s.mangakaApproved && !s.editorApproved && !s.rejected);
   const done = subs.filter((s) => s.editorApproved || s.rejected);
 
   return (
@@ -98,13 +94,7 @@ export function ReviewsTab({
         ) : (
           <div className="space-y-2">
             {pendingMangaka.map((s) => (
-              <ReviewCard
-                key={s.id}
-                sub={s}
-                task={taskOf(s.taskId)}
-                step={1}
-                perms={perms}
-              />
+              <ReviewCard key={s.id} sub={s} task={taskOf(s.taskId)} step={1} perms={perms} />
             ))}
           </div>
         )}
@@ -119,13 +109,7 @@ export function ReviewsTab({
         ) : (
           <div className="space-y-2">
             {pendingEditor.map((s) => (
-              <ReviewCard
-                key={s.id}
-                sub={s}
-                task={taskOf(s.taskId)}
-                step={2}
-                perms={perms}
-              />
+              <ReviewCard key={s.id} sub={s} task={taskOf(s.taskId)} step={2} perms={perms} />
             ))}
           </div>
         )}

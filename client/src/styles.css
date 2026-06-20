@@ -107,7 +107,7 @@
 
   --panel: rgba(20, 20, 20, 0.6);
   --panel-border: oklch(1 0 0 / 10%);
-  --canvas-dots: rgba(255, 255, 255, 0.20);
+  --canvas-dots: rgba(255, 255, 255, 0.2);
 }
 
 @layer base {

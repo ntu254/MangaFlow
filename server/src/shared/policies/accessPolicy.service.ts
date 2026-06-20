@@ -1,9 +1,10 @@
-﻿import { AppError } from "../errors/AppError.js"
+import { AppError } from "../errors/AppError.js"
 import type { UserRole } from "../../modules/auth/auth.types.js"
 import { Chapter, FileAsset, Page, Region } from "../../modules/chapter/chapter.model.js"
 import { findActiveSeriesMember } from "./seriesMember.policy.js"
 import { Submission } from "../../modules/submission/submission.model.js"
 import { Task } from "../../modules/task/task.model.js"
+import { isValidObjectId } from "mongoose"
 
 export interface AccessActor {
   userId: string
@@ -16,6 +17,7 @@ async function isActiveSeriesManager(seriesId: string, actor: AccessActor): Prom
 }
 
 export async function canReadChapter(actor: AccessActor, chapterId: string): Promise<boolean> {
+  if (!isValidObjectId(chapterId)) throw new AppError("Invalid chapter ID", 400)
   const chapter = await Chapter.findById(chapterId)
   if (!chapter) throw new AppError("Chapter not found", 404)
   const seriesId = String(chapter.seriesId)
@@ -31,6 +33,7 @@ export async function assertCanReadChapter(actor: AccessActor, chapterId: string
 }
 
 export async function canReadPage(actor: AccessActor, pageId: string): Promise<boolean> {
+  if (!isValidObjectId(pageId)) throw new AppError("Invalid page ID", 400)
   const page = await Page.findById(pageId)
   if (!page) throw new AppError("Page not found", 404)
 
@@ -62,12 +65,14 @@ export async function assertCanReadPage(actor: AccessActor, pageId: string): Pro
 }
 
 export async function assertCanReadRegion(actor: AccessActor, regionId: string): Promise<void> {
+  if (!isValidObjectId(regionId)) throw new AppError("Invalid region ID", 400)
   const region = await Region.findById(regionId)
   if (!region) throw new AppError("Region not found", 404)
   await assertCanReadPage(actor, String(region.pageId))
 }
 
 export async function canWritePage(actor: AccessActor, pageId: string): Promise<boolean> {
+  if (!isValidObjectId(pageId)) throw new AppError("Invalid page ID", 400)
   const page = await Page.findById(pageId)
   if (!page) throw new AppError("Page not found", 404)
 
@@ -86,6 +91,7 @@ export async function assertCanWritePage(actor: AccessActor, pageId: string): Pr
 }
 
 export async function canWriteChapter(actor: AccessActor, chapterId: string): Promise<boolean> {
+  if (!isValidObjectId(chapterId)) throw new AppError("Invalid chapter ID", 400)
   const chapter = await Chapter.findById(chapterId)
   if (!chapter) throw new AppError("Chapter not found", 404)
   const seriesId = String(chapter.seriesId)
@@ -101,6 +107,7 @@ export async function assertCanWriteChapter(actor: AccessActor, chapterId: strin
 }
 
 export async function canWriteRegion(actor: AccessActor, regionId: string): Promise<boolean> {
+  if (!isValidObjectId(regionId)) throw new AppError("Invalid region ID", 400)
   const region = await Region.findById(regionId)
   if (!region) throw new AppError("Region not found", 404)
   return canWritePage(actor, String(region.pageId))
@@ -113,6 +120,7 @@ export async function assertCanWriteRegion(actor: AccessActor, regionId: string)
 }
 
 export async function assertCanReadFileAsset(actor: AccessActor, fileAssetId: string): Promise<void> {
+  if (!isValidObjectId(fileAssetId)) throw new AppError("Invalid file asset ID", 400)
   const fileAsset = await FileAsset.findById(fileAssetId)
   if (!fileAsset) throw new AppError("File asset not found", 404)
 

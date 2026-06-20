@@ -1,12 +1,7 @@
 import { useMemo, useState } from "react";
 import { PageHeader, StatCard } from "@/layouts/AppShell";
 import { useRole } from "@/shared/lib/role";
-import {
-  currentUserByRole,
-  findChapter,
-  findSeries,
-  findTask,
-} from "@/entities";
+import { currentUserByRole, findChapter, findSeries, findTask } from "@/entities";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { jpy } from "@/shared/lib/format";
 import { earningsBy, EARNING_STATUSES, totalsBy } from "../lib/earnings";
@@ -39,7 +34,12 @@ export function AssistantEarnings() {
       </div>
 
       <div className="flex flex-wrap items-center gap-1 border-b border-foreground/10 pb-2">
-        <TabButton active={tab === "all"} onClick={() => setTab("all")} label="All" count={list.length} />
+        <TabButton
+          active={tab === "all"}
+          onClick={() => setTab("all")}
+          label="All"
+          count={list.length}
+        />
         {EARNING_STATUSES.map((s) => (
           <TabButton
             key={s}
@@ -63,7 +63,9 @@ export function AssistantEarnings() {
               <thead className="bg-muted text-[11px] uppercase tracking-wider text-foreground/55">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Task</th>
-                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">Series / Chapter</th>
+                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
+                    Series / Chapter
+                  </th>
                   <th className="hidden px-3 py-2 text-left font-medium md:table-cell">Approved</th>
                   <th className="hidden px-3 py-2 text-right font-medium md:table-cell">Rate</th>
                   <th className="px-3 py-2 text-right font-medium">Amount</th>
@@ -82,12 +84,16 @@ export function AssistantEarnings() {
                         <div className="font-medium text-foreground line-clamp-1">
                           {task?.title ?? task?.type ?? "Task"}
                         </div>
-                        <div className="text-[11px] text-foreground/55">{task?.pageRange ?? "—"}</div>
+                        <div className="text-[11px] text-foreground/55">
+                          {task?.pageRange ?? "—"}
+                        </div>
                       </td>
                       <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
                         {series?.title ?? "—"} · {ch?.number ?? "—"}
                       </td>
-                      <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">{e.approvedAt}</td>
+                      <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
+                        {e.approvedAt}
+                      </td>
                       <td className="hidden px-3 py-2 text-right tabular-nums text-foreground/55 md:table-cell">
                         {jpy(e.rateSnapshot)}
                       </td>
@@ -140,7 +146,9 @@ function TabButton({
       {label}
       <span
         className={`inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] tabular-nums ${
-          active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-foreground/60"
+          active
+            ? "bg-primary-foreground/20 text-primary-foreground"
+            : "bg-muted text-foreground/60"
         }`}
       >
         {count}

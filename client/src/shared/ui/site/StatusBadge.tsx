@@ -71,7 +71,8 @@ export function StatusBadge({
   status: ChapterStatus | SeriesStatus | string;
   variant?: "dot" | "solid";
 }) {
-  const m = STATUS_MAP[status] ?? { tone: "neutral" as const, label: status };
+  const normalizedStatus = String(status).toLowerCase().replace(/_/g, "-");
+  const m = STATUS_MAP[normalizedStatus] ?? { tone: "neutral" as const, label: status };
 
   if (variant === "solid") {
     return (

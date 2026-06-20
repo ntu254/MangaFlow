@@ -7,14 +7,12 @@ import { ctaFor, normalizeStatus } from "../lib/taskLifecycle";
 import { ArrowRight } from "lucide-react";
 
 const INTENT_CLS: Record<string, string> = {
-  primary:
-    "bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent",
+  primary: "bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent",
   destructive:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 border border-transparent",
   neutral:
     "bg-background text-foreground border border-foreground/15 hover:border-foreground/30 hover:bg-muted",
-  disabled:
-    "bg-muted text-foreground/40 border border-foreground/10 cursor-not-allowed",
+  disabled: "bg-muted text-foreground/40 border border-foreground/10 cursor-not-allowed",
 };
 
 export function AssistantTaskCard({ task }: { task: Task }) {
@@ -90,11 +88,7 @@ export function AssistantTaskCard({ task }: { task: Task }) {
   }
 
   return (
-    <Link
-      to="/app/assistant/tasks/$taskId/studio"
-      params={{ taskId: task.id }}
-      className="block"
-    >
+    <Link to="/app/assistant/tasks/$taskId/studio" params={{ taskId: task.id }} className="block">
       {body}
     </Link>
   );
