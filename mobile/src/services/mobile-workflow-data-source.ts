@@ -454,30 +454,37 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
 
   getEditorSubmissions: async () => {
     const items = await apiRequest<any[]>("/submissions/review-queue", "editor")
-    return asArray<any>(items).map((item, index) => {
+    return Promise.all(asArray<any>(items).map(async (item, index) => {
       const task = item?.taskId ?? item?.task ?? {}
       const chapter = task?.chapterId ?? item?.chapterId ?? {}
       const taskId = typeof task === "string" ? task : itemId(task, "")
       const chapterId = typeof chapter === "string" ? chapter : itemId(chapter, "")
+      const [taskDetail, chapterDetail] = await Promise.all([
+        taskId ? apiRequest<any>(`/tasks/${taskId}`, "editor").catch(() => task) : Promise.resolve(task),
+        chapterId ? apiRequest<any>(`/chapters/${chapterId}`, "editor").catch(() => chapter) : Promise.resolve(chapter),
+      ])
       const status = text(item?.status, "MANGAKA_APPROVED")
       return {
         id: itemId(item, `editor-submission-${index}`),
         taskId,
         chapterId,
-        title: text(task?.title, `Submission ${index + 1}`),
-        subtitle: text(chapter?.title ?? task?.seriesId?.title, "Production task"),
+        chapterStatus: text(chapterDetail?.status, ""),
+        taskPriority: text(taskDetail?.priority, ""),
+        taskDueDate: text(taskDetail?.dueDate, ""),
+        title: text(taskDetail?.title ?? task?.title, `Submission ${index + 1}`),
+        subtitle: text(chapterDetail?.title ?? chapter?.title ?? task?.seriesId?.title, "Production task"),
         meta: `Assistant: ${text(item?.submittedBy?.name ?? task?.assignedTo?.name, "Assigned assistant")}`,
         status: status === "EDITOR_APPROVED" ? "Approved Today" : "Waiting",
         tone: toneForStatus(status),
         coverTone: "mono",
-        taskStatus: status === "EDITOR_APPROVED" ? "EDITOR_APPROVED" : "MANGAKA_APPROVED",
+        taskStatus: taskDetail?.status === "EDITOR_APPROVED" ? "EDITOR_APPROVED" : status === "EDITOR_APPROVED" ? "EDITOR_APPROVED" : "MANGAKA_APPROVED",
         submissionStatus: status === "EDITOR_APPROVED" ? "EDITOR_APPROVED" : "MANGAKA_APPROVED",
         assistantName: text(item?.submittedBy?.name ?? task?.assignedTo?.name, "Assigned assistant"),
         mangakaNote: text(item?.reviewerNote ?? item?.resultText, "Mangaka approved; editor final check needed."),
         linkedCommentCount: 0,
         decisionActions: status === "EDITOR_APPROVED" ? [] : ["request-revision", "add-comment", "editor-approve"],
       } satisfies EditorSubmissionReviewItem
-    })
+    }))
   },
 
   getEditorComments: async () => {

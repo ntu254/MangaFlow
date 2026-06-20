@@ -247,6 +247,35 @@ Verify trước merge:
 
 ---
 
+## Phiên (2026-06-20) — MF-HIOS-106 mobile auth/session + Editor detail APIs
+
+Branch:
+- Tạo nhánh mới theo format hiện có: `codex/mf-hios-106-mobile-auth-editor-detail-apis`.
+
+Kiểm trước khi code:
+- Worktree sạch trên `dev`.
+- `auth/logout` đã tồn tại trong mobile nhưng chưa gửi `refreshToken` body nên backend logout route không revoke đúng refresh token.
+- API tiếp theo hợp scope mobile:
+  - `GET /api/auth/me`
+  - `POST /api/auth/logout`
+  - `GET /api/tasks/:taskId`
+  - `GET /api/chapters/:chapterId`
+- Không mở signed URL, payroll, Assistant/Admin, hoặc publication mark-ready/publish lane.
+
+Scope đã hoàn thiện:
+- `mobile/src/services/mobile-auth.ts`: sau login gọi `GET /api/auth/me` để verify/hydrate user; logout gửi `{ refreshToken }` body và vẫn clear mobile workflow token cache trong `finally`.
+- `mobile/src/domain/workflow.ts`: `EditorSubmissionReviewItem` thêm optional `chapterStatus`, `taskPriority`, `taskDueDate`.
+- `mobile/src/services/mobile-workflow-data-source.ts`: submission queue mapper enrich từng item bằng `GET /api/tasks/:taskId` và `GET /api/chapters/:chapterId`; detail API fail thì fallback item gốc, không làm rơi cả queue.
+- `mobile/src/screens/editor-screens.tsx`: final approval detail hiển thị `Task detail` và `Chapter detail` từ live detail APIs.
+- `mobile/src/__tests__/mobile-data.test.mjs`: guard `auth/me`, refresh-token logout body, task/chapter detail endpoints, và UI rows.
+
+Verify:
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run test` -> 22/22 pass.
+- `npm --prefix mobile run build` -> Expo web export pass.
+
+---
+
 ## Phiên (2026-06-20) — Board finalize decision slice cho mobile
 
 Kiểm trước khi code:

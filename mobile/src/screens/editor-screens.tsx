@@ -205,6 +205,8 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             { id: "assistant", title: "Assistant", subtitle: item.assistantName, value: "", tone: "primary" },
             { id: "note", title: "Mangaka approval note", subtitle: item.mangakaNote, value: "", tone: "success" },
             { id: "status", title: "Review status", subtitle: item.submissionStatus, value: "", tone: item.tone },
+            { id: "task-detail", title: "Task detail", subtitle: `Priority ${item.taskPriority ?? "n/a"} / due ${item.taskDueDate ?? "n/a"}`, value: item.taskStatus, tone: item.taskStatus === "EDITOR_APPROVED" ? "success" : "primary" },
+            { id: "chapter-detail", title: "Chapter detail", subtitle: item.subtitle, value: item.chapterStatus ?? "API", tone: item.chapterStatus === "READY_FOR_PUBLICATION" ? "success" : "neutral" },
             { id: "comments", title: "Linked comments", subtitle: "Resolve before publication readiness", value: String(item.linkedCommentCount), tone: item.linkedCommentCount > 0 ? "warning" : "success" },
           ]} />
           <EditorFinalApprovalDecisionPanel

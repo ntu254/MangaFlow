@@ -99,6 +99,9 @@ export interface EditorManuscriptReviewItem extends SeriesCard {
 export interface EditorSubmissionReviewItem extends SeriesCard {
   taskId?: string
   chapterId?: string
+  chapterStatus?: string
+  taskPriority?: string
+  taskDueDate?: string
   taskStatus: TaskStatus
   submissionStatus: SubmissionStatus
   assistantName: string
