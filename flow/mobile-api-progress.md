@@ -34,6 +34,7 @@ Mobile still must not own backend permissions, workflow transitions, readiness c
 - `GET /api/submissions/review-queue`
 - `GET /api/tasks/:taskId`
 - `GET /api/chapters/:chapterId`
+- `GET /api/chapters/:chapterId/pages`
 - `GET /api/comments/task/:taskId`
 - `GET /api/chapters/:chapterId/readiness`
 
@@ -50,12 +51,15 @@ Mobile still must not own backend permissions, workflow transitions, readiness c
 ### Editor
 
 - `POST /api/auth/logout`
+- `POST /api/editor/series/:seriesId/start-review`
 - `POST /api/editor/series/:seriesId/request-revision`
 - `POST /api/editor/series/:seriesId/reject`
 - `POST /api/editor/series/:seriesId/forward-to-board`
 - `POST /api/submissions/:submissionId/editor-approve`
 - `POST /api/submissions/:submissionId/request-revision`
+- `POST /api/comments`
 - `POST /api/comments/:commentId/resolve`
+- `POST /api/comments/:commentId/reopen`
 
 ### Board
 

@@ -162,6 +162,7 @@ export function EditorCommentsScreen() {
         <EditorCommentDetailPanel
           item={flow.selectedComment as EditorCommentItem}
           onResolve={flow.resolveSelectedComment}
+          onReopen={flow.reopenSelectedComment}
           busy={flow.actionBusy}
           errorText={flow.actionError}
         />
@@ -207,6 +208,7 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             { id: "status", title: "Review status", subtitle: item.submissionStatus, value: "", tone: item.tone },
             { id: "task-detail", title: "Task detail", subtitle: `Priority ${item.taskPriority ?? "n/a"} / due ${item.taskDueDate ?? "n/a"}`, value: item.taskStatus, tone: item.taskStatus === "EDITOR_APPROVED" ? "success" : "primary" },
             { id: "chapter-detail", title: "Chapter detail", subtitle: item.subtitle, value: item.chapterStatus ?? "API", tone: item.chapterStatus === "READY_FOR_PUBLICATION" ? "success" : "neutral" },
+            { id: "page-detail", title: "Page metadata", subtitle: "Read-only page list; mobile does not request signed file URLs.", value: item.pageCount === undefined ? "API" : String(item.pageCount), tone: "neutral" },
             { id: "comments", title: "Linked comments", subtitle: "Resolve before publication readiness", value: String(item.linkedCommentCount), tone: item.linkedCommentCount > 0 ? "warning" : "success" },
           ]} />
           <EditorFinalApprovalDecisionPanel

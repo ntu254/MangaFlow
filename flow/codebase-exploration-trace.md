@@ -220,6 +220,36 @@ Verify:
 
 ---
 
+## Phiên (2026-06-20) — MF-HIOS-107 mobile safe Editor API actions
+
+Branch:
+- Tạo nhánh mới theo format hiện có: `codex/mf-hios-107-mobile-safe-editor-api-actions`.
+
+Kiểm trước khi code:
+- Worktree sạch trên `dev`.
+- Chỉ nối nhóm API an toàn còn lại trong mobile Editor scope:
+  - `POST /api/editor/series/:seriesId/start-review`
+  - `POST /api/comments`
+  - `POST /api/comments/:commentId/reopen`
+  - `GET /api/chapters/:chapterId/pages`
+- Không gọi `GET /api/editor/series/:seriesId/review` ngầm vì service có side-effect start review khi manuscript đang `SUBMITTED`; thay bằng action explicit `Start review`.
+- Không mở signed URL/file download, payroll, Assistant/Admin, hoặc publication publish lane.
+
+Scope đã hoàn thiện:
+- `mobile/src/domain/workflow.ts`: thêm `start-review` vào `EditorProposalAction`; submission item giữ optional `seriesId/pageId/pageCount`.
+- `mobile/src/services/mobile-workflow-data-source.ts`: thêm `startEditorProposalReview`, `createEditorComment`, `reopenEditorComment`; enrich submission detail bằng page metadata `GET /chapters/:chapterId/pages`.
+- `mobile/src/hooks/use-editor-mobile-flow.ts`: `start-review` gọi live API; `add-comment` gọi live comment API khi có `seriesId/taskId`; thêm `reopenSelectedComment`.
+- `mobile/src/screens/editor-action-panels.tsx`: proposal panel có nút `Start review`; add-comment chuyển sang live endpoint + note input bắt buộc.
+- `mobile/src/screens/editor-panels.tsx` + `editor-screens.tsx`: comment detail hỗ trợ `Reopen comment`; final approval detail hiển thị `Page metadata`.
+- `mobile/src/__tests__/mobile-data.test.mjs`: guard start-review, add-comment, reopen, pages metadata, và copy boundary.
+
+Verify:
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run test` -> 22/22 pass.
+- `npm --prefix mobile run build` -> Expo web export pass.
+
+---
+
 ## Phiên (2026-06-20) — Mobile remaining Editor API wiring branch
 
 Branch:

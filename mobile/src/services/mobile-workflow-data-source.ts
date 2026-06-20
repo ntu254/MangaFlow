@@ -64,6 +64,16 @@ export interface EditorRejectInput {
   rejectReason: string
 }
 
+export interface EditorCreateCommentInput {
+  seriesId: string
+  chapterId?: string
+  pageId?: string
+  taskId?: string
+  submissionId?: string
+  body: string
+  isBlocking?: boolean
+}
+
 export interface BoardVoteInput {
   value: BoardVoteValue
   note?: string
@@ -85,12 +95,15 @@ export interface BoardAtRiskDecisionInput {
 }
 
 export interface MobileWorkflowDataSource {
+  startEditorProposalReview(seriesId: string): Promise<void>
   requestEditorProposalRevision(seriesId: string, input: EditorProposalRevisionInput): Promise<void>
   rejectEditorProposal(seriesId: string, input: EditorRejectInput): Promise<void>
   forwardEditorProposalToBoard(seriesId: string, input: EditorForwardInput): Promise<void>
   requestEditorSubmissionRevision(submissionId: string, reviewerNote: string): Promise<void>
   editorApproveSubmission(submissionId: string, reviewerNote: string): Promise<void>
+  createEditorComment(input: EditorCreateCommentInput): Promise<void>
   resolveEditorComment(commentId: string): Promise<void>
+  reopenEditorComment(commentId: string): Promise<void>
   castBoardVote(seriesId: string, input: BoardVoteInput): Promise<void>
   finalizeBoardDecision(seriesId: string, input: BoardFinalizeDecisionInput): Promise<void>
   tieBreakBoardDecision(seriesId: string, input: BoardTieBreakInput): Promise<void>
@@ -147,6 +160,12 @@ function asArray<T>(value: unknown): T[] {
 
 function itemId(value: any, fallback: string): string {
   return String(value?.id ?? value?._id ?? fallback)
+}
+
+function maybeId(value: any): string | undefined {
+  if (typeof value === "string" && value.trim()) return value
+  const id = value?.id ?? value?._id
+  return typeof id === "string" && id.trim() ? id : undefined
 }
 
 function text(value: unknown, fallback = "Unknown"): string {
@@ -276,12 +295,15 @@ async function getToken(role: MobileApiRole): Promise<string> {
 function fallbackDataSource(primary: MobileWorkflowDataSource, fallback: MobileWorkflowDataSource): MobileWorkflowDataSource {
   return {
     // Mutations call the live endpoint directly and surface real errors; no silent mock fallback.
+    startEditorProposalReview: (seriesId) => primary.startEditorProposalReview(seriesId),
     requestEditorProposalRevision: (seriesId, input) => primary.requestEditorProposalRevision(seriesId, input),
     rejectEditorProposal: (seriesId, input) => primary.rejectEditorProposal(seriesId, input),
     forwardEditorProposalToBoard: (seriesId, input) => primary.forwardEditorProposalToBoard(seriesId, input),
     requestEditorSubmissionRevision: (submissionId, note) => primary.requestEditorSubmissionRevision(submissionId, note),
     editorApproveSubmission: (submissionId, note) => primary.editorApproveSubmission(submissionId, note),
+    createEditorComment: (input) => primary.createEditorComment(input),
     resolveEditorComment: (commentId) => primary.resolveEditorComment(commentId),
+    reopenEditorComment: (commentId) => primary.reopenEditorComment(commentId),
     castBoardVote: (seriesId, input) => primary.castBoardVote(seriesId, input),
     finalizeBoardDecision: (seriesId, input) => primary.finalizeBoardDecision(seriesId, input),
     tieBreakBoardDecision: (seriesId, input) => primary.tieBreakBoardDecision(seriesId, input),
@@ -301,12 +323,15 @@ function fallbackDataSource(primary: MobileWorkflowDataSource, fallback: MobileW
 }
 
 export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
+  startEditorProposalReview: async () => undefined,
   requestEditorProposalRevision: async () => undefined,
   rejectEditorProposal: async () => undefined,
   forwardEditorProposalToBoard: async () => undefined,
   requestEditorSubmissionRevision: async () => undefined,
   editorApproveSubmission: async () => undefined,
+  createEditorComment: async () => undefined,
   resolveEditorComment: async () => undefined,
+  reopenEditorComment: async () => undefined,
   castBoardVote: async () => undefined,
   finalizeBoardDecision: async () => undefined,
   tieBreakBoardDecision: async () => undefined,
@@ -325,6 +350,10 @@ export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
 }
 
 export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
+  startEditorProposalReview: async (seriesId) => {
+    await apiMutate(`/editor/series/${seriesId}/start-review`, "editor", {})
+  },
+
   requestEditorProposalRevision: async (seriesId, input) => {
     await apiMutate(`/editor/series/${seriesId}/request-revision`, "editor", {
       revisionReason: input.revisionReason,
@@ -354,8 +383,24 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
     await apiMutate(`/submissions/${submissionId}/editor-approve`, "editor", { reviewerNote })
   },
 
+  createEditorComment: async (input) => {
+    await apiMutate("/comments", "editor", {
+      seriesId: input.seriesId,
+      chapterId: input.chapterId,
+      pageId: input.pageId,
+      taskId: input.taskId,
+      submissionId: input.submissionId,
+      body: input.body,
+      isBlocking: input.isBlocking ?? true,
+    })
+  },
+
   resolveEditorComment: async (commentId) => {
     await apiMutate(`/comments/${commentId}/resolve`, "editor", {})
+  },
+
+  reopenEditorComment: async (commentId) => {
+    await apiMutate(`/comments/${commentId}/reopen`, "editor", {})
   },
 
   castBoardVote: async (seriesId, input) => {
@@ -447,7 +492,7 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         seriesStatus: status === "REVISION_REQUESTED" ? "REVISION_REQUESTED" : "EDITOR_REVIEW",
         version: String(manuscript?.version ?? 1),
         editorRecommendation: text(manuscript?.editorRecommendation ?? series?.synopsis, "Review proposal before forwarding to Board."),
-        decisionActions: ["request-revision", "reject", "forward-to-board"],
+        decisionActions: ["start-review", "request-revision", "reject", "forward-to-board"],
       } satisfies EditorManuscriptReviewItem
     })
   },
@@ -459,15 +504,20 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
       const chapter = task?.chapterId ?? item?.chapterId ?? {}
       const taskId = typeof task === "string" ? task : itemId(task, "")
       const chapterId = typeof chapter === "string" ? chapter : itemId(chapter, "")
-      const [taskDetail, chapterDetail] = await Promise.all([
+      const [taskDetail, chapterDetail, pageItems] = await Promise.all([
         taskId ? apiRequest<any>(`/tasks/${taskId}`, "editor").catch(() => task) : Promise.resolve(task),
         chapterId ? apiRequest<any>(`/chapters/${chapterId}`, "editor").catch(() => chapter) : Promise.resolve(chapter),
+        chapterId ? apiRequest<any[]>(`/chapters/${chapterId}/pages`, "editor").catch(() => []) : Promise.resolve([]),
       ])
+      const firstPage = asArray<any>(pageItems)[0]
       const status = text(item?.status, "MANGAKA_APPROVED")
       return {
         id: itemId(item, `editor-submission-${index}`),
+        seriesId: maybeId(taskDetail?.seriesId) ?? maybeId(task?.seriesId) ?? maybeId(chapterDetail?.seriesId),
         taskId,
         chapterId,
+        pageId: maybeId(taskDetail?.pageId) ?? maybeId(firstPage),
+        pageCount: asArray<any>(pageItems).length,
         chapterStatus: text(chapterDetail?.status, ""),
         taskPriority: text(taskDetail?.priority, ""),
         taskDueDate: text(taskDetail?.dueDate, ""),

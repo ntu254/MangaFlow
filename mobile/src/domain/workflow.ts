@@ -84,7 +84,7 @@ export type RankingStatus = "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "W
 
 export type AtRiskDecision = "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL"
 
-export type EditorProposalAction = "request-revision" | "reject" | "forward-to-board"
+export type EditorProposalAction = "start-review" | "request-revision" | "reject" | "forward-to-board"
 
 export type EditorFinalApprovalAction = "request-revision" | "add-comment" | "editor-approve"
 
@@ -97,8 +97,11 @@ export interface EditorManuscriptReviewItem extends SeriesCard {
 }
 
 export interface EditorSubmissionReviewItem extends SeriesCard {
+  seriesId?: string
   taskId?: string
   chapterId?: string
+  pageId?: string
+  pageCount?: number
   chapterStatus?: string
   taskPriority?: string
   taskDueDate?: string

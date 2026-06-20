@@ -12,15 +12,18 @@ import { colors, spacing } from "@/design/tokens"
 export function EditorCommentDetailPanel({
   item,
   onResolve,
+  onReopen,
   busy = false,
   errorText,
 }: {
   item: EditorCommentItem
   onResolve?: () => void
+  onReopen?: () => void
   busy?: boolean
   errorText?: string | null
 }) {
-  const canResolve = item.canonicalStatus !== "RESOLVED_BY_EDITOR"
+  const canResolve = item.canonicalStatus === "VERIFIED_BY_MANGAKA"
+  const canReopen = item.canonicalStatus === "FIXED_BY_ASSISTANT" || item.canonicalStatus === "VERIFIED_BY_MANGAKA"
 
   return (
     <>
@@ -39,6 +42,9 @@ export function EditorCommentDetailPanel({
       ]} />
       {canResolve && onResolve ? (
         <MFButton tone="success" variant="soft" onPress={onResolve} disabled={busy}>{busy ? "Resolving..." : "Resolve comment"}</MFButton>
+      ) : null}
+      {canReopen && onReopen ? (
+        <MFButton tone="warning" variant="soft" onPress={onReopen} disabled={busy}>{busy ? "Reopening..." : "Reopen comment"}</MFButton>
       ) : null}
       {errorText ? <Text style={{ color: colors.danger, fontSize: 12, marginTop: spacing.xs }}>{errorText}</Text> : null}
     </>

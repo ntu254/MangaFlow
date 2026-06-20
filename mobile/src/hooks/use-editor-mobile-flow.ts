@@ -97,7 +97,9 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     setActionBusy(true)
     setActionError(null)
     try {
-      if (action === "request-revision") {
+      if (action === "start-review") {
+        await dataSource.startEditorProposalReview(target.id)
+      } else if (action === "request-revision") {
         await dataSource.requestEditorProposalRevision(target.id, { revisionReason: note, feedbackSummary: note })
       } else if (action === "reject") {
         await dataSource.rejectEditorProposal(target.id, { rejectReason: note })
@@ -137,16 +139,13 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     const target = selectedSubmission
     if (!action || !target) return
 
-    // add-comment needs series/chapter/page/task ids the mobile flow does not hold yet; keep it local.
-    if (action === "add-comment") {
-      setLastMockAction(`Add comment stays local for ${target.title}; comment endpoint needs full page/task context.`)
-      setPendingFinalApprovalAction(null)
+    const note = finalApprovalNote.trim()
+    if ((action === "request-revision" || action === "add-comment") && !note) {
+      setActionError(action === "add-comment" ? "Please enter the comment body before submitting." : "Please enter a reviewer note before requesting revision.")
       return
     }
-
-    const note = finalApprovalNote.trim()
-    if (action === "request-revision" && !note) {
-      setActionError("Please enter a reviewer note before requesting revision.")
+    if (action === "add-comment" && (!target.seriesId || !target.taskId)) {
+      setActionError("This submission is missing series/task context for the comment API.")
       return
     }
 
@@ -155,6 +154,16 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     try {
       if (action === "request-revision") {
         await dataSource.requestEditorSubmissionRevision(target.id, note)
+      } else if (action === "add-comment") {
+        await dataSource.createEditorComment({
+          seriesId: target.seriesId as string,
+          chapterId: target.chapterId,
+          pageId: target.pageId,
+          taskId: target.taskId,
+          submissionId: target.id,
+          body: note,
+          isBlocking: true,
+        })
       } else {
         await dataSource.editorApproveSubmission(target.id, note || "Approved for production.")
       }
@@ -186,6 +195,23 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     }
   }
 
+  async function reopenSelectedComment() {
+    const target = selectedComment
+    if (!target) return
+
+    setActionBusy(true)
+    setActionError(null)
+    try {
+      await dataSource.reopenEditorComment(target.id)
+      setLastMockAction(`Comment reopened through live API for ${target.title}.`)
+      await reload()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not reopen the selected comment.")
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
   return {
     home,
     manuscriptItems,
@@ -211,6 +237,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     confirmFinalApprovalAction,
     cancelFinalApprovalAction,
     resolveSelectedComment,
+    reopenSelectedComment,
     proposalNote,
     setProposalNote,
     finalApprovalNote,

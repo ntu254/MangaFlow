@@ -35,6 +35,7 @@ export function EditorProposalDecisionPanel({
         </View>
         <Text style={styles.body}>{item.editorRecommendation}</Text>
         <Text style={styles.muted}>Version {item.version}. Editor decisions call the live Series review API and remain backend-authorized.</Text>
+        <MFButton tone="primary" variant="soft" style={styles.actionButtonFull} onPress={() => onStartAction("start-review")}>Start review</MFButton>
         <View style={styles.buttonRow}>
           <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("request-revision")}>Request revision</MFButton>
           <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("reject")}>Reject</MFButton>
@@ -84,7 +85,7 @@ export function EditorFinalApprovalDecisionPanel({
   busy?: boolean
   errorText?: string | null
 }) {
-  const isLiveAction = pendingAction === "request-revision" || pendingAction === "editor-approve"
+  const isLiveAction = pendingAction === "request-revision" || pendingAction === "add-comment" || pendingAction === "editor-approve"
 
   return (
     <>
@@ -102,18 +103,18 @@ export function EditorFinalApprovalDecisionPanel({
         <MFConfirmationPanel
           title={finalApprovalActionTitle(pendingAction)}
           body={`${finalApprovalActionLabel(pendingAction)} for ${item.title}. Editor final approval remains separate from proposal review.`}
-          confirmLabel={isLiveAction ? "Submit review action" : "Keep local note"}
+          confirmLabel="Submit review action"
           tone={finalApprovalActionTone(pendingAction)}
           endpointHint={finalApprovalActionEndpoint(pendingAction)}
           onConfirm={onConfirm}
           onCancel={onCancel}
-          noteValue={isLiveAction ? noteValue : undefined}
-          onChangeNote={isLiveAction ? onChangeNote : undefined}
-          noteLabel={isLiveAction ? finalApprovalActionNoteLabel(pendingAction) : undefined}
-          notePlaceholder={isLiveAction ? finalApprovalActionNotePlaceholder(pendingAction) : undefined}
+          noteValue={noteValue}
+          onChangeNote={onChangeNote}
+          noteLabel={finalApprovalActionNoteLabel(pendingAction)}
+          notePlaceholder={finalApprovalActionNotePlaceholder(pendingAction)}
           errorText={errorText}
           busy={busy}
-          confirmDisabled={pendingAction === "request-revision" && noteValue.trim().length === 0}
+          confirmDisabled={(pendingAction === "request-revision" || pendingAction === "add-comment") && noteValue.trim().length === 0}
         />
       ) : null}
     </>
@@ -121,42 +122,49 @@ export function EditorFinalApprovalDecisionPanel({
 }
 
 function proposalActionTitle(action: EditorProposalAction) {
+  if (action === "start-review") return "Start proposal review"
   if (action === "forward-to-board") return "Forward proposal to Board"
   if (action === "reject") return "Reject proposal"
   return "Request proposal revision"
 }
 
 function proposalActionLabel(action: EditorProposalAction) {
+  if (action === "start-review") return "Start live Editor review"
   if (action === "forward-to-board") return "Forward this proposal to Board review"
   if (action === "reject") return "Reject this proposal"
   return "Request a proposal revision"
 }
 
 function proposalActionConfirmLabel(action: EditorProposalAction) {
+  if (action === "start-review") return "Start review"
   if (action === "forward-to-board") return "Forward to Board"
   if (action === "reject") return "Reject proposal"
   return "Request revision"
 }
 
 function proposalActionTone(action: EditorProposalAction): Tone {
+  if (action === "start-review") return "primary"
   if (action === "forward-to-board") return "success"
   if (action === "reject") return "danger"
   return "warning"
 }
 
 function proposalActionEndpoint(action: EditorProposalAction) {
+  if (action === "start-review") return "Live endpoint: POST /api/editor/series/:seriesId/start-review"
   if (action === "forward-to-board") return "Live endpoint: POST /api/editor/series/:seriesId/forward-to-board"
   if (action === "reject") return "Live endpoint: POST /api/editor/series/:seriesId/reject"
   return "Live endpoint: POST /api/editor/series/:seriesId/request-revision"
 }
 
 function proposalActionNoteLabel(action: EditorProposalAction) {
+  if (action === "start-review") return "Review note"
   if (action === "forward-to-board") return "Recommendation note"
   if (action === "reject") return "Reject reason"
   return "Revision feedback"
 }
 
 function proposalActionNotePlaceholder(action: EditorProposalAction) {
+  if (action === "start-review") return "Optional note before opening the live review context."
   if (action === "forward-to-board") return "Add a Board-facing recommendation or leave blank to use the existing editor recommendation."
   if (action === "reject") return "Explain why this proposal should not continue."
   return "Describe what the mangaka needs to revise before resubmission."
@@ -170,7 +178,7 @@ function finalApprovalActionTitle(action: EditorFinalApprovalAction) {
 
 function finalApprovalActionLabel(action: EditorFinalApprovalAction) {
   if (action === "editor-approve") return "Final approve this submission"
-  if (action === "add-comment") return "Keep an editor comment locally"
+  if (action === "add-comment") return "Add an editor comment to this task"
   return "Request a production revision"
 }
 
@@ -182,17 +190,19 @@ function finalApprovalActionTone(action: EditorFinalApprovalAction): Tone {
 
 function finalApprovalActionEndpoint(action: EditorFinalApprovalAction) {
   if (action === "editor-approve") return "Live endpoint: POST /api/submissions/:submissionId/editor-approve"
-  if (action === "add-comment") return "Local only: comment API needs page/task context before mobile can call it"
+  if (action === "add-comment") return "Live endpoint: POST /api/comments"
   return "Live endpoint: POST /api/submissions/:submissionId/request-revision"
 }
 
 function finalApprovalActionNoteLabel(action: EditorFinalApprovalAction) {
   if (action === "editor-approve") return "Approval note"
+  if (action === "add-comment") return "Comment body"
   return "Revision feedback"
 }
 
 function finalApprovalActionNotePlaceholder(action: EditorFinalApprovalAction) {
   if (action === "editor-approve") return "Optional note for the final approval record."
+  if (action === "add-comment") return "Describe the production issue. Mobile submits it as a blocking editor comment."
   return "Explain what the assistant needs to fix before resubmission."
 }
 
