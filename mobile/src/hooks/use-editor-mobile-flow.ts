@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { editorHome, editorReadinessResult, finalApprovals, manuscripts, productionComments } from "@/data/editor"
 import type { EditorFinalApprovalAction, EditorProposalAction } from "@/domain/workflow"
-import { mockMobileWorkflowDataSource, type EditorCommentsPayload, type EditorHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
+import { mobileWorkflowDataSource, type EditorCommentsPayload, type EditorHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
 
-export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mockMobileWorkflowDataSource) {
+export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource) {
   const [home, setHome] = useState<EditorHomePayload>(editorHome)
   const [manuscriptItems, setManuscriptItems] = useState(manuscripts)
   const [submissionItems, setSubmissionItems] = useState(finalApprovals)

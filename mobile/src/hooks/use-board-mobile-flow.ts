@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { atRiskTitles, boardDecisionHistory, boardHome, boardRankings, boardSeries } from "@/data/board"
 import type { AtRiskDecision, BoardVoteValue } from "@/domain/workflow"
-import { mockMobileWorkflowDataSource, type BoardHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
+import { mobileWorkflowDataSource, type BoardHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
 
-export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mockMobileWorkflowDataSource) {
+export function useBoardMobileFlow(dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource) {
   const [home, setHome] = useState<BoardHomePayload>(boardHome)
   const [seriesReviews, setSeriesReviews] = useState(boardSeries)
   const [tieBreaks, setTieBreaks] = useState(boardSeries.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED"))
