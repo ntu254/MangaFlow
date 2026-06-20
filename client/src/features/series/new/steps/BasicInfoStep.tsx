@@ -6,15 +6,21 @@ import { ChipInput } from "@/components/forms/ChipInput";
 import { FileDropzone } from "@/components/upload/FileDropzone";
 import type { ManuscriptFile } from "@/shared/api/manuscripts";
 import { useUploadManuscript, useDeleteManuscript } from "@/shared/queries/useManuscripts";
-import {
-  TARGET_AUDIENCES,
-  type ProposalFormValues,
-  type TargetAudience,
-} from "../schema";
+import { TARGET_AUDIENCES, type ProposalFormValues, type TargetAudience } from "../schema";
 
 const GENRE_SUGGESTIONS = [
-  "Action", "Adventure", "Romance", "Mystery", "Slice of Life",
-  "Fantasy", "Sci-Fi", "Horror", "Sports", "Comedy", "Drama", "Thriller",
+  "Action",
+  "Adventure",
+  "Romance",
+  "Mystery",
+  "Slice of Life",
+  "Fantasy",
+  "Sci-Fi",
+  "Horror",
+  "Sports",
+  "Comedy",
+  "Drama",
+  "Thriller",
 ];
 
 interface Props {
@@ -34,13 +40,7 @@ interface InFlight {
   progress: number;
 }
 
-export function BasicInfoStep({
-  seriesId,
-  ensureDraft,
-  manuscripts,
-  onAdd,
-  onRemove,
-}: Props) {
+export function BasicInfoStep({ seriesId, ensureDraft, manuscripts, onAdd, onRemove }: Props) {
   const {
     register,
     control,
@@ -70,7 +70,14 @@ export function BasicInfoStep({
         const localId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
         setInflight((p) => [
           ...p,
-          { id: localId, name: file.name, size: file.size, type: file.type, category: "COVER_DRAFT", progress: 0 },
+          {
+            id: localId,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            category: "COVER_DRAFT",
+            progress: 0,
+          },
         ]);
         try {
           const uploaded = await upload.mutateAsync({
@@ -79,7 +86,11 @@ export function BasicInfoStep({
             onProgress: (pct) =>
               setInflight((p) => p.map((f) => (f.id === localId ? { ...f, progress: pct } : f))),
           });
-          onAdd({ ...uploaded, category: "COVER_DRAFT", url: uploaded.url || URL.createObjectURL(file) });
+          onAdd({
+            ...uploaded,
+            category: "COVER_DRAFT",
+            url: uploaded.url || URL.createObjectURL(file),
+          });
         } catch {
           // toast handled
         } finally {
@@ -87,7 +98,7 @@ export function BasicInfoStep({
         }
       }
     },
-    [titlePresent, seriesId, ensureDraft, upload, onAdd]
+    [titlePresent, seriesId, ensureDraft, upload, onAdd],
   );
 
   const handleRemove = useCallback(
@@ -98,14 +109,18 @@ export function BasicInfoStep({
       }
       try {
         await remove.mutateAsync({ seriesId, fileId: id });
-      } catch { }
+      } catch {}
       onRemove(id);
     },
-    [seriesId, remove, onRemove]
+    [seriesId, remove, onRemove],
   );
 
-  const doneFiles = manuscripts.filter((m) => m.category === "COVER_DRAFT").map((m) => ({ id: m.id, name: m.name, size: m.size, type: m.type, url: m.url }));
-  const activeFiles = inflight.filter((f) => f.category === "COVER_DRAFT").map((f) => ({ id: f.id, name: f.name, size: f.size, type: f.type, progress: f.progress }));
+  const doneFiles = manuscripts
+    .filter((m) => m.category === "COVER_DRAFT")
+    .map((m) => ({ id: m.id, name: m.name, size: m.size, type: m.type, url: m.url }));
+  const activeFiles = inflight
+    .filter((f) => f.category === "COVER_DRAFT")
+    .map((f) => ({ id: f.id, name: f.name, size: f.size, type: f.type, progress: f.progress }));
   const coverDrafts = [...doneFiles, ...activeFiles];
 
   return (
@@ -153,7 +168,6 @@ export function BasicInfoStep({
 
           {/* Column 2: Audience & Cadence */}
           <div className="flex flex-col space-y-4">
-
             <Field
               label="Preferred publication cadence"
               hint="The Editorial Board decides the final cadence."
@@ -187,15 +201,8 @@ export function BasicInfoStep({
               />
             </Field>
 
-            <Field
-              label="Target audience"
-              required
-              error={errors.targetAudience?.message}
-            >
-              <select
-                {...register("targetAudience")}
-                className={inputCls(!!errors.targetAudience)}
-              >
+            <Field label="Target audience" required error={errors.targetAudience?.message}>
+              <select {...register("targetAudience")} className={inputCls(!!errors.targetAudience)}>
                 {TARGET_AUDIENCES.map((a: TargetAudience) => (
                   <option key={a} value={a}>
                     {a}
@@ -203,17 +210,10 @@ export function BasicInfoStep({
                 ))}
               </select>
             </Field>
-
-
           </div>
         </div>
 
-        <Field
-          label="Genres"
-          required
-          hint="At least 1, up to 10."
-          error={errors.genres?.message}
-        >
+        <Field label="Genres" required hint="At least 1, up to 10." error={errors.genres?.message}>
           <Controller
             control={control}
             name="genres"
@@ -256,18 +256,12 @@ export function Field({
         <span className="text-[12px] font-medium text-foreground/75">
           {label} {required && <span className="text-destructive">*</span>}
         </span>
-        {counter && (
-          <span className="text-[11px] text-foreground/40">{counter}</span>
-        )}
+        {counter && <span className="text-[11px] text-foreground/40">{counter}</span>}
       </div>
       {children}
       <div className="mt-1 flex items-center justify-between gap-2">
-        {hint && !error && (
-          <span className="text-[11px] text-foreground/45">{hint}</span>
-        )}
-        {error && (
-          <span className="text-[11px] text-destructive">{error}</span>
-        )}
+        {hint && !error && <span className="text-[11px] text-foreground/45">{hint}</span>}
+        {error && <span className="text-[11px] text-destructive">{error}</span>}
       </div>
     </label>
   );

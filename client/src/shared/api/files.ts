@@ -12,7 +12,7 @@ export const filesApi = {
       original: any;
       working: any;
       thumbnail: any;
-    }
+    },
   ) => {
     const res = await api.post(`/files/pages/${pageId}/confirm-upload`, payload);
     return res.data;
@@ -22,6 +22,4 @@ export const filesApi = {
     const res = await api.get(`/files/${fileAssetId}/presigned-download`);
     return res.data;
   },
-
-
 };

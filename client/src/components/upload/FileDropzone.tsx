@@ -105,7 +105,9 @@ export function FileDropzone({
         tabIndex={0}
         aria-disabled={disabled}
         className={[
-          compact ? "flex flex-row items-center justify-center gap-3 rounded-lg border border-dashed py-3 px-4 transition-colors text-center" : "flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-8 text-center transition-colors",
+          compact
+            ? "flex flex-row items-center justify-center gap-3 rounded-lg border border-dashed py-3 px-4 transition-colors text-center"
+            : "flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-8 text-center transition-colors",
           disabled
             ? "cursor-not-allowed border-foreground/10 bg-foreground/[0.02] opacity-60"
             : isOver
@@ -113,23 +115,28 @@ export function FileDropzone({
               : "cursor-pointer border-foreground/15 bg-foreground/[0.02] hover:border-foreground/30 hover:bg-foreground/5",
         ].join(" ")}
       >
-        <div className={[
-          "flex items-center justify-center rounded-full bg-foreground/5",
-          compact ? "h-8 w-8" : "h-10 w-10"
-        ].join(" ")}>
-          <Upload className={[
-            "text-foreground/60",
-            compact ? "h-4 w-4" : "h-5 w-5"
-          ].join(" ")} />
+        <div
+          className={[
+            "flex items-center justify-center rounded-full bg-foreground/5",
+            compact ? "h-8 w-8" : "h-10 w-10",
+          ].join(" ")}
+        >
+          <Upload className={["text-foreground/60", compact ? "h-4 w-4" : "h-5 w-5"].join(" ")} />
         </div>
         <div className={compact ? "flex flex-col items-start" : ""}>
-          <div className={[
-            "font-medium",
-            compact ? "text-[12px] text-primary" : "text-[13px] text-foreground/80"
-          ].join(" ")}>
-            {disabled ? disabledReason ?? "Upload disabled" : "Click to upload or drag and drop"}
+          <div
+            className={[
+              "font-medium",
+              compact ? "text-[12px] text-primary" : "text-[13px] text-foreground/80",
+            ].join(" ")}
+          >
+            {disabled ? (disabledReason ?? "Upload disabled") : "Click to upload or drag and drop"}
           </div>
-          <div className={compact ? "text-[10px] text-foreground/50" : "text-[11px] text-foreground/50"}>
+          <div
+            className={
+              compact ? "text-[10px] text-foreground/50" : "text-[11px] text-foreground/50"
+            }
+          >
             {hint ?? `Supported: ${accept.replaceAll(",", ", ")} · up to ${maxSizeMb}MB each`}
           </div>
         </div>
@@ -167,9 +174,7 @@ export function FileDropzone({
                 <FileText className="h-4 w-4 text-foreground/60" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-medium text-foreground/90">
-                  {f.name}
-                </div>
+                <div className="truncate text-[13px] font-medium text-foreground/90">{f.name}</div>
                 <div className="flex items-center gap-2 text-[11px] text-foreground/50">
                   <span>{formatBytes(f.size)}</span>
                   {f.error && <span className="text-destructive">{f.error}</span>}

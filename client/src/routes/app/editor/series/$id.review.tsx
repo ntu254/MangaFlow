@@ -85,7 +85,9 @@ function EditorReviewDetail() {
           <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
             <div>
               <dt className="text-foreground/55">Requested cadence</dt>
-              <dd className="font-medium capitalize">{proposal?.requestedPublicationType ?? "—"}</dd>
+              <dd className="font-medium capitalize">
+                {proposal?.requestedPublicationType ?? "—"}
+              </dd>
             </div>
             <div>
               <dt className="text-foreground/55">Genre</dt>
@@ -148,7 +150,11 @@ function EditorReviewDetail() {
                     : "border border-foreground/15 hover:bg-foreground/5"
                 }`}
               >
-                {d === "forward" ? "Forward to Board" : d === "revision" ? "Request revision" : "Reject"}
+                {d === "forward"
+                  ? "Forward to Board"
+                  : d === "revision"
+                    ? "Request revision"
+                    : "Reject"}
               </button>
             ))}
           </div>

@@ -27,9 +27,14 @@ function PageStudio() {
   const { seriesId } = Route.useSearch();
   const [showShortcuts, setShowShortcuts] = useState(false);
 
-  const { viewport, showRegions, setShowRegions, compareOriginal, setCompareOriginal } = useStudioStore();
+  const { viewport, showRegions, setShowRegions, compareOriginal, setCompareOriginal } =
+    useStudioStore();
 
-  const { data: studioData, isLoading: isLoadingStudio, error: studioError } = usePageStudio(pageId);
+  const {
+    data: studioData,
+    isLoading: isLoadingStudio,
+    error: studioError,
+  } = usePageStudio(pageId);
 
   // We only fetch the download URLs if the assets exist.
   const workingFileAssetId = studioData?.workingFileAsset?._id || studioData?.workingFileAsset;
@@ -43,7 +48,9 @@ function PageStudio() {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground/50">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        <span className="text-sm font-semibold tracking-wide uppercase">Loading Page Studio...</span>
+        <span className="text-sm font-semibold tracking-wide uppercase">
+          Loading Page Studio...
+        </span>
       </div>
     );
   }
@@ -63,7 +70,9 @@ function PageStudio() {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-6 text-sm text-rose-400">
-          {(studioError as any)?.response?.data?.message || studioError.message || "Failed to load Page Studio."}
+          {(studioError as any)?.response?.data?.message ||
+            studioError.message ||
+            "Failed to load Page Studio."}
         </div>
       </div>
     );
@@ -201,9 +210,7 @@ function PageStudio() {
             <PageStudioCanvas
               regions={regions}
               pageId={pageId}
-              onSelectRegion={(id) =>
-                useStudioStore.getState().setSelectedRegionId(id)
-              }
+              onSelectRegion={(id) => useStudioStore.getState().setSelectedRegionId(id)}
               workingImageUrl={workingUrlData?.url}
               originalImageUrl={originalUrlData?.url}
             />
@@ -212,8 +219,7 @@ function PageStudio() {
           {/* Bottom status bar */}
           <div className="flex h-7 shrink-0 items-center gap-4 border-t border-border bg-background px-4 text-[10px] text-foreground/35 font-mono">
             <span>
-              Zoom:{" "}
-              <span className="text-foreground/60">{zoomPct}%</span>
+              Zoom: <span className="text-foreground/60">{zoomPct}%</span>
             </span>
             <span className="h-3 w-px bg-border" />
             <span>
@@ -237,7 +243,7 @@ function PageStudio() {
               </span>
             </span>
             <span className="h-3 w-px bg-border" />
-            
+
             {/* Toggles */}
             <div className="flex items-center gap-2">
               <button
@@ -270,11 +276,7 @@ function PageStudio() {
         </div>
 
         {/* Right Tabbed Drawer */}
-        <InspectorDrawer
-          regions={regions}
-          results={aiResults}
-          pageId={pageId}
-        />
+        <InspectorDrawer regions={regions} results={aiResults} pageId={pageId} />
       </div>
     </div>
   );

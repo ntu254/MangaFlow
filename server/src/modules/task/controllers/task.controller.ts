@@ -5,6 +5,7 @@ import {
   listTasksBySeriesService,
   listTasksByChapterService,
   listTasksByAssigneeService,
+  listMyTasksService,
   updateTaskStatusService,
   updateTaskPriorityService,
   updateTaskDueDateService,
@@ -49,6 +50,11 @@ export async function listTasksByChapter(req: Request, res: Response, _next: Nex
 
 export async function listTasksByAssignee(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const tasks = await listTasksByAssigneeService(req.params.assigneeId as string, req.user!)
+  res.json({ success: true, message: "Tasks retrieved successfully", data: tasks })
+}
+
+export async function listMyTasks(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const tasks = await listMyTasksService(req.user!)
   res.json({ success: true, message: "Tasks retrieved successfully", data: tasks })
 }
 

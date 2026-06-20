@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const seriesCreate = vi.fn()
 const seriesFindById = vi.fn()
@@ -146,7 +146,7 @@ describe("series read access", () => {
   })
 
   it("blocks non-owner Mangaka from Series detail", async () => {
-    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1", status: "DRAFT" })
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1", slug: "moon-ink", status: "DRAFT" })
 
     await expect(getSeriesDetailService("series-1", "intruder", "MANGAKA")).rejects.toMatchObject({
       message: "Series access denied",
@@ -162,7 +162,8 @@ describe("createManuscriptUploadService", () => {
   })
 
   it("creates a signed manuscript upload URL for the owning Mangaka", async () => {
-    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1", status: "DRAFT" })
+    seriesFindById.mockResolvedValue({ id: "series-1", ownerId: "owner-1", slug: "moon-ink", status: "DRAFT" })
+    manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(null) })
     createPresignedUploadUrl.mockResolvedValue({
       uploadUrl: "https://signed.example/upload",
       fileAssetId: "ignored-external-id",
@@ -180,20 +181,20 @@ describe("createManuscriptUploadService", () => {
       size: 1024,
     })
 
-    expect(createPresignedUploadUrl).toHaveBeenCalledWith("draft.pdf", "application/pdf", undefined)
+    expect(createPresignedUploadUrl).toHaveBeenCalledWith("draft.pdf", "application/pdf", undefined, expect.any(String))
     expect(fileAssetCreate).toHaveBeenCalledWith(expect.objectContaining({
       originalName: "draft.pdf",
       mimeType: "application/pdf",
       r2Key: "uploads/file.pdf",
       uploadedBy: "owner-1",
     }))
-    expect(manuscriptCreate).toHaveBeenCalledWith({
+    expect(manuscriptCreate).toHaveBeenCalledWith(expect.objectContaining({
       seriesId: "series-1",
       uploadedBy: "owner-1",
       version: 1,
       status: "DRAFT",
       fileAssetId: "file-1",
-    })
+    }))
     expect(result).toMatchObject({ uploadUrl: "https://signed.example/upload", fileAssetId: "file-1", manuscriptId: "manuscript-1" })
   })
 

@@ -48,6 +48,10 @@ export async function listTasksBySeries(seriesId: string, filters?: { status?: s
   return Task.find(query).sort({ createdAt: -1 }).populate("taskTypeId").lean()
 }
 
+export async function listTasksBySeriesIds(seriesIds: string[]): Promise<any[]> {
+  return Task.find({ seriesId: { $in: seriesIds } }).sort({ createdAt: -1 }).populate("taskTypeId").lean()
+}
+
 export async function listTasksByChapter(chapterId: string): Promise<any[]> {
   return Task.find({ chapterId }).sort({ createdAt: -1 }).populate("taskTypeId").lean()
 }

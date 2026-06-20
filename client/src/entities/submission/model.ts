@@ -164,9 +164,7 @@ export const submissions: Submission[] = [
 ];
 
 export const submissionsByTask = (taskId: string) =>
-  submissions
-    .filter((s) => s.taskId === taskId)
-    .sort((a, b) => a.version - b.version);
+  submissions.filter((s) => s.taskId === taskId).sort((a, b) => a.version - b.version);
 
 export const latestSubmission = (taskId: string) => {
   const all = submissionsByTask(taskId);

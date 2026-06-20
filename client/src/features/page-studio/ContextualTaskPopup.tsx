@@ -18,18 +18,12 @@ export function ContextualTaskPopup({ region, onClose }: Props) {
 
   // Form states
   const [regionType, setRegionType] = useState<string>(region.type);
-  const [taskType, setTaskType] = useState<string>(
-    existingTask?.taskType ?? "Tone Work"
-  );
-  const [assigneeId, setAssigneeId] = useState<string>(
-    existingTask?.assigneeId ?? "s_as_jubei"
-  );
+  const [taskType, setTaskType] = useState<string>(existingTask?.taskType ?? "Tone Work");
+  const [assigneeId, setAssigneeId] = useState<string>(existingTask?.assigneeId ?? "s_as_jubei");
   const [priority, setPriority] = useState<RegionTask["priority"]>(
-    existingTask?.priority ?? "medium"
+    existingTask?.priority ?? "medium",
   );
-  const [dueDate, setDueDate] = useState<string>(
-    existingTask?.dueDate ?? "2026-06-30"
-  );
+  const [dueDate, setDueDate] = useState<string>(existingTask?.dueDate ?? "2026-06-30");
 
   // Sync with existing task if it changes
   useEffect(() => {
@@ -66,7 +60,7 @@ export function ContextualTaskPopup({ region, onClose }: Props) {
     // Locally mutate region type if changed
     region.type = regionType as any;
     region.status = "linked-to-task";
-    toast.success(`Task "${taskType}" assigned to ${staff.find(s => s.id === assigneeId)?.name}`);
+    toast.success(`Task "${taskType}" assigned to ${staff.find((s) => s.id === assigneeId)?.name}`);
     onClose();
   };
 

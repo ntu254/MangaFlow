@@ -21,9 +21,7 @@ const ICON = {
 
 export function ActivityTab({ events }: { events: ActivityEvent[] }) {
   if (events.length === 0) {
-    return (
-      <div className="text-[12px] text-foreground/55">No production activity yet.</div>
-    );
+    return <div className="text-[12px] text-foreground/55">No production activity yet.</div>;
   }
   return (
     <ul className="space-y-2">

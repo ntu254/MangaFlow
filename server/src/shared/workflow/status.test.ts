@@ -20,6 +20,8 @@ describe("workflow status constants", () => {
       "REJECTED",
       "CANCELLED",
       "COMPLETED",
+      "WITHDRAWN",
+      "ARCHIVED",
     ])
   })
 

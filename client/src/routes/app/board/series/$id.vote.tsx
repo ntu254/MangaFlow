@@ -1,11 +1,6 @@
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
-import {
-  findSeries,
-  votesBySeries,
-  findStaff,
-  currentUserByRole,
-} from "@/entities";
+import { findSeries, votesBySeries, findStaff, currentUserByRole } from "@/entities";
 import { AuditTimeline } from "@/shared/ui/site/AuditTimeline";
 import { useState } from "react";
 import { useRole } from "@/shared/lib/role";

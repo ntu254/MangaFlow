@@ -1,6 +1,8 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import helmet from "helmet"
+import rateLimit from "express-rate-limit"
 import mongoose from "mongoose"
 import fs from "fs"
 import swaggerUi from "swagger-ui-express"
@@ -29,6 +31,9 @@ import { errorHandler } from "./shared/middleware/errorHandler.js"
 import { seedAdminFromEnv } from "./infrastructure/seed/seedAdmin.js"
 
 const app = express()
+
+// Security headers as early as possible so every response is covered.
+app.use(helmet())
 
 const allowedOrigins = new Set([
   config.clientUrl,
@@ -63,6 +68,18 @@ app.use(cookieParser())
 app.get("/api/health", (_req, res) => {
   res.json({ success: true, message: "MangaFlow API is running" })
 })
+
+// Global API rate limiter. Kept higher than route-specific limiters (e.g. login)
+// so it acts as a coarse abuse guard without overriding stricter per-route limits.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests. Please try again later." },
+})
+
+app.use("/api", apiLimiter)
 
 app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)

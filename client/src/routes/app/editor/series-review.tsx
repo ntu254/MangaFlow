@@ -19,7 +19,11 @@ function EditorReviewQueue() {
       />
       <div className="rounded-md border border-foreground/10 bg-card">
         {queue.length === 0 && (
-          <EmptyState title="Inbox zero 🎉" hint="No series are waiting for editor review right now. Check back later." icon={Inbox} />
+          <EmptyState
+            title="Inbox zero 🎉"
+            hint="No series are waiting for editor review right now. Check back later."
+            icon={Inbox}
+          />
         )}
         {queue.map((s) => {
           const proposal = proposalBySeries(s.id);

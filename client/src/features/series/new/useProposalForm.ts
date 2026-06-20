@@ -19,8 +19,7 @@ interface PersistedDraft {
   savedAt: number;
 }
 
-const draftKey = (seriesId: string | null) =>
-  `mangaflow:proposal-draft:${seriesId ?? "new"}`;
+const draftKey = (seriesId: string | null) => `mangaflow:proposal-draft:${seriesId ?? "new"}`;
 
 function readDraft(seriesId: string | null): PersistedDraft | null {
   if (typeof window === "undefined") return null;
@@ -60,9 +59,7 @@ export interface UseProposalFormResult {
   clearLocalDraft: () => void;
 }
 
-export function useProposalForm(
-  initialSeriesId: string | null,
-): UseProposalFormResult {
+export function useProposalForm(initialSeriesId: string | null): UseProposalFormResult {
   const [seriesId, setSeriesIdState] = useState<string | null>(initialSeriesId);
   const [manuscripts, setManuscripts] = useState<ManuscriptFile[]>([]);
   const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
@@ -120,21 +117,18 @@ export function useProposalForm(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valuesJson, manuscriptsJson, seriesId, hydrated]);
 
-  const setSeriesId = useCallback(
-    (id: string) => {
-      setSeriesIdState((prev) => {
-        if (prev === id) return prev;
-        // Re-key local draft
-        const draft = readDraft(prev);
-        if (draft) {
-          writeDraft(id, draft);
-          clearDraft(prev);
-        }
-        return id;
-      });
-    },
-    [],
-  );
+  const setSeriesId = useCallback((id: string) => {
+    setSeriesIdState((prev) => {
+      if (prev === id) return prev;
+      // Re-key local draft
+      const draft = readDraft(prev);
+      if (draft) {
+        writeDraft(id, draft);
+        clearDraft(prev);
+      }
+      return id;
+    });
+  }, []);
 
   const addManuscript = useCallback((f: ManuscriptFile) => {
     setManuscripts((prev) => [...prev, f]);
@@ -217,7 +211,9 @@ export function buildReadiness(
     {
       key: "manuscript",
       label: "Proposal Materials uploaded",
-      done: manuscripts.some(m => m.category === "PROPOSAL_PDF" || m.category === "SAMPLE_PAGE" || !m.category),
+      done: manuscripts.some(
+        (m) => m.category === "PROPOSAL_PDF" || m.category === "SAMPLE_PAGE" || !m.category,
+      ),
       missingHint: "Upload a PDF or Sample Pages",
     },
   ];
@@ -234,10 +230,15 @@ export function isStepComplete(
     case "pitch":
       return pitchSchema.safeParse(v).success;
     case "manuscript":
-      return manuscripts.some(m => m.category === "PROPOSAL_PDF" || m.category === "SAMPLE_PAGE" || !m.category);
+      return manuscripts.some(
+        (m) => m.category === "PROPOSAL_PDF" || m.category === "SAMPLE_PAGE" || !m.category,
+      );
     case "review":
       return (
-        fullProposalSchema.safeParse(v).success && manuscripts.some(m => m.category === "PROPOSAL_PDF" || m.category === "SAMPLE_PAGE" || !m.category)
+        fullProposalSchema.safeParse(v).success &&
+        manuscripts.some(
+          (m) => m.category === "PROPOSAL_PDF" || m.category === "SAMPLE_PAGE" || !m.category,
+        )
       );
   }
 }

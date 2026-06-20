@@ -11,4 +11,3 @@ export const publications: Publication[] = [
   { id: "p3", chapterId: "ch_gk1", scheduledAt: "Jun 15, 2026", state: "published" },
   { id: "p4", chapterId: "ch_ga1", scheduledAt: "Jun 28, 2026", state: "ready" },
 ];
-

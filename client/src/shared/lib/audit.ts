@@ -45,9 +45,7 @@ export function useAuditLog(entity?: AuditEntity, entityId?: string) {
     () => store,
   );
   if (!entity) return snapshot;
-  return snapshot.filter(
-    (e) => e.entity === entity && (entityId ? e.entityId === entityId : true),
-  );
+  return snapshot.filter((e) => e.entity === entity && (entityId ? e.entityId === entityId : true));
 }
 
 export function resetAudit() {

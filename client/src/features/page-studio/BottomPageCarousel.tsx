@@ -67,6 +67,7 @@ export function BottomPageCarousel({ pages, currentPageId }: Props) {
                 key={p.id}
                 to="/app/pages/$id/studio"
                 params={{ id: p.id }}
+                search={(prev: any) => ({ seriesId: prev?.seriesId })}
                 className={`relative flex h-7.5 w-7.5 items-center justify-center rounded-md text-[10px] font-bold border ${
                   isActive
                     ? "border-primary bg-primary/10 text-primary"
@@ -123,6 +124,7 @@ export function BottomPageCarousel({ pages, currentPageId }: Props) {
               <Link
                 to="/app/pages/$id/studio"
                 params={{ id: p.id }}
+                search={(prev: any) => ({ seriesId: prev?.seriesId })}
                 className={`group flex flex-col items-center rounded p-1 bg-background border ${
                   isActive
                     ? "border-primary bg-foreground/5"

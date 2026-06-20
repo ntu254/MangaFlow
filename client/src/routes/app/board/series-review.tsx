@@ -18,7 +18,11 @@ function BoardReviewQueue() {
       />
       <div className="rounded-md border border-foreground/10 bg-card divide-y divide-foreground/10">
         {queue.length === 0 && (
-          <EmptyState title="Nothing to vote on" hint="All forwarded series have been decided. New proposals will appear here once the Editor forwards them." icon={Vote} />
+          <EmptyState
+            title="Nothing to vote on"
+            hint="All forwarded series have been decided. New proposals will appear here once the Editor forwards them."
+            icon={Vote}
+          />
         )}
         {queue.map((s) => {
           const votes = votesBySeries(s.id);

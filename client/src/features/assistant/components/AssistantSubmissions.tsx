@@ -50,9 +50,7 @@ export function AssistantSubmissions() {
         {STATUS_FILTERS.map((f) => {
           const active = status === f.key;
           const count =
-            f.key === "all"
-              ? mine.length
-              : mine.filter((s) => s.status === f.key).length;
+            f.key === "all" ? mine.length : mine.filter((s) => s.status === f.key).length;
           return (
             <button
               key={f.key}
@@ -98,9 +96,7 @@ export function AssistantSubmissions() {
                   <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
                     Submitted at
                   </th>
-                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
-                    Reviewer
-                  </th>
+                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">Reviewer</th>
                   <th className="px-3 py-2 text-left font-medium">Status</th>
                   <th className="px-3 py-2 text-right font-medium">Action</th>
                 </tr>

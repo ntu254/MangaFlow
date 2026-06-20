@@ -1,7 +1,18 @@
 import { useCallback, useRef, useState, type DragEvent } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "sonner";
-import { AlertCircle, FileText, Image as ImageIcon, CheckCircle2, Upload, X, Users, Frame, Map, Image } from "lucide-react";
+import {
+  AlertCircle,
+  FileText,
+  Image as ImageIcon,
+  CheckCircle2,
+  Upload,
+  X,
+  Users,
+  Frame,
+  Map,
+  Image,
+} from "lucide-react";
 import { useUploadManuscript, useDeleteManuscript } from "@/shared/queries/useManuscripts";
 import type { ManuscriptFile } from "@/shared/api/manuscripts";
 import type { ProposalFormValues } from "../schema";
@@ -63,7 +74,7 @@ export function ManuscriptStep({ seriesId, ensureDraft, manuscripts, onAdd, onRe
         }
       }
     },
-    [titlePresent, seriesId, ensureDraft, upload, onAdd]
+    [titlePresent, seriesId, ensureDraft, upload, onAdd],
   );
 
   const handleRemove = useCallback(
@@ -77,7 +88,7 @@ export function ManuscriptStep({ seriesId, ensureDraft, manuscripts, onAdd, onRe
       } catch {}
       onRemove(id);
     },
-    [seriesId, remove, onRemove]
+    [seriesId, remove, onRemove],
   );
 
   const getFiles = (cat: string): DropzoneFileItem[] => {
@@ -107,8 +118,13 @@ export function ManuscriptStep({ seriesId, ensureDraft, manuscripts, onAdd, onRe
       <section className="space-y-4 rounded-xl border border-foreground/10 bg-white dark:bg-card p-5 shadow-sm">
         <header className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-foreground/90">1. Proposal Materials <span className="text-foreground/50 font-normal">(Required)</span></h2>
-            <p className="mt-0.5 text-[12px] text-foreground/60">Upload at least one: Proposal Manuscript (PDF) or Sample Pages.</p>
+            <h2 className="text-sm font-semibold text-foreground/90">
+              1. Proposal Materials{" "}
+              <span className="text-foreground/50 font-normal">(Required)</span>
+            </h2>
+            <p className="mt-0.5 text-[12px] text-foreground/60">
+              Upload at least one: Proposal Manuscript (PDF) or Sample Pages.
+            </p>
           </div>
           {hasProposalMaterials && (
             <div className="flex items-center gap-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -126,7 +142,9 @@ export function ManuscriptStep({ seriesId, ensureDraft, manuscripts, onAdd, onRe
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate">Proposal Manuscript (PDF)</div>
-                <div className="text-[11px] font-normal text-foreground/50 truncate">Recommended for full review</div>
+                <div className="text-[11px] font-normal text-foreground/50 truncate">
+                  Recommended for full review
+                </div>
               </div>
             </div>
             <FileDropzone
@@ -151,7 +169,9 @@ export function ManuscriptStep({ seriesId, ensureDraft, manuscripts, onAdd, onRe
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate">Sample Pages</div>
-                  <div className="text-[11px] font-normal text-foreground/50 truncate">Upload 1 or more sample pages.</div>
+                  <div className="text-[11px] font-normal text-foreground/50 truncate">
+                    Upload 1 or more sample pages.
+                  </div>
                 </div>
               </div>
               {samplePages.length > 0 && (
@@ -174,8 +194,13 @@ export function ManuscriptStep({ seriesId, ensureDraft, manuscripts, onAdd, onRe
       {/* 2. Supporting Materials */}
       <section className="space-y-4 rounded-xl border border-foreground/10 bg-white dark:bg-card p-5 shadow-sm">
         <header>
-          <h2 className="text-sm font-semibold text-foreground/90">2. Supporting Materials <span className="text-foreground/50 font-normal">(Optional)</span></h2>
-          <p className="mt-0.5 text-[12px] text-foreground/60">These materials help editors and the board understand your series better.</p>
+          <h2 className="text-sm font-semibold text-foreground/90">
+            2. Supporting Materials{" "}
+            <span className="text-foreground/50 font-normal">(Optional)</span>
+          </h2>
+          <p className="mt-0.5 text-[12px] text-foreground/60">
+            These materials help editors and the board understand your series better.
+          </p>
         </header>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -245,7 +270,10 @@ function SamplePagesUpload({
       {files.length > 0 && (
         <div className="mb-4 grid grid-cols-3 gap-2">
           {files.map((f, i) => (
-            <div key={f.id} className="group relative aspect-[3/4] overflow-hidden rounded-md border border-foreground/10 bg-foreground/5">
+            <div
+              key={f.id}
+              className="group relative aspect-[3/4] overflow-hidden rounded-md border border-foreground/10 bg-foreground/5"
+            >
               {f.progress !== undefined && f.progress < 100 ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 p-2 text-center text-[10px]">
                   Uploading... {f.progress}%
@@ -263,13 +291,15 @@ function SamplePagesUpload({
                   </button>
                   {/* Image thumbnail */}
                   {f.url || f.name.match(/\.(jpg|jpeg|png|webp)$/i) ? (
-                    <img 
-                      src={f.url || "https://placehold.co/150x200/png?text=Sample"} 
+                    <img
+                      src={f.url || "https://placehold.co/150x200/png?text=Sample"}
                       alt={f.name}
-                      className="h-full w-full object-cover" 
+                      className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-[10px] text-foreground/40">{f.name}</div>
+                    <div className="flex h-full items-center justify-center text-[10px] text-foreground/40">
+                      {f.name}
+                    </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 truncate bg-background/80 px-1.5 py-1 text-[9px] text-foreground/70 backdrop-blur">
                     {f.name} ({(f.size / 1024 / 1024).toFixed(1)}MB)
@@ -293,7 +323,14 @@ function SamplePagesUpload({
           JPG, PNG, WEBP up to 10MB each
         </div>
       </div>
-      <input type="file" ref={inputRef} hidden multiple accept=".jpg,.jpeg,.png,.webp" onChange={handleFileChange} />
+      <input
+        type="file"
+        ref={inputRef}
+        hidden
+        multiple
+        accept=".jpg,.jpeg,.png,.webp"
+        onChange={handleFileChange}
+      />
     </div>
   );
 }
@@ -334,7 +371,9 @@ function SupportingMaterialCard({
 
   return (
     <div className="flex flex-col min-w-0 rounded-xl border border-foreground/10 bg-foreground/[0.015] p-3 text-center">
-      <div className={`mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
+      <div
+        className={`mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClass}`}
+      >
         {icon}
       </div>
       <h3 className="mt-2 truncate text-[12px] font-semibold text-foreground/90">{title}</h3>
@@ -357,7 +396,7 @@ function SupportingMaterialCard({
               </button>
               <button
                 onClick={() => {
-                  files.forEach(f => onRemove(f.id));
+                  files.forEach((f) => onRemove(f.id));
                 }}
                 disabled={disabled}
                 className="flex h-7 flex-1 items-center justify-center rounded border border-destructive/20 text-[11px] font-medium text-destructive hover:bg-destructive/5"
@@ -375,13 +414,18 @@ function SupportingMaterialCard({
             >
               Upload
             </button>
-            <div className="mt-1.5 text-[10px] text-foreground/45">
-              0/{max} files
-            </div>
+            <div className="mt-1.5 text-[10px] text-foreground/45">0/{max} files</div>
           </>
         )}
       </div>
-      <input type="file" ref={inputRef} hidden multiple={max > 1} accept={isCover ? ".jpg,.jpeg,.png,.webp" : undefined} onChange={handleFileChange} />
+      <input
+        type="file"
+        ref={inputRef}
+        hidden
+        multiple={max > 1}
+        accept={isCover ? ".jpg,.jpeg,.png,.webp" : undefined}
+        onChange={handleFileChange}
+      />
     </div>
   );
 }

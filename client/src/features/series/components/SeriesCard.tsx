@@ -56,12 +56,8 @@ export function SeriesCard({ series: s, variant = "grid", onActionClick }: Serie
         <div className="flex flex-1 flex-col p-4 relative">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold text-foreground">
-                {s.title}
-              </div>
-              <div className="truncate font-jp text-[11px] text-foreground/55">
-                {s.jp || ""}
-              </div>
+              <div className="truncate text-sm font-bold text-foreground">{s.title}</div>
+              <div className="truncate font-jp text-[11px] text-foreground/55">{s.jp || ""}</div>
             </div>
             <StatusBadge status={s.status} variant="solid" />
           </div>
@@ -127,7 +123,7 @@ export function SeriesCard({ series: s, variant = "grid", onActionClick }: Serie
         <StatusBadge status={s.status} variant="solid" />
       </div>
       <div className="absolute top-3 right-3 z-10">
-        <button 
+        <button
           onClick={(e) => e.preventDefault()}
           className="flex h-8 w-8 items-center justify-center rounded-md bg-black/20 text-white backdrop-blur-md transition-colors hover:bg-black/40"
         >
@@ -138,9 +134,7 @@ export function SeriesCard({ series: s, variant = "grid", onActionClick }: Serie
       {/* Content (Overlaid) */}
       <div className="relative z-10 flex flex-col p-5">
         <div className="min-w-0 mb-3">
-          <div className="truncate text-[16px] font-bold text-white drop-shadow-sm">
-            {s.title}
-          </div>
+          <div className="truncate text-[16px] font-bold text-white drop-shadow-sm">{s.title}</div>
           <div className="truncate font-jp text-[12px] text-white/70 font-medium mt-0.5">
             {s.jp || ""}
           </div>

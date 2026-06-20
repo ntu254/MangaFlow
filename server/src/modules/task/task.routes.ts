@@ -58,6 +58,12 @@ router.get(
 )
 
 router.get(
+  "/my",
+  requireAuth,
+  asyncHandler(taskController.listMyTasks),
+)
+
+router.get(
   "/chapter/:chapterId",
   requireAuth,
   validate(chapterIdParamsSchema, "params"),

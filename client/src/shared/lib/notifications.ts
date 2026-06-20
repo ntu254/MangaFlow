@@ -24,7 +24,10 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-export function notify(userId: string, input: Omit<NotificationItem, "id" | "userId" | "read" | "at"> & { at?: string }) {
+export function notify(
+  userId: string,
+  input: Omit<NotificationItem, "id" | "userId" | "read" | "at"> & { at?: string },
+) {
   const n: NotificationItem = {
     id: `n_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     userId,

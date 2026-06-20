@@ -6,13 +6,25 @@ export interface Task {
   chapterId: string;
   pageId?: string;
   regionId?: string;
-  taskTypeId: string;
+  taskTypeId:
+    | string
+    | { id?: string; _id?: string; name?: string; code?: string; baseRate?: number };
   title: string;
   description?: string;
-  status: "pending" | "in-progress" | "submitted" | "editor-approved" | "mangaka-approved" | "rejected";
-  priority: "high" | "medium" | "low";
-  assignedTo?: { id: string; name: string; displayName?: string };
-  assignedBy: string;
+  status:
+    | "TODO"
+    | "IN_PROGRESS"
+    | "SUBMITTED"
+    | "EDITOR_APPROVED"
+    | "MANGAKA_APPROVED"
+    | "REVISION_REQUESTED"
+    | "REJECTED"
+    | "CANCELLED";
+  priority: "HIGH" | "NORMAL" | "LOW" | "URGENT";
+  assignedTo?: string | { id?: string; _id?: string; name?: string; displayName?: string };
+  assignedBy: string | { id?: string; _id?: string };
+  baseRate?: number;
+  currentSubmissionId?: string;
   dueDate: string;
   createdAt: string;
   updatedAt: string;
@@ -20,4 +32,5 @@ export interface Task {
 
 export const tasksApi = {
   listBySeries: (seriesId: string) => api.get(`/tasks/series/${seriesId}`).then(unwrap<Task[]>),
+  listMyTasks: () => api.get(`/tasks/my`).then(unwrap<Task[]>),
 };

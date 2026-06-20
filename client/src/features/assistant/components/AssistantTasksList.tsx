@@ -4,7 +4,12 @@ import { currentUserByRole, type Task } from "@/entities";
 import { PageHeader } from "@/layouts/AppShell";
 import { useAssistantTasks } from "../hooks/useAssistantTasks";
 import { AssistantTaskCard } from "./AssistantTaskCard";
-import { KANBAN_COLUMNS, LIFECYCLE_META, normalizeStatus, type AssistantStatus } from "../lib/taskLifecycle";
+import {
+  KANBAN_COLUMNS,
+  LIFECYCLE_META,
+  normalizeStatus,
+  type AssistantStatus,
+} from "../lib/taskLifecycle";
 import { Inbox, LayoutGrid, List, Search } from "lucide-react";
 import { useTaskFilters } from "@/features/tasks/hooks/useTaskFilters";
 
@@ -24,7 +29,7 @@ const VIEW_KEY = "assistant.tasks.view";
 export function AssistantTasksList() {
   const { role } = useRole();
   const me = currentUserByRole[role];
-  const { mine, counts } = useAssistantTasks(me.id);
+  const { mine, counts, query } = useAssistantTasks(me.id);
 
   const [tab, setTab] = useState<TabKey>("all");
   const [view, setView] = useState<"kanban" | "list">(() => {
@@ -41,15 +46,11 @@ export function AssistantTasksList() {
   }
 
   const scoped = useMemo(
-    () =>
-      tab === "all"
-        ? mine
-        : mine.filter((t) => normalizeStatus(t.status) === tab),
+    () => (tab === "all" ? mine : mine.filter((t) => normalizeStatus(t.status) === tab)),
     [mine, tab],
   );
 
-  const { state, setters, options, filtered, hasActiveFilter, clear } =
-    useTaskFilters(scoped);
+  const { state, setters, options, filtered, hasActiveFilter, clear } = useTaskFilters(scoped);
 
   return (
     <div className="space-y-5">
@@ -169,7 +170,15 @@ export function AssistantTasksList() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {query.isLoading ? (
+        <div className="rounded-md border border-dashed border-foreground/15 bg-card py-16 text-center text-[12px] text-foreground/55">
+          Loading assigned tasks…
+        </div>
+      ) : query.isError ? (
+        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] text-destructive">
+          {query.error instanceof Error ? query.error.message : "Could not load assigned tasks."}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-foreground/15 bg-card py-16 text-foreground/55">
           <Inbox className="h-5 w-5" />
           <div className="text-[13px] font-medium text-foreground">No tasks here</div>

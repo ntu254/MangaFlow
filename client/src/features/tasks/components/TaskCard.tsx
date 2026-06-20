@@ -25,7 +25,8 @@ export function TaskCard({
     <Link
       to="/app/pages/$id/studio"
       params={{ id: firstPageId }}
-      className="group block rounded-md border border-foreground/10 bg-background p-3 transition hover:border-foreground/25 hover:bg-card"
+      search={(prev: any) => ({ seriesId: prev?.seriesId })}
+      className="group flex flex-col rounded-md border border-foreground/10 bg-card p-3 shadow-sm transition-all hover:border-foreground/20 hover:shadow"
     >
       <div className="flex items-center justify-between gap-2">
         <StatusBadge status={task.status} />

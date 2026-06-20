@@ -33,8 +33,7 @@ export const canEditorReview = (role: Role, series: Series): Verdict => {
   return ok;
 };
 
-export const canForwardToBoard = (role: Role, series: Series) =>
-  canEditorReview(role, series);
+export const canForwardToBoard = (role: Role, series: Series) => canEditorReview(role, series);
 
 export const canBoardVote = (role: Role, series: Series): Verdict => {
   if (role !== "board") return no("Only Board members can vote.");
@@ -60,15 +59,9 @@ export const canUploadPage = canCreateChapter;
 
 // ---- Flow 03 — Production Team ----
 export const canManageTeam = (role: Role): Verdict =>
-  role === "mangaka" || role === "admin"
-    ? ok
-    : no("Only Mangaka can manage the team.");
+  role === "mangaka" || role === "admin" ? ok : no("Only Mangaka can manage the team.");
 
-export const canAssignTaskTo = (
-  role: Role,
-  assigneeId: string,
-  seriesId: string,
-): Verdict => {
+export const canAssignTaskTo = (role: Role, assigneeId: string, seriesId: string): Verdict => {
   if (role !== "mangaka" && role !== "admin") return no("Only Mangaka can assign tasks.");
   if (!isAssistantEligible(assigneeId, seriesId))
     return no("Assistant is not an active member of this Series.");

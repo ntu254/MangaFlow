@@ -11,6 +11,16 @@ import {
   useDeleteUser,
 } from "@/shared/queries/useUsers";
 import type { AdminUser, ServerRole } from "@/shared/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export const Route = createFileRoute("/app/admin/users")({
   component: UsersPage,
@@ -26,6 +36,15 @@ function UsersPage() {
   const deleteUser = useDeleteUser();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    userId: string | null;
+    email: string;
+  }>({
+    open: false,
+    userId: null,
+    email: "",
+  });
 
   const list: AdminUser[] = users ?? [];
 
@@ -105,7 +124,8 @@ function UsersPage() {
                   </div>
                   <div>
                     <div className="font-medium">
-                      {u.name} {isMe && <span className="text-[10px] text-foreground/40">(you)</span>}
+                      {u.name}{" "}
+                      {isMe && <span className="text-[10px] text-foreground/40">(you)</span>}
                     </div>
                     {u.displayName && (
                       <div className="text-[11px] text-foreground/50">{u.displayName}</div>
@@ -143,18 +163,20 @@ function UsersPage() {
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={() =>
-                      updateStatus.mutate({ userId: u.id, isActive: !u.isActive })
-                    }
+                    onClick={() => updateStatus.mutate({ userId: u.id, isActive: !u.isActive })}
                     disabled={isMe || updateStatus.isPending}
                     title={u.isActive ? "Suspend" : "Activate"}
                     className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/10 text-foreground/60 hover:text-foreground disabled:opacity-40"
                   >
-                    {u.isActive ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                    {u.isActive ? (
+                      <PowerOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Power className="h-3.5 w-3.5" />
+                    )}
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm(`Delete user ${u.email}?`)) deleteUser.mutate(u.id);
+                      setDeleteDialog({ open: true, userId: u.id, email: u.email });
                     }}
                     disabled={isMe || deleteUser.isPending}
                     title="Delete"
@@ -170,6 +192,32 @@ function UsersPage() {
       </div>
 
       {showCreate && <CreateUserDialog onClose={() => setShowCreate(false)} />}
+
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete user {deleteDialog.email}? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteDialog.userId) deleteUser.mutate(deleteDialog.userId);
+              }}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

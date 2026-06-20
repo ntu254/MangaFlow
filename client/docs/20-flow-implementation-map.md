@@ -1,12 +1,12 @@
 # Flow 00–04 implementation map
 
-| Flow | Spec doc | Entities | Routes |
-| --- | --- | --- | --- |
-| 00 — Auth & RBAC | `Flow-00.md` | `staff`, `user`, `audit` | `/login`, `/app/admin/users`, `/app/admin/roles`, `/app/notifications` |
-| 01 — Series Proposal | `Flow-01-...md` | `proposal`, `manuscript`, `editor-review`, `board-vote` | `/app/series/new`, `/app/series/$id/revisions`, `/app/editor/series-review`, `/app/editor/series/$id/review`, `/app/board/series-review`, `/app/board/series/$id/vote` |
-| 02 — Chapter & Page upload | `Flow-02-...md` | `chapter`, `page`, `file-asset` | `/app/series/$id`, `/app/chapters/$id`, `/app/chapters/$id/pages/upload` |
-| 03 — Production Team | `Flow-03-...md` | `series-member` | `/app/series/$id/team` |
-| 04 — Page Studio & AI | `Flow-04-...md` | `page`, `region`, `ai-result` | `/app/pages/$id/studio`, `/app/ai/bubble` |
+| Flow                       | Spec doc        | Entities                                                | Routes                                                                                                                                                                 |
+| -------------------------- | --------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 00 — Auth & RBAC           | `Flow-00.md`    | `staff`, `user`, `audit`                                | `/login`, `/app/admin/users`, `/app/admin/roles`, `/app/notifications`                                                                                                 |
+| 01 — Series Proposal       | `Flow-01-...md` | `proposal`, `manuscript`, `editor-review`, `board-vote` | `/app/series/new`, `/app/series/$id/revisions`, `/app/editor/series-review`, `/app/editor/series/$id/review`, `/app/board/series-review`, `/app/board/series/$id/vote` |
+| 02 — Chapter & Page upload | `Flow-02-...md` | `chapter`, `page`, `file-asset`                         | `/app/series/$id`, `/app/chapters/$id`, `/app/chapters/$id/pages/upload`                                                                                               |
+| 03 — Production Team       | `Flow-03-...md` | `series-member`                                         | `/app/series/$id/team`                                                                                                                                                 |
+| 04 — Page Studio & AI      | `Flow-04-...md` | `page`, `region`, `ai-result`                           | `/app/pages/$id/studio`, `/app/ai/bubble`                                                                                                                              |
 
 ## Cross-cutting
 

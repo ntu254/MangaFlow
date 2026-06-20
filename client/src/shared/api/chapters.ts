@@ -27,7 +27,9 @@ export const chaptersApi = {
   },
 
   replacePage: async (chapterId: string, pageId: string, originalFileAssetId: string) => {
-    const res = await api.put(`/chapters/${chapterId}/pages/${pageId}/replace`, { originalFileAssetId });
+    const res = await api.put(`/chapters/${chapterId}/pages/${pageId}/replace`, {
+      originalFileAssetId,
+    });
     return res.data;
   },
 };

@@ -16,4 +16,3 @@ export const payroll: Payroll[] = tasks
     status: i === 0 ? "paid" : i === 1 ? "confirmed" : "pending",
     period: "2026-06",
   }));
-
