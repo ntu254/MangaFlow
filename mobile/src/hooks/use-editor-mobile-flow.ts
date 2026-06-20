@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { editorHome, editorReadinessResult, finalApprovals, manuscripts, productionComments } from "@/data/editor"
 import type { EditorFinalApprovalAction, EditorProposalAction } from "@/domain/workflow"
 import { mobileWorkflowDataSource, type EditorCommentsPayload, type EditorHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
@@ -17,43 +17,43 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   const [lastMockAction, setLastMockAction] = useState("Mock actions are local only. Backend permissions and workflow transitions stay server-owned.")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionBusy, setActionBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [proposalNote, setProposalNote] = useState("")
+  const [finalApprovalNote, setFinalApprovalNote] = useState("")
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [nextHome, nextManuscripts, nextSubmissions, nextComments, nextReadiness] = await Promise.all([
+        dataSource.getEditorHome(),
+        dataSource.getEditorManuscripts(),
+        dataSource.getEditorSubmissions(),
+        dataSource.getEditorComments(),
+        dataSource.getEditorReadiness(),
+      ])
+      setHome(nextHome)
+      setManuscriptItems(nextManuscripts)
+      setSubmissionItems(nextSubmissions)
+      setCommentsPayload(nextComments)
+      setReadiness(nextReadiness)
+    } catch {
+      setError("Could not load editor mobile flow.")
+    } finally {
+      setLoading(false)
+    }
+  }, [dataSource])
 
   useEffect(() => {
     let cancelled = false
-
-    async function load() {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const [nextHome, nextManuscripts, nextSubmissions, nextComments, nextReadiness] = await Promise.all([
-          dataSource.getEditorHome(),
-          dataSource.getEditorManuscripts(),
-          dataSource.getEditorSubmissions(),
-          dataSource.getEditorComments(),
-          dataSource.getEditorReadiness(),
-        ])
-
-        if (!cancelled) {
-          setHome(nextHome)
-          setManuscriptItems(nextManuscripts)
-          setSubmissionItems(nextSubmissions)
-          setCommentsPayload(nextComments)
-          setReadiness(nextReadiness)
-        }
-      } catch {
-        if (!cancelled) setError("Could not load editor mobile mock flow.")
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    load()
-
+    void (async () => {
+      if (!cancelled) await reload()
+    })()
     return () => {
       cancelled = true
     }
-  }, [dataSource])
+  }, [reload])
 
   const selectedManuscript = useMemo(
     () => manuscriptItems.find((item) => item.id === selectedManuscriptId) ?? manuscriptItems[0],
@@ -71,39 +71,119 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   )
 
   function startProposalAction(action: EditorProposalAction) {
+    setActionError(null)
+    setProposalNote("")
     setPendingProposalAction(action)
   }
 
-  function confirmProposalAction() {
-    if (!pendingProposalAction) return
-    recordProposalAction(pendingProposalAction)
-    setPendingProposalAction(null)
-  }
-
   function cancelProposalAction() {
+    if (actionBusy) return
     setPendingProposalAction(null)
+    setActionError(null)
+    setProposalNote("")
   }
 
-  function recordProposalAction(action: EditorProposalAction) {
-    setLastMockAction(`Mock ${action} recorded for proposal review. API wiring will call the matching manuscript action endpoint later.`)
+  async function confirmProposalAction() {
+    const action = pendingProposalAction
+    const target = selectedManuscript
+    if (!action || !target) return
+
+    const note = proposalNote.trim()
+    if (action !== "forward-to-board" && !note) {
+      setActionError("Please enter a note for the mangaka before continuing.")
+      return
+    }
+
+    setActionBusy(true)
+    setActionError(null)
+    try {
+      if (action === "request-revision") {
+        await dataSource.requestEditorProposalRevision(target.id, { revisionReason: note, feedbackSummary: note })
+      } else if (action === "reject") {
+        await dataSource.rejectEditorProposal(target.id, { rejectReason: note })
+      } else {
+        await dataSource.forwardEditorProposalToBoard(target.id, {
+          editorRecommendation: note || target.editorRecommendation || "Forwarded for Board review.",
+          feasibilityNote: note || "Production scope reviewed by editor.",
+          suggestedPublicationType: "MONTHLY",
+        })
+      }
+      setLastMockAction(`Proposal ${action} sent for ${target.title}.`)
+      setPendingProposalAction(null)
+      setProposalNote("")
+      await reload()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not complete the action.")
+    } finally {
+      setActionBusy(false)
+    }
   }
 
   function startFinalApprovalAction(action: EditorFinalApprovalAction) {
+    setActionError(null)
+    setFinalApprovalNote("")
     setPendingFinalApprovalAction(action)
   }
 
-  function confirmFinalApprovalAction() {
-    if (!pendingFinalApprovalAction) return
-    recordFinalApprovalAction(pendingFinalApprovalAction)
-    setPendingFinalApprovalAction(null)
-  }
-
   function cancelFinalApprovalAction() {
+    if (actionBusy) return
     setPendingFinalApprovalAction(null)
+    setActionError(null)
+    setFinalApprovalNote("")
   }
 
-  function recordFinalApprovalAction(action: EditorFinalApprovalAction) {
-    setLastMockAction(`Mock ${action} recorded for Editor final approval. Payroll and permissions remain backend-owned.`)
+  async function confirmFinalApprovalAction() {
+    const action = pendingFinalApprovalAction
+    const target = selectedSubmission
+    if (!action || !target) return
+
+    // add-comment needs series/chapter/page/task ids the mobile flow does not hold yet; keep it local.
+    if (action === "add-comment") {
+      setLastMockAction(`Add comment stays local for ${target.title}; comment endpoint needs full page/task context.`)
+      setPendingFinalApprovalAction(null)
+      return
+    }
+
+    const note = finalApprovalNote.trim()
+    if (action === "request-revision" && !note) {
+      setActionError("Please enter a reviewer note before requesting revision.")
+      return
+    }
+
+    setActionBusy(true)
+    setActionError(null)
+    try {
+      if (action === "request-revision") {
+        await dataSource.requestEditorSubmissionRevision(target.id, note)
+      } else {
+        await dataSource.editorApproveSubmission(target.id, note || "Approved for production.")
+      }
+      setLastMockAction(`Submission ${action} sent for ${target.title}.`)
+      setPendingFinalApprovalAction(null)
+      setFinalApprovalNote("")
+      await reload()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not complete the action.")
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function resolveSelectedComment() {
+    const target = selectedComment
+    if (!target) return
+
+    setActionBusy(true)
+    setActionError(null)
+    try {
+      await dataSource.resolveEditorComment(target.id)
+      setLastMockAction(`Comment resolved through live API for ${target.title}.`)
+      await reload()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not resolve the selected comment.")
+    } finally {
+      setActionBusy(false)
+    }
   }
 
   return {
@@ -127,11 +207,17 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     startProposalAction,
     confirmProposalAction,
     cancelProposalAction,
-    recordProposalAction,
     startFinalApprovalAction,
     confirmFinalApprovalAction,
     cancelFinalApprovalAction,
-    recordFinalApprovalAction,
+    resolveSelectedComment,
+    proposalNote,
+    setProposalNote,
+    finalApprovalNote,
+    setFinalApprovalNote,
+    actionBusy,
+    actionError,
+    reload,
     loading,
     error,
   }

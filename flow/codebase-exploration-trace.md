@@ -124,3 +124,179 @@ Cập nhật test `mobile/src/__tests__/mobile-data.test.mjs`: assert nút `"Log
 Vẫn giữ: session strip phía trên (email + chip logout nhanh), `setRole` dùng cho điều hướng sau login.
 
 Verify: `npm run lint --prefix mobile` (tsc clean), `npm test --prefix mobile` (22/22 pass).
+
+---
+
+## Phiên (2026-06-20) — Smoke test API thay thế mock cho mobile
+
+Môi trường: MongoDB (mongod) đang chạy ở 27017, server MangaFlow đang chạy ở 3001, `server/.env` tồn tại. Login dùng so khớp mật khẩu thật (demo account: editor/board@mangaflow.local).
+
+Kết quả smoke test các read-endpoint mobile gọi (qua `mobileWorkflowDataSource` -> `apiMobileWorkflowDataSource`):
+
+| Endpoint | Role | Kết quả | Ghi chú |
+| --- | --- | --- | --- |
+| POST /auth/login | editor | 200 OK | accessToken trả về |
+| POST /auth/login | board | 200 OK | accessToken trả về |
+| GET /dashboard/editor/summary | editor | 200 | object (reviewQueue, recentActivity...) |
+| GET /editor/manuscripts/review-queue | editor | 200 | 3 item, shape {series, manuscript} khớp mapper |
+| GET /submissions/review-queue | editor | 200 | 0 item (DB state hiện tại) |
+| GET /dashboard/board/summary | board | 200 | object (boardQueue.pendingVotes=2) |
+| GET /board/queue | board | 200 | 2 item, có seriesStatus/decisionStatus/voteSummary khớp mapper |
+| GET /rankings | board | 200 | 1 item, có readerScore/finalScore/voteCount khớp mapper |
+
+Xác nhận mapper khớp dữ liệu thật:
+- Editor manuscripts: `series.status`, `series.genres`, `manuscript.version` -> map đúng.
+- Board queue: `seriesTitle`, `decisionStatus`, `voteSummary.{APPROVE,REJECT,NEEDS_REVISION}`, `voteCount`, `seriesStatus` -> map đúng; lọc `seriesStatus === "BOARD_REVIEW"` cho reviews và `=== "AT_RISK"` cho at-risk.
+- Rankings: `seriesId.title`, `period`, `readerScore`, `finalScore`, `voteCount`, `status` -> map đúng.
+
+Hooks dùng API live mặc định:
+- `use-editor-mobile-flow.ts` và `use-board-mobile-flow.ts` đều default `dataSource = mobileWorkflowDataSource` (live + fallback mock), KHÔNG dùng mock thuần.
+
+Phần còn giữ mock (đúng thiết kế, KHÔNG có endpoint read tương ứng để thay):
+- `getEditorReadiness`: trả `editorReadinessResult` mock — chưa wire vì cần chapterId đã chọn từ live; backend có `GET /chapters/:id/readiness` nhưng mobile chưa expose chapterId.
+- `getEditorComments`: comments rỗng/mock cho tới khi có taskId chọn từ live submission.
+- `getBoardDecisionHistory`: tổng hợp từ reviews + rankings live + shape mock-safe.
+- `priorityChapter`, `activity` của editor/board home: một phần fallback mock khi summary live thiếu field.
+
+Quan sát nhỏ (không phải lỗi): `dashboard/editor/summary.reviewQueue.manuscripts` trả 0 trong khi `editor/manuscripts/review-queue` trả 3 -> thẻ "Review manuscripts" trên Home hiển thị 0, nhưng danh sách Review vẫn có 3 item thật. Đếm ở summary và queue do hai nguồn khác nhau ở backend.
+
+Mutation (vote, approve, request-revision, finalize, tie-break, at-risk) vẫn là confirmation-only UI, chưa wire — đúng high-risk lane.
+
+Kết luận: toàn bộ read-API mà mobile cần đã hoạt động (200) và đã thay thế mock thông qua lớp `apiMobileWorkflowDataSource` + fallback. Mobile đang call API thật khi server chạy, tự fallback mock khi lỗi mạng.
+
+---
+
+## Phiên (2026-06-20) — Sửa lệch số liệu Home (Editor + Board)
+
+Vấn đề: `dashboard/*/summary` trả count khác với danh sách review-queue/board-queue thật (vd editor summary.manuscripts=0 nhưng review-queue có 3 item) -> thẻ Home hiển thị sai.
+
+Sửa trong `mobile/src/services/mobile-workflow-data-source.ts`:
+- `getEditorHome`: fetch song song summary + manuscripts + submissions + readiness; lấy `manuscriptsCount = manuscriptItems.length || summary... || 0` và `finalCount = submissionItems.length || ...`. `priorityChapter` tái dùng `manuscriptItems[0]` (bỏ 1 lần refetch).
+- `getBoardHome`: fetch song song summary + seriesReviews + atRiskCases; `pendingVotes = seriesReviews.length || summary... || 0`, `atRiskReviews = atRiskCases.length || ...`.
+
+Nguyên tắc: ưu tiên độ dài list live (thứ user mở được), fallback summary, cuối cùng 0. Giảm bớt số lần gọi API thừa.
+
+Verify:
+- `npm run lint --prefix mobile` (tsc clean), `npm test --prefix mobile` (22/22 pass).
+- Smoke logic với server live:
+  - Editor manuscripts: summary=0 / list=3 -> Home hiển thị 3 (khớp).
+  - Editor submissions: summary=0 / list=0 -> Home hiển thị 0.
+  - Board pendingVotes: summary=2 / BOARD_REVIEW list=2 -> Home hiển thị 2.
+  - Board atRisk: summary=0 / AT_RISK list=0 -> Home hiển thị 0.
+
+Mutation vẫn chưa wire (high-risk lane) — chờ xác nhận phạm vi trước khi làm.
+
+---
+
+## Phiên (2026-06-20) — Chọn story kế tiếp bằng Harness/trace và hoàn thiện Editor mutation slice
+
+Kiểm trước khi code:
+- Harness CLI `query matrix` và `query backlog --open` đều báo `database not found at harness.db` -> Harness durable matrix/backlog chưa active trong workspace này.
+- Không thấy `docs/stories`/backlog mobile riêng; nguồn chọn story thực tế là `mobile/MOBILE_AGENT_CONTEXT.md`, `flow/codebase-exploration-trace.md`, `flow/mobile-api-progress.md`, và `docs/Flow-*`.
+- `Next Story Picker` trong mobile context: read-only API replacement đã xong; mutation/auth/signed URL/readiness publish/payroll là high-risk lane.
+- Worktree đã có nhánh code dở cho Editor mutations, nên story kế tiếp nhỏ nhất và đúng spec là hoàn thiện lát cắt Editor-only mutation UI/API. Không mở Board mutation, readiness publish, payroll, Assistant, hay role mới.
+
+Scope đã hoàn thiện:
+- `mobile/src/services/mobile-workflow-data-source.ts`: thêm mutation methods Editor proposal/final approval gọi live API, không fallback mock âm thầm cho mutation.
+  - `POST /api/editor/series/:seriesId/request-revision`
+  - `POST /api/editor/series/:seriesId/reject`
+  - `POST /api/editor/series/:seriesId/forward-to-board`
+  - `POST /api/submissions/:submissionId/request-revision`
+  - `POST /api/submissions/:submissionId/editor-approve`
+- `mobile/src/hooks/use-editor-mobile-flow.ts`: thêm note state, busy/error state, reload sau mutation; validate note bắt buộc cho revision/reject; `add-comment` vẫn local vì mobile chưa có full page/task context.
+- `mobile/src/components/mf.tsx`: `MFButton` hỗ trợ disabled; `MFConfirmationPanel` hỗ trợ note input, error, busy, confirmDisabled.
+- `mobile/src/screens/editor-action-panels.tsx` + `editor-screens.tsx`: panel Editor hiển thị live endpoint, note input, loading/error; copy nhấn mạnh backend vẫn sở hữu validation/permission/notification/audit.
+- `mobile/src/__tests__/mobile-data.test.mjs`: cập nhật guard cho note input/live Editor endpoints, giữ Board endpoints ở future/mock state.
+
+Ranh giới giữ nguyên:
+- Board vote/finalize/tie-break/at-risk vẫn là confirmation-only UI, story riêng.
+- Readiness/comment/payroll/signed URL chưa wire mutation.
+- Mobile không tự tính permission/workflow/readiness/ranking/payroll.
+
+Verify:
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run test` -> 22/22 pass.
+- `npm --prefix mobile run build` -> Expo web export pass.
+
+---
+
+## Phiên (2026-06-20) — Mobile remaining Editor API wiring branch
+
+Branch:
+- Tạo nhánh mới theo format hiện có: `codex/mf-hios-105-mobile-remaining-api-wiring`.
+
+Kiểm trước khi code:
+- API còn lại trong mobile scope là Editor comments/readiness read + resolve comment mutation.
+- Không mở signed URL, payroll, Assistant/Admin, hoặc publish/mark-ready vì mobile context vẫn giữ các lane đó ngoài scope.
+- Backend contracts:
+  - `GET /api/comments/task/:taskId`
+  - `POST /api/comments/:commentId/resolve`
+  - `GET /api/chapters/:chapterId/readiness`
+
+Scope đã hoàn thiện:
+- `mobile/src/domain/workflow.ts`: `EditorSubmissionReviewItem` giữ optional `taskId/chapterId`; readiness result giữ optional `chapterId/chapterStatus`.
+- `mobile/src/services/mobile-workflow-data-source.ts`: submission mapper lấy `taskId/chapterId`; comments dùng live task comments API; readiness dùng live chapter readiness API; resolve comment dùng live mutation endpoint. Nếu live queue thiếu id hoặc API lỗi thì fallback mock theo boundary cũ.
+- `mobile/src/hooks/use-editor-mobile-flow.ts`: thêm `resolveSelectedComment`, reload sau mutation và surface lỗi backend.
+- `mobile/src/screens/editor-panels.tsx` + `editor-screens.tsx`: Comment detail có nút `Resolve comment`, disabled khi busy và không hiện cho comment đã `RESOLVED_BY_EDITOR`.
+- `mobile/src/__tests__/mobile-data.test.mjs`: guard endpoint comments/readiness, resolve mutation, optional ids, và UI resolve action.
+
+Verify trước merge:
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run test` -> 22/22 pass.
+- `npm --prefix mobile run build` -> Expo web export pass.
+
+---
+
+## Phiên (2026-06-20) — Board finalize decision slice cho mobile
+
+Kiểm trước khi code:
+- Backend contract: `POST /api/board/series/:seriesId/decisions/finalize` nhận `{ decision?, publicationType?, note? }`.
+- `board.service.ts` tự kiểm Board member eligibility, quorum, plurality; nếu hòa thì set `TIE_BREAK_REQUIRED`; nếu approve thì cần `publicationType`.
+- Mobile không tự đoán kết quả vote/quorum, chỉ gửi finalize request với `publicationType` của selected review và note optional.
+
+Scope đã hoàn thiện:
+- `mobile/src/services/mobile-workflow-data-source.ts`: thêm `finalizeBoardDecision`, gọi live endpoint trực tiếp không fallback mock âm thầm.
+- `mobile/src/hooks/use-board-mobile-flow.ts`: thêm `pendingFinalize`, `finalizeNote`, start/confirm/cancel finalize, reload sau mutation và surface lỗi backend.
+- `mobile/src/screens/board-action-panels.tsx`: thêm `BoardFinalizeConfirmationPanel`, live endpoint copy, note input; `BoardVotePanel` có nút `Finalize Board decision`.
+- `mobile/src/screens/board-screens.tsx`: nối finalize confirmation vào Board reviews.
+- `mobile/src/__tests__/mobile-data.test.mjs`: guard finalize method, endpoint, hook, và component export.
+
+Ranh giới giữ nguyên:
+- Backend vẫn sở hữu quorum, tie-break required state, final status transition, notifications, audit.
+- Mobile không thêm Admin override hoặc role mới.
+
+Verify:
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run test` -> 22/22 pass.
+- `npm --prefix mobile run build` -> Expo web export pass.
+
+---
+
+## Phiên (2026-06-20) — Board mutation slice cho mobile
+
+Kiểm trước khi code:
+- Dựa trên `server/src/modules/board/board.validation.ts`, `board.routes.ts`, `board.service.ts`, và `server/src/shared/workflow/status.ts`.
+- Board API live hiện có:
+  - `POST /api/board/series/:seriesId/votes` với `{ value, note }`.
+  - `POST /api/board/series/:seriesId/decisions/tie-break` với `{ value, publicationType?, note }`; backend yêu cầu `publicationType` khi `value=APPROVE` và chỉ Board Chair được tie-break.
+  - `POST /api/board/series/:seriesId/at-risk-decisions` với `{ decision, note }`.
+- Không wire finalize/quorum UX trong slice này vì mobile hiện chưa có màn finalize riêng; backend vẫn sở hữu quorum, final decision, status transition, notification, audit.
+
+Scope đã hoàn thiện:
+- `mobile/src/services/mobile-workflow-data-source.ts`: thêm Board mutation methods, gọi live endpoint trực tiếp và không fallback mock âm thầm cho mutation.
+  - `castBoardVote`
+  - `tieBreakBoardDecision`
+  - `createBoardAtRiskDecision`
+- `mobile/src/hooks/use-board-mobile-flow.ts`: thêm note state, busy/error state, reload sau mutation; vote thường gọi `/votes`, tie-break gọi `/decisions/tie-break`, at-risk gọi `/at-risk-decisions`.
+- `mobile/src/screens/board-action-panels.tsx` + `board-screens.tsx`: panel Board hiển thị live endpoint, note input, loading/error; tie-break dùng action riêng và có đủ APPROVE / NEEDS_REVISION / REJECT.
+- `mobile/src/__tests__/mobile-data.test.mjs`: cập nhật guard để bắt Board live mutation endpoints, hook state, và audit-boundary copy.
+
+Ranh giới giữ nguyên:
+- Mobile không tự finalize Board decision/quorum và không tự tính ranking/readiness.
+- At-risk decision vẫn cần backend xác nhận Series đang `AT_RISK`.
+- Tie-break vẫn do backend chặn nếu user không phải Board Chair hoặc decision chưa `TIE_BREAK_REQUIRED`.
+
+Verify:
+- `npm --prefix mobile run lint` -> pass.
+- `npm --prefix mobile run test` -> 22/22 pass.
+- `npm --prefix mobile run build` -> Expo web export pass.

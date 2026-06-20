@@ -20,7 +20,10 @@ import type {
   MetricItem,
   QueueItem,
   ActivityItem,
+  AtRiskDecision,
+  BoardVoteValue,
   CommentItem,
+  CommentStatus,
   Tone,
 } from "@/domain/workflow"
 
@@ -46,7 +49,52 @@ export interface BoardHomePayload {
   activity: ActivityItem[]
 }
 
+export interface EditorProposalRevisionInput {
+  revisionReason: string
+  feedbackSummary: string
+}
+
+export interface EditorForwardInput {
+  editorRecommendation: string
+  feasibilityNote: string
+  suggestedPublicationType: "WEEKLY" | "MONTHLY"
+}
+
+export interface EditorRejectInput {
+  rejectReason: string
+}
+
+export interface BoardVoteInput {
+  value: BoardVoteValue
+  note?: string
+}
+
+export interface BoardTieBreakInput extends BoardVoteInput {
+  publicationType?: "WEEKLY" | "MONTHLY"
+}
+
+export interface BoardFinalizeDecisionInput {
+  decision?: "APPROVED" | "REJECTED" | "NEEDS_REVISION"
+  publicationType?: "WEEKLY" | "MONTHLY"
+  note?: string
+}
+
+export interface BoardAtRiskDecisionInput {
+  decision: AtRiskDecision
+  note?: string
+}
+
 export interface MobileWorkflowDataSource {
+  requestEditorProposalRevision(seriesId: string, input: EditorProposalRevisionInput): Promise<void>
+  rejectEditorProposal(seriesId: string, input: EditorRejectInput): Promise<void>
+  forwardEditorProposalToBoard(seriesId: string, input: EditorForwardInput): Promise<void>
+  requestEditorSubmissionRevision(submissionId: string, reviewerNote: string): Promise<void>
+  editorApproveSubmission(submissionId: string, reviewerNote: string): Promise<void>
+  resolveEditorComment(commentId: string): Promise<void>
+  castBoardVote(seriesId: string, input: BoardVoteInput): Promise<void>
+  finalizeBoardDecision(seriesId: string, input: BoardFinalizeDecisionInput): Promise<void>
+  tieBreakBoardDecision(seriesId: string, input: BoardTieBreakInput): Promise<void>
+  createBoardAtRiskDecision(seriesId: string, input: BoardAtRiskDecisionInput): Promise<void>
   getEditorHome(): Promise<EditorHomePayload>
   getEditorManuscripts(): Promise<EditorManuscriptReviewItem[]>
   getEditorSubmissions(): Promise<EditorSubmissionReviewItem[]>
@@ -123,6 +171,66 @@ function boardDecisionStatus(status: string | undefined): BoardSeriesReviewItem[
   return "PENDING"
 }
 
+function commentStatus(status: string | undefined): CommentStatus {
+  if (status === "FIXED_BY_ASSISTANT" || status === "VERIFIED_BY_MANGAKA" || status === "RESOLVED_BY_EDITOR") return status
+  return "OPEN"
+}
+
+function commentStatusLabel(status: CommentStatus): string {
+  if (status === "FIXED_BY_ASSISTANT") return "Fixed by Assistant"
+  if (status === "VERIFIED_BY_MANGAKA") return "Verified by Mangaka"
+  if (status === "RESOLVED_BY_EDITOR") return "Resolved"
+  return "Open"
+}
+
+function commentTone(status: CommentStatus, blocking: boolean): Tone {
+  if (status === "RESOLVED_BY_EDITOR") return "neutral"
+  if (status === "VERIFIED_BY_MANGAKA") return "success"
+  if (status === "FIXED_BY_ASSISTANT") return "warning"
+  return blocking ? "danger" : "primary"
+}
+
+function commentAction(status: CommentStatus): string {
+  if (status === "VERIFIED_BY_MANGAKA") return "Resolve"
+  if (status === "RESOLVED_BY_EDITOR") return "View"
+  return "Review"
+}
+
+function readinessTitle(key: string): string {
+  const labels: Record<string, string> = {
+    allPagesUploaded: "All pages uploaded",
+    allTasksApproved: "All tasks approved",
+    allSubmissionsApproved: "All submissions approved",
+    allCommentsResolved: "All comments resolved",
+    editorFinalApprovalExists: "Editor final approval exists",
+    publicationDateExists: "Publication date exists",
+  }
+  return labels[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())
+}
+
+async function apiMutate(path: string, role: MobileApiRole, body: Record<string, unknown>): Promise<void> {
+  const token = await getToken(role)
+  const response = await fetch(`${getMobileApiBaseUrl()}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    let message = `Request failed with ${response.status}`
+    try {
+      const envelope = await response.json() as { message?: string }
+      if (envelope?.message) message = envelope.message
+    } catch {
+      // keep default status message
+    }
+    throw new Error(message)
+  }
+}
+
 async function apiRequest<T>(path: string, role: MobileApiRole, init?: RequestInit): Promise<T> {
   const token = await getToken(role)
   const response = await fetch(`${getMobileApiBaseUrl()}${path}`, {
@@ -167,6 +275,17 @@ async function getToken(role: MobileApiRole): Promise<string> {
 
 function fallbackDataSource(primary: MobileWorkflowDataSource, fallback: MobileWorkflowDataSource): MobileWorkflowDataSource {
   return {
+    // Mutations call the live endpoint directly and surface real errors; no silent mock fallback.
+    requestEditorProposalRevision: (seriesId, input) => primary.requestEditorProposalRevision(seriesId, input),
+    rejectEditorProposal: (seriesId, input) => primary.rejectEditorProposal(seriesId, input),
+    forwardEditorProposalToBoard: (seriesId, input) => primary.forwardEditorProposalToBoard(seriesId, input),
+    requestEditorSubmissionRevision: (submissionId, note) => primary.requestEditorSubmissionRevision(submissionId, note),
+    editorApproveSubmission: (submissionId, note) => primary.editorApproveSubmission(submissionId, note),
+    resolveEditorComment: (commentId) => primary.resolveEditorComment(commentId),
+    castBoardVote: (seriesId, input) => primary.castBoardVote(seriesId, input),
+    finalizeBoardDecision: (seriesId, input) => primary.finalizeBoardDecision(seriesId, input),
+    tieBreakBoardDecision: (seriesId, input) => primary.tieBreakBoardDecision(seriesId, input),
+    createBoardAtRiskDecision: (seriesId, input) => primary.createBoardAtRiskDecision(seriesId, input),
     getEditorHome: async () => primary.getEditorHome().catch(() => fallback.getEditorHome()),
     getEditorManuscripts: async () => primary.getEditorManuscripts().catch(() => fallback.getEditorManuscripts()),
     getEditorSubmissions: async () => primary.getEditorSubmissions().catch(() => fallback.getEditorSubmissions()),
@@ -182,6 +301,16 @@ function fallbackDataSource(primary: MobileWorkflowDataSource, fallback: MobileW
 }
 
 export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
+  requestEditorProposalRevision: async () => undefined,
+  rejectEditorProposal: async () => undefined,
+  forwardEditorProposalToBoard: async () => undefined,
+  requestEditorSubmissionRevision: async () => undefined,
+  editorApproveSubmission: async () => undefined,
+  resolveEditorComment: async () => undefined,
+  castBoardVote: async () => undefined,
+  finalizeBoardDecision: async () => undefined,
+  tieBreakBoardDecision: async () => undefined,
+  createBoardAtRiskDecision: async () => undefined,
   getEditorHome: () => resolveMock(editorHome),
   getEditorManuscripts: () => resolveMock(manuscripts),
   getEditorSubmissions: () => resolveMock(finalApprovals),
@@ -196,11 +325,79 @@ export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
 }
 
 export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
+  requestEditorProposalRevision: async (seriesId, input) => {
+    await apiMutate(`/editor/series/${seriesId}/request-revision`, "editor", {
+      revisionReason: input.revisionReason,
+      feedbackSummary: input.feedbackSummary,
+    })
+  },
+
+  rejectEditorProposal: async (seriesId, input) => {
+    await apiMutate(`/editor/series/${seriesId}/reject`, "editor", {
+      rejectReason: input.rejectReason,
+    })
+  },
+
+  forwardEditorProposalToBoard: async (seriesId, input) => {
+    await apiMutate(`/editor/series/${seriesId}/forward-to-board`, "editor", {
+      editorRecommendation: input.editorRecommendation,
+      feasibilityNote: input.feasibilityNote,
+      suggestedPublicationType: input.suggestedPublicationType,
+    })
+  },
+
+  requestEditorSubmissionRevision: async (submissionId, reviewerNote) => {
+    await apiMutate(`/submissions/${submissionId}/request-revision`, "editor", { reviewerNote })
+  },
+
+  editorApproveSubmission: async (submissionId, reviewerNote) => {
+    await apiMutate(`/submissions/${submissionId}/editor-approve`, "editor", { reviewerNote })
+  },
+
+  resolveEditorComment: async (commentId) => {
+    await apiMutate(`/comments/${commentId}/resolve`, "editor", {})
+  },
+
+  castBoardVote: async (seriesId, input) => {
+    await apiMutate(`/board/series/${seriesId}/votes`, "board", {
+      value: input.value,
+      note: input.note,
+    })
+  },
+
+  finalizeBoardDecision: async (seriesId, input) => {
+    await apiMutate(`/board/series/${seriesId}/decisions/finalize`, "board", {
+      decision: input.decision,
+      publicationType: input.publicationType,
+      note: input.note,
+    })
+  },
+
+  tieBreakBoardDecision: async (seriesId, input) => {
+    await apiMutate(`/board/series/${seriesId}/decisions/tie-break`, "board", {
+      value: input.value,
+      publicationType: input.value === "APPROVE" ? input.publicationType : undefined,
+      note: input.note,
+    })
+  },
+
+  createBoardAtRiskDecision: async (seriesId, input) => {
+    await apiMutate(`/board/series/${seriesId}/at-risk-decisions`, "board", {
+      decision: input.decision,
+      note: input.note,
+    })
+  },
+
   getEditorHome: async () => {
-    const summary: any = await apiRequest("/dashboard/editor/summary", "editor")
-    const manuscriptsCount = summary?.reviewQueue?.manuscripts ?? manuscripts.length
-    const finalCount = summary?.reviewQueue?.productions ?? finalApprovals.length
-    const readiness = await apiMobileWorkflowDataSource.getEditorReadiness()
+    const [summary, manuscriptItems, submissionItems, readiness] = await Promise.all([
+      apiRequest<any>("/dashboard/editor/summary", "editor"),
+      apiMobileWorkflowDataSource.getEditorManuscripts(),
+      apiMobileWorkflowDataSource.getEditorSubmissions(),
+      apiMobileWorkflowDataSource.getEditorReadiness(),
+    ])
+    // Prefer the live review-queue lengths so Home counts match the lists the editor can open.
+    const manuscriptsCount = manuscriptItems.length || summary?.reviewQueue?.manuscripts || 0
+    const finalCount = submissionItems.length || summary?.reviewQueue?.productions || 0
 
     const actions: MetricItem[] = [
       { id: "manuscripts", label: "Review manuscripts", value: numberText(manuscriptsCount), tone: "primary", icon: "file-text", subtitle: "Live editor review queue", actionLabel: "Review now" },
@@ -226,7 +423,7 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         tone: "primary",
         icon: "file-text",
       })),
-      priorityChapter: (await apiMobileWorkflowDataSource.getEditorManuscripts())[0] ?? manuscripts[0],
+      priorityChapter: manuscriptItems[0] ?? manuscripts[0],
       readiness,
     }
   },
@@ -259,11 +456,16 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
     const items = await apiRequest<any[]>("/submissions/review-queue", "editor")
     return asArray<any>(items).map((item, index) => {
       const task = item?.taskId ?? item?.task ?? {}
+      const chapter = task?.chapterId ?? item?.chapterId ?? {}
+      const taskId = typeof task === "string" ? task : itemId(task, "")
+      const chapterId = typeof chapter === "string" ? chapter : itemId(chapter, "")
       const status = text(item?.status, "MANGAKA_APPROVED")
       return {
         id: itemId(item, `editor-submission-${index}`),
+        taskId,
+        chapterId,
         title: text(task?.title, `Submission ${index + 1}`),
-        subtitle: text(task?.chapterId?.title ?? task?.seriesId?.title, "Production task"),
+        subtitle: text(chapter?.title ?? task?.seriesId?.title, "Production task"),
         meta: `Assistant: ${text(item?.submittedBy?.name ?? task?.assignedTo?.name, "Assigned assistant")}`,
         status: status === "EDITOR_APPROVED" ? "Approved Today" : "Waiting",
         tone: toneForStatus(status),
@@ -280,25 +482,89 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
 
   getEditorComments: async () => {
     const submissions = await apiMobileWorkflowDataSource.getEditorSubmissions()
-    const firstTaskId = submissions[0]?.id
-    const comments = firstTaskId ? [] : []
+    const firstTaskId = submissions.find((item) => item.taskId)?.taskId
+    if (!firstTaskId) {
+      return {
+        metrics: commentMetrics,
+        comments: productionComments,
+        activity: commentActivity,
+      }
+    }
+
+    const items = await apiRequest<any[]>(`/comments/task/${firstTaskId}`, "editor")
+    const comments = asArray<any>(items).map((item, index) => {
+      const canonicalStatus = commentStatus(item?.status)
+      const blocking = Boolean(item?.isBlocking)
+      const tone = commentTone(canonicalStatus, blocking)
+      const author = item?.authorId ?? {}
+      return {
+        id: itemId(item, `comment-${index}`),
+        title: text(item?.chapterId?.title ?? item?.taskId?.title, `Task comment ${index + 1}`),
+        body: text(item?.body, "Production feedback comment."),
+        owner: text(author?.name ?? author?.role, "Production reviewer"),
+        status: commentStatusLabel(canonicalStatus),
+        canonicalStatus,
+        tone,
+        action: commentAction(canonicalStatus),
+        page: text(item?.pageId?.pageNumber ?? item?.pageId?.index, "API"),
+        coverTone: "mono",
+        blocking,
+      } satisfies CommentItem & { canonicalStatus: CommentStatus; blocking: boolean }
+    })
+
+    const open = comments.filter((item) => item.canonicalStatus === "OPEN").length
+    const fixed = comments.filter((item) => item.canonicalStatus === "FIXED_BY_ASSISTANT").length
+    const blocking = comments.filter((item) => item.blocking && item.canonicalStatus !== "RESOLVED_BY_EDITOR").length
+    const resolved = comments.filter((item) => item.canonicalStatus === "RESOLVED_BY_EDITOR").length
+
     return {
-      metrics: commentMetrics,
+      metrics: [
+        { id: "open", label: "Open", value: String(open), tone: open > 0 ? "primary" : "success", icon: "message-square" },
+        { id: "fixed", label: "Fixed by Assistant", value: String(fixed), tone: fixed > 0 ? "warning" : "neutral", icon: "check-circle" },
+        { id: "blocking", label: "Blocking", value: String(blocking), tone: blocking > 0 ? "danger" : "success", icon: "alert-triangle" },
+        { id: "resolved", label: "Resolved", value: String(resolved), tone: "neutral", icon: "calendar" },
+      ],
       comments,
-      activity: commentActivity,
+      activity: comments.slice(0, 3).map((item) => ({
+        id: `${item.id}-activity`,
+        title: `${item.status}: ${item.title}`,
+        time: "Live API",
+        tone: item.tone,
+        icon: item.tone === "danger" ? "alert-triangle" : "message-circle",
+      })),
     }
   },
 
   getEditorReadiness: async () => {
-    const fallback = editorReadinessResult
-    return fallback
+    const submissions = await apiMobileWorkflowDataSource.getEditorSubmissions()
+    const context = submissions.find((item) => item.chapterId)
+    if (!context?.chapterId) return editorReadinessResult
+
+    const readiness = await apiRequest<any>(`/chapters/${context.chapterId}/readiness`, "editor")
+    return {
+      chapterId: text(readiness?.chapterId, context.chapterId),
+      chapterStatus: text(readiness?.chapterStatus, "UNKNOWN"),
+      chapterTitle: context.subtitle,
+      overallPassed: Boolean(readiness?.ready),
+      source: "PublicationReadinessService",
+      checks: asArray<any>(readiness?.items).map((item, index) => ({
+        id: text(item?.key, `readiness-${index}`),
+        title: readinessTitle(text(item?.key, `Readiness ${index + 1}`)),
+        passed: Boolean(item?.passed),
+        reason: text(item?.reason, "Backend readiness check returned no reason."),
+      })),
+    } satisfies EditorReadinessResult
   },
 
   getBoardHome: async () => {
-    const summary: any = await apiRequest("/dashboard/board/summary", "board")
-    const pendingVotes = summary?.boardQueue?.pendingVotes ?? boardSeries.length
-    const atRiskReviews = summary?.boardQueue?.atRiskReviews ?? atRiskTitles.length
-    const seriesReviews = await apiMobileWorkflowDataSource.getBoardSeriesReviews()
+    const [summary, seriesReviews, atRiskCases] = await Promise.all([
+      apiRequest<any>("/dashboard/board/summary", "board"),
+      apiMobileWorkflowDataSource.getBoardSeriesReviews(),
+      apiMobileWorkflowDataSource.getBoardAtRiskCases(),
+    ])
+    // Prefer live queue lengths so Home counts match the lists the board can open.
+    const pendingVotes = seriesReviews.length || summary?.boardQueue?.pendingVotes || 0
+    const atRiskReviews = atRiskCases.length || summary?.boardQueue?.atRiskReviews || 0
 
     const metrics: MetricItem[] = [
       { id: "waiting", label: "Waiting", value: numberText(pendingVotes), tone: "primary", icon: "file-text" },

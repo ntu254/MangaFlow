@@ -90,6 +90,10 @@ export function EditorManuscriptsScreen() {
           onStartAction={flow.startProposalAction}
           onConfirm={flow.confirmProposalAction}
           onCancel={flow.cancelProposalAction}
+          noteValue={flow.proposalNote}
+          onChangeNote={flow.setProposalNote}
+          busy={flow.actionBusy}
+          errorText={flow.actionError}
         />
       ) : null}
       <EditorFinalApprovalsPanel />
@@ -154,7 +158,14 @@ export function EditorCommentsScreen() {
           <MFEmptyState title="No production comments" subtitle="Resolved or empty comment states remain visible without hiding the lifecycle route." icon="message-circle" tone="success" />
         )}
       </View>
-      {flow.selectedComment ? <EditorCommentDetailPanel item={flow.selectedComment as EditorCommentItem} /> : null}
+      {flow.selectedComment ? (
+        <EditorCommentDetailPanel
+          item={flow.selectedComment as EditorCommentItem}
+          onResolve={flow.resolveSelectedComment}
+          busy={flow.actionBusy}
+          errorText={flow.actionError}
+        />
+      ) : null}
       <MFCard style={styles.blockingCallout}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
@@ -202,6 +213,10 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             onStartAction={flow.startFinalApprovalAction}
             onConfirm={flow.confirmFinalApprovalAction}
             onCancel={flow.cancelFinalApprovalAction}
+            noteValue={flow.finalApprovalNote}
+            onChangeNote={flow.setFinalApprovalNote}
+            busy={flow.actionBusy}
+            errorText={flow.actionError}
           />
         </>
       ) : <MFEmptyState title="No selected submission" subtitle="Select a Mangaka-approved submission to preview final approval details." icon="file-check" />}

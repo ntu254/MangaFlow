@@ -31,6 +31,8 @@ Mobile still must not own backend permissions, workflow transitions, readiness c
 - `GET /api/dashboard/editor/summary`
 - `GET /api/editor/manuscripts/review-queue`
 - `GET /api/submissions/review-queue`
+- `GET /api/comments/task/:taskId`
+- `GET /api/chapters/:chapterId/readiness`
 
 ### Board
 
@@ -39,25 +41,38 @@ Mobile still must not own backend permissions, workflow transitions, readiness c
 - `GET /api/board/queue`
 - `GET /api/rankings`
 
+## Mutation Endpoints Wired
+
+### Editor
+
+- `POST /api/editor/series/:seriesId/request-revision`
+- `POST /api/editor/series/:seriesId/reject`
+- `POST /api/editor/series/:seriesId/forward-to-board`
+- `POST /api/submissions/:submissionId/editor-approve`
+- `POST /api/submissions/:submissionId/request-revision`
+- `POST /api/comments/:commentId/resolve`
+
+### Board
+
+- `POST /api/board/series/:seriesId/votes`
+- `POST /api/board/series/:seriesId/decisions/finalize`
+- `POST /api/board/series/:seriesId/decisions/tie-break`
+- `POST /api/board/series/:seriesId/at-risk-decisions`
+
+Mutation calls go to the live API directly and surface backend errors in the confirmation panel. They do not silently fall back to mock behavior.
+
 ## Mock Fallback Still Intentional
 
-- Editor comments stay mock/empty until a selected task id is exposed from live submission rows.
-- Editor readiness stays mock until mobile has a selected live chapter id.
+- Editor comments fall back to mock only when the live submission queue does not expose a task id or the comments API fails.
+- Editor readiness falls back to mock only when the live submission queue does not expose a chapter id or the readiness API fails.
 - Board decision history is derived from live review/ranking reads plus mock-safe display shape.
 
 ## Mutation Endpoints Not Wired Yet
 
-These remain confirmation-only UI actions because workflow transitions are backend-owned and should be handled in a separate high-risk story:
+These remain outside the current mobile slice:
 
-- `POST /api/manuscripts/:manuscriptId/forward-to-board`
-- `POST /api/manuscripts/:manuscriptId/request-revision`
-- `POST /api/manuscripts/:manuscriptId/reject`
-- `POST /api/submissions/:submissionId/editor-approve`
-- `POST /api/submissions/:submissionId/request-revision`
-- `POST /api/board/series/:seriesId/votes`
-- `POST /api/board/series/:seriesId/finalize-decision`
-- `POST /api/board/series/:seriesId/tie-break`
-- `POST /api/board/series/:seriesId/at-risk-decisions`
+- legacy aliases such as `/api/board/series/:seriesId/finalize-decision`, `/api/board/series/:seriesId/tie-break`, and `/api/board/series/:seriesId/vote`
+- manuscript-id legacy aliases under `/api/manuscripts/:manuscriptId/*`; mobile currently uses the live Editor series endpoints exposed by the backend.
 
 ## Verification Notes
 

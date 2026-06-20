@@ -1,12 +1,27 @@
 import {
+  MFButton,
   MFDetailList,
   MFTimeline,
   SectionTitle,
 } from "@/components/mf"
 import type { EditorCommentItem } from "@/data/editor"
 import type { EditorReadinessResult } from "@/domain/workflow"
+import { Text } from "react-native"
+import { colors, spacing } from "@/design/tokens"
 
-export function EditorCommentDetailPanel({ item }: { item: EditorCommentItem }) {
+export function EditorCommentDetailPanel({
+  item,
+  onResolve,
+  busy = false,
+  errorText,
+}: {
+  item: EditorCommentItem
+  onResolve?: () => void
+  busy?: boolean
+  errorText?: string | null
+}) {
+  const canResolve = item.canonicalStatus !== "RESOLVED_BY_EDITOR"
+
   return (
     <>
       <SectionTitle title="Comment detail" />
@@ -22,6 +37,10 @@ export function EditorCommentDetailPanel({ item }: { item: EditorCommentItem }) 
         { id: "verified", title: "VERIFIED_BY_MANGAKA", subtitle: "Mangaka verifies internally before Editor can resolve.", tone: item.canonicalStatus === "VERIFIED_BY_MANGAKA" || item.canonicalStatus === "RESOLVED_BY_EDITOR" ? "success" : "neutral", icon: "shield-check" },
         { id: "resolved", title: "RESOLVED_BY_EDITOR", subtitle: "Only this status clears the publication blocker.", tone: item.canonicalStatus === "RESOLVED_BY_EDITOR" ? "success" : "warning", icon: "check" },
       ]} />
+      {canResolve && onResolve ? (
+        <MFButton tone="success" variant="soft" onPress={onResolve} disabled={busy}>{busy ? "Resolving..." : "Resolve comment"}</MFButton>
+      ) : null}
+      {errorText ? <Text style={{ color: colors.danger, fontSize: 12, marginTop: spacing.xs }}>{errorText}</Text> : null}
     </>
   )
 }

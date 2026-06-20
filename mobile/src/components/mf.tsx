@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Image } from "expo-image"
-import { Pressable, ScrollView, StyleSheet, Text, type ViewStyle, useWindowDimensions, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -276,7 +276,8 @@ export function MFButton({
   onPress,
   accessibilityLabel,
   style,
-}: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline" | "soft"; onPress?: () => void; accessibilityLabel?: string; style?: ViewStyle }>) {
+  disabled = false,
+}: PropsWithChildren<{ tone?: Tone; variant?: "filled" | "outline" | "soft"; onPress?: () => void; accessibilityLabel?: string; style?: ViewStyle; disabled?: boolean }>) {
   const swatch = toneColors[tone]
   const buttonStyle =
     variant === "filled"
@@ -289,8 +290,10 @@ export function MFButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
       onPress={onPress}
-      style={[styles.button, buttonStyle, style]}
+      disabled={disabled}
+      style={[styles.button, buttonStyle, disabled && styles.buttonDisabled, style]}
     >
       <Text style={[styles.buttonText, { color: variant === "filled" ? colors.surface : swatch.fg }]} numberOfLines={2}>{children}</Text>
     </Pressable>
@@ -306,6 +309,13 @@ export function MFConfirmationPanel({
   endpointHint,
   onConfirm,
   onCancel,
+  noteValue,
+  onChangeNote,
+  notePlaceholder,
+  noteLabel,
+  errorText,
+  busy = false,
+  confirmDisabled = false,
 }: {
   title: string
   body: string
@@ -315,8 +325,16 @@ export function MFConfirmationPanel({
   endpointHint?: string
   onConfirm: () => void
   onCancel: () => void
+  noteValue?: string
+  onChangeNote?: (value: string) => void
+  notePlaceholder?: string
+  noteLabel?: string
+  errorText?: string | null
+  busy?: boolean
+  confirmDisabled?: boolean
 }) {
   const swatch = toneColors[tone]
+  const showNote = typeof onChangeNote === "function"
 
   return (
     <MFCard style={[styles.confirmationPanel, { borderColor: swatch.fg }]}>
@@ -328,10 +346,25 @@ export function MFConfirmationPanel({
         </View>
       </View>
       <Text style={styles.confirmationBody}>{body}</Text>
+      {showNote ? (
+        <View style={styles.confirmationNoteGroup}>
+          {noteLabel ? <Text style={styles.confirmationNoteLabel}>{noteLabel}</Text> : null}
+          <TextInput
+            value={noteValue}
+            onChangeText={onChangeNote}
+            editable={!busy}
+            placeholder={notePlaceholder}
+            placeholderTextColor={colors.outline}
+            multiline
+            style={styles.confirmationNoteInput}
+          />
+        </View>
+      ) : null}
+      {errorText ? <Text style={styles.confirmationError}>{errorText}</Text> : null}
       {endpointHint ? <Text style={styles.confirmationHint}>{endpointHint}</Text> : null}
       <View style={styles.confirmationActions}>
-        <MFButton tone={tone} style={styles.confirmationActionButton} onPress={onConfirm}>{confirmLabel}</MFButton>
-        <MFButton tone="neutral" variant="soft" style={styles.confirmationActionButton} onPress={onCancel}>{cancelLabel}</MFButton>
+        <MFButton tone={tone} style={styles.confirmationActionButton} onPress={onConfirm} disabled={busy || confirmDisabled}>{busy ? "Submitting..." : confirmLabel}</MFButton>
+        <MFButton tone="neutral" variant="soft" style={styles.confirmationActionButton} onPress={onCancel} disabled={busy}>{cancelLabel}</MFButton>
       </View>
     </MFCard>
   )
@@ -621,6 +654,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, lineHeight: 13, fontWeight: "800", textAlign: "center" },
   button: { minHeight: 50, borderRadius: radius.full, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md, paddingVertical: 8 },
   buttonText: { fontWeight: "900", fontSize: 13, lineHeight: 17, textAlign: "center" },
+  buttonDisabled: { opacity: 0.55 },
   confirmationPanel: { gap: spacing.sm, backgroundColor: colors.surface },
   confirmationHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   confirmationTitleBlock: { flex: 1, minWidth: 0 },
@@ -630,6 +664,10 @@ const styles = StyleSheet.create({
   confirmationHint: { color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, fontSize: 11, fontWeight: "800" },
   confirmationActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   confirmationActionButton: { flexGrow: 1, flexBasis: "47%", minWidth: 0 },
+  confirmationNoteGroup: { gap: spacing.xs },
+  confirmationNoteLabel: { color: colors.text, fontSize: 12, fontWeight: "800" },
+  confirmationNoteInput: { minHeight: 64, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.md, backgroundColor: colors.surfaceLow, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, color: colors.text, fontSize: 13, textAlignVertical: "top" },
+  confirmationError: { color: colors.danger, fontSize: 12, fontWeight: "800", lineHeight: 17 },
   stateNoticeError: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: colors.danger, backgroundColor: colors.dangerSoft },
   stateNoticeLoading: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderColor: colors.primary, backgroundColor: colors.primarySoft },
   stateNoticeBody: { flex: 1 },

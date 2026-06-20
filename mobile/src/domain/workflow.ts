@@ -97,6 +97,8 @@ export interface EditorManuscriptReviewItem extends SeriesCard {
 }
 
 export interface EditorSubmissionReviewItem extends SeriesCard {
+  taskId?: string
+  chapterId?: string
   taskStatus: TaskStatus
   submissionStatus: SubmissionStatus
   assistantName: string
@@ -113,6 +115,8 @@ export interface EditorReadinessCheck {
 }
 
 export interface EditorReadinessResult {
+  chapterId?: string
+  chapterStatus?: string
   chapterTitle: string
   overallPassed: boolean
   checks: EditorReadinessCheck[]
