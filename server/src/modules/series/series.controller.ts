@@ -1,6 +1,7 @@
 import { deleteDraftSeriesService, withdrawSeriesProposalService, cancelSeriesService, hardDeleteSeriesService } from "./series.service.js"
 ﻿import type { Request, Response } from "express"
 import { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, updateSeriesService, getSeriesSummaryService, deleteManuscriptFileService, downloadManuscriptFileService, verifyManuscriptFilesService } from "./series.service.js"
+import { createChapterService } from "../chapter/chapter.service.js"
 
 export async function listSeries(req: Request, res: Response): Promise<void> {
   const series = await listSeriesService(req.user!.userId, req.user!.role)
@@ -20,6 +21,15 @@ export async function getSeriesSummary(req: Request, res: Response): Promise<voi
 export async function createSeries(req: Request, res: Response): Promise<void> {
   const series = await createSeriesService({ ...req.body, ownerId: req.user!.userId })
   res.status(201).json({ success: true, message: "Series created successfully", data: series })
+}
+
+export async function createChapterForSeries(req: Request, res: Response): Promise<void> {
+  const chapter = await createChapterService({
+    seriesId: String(req.params.seriesId),
+    chapterNumber: req.body.chapterNumber,
+    title: req.body.title,
+  })
+  res.status(201).json({ success: true, message: "Chapter created successfully", data: chapter })
 }
 
 export async function createManuscriptUpload(req: Request, res: Response): Promise<void> {

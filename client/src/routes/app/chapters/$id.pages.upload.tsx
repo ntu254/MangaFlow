@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
-import { chapters, findSeries, currentUserByRole } from "@/entities";
+import { currentUserByRole } from "@/entities";
 import { useRole } from "@/shared/lib/role";
 import { canUploadPage } from "@/shared/lib/permissions";
 import { logAudit } from "@/shared/lib/audit";
@@ -9,17 +9,21 @@ import { toast } from "sonner";
 import { useRef, useState } from "react";
 import { Upload, X, CheckCircle2, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { chaptersApi } from "@/shared/api/chapters";
-import { filesApi } from "@/shared/api/files";
+import { chaptersApi, type ChapterPage } from "@/shared/api/chapters";
+import { extractErrorMessage } from "@/shared/api";
+import { filesApi, type UploadAssetPayload } from "@/shared/api/files";
 import { useChapterPages } from "@/shared/queries/useChapterPages";
+import { seriesApi } from "@/shared/api/series";
 
 export const Route = createFileRoute("/app/chapters/$id/pages/upload")({
-  loader: ({ params }) => {
-    const ch = chapters.find((c) => c.id === params.id);
-    if (!ch) throw notFound();
-    const s = findSeries(ch.seriesId);
-    if (!s) throw notFound();
-    return { chapter: ch, series: s };
+  loader: async ({ params }) => {
+    try {
+      const chapter = await chaptersApi.getChapter(params.id);
+      const series = await seriesApi.get(chapter.seriesId);
+      return { chapter, series };
+    } catch {
+      throw notFound();
+    }
   },
   component: PageUploadPage,
 });
@@ -45,8 +49,8 @@ function PageUploadPage() {
   const [items, setItems] = useState<PendingItem[]>([]);
 
   const queryClient = useQueryClient();
-  const { data: existingPagesResponse } = useChapterPages(chapter.id);
-  const existingPages = existingPagesResponse?.data || [];
+  const { data: existingPages = [] } = useChapterPages(chapter.id);
+  const chapterLabel = `Chapter ${chapter.chapterNumber}`;
 
   const updateItem = (id: string, updates: Partial<PendingItem>) => {
     setItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
@@ -62,14 +66,16 @@ function PageUploadPage() {
 
       if (!pageId) {
         pageNumber = startPageNumber + offsetIndex;
-        const pageRes = await chaptersApi.createPage(chapter.id, { pageNumber });
-        pageId = pageRes.data.id;
+        const page = await chaptersApi.createPage(chapter.id, { pageNumber });
+        pageId = page.id;
         updateItem(item.id, { pageId, pageNumber });
       }
 
       // 2. Get Presigned URL
-      const presignedRes = await filesApi.getPresignedUploadUrl(item.file.name, item.file.type);
-      const { uploadUrl, fileAssetId, r2Key } = presignedRes.data;
+      const { uploadUrl, fileAssetId, r2Key } = await filesApi.getPresignedUploadUrl(
+        item.file.name,
+        item.file.type,
+      );
 
       // 3. PUT file using XMLHttpRequest to track progress
       await new Promise<void>((resolve, reject) => {
@@ -98,11 +104,11 @@ function PageUploadPage() {
 
       // 4. Confirm upload (Temporary asset shortcut per plan)
       // TODO: Replace placeholder derived assets with real backend-generated workingImage + thumbnail assets. Do not ship this as production processing.
-      const assetPayload = {
+      const assetPayload: UploadAssetPayload = {
         fileAssetId,
         r2Key,
         originalName: item.file.name,
-        mimeType: item.file.type as any,
+        mimeType: item.file.type as UploadAssetPayload["mimeType"],
         size: item.file.size,
       };
 
@@ -126,10 +132,10 @@ function PageUploadPage() {
         entityId: chapter.id,
         payload: { file: item.name },
       });
-    } catch (err: any) {
+    } catch (err) {
       updateItem(item.id, {
         status: "failed",
-        error: err.message || "Upload failed",
+        error: extractErrorMessage(err) || "Upload failed",
       });
     }
   }
@@ -174,7 +180,8 @@ function PageUploadPage() {
     setItems((prev) => [...prev, ...newItems]);
 
     // Determine start page number safely
-    const startPageNumber = Math.max(0, ...existingPages.map((p: any) => p.pageNumber ?? 0)) + 1;
+    const startPageNumber =
+      Math.max(0, ...existingPages.map((p: ChapterPage) => p.pageNumber ?? 0)) + 1;
     // For offset, we use the current number of items already in the queue + any new ones
     const currentOffset = items.length;
 
@@ -185,7 +192,7 @@ function PageUploadPage() {
     notify(me.id, {
       type: "PAGES_UPLOADED",
       title: `${newItems.length} page(s) processing`,
-      body: `${chapter.number} — ${series.title}`,
+      body: `${chapterLabel} — ${series.title}`,
       link: `/app/series/${series.id}`,
     });
   }
@@ -201,7 +208,8 @@ function PageUploadPage() {
       // Passing 0 for startPageNumber/offset is fine since uploadItem will reuse item.pageNumber if item.pageId exists.
       // If it failed before getting a pageId, it will create one. But wait, if it failed before page creation,
       // it won't have a pageNumber. Let's just pass the max existing page number at retry time.
-      const startPageNumber = Math.max(0, ...existingPages.map((p: any) => p.pageNumber ?? 0)) + 1;
+      const startPageNumber =
+        Math.max(0, ...existingPages.map((p: ChapterPage) => p.pageNumber ?? 0)) + 1;
       uploadItem(item, startPageNumber, 0);
     }
   }
@@ -209,7 +217,7 @@ function PageUploadPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <PageHeader
-        title={`Upload pages — ${chapter.number}`}
+        title={`Upload pages — ${chapterLabel}`}
         jp="ページアップロード"
         description={
           <Link

@@ -17,11 +17,28 @@ import {
 } from "./series-member.controller.js"
 
 const router = Router()
+const createSeriesChapterSchema = z.object({
+  params: z.object({
+    seriesId: z.string().min(1, "Series ID is required"),
+  }),
+  body: z.object({
+    chapterNumber: z.number().int().positive("Chapter number must be positive"),
+    title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  }),
+})
 
 router.get("/", requireAuth, asyncHandler(controller.listSeries))
 router.get("/:seriesId", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesDetail))
 router.get("/:seriesId/summary", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesSummary))
 router.post("/", requireAuth, requireRole("MANGAKA"), validate(createSeriesSchema), asyncHandler(controller.createSeries))
+
+router.post(
+  "/:seriesId/chapters",
+  requireAuth,
+  validate(createSeriesChapterSchema),
+  requireSeriesRole("MANGAKA", "EDITOR"),
+  asyncHandler(controller.createChapterForSeries),
+)
 
 router.post(
   "/:seriesId/manuscripts/uploads",

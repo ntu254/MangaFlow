@@ -10,6 +10,9 @@ export const qk = {
     list: () => ["users", "list"] as const,
     detail: (id: string) => ["users", "detail", id] as const,
   },
+  boardMembers: {
+    list: () => ["board-members", "list"] as const,
+  },
   dashboard: {
     root: ["dashboard"] as const,
     byRole: (role: string) => ["dashboard", role] as const,

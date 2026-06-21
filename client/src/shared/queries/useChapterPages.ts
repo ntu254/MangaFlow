@@ -1,13 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/shared/api";
-import { chaptersApi } from "../api/chapters";
+import { chaptersApi, type CreateChapterInput } from "../api/chapters";
 
 export function useChapterPages(chapterId: string | undefined) {
   return useQuery({
     queryKey: ["chapter-pages", chapterId],
     queryFn: () => chaptersApi.getChapterPages(chapterId!),
     enabled: !!chapterId,
+  });
+}
+
+export function useCreateChapter(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateChapterInput) => chaptersApi.createChapter(seriesId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId] });
+      qc.invalidateQueries({ queryKey: ["series"] });
+      toast.success("Chapter created successfully");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
   });
 }
 

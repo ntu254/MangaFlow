@@ -1,4 +1,5 @@
 import { Chapter, FileAsset, Page } from "../chapter.model.js"
+import { Series } from "../../series/series.model.js"
 
 export async function createPageRepository(chapterId: string, pageNumber: number): Promise<any> {
   const chapter = await Chapter.findById(chapterId)
@@ -71,11 +72,25 @@ export async function confirmPageUploadRepository(input: ConfirmPageUploadInput)
     throw new Error("Page not found")
   }
 
-  const [originalAsset, workingAsset, thumbnailAsset] = await Promise.all([
-    upsertFileAsset(input.original, input.uploadedBy, "ORIGINAL"),
-    upsertFileAsset(input.working, input.uploadedBy, "WORKING"),
-    upsertFileAsset(input.thumbnail, input.uploadedBy, "THUMBNAIL"),
-  ])
+  const uploads = [
+    { key: "originalAsset", slot: "ORIGINAL", asset: input.original },
+    { key: "workingAsset", slot: "WORKING", asset: input.working },
+    { key: "thumbnailAsset", slot: "THUMBNAIL", asset: input.thumbnail },
+  ] as const
+
+  const upsertedByFileAssetId = new Map<string, any>()
+  for (const upload of uploads) {
+    if (!upsertedByFileAssetId.has(upload.asset.fileAssetId)) {
+      upsertedByFileAssetId.set(
+        upload.asset.fileAssetId,
+        await upsertFileAsset(upload.asset, input.uploadedBy, upload.slot),
+      )
+    }
+  }
+
+  const originalAsset = upsertedByFileAssetId.get(input.original.fileAssetId)
+  const workingAsset = upsertedByFileAssetId.get(input.working.fileAssetId)
+  const thumbnailAsset = upsertedByFileAssetId.get(input.thumbnail.fileAssetId)
 
   const page = await Page.findByIdAndUpdate(
     input.pageId,
@@ -90,6 +105,20 @@ export async function confirmPageUploadRepository(input: ConfirmPageUploadInput)
 
   if (!page) {
     throw new Error("Page not found")
+  }
+
+  try {
+    if (existingPage.chapterId) {
+      const chapter = await Chapter.findById(existingPage.chapterId)
+      if (chapter?.seriesId) {
+        await Series.updateOne(
+          { _id: chapter.seriesId, status: "APPROVED" },
+          { $set: { status: "ONGOING" } },
+        )
+      }
+    }
+  } catch {
+    // Page upload confirmation must not fail because series lifecycle sync failed.
   }
 
   return { page, originalAsset, workingAsset, thumbnailAsset }

@@ -241,6 +241,7 @@ CHAPTER_ENTERED_PRODUCTION
 - Series bắt buộc có `publicationType`.
 - Board không vote từng Chapter trong MVP.
 - Chapter lấy `publicationTypeSnapshot` từ Series.
+- Sau khi Page upload confirm thành công lần đầu, Series tự chuyển `APPROVED` sang `ONGOING`.
 - Original không resize/overwrite.
 - Working Image dùng cho Page Studio và AI.
 - Không tạo riêng Preview và AI copy trong MVP.

@@ -62,7 +62,15 @@ export async function listPagesService(chapterId: string, actor: AccessActor) {
         } : undefined
       }
     }
-    return { ...page, activeTask }
+    return {
+      ...page,
+      id: String(page._id),
+      chapterId: String(page.chapterId),
+      originalFileAssetId: page.originalFileAssetId ? String(page.originalFileAssetId) : undefined,
+      workingFileAssetId: page.workingFileAssetId ? String(page.workingFileAssetId) : undefined,
+      thumbnailFileAssetId: page.thumbnailFileAssetId ? String(page.thumbnailFileAssetId) : undefined,
+      activeTask,
+    }
   })
 }
 export async function deletePageService(chapterId: string, pageId: string, actor: AccessActor) {

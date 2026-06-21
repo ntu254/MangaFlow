@@ -13,9 +13,19 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
 import { ChapterRow } from "@/features/chapters/components/ChapterRow";
 import { useChapterPages } from "@/shared/queries/useChapterPages";
-import { useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
+import { useCreateChapter, useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
 import { useFileDownloadUrl } from "@/shared/queries/useFileDownloadUrl";
+import { Input } from "@/shared/ui/shadcn/input";
+import { Label } from "@/shared/ui/shadcn/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/shadcn/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,9 +87,13 @@ function SeriesChapters() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [visiblePagesCount, setVisiblePagesCount] = useState(9);
+  const [isCreateChapterOpen, setIsCreateChapterOpen] = useState(false);
+  const [newChapterNumber, setNewChapterNumber] = useState(1);
+  const [newChapterTitle, setNewChapterTitle] = useState("");
 
   const deletePage = useDeletePage();
   const replacePage = useReplacePage();
+  const createChapter = useCreateChapter(id);
 
   const [dialogConfig, setDialogConfig] = useState<{
     open: boolean;
@@ -127,6 +141,12 @@ function SeriesChapters() {
   }, [summary?.chapters]);
 
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const nextChapterNumber = useMemo(() => {
+    const chapterNumbers = mappedChapters
+      .map((chapter: { chapter: string }) => Number.parseInt(chapter.chapter, 10))
+      .filter(Number.isFinite);
+    return Math.max(0, ...chapterNumbers) + 1;
+  }, [mappedChapters]);
 
   useEffect(() => {
     if (!selectedChapterId && mappedChapters.length > 0) {
@@ -134,10 +154,15 @@ function SeriesChapters() {
     }
   }, [mappedChapters, selectedChapterId]);
 
-  const { data: pagesRes, isLoading: pagesLoading } = useChapterPages(
+  useEffect(() => {
+    if (!isCreateChapterOpen) return;
+    setNewChapterNumber(nextChapterNumber);
+    setNewChapterTitle(`Chapter ${nextChapterNumber}`);
+  }, [isCreateChapterOpen, nextChapterNumber]);
+
+  const { data: pages = [], isLoading: pagesLoading } = useChapterPages(
     selectedChapterId || undefined,
   );
-  const pages = pagesRes?.data || [];
 
   const selectedChapter = mappedChapters.find((ch: { id: string }) => ch.id === selectedChapterId);
 
@@ -179,7 +204,11 @@ function SeriesChapters() {
               <button className="h-8 rounded-md border border-foreground/12 bg-card px-3 text-[10px] font-extrabold text-foreground/60 shadow-sm hover:bg-foreground/5">
                 Latest updated
               </button>
-              <button className="h-8 rounded-md bg-[#061A2B] px-3.5 text-[10px] font-extrabold text-white shadow-md hover:bg-[#0B2A43] dark:bg-blue-600">
+              <button
+                type="button"
+                onClick={() => setIsCreateChapterOpen(true)}
+                className="h-8 rounded-md bg-[#061A2B] px-3.5 text-[10px] font-extrabold text-white shadow-md hover:bg-[#0B2A43] dark:bg-blue-600"
+              >
                 Create Chapter
               </button>
             </div>
@@ -569,6 +598,74 @@ function SeriesChapters() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isCreateChapterOpen} onOpenChange={setIsCreateChapterOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Chapter</DialogTitle>
+            <DialogDescription>
+              Creates a draft chapter for this Board-approved series. The backend still checks
+              series status, publication type, and series membership.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createChapter.mutate(
+                { chapterNumber: newChapterNumber, title: newChapterTitle.trim() },
+                {
+                  onSuccess: (chapter) => {
+                    setSelectedChapterId(chapter.id);
+                    setIsCreateChapterOpen(false);
+                  },
+                },
+              );
+            }}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="chapter-number">Chapter number</Label>
+              <Input
+                id="chapter-number"
+                type="number"
+                min={1}
+                value={newChapterNumber}
+                onChange={(event) => setNewChapterNumber(Number(event.target.value))}
+                disabled={createChapter.isPending}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="chapter-title">Title</Label>
+              <Input
+                id="chapter-title"
+                value={newChapterTitle}
+                onChange={(event) => setNewChapterTitle(event.target.value)}
+                disabled={createChapter.isPending}
+                placeholder="Chapter title"
+              />
+            </div>
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setIsCreateChapterOpen(false)}
+                className="h-9 rounded-md border border-foreground/12 bg-card px-4 text-[12px] font-bold text-foreground/70 hover:bg-foreground/5"
+                disabled={createChapter.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="h-9 rounded-md bg-[#061A2B] px-4 text-[12px] font-bold text-white hover:bg-[#0B2A43] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600"
+                disabled={
+                  createChapter.isPending || !newChapterTitle.trim() || newChapterNumber < 1
+                }
+              >
+                {createChapter.isPending ? "Creating..." : "Create chapter"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
