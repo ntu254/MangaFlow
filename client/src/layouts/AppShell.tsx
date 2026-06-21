@@ -3,14 +3,15 @@ import { useLocation } from "@tanstack/react-router";
 import { ThemeProvider } from "@/shared/lib/theme";
 import { Sidebar } from "@/layouts/Sidebar";
 import { Topbar } from "@/layouts/Topbar";
-import { SidebarProvider, useSidebar } from "@/layouts/SidebarContext";
+import { SidebarProvider } from "@/layouts/SidebarContext";
 
 function AppShellInner({ children }: { children: ReactNode }) {
-  const { collapsed } = useSidebar();
   const { pathname } = useLocation();
-  const isStudioPage = pathname.endsWith("/studio");
+  const isPageStudio = pathname.startsWith("/app/pages/") && pathname.endsWith("/studio");
+  const isAssistantTaskStudio =
+    pathname.startsWith("/app/assistant/tasks/") && pathname.endsWith("/studio");
 
-  if (isStudioPage) {
+  if (isPageStudio) {
     return (
       <div suppressHydrationWarning className="flex min-h-screen w-full bg-[#141414] text-foreground">
         <main className="flex-1 flex flex-col min-w-0">{children}</main>
@@ -23,7 +24,15 @@ function AppShellInner({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 px-10 py-5">{children}</main>
+        <main
+          className={
+            isAssistantTaskStudio
+              ? "flex h-[calc(100vh-3.5rem)] min-h-0 flex-col overflow-hidden"
+              : "flex-1 px-10 py-5"
+          }
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

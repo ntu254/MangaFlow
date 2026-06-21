@@ -54,8 +54,19 @@ export async function canReadPage(actor: AccessActor, pageId: string): Promise<b
       { contextPageIds: pageId },
     ],
   })
+  if (assignedOrContextTask) return true
 
-  return Boolean(assignedOrContextTask)
+  const regionScopedTasks = await Task.find({
+    seriesId,
+    assignedTo: actor.userId,
+    pageId: { $exists: false },
+    regionId: { $exists: true },
+  }).select("regionId").lean()
+  if (regionScopedTasks.length === 0) return false
+
+  const regionIds = regionScopedTasks.map((task) => task.regionId).filter(Boolean)
+  const assignedRegion = await Region.exists({ _id: { $in: regionIds }, pageId })
+  return Boolean(assignedRegion)
 }
 
 export async function assertCanReadPage(actor: AccessActor, pageId: string): Promise<void> {

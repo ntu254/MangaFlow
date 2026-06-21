@@ -7,7 +7,8 @@ import { notify } from "@/shared/lib/notifications";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  useSeriesSummary,
+  useAddSeriesMember,
+  useSeriesMembers,
   useUpdateSeriesMember,
   useRemoveSeriesMember,
 } from "@/shared/queries/useSeries";
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/app/series/$id/team")({
 
 const statusStyles: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-600 border-emerald-200",
+  invited: "bg-orange-50 text-orange-600 border-orange-200",
   "pending invite": "bg-orange-50 text-orange-600 border-orange-200",
   paused: "bg-slate-100 text-slate-500 border-slate-200",
   removed: "bg-red-50 text-red-500 border-red-200",
@@ -46,11 +48,13 @@ const statusStyles: Record<string, string> = {
 
 function TeamPage() {
   const { id } = Route.useParams();
-  const { data: summary, isLoading } = useSeriesSummary(id);
+  const { data: members = [], isLoading } = useSeriesMembers(id);
   const { role } = useRole();
   const me = currentUserByRole[role];
   const perm = canManageTeam(role);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteAccessScope, setInviteAccessScope] = useState<"FULL" | "TASK_ONLY">("TASK_ONLY");
 
   const [filter, setFilter] = useState<"All" | "Active" | "Pending" | "Paused" | "Removed">("All");
 
@@ -64,22 +68,34 @@ function TeamPage() {
 
   const updateMember = useUpdateSeriesMember(id);
   const removeMember = useRemoveSeriesMember(id);
+  const addMember = useAddSeriesMember(id);
 
-  if (isLoading || !summary) {
+  if (isLoading) {
     return <div className="p-8 text-center text-foreground/50 text-sm">Loading team...</div>;
   }
 
-  const members = summary.members || [];
-
   const mappedMembers = members.map((m: any) => ({
     ...m,
+    id: m.id ?? m._id,
+    user:
+      m.user ??
+      (typeof m.userId === "object"
+        ? {
+            id: m.userId.id ?? m.userId._id,
+            name: m.userId.displayName ?? m.userId.name,
+            email: m.userId.email,
+            role: m.userId.role,
+          }
+        : undefined),
     status: m.status ? m.status.toLowerCase() : m.isActive ? "active" : "paused",
   }));
 
   const activeMembers = mappedMembers.filter((m: any) => m.status === "active");
+  const pendingInvites = mappedMembers.filter((m: any) => m.status === "invited");
 
   const filteredMembers = mappedMembers.filter((m: any) => {
     if (filter === "All") return true;
+    if (filter === "Pending") return m.status === "invited";
     return m.status === filter.toLowerCase();
   });
 
@@ -91,15 +107,39 @@ function TeamPage() {
     }
   }
 
-  // Mock pending invites for UI realism since backend doesn't explicitly store "pending invites" as members
-  const pendingInvites = [
-    {
-      email: "a.yamamoto@example.com",
-      role: "Background Assistant",
-      date: "May 17, 2025 11:32 AM",
-      status: "PENDING",
-    },
-  ];
+  function sendInvite(event: React.FormEvent) {
+    event.preventDefault();
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) {
+      toast.error("Enter an assistant email to invite.");
+      return;
+    }
+    addMember.mutate(
+      {
+        email,
+        role: "ASSISTANT",
+        accessScope: inviteAccessScope,
+      },
+      {
+        onSuccess: () => {
+          logAudit({
+            type: "SERIES_MEMBER_INVITED",
+            actorId: me.id,
+            entity: "series",
+            entityId: id,
+            payload: { email, role: "ASSISTANT", accessScope: inviteAccessScope },
+          });
+          notify(me.id, {
+            type: "TEAM_INVITE_SENT",
+            title: "Team invite sent",
+            body: email,
+            link: `/app/series/${id}/team`,
+          });
+          setInviteEmail("");
+        },
+      },
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl pb-12">
@@ -288,73 +328,6 @@ function TeamPage() {
                     );
                   })}
 
-                  {pendingInvites
-                    .filter(() => filter === "All" || filter === "Pending")
-                    .map((inv, i) => {
-                      const nameParts = inv.email.split("@")[0].split(".");
-                      const generatedName = nameParts
-                        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-                        .join(" ");
-
-                      return (
-                        <tr key={`inv_${i}`} className="transition-colors hover:bg-muted/30 group">
-                          {/* User Info */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-700">
-                                {generatedName.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-foreground text-[14px] leading-tight">
-                                  {generatedName}
-                                </span>
-                                <span className="text-[12px] text-muted-foreground mt-0.5">
-                                  {inv.email}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Role */}
-                          <td className="px-4 py-4 align-middle">
-                            <span className="text-[13px] font-medium text-foreground">
-                              {inv.role}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-4 align-middle">
-                            <span
-                              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wide ${statusStyles["pending invite"]}`}
-                            >
-                              PENDING INVITE
-                            </span>
-                          </td>
-
-                          {/* Time */}
-                          <td className="px-4 py-4 align-middle">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-[13px] font-medium text-foreground">
-                                {inv.date}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground">Invite sent</span>
-                            </div>
-                          </td>
-
-                          {/* Actions */}
-                          <td className="px-6 py-4 align-middle text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button className="rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground shadow-sm hover:bg-muted">
-                                Resend
-                              </button>
-                              <button className="rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground shadow-sm hover:bg-muted">
-                                Cancel
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
                 </tbody>
               </table>
 
@@ -373,10 +346,12 @@ function TeamPage() {
           {/* Quick Invite */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h3 className="mb-4 font-bold text-foreground">Quick Invite</h3>
-            <div className="space-y-3">
+            <form className="space-y-3" onSubmit={sendInvite}>
               <input
-                type="text"
-                placeholder="Email / user search"
+                type="email"
+                placeholder="assistant@example.com"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
                 className="h-9 w-full rounded-md border border-[#E5DFD3] bg-[#F5EFE6] px-3 text-[13px] text-foreground placeholder:text-[#A39B8B] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted/50"
               />
               <div className="flex items-end gap-3">
@@ -388,11 +363,33 @@ function TeamPage() {
                     <option>Assistant</option>
                   </select>
                 </div>
-                <button className="flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-slate-900">
-                  Send Invite
+                <button
+                  type="submit"
+                  disabled={!perm.allowed || addMember.isPending}
+                  className="flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900"
+                >
+                  {addMember.isPending ? "Sending..." : "Send Invite"}
                 </button>
               </div>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Access
+                </label>
+                <select
+                  value={inviteAccessScope}
+                  onChange={(event) =>
+                    setInviteAccessScope(event.target.value as "FULL" | "TASK_ONLY")
+                  }
+                  className="h-9 w-full rounded-md border border-[#E5DFD3] bg-[#F5EFE6] px-2 text-[13px] text-foreground focus:outline-none dark:border-border dark:bg-muted/50"
+                >
+                  <option value="TASK_ONLY">Task only</option>
+                  <option value="FULL">Full team access</option>
+                </select>
+              </div>
+              {!perm.allowed && (
+                <p className="text-[11px] font-medium text-amber-600">{perm.reason}</p>
+              )}
+            </form>
           </div>
 
           {/* Team Summary */}

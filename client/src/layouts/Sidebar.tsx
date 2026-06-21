@@ -148,13 +148,19 @@ export function Sidebar() {
 
   return (
     <aside
+      suppressHydrationWarning
       className={`sticky top-0 hidden h-screen shrink-0 flex-col bg-background border-r border-border text-foreground md:flex transition-all duration-300 ease-in-out ${collapsed ? "w-[68px]" : "w-[240px]"}`}
     >
       <div
+        suppressHydrationWarning
         className={`flex items-center py-5 ${collapsed ? "justify-center px-0" : "justify-between px-5"}`}
       >
         {!collapsed && <Logo />}
-        {collapsed && <div className="font-bold text-lg leading-none tracking-tighter">MF</div>}
+        {collapsed && (
+          <div suppressHydrationWarning className="font-bold text-lg leading-none tracking-tighter">
+            MF
+          </div>
+        )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="text-foreground/50 hover:text-foreground transition-colors"
@@ -168,7 +174,10 @@ export function Sidebar() {
         </button>
       </div>
 
-      <nav className={`flex-1 overflow-y-auto py-2 scrollbar-hide ${collapsed ? "px-2" : "px-3"}`}>
+      <nav
+        suppressHydrationWarning
+        className={`flex-1 overflow-y-auto py-2 scrollbar-hide ${collapsed ? "px-2" : "px-3"}`}
+      >
         <Section label={isAssistant ? "Worker" : "Workspace"} collapsed={collapsed} />
         {visible.map((n) => (
           <Item key={n.to} item={n} active={isActive(pathname, n.to)} collapsed={collapsed} />
@@ -192,7 +201,7 @@ export function Sidebar() {
       </nav>
 
       {role === "mangaka" && (
-        <div className={`py-2 ${collapsed ? "px-2" : "px-4"}`}>
+        <div suppressHydrationWarning className={`py-2 ${collapsed ? "px-2" : "px-4"}`}>
           {collapsed ? (
             <button
               className="flex h-10 w-10 mx-auto items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground transition-colors"
@@ -222,10 +231,17 @@ export function Sidebar() {
       )}
 
       <div
+        suppressHydrationWarning
         className={`border-t border-border py-4 ${collapsed ? "px-0 flex justify-center" : "px-4"}`}
       >
-        <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold">
+        <div
+          suppressHydrationWarning
+          className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
+        >
+          <div
+            suppressHydrationWarning
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold"
+          >
             {me.avatar}
           </div>
           {!collapsed && (
@@ -255,10 +271,11 @@ function Section({
   collapsed?: boolean;
 }) {
   if (collapsed) {
-    return <div className={`my-2 mx-auto h-px w-6 bg-border ${className}`} />;
+    return <div suppressHydrationWarning className={`my-2 mx-auto h-px w-6 bg-border ${className}`} />;
   }
   return (
     <div
+      suppressHydrationWarning
       className={`px-3 pb-1.5 pt-2 text-[10px] uppercase tracking-wider text-foreground/45 ${className}`}
     >
       {label}

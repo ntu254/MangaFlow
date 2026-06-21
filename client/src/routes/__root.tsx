@@ -134,11 +134,39 @@ const THEME_INIT_SCRIPT = `
 })()
 `;
 
+// Some browser extensions inject `bis_skin_checked` attributes before React hydrates.
+// React correctly reports that as a mismatch, but it is outside the app's HTML.
+const EXTENSION_HYDRATION_WARNING_FILTER_SCRIPT = `
+(function(){
+  if (typeof window === 'undefined' || window.__mfHydrationWarningFilterInstalled) return;
+  window.__mfHydrationWarningFilterInstalled = true;
+
+  var shouldIgnore = function(args) {
+    var text = '';
+    for (var i = 0; i < args.length; i++) {
+      var value = args[i];
+      if (typeof value === 'string') text += value + '\\n';
+      else if (value && typeof value.message === 'string') text += value.message + '\\n';
+    }
+    var isHydrationWarning = /hydration|hydrated|server rendered HTML/i.test(text);
+    var isExtensionMutation = text.indexOf('bis_skin_checked') !== -1 || text.indexOf('chrome-extension://') !== -1;
+    return isHydrationWarning && isExtensionMutation;
+  };
+
+  var originalError = console.error;
+  console.error = function() {
+    if (shouldIgnore(arguments)) return;
+    return originalError.apply(console, arguments);
+  };
+})()
+`;
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: EXTENSION_HYDRATION_WARNING_FILTER_SCRIPT }} />
         <HeadContent />
       </head>
       <body suppressHydrationWarning>

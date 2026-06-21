@@ -14,6 +14,7 @@ export type TaskPriority = "low" | "medium" | "high";
 
 export type Task = {
   id: string;
+  seriesId?: string;
   chapterId: string;
   type: "Linework" | "Tone" | "Background" | "Lettering" | "FX";
   assigneeId: string;
@@ -29,8 +30,11 @@ export type Task = {
   priority?: TaskPriority;
   assignedById?: string;
   instruction?: string;
+  description?: string;
   currentVersion?: number;
   requiredFiles?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export const tasks: Task[] = [

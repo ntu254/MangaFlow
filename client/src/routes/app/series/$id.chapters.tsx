@@ -12,6 +12,7 @@ import {
 import { useState, useRef, useMemo, useEffect } from "react";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
 import { ChapterRow } from "@/features/chapters/components/ChapterRow";
+import { PageUploadDialog } from "@/features/chapters/components/PageUploadPanel";
 import { useChapterPages } from "@/shared/queries/useChapterPages";
 import { useCreateChapter, useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
@@ -88,6 +89,7 @@ function SeriesChapters() {
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [visiblePagesCount, setVisiblePagesCount] = useState(9);
   const [isCreateChapterOpen, setIsCreateChapterOpen] = useState(false);
+  const [isUploadPagesOpen, setIsUploadPagesOpen] = useState(false);
   const [newChapterNumber, setNewChapterNumber] = useState(1);
   const [newChapterTitle, setNewChapterTitle] = useState("");
 
@@ -559,17 +561,33 @@ function SeriesChapters() {
             </div>
 
             {selectedChapter && (
-              <Link
-                to="/app/chapters/$id/pages/upload"
-                params={{ id: selectedChapter.id }}
+              <button
+                type="button"
+                onClick={() => setIsUploadPagesOpen(true)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-dashed border-foreground/20 text-[#061A2B] dark:text-blue-400 font-semibold text-[13px] hover:bg-foreground/5 transition-colors"
               >
                 <Upload className="h-4 w-4" /> Upload pages
-              </Link>
+              </button>
             )}
           </section>
         </div>
       </section>
+
+      {selectedChapter && (
+        <PageUploadDialog
+          open={isUploadPagesOpen}
+          onOpenChange={setIsUploadPagesOpen}
+          chapter={{ id: selectedChapter.id, chapterNumber: selectedChapter.chapter }}
+          series={{
+            id,
+            title: (summary as { series?: { title?: string }; title?: string }).series?.title ??
+              (summary as { title?: string }).title ??
+              "Series",
+            status: (summary as { series?: { status?: string }; status?: string }).series?.status ??
+              (summary as { status?: string }).status,
+          }}
+        />
+      )}
 
       <AlertDialog
         open={dialogConfig.open}

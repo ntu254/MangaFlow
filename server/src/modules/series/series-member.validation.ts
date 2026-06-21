@@ -5,11 +5,16 @@ const objectId = z.string().refine((value) => mongoose.isValidObjectId(value), {
   message: "Invalid id",
 })
 
-export const addSeriesMemberSchema = z.object({
-  userId: objectId,
-  role: z.enum(["ASSISTANT", "CO_MANGAKA", "EDITOR"]),
-  accessScope: z.enum(["FULL", "TASK_ONLY"]),
-})
+export const addSeriesMemberSchema = z
+  .object({
+    userId: objectId.optional(),
+    email: z.string().email("Invalid email address").optional(),
+    role: z.enum(["ASSISTANT", "CO_MANGAKA", "EDITOR"]),
+    accessScope: z.enum(["FULL", "TASK_ONLY"]),
+  })
+  .refine((data) => Boolean(data.userId || data.email), {
+    message: "Either userId or email is required",
+  })
 
 export const updateSeriesMemberSchema = z.object({
   params: z.object({
@@ -25,6 +30,19 @@ export const updateSeriesMemberSchema = z.object({
 export const memberIdParamsSchema = z.object({
   seriesId: objectId,
   memberId: objectId,
+})
+
+export const acceptSeriesMemberSchema = z.object({
+  params: z.object({
+    seriesId: objectId,
+    memberId: objectId,
+  }),
+})
+
+export const acceptOwnSeriesInviteSchema = z.object({
+  params: z.object({
+    seriesId: objectId,
+  }),
 })
 
 export type AddSeriesMemberInput = z.infer<typeof addSeriesMemberSchema>
