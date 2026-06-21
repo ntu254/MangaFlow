@@ -20,8 +20,14 @@ import {
 import type { Region, AIResult, Task } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { staff, findStaff } from "@/entities";
-import { useRunAISegmentation, useRunAITextWhitening } from "@/shared/queries/usePageStudio";
+import {
+  useAcceptAISuggestion,
+  useRejectAISuggestion,
+  useRunAISegmentation,
+  useRunAITextWhitening,
+} from "@/shared/queries/usePageStudio";
 import { useDeleteRegion } from "@/shared/queries/useRegions";
+import { AssistantTaskWorkPanel } from "./AssistantTaskWorkPanel";
 
 interface Props {
   regions: Region[];
@@ -29,6 +35,8 @@ interface Props {
   pageId: string;
   readOnly?: boolean;
   assistantTask?: Task;
+  originalFileAssetId?: string;
+  workingFileAssetId?: string;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -39,7 +47,32 @@ const STATUS_COLOR: Record<string, string> = {
   "linked-to-task": "text-amber-400 bg-amber-400/10 border-amber-400/20",
 };
 
-export function InspectorDrawer({ regions, results = [], pageId, readOnly = false, assistantTask }: Props) {
+function getSuggestionPayload(region?: Region) {
+  if (!region) return null;
+  if (region.aiResultId && typeof region.aiSuggestionIndex === "number") {
+    return {
+      aiResultId: region.aiResultId,
+      suggestionIndex: region.aiSuggestionIndex,
+    };
+  }
+
+  const match = region.id.match(/^(.+):suggestion:(\d+)$/);
+  if (!match) return null;
+  return {
+    aiResultId: match[1],
+    suggestionIndex: Number(match[2]),
+  };
+}
+
+export function InspectorDrawer({
+  regions,
+  results = [],
+  pageId,
+  readOnly = false,
+  assistantTask,
+  originalFileAssetId,
+  workingFileAssetId,
+}: Props) {
   const {
     selectedRegionId,
     setSelectedRegionId,
@@ -56,17 +89,46 @@ export function InspectorDrawer({ regions, results = [], pageId, readOnly = fals
   const { mutate: deleteRegion, isPending: isDeleting } = useDeleteRegion(pageId);
   const { mutate: detectBubbles, isPending: isDetectingBubbles } = useRunAISegmentation(pageId);
   const { mutate: whitenText, isPending: isWhiteningText } = useRunAITextWhitening(pageId);
+  const { mutate: acceptSuggestion, isPending: isAcceptingSuggestion } =
+    useAcceptAISuggestion(pageId);
+  const { mutate: rejectSuggestion, isPending: isRejectingSuggestion } =
+    useRejectAISuggestion(pageId);
 
-  const handleDeleteRegion = () => {
-    if (!selectedRegion) return;
-    if (selectedRegion.status === "ai-suggested") return;
-    deleteRegion(selectedRegion.id, {
+  const hasActiveTask = selectedRegion ? !!regionTasks[selectedRegion.id] : false;
+  const isAISuggestion =
+    selectedRegion?.status === "ai-suggested" || selectedRegion?.id.includes(":suggestion:");
+  const isSuggestionMutationPending = isAcceptingSuggestion || isRejectingSuggestion;
+
+  const getSelectedSuggestionPayload = () => {
+    return getSuggestionPayload(selectedRegion);
+  };
+
+  const handleAcceptSuggestion = () => {
+    const payload = getSelectedSuggestionPayload();
+    if (!payload) return;
+    acceptSuggestion(payload, {
       onSuccess: () => setSelectedRegionId(null),
     });
   };
 
-  const hasActiveTask = selectedRegion ? !!regionTasks[selectedRegion.id] : false;
-  const isAISuggestion = selectedRegion?.status === "ai-suggested";
+  const handleRejectSuggestion = () => {
+    const payload = getSelectedSuggestionPayload();
+    if (!payload) return;
+    rejectSuggestion(payload, {
+      onSuccess: () => setSelectedRegionId(null),
+    });
+  };
+
+  const handleDeleteRegion = () => {
+    if (!selectedRegion) return;
+    if (isAISuggestion) {
+      handleRejectSuggestion();
+      return;
+    }
+    deleteRegion(selectedRegion.id, {
+      onSuccess: () => setSelectedRegionId(null),
+    });
+  };
 
   // Mock comments state
   const [comments, setComments] = useState([
@@ -148,39 +210,12 @@ export function InspectorDrawer({ regions, results = [], pageId, readOnly = fals
           {activeTab === "inspect" && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
               {assistantTask && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 space-y-3 shadow-md">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300">
-                        Assigned Task
-                      </div>
-                      <div className="mt-1 truncate text-[13px] font-bold text-foreground">
-                        {assistantTask.title ?? `${assistantTask.type} pass`}
-                      </div>
-                    </div>
-                    <span className="rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-amber-300">
-                      {assistantTask.status}
-                    </span>
-                  </div>
-                  <div className="space-y-2 border-t border-amber-500/15 pt-3 text-[11px] text-foreground/65">
-                    <div>
-                      <span className="text-foreground/35">Note: </span>
-                      <span className="text-foreground/80">
-                        {assistantTask.instruction ?? assistantTask.description ?? "No note provided."}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-foreground/35">Region: </span>
-                      <span className="font-mono text-foreground/80">
-                        {assistantTask.regionId ?? "Assigned page scope"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-foreground/35">Due: </span>
-                      <span className="text-foreground/80">{assistantTask.deadline}</span>
-                    </div>
-                  </div>
-                </div>
+                <AssistantTaskWorkPanel
+                  task={assistantTask}
+                  pageId={pageId}
+                  originalFileAssetId={originalFileAssetId}
+                  workingFileAssetId={workingFileAssetId}
+                />
               )}
               {selectedRegion ? (
                 <div className="space-y-4">
@@ -199,28 +234,64 @@ export function InspectorDrawer({ regions, results = [], pageId, readOnly = fals
                       </span>
                     </div>
 
+                    {!readOnly && isAISuggestion && (
+                      <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
+                        <button
+                          onClick={handleAcceptSuggestion}
+                          disabled={isSuggestionMutationPending}
+                          className="flex items-center justify-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 transition-colors hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isAcceptingSuggestion ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                          Accept
+                        </button>
+                        <button
+                          onClick={handleRejectSuggestion}
+                          disabled={isSuggestionMutationPending}
+                          className="flex items-center justify-center gap-1 rounded-lg border border-rose-500/20 bg-rose-500/10 px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-rose-400 transition-colors hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isRejectingSuggestion ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <X className="h-3.5 w-3.5" />
+                          )}
+                          Reject
+                        </button>
+                      </div>
+                    )}
+
                     {!readOnly && (
-                    <div className="flex justify-end pt-1 border-t border-border mt-3 group relative">
-                      <button
-                        onClick={handleDeleteRegion}
-                        disabled={isDeleting || hasActiveTask || isAISuggestion}
-                        className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {isDeleting ? "Deleting..." : "Delete Region"}
-                      </button>
-                      {isAISuggestion && (
-                        <div className="absolute bottom-full right-0 mb-1 hidden w-52 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
-                          AI suggestions are preview overlays until accepted.
-                        </div>
-                      )}
-                      {hasActiveTask && (
-                        <div className="absolute bottom-full right-0 mb-1 hidden w-48 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
-                          This region has active tasks. Cancel or finish those tasks before
-                          deleting.
-                        </div>
-                      )}
-                    </div>
+                      <div className="flex justify-end pt-1 border-t border-border mt-3 group relative">
+                        <button
+                          onClick={handleDeleteRegion}
+                          disabled={
+                            isDeleting || isSuggestionMutationPending || (!isAISuggestion && hasActiveTask)
+                          }
+                          className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
+                        >
+                          {isDeleting || isRejectingSuggestion ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          {isAISuggestion
+                            ? isRejectingSuggestion
+                              ? "Removing..."
+                              : "Remove Suggestion"
+                            : isDeleting
+                              ? "Deleting..."
+                              : "Delete Region"}
+                        </button>
+                        {!isAISuggestion && hasActiveTask && (
+                          <div className="absolute bottom-full right-0 mb-1 hidden w-48 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
+                            This region has active tasks. Cancel or finish those tasks before
+                            deleting.
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {/* Coordinates */}
@@ -272,9 +343,22 @@ export function InspectorDrawer({ regions, results = [], pageId, readOnly = fals
                             <User className="h-3.5 w-3.5" /> Assignee:
                           </span>
                           <span className="font-semibold text-foreground/85">
-                            {findStaff(regionTasks[selectedRegion.id].assigneeId)?.name}
+                            {regionTasks[selectedRegion.id].assigneeName ??
+                              findStaff(regionTasks[selectedRegion.id].assigneeId)?.name ??
+                              "Assigned assistant"}
                           </span>
                         </div>
+
+                        {regionTasks[selectedRegion.id].status && (
+                          <div className="flex justify-between items-center text-foreground/50">
+                            <span className="flex items-center gap-1">
+                              <Info className="h-3.5 w-3.5" /> Status:
+                            </span>
+                            <span className="font-semibold capitalize text-foreground/85">
+                              {regionTasks[selectedRegion.id].status?.replace(/-/g, " ")}
+                            </span>
+                          </div>
+                        )}
 
                         <div className="flex justify-between items-center text-foreground/50">
                           <span className="flex items-center gap-1">

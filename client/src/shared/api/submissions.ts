@@ -8,11 +8,26 @@ export type SubmissionStatus =
   | "EDITOR_APPROVED"
   | "REJECTED";
 
+export type PopulatedRef = string | { _id?: string; id?: string; title?: string; name?: string };
+export type FileAssetRef = string | { _id?: string; id?: string; originalName?: string };
+
+export function refId(value: PopulatedRef | undefined): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value.id ?? value._id ?? "";
+}
+
+export function refLabel(value: PopulatedRef | undefined, fallback = "Unknown"): string {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  return value.title ?? value.name ?? value.id ?? value._id ?? fallback;
+}
+
 export interface Submission {
   id: string;
-  taskId: string;
-  seriesId: string;
-  chapterId: string;
+  taskId: PopulatedRef;
+  seriesId: PopulatedRef;
+  chapterId: PopulatedRef;
   pageId?: string;
   regionId?: string;
   submittedBy: {
@@ -23,11 +38,7 @@ export interface Submission {
   };
   version: number;
   resultText?: string;
-  fileAssetId?: {
-    _id: string;
-    id: string;
-    originalName: string;
-  };
+  fileAssetId?: FileAssetRef;
   status: SubmissionStatus;
   reviewerNote?: string;
   createdAt: string;

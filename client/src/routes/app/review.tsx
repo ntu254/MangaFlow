@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
-import { findSeries, findStaff } from "@/entities";
+import { refId, refLabel } from "@/shared/api/submissions";
 import { useReviewQueue } from "@/shared/queries/useSubmissions";
 
 function ReviewRoute() {
@@ -23,19 +23,23 @@ function ReviewRoute() {
           <span />
         </div>
         {queue.map((sm) => {
+          const seriesId = refId(sm.seriesId);
+          const seriesLabel = refLabel(sm.seriesId, "Unknown Series");
+          const chapterLabel = refLabel(sm.chapterId, "Unknown Chapter");
+
           return (
             <div
               key={sm.id}
               className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1fr_auto] items-center gap-3 border-b border-foreground/5 px-4 py-3 text-[13px] hover:bg-accent/40 last:border-b-0"
             >
-              <span className="font-medium">Series {sm.seriesId}</span>
-              <span>Chapter {sm.chapterId}</span>
+              <span className="font-medium">{seriesLabel}</span>
+              <span>{chapterLabel}</span>
               <span className="text-foreground/70">{sm.submittedBy.name}</span>
               <StatusBadge status={sm.status as any} />
               <span className="text-foreground/70">-</span>
               <Link
                 to="/app/series/$id/reviews"
-                params={{ id: sm.seriesId }}
+                params={{ id: seriesId }}
                 className="rounded border border-foreground/15 px-2 py-1 text-[11px] hover:bg-foreground/5"
               >
                 Open

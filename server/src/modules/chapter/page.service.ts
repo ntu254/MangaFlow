@@ -19,20 +19,17 @@ export async function getPageStudioService(pageId: string, userId: string, role:
 
   if (!page) throw new AppError("Page not found", 404)
 
-  // Flow-02/04: UPLOADED means all 3 assets exist and Page Studio is open.
-  // PROCESSING_FAILED blocks Studio until the page is re-uploaded.
-  if (page.status === "UPLOADING" || page.status === "PROCESSING_FAILED") {
-    throw new AppError(`Page Studio unavailable: page status is ${page.status}`, 409)
-  }
-  if (!page.workingFileAssetId) throw new AppError("Page Studio unavailable because working image is missing", 409)
-
   const chapter = await Chapter.findById(page.chapterId).select("_id seriesId").lean()
   if (!chapter) throw new AppError("Chapter not found for page studio", 404)
 
   const [regions, aiResults, tasks, assistants] = await Promise.all([
     Region.find({ pageId: trimmed }).sort({ regionIndex: 1 }).lean(),
     AIResult.find({ pageId: trimmed }).sort({ createdAt: -1 }).lean(),
-    Task.find({ $or: [{ pageId: trimmed }, { contextPageIds: trimmed }] }).populate("taskTypeId").lean(),
+    Task.find({ $or: [{ pageId: trimmed }, { contextPageIds: trimmed }] })
+      .sort({ createdAt: -1 })
+      .populate("taskTypeId")
+      .populate("assignedTo", "name displayName email")
+      .lean(),
     SeriesMember.find({
       seriesId: chapter.seriesId,
       role: "ASSISTANT",

@@ -55,6 +55,13 @@ router.get(
 )
 
 router.get(
+  "/:fileAssetId/content",
+  requireAuth,
+  validate(fileAssetIdParamsSchema, "params"),
+  asyncHandler(fileController.getFileAssetContent),
+)
+
+router.get(
   "/pages/:pageId",
   requireAuth,
   validate(pageIdParamsSchema, "params"),

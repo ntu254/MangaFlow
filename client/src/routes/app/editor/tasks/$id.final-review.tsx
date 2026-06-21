@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/layouts/AppShell";
-import { useFileDownloadUrl } from "@/shared/queries/useFileDownloadUrl";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import { useTaskSubmissions } from "@/shared/queries/useSubmissions";
 import {
   useEditorApproveTaskSubmission,
@@ -304,7 +304,7 @@ function TaskFinalReviewDetail() {
 }
 
 function SubmissionImagePreview({ fileAssetId }: { fileAssetId: string }) {
-  const { data: url, isLoading } = useFileDownloadUrl(fileAssetId);
+  const { data: url, isLoading } = useFileObjectUrl(fileAssetId);
   const [zoom, setZoom] = useState(false);
 
   if (isLoading) {

@@ -1,4 +1,4 @@
-export type RegionStatus = "active" | "locked" | "deleted";
+export type RegionStatus = "active" | "locked" | "deleted" | "ai-suggested" | "rejected" | "linked-to-task";
 
 export type RegionType = "panel" | "bubble" | "sfx" | "background";
 
@@ -27,6 +27,7 @@ export type Region = {
   taskId?: string;
   source: "manual" | "ai";
   aiResultId?: string;
+  aiSuggestionIndex?: number;
 };
 
 export const regions: Region[] = [

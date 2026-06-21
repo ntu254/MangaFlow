@@ -1,5 +1,5 @@
 import { api } from "./_client";
-import type { Region, AIResult, Page } from "@/entities";
+import type { Region, AIResult, Page, Task } from "@/entities";
 
 const IMG_W = 800;
 const IMG_H = 1131;
@@ -15,7 +15,7 @@ export interface PageStudioResponse {
   thumbnailFileAsset: any;
   regions: Region[];
   aiResults: AIResult[];
-  tasks: any[];
+  tasks: Task[];
   feedbackPoints: any[];
   collaborators: PageStudioCollaborator[];
 }
@@ -70,6 +70,26 @@ type RawCollaborator = {
   email?: string;
 };
 
+type RawTask = {
+  _id?: string;
+  id?: string;
+  seriesId?: unknown;
+  chapterId?: unknown;
+  pageId?: unknown;
+  regionId?: unknown;
+  taskTypeId?: string | { _id?: string; id?: string; name?: string; code?: string; baseRate?: number };
+  title?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  assignedTo?: string | { _id?: string; id?: string; name?: string; displayName?: string; email?: string };
+  assignedBy?: string | { _id?: string; id?: string };
+  baseRate?: number;
+  dueDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 function normalizeId(value: unknown): string {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -84,6 +104,45 @@ function kebab(value: string): string {
   return value.toLowerCase().replace(/_/g, "-");
 }
 
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+function normalizeBbox(
+  bbox: { x: number; y: number; width: number; height: number } | undefined,
+): Region["coords"] {
+  if (!bbox) {
+    return { x: 0, y: 0, w: 0, h: 0 };
+  }
+
+  const isAlreadyNormalized =
+    bbox.x >= 0 &&
+    bbox.y >= 0 &&
+    bbox.width >= 0 &&
+    bbox.height >= 0 &&
+    bbox.x <= 1 &&
+    bbox.y <= 1 &&
+    bbox.width <= 1 &&
+    bbox.height <= 1;
+
+  if (isAlreadyNormalized) {
+    return {
+      x: clamp01(bbox.x),
+      y: clamp01(bbox.y),
+      w: clamp01(bbox.width),
+      h: clamp01(bbox.height),
+    };
+  }
+
+  return {
+    x: clamp01(bbox.x / IMG_W),
+    y: clamp01(bbox.y / IMG_H),
+    w: clamp01(bbox.width / IMG_W),
+    h: clamp01(bbox.height / IMG_H),
+  };
+}
+
 function normalizeRegion(region: RawRegion): Region {
   const bbox = region.bbox;
   return {
@@ -91,12 +150,7 @@ function normalizeRegion(region: RawRegion): Region {
     pageId: normalizeId(region.pageId),
     status: kebab(region.status) as Region["status"],
     type: kebab(region.type) as Region["type"],
-    coords: region.coords ?? {
-      x: bbox ? bbox.x / IMG_W : 0,
-      y: bbox ? bbox.y / IMG_H : 0,
-      w: bbox ? bbox.width / IMG_W : 0,
-      h: bbox ? bbox.height / IMG_H : 0,
-    },
+    coords: region.coords ?? normalizeBbox(bbox),
     source: kebab(region.source ?? "manual") as Region["source"],
     aiResultId: region.aiResultId ? normalizeId(region.aiResultId) : undefined,
   };
@@ -111,7 +165,9 @@ function normalizeAIResult(result: RawAIResult): AIResult {
     requestedBy: normalizeId(result.requestedBy),
     at: result.createdAt ? new Date(result.createdAt).toLocaleString() : "",
     suggestionsCount: suggestions.length,
-    acceptedCount: suggestions.filter((suggestion) => suggestion.decision === "ACCEPTED").length,
+    acceptedCount: suggestions.filter(
+      (suggestion) => suggestion.decision?.toUpperCase() === "ACCEPTED",
+    ).length,
     note: result.error,
   };
 }
@@ -127,30 +183,105 @@ function normalizeCollaborator(collaborator: RawCollaborator): PageStudioCollabo
   };
 }
 
+function normalizeTaskStatus(status?: string): Task["status"] {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "in-progress";
+    case "SUBMITTED":
+      return "submitted";
+    case "MANGAKA_APPROVED":
+      return "mangaka-approved";
+    case "EDITOR_APPROVED":
+      return "editor-approved";
+    case "REVISION_REQUESTED":
+      return "revision-requested";
+    case "REJECTED":
+      return "rejected";
+    case "CANCELLED":
+      return "cancelled";
+    case "TODO":
+    default:
+      return "todo";
+  }
+}
+
+function normalizeTaskPriority(priority?: string): Task["priority"] {
+  if (priority === "HIGH" || priority === "URGENT") return "high";
+  if (priority === "LOW") return "low";
+  return "medium";
+}
+
+function normalizeTaskType(task: RawTask): Task["type"] {
+  const taskType = typeof task.taskTypeId === "string" ? undefined : task.taskTypeId;
+  const source = `${taskType?.name ?? ""} ${taskType?.code ?? ""} ${task.title ?? ""}`.toLowerCase();
+  if (source.includes("tone")) return "Tone";
+  if (source.includes("background")) return "Background";
+  if (source.includes("letter")) return "Lettering";
+  if (source.includes("fx") || source.includes("sfx")) return "FX";
+  return "Linework";
+}
+
+function formatTaskDeadline(dueDate?: string): string {
+  if (!dueDate) return "No due date";
+  const date = new Date(dueDate);
+  if (Number.isNaN(date.getTime())) return dueDate;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function normalizeTask(task: RawTask): Task {
+  const assignedTo = task.assignedTo;
+  const assignedBy = task.assignedBy;
+  const taskType = typeof task.taskTypeId === "string" ? undefined : task.taskTypeId;
+  const pageId = normalizeId(task.pageId);
+
+  return {
+    id: normalizeId(task.id ?? task._id),
+    seriesId: normalizeId(task.seriesId),
+    chapterId: normalizeId(task.chapterId),
+    type: normalizeTaskType(task),
+    assigneeId:
+      typeof assignedTo === "string" ? assignedTo : normalizeId(assignedTo?.id ?? assignedTo?._id),
+    assigneeName:
+      typeof assignedTo === "string"
+        ? "Assigned assistant"
+        : (assignedTo?.displayName ?? assignedTo?.name ?? assignedTo?.email ?? "Assigned assistant"),
+    pageRange: pageId ? `Page ${pageId}` : "Full Chapter",
+    deadline: formatTaskDeadline(task.dueDate),
+    payout: task.baseRate ?? taskType?.baseRate ?? 0,
+    status: normalizeTaskStatus(task.status),
+    title: task.title,
+    priority: normalizeTaskPriority(task.priority),
+    assignedById:
+      typeof assignedBy === "string" ? assignedBy : normalizeId(assignedBy?.id ?? assignedBy?._id),
+    instruction: task.description,
+    description: task.description,
+    pageId,
+    regionId: normalizeId(task.regionId),
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+  };
+}
+
 function aiSuggestionRegions(result: RawAIResult): Region[] {
   const aiResultId = normalizeId(result.id ?? result._id);
   const pageId = normalizeId(result.pageId);
   return (result.suggestions ?? [])
-    .filter((suggestion) => suggestion.decision === "PENDING" && !suggestion.regionId)
+    .filter((suggestion) => suggestion.decision?.toUpperCase() === "PENDING" && !suggestion.regionId)
     .map((suggestion) => ({
       id: `${aiResultId}:suggestion:${suggestion.suggestionIndex}`,
       pageId,
       status: "ai-suggested",
       type: kebab(suggestion.type) as Region["type"],
-      coords: {
-        x: suggestion.bbox.x / IMG_W,
-        y: suggestion.bbox.y / IMG_H,
-        w: suggestion.bbox.width / IMG_W,
-        h: suggestion.bbox.height / IMG_H,
-      },
+      coords: normalizeBbox(suggestion.bbox),
       source: "ai",
       aiResultId,
+      aiSuggestionIndex: suggestion.suggestionIndex,
     }));
 }
 
 export async function getPageStudio(pageId: string): Promise<PageStudioResponse> {
   const { data } = await api.get<{ data: PageStudioResponse }>(`/pages/${pageId}/studio`);
-  const rawAIResults = data.data.aiResults as unknown as RawAIResult[];
+  const rawAIResults = (data.data.aiResults ?? []) as unknown as RawAIResult[];
   return {
     ...data.data,
     page: {
@@ -165,11 +296,12 @@ export async function getPageStudio(pageId: string): Promise<PageStudioResponse>
         }
       : undefined,
     regions: [
-      ...(data.data.regions as unknown as RawRegion[]).map(normalizeRegion),
+      ...((data.data.regions ?? []) as unknown as RawRegion[]).map(normalizeRegion),
       ...rawAIResults.flatMap(aiSuggestionRegions),
     ],
     aiResults: rawAIResults.map(normalizeAIResult),
-    collaborators: (data.data.collaborators as unknown as RawCollaborator[]).map(
+    tasks: ((data.data.tasks ?? []) as unknown as RawTask[]).map(normalizeTask),
+    collaborators: ((data.data.collaborators ?? []) as unknown as RawCollaborator[]).map(
       normalizeCollaborator,
     ),
   };
@@ -182,5 +314,25 @@ export async function runAISegmentation(pageId: string): Promise<AIResult> {
 
 export async function runAITextWhitening(pageId: string): Promise<any> {
   const { data } = await api.post<{ data: any }>(`/files/pages/${pageId}/ai/whiten-text`);
+  return data.data;
+}
+
+export async function acceptAISuggestion(
+  aiResultId: string,
+  suggestionIndex: number,
+): Promise<any> {
+  const { data } = await api.post<{ data: any }>(`/files/ai-results/${aiResultId}/accept-region`, {
+    suggestionIndex,
+  });
+  return data.data;
+}
+
+export async function rejectAISuggestion(
+  aiResultId: string,
+  suggestionIndex: number,
+): Promise<any> {
+  const { data } = await api.post<{ data: any }>(`/files/ai-results/${aiResultId}/reject-region`, {
+    suggestionIndex,
+  });
   return data.data;
 }

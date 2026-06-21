@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckCircle2, FileCheck2, User } from "lucide-react";
 import { PageHeader, EmptyState } from "@/layouts/AppShell";
+import { refId, refLabel } from "@/shared/api/submissions";
 import { useEditorFinalReviewQueue } from "@/shared/queries/useEditorReview";
 
 export const Route = createFileRoute("/app/editor/final-reviews")({
@@ -32,14 +33,14 @@ function EditorFinalReviewQueue() {
           />
         )}
         {queue.map((sub: any) => {
-          const seriesTitle = sub.seriesId?.title || "Unknown Series";
-          const taskTitle = sub.taskId?.title || "Unknown Task";
+          const seriesTitle = refLabel(sub.seriesId, "Unknown Series");
+          const taskTitle = refLabel(sub.taskId, "Unknown Task");
           const assigneeName = sub.submittedBy?.name || "Assistant";
 
           return (
             <Link
               to="/app/editor/tasks/$id/final-review"
-              params={{ id: sub.taskId?._id || sub.taskId }}
+              params={{ id: refId(sub.taskId) }}
               key={sub.id}
               className="flex items-center gap-4 border-b border-foreground/10 px-5 py-4 last:border-0 hover:bg-foreground/5 transition-colors"
             >

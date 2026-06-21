@@ -24,6 +24,7 @@ export function BottomPageCarousel({ pages, currentPageId }: Props) {
         return "bg-blue-500/10 text-blue-400 border-blue-500/20";
       case "task-assigned":
       case "in-progress":
+      case "in-task":
         return "bg-amber-500/10 text-amber-400 border-amber-500/20";
       default:
         return "bg-foreground/5 text-foreground/40 border-border";
@@ -38,6 +39,7 @@ export function BottomPageCarousel({ pages, currentPageId }: Props) {
         return "Review";
       case "task-assigned":
       case "in-progress":
+      case "in-task":
         return "Assigned";
       default:
         return "Uploaded";
@@ -84,7 +86,9 @@ export function BottomPageCarousel({ pages, currentPageId }: Props) {
                         ? "bg-blue-400"
                         : p.status === "task-assigned"
                           ? "bg-amber-400"
-                          : "bg-foreground/20"
+                          : p.status === "in-task"
+                            ? "bg-amber-400"
+                            : "bg-foreground/20"
                   }`}
                 />
               </Link>
