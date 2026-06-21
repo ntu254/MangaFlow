@@ -35,7 +35,12 @@ import { Route as AppSeriesNewRouteImport } from './routes/app/series/new'
 import { Route as AppSeriesIdRouteImport } from './routes/app/series/$id'
 import { Route as AppEditorSeriesReviewRouteImport } from './routes/app/editor/series-review'
 import { Route as AppEditorFinalReviewsRouteImport } from './routes/app/editor/final-reviews'
+import { Route as AppBoardVotingSessionsRouteImport } from './routes/app/board/voting-sessions'
 import { Route as AppBoardSeriesReviewRouteImport } from './routes/app/board/series-review'
+import { Route as AppBoardReaderVotesRouteImport } from './routes/app/board/reader-votes'
+import { Route as AppBoardPublishingScheduleRouteImport } from './routes/app/board/publishing-schedule'
+import { Route as AppBoardDecisionHistoryRouteImport } from './routes/app/board/decision-history'
+import { Route as AppBoardCancellationReviewRouteImport } from './routes/app/board/cancellation-review'
 import { Route as AppAssistantTasksRouteImport } from './routes/app/assistant/tasks'
 import { Route as AppAssistantSubmissionsRouteImport } from './routes/app/assistant/submissions'
 import { Route as AppAssistantSeriesRouteImport } from './routes/app/assistant/series'
@@ -198,11 +203,38 @@ const AppEditorFinalReviewsRoute = AppEditorFinalReviewsRouteImport.update({
   path: '/editor/final-reviews',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBoardVotingSessionsRoute = AppBoardVotingSessionsRouteImport.update({
+  id: '/voting-sessions',
+  path: '/voting-sessions',
+  getParentRoute: () => AppBoardRoute,
+} as any)
 const AppBoardSeriesReviewRoute = AppBoardSeriesReviewRouteImport.update({
   id: '/series-review',
   path: '/series-review',
   getParentRoute: () => AppBoardRoute,
 } as any)
+const AppBoardReaderVotesRoute = AppBoardReaderVotesRouteImport.update({
+  id: '/reader-votes',
+  path: '/reader-votes',
+  getParentRoute: () => AppBoardRoute,
+} as any)
+const AppBoardPublishingScheduleRoute =
+  AppBoardPublishingScheduleRouteImport.update({
+    id: '/publishing-schedule',
+    path: '/publishing-schedule',
+    getParentRoute: () => AppBoardRoute,
+  } as any)
+const AppBoardDecisionHistoryRoute = AppBoardDecisionHistoryRouteImport.update({
+  id: '/decision-history',
+  path: '/decision-history',
+  getParentRoute: () => AppBoardRoute,
+} as any)
+const AppBoardCancellationReviewRoute =
+  AppBoardCancellationReviewRouteImport.update({
+    id: '/cancellation-review',
+    path: '/cancellation-review',
+    getParentRoute: () => AppBoardRoute,
+  } as any)
 const AppAssistantTasksRoute = AppAssistantTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -397,7 +429,12 @@ export interface FileRoutesByFullPath {
   '/app/assistant/series': typeof AppAssistantSeriesRoute
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
+  '/app/board/cancellation-review': typeof AppBoardCancellationReviewRoute
+  '/app/board/decision-history': typeof AppBoardDecisionHistoryRoute
+  '/app/board/publishing-schedule': typeof AppBoardPublishingScheduleRoute
+  '/app/board/reader-votes': typeof AppBoardReaderVotesRoute
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/board/voting-sessions': typeof AppBoardVotingSessionsRoute
   '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/$id': typeof AppSeriesIdRouteWithChildren
@@ -453,7 +490,12 @@ export interface FileRoutesByTo {
   '/app/assistant/series': typeof AppAssistantSeriesRoute
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
+  '/app/board/cancellation-review': typeof AppBoardCancellationReviewRoute
+  '/app/board/decision-history': typeof AppBoardDecisionHistoryRoute
+  '/app/board/publishing-schedule': typeof AppBoardPublishingScheduleRoute
+  '/app/board/reader-votes': typeof AppBoardReaderVotesRoute
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/board/voting-sessions': typeof AppBoardVotingSessionsRoute
   '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/new': typeof AppSeriesNewRoute
@@ -513,7 +555,12 @@ export interface FileRoutesById {
   '/app/assistant/series': typeof AppAssistantSeriesRoute
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
+  '/app/board/cancellation-review': typeof AppBoardCancellationReviewRoute
+  '/app/board/decision-history': typeof AppBoardDecisionHistoryRoute
+  '/app/board/publishing-schedule': typeof AppBoardPublishingScheduleRoute
+  '/app/board/reader-votes': typeof AppBoardReaderVotesRoute
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/board/voting-sessions': typeof AppBoardVotingSessionsRoute
   '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/$id': typeof AppSeriesIdRouteWithChildren
@@ -575,7 +622,12 @@ export interface FileRouteTypes {
     | '/app/assistant/series'
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
+    | '/app/board/cancellation-review'
+    | '/app/board/decision-history'
+    | '/app/board/publishing-schedule'
+    | '/app/board/reader-votes'
     | '/app/board/series-review'
+    | '/app/board/voting-sessions'
     | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/$id'
@@ -631,7 +683,12 @@ export interface FileRouteTypes {
     | '/app/assistant/series'
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
+    | '/app/board/cancellation-review'
+    | '/app/board/decision-history'
+    | '/app/board/publishing-schedule'
+    | '/app/board/reader-votes'
     | '/app/board/series-review'
+    | '/app/board/voting-sessions'
     | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/new'
@@ -690,7 +747,12 @@ export interface FileRouteTypes {
     | '/app/assistant/series'
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
+    | '/app/board/cancellation-review'
+    | '/app/board/decision-history'
+    | '/app/board/publishing-schedule'
+    | '/app/board/reader-votes'
     | '/app/board/series-review'
+    | '/app/board/voting-sessions'
     | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/$id'
@@ -908,11 +970,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorFinalReviewsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/board/voting-sessions': {
+      id: '/app/board/voting-sessions'
+      path: '/voting-sessions'
+      fullPath: '/app/board/voting-sessions'
+      preLoaderRoute: typeof AppBoardVotingSessionsRouteImport
+      parentRoute: typeof AppBoardRoute
+    }
     '/app/board/series-review': {
       id: '/app/board/series-review'
       path: '/series-review'
       fullPath: '/app/board/series-review'
       preLoaderRoute: typeof AppBoardSeriesReviewRouteImport
+      parentRoute: typeof AppBoardRoute
+    }
+    '/app/board/reader-votes': {
+      id: '/app/board/reader-votes'
+      path: '/reader-votes'
+      fullPath: '/app/board/reader-votes'
+      preLoaderRoute: typeof AppBoardReaderVotesRouteImport
+      parentRoute: typeof AppBoardRoute
+    }
+    '/app/board/publishing-schedule': {
+      id: '/app/board/publishing-schedule'
+      path: '/publishing-schedule'
+      fullPath: '/app/board/publishing-schedule'
+      preLoaderRoute: typeof AppBoardPublishingScheduleRouteImport
+      parentRoute: typeof AppBoardRoute
+    }
+    '/app/board/decision-history': {
+      id: '/app/board/decision-history'
+      path: '/decision-history'
+      fullPath: '/app/board/decision-history'
+      preLoaderRoute: typeof AppBoardDecisionHistoryRouteImport
+      parentRoute: typeof AppBoardRoute
+    }
+    '/app/board/cancellation-review': {
+      id: '/app/board/cancellation-review'
+      path: '/cancellation-review'
+      fullPath: '/app/board/cancellation-review'
+      preLoaderRoute: typeof AppBoardCancellationReviewRouteImport
       parentRoute: typeof AppBoardRoute
     }
     '/app/assistant/tasks': {
@@ -1170,13 +1267,23 @@ const AppAssistantRouteRouteWithChildren =
   AppAssistantRouteRoute._addFileChildren(AppAssistantRouteRouteChildren)
 
 interface AppBoardRouteChildren {
+  AppBoardCancellationReviewRoute: typeof AppBoardCancellationReviewRoute
+  AppBoardDecisionHistoryRoute: typeof AppBoardDecisionHistoryRoute
+  AppBoardPublishingScheduleRoute: typeof AppBoardPublishingScheduleRoute
+  AppBoardReaderVotesRoute: typeof AppBoardReaderVotesRoute
   AppBoardSeriesReviewRoute: typeof AppBoardSeriesReviewRoute
+  AppBoardVotingSessionsRoute: typeof AppBoardVotingSessionsRoute
   AppBoardIndexRoute: typeof AppBoardIndexRoute
   AppBoardSeriesIdVoteRoute: typeof AppBoardSeriesIdVoteRoute
 }
 
 const AppBoardRouteChildren: AppBoardRouteChildren = {
+  AppBoardCancellationReviewRoute: AppBoardCancellationReviewRoute,
+  AppBoardDecisionHistoryRoute: AppBoardDecisionHistoryRoute,
+  AppBoardPublishingScheduleRoute: AppBoardPublishingScheduleRoute,
+  AppBoardReaderVotesRoute: AppBoardReaderVotesRoute,
   AppBoardSeriesReviewRoute: AppBoardSeriesReviewRoute,
+  AppBoardVotingSessionsRoute: AppBoardVotingSessionsRoute,
   AppBoardIndexRoute: AppBoardIndexRoute,
   AppBoardSeriesIdVoteRoute: AppBoardSeriesIdVoteRoute,
 }

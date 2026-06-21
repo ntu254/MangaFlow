@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Vote } from "lucide-react";
-import { PageHeader, EmptyState } from "@/layouts/AppShell";
+import { ClipboardCheck, Vote } from "lucide-react";
+import { EmptyState } from "@/layouts/AppShell";
 import { useBoardReviewQueue } from "@/shared/queries/useBoardReview";
+import {
+  boardFlowSteps,
+  DecisionPortalShell,
+  DecisionTimeline,
+  PortalCard,
+  PortalLoadingRows,
+  PortalPill,
+} from "@/features/board/components/DecisionPortal";
 
 export const Route = createFileRoute("/app/board/series-review")({
   component: BoardReviewQueue,
@@ -11,57 +19,74 @@ function BoardReviewQueue() {
   const { data: queue = [], error, isLoading } = useBoardReviewQueue();
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <PageHeader
-        title="Board Review"
-        jp="編集会議"
-        description="Series forwarded by Editor — finalize Approve/Reject + publicationType."
-      />
-      <div className="divide-y divide-foreground/10 rounded-md border border-foreground/10 bg-card">
-        {isLoading && (
-          <div className="px-5 py-8 text-center text-sm text-foreground/55">
-            Loading Board review queue...
-          </div>
-        )}
-        {error && (
-          <div className="border-b border-destructive/20 bg-destructive/5 px-5 py-3 text-sm text-destructive">
+    <DecisionPortalShell
+      active="/app/board/series-review"
+      title="Review workspace"
+      description="Inspect submitted proposals, manuscript evidence, quorum status, and the current vote mix before opening a decision panel."
+      actions={
+        <Link
+          to="/app/board/voting-sessions"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm font-medium transition hover:bg-foreground/5 active:translate-y-px"
+        >
+          <Vote className="h-4 w-4" /> Voting sessions
+        </Link>
+      }
+    >
+      <DecisionTimeline steps={boardFlowSteps} activeStep={1} />
+
+      <PortalCard
+        title="Submitted series"
+        description="Each row opens the Board vote panel with proposal context and audit trail."
+      >
+        <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] gap-3 border-b border-border bg-foreground/5 px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span>Submitted series</span>
+          <span>Status</span>
+          <span>Quorum</span>
+          <span>Vote summary</span>
+          <span />
+        </div>
+
+        {isLoading ? (
+          <PortalLoadingRows count={4} />
+        ) : error ? (
+          <div className="px-4 py-8 text-sm text-destructive">
             Unable to load Board queue. Check that your account has BOARD permission.
           </div>
-        )}
-        {!isLoading && queue.length === 0 && (
+        ) : queue.length === 0 ? (
           <EmptyState
             title="Nothing to vote on"
-            hint="All forwarded series have been decided. New proposals will appear here once the Editor forwards them."
-            icon={Vote}
+            hint="New proposals appear here once an Editor forwards them to Board review."
+            icon={ClipboardCheck}
           />
-        )}
-        {queue.map((item) => (
-          <Link
-            to="/app/board/series/$id/vote"
-            params={{ id: item.id }}
-            key={item.id}
-            className="flex items-center gap-4 px-5 py-4 hover:bg-foreground/5"
-          >
-            <div className="flex h-16 w-12 items-center justify-center rounded bg-foreground/5 text-xs font-bold text-foreground/45">
-              {item.seriesTitle.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2">
-                <div className="text-sm font-bold">{item.seriesTitle}</div>
-                <div className="text-xs text-foreground/55">{item.seriesStatus}</div>
+        ) : (
+          queue.map((item) => (
+            <Link
+              to="/app/board/series/$id/vote"
+              params={{ id: item.id }}
+              key={item.id}
+              className="grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] items-center gap-3 border-b border-border px-4 py-3 text-[13px] transition last:border-b-0 hover:bg-foreground/5"
+            >
+              <div className="min-w-0">
+                <div className="truncate font-semibold">{item.seriesTitle}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  Proposal evidence and manuscript review
+                </div>
               </div>
-              <div className="mt-0.5 text-xs text-foreground/65">
-                {item.voteCount}/{item.quorum} vote(s) for quorum · decision {item.decisionStatus}
-              </div>
-              <div className="mt-1 text-xs text-foreground/55">
-                Approve {item.voteSummary.APPROVE} · Reject {item.voteSummary.REJECT} · Revision{" "}
+              <span className="text-xs text-muted-foreground">{item.seriesStatus}</span>
+              <PortalPill tone={item.canFinalize ? "success" : "primary"}>
+                {item.voteCount}/{item.quorum}
+              </PortalPill>
+              <span className="text-xs text-muted-foreground">
+                A {item.voteSummary.APPROVE} / R {item.voteSummary.REJECT} / Rev{" "}
                 {item.voteSummary.NEEDS_REVISION}
-              </div>
-            </div>
-            <Vote className="h-4 w-4 text-foreground/40" />
-          </Link>
-        ))}
-      </div>
-    </div>
+              </span>
+              <span className="rounded-md border border-border px-3 py-1.5 text-xs font-medium">
+                Review
+              </span>
+            </Link>
+          ))
+        )}
+      </PortalCard>
+    </DecisionPortalShell>
   );
 }

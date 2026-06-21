@@ -44,6 +44,13 @@ export interface TieBreakBoardDecisionInput {
   note?: string;
 }
 
+export type AtRiskDecisionValue = "CONTINUE" | "WARNING" | "CANCEL" | "COMPLETE";
+
+export interface AtRiskDecisionInput {
+  decision: AtRiskDecisionValue;
+  note?: string;
+}
+
 function normalizeStatus(status: string) {
   return status.toUpperCase().replaceAll("-", "_");
 }
@@ -93,4 +100,6 @@ export const boardApi = {
     api.post(`/board/series/${seriesId}/finalize-decision`, input).then(unwrap<unknown>),
   tieBreak: (seriesId: string, input: TieBreakBoardDecisionInput) =>
     api.post(`/board/series/${seriesId}/tie-break`, input).then(unwrap<unknown>),
+  createAtRiskDecision: (seriesId: string, input: AtRiskDecisionInput) =>
+    api.post(`/board/series/${seriesId}/at-risk-decisions`, input).then(unwrap<unknown>),
 };
