@@ -53,9 +53,7 @@ export function AssistantTaskWorkPanel({
 
   const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFile(event.target.files?.[0] ?? null);
@@ -81,7 +79,10 @@ export function AssistantTaskWorkPanel({
 
   function handleSubmit() {
     if (!file && !note.trim()) {
-      setNotice({ tone: "error", message: "Upload a result file or add a note before submitting." });
+      setNotice({
+        tone: "error",
+        message: "Upload a result file or add a note before submitting.",
+      });
       return;
     }
 
@@ -129,7 +130,10 @@ export function AssistantTaskWorkPanel({
         <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-amber-500/15 pt-3 text-[11px]">
           <Field label="Task type" value={task.type} />
           <Field label="Due" value={task.deadline} />
-          <Field label="Page" value={task.pageNumber ? `Page ${task.pageNumber}` : task.pageId ?? "Page scope"} />
+          <Field
+            label="Page"
+            value={task.pageNumber ? `Page ${task.pageNumber}` : (task.pageId ?? "Page scope")}
+          />
           <Field label="Region" value={task.regionId ?? "Full page"} />
         </dl>
 
@@ -277,7 +281,10 @@ export function AssistantTaskWorkPanel({
         ) : (
           <div className="space-y-2">
             {feedback.map((submission) => (
-              <div key={submission.id} className="rounded-md border border-foreground/10 bg-background p-2.5">
+              <div
+                key={submission.id}
+                className="rounded-md border border-foreground/10 bg-background p-2.5"
+              >
                 <div className="flex items-center justify-between gap-2 text-[10px] text-foreground/45">
                   <span>v{submission.version}</span>
                   <span>{formatDateTime(submission.updatedAt)}</span>
@@ -343,7 +350,11 @@ function ResourceDownload({ label, fileAssetId }: { label: string; fileAssetId?:
     >
       <span>{label}</span>
       <span className="inline-flex items-center gap-1">
-        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+        {isLoading ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Download className="h-3 w-3" />
+        )}
         {fileAssetId ? "Download" : "Unavailable"}
       </span>
     </a>
@@ -357,9 +368,13 @@ function SubmissionHistoryItem({ submission }: { submission: Submission }) {
         <span className="font-semibold text-foreground">Version v{submission.version}</span>
         <StatusBadge status={submissionStatusForBadge(submission.status)} />
       </div>
-      <div className="mt-1 text-[10px] text-foreground/45">{formatDateTime(submission.createdAt)}</div>
+      <div className="mt-1 text-[10px] text-foreground/45">
+        {formatDateTime(submission.createdAt)}
+      </div>
       {submission.resultText && (
-        <p className="mt-1.5 text-[11px] leading-relaxed text-foreground/70">{submission.resultText}</p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-foreground/70">
+          {submission.resultText}
+        </p>
       )}
       {submission.fileAssetId && <SubmissionFileLink fileAsset={submission.fileAssetId} />}
     </li>
@@ -372,7 +387,7 @@ function SubmissionFileLink({ fileAsset }: { fileAsset: Submission["fileAssetId"
   const disabled = !fileAssetId || isLoading || !url;
   const label =
     typeof fileAsset === "object" && fileAsset
-      ? fileAsset.originalName ?? "Submitted file"
+      ? (fileAsset.originalName ?? "Submitted file")
       : "Submitted file";
 
   return (
@@ -384,7 +399,9 @@ function SubmissionFileLink({ fileAsset }: { fileAsset: Submission["fileAssetId"
         if (disabled) event.preventDefault();
       }}
       className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded border border-foreground/10 bg-muted px-1.5 py-0.5 text-[10px] ${
-        disabled ? "cursor-not-allowed text-foreground/35" : "text-foreground/70 hover:text-foreground"
+        disabled
+          ? "cursor-not-allowed text-foreground/35"
+          : "text-foreground/70 hover:text-foreground"
       }`}
     >
       {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}

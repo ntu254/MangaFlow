@@ -175,7 +175,11 @@ function BoardMemberRow({
           title={member.isActive ? "Remove member" : "Restore member"}
           className="inline-flex h-7 items-center gap-1 rounded-md border border-foreground/10 px-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-40"
         >
-          {member.isActive ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+          {member.isActive ? (
+            <PowerOff className="h-3.5 w-3.5" />
+          ) : (
+            <Power className="h-3.5 w-3.5" />
+          )}
           {member.isActive ? "Remove" : "Restore"}
         </button>
       </div>

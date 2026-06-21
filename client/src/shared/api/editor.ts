@@ -142,8 +142,7 @@ export const editorApi = {
     api.post(`/editor/series/${seriesId}/reject`, input).then(unwrap<unknown>),
   forwardToBoard: (seriesId: string, input: EditorForwardInput) =>
     api.post(`/editor/series/${seriesId}/forward-to-board`, input).then(unwrap<unknown>),
-  getTask: (taskId: string) =>
-    api.get(`/tasks/${taskId}`).then(unwrap<any>),
+  getTask: (taskId: string) => api.get(`/tasks/${taskId}`).then(unwrap<any>),
   listFinalReviewQueue: (seriesId?: string) =>
     api.get(`/submissions/review-queue`, { params: { seriesId } }).then(unwrap<any[]>),
   editorApproveSubmission: (submissionId: string, reviewerNote?: string) =>

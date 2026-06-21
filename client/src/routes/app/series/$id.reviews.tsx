@@ -269,7 +269,11 @@ function SeriesReviews() {
               </button>
               <button
                 onClick={handleApprove}
-                disabled={approveMutation.isPending || editorApproveMutation.isPending || requestRevisionMutation.isPending}
+                disabled={
+                  approveMutation.isPending ||
+                  editorApproveMutation.isPending ||
+                  requestRevisionMutation.isPending
+                }
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-[#061A2B] py-2 text-[12px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-blue-600 disabled:opacity-50"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />

@@ -91,8 +91,7 @@ export const seriesApi = {
   getSummary: (id: string) => api.get(`/series/${id}/summary`).then(unwrap<any>),
   listMembers: (seriesId: string) =>
     api.get(`/series/${seriesId}/members`).then(unwrap<SeriesMember[]>),
-  listMyMemberships: () =>
-    api.get(`/series/memberships/my`).then(unwrap<SeriesMember[]>),
+  listMyMemberships: () => api.get(`/series/memberships/my`).then(unwrap<SeriesMember[]>),
   addMember: (seriesId: string, payload: AddSeriesMemberInput) =>
     api.post(`/series/${seriesId}/members`, payload).then(unwrap<SeriesMember>),
   deleteDraft: (id: string) => api.delete(`/series/${id}/draft`).then(unwrap<void>),

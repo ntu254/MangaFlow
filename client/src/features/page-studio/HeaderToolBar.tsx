@@ -74,8 +74,8 @@ export function HeaderToolBar({ readOnly = false }: { readOnly?: boolean }) {
                 isDisabled
                   ? "cursor-not-allowed text-foreground/20"
                   : isActive
-                  ? "bg-foreground/10 text-foreground border border-border shadow-inner"
-                  : "text-foreground/50 hover:bg-foreground/5 hover:text-foreground"
+                    ? "bg-foreground/10 text-foreground border border-border shadow-inner"
+                    : "text-foreground/50 hover:bg-foreground/5 hover:text-foreground"
               }`}
             >
               <t.icon className="h-3.5 w-3.5" />

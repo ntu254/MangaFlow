@@ -327,7 +327,6 @@ function TeamPage() {
                       </tr>
                     );
                   })}
-
                 </tbody>
               </table>
 

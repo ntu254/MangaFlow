@@ -41,8 +41,7 @@ function UserManagementPage() {
           .some((value) => String(value).toLowerCase().includes(needle));
       const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
       const matchesStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "ACTIVE" ? user.isActive : !user.isActive);
+        statusFilter === "ALL" || (statusFilter === "ACTIVE" ? user.isActive : !user.isActive);
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [list, query, roleFilter, statusFilter]);
@@ -162,10 +161,13 @@ function UserManagementPage() {
                     </div>
                     <div className="min-w-0">
                       <div className="truncate font-medium">
-                        {u.name} {isMe && <span className="text-[10px] text-foreground/40">(you)</span>}
+                        {u.name}{" "}
+                        {isMe && <span className="text-[10px] text-foreground/40">(you)</span>}
                       </div>
                       {u.displayName && (
-                        <div className="truncate text-[11px] text-foreground/50">{u.displayName}</div>
+                        <div className="truncate text-[11px] text-foreground/50">
+                          {u.displayName}
+                        </div>
                       )}
                     </div>
                   </button>
@@ -199,7 +201,11 @@ function UserManagementPage() {
                       title={u.isActive ? "Suspend" : "Activate"}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/10 text-foreground/60 hover:text-foreground disabled:opacity-40"
                     >
-                      {u.isActive ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                      {u.isActive ? (
+                        <PowerOff className="h-3.5 w-3.5" />
+                      ) : (
+                        <Power className="h-3.5 w-3.5" />
+                      )}
                     </button>
                     <button
                       onClick={() => deleteUser.mutate(u.id)}
@@ -244,8 +250,15 @@ function UserManagementPage() {
 
 function StatusLabel({ active }: { active: boolean }) {
   return (
-    <span className={"inline-flex items-center gap-1.5 text-xs " + (active ? "text-emerald-500" : "text-foreground/40")}>
-      <span className={"h-1.5 w-1.5 rounded-full " + (active ? "bg-emerald-500" : "bg-foreground/30")} />
+    <span
+      className={
+        "inline-flex items-center gap-1.5 text-xs " +
+        (active ? "text-emerald-500" : "text-foreground/40")
+      }
+    >
+      <span
+        className={"h-1.5 w-1.5 rounded-full " + (active ? "bg-emerald-500" : "bg-foreground/30")}
+      />
       {active ? "Active" : "Suspended"}
     </span>
   );
@@ -286,7 +299,11 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
           <DialogField label="Password" type="password" value={password} onChange={setPassword} />
           <label className="block">
             <span className="mb-1 block text-[11px] font-medium text-foreground/70">Role</span>
-            <select value={role} onChange={(event) => setRole(event.target.value as ServerRole)} className="input">
+            <select
+              value={role}
+              onChange={(event) => setRole(event.target.value as ServerRole)}
+              className="input"
+            >
               {SERVER_ROLES.map((r) => (
                 <option key={r} value={r}>
                   {r}
@@ -296,10 +313,18 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-8 rounded-md border border-foreground/15 px-3 text-xs">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md border border-foreground/15 px-3 text-xs"
+          >
             Cancel
           </button>
-          <button type="submit" disabled={createUser.isPending} className="h-8 rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={createUser.isPending}
+            className="h-8 rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-50"
+          >
             {createUser.isPending ? "Creating..." : "Create user"}
           </button>
         </div>

@@ -73,9 +73,7 @@ function EditorFinalReviewQueue() {
                 <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                   Mangaka Approved
                 </span>
-                <span className="text-[10px] text-foreground/40">
-                  Review &rarr;
-                </span>
+                <span className="text-[10px] text-foreground/40">Review &rarr;</span>
               </div>
             </Link>
           );

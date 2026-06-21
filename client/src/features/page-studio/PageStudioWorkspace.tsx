@@ -46,7 +46,9 @@ function getAssignedRegions(regions: Region[], task?: Task) {
   if (task.regionId) {
     return regions.filter((region) => region.id === task.regionId);
   }
-  return regions.filter((region) => region.status !== "ai-suggested" && region.status !== "rejected");
+  return regions.filter(
+    (region) => region.status !== "ai-suggested" && region.status !== "rejected",
+  );
 }
 
 function mapTasksByRegion(tasks: Task[] = []): Record<string, RegionTask> {
@@ -119,7 +121,13 @@ export function PageStudioWorkspace({
     if (assistantTask?.regionId) {
       setSelectedRegionId(assistantTask.regionId);
     }
-  }, [assistantTask?.regionId, isAssistantWorkspace, setActiveTab, setActiveTool, setSelectedRegionId]);
+  }, [
+    assistantTask?.regionId,
+    isAssistantWorkspace,
+    setActiveTab,
+    setActiveTool,
+    setSelectedRegionId,
+  ]);
 
   useEffect(() => {
     if (!studioData) return;
@@ -135,9 +143,14 @@ export function PageStudioWorkspace({
 
   if (isLoadingStudio) {
     return (
-      <div suppressHydrationWarning className={`flex ${frameClass} w-full items-center justify-center bg-background text-foreground/50`}>
+      <div
+        suppressHydrationWarning
+        className={`flex ${frameClass} w-full items-center justify-center bg-background text-foreground/50`}
+      >
         <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-        <span className="text-sm font-semibold uppercase tracking-wide">Loading Page Studio...</span>
+        <span className="text-sm font-semibold uppercase tracking-wide">
+          Loading Page Studio...
+        </span>
       </div>
     );
   }
@@ -150,7 +163,10 @@ export function PageStudioWorkspace({
         ? "You do not have access to this Page Studio."
         : apiError.response?.data?.message || apiError.message || "Failed to load Page Studio.";
     return (
-      <div suppressHydrationWarning className={`flex ${frameClass} w-full items-center justify-center bg-background`}>
+      <div
+        suppressHydrationWarning
+        className={`flex ${frameClass} w-full items-center justify-center bg-background`}
+      >
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-6 text-sm text-rose-400">
           {message}
         </div>
@@ -177,7 +193,10 @@ export function PageStudioWorkspace({
 
   if (page.status === "PENDING" || page.status === "UPLOADING" || page.status === "PROCESSING") {
     return (
-      <div suppressHydrationWarning className={`flex ${frameClass} w-full items-center justify-center bg-background`}>
+      <div
+        suppressHydrationWarning
+        className={`flex ${frameClass} w-full items-center justify-center bg-background`}
+      >
         <div className="flex flex-col items-center rounded-xl border border-sky-500/20 bg-sky-500/5 p-8">
           <Loader2 className="mb-4 h-8 w-8 animate-spin text-sky-400" />
           <span className="font-semibold tracking-wide text-sky-400">Processing assets...</span>
@@ -188,7 +207,10 @@ export function PageStudioWorkspace({
 
   if (page.status === "PROCESSING_FAILED") {
     return (
-      <div suppressHydrationWarning className={`flex ${frameClass} w-full items-center justify-center bg-background`}>
+      <div
+        suppressHydrationWarning
+        className={`flex ${frameClass} w-full items-center justify-center bg-background`}
+      >
         <div className="max-w-sm rounded-xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
           <span className="mb-2 block font-bold text-rose-400">Page processing failed.</span>
           <span className="text-sm text-rose-400/80">Retry upload or replace page.</span>
@@ -199,7 +221,10 @@ export function PageStudioWorkspace({
 
   if (!workingFileAssetId) {
     return (
-      <div suppressHydrationWarning className={`flex ${frameClass} w-full items-center justify-center bg-background`}>
+      <div
+        suppressHydrationWarning
+        className={`flex ${frameClass} w-full items-center justify-center bg-background`}
+      >
         <div className="max-w-sm rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
           <span className="mb-2 block font-bold text-amber-400">Missing working image.</span>
           <span className="text-sm text-amber-400/80">Retry processing or contact admin.</span>
@@ -212,7 +237,10 @@ export function PageStudioWorkspace({
   const defaultBackParams = { id: effectiveSeriesId ?? page.chapterId };
 
   return (
-    <div suppressHydrationWarning className={`flex ${frameClass} flex-col overflow-hidden bg-background`}>
+    <div
+      suppressHydrationWarning
+      className={`flex ${frameClass} flex-col overflow-hidden bg-background`}
+    >
       <div className="relative flex h-12 shrink-0 items-center border-b border-border bg-background px-4">
         <div className="flex min-w-0 items-center gap-3">
           {backTo === "/app/assistant/tasks" ? (
