@@ -65,3 +65,70 @@ export function useEditorForwardToBoard(seriesId: string) {
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
 }
+
+export function useEditorFinalReviewQueue(seriesId?: string) {
+  return useQuery({
+    queryKey: ["editor", "final-review-queue", seriesId],
+    queryFn: () => editorApi.listFinalReviewQueue(seriesId),
+  });
+}
+
+export function useEditorGetTask(taskId: string) {
+  return useQuery({
+    queryKey: ["editor", "task", taskId],
+    queryFn: () => editorApi.getTask(taskId),
+    enabled: !!taskId,
+  });
+}
+
+export function useEditorApproveTaskSubmission(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ submissionId, note }: { submissionId: string; note?: string }) =>
+      editorApi.editorApproveSubmission(submissionId, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["editor", "final-review-queue"] });
+      qc.invalidateQueries({ queryKey: ["editor", "task", taskId] });
+      qc.invalidateQueries({ queryKey: ["submissions", "by-task", taskId] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Submission approved by Editor");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useEditorRejectTaskSubmission(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ submissionId, note }: { submissionId: string; note: string }) =>
+      editorApi.editorRejectSubmission(submissionId, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["editor", "final-review-queue"] });
+      qc.invalidateQueries({ queryKey: ["editor", "task", taskId] });
+      qc.invalidateQueries({ queryKey: ["submissions", "by-task", taskId] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Submission rejected by Editor");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useEditorRequestTaskSubmissionRevision(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ submissionId, note }: { submissionId: string; note: string }) =>
+      editorApi.editorRequestSubmissionRevision(submissionId, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["editor", "final-review-queue"] });
+      qc.invalidateQueries({ queryKey: ["editor", "task", taskId] });
+      qc.invalidateQueries({ queryKey: ["submissions", "by-task", taskId] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Revision requested by Editor");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+

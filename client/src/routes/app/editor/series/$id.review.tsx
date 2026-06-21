@@ -38,7 +38,7 @@ function EditorReviewDetail() {
   }
 
   const { series, manuscript } = review;
-  const perm = canEditorReview(role, series);
+  const perm = canEditorReview(role, series as any);
 
   async function submit() {
     if (!perm.allowed) return toast.error(perm.reason);

@@ -95,6 +95,8 @@ export async function listReviewQueueSubmissions(seriesIds: string[], status: Su
     .sort({ updatedAt: -1 })
     .populate("submittedBy", "name role")
     .populate("fileAssetId", "originalName")
+    .populate("seriesId", "title")
+    .populate("taskId", "title")
     .lean()
   return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }
@@ -108,6 +110,8 @@ export async function listReviewQueueSubmissionsAdmin(statuses: SubmissionStatus
     .sort({ updatedAt: -1 })
     .populate("submittedBy", "name role")
     .populate("fileAssetId", "originalName")
+    .populate("seriesId", "title")
+    .populate("taskId", "title")
     .lean()
   return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }

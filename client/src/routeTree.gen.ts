@@ -34,6 +34,7 @@ import { Route as ReadSlugChapterRouteImport } from './routes/read/$slug/$chapte
 import { Route as AppSeriesNewRouteImport } from './routes/app/series/new'
 import { Route as AppSeriesIdRouteImport } from './routes/app/series/$id'
 import { Route as AppEditorSeriesReviewRouteImport } from './routes/app/editor/series-review'
+import { Route as AppEditorFinalReviewsRouteImport } from './routes/app/editor/final-reviews'
 import { Route as AppBoardSeriesReviewRouteImport } from './routes/app/board/series-review'
 import { Route as AppAssistantTasksRouteImport } from './routes/app/assistant/tasks'
 import { Route as AppAssistantSubmissionsRouteImport } from './routes/app/assistant/submissions'
@@ -54,6 +55,7 @@ import { Route as AppSeriesIdManuscriptRouteImport } from './routes/app/series/$
 import { Route as AppSeriesIdChaptersRouteImport } from './routes/app/series/$id.chapters'
 import { Route as AppSeriesIdActivityRouteImport } from './routes/app/series/$id.activity'
 import { Route as AppPagesIdStudioRouteImport } from './routes/app/pages/$id.studio'
+import { Route as AppEditorTasksIdFinalReviewRouteImport } from './routes/app/editor/tasks/$id.final-review'
 import { Route as AppEditorSeriesIdReviewRouteImport } from './routes/app/editor/series/$id.review'
 import { Route as AppChaptersIdPagesUploadRouteImport } from './routes/app/chapters/$id.pages.upload'
 import { Route as AppBoardSeriesIdVoteRouteImport } from './routes/app/board/series/$id.vote'
@@ -184,6 +186,11 @@ const AppEditorSeriesReviewRoute = AppEditorSeriesReviewRouteImport.update({
   path: '/editor/series-review',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEditorFinalReviewsRoute = AppEditorFinalReviewsRouteImport.update({
+  id: '/editor/final-reviews',
+  path: '/editor/final-reviews',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBoardSeriesReviewRoute = AppBoardSeriesReviewRouteImport.update({
   id: '/series-review',
   path: '/series-review',
@@ -285,6 +292,12 @@ const AppPagesIdStudioRoute = AppPagesIdStudioRouteImport.update({
   path: '/pages/$id/studio',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEditorTasksIdFinalReviewRoute =
+  AppEditorTasksIdFinalReviewRouteImport.update({
+    id: '/editor/tasks/$id/final-review',
+    path: '/editor/tasks/$id/final-review',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppEditorSeriesIdReviewRoute = AppEditorSeriesIdReviewRouteImport.update({
   id: '/editor/series/$id/review',
   path: '/editor/series/$id/review',
@@ -336,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/$id': typeof AppSeriesIdRouteWithChildren
   '/app/series/new': typeof AppSeriesNewRoute
@@ -358,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/app/board/series/$id/vote': typeof AppBoardSeriesIdVoteRoute
   '/app/chapters/$id/pages/upload': typeof AppChaptersIdPagesUploadRoute
   '/app/editor/series/$id/review': typeof AppEditorSeriesIdReviewRoute
+  '/app/editor/tasks/$id/final-review': typeof AppEditorTasksIdFinalReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -383,6 +398,7 @@ export interface FileRoutesByTo {
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
@@ -404,6 +420,7 @@ export interface FileRoutesByTo {
   '/app/board/series/$id/vote': typeof AppBoardSeriesIdVoteRoute
   '/app/chapters/$id/pages/upload': typeof AppChaptersIdPagesUploadRoute
   '/app/editor/series/$id/review': typeof AppEditorSeriesIdReviewRoute
+  '/app/editor/tasks/$id/final-review': typeof AppEditorTasksIdFinalReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -434,6 +451,7 @@ export interface FileRoutesById {
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/$id': typeof AppSeriesIdRouteWithChildren
   '/app/series/new': typeof AppSeriesNewRoute
@@ -456,6 +474,7 @@ export interface FileRoutesById {
   '/app/board/series/$id/vote': typeof AppBoardSeriesIdVoteRoute
   '/app/chapters/$id/pages/upload': typeof AppChaptersIdPagesUploadRoute
   '/app/editor/series/$id/review': typeof AppEditorSeriesIdReviewRoute
+  '/app/editor/tasks/$id/final-review': typeof AppEditorTasksIdFinalReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -487,6 +506,7 @@ export interface FileRouteTypes {
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
     | '/app/board/series-review'
+    | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/$id'
     | '/app/series/new'
@@ -509,6 +529,7 @@ export interface FileRouteTypes {
     | '/app/board/series/$id/vote'
     | '/app/chapters/$id/pages/upload'
     | '/app/editor/series/$id/review'
+    | '/app/editor/tasks/$id/final-review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -534,6 +555,7 @@ export interface FileRouteTypes {
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
     | '/app/board/series-review'
+    | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/new'
     | '/read/$slug/$chapter'
@@ -555,6 +577,7 @@ export interface FileRouteTypes {
     | '/app/board/series/$id/vote'
     | '/app/chapters/$id/pages/upload'
     | '/app/editor/series/$id/review'
+    | '/app/editor/tasks/$id/final-review'
   id:
     | '__root__'
     | '/'
@@ -584,6 +607,7 @@ export interface FileRouteTypes {
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
     | '/app/board/series-review'
+    | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/$id'
     | '/app/series/new'
@@ -606,6 +630,7 @@ export interface FileRouteTypes {
     | '/app/board/series/$id/vote'
     | '/app/chapters/$id/pages/upload'
     | '/app/editor/series/$id/review'
+    | '/app/editor/tasks/$id/final-review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -792,6 +817,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorSeriesReviewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/editor/final-reviews': {
+      id: '/app/editor/final-reviews'
+      path: '/editor/final-reviews'
+      fullPath: '/app/editor/final-reviews'
+      preLoaderRoute: typeof AppEditorFinalReviewsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/board/series-review': {
       id: '/app/board/series-review'
       path: '/series-review'
@@ -932,6 +964,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPagesIdStudioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/editor/tasks/$id/final-review': {
+      id: '/app/editor/tasks/$id/final-review'
+      path: '/editor/tasks/$id/final-review'
+      fullPath: '/app/editor/tasks/$id/final-review'
+      preLoaderRoute: typeof AppEditorTasksIdFinalReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/editor/series/$id/review': {
       id: '/app/editor/series/$id/review'
       path: '/editor/series/$id/review'
@@ -1058,6 +1097,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppAdminRolesRoute: typeof AppAdminRolesRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppEditorFinalReviewsRoute: typeof AppEditorFinalReviewsRoute
   AppEditorSeriesReviewRoute: typeof AppEditorSeriesReviewRoute
   AppSeriesIdRoute: typeof AppSeriesIdRouteWithChildren
   AppSeriesNewRoute: typeof AppSeriesNewRoute
@@ -1065,6 +1105,7 @@ interface AppRouteChildren {
   AppPagesIdStudioRoute: typeof AppPagesIdStudioRoute
   AppChaptersIdPagesUploadRoute: typeof AppChaptersIdPagesUploadRoute
   AppEditorSeriesIdReviewRoute: typeof AppEditorSeriesIdReviewRoute
+  AppEditorTasksIdFinalReviewRoute: typeof AppEditorTasksIdFinalReviewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1082,6 +1123,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppAdminRolesRoute: AppAdminRolesRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppEditorFinalReviewsRoute: AppEditorFinalReviewsRoute,
   AppEditorSeriesReviewRoute: AppEditorSeriesReviewRoute,
   AppSeriesIdRoute: AppSeriesIdRouteWithChildren,
   AppSeriesNewRoute: AppSeriesNewRoute,
@@ -1089,6 +1131,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPagesIdStudioRoute: AppPagesIdStudioRoute,
   AppChaptersIdPagesUploadRoute: AppChaptersIdPagesUploadRoute,
   AppEditorSeriesIdReviewRoute: AppEditorSeriesIdReviewRoute,
+  AppEditorTasksIdFinalReviewRoute: AppEditorTasksIdFinalReviewRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
