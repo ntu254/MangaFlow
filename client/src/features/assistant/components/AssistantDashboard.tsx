@@ -72,7 +72,7 @@ export function AssistantDashboard() {
         >
           <div className="grid gap-2 p-3 md:grid-cols-2 lg:grid-cols-3">
             {needsAttention.map((t) => (
-              <AssistantTaskCard key={t.id} task={t} />
+              <AssistantTaskCard key={taskRenderKey(t)} task={t} />
             ))}
           </div>
         </Panel>
@@ -92,7 +92,7 @@ export function AssistantDashboard() {
           ) : (
             <div className="space-y-2 p-3">
               {inProgress.map((t) => (
-                <AssistantTaskCard key={t.id} task={t} />
+                <AssistantTaskCard key={taskRenderKey(t)} task={t} />
               ))}
             </div>
           )}
@@ -157,13 +157,17 @@ export function AssistantDashboard() {
         ) : (
           <div className="grid gap-2 p-3 md:grid-cols-2 lg:grid-cols-3">
             {completed.map((t) => (
-              <AssistantTaskCard key={t.id} task={t} />
+              <AssistantTaskCard key={taskRenderKey(t)} task={t} />
             ))}
           </div>
         )}
       </Panel>
     </div>
   );
+}
+
+function taskRenderKey(task: { id?: string; chapterId: string; pageId?: string; title?: string; type: string }) {
+  return task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}`;
 }
 
 function EmptyRow({ icon: Icon, text }: { icon: typeof Inbox; text: string }) {

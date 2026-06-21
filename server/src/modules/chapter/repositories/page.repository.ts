@@ -7,7 +7,7 @@ export async function createPageRepository(chapterId: string, pageNumber: number
     throw new Error("Chapter not found")
   }
 
-  const existing = await Page.findOne({ chapterId, pageNumber })
+  const existing = await Page.findOne({ chapterId, pageNumber, deletedAt: { $exists: false } })
   if (existing) {
     throw new Error(`Page ${pageNumber} already exists in this chapter`)
   }
@@ -21,7 +21,7 @@ export async function createPageRepository(chapterId: string, pageNumber: number
 }
 
 export async function getPagesByChapter(chapterId: string): Promise<any[]> {
-  return Page.find({ chapterId }).sort({ pageNumber: 1 }).lean()
+  return Page.find({ chapterId, deletedAt: { $exists: false } }).sort({ pageNumber: 1 }).lean()
 }
 
 export async function getPageById(pageId: string): Promise<any | null> {

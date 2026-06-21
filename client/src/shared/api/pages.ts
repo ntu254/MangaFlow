@@ -6,6 +6,10 @@ const IMG_H = 1131;
 
 export interface PageStudioResponse {
   page: Page;
+  chapter?: {
+    id: string;
+    seriesId: string;
+  };
   workingFileAsset: any;
   originalFileAsset: any;
   thumbnailFileAsset: any;
@@ -13,7 +17,16 @@ export interface PageStudioResponse {
   aiResults: AIResult[];
   tasks: any[];
   feedbackPoints: any[];
-  collaborators: any[];
+  collaborators: PageStudioCollaborator[];
+}
+
+export interface PageStudioCollaborator {
+  id: string;
+  memberId?: string;
+  role: string;
+  status: string;
+  name: string;
+  email?: string;
 }
 
 type RawRegion = {
@@ -44,6 +57,17 @@ type RawAIResult = {
     decision: string;
     regionId?: string;
   }>;
+};
+
+type RawCollaborator = {
+  _id?: string;
+  id?: string;
+  memberId?: string;
+  role?: string;
+  status?: string;
+  name?: string;
+  displayName?: string;
+  email?: string;
 };
 
 function normalizeId(value: unknown): string {
@@ -92,6 +116,17 @@ function normalizeAIResult(result: RawAIResult): AIResult {
   };
 }
 
+function normalizeCollaborator(collaborator: RawCollaborator): PageStudioCollaborator {
+  return {
+    id: normalizeId(collaborator.id ?? collaborator._id),
+    memberId: collaborator.memberId,
+    role: collaborator.role ?? "ASSISTANT",
+    status: collaborator.status ?? "ACTIVE",
+    name: collaborator.displayName ?? collaborator.name ?? collaborator.email ?? "Assistant",
+    email: collaborator.email,
+  };
+}
+
 function aiSuggestionRegions(result: RawAIResult): Region[] {
   const aiResultId = normalizeId(result.id ?? result._id);
   const pageId = normalizeId(result.pageId);
@@ -123,11 +158,20 @@ export async function getPageStudio(pageId: string): Promise<PageStudioResponse>
       id: normalizeId((data.data.page as any).id ?? (data.data.page as any)._id),
       chapterId: normalizeId(data.data.page.chapterId),
     },
+    chapter: data.data.chapter
+      ? {
+          id: normalizeId((data.data.chapter as any).id ?? (data.data.chapter as any)._id),
+          seriesId: normalizeId(data.data.chapter.seriesId),
+        }
+      : undefined,
     regions: [
       ...(data.data.regions as unknown as RawRegion[]).map(normalizeRegion),
       ...rawAIResults.flatMap(aiSuggestionRegions),
     ],
     aiResults: rawAIResults.map(normalizeAIResult),
+    collaborators: (data.data.collaborators as unknown as RawCollaborator[]).map(
+      normalizeCollaborator,
+    ),
   };
 }
 

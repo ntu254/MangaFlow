@@ -52,7 +52,10 @@ const pageSchema = new Schema<PageDocument>(
   { timestamps: true },
 )
 
-pageSchema.index({ chapterId: 1, pageNumber: 1 }, { unique: true })
+pageSchema.index(
+  { chapterId: 1, pageNumber: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: { $exists: false } } },
+)
 
 pageSchema.set("toJSON", {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

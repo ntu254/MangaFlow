@@ -163,6 +163,8 @@ GET    /api/assistants/search
 
 `Team` là tab/screen trong Series Production Hub UI.
 
+`/app/assistant/series` shows the Assistant's own `INVITED`, `ACTIVE`, and `PAUSED` memberships. `INVITED` memberships show an Accept action; only after acceptance does the membership move to `ACTIVE` and become eligible for task assignment.
+
 ## 14. Notification events
 
 ```
@@ -235,4 +237,48 @@ flowchart TD
 5. Eligibility check in Task Assignment
 6. Team UI inside Production Hub
 7. Notification + AuditLog
+```
+
+## 21. Implementation Update: Email Invite Acceptance
+
+When Mangaka invites by email, the target Assistant account must already exist and be active.
+
+```
+Mangaka sends invite by email
+↓
+System resolves User by email
+↓
+System creates SeriesMember.status = INVITED
+↓
+Assistant accepts invite
+↓
+System changes SeriesMember.status = ACTIVE
+↓
+Assistant becomes eligible for task assignment
+```
+
+API contract:
+
+```
+POST /api/series/:seriesId/members
+body: { email, role: "ASSISTANT", accessScope }
+=> creates INVITED membership when email is used
+
+POST /api/series/:seriesId/members/:memberId/accept
+actor: invited Assistant
+=> changes INVITED to ACTIVE
+
+POST /api/series/:seriesId/members/accept
+actor: invited Assistant
+=> accepts the current Assistant's own invite for that series
+```
+
+Task assignment eligibility remains unchanged:
+
+```
+User.role = ASSISTANT
+User.isActive = true
+SeriesMember.role = ASSISTANT
+SeriesMember.status = ACTIVE
+SeriesMember.isActive = true
 ```

@@ -1,6 +1,6 @@
 import { AppError } from "../../../shared/errors/AppError.js"
 import { listTasksByAssignee, listTasksByChapter, listTasksBySeries, getTaskById, listTasksBySeriesIds } from "../task.repository.js"
-import { Chapter } from "../../chapter/chapter.model.js"
+import { Chapter, Region } from "../../chapter/chapter.model.js"
 import { findActiveSeriesMember } from "../../../shared/policies/seriesMember.policy.js"
 import { assertSeriesTaskAccess, type TaskActor } from "./task.access.js"
 
@@ -8,6 +8,17 @@ export async function getTaskService(taskId: string, actor: TaskActor) {
   const task = await getTaskById(taskId)
   if (!task) throw new AppError("Task not found", 404)
   await assertSeriesTaskAccess(String(task.seriesId), actor, task.assignedTo)
+  if (!task.pageId && task.regionId) {
+    const region = await Region.findById(task.regionId).select("pageId").lean()
+    if (region?.pageId) {
+      const taskObject = typeof task.toObject === "function" ? task.toObject() : task
+      return {
+        ...taskObject,
+        id: String(taskObject._id ?? taskObject.id),
+        pageId: String(region.pageId),
+      }
+    }
+  }
   return task
 }
 

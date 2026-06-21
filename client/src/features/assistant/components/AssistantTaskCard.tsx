@@ -1,10 +1,14 @@
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import type { MouseEvent } from "react";
 import type { Task } from "@/entities";
 import { findChapter, findSeries, findStaff } from "@/entities";
+import { extractErrorMessage } from "@/shared/api/_client";
+import { useUpdateTaskStatus } from "@/shared/queries/useTasks";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { deadlineClass, deadlineLabel, deadlineTone } from "@/features/tasks/lib/deadline";
 import { ctaFor, normalizeStatus } from "../lib/taskLifecycle";
 import { ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 const INTENT_CLS: Record<string, string> = {
   primary: "bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent",
@@ -16,6 +20,8 @@ const INTENT_CLS: Record<string, string> = {
 };
 
 export function AssistantTaskCard({ task }: { task: Task }) {
+  const navigate = useNavigate();
+  const startTask = useUpdateTaskStatus();
   const ch = findChapter(task.chapterId);
   const series = ch ? findSeries(ch.seriesId) : null;
   const tone = deadlineTone(task.deadline);
@@ -23,9 +29,52 @@ export function AssistantTaskCard({ task }: { task: Task }) {
   const normalized = normalizeStatus(task.status);
   const assignedBy = task.assignedById ? findStaff(task.assignedById) : null;
   const disabled = cta.intent === "disabled";
+  const shouldMarkInProgress = (normalized === "todo" || normalized === "in-progress") && !!task.id;
+
+  function openTask() {
+    if (!task.id) {
+      toast.error("Task is missing an id. Please refresh the task list.");
+      return;
+    }
+    navigate({ to: "/app/assistant/tasks/$taskId/studio", params: { taskId: task.id } });
+  }
+
+  function handleCtaClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!task.id || startTask.isPending || disabled) return;
+
+    if (!shouldMarkInProgress) {
+      openTask();
+      return;
+    }
+
+    startTask.mutate(
+      { taskId: task.id, status: "IN_PROGRESS" },
+      {
+        onSuccess: () => {
+          toast.success(normalized === "todo" ? "Task started." : "Opening Task Studio.");
+          openTask();
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error));
+        },
+      },
+    );
+  }
 
   const body = (
-    <div className="rounded-md border border-foreground/10 bg-background p-3 transition hover:border-foreground/25 hover:bg-card">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={openTask}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openTask();
+        }
+      }}
+      className="rounded-md border border-foreground/10 bg-background p-3 text-left transition hover:border-foreground/25 hover:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+    >
       <div className="flex items-center justify-between gap-2">
         <StatusBadge status={normalized} />
         <span className={`text-[11px] tabular-nums ${deadlineClass(tone)}`}>
@@ -71,25 +120,20 @@ export function AssistantTaskCard({ task }: { task: Task }) {
                   ? "Earnings calculated"
                   : "Open in Task Studio"}
         </div>
-        <span
+        <button
+          type="button"
+          onClick={handleCtaClick}
+          disabled={startTask.isPending || disabled || !task.id}
           className={`inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition ${
-            INTENT_CLS[cta.intent]
+            INTENT_CLS[startTask.isPending && shouldMarkInProgress ? "disabled" : cta.intent]
           }`}
         >
-          {cta.label}
+          {startTask.isPending && shouldMarkInProgress ? "Opening..." : cta.label}
           {!disabled && <ArrowRight className="h-3 w-3" />}
-        </span>
+        </button>
       </div>
     </div>
   );
 
-  if (disabled) {
-    return <div className="block">{body}</div>;
-  }
-
-  return (
-    <Link to="/app/assistant/tasks/$taskId/studio" params={{ taskId: task.id }} className="block">
-      {body}
-    </Link>
-  );
+  return <div className="block">{body}</div>;
 }

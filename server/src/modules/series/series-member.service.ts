@@ -9,7 +9,8 @@ import { Task } from "../task/task.model.js"
 // ---------------------------------------------------------------------------
 export async function addSeriesMemberService(input: {
   seriesId: string
-  userId: string
+  userId?: string
+  email?: string
   role: "ASSISTANT" | "CO_MANGAKA" | "EDITOR"
   accessScope: "FULL" | "TASK_ONLY"
   actorId: string
@@ -28,8 +29,13 @@ export async function addSeriesMemberService(input: {
     throw new AppError("Cannot add members to a series that is not in production", 409)
   }
 
-  const user = await User.findById(input.userId)
-  if (!user) throw new AppError("User not found", 404)
+  const normalizedEmail = input.email?.trim().toLowerCase()
+  const user = input.userId
+    ? await User.findById(input.userId)
+    : normalizedEmail
+      ? await User.findOne({ email: normalizedEmail })
+      : null
+  if (!user) throw new AppError("User not found. Create an assistant account before inviting by email.", 404)
   if (!user.isActive) throw new AppError("User is not active", 400)
 
   // Enforce system role matches series role for ASSISTANT
@@ -39,7 +45,7 @@ export async function addSeriesMemberService(input: {
 
   const existingMember = await SeriesMember.findOne({
     seriesId: input.seriesId,
-    userId: input.userId,
+    userId: user._id,
   })
 
   if (existingMember) {
@@ -47,8 +53,8 @@ export async function addSeriesMemberService(input: {
     if (existingMember.status === "ACTIVE") {
       throw new AppError("User is already an active member of this series", 409)
     }
-    existingMember.status = "ACTIVE"
-    existingMember.isActive = true
+    existingMember.status = input.email ? "INVITED" : "ACTIVE"
+    existingMember.isActive = existingMember.status === "ACTIVE"
     existingMember.role = input.role as any
     existingMember.accessScope = input.accessScope
     await existingMember.save()
@@ -58,7 +64,7 @@ export async function addSeriesMemberService(input: {
       actorId: input.actorId,
       entityType: "SeriesMember",
       entityId: String(existingMember._id),
-      metadata: { seriesId: input.seriesId, userId: input.userId },
+      metadata: { seriesId: input.seriesId, userId: String(user._id), email: user.email },
     }).catch(() => undefined)
 
     return existingMember
@@ -66,10 +72,10 @@ export async function addSeriesMemberService(input: {
 
   const member = await SeriesMember.create({
     seriesId: input.seriesId,
-    userId: input.userId,
+    userId: user._id,
     role: input.role,
-    status: "ACTIVE",
-    isActive: true,
+    status: input.email ? "INVITED" : "ACTIVE",
+    isActive: !input.email,
     accessScope: input.accessScope,
   })
 
@@ -78,7 +84,7 @@ export async function addSeriesMemberService(input: {
     actorId: input.actorId,
     entityType: "SeriesMember",
     entityId: String(member._id),
-    metadata: { seriesId: input.seriesId, userId: input.userId, role: input.role },
+    metadata: { seriesId: input.seriesId, userId: String(user._id), email: user.email, role: input.role },
   }).catch(() => undefined)
 
   return member
@@ -103,6 +109,22 @@ export async function listSeriesMembersService(seriesId: string, actorId: string
   }
 
   return SeriesMember.find({ seriesId }).populate("userId", "name displayName email role").lean()
+}
+
+export async function listMySeriesMembershipsService(actorId: string, actorRole: string) {
+  if (actorRole !== "ASSISTANT") {
+    throw new AppError("Only assistants can list their series memberships", 403)
+  }
+
+  return SeriesMember.find({
+    userId: actorId,
+    role: "ASSISTANT",
+    status: { $in: ["INVITED", "ACTIVE", "PAUSED"] },
+  })
+    .sort({ updatedAt: -1 })
+    .populate("seriesId", "title slug synopsis status publicationType genres tags")
+    .populate("userId", "name displayName email role")
+    .lean()
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +159,50 @@ export async function updateSeriesMemberService(input: {
     entityType: "SeriesMember",
     entityId: String(member._id),
     metadata: { seriesId: input.seriesId, prevStatus, newStatus: input.status },
+  }).catch(() => undefined)
+
+  return member
+}
+
+// ---------------------------------------------------------------------------
+// Accept invite (Flow-03)
+// ---------------------------------------------------------------------------
+export async function acceptSeriesMemberInviteService(input: {
+  seriesId: string
+  memberId?: string
+  actorId: string
+}) {
+  const series = await Series.findById(input.seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+
+  const member = await SeriesMember.findOne({
+    ...(input.memberId ? { _id: input.memberId } : { userId: input.actorId }),
+    seriesId: input.seriesId,
+  })
+  if (!member) throw new AppError("Member invite not found", 404)
+  if (String(member.userId) !== input.actorId) {
+    throw new AppError("Only the invited assistant can accept this invite", 403)
+  }
+  if (member.role !== "ASSISTANT") {
+    throw new AppError("Only assistant invites can be accepted through this endpoint", 400)
+  }
+  if (member.status === "ACTIVE") {
+    return member
+  }
+  if (member.status !== "INVITED") {
+    throw new AppError(`Cannot accept invite with status ${member.status}`, 409)
+  }
+
+  member.status = "ACTIVE"
+  member.isActive = true
+  await member.save()
+
+  void recordAuditLog({
+    event: "SERIES_MEMBER_INVITE_ACCEPTED",
+    actorId: input.actorId,
+    entityType: "SeriesMember",
+    entityId: String(member._id),
+    metadata: { seriesId: input.seriesId, userId: String(member.userId) },
   }).catch(() => undefined)
 
   return member

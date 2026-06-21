@@ -239,7 +239,7 @@ function KanbanView({ tasks }: { tasks: Task[] }) {
                     <span className="text-[11px]">No tasks</span>
                   </div>
                 ) : (
-                  items.map((t) => <AssistantTaskCard key={t.id} task={t} />)
+                  items.map((t, index) => <AssistantTaskCard key={taskRenderKey(t, index)} task={t} />)
                 )}
               </div>
             </section>
@@ -254,8 +254,12 @@ function ListView({ tasks }: { tasks: Task[] }) {
   return (
     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
       {tasks.map((t) => (
-        <AssistantTaskCard key={t.id} task={t} />
+        <AssistantTaskCard key={taskRenderKey(t)} task={t} />
       ))}
     </div>
   );
+}
+
+function taskRenderKey(task: Task, index = 0) {
+  return task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}-${index}`;
 }

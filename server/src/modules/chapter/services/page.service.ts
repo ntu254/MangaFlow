@@ -1,4 +1,4 @@
-import { Page } from "../chapter.model.js"
+import { Chapter, Page, Region, AIResult } from "../chapter.model.js"
 import { FileAsset } from "../chapter.model.js"
 import { AppError } from "../../../shared/errors/AppError.js"
 import { createPageRepository, getPagesByChapter } from "../chapter.repository.js"
@@ -80,9 +80,36 @@ export async function deletePageService(chapterId: string, pageId: string, actor
   
   await assertCanWriteChapter(actor, trimmedChapterId)
 
+  const [chapter, page] = await Promise.all([
+    Chapter.findById(trimmedChapterId).select("status").lean(),
+    Page.findOne({ _id: trimmedPageId, chapterId: trimmedChapterId, deletedAt: { $exists: false } }),
+  ])
+  if (!chapter) throw new AppError("Chapter not found", 404)
+  if (!page) throw new AppError("Page not found", 404)
+
   const tasksCount = await Task.countDocuments({ pageId: trimmedPageId })
   if (tasksCount > 0) {
     throw new AppError("Cannot delete page with tasks. Reassign or cancel tasks first.", 400)
+  }
+
+  const assetIds = [
+    page.originalFileAssetId,
+    page.workingFileAssetId,
+    page.thumbnailFileAssetId,
+    ...(page.variantFileAssetIds ?? []),
+  ].filter(Boolean)
+
+  if (assetIds.length > 0) {
+    await FileAsset.updateMany({ _id: { $in: assetIds } }, { $set: { status: "DELETED" } })
+  }
+
+  if (chapter.status === "DRAFT") {
+    await Promise.all([
+      Region.deleteMany({ pageId: trimmedPageId }),
+      AIResult.deleteMany({ pageId: trimmedPageId }),
+      Page.deleteOne({ _id: trimmedPageId, chapterId: trimmedChapterId }),
+    ])
+    return
   }
 
   await Page.updateOne({ _id: trimmedPageId, chapterId: trimmedChapterId }, {

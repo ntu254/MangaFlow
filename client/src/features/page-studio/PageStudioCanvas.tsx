@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import { Stage, Layer, Image as KonvaImage, Rect, Text, Group, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { Region } from "@/entities";
+import type { PageStudioCollaborator } from "@/shared/api/pages";
 import { findStaff } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { useKonvaImage } from "./useKonvaImage";
@@ -30,17 +31,25 @@ const getRegionColor = (r: Region | { status: string; type: string }) => {
 interface Props {
   regions: Region[];
   pageId: string;
+  seriesId?: string;
+  chapterId?: string;
+  assistants?: PageStudioCollaborator[];
   onSelectRegion: (id: string | null) => void;
   originalImageUrl?: string | null;
   workingImageUrl?: string | null;
+  readOnly?: boolean;
 }
 
 export function PageStudioCanvas({
   regions,
   pageId,
+  seriesId,
+  chapterId,
+  assistants = [],
   onSelectRegion,
   originalImageUrl,
   workingImageUrl,
+  readOnly = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
@@ -137,7 +146,7 @@ export function PageStudioCanvas({
     const isDrawingTool =
       activeTool === "rect" || activeTool === "bubble" || activeTool === "polygon";
 
-    if (isDrawingTool && !isSpaceDown && !isPanning) {
+    if (!readOnly && isDrawingTool && !isSpaceDown && !isPanning) {
       const pos = getRelativePointerPosition();
       if (pos) {
         setIsDrawing(true);
@@ -157,7 +166,7 @@ export function PageStudioCanvas({
   };
 
   const handleMouseMove = (e: React.MouseEvent | React.TouchEvent | any) => {
-    if (isDrawing && draftRegion && !compareOriginal) {
+    if (!readOnly && isDrawing && draftRegion && !compareOriginal) {
       const pos = getRelativePointerPosition();
       if (pos) {
         setDraftRegion({
@@ -173,7 +182,7 @@ export function PageStudioCanvas({
   };
 
   const handleMouseUp = (e: React.MouseEvent | React.TouchEvent | any) => {
-    if (isDrawing && draftRegion && !compareOriginal) {
+    if (!readOnly && isDrawing && draftRegion && !compareOriginal) {
       setIsDrawing(false);
       // Normalize coordinates
       const rw = Math.abs(draftRegion.w);
@@ -221,7 +230,7 @@ export function PageStudioCanvas({
   };
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>, r: Region) => {
-    if (compareOriginal) return;
+    if (compareOriginal || readOnly) return;
     const node = e.target;
     const clamp = (val: number) => Math.max(0, Math.min(1, val));
     let newX = clamp(node.x() / IMG_W);
@@ -239,7 +248,7 @@ export function PageStudioCanvas({
   };
 
   const handleTransformEnd = (e: Konva.KonvaEventObject<Event>, r: Region) => {
-    if (compareOriginal) return;
+    if (compareOriginal || readOnly) return;
     const node = e.target;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
@@ -268,7 +277,8 @@ export function PageStudioCanvas({
     ? "grabbing"
     : activeTool === "pan" || isSpaceDown
       ? "grab"
-      : !compareOriginal &&
+      : !readOnly &&
+          !compareOriginal &&
           (activeTool === "rect" || activeTool === "bubble" || activeTool === "polygon")
         ? "crosshair"
         : "default";
@@ -402,7 +412,7 @@ export function PageStudioCanvas({
                       strokeWidth={sw}
                       dash={dash}
                       cornerRadius={3 / viewport.scale}
-                      draggable={!compareOriginal && isSelected}
+                      draggable={!readOnly && !compareOriginal && isSelected}
                       onDragEnd={(e) => handleDragEnd(e, r)}
                       onTransformEnd={(e) => handleTransformEnd(e, r)}
                       onClick={(e) => {
@@ -451,7 +461,7 @@ export function PageStudioCanvas({
               })}
 
           {/* Transformer */}
-          {!compareOriginal && (
+          {!readOnly && !compareOriginal && (
             <Transformer
               ref={trRef}
               boundBoxFunc={(oldBox, newBox) => {
@@ -469,7 +479,7 @@ export function PageStudioCanvas({
           )}
 
           {/* Draft Region being drawn */}
-          {isDrawing && draftRegion && !compareOriginal && (
+          {!readOnly && isDrawing && draftRegion && !compareOriginal && (
             <Rect
               x={draftRegion.w < 0 ? draftRegion.x + draftRegion.w : draftRegion.x}
               y={draftRegion.h < 0 ? draftRegion.y + draftRegion.h : draftRegion.y}
@@ -486,8 +496,22 @@ export function PageStudioCanvas({
       </Stage>
 
       {/* Contextual Task Popup */}
-      {selectedRegion && selectedRegion.status !== "rejected" && !compareOriginal && (
-        <ContextualTaskPopup region={selectedRegion} onClose={() => onSelectRegion(null)} />
+      {selectedRegion &&
+        selectedRegion.status !== "rejected" &&
+        selectedRegion.status !== "ai-suggested" &&
+        !readOnly &&
+        !compareOriginal && (
+          <ContextualTaskPopup
+            region={selectedRegion}
+            seriesId={seriesId}
+            chapterId={chapterId}
+            pageId={pageId}
+            assistants={assistants}
+            onRegionTypeChange={(type) =>
+              updateRegion({ regionId: selectedRegion.id, payload: { type } })
+            }
+            onClose={() => onSelectRegion(null)}
+          />
       )}
 
       {/* Hover tooltip for tasks */}

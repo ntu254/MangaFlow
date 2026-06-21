@@ -48,8 +48,7 @@ export function Topbar() {
   const { user, logout, role } = useRole();
   const navigate = useNavigate();
 
-  // Look for a MongoDB ObjectId in the URL parts
-  const seriesId = rawParts.find((p) => p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p));
+  const seriesId = extractSeriesIdFromPath(rawParts);
   const { data: summary } = useSeriesSummary(seriesId || "");
   const seriesTitle = summary?.series?.title?.trim();
 
@@ -63,15 +62,18 @@ export function Topbar() {
       <nav className="flex items-center text-[13px] text-foreground/60">
         {parts.map((p, i) => {
           const isObjectId = p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p);
+          const isSeriesId = !!seriesId && p === seriesId;
 
           let label = LABELS[p] ?? decodeURIComponent(p);
 
-          if (isObjectId) {
+          if (isSeriesId) {
             label = seriesTitle || "Untitled draft";
             // Truncate if too long
             if (label.length > 30) {
               label = label.substring(0, 30) + "...";
             }
+          } else if (isObjectId) {
+            label = "Task";
           }
 
           // We still need the original href which might include /app
@@ -85,7 +87,7 @@ export function Topbar() {
               {isLast ? (
                 <span
                   className="font-medium text-foreground"
-                  title={isObjectId ? seriesTitle : undefined}
+                  title={isSeriesId ? seriesTitle : undefined}
                 >
                   {label}
                 </span>
@@ -93,7 +95,7 @@ export function Topbar() {
                 <Link
                   to={href}
                   className="hover:text-foreground"
-                  title={isObjectId ? seriesTitle : undefined}
+                  title={isSeriesId ? seriesTitle : undefined}
                 >
                   {label}
                 </Link>
@@ -133,4 +135,11 @@ export function Topbar() {
       )}
     </div>
   );
+}
+
+function extractSeriesIdFromPath(rawParts: string[]) {
+  const seriesIndex = rawParts.indexOf("series");
+  if (seriesIndex < 0) return "";
+  const candidate = rawParts[seriesIndex + 1] ?? "";
+  return candidate.length === 24 && /^[0-9a-fA-F]{24}$/.test(candidate) ? candidate : "";
 }

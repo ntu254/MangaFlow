@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   Layers,
@@ -17,7 +17,7 @@ import {
   Loader2,
   Eraser,
 } from "lucide-react";
-import type { Region, AIResult } from "@/entities";
+import type { Region, AIResult, Task } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { staff, findStaff } from "@/entities";
 import { useRunAISegmentation, useRunAITextWhitening } from "@/shared/queries/usePageStudio";
@@ -27,6 +27,8 @@ interface Props {
   regions: Region[];
   results?: AIResult[];
   pageId: string;
+  readOnly?: boolean;
+  assistantTask?: Task;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -37,7 +39,7 @@ const STATUS_COLOR: Record<string, string> = {
   "linked-to-task": "text-amber-400 bg-amber-400/10 border-amber-400/20",
 };
 
-export function InspectorDrawer({ regions, results = [], pageId }: Props) {
+export function InspectorDrawer({ regions, results = [], pageId, readOnly = false, assistantTask }: Props) {
   const {
     selectedRegionId,
     setSelectedRegionId,
@@ -114,9 +116,15 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
   const tabsConfig = [
     { id: "inspect" as const, icon: Info, label: "Inspect" },
     { id: "layers" as const, icon: Layers, label: "Layers" },
-    { id: "ai" as const, icon: Brain, label: "AI Tools" },
-    { id: "comments" as const, icon: MessageSquare, label: "Comments" },
+    ...(!readOnly ? [{ id: "ai" as const, icon: Brain, label: "AI Tools" }] : []),
+    ...(!readOnly ? [{ id: "comments" as const, icon: MessageSquare, label: "Comments" }] : []),
   ];
+
+  useEffect(() => {
+    if (readOnly && activeTab !== "inspect" && activeTab !== "layers") {
+      setActiveTab("inspect");
+    }
+  }, [activeTab, readOnly, setActiveTab]);
 
   return (
     <div className="flex h-full shrink-0 border-l border-border bg-background overflow-hidden select-none transition-all duration-300">
@@ -139,6 +147,41 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
           {/* ── TAB: INSPECT ── */}
           {activeTab === "inspect" && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
+              {assistantTask && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 space-y-3 shadow-md">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300">
+                        Assigned Task
+                      </div>
+                      <div className="mt-1 truncate text-[13px] font-bold text-foreground">
+                        {assistantTask.title ?? `${assistantTask.type} pass`}
+                      </div>
+                    </div>
+                    <span className="rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-amber-300">
+                      {assistantTask.status}
+                    </span>
+                  </div>
+                  <div className="space-y-2 border-t border-amber-500/15 pt-3 text-[11px] text-foreground/65">
+                    <div>
+                      <span className="text-foreground/35">Note: </span>
+                      <span className="text-foreground/80">
+                        {assistantTask.instruction ?? assistantTask.description ?? "No note provided."}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-foreground/35">Region: </span>
+                      <span className="font-mono text-foreground/80">
+                        {assistantTask.regionId ?? "Assigned page scope"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-foreground/35">Due: </span>
+                      <span className="text-foreground/80">{assistantTask.deadline}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               {selectedRegion ? (
                 <div className="space-y-4">
                   {/* Region Properties Card */}
@@ -156,6 +199,7 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
                       </span>
                     </div>
 
+                    {!readOnly && (
                     <div className="flex justify-end pt-1 border-t border-border mt-3 group relative">
                       <button
                         onClick={handleDeleteRegion}
@@ -177,6 +221,7 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
                         </div>
                       )}
                     </div>
+                    )}
 
                     {/* Coordinates */}
                     <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-[10px] text-foreground/40 font-mono">
@@ -269,8 +314,10 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-foreground/30">
                   <Info className="h-8 w-8 text-foreground/10 mb-2" />
-                  <p className="text-[11px] font-medium leading-relaxed px-4">
-                    Select a region overlay on the canvas to inspect details and assign tasks.
+                    <p className="text-[11px] font-medium leading-relaxed px-4">
+                    {readOnly
+                      ? "Select an assigned region overlay to inspect the task scope."
+                      : "Select a region overlay on the canvas to inspect details and assign tasks."}
                   </p>
                 </div>
               )}
