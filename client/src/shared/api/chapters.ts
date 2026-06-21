@@ -1,11 +1,27 @@
 import { api, unwrap } from "./_client";
 
+export type ChapterStatus =
+  | "DRAFT"
+  | "IN_PRODUCTION"
+  | "READY_FOR_PUBLICATION"
+  | "PUBLISHED"
+  | "ARCHIVED";
+export type PageStatus =
+  | "PENDING"
+  | "UPLOADING"
+  | "PROCESSING"
+  | "UPLOADED"
+  | "PROCESSING_FAILED"
+  | "IN_TASK"
+  | "APPROVED"
+  | "LOCKED";
+
 export interface Chapter {
   id: string;
   seriesId: string;
   chapterNumber: number;
   title: string;
-  status: string;
+  status: ChapterStatus;
   publicationTypeSnapshot?: string;
   createdAt: string;
   updatedAt: string;
@@ -15,7 +31,7 @@ export interface ChapterPage {
   id: string;
   chapterId: string;
   pageNumber: number;
-  status: string;
+  status: PageStatus;
   originalFileAssetId?: string;
   workingFileAssetId?: string;
   thumbnailFileAssetId?: string;
@@ -45,7 +61,7 @@ export const chaptersApi = {
     return res.data;
   },
 
-  cancelChapter: async (chapterId: string) => {
+  archiveChapter: async (chapterId: string) => {
     const res = await api.post(`/chapters/${chapterId}/cancel`);
     return res.data;
   },

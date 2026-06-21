@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { CHAPTER_STATUSES } from "../../shared/workflow/status.js"
 
 export const createChapterSchema = z.object({
   body: z.object({
@@ -19,14 +20,7 @@ export const updateChapterStatusSchema = z.object({
     chapterId: z.string().min(1, "Chapter ID is required"),
   }),
   body: z.object({
-    status: z.enum([
-      "DRAFT",
-      "IN_PRODUCTION",
-      "IN_REVIEW",
-      "READY_FOR_PUBLICATION",
-      "PUBLISHED",
-      "REVISION_REQUIRED",
-    ]),
+    status: z.enum(CHAPTER_STATUSES),
   }),
 })
 

@@ -15,8 +15,6 @@ export type AssistantStatus =
   | "cancelled";
 
 export function normalizeStatus(status: TaskStatus): AssistantStatus {
-  if (status === "assigned") return "todo";
-  if (status === "approved") return "editor-approved";
   return status;
 }
 

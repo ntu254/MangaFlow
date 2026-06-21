@@ -61,20 +61,21 @@ export type SeriesStatus =
   | "EDITOR_REVIEW"
   | "REVISION_REQUESTED"
   | "BOARD_REVIEW"
-  | "APPROVED"
   | "ONGOING"
   | "AT_RISK"
-  | "REJECTED"
   | "CANCELLED"
   | "COMPLETED"
+  | "ARCHIVED"
+  | "REJECTED"
+  | "WITHDRAWN"
 
-export type ManuscriptStatus = "DRAFT" | "SUBMITTED" | "EDITOR_REVIEW" | "REVISION_REQUESTED" | "APPROVED_TO_BOARD" | "REJECTED"
+export type ManuscriptStatus = "DRAFT" | "SUBMITTED" | "REVISION_REQUESTED" | "APPROVED" | "REJECTED" | "ARCHIVED"
 
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "SUBMITTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REVISION_REQUESTED" | "REJECTED"
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "SUBMITTED" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REJECTED" | "CANCELLED"
 
-export type SubmissionStatus = "SUBMITTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REVISION_REQUESTED" | "REJECTED"
+export type SubmissionStatus = "DRAFT" | "SUBMITTED" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REJECTED"
 
-export type CommentStatus = "OPEN" | "FIXED_BY_ASSISTANT" | "VERIFIED_BY_MANGAKA" | "RESOLVED_BY_EDITOR"
+export type CommentStatus = "OPEN" | "RESOLVED" | "REOPENED"
 
 export type BoardVoteValue = "APPROVE" | "REJECT" | "NEEDS_REVISION"
 
@@ -82,7 +83,7 @@ export type BoardDecisionStatus = "PENDING" | "APPROVED" | "REJECTED" | "NEEDS_R
 
 export type RankingStatus = "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "WARNING" | "AT_RISK"
 
-export type AtRiskDecision = "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL"
+export type AtRiskDecision = "CONTINUE" | "WARNING" | "CANCEL" | "COMPLETE"
 
 export type EditorProposalAction = "start-review" | "request-revision" | "reject" | "forward-to-board"
 

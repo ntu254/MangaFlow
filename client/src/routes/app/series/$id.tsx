@@ -12,7 +12,6 @@ import {
   useDeleteDraftSeries,
   useWithdrawSeriesProposal,
   useCancelSeries,
-  useHardDeleteSeries,
 } from "@/shared/queries/useSeries";
 import { useRole } from "@/shared/lib/role";
 import { toast } from "sonner";
@@ -39,12 +38,12 @@ export const Route = createFileRoute("/app/series/$id")({
 
 const TABS = [
   { name: "Overview", path: "overview" },
-  { name: "Manuscript", path: "manuscript" },
   { name: "Chapters", path: "chapters" },
   { name: "Team", path: "team" },
   { name: "Tasks", path: "tasks" },
   { name: "Reviews", path: "reviews" },
-  { name: "Publication", path: "publication" },
+  { name: "Manuscript", path: "manuscript" },
+  { name: "Activity", path: "activity" },
 ];
 
 function SeriesDetailLayout() {
@@ -57,7 +56,6 @@ function SeriesDetailLayout() {
   const deleteDraft = useDeleteDraftSeries();
   const withdraw = useWithdrawSeriesProposal();
   const cancel = useCancelSeries();
-  const hardDelete = useHardDeleteSeries();
 
   const [dialogConfig, setDialogConfig] = useState<{
     open: boolean;
@@ -104,19 +102,6 @@ function SeriesDetailLayout() {
       actionLabel: "Request Cancel",
       onConfirm: () => {
         cancel.mutate(id, { onSuccess: () => toast.success("Series cancellation requested") });
-      },
-    });
-  };
-
-  const handleHardDelete = () => {
-    setDialogConfig({
-      open: true,
-      title: "Hard Delete Series",
-      description:
-        "DANGER: Are you sure you want to hard delete this series? This cannot be undone.",
-      actionLabel: "Hard Delete",
-      onConfirm: () => {
-        hardDelete.mutate(id, { onSuccess: () => navigate({ to: "/app" }) });
       },
     });
   };
@@ -285,7 +270,7 @@ function SeriesDetailLayout() {
               )}
 
             {(role === "mangaka" || role === "admin" || role === "board") &&
-              ["APPROVED", "ONGOING", "AT_RISK"].includes(series.status) && (
+              ["ONGOING", "AT_RISK"].includes(series.status) && (
                 <button
                   onClick={handleCancel}
                   className="w-full h-10 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 text-orange-500 rounded-md flex items-center gap-3 px-4 text-[13px] font-semibold transition-colors"
@@ -294,15 +279,6 @@ function SeriesDetailLayout() {
                   {role === "mangaka" ? "Request Cancellation" : "Cancel Series"}
                 </button>
               )}
-
-            {role === "admin" && (
-              <button
-                onClick={handleHardDelete}
-                className="w-full h-10 bg-red-600/10 hover:bg-red-600/20 border border-red-600/30 text-red-600 rounded-md flex items-center gap-3 px-4 text-[13px] font-semibold transition-colors mt-2"
-              >
-                <Trash2 className="w-4 h-4" /> Hard Delete (Admin)
-              </button>
-            )}
 
             <button className="w-full h-10 bg-foreground/5 hover:bg-foreground/10 border border-foreground/15 text-foreground rounded-md flex items-center gap-3 px-4 text-[13px] font-semibold transition-colors mt-2">
               <Settings className="w-4 h-4 text-foreground/50" /> Series Settings

@@ -116,7 +116,7 @@ describe("submission review service", () => {
     fileAssetMocks.findById.mockResolvedValue({
       _id: "file1",
       uploadedBy: "assistant1",
-      assetType: "PRODUCTION",
+      assetType: "production",
       status: "ACTIVE",
       r2Key: "uploads/file1.psd",
     })
@@ -143,7 +143,7 @@ describe("submission review service", () => {
     fileAssetMocks.findById.mockResolvedValue({
       _id: "file1",
       uploadedBy: "assistant1",
-      assetType: "PRODUCTION",
+      assetType: "production",
       status: "MISSING",
       r2Key: "uploads/file1.psd",
     })
@@ -170,7 +170,7 @@ describe("submission review service", () => {
     fileAssetMocks.findById.mockResolvedValue({
       _id: "file1",
       uploadedBy: "assistant2",
-      assetType: "PRODUCTION",
+      assetType: "production",
       status: "ACTIVE",
       r2Key: "uploads/file1.psd",
     })
@@ -196,7 +196,7 @@ describe("submission review service", () => {
     fileAssetMocks.findById.mockResolvedValue({
       _id: "file1",
       uploadedBy: "assistant1",
-      assetType: "MANUSCRIPT",
+      assetType: "manuscript",
       status: "ACTIVE",
       r2Key: "uploads/file1.pdf",
     })

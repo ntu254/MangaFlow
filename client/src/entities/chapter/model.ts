@@ -1,16 +1,9 @@
-// Spec Flow 02 statuses + legacy review/publication statuses (kept for existing screens).
 export type ChapterStatus =
   | "draft"
   | "in-production"
   | "ready-for-publication"
-  | "archived"
-  | "in-review"
-  | "revision"
-  | "board"
-  | "approved"
-  | "scheduled"
   | "published"
-  | "rejected";
+  | "archived";
 
 export type Chapter = {
   id: string;
@@ -18,7 +11,6 @@ export type Chapter = {
   number: string;
   title: string;
   status: ChapterStatus;
-  scheduledAt?: string;
   publishedAt?: string;
   pages: number;
   publicationTypeSnapshot?: "weekly" | "monthly";
@@ -30,8 +22,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_ghost",
     number: "Vol. 3 Ch. 19",
     title: "Victory",
-    status: "scheduled",
-    scheduledAt: "Jun 22, 2026",
+    status: "ready-for-publication",
     pages: 22,
   },
   {
@@ -39,7 +30,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_ghost",
     number: "Vol. 3 Ch. 20",
     title: "Dependent",
-    status: "in-review",
+    status: "in-production",
     pages: 24,
   },
   {
@@ -64,7 +55,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_goku",
     number: "Vol. 5 Ch. 21",
     title: "Let's make a...",
-    status: "revision",
+    status: "in-production",
     pages: 22,
   },
   {
@@ -72,7 +63,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_gachi",
     number: "Vol. 8 Ch. 102",
     title: "Refuse Heart",
-    status: "approved",
+    status: "ready-for-publication",
     pages: 21,
   },
   {
@@ -80,7 +71,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_gachi",
     number: "Vol. 8 Ch. 103",
     title: "Below The Rim",
-    status: "in-review",
+    status: "in-production",
     pages: 23,
   },
   {
@@ -88,7 +79,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_vag",
     number: "Vol. 38 Ch. 327",
     title: "Long Road",
-    status: "board",
+    status: "in-production",
     pages: 20,
   },
   {
@@ -96,7 +87,7 @@ export const chapters: Chapter[] = [
     seriesId: "se_slam",
     number: "Vol. 1 Ch. 1",
     title: "Sakuragi Hanamichi",
-    status: "in-review",
+    status: "in-production",
     pages: 50,
   },
   {
@@ -104,17 +95,8 @@ export const chapters: Chapter[] = [
     seriesId: "se_op",
     number: "Ch. 1122",
     title: "New Dawn",
-    status: "scheduled",
-    scheduledAt: "Jun 20, 2026",
+    status: "ready-for-publication",
     pages: 17,
-  },
-  {
-    id: "ch_jojo",
-    seriesId: "se_jojo",
-    number: "Vol. 24 Ch. 95",
-    title: "The End",
-    status: "board",
-    pages: 64,
   },
 ];
 

@@ -5,6 +5,7 @@ import { assertSeriesManager, type TaskActor } from "./task.access.js"
 import { validateTaskCreationScope } from "../guards/task-scope.guard.js"
 import { assertTaskAssignmentAllowed } from "../policies/task-assignment.policy.js"
 import { toCreateTaskResult } from "../mappers/task.mapper.js"
+import { lockTaskTarget, syncFinishedTaskTarget } from "./task-target-state.js"
 
 const REVIEW_OWNED_TASK_STATUSES: TaskStatus[] = [
   "SUBMITTED",
@@ -32,6 +33,7 @@ export interface CreateTaskServiceInput {
 
 export async function createTaskService(input: CreateTaskServiceInput) {
   if (!input.title?.trim()) throw new AppError("Task title is required", 400)
+  if (!input.pageId) throw new AppError("Task must target a page or a region on a page", 400)
   if (typeof input.dueDate !== "object" || !(input.dueDate instanceof Date) || isNaN(input.dueDate.getTime())) {
     throw new AppError("Valid due date is required", 400)
   }
@@ -89,6 +91,8 @@ export async function createTaskService(input: CreateTaskServiceInput) {
     contextPageIds: input.contextPageIds,
   })
 
+  await lockTaskTarget(input)
+
   return toCreateTaskResult(task)
 }
 
@@ -134,6 +138,7 @@ export async function updateTaskStatusService(taskId: string, actor: TaskActor, 
 
   const task = await updateTaskStatus(taskId, status)
   if (!task) throw new AppError("Task not found", 404)
+  if (status === "CANCELLED") await syncFinishedTaskTarget(existing)
   return task
 }
 

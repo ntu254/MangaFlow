@@ -11,6 +11,7 @@ import {
 } from "../guards/submission-transition.guard.js"
 import { getSubmissionWithTask } from "./submission.shared.js"
 import { Task } from "../../task/task.model.js"
+import { syncFinishedTaskTarget } from "../../task/services/task-target-state.js"
 
 async function triggerEarningCandidate(taskId: string) {
   try {
@@ -47,6 +48,7 @@ export async function editorApproveSubmissionService(input: ReviewInput) {
 
   const updated = await updateSubmissionStatus(input.submissionId, "EDITOR_APPROVED", input.reviewerNote)
   await updateTaskStatusForSubmission(String(task._id), "EDITOR_APPROVED")
+  await syncFinishedTaskTarget(task)
   // Preserve revision audit metadata (revisionRound, revisionRequestedByRole, etc.) on approval
 
   void triggerEarningCandidate(String(task._id))
@@ -92,6 +94,7 @@ export async function rejectSubmissionService(input: ReviewInput) {
 
   const updated = await updateSubmissionStatus(input.submissionId, "REJECTED", input.reviewerNote)
   await updateTaskStatusForSubmission(String(task._id), "REJECTED")
+  await syncFinishedTaskTarget(task)
   return updated
 }
 
@@ -106,5 +109,6 @@ export async function editorRejectSubmissionService(input: ReviewInput) {
 
   const updated = await updateSubmissionStatus(input.submissionId, "REJECTED", input.reviewerNote)
   await updateTaskStatusForSubmission(String(task._id), "REJECTED")
+  await syncFinishedTaskTarget(task)
   return updated
 }

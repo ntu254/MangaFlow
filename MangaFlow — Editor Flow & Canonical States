@@ -1,0 +1,1053 @@
+# MangaFlow — Editor Flow & Canonical States
+
+## 1. Nguyên tắc tổng quan
+
+Editor trong MangaFlow là người kiểm duyệt proposal, điều phối chất lượng production và là **final quality gate** trước khi chapter được ready/published.
+
+Luồng chính:
+
+```txt
+Mangaka submit Series Proposal
+→ Editor review proposal
+→ Editor request revision / reject / forward to Board
+→ Board approve Series
+→ Series vào production
+→ Mangaka/Editor quản lý Chapter/Page/Task
+→ Assistant submit Task work
+→ Mangaka review bước 1
+→ Editor final review bước 2
+→ Khi mọi required task EDITOR_APPROVED
+→ Editor/Admin mark Chapter READY_FOR_PUBLICATION
+→ Publication scheduling / publish
+```
+
+Nguyên tắc quan trọng:
+
+```txt
+1. Editor không thay Board approve Series.
+2. Editor là final reviewer cho Task/Submission.
+3. Editor không approve Chapter trực tiếp nếu required tasks chưa EDITOR_APPROVED.
+4. Board không approve Chapter trong MVP.
+5. Editor có thể request revision ở cả proposal stage và task final-review stage.
+6. Payroll không nằm trong Editor flow chính.
+7. Editor thấy production events an toàn, không cần expose raw AuditLog mặc định.
+```
+
+---
+
+# 2. Editor role boundary
+
+## Editor được làm
+
+```txt
+- Xem proposal đang chờ review
+- Review Series Proposal
+- Request revision cho proposal
+- Reject proposal
+- Forward proposal to Board
+- Xem Series Production Hub
+- Xem Chapter Production Overview
+- Upload/manage pages nếu được phân quyền
+- Tạo/manage task
+- Assign/reassign Assistant đủ điều kiện
+- Final review submission sau khi Mangaka approve
+- Request revision ở final review
+- Reject task/submission ở final review
+- Final approve task/submission
+- Run readiness check
+- Mark Chapter READY_FOR_PUBLICATION nếu đủ điều kiện
+- Schedule/prepare publication nếu module publication cho phép
+- Comment/feedback trong review workflow
+```
+
+## Editor không được làm
+
+```txt
+- Board approve Series
+- Board ranking decision: CONTINUE / WARNING / CANCEL / COMPLETE
+- Làm thay Assistant trong Task Studio
+- Tạo earning/payment thủ công từ task chưa EDITOR_APPROVED
+- Xóa hard Series/Chapter/Page đã đi sâu production
+- Expose raw AuditLog cho user thường
+- Approve chapter nếu còn required task chưa final approved
+```
+
+---
+
+# 3. Editor entry points
+
+Editor dashboard nên tập trung vào queue:
+
+```txt
+Proposal Review Queue
+Pending Final Reviews
+Chapter Readiness
+Blocked Production
+Recent Activity
+```
+
+Tabs/màn chính:
+
+```txt
+/app/editor/proposals
+/app/editor/reviews
+/app/series/$id
+/app/chapters/$id
+/app/pages/$id/studio
+/app/publications
+/app/notifications
+```
+
+Không nên biến Editor dashboard thành admin dashboard/payroll dashboard.
+
+---
+
+# 4. Series Proposal review flow
+
+## Series status
+
+```ts
+type SeriesStatus =
+  | "DRAFT"
+  | "EDITOR_REVIEW"
+  | "REVISION_REQUESTED"
+  | "BOARD_REVIEW"
+  | "ONGOING"
+  | "AT_RISK"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "ARCHIVED"
+  | "REJECTED"
+  | "WITHDRAWN";
+```
+
+Editor chủ yếu thao tác các state:
+
+```txt
+EDITOR_REVIEW
+REVISION_REQUESTED
+BOARD_REVIEW
+REJECTED
+ONGOING
+```
+
+## Editor proposal actions
+
+### Request revision
+
+```txt
+EDITOR_REVIEW
+→ Editor request revision
+→ REVISION_REQUESTED
+```
+
+Yêu cầu:
+
+```txt
+Feedback bắt buộc
+Có thể gắn comment vào manuscript/proposal field
+Không tạo Series production
+Không tạo Chapter
+```
+
+### Reject proposal
+
+```txt
+EDITOR_REVIEW
+→ Editor reject
+→ REJECTED
+```
+
+Yêu cầu:
+
+```txt
+Reason bắt buộc
+Ghi audit/event
+Ẩn action production
+```
+
+### Forward to Board
+
+```txt
+EDITOR_REVIEW
+→ Editor forward to Board
+→ BOARD_REVIEW
+```
+
+Yêu cầu:
+
+```txt
+Proposal đủ manuscript/version cần thiết
+Editor note optional
+Board mới quyết approve/reject cuối
+```
+
+Editor không chuyển trực tiếp sang `ONGOING`, trừ khi hệ thống có quyền admin đặc biệt. MVP nên để Board approve.
+
+---
+
+# 5. Board handoff
+
+Khi Editor forward lên Board:
+
+```txt
+Series.status = BOARD_REVIEW
+```
+
+Board decision:
+
+```txt
+Approve
+→ Series.status = ONGOING
+→ publicationType = WEEKLY | MONTHLY
+
+Reject
+→ Series.status = REJECTED
+```
+
+Editor có thể xem trạng thái nhưng không thay Board action.
+
+---
+
+# 6. Series Production Hub cho Editor
+
+Sau khi Series `ONGOING`, Editor có thể vào production hub để theo dõi:
+
+```txt
+Overview
+Chapters
+Team
+Tasks
+Reviews
+Manuscript
+Activity
+```
+
+Editor nên thấy:
+
+```txt
+Current chapter
+Production progress
+Pending final reviews
+Blocked tasks
+Readiness blockers
+Upcoming publication
+Team workload
+```
+
+Editor không cần thấy payout column trong task list. Payroll là module riêng.
+
+---
+
+# 7. Chapter lifecycle cho Editor
+
+## Chapter status
+
+```ts
+type ChapterStatus =
+  | "DRAFT"
+  | "IN_PRODUCTION"
+  | "READY_FOR_PUBLICATION"
+  | "PUBLISHED"
+  | "ARCHIVED";
+```
+
+## Editor actions theo Chapter status
+
+### DRAFT
+
+Editor có thể:
+
+```txt
+View chapter
+Upload/manage pages nếu được phép
+Create task nếu có pages
+```
+
+### IN_PRODUCTION
+
+Editor có thể:
+
+```txt
+View pages
+Open Page Studio
+Create/manage task
+Final review task submissions
+Run readiness check
+View blockers
+```
+
+### READY_FOR_PUBLICATION
+
+Editor có thể:
+
+```txt
+Prepare/schedule publication
+Review final chapter package
+```
+
+### PUBLISHED
+
+Editor có thể:
+
+```txt
+View published status
+View production history
+Archive/unpublish nếu role/policy cho phép
+```
+
+Editor không nên có nút:
+
+```txt
+Approve chapter
+```
+
+Thay vào đó:
+
+```txt
+Mark ready for publication
+```
+
+và chỉ enable khi mọi required task đã `EDITOR_APPROVED`.
+
+---
+
+# 8. Chapter Production Overview cho Editor
+
+Tabs chuẩn:
+
+```txt
+Pages
+Tasks
+Reviews
+Readiness
+Comments
+Activity
+```
+
+Không có:
+
+```txt
+Submit chapter for review
+Approve chapter
+Board approve chapter
+Assistant chapter-level action
+Payout column
+```
+
+Editor role actions:
+
+```txt
+Create task
+Manage tasks
+Review final submissions
+Run readiness check
+Mark ready for publication
+```
+
+---
+
+# 9. Page / Page Studio cho Editor
+
+## Page status
+
+```ts
+type PageStatus =
+  | "PENDING"
+  | "UPLOADING"
+  | "PROCESSING"
+  | "UPLOADED"
+  | "PROCESSING_FAILED"
+  | "IN_TASK"
+  | "APPROVED"
+  | "LOCKED";
+```
+
+## Page Studio gate
+
+```ts
+page.status === "UPLOADED" && Boolean(page.workingFileAssetId);
+```
+
+Editor có thể dùng Page Studio để:
+
+```txt
+View Working Image
+View Original compare
+Create/update/delete Region nếu chưa bị task lock
+Add annotation/comment
+Prepare task target
+```
+
+Region có active task thì không delete.
+
+---
+
+# 10. Task management cho Editor
+
+## Task status
+
+```ts
+type TaskStatus =
+  | "TODO"
+  | "IN_PROGRESS"
+  | "SUBMITTED"
+  | "REVISION_REQUESTED"
+  | "MANGAKA_APPROVED"
+  | "EDITOR_APPROVED"
+  | "REJECTED"
+  | "CANCELLED";
+```
+
+## Editor có thể tạo task
+
+Task fields:
+
+```txt
+targetType: PAGE | REGION
+targetId
+taskType
+assignee
+deadline
+priority
+instruction
+```
+
+Rule:
+
+```txt
+Assistant phải eligible
+Assistant phải là SeriesMember ACTIVE
+Không tạo duplicate active task cùng targetType + targetId + taskType
+Không assign vào page/region locked hoặc deleted
+```
+
+## Duplicate active task guard
+
+Active statuses:
+
+```txt
+TODO
+IN_PROGRESS
+SUBMITTED
+REVISION_REQUESTED
+MANGAKA_APPROVED
+```
+
+Finished statuses:
+
+```txt
+EDITOR_APPROVED
+REJECTED
+CANCELLED
+```
+
+Không tạo task mới cùng loại/cùng target nếu task cũ vẫn active.
+
+---
+
+# 11. Editor final review flow
+
+Editor chỉ final review khi task/submission đã qua Mangaka approve.
+
+## Pending Editor final review
+
+Điều kiện:
+
+```txt
+Task.status = MANGAKA_APPROVED
+Submission.status = MANGAKA_APPROVED
+```
+
+Editor actions:
+
+```txt
+Final approve
+Request changes
+Reject
+```
+
+## Final approve
+
+```txt
+MANGAKA_APPROVED
+→ Editor final approve
+→ EDITOR_APPROVED
+```
+
+Kết quả:
+
+```txt
+Task.status = EDITOR_APPROVED
+Submission.status = EDITOR_APPROVED
+Task hoàn tất
+Earning eligible
+Readiness có thể được cập nhật
+```
+
+## Request changes
+
+```txt
+MANGAKA_APPROVED
+→ Editor request revision
+→ REVISION_REQUESTED
+```
+
+Yêu cầu:
+
+```txt
+Feedback bắt buộc
+Assistant nhận revision request
+Assistant submit version mới
+Sau resubmit quay lại Mangaka review trước
+```
+
+## Reject
+
+```txt
+MANGAKA_APPROVED
+→ Editor reject
+→ REJECTED
+```
+
+Yêu cầu:
+
+```txt
+Reason bắt buộc
+Task kết thúc
+Không tạo earning
+```
+
+---
+
+# 12. Submission lifecycle từ góc nhìn Editor
+
+## Submission status
+
+```ts
+type SubmissionStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "REVISION_REQUESTED"
+  | "MANGAKA_APPROVED"
+  | "EDITOR_APPROVED"
+  | "REJECTED";
+```
+
+Editor chủ yếu xử lý:
+
+```txt
+MANGAKA_APPROVED
+→ EDITOR_APPROVED
+MANGAKA_APPROVED
+→ REVISION_REQUESTED
+MANGAKA_APPROVED
+→ REJECTED
+```
+
+Editor không nên final approve submission chưa được Mangaka approve, trừ khi có override policy rõ ràng. MVP không cần override.
+
+---
+
+# 13. Review queue cho Editor
+
+Editor review page nên chia nhóm:
+
+```txt
+Pending final review
+Returned for revision
+Recently approved
+Rejected
+```
+
+Mỗi review card nên có:
+
+```txt
+Task ref
+Series / Chapter / Page
+Assistant
+Mangaka reviewer
+SubmittedAt
+Mangaka approvedAt
+Submission version
+Preview thumbnails
+Feedback history
+CTA: Final approve / Request changes / Reject
+```
+
+Editor không thấy button Mangaka approve.
+
+---
+
+# 14. Chapter readiness
+
+Chapter chỉ ready khi:
+
+```txt
+Tất cả required task đạt EDITOR_APPROVED
+Không còn task SUBMITTED
+Không còn task MANGAKA_APPROVED
+Không còn task REVISION_REQUESTED
+Không còn required page/task blocker
+```
+
+Editor action:
+
+```txt
+Run readiness check
+Mark ready for publication
+```
+
+## Mark ready rule
+
+Enable khi:
+
+```txt
+role ∈ {EDITOR, ADMIN}
+và all required tasks = EDITOR_APPROVED
+và chapter.status = IN_PRODUCTION
+```
+
+Transition:
+
+```txt
+IN_PRODUCTION
+→ Mark ready for publication
+→ READY_FOR_PUBLICATION
+```
+
+Nếu chưa đủ điều kiện, UI phải liệt kê blockers:
+
+```txt
+3 tasks waiting Editor final review
+2 tasks waiting Mangaka review
+1 page missing required lettering task
+```
+
+---
+
+# 15. Publication flow cho Editor
+
+## Publication status
+
+```ts
+type PublicationStatus =
+  | "DRAFT"
+  | "SCHEDULED"
+  | "PUBLISHED"
+  | "FAILED"
+  | "CANCELLED";
+```
+
+Flow:
+
+```txt
+Chapter.status = READY_FOR_PUBLICATION
+→ Editor/Admin create publication schedule
+→ Publication.status = SCHEDULED
+→ Publish job succeeds
+→ Publication.status = PUBLISHED
+→ Chapter.status = PUBLISHED
+```
+
+Không dùng `Chapter.status = SCHEDULED`.
+
+---
+
+# 16. Comments / feedback
+
+Editor có thể comment vào:
+
+```txt
+Series Proposal
+Manuscript Version
+Chapter
+Page
+Region
+Task
+Submission
+```
+
+Feedback status:
+
+```ts
+type FeedbackStatus = "OPEN" | "RESOLVED" | "REOPENED";
+```
+
+Editor feedback bắt buộc trong các action:
+
+```txt
+Request proposal revision
+Reject proposal
+Request task revision
+Reject task/submission
+```
+
+Editor comment nội bộ phải có visibility rõ:
+
+```txt
+PUBLIC_TO_ASSISTANT
+MANGAKA_EDITOR_ONLY
+EDITOR_INTERNAL
+```
+
+Không để Assistant thấy internal notes nếu không được phép.
+
+---
+
+# 17. Activity / Audit
+
+Editor UI có thể thấy user-safe production timeline:
+
+```txt
+Proposal submitted
+Revision requested
+Forwarded to Board
+Board approved
+Page uploaded
+Task created
+Task assigned
+Submission submitted
+Mangaka approved
+Editor approved
+Chapter marked ready
+Chapter published
+```
+
+Không render raw AuditLog mặc định.
+
+Ẩn:
+
+```txt
+Role grant
+Security-sensitive logs
+Payment internal logs
+System fields
+Raw request payload
+```
+
+---
+
+# 18. Notifications cho Editor
+
+## Notification status
+
+```ts
+type NotificationStatus = "UNREAD" | "READ" | "ARCHIVED";
+```
+
+Editor nhận notification khi:
+
+```txt
+SERIES_SUBMITTED_FOR_REVIEW
+SERIES_RESUBMITTED
+BOARD_DECISION_READY
+TASK_MANGAKA_APPROVED
+TASK_REVISION_RESUBMITTED
+CHAPTER_READY_BLOCKED
+CHAPTER_READY_FOR_PUBLICATION
+PUBLICATION_FAILED
+COMMENT_MENTIONED
+```
+
+Notification click nên dẫn tới đúng queue:
+
+```txt
+Proposal review → /app/editor/proposals/{seriesId}
+Final review → /app/editor/reviews/{taskId}
+Chapter readiness → /app/chapters/{chapterId}
+```
+
+---
+
+# 19. Delete / Archive rules cho Editor
+
+## Series
+
+Editor không hard delete Series đã vào workflow.
+
+```txt
+Proposal stage
+→ Reject / Request revision / Forward to Board
+
+Ongoing production
+→ Archive / Request Board decision / Admin action
+
+Published/ranking/payroll involved
+→ Không hard delete từ Editor UI
+```
+
+## Chapter
+
+```txt
+DRAFT, chưa có page/task
+→ Delete nếu policy cho phép
+
+IN_PRODUCTION, có page nhưng chưa có task/submission
+→ Delete with confirm nếu policy cho phép
+
+Có task/submission/approved/published
+→ Không hard delete
+→ Archive / Unpublish / Admin flow
+```
+
+## Page
+
+```txt
+Chưa có task
+→ Replace / Delete / Reorder allowed
+
+Có active task
+→ Block replace/delete/reorder
+
+Có submission/approved/published
+→ View-only hoặc admin recovery flow
+```
+
+## Region
+
+```txt
+Chưa có active task
+→ Delete allowed with confirm
+
+Có active task
+→ Block delete
+```
+
+---
+
+# 20. Editor dashboard tabs
+
+Gợi ý tabs:
+
+```txt
+Proposals
+Final Reviews
+Chapters
+Readiness
+Comments
+Activity
+```
+
+## Proposals
+
+Hiển thị:
+
+```txt
+EDITOR_REVIEW
+REVISION_REQUESTED
+BOARD_REVIEW
+```
+
+## Final Reviews
+
+Hiển thị:
+
+```txt
+MANGAKA_APPROVED tasks/submissions
+```
+
+## Readiness
+
+Hiển thị:
+
+```txt
+Chapters near ready
+Blocked chapters
+Ready for publication
+```
+
+## Activity
+
+Hiển thị event production an toàn, không raw audit.
+
+---
+
+# 21. Editor action matrix
+
+```txt
+Action / object                         Editor
+
+View proposal                           ✓
+Request proposal revision               ✓
+Reject proposal                         ✓
+Forward proposal to Board               ✓
+Approve Series as Board                 -
+View Production Hub                     ✓
+Upload/manage pages                     ✓ if policy allows
+Create task                             ✓
+Assign/reassign Assistant               ✓
+Approve Mangaka review step             -
+Final approve task/submission           ✓
+Request final revision                  ✓
+Reject final submission                 ✓
+Run readiness check                     ✓
+Mark ready for publication              ✓
+Publish/schedule                        ✓ if publication policy allows
+View payroll of assistants              - / admin only
+View raw AuditLog                       - / admin only
+Board ranking decision                  -
+```
+
+---
+
+# 22. Editor route permissions
+
+## Allowed
+
+```txt
+/app/editor/proposals
+/app/editor/reviews
+/app/series/$id
+/app/chapters/$id
+/app/pages/$id/studio
+/app/publications
+/app/notifications
+```
+
+## Limited
+
+```txt
+/app/payroll
+→ no admin payroll actions unless role includes Admin/Finance
+
+/app/rankings
+→ read-only or editorial insight only, no Board decision action
+```
+
+## Blocked
+
+```txt
+/app/board/actions
+/app/admin/security
+/app/assistant/task-submit-as-user
+```
+
+---
+
+# 23. Editor state summary
+
+## Series
+
+```txt
+DRAFT
+EDITOR_REVIEW
+REVISION_REQUESTED
+BOARD_REVIEW
+ONGOING
+AT_RISK
+CANCELLED
+COMPLETED
+ARCHIVED
+REJECTED
+WITHDRAWN
+```
+
+Editor chủ yếu thao tác:
+
+```txt
+EDITOR_REVIEW
+REVISION_REQUESTED
+BOARD_REVIEW
+REJECTED
+ONGOING
+```
+
+## Chapter
+
+```txt
+DRAFT
+IN_PRODUCTION
+READY_FOR_PUBLICATION
+PUBLISHED
+ARCHIVED
+```
+
+## Page
+
+```txt
+PENDING
+UPLOADING
+PROCESSING
+UPLOADED
+PROCESSING_FAILED
+IN_TASK
+APPROVED
+LOCKED
+```
+
+## Task
+
+```txt
+TODO
+IN_PROGRESS
+SUBMITTED
+REVISION_REQUESTED
+MANGAKA_APPROVED
+EDITOR_APPROVED
+REJECTED
+CANCELLED
+```
+
+Editor final review focus:
+
+```txt
+MANGAKA_APPROVED
+EDITOR_APPROVED
+REVISION_REQUESTED
+REJECTED
+```
+
+## Submission
+
+```txt
+DRAFT
+SUBMITTED
+REVISION_REQUESTED
+MANGAKA_APPROVED
+EDITOR_APPROVED
+REJECTED
+```
+
+## Publication
+
+```txt
+DRAFT
+SCHEDULED
+PUBLISHED
+FAILED
+CANCELLED
+```
+
+## Feedback
+
+```txt
+OPEN
+RESOLVED
+REOPENED
+```
+
+## Notification
+
+```txt
+UNREAD
+READ
+ARCHIVED
+```
+
+---
+
+# 24. Chốt nghiệp vụ Editor
+
+```txt
+Editor = proposal reviewer + final production quality gate.
+
+Editor review Series trước khi đưa Board.
+Board quyết định Series approval.
+Mangaka review Assistant submission bước 1.
+Editor final approve bước 2.
+Chapter chỉ READY_FOR_PUBLICATION khi mọi required task EDITOR_APPROVED.
+Editor không approve Chapter trực tiếp nếu task chưa xong.
+Editor không xử lý payroll như flow chính.
+Editor không làm Board decision trong MVP.
+```

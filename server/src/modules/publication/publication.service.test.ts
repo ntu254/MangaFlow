@@ -15,7 +15,7 @@ vi.mock("../series/series.model.js", () => ({
 
 describe("publication.service", () => {
   const actor = { userId: "editor1", role: "EDITOR" as const }
-  const chapter = { _id: "chapter1", seriesId: "series1", status: "IN_REVIEW" }
+  const chapter = { _id: "chapter1", seriesId: "series1", status: "READY_FOR_PUBLICATION" }
   const publication = { _id: "publication1", chapterId: "chapter1", seriesId: "series1", publishedAt: null }
 
   beforeEach(() => {
@@ -33,6 +33,15 @@ describe("publication.service", () => {
     expect(repository.createPublicationRecord).toHaveBeenCalledWith(expect.objectContaining({ chapterId: "chapter1", seriesId: "series1", createdBy: "editor1" }))
   })
 
+  it("blocks publication creation before the chapter is ready", async () => {
+    vi.mocked(repository.getPublicationChapter).mockResolvedValue({ ...chapter, status: "IN_PRODUCTION" } as any)
+
+    await expect(createPublicationService({ chapterId: "chapter1", actor })).rejects.toThrow(
+      "only after the chapter is READY_FOR_PUBLICATION",
+    )
+    expect(repository.createPublicationRecord).not.toHaveBeenCalled()
+  })
+
   it("schedules an existing publication", async () => {
     vi.mocked(repository.getPublicationById).mockResolvedValue(publication as any)
     vi.mocked(repository.updatePublicationSchedule).mockResolvedValue({ ...publication, scheduledFor: new Date("2026-06-11T00:00:00.000Z") } as any)
@@ -47,7 +56,7 @@ describe("publication.service", () => {
     vi.mocked(repository.getPublicationById).mockResolvedValue(publication as any)
     vi.mocked(readiness.getChapterReadinessService).mockResolvedValue({
       chapterId: "chapter1",
-      chapterStatus: "IN_REVIEW",
+      chapterStatus: "IN_PRODUCTION",
       ready: false,
       items: [{ key: "allCommentsResolved", passed: false, reason: "Blocking comments remain." }],
     } as any)
@@ -60,7 +69,7 @@ describe("publication.service", () => {
     vi.mocked(repository.getPublicationById).mockResolvedValue(publication as any)
     vi.mocked(readiness.getChapterReadinessService).mockResolvedValue({
       chapterId: "chapter1",
-      chapterStatus: "IN_REVIEW",
+      chapterStatus: "READY_FOR_PUBLICATION",
       ready: true,
       items: [],
     } as any)
@@ -68,8 +77,8 @@ describe("publication.service", () => {
 
     await publishPublicationService("publication1", actor)
 
-    expect(repository.updateChapterPublicationStatus).toHaveBeenNthCalledWith(1, "chapter1", "READY_FOR_PUBLICATION")
-    expect(repository.updateChapterPublicationStatus).toHaveBeenNthCalledWith(2, "chapter1", "PUBLISHED")
+    expect(repository.updateChapterPublicationStatus).toHaveBeenCalledOnce()
+    expect(repository.updateChapterPublicationStatus).toHaveBeenCalledWith("chapter1", "PUBLISHED")
     expect(repository.markPublicationPublished).toHaveBeenCalledWith("publication1", "editor1", expect.any(Date))
   })
 

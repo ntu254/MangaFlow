@@ -1,11 +1,9 @@
 export type TaskStatus =
-  | "assigned"
   | "todo"
   | "in-progress"
   | "submitted"
   | "revision-requested"
   | "mangaka-approved"
-  | "approved"
   | "editor-approved"
   | "rejected"
   | "cancelled";
@@ -61,7 +59,7 @@ export const tasks: Task[] = [
     pageRange: "p. 9–16",
     deadline: "Jun 19",
     payout: 15000,
-    status: "assigned",
+    status: "todo",
     title: "Screentone interior scenes",
     assignedById: "s_man_kei",
     currentVersion: 0,
@@ -103,7 +101,7 @@ export const tasks: Task[] = [
     pageRange: "p. 11–23",
     deadline: "Jun 22",
     payout: 16500,
-    status: "assigned",
+    status: "todo",
   },
   {
     id: "t6",
@@ -113,7 +111,7 @@ export const tasks: Task[] = [
     pageRange: "p. 1–21",
     deadline: "Jun 14",
     payout: 9000,
-    status: "approved",
+    status: "editor-approved",
   },
   {
     id: "t7",

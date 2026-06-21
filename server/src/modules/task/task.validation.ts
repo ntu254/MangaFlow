@@ -15,6 +15,9 @@ export const createTaskSchema = z.object({
     message: "Due date must be in the future",
   }),
   contextPageIds: z.array(z.string()).optional(),
+}).refine((input) => Boolean(input.pageId), {
+  message: "Task must target a page or a region on a page",
+  path: ["pageId"],
 })
 
 export const taskIdParamsSchema = z.object({

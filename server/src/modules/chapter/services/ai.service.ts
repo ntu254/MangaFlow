@@ -14,9 +14,6 @@ import { getFileBuffer, uploadBuffer } from "../file.service.js"
 import { assertCanReadPage, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
 
 const AI_SERVICE_URL = config.aiServiceUrl ?? "http://127.0.0.1:8000"
-const STUDIO_IMAGE_WIDTH = 800
-const STUDIO_IMAGE_HEIGHT = 1131
-
 interface AIBubbleResponse {
   bubble_count: number
   bubbles: Array<{
@@ -66,10 +63,8 @@ export async function runAISegmentationService(pageId: string, actor: AccessActo
   try {
     const buffer = await getFileBuffer(workingAsset.r2Key)
     const metadata = await sharp(buffer).metadata()
-    const sourceWidth = metadata.width || STUDIO_IMAGE_WIDTH
-    const sourceHeight = metadata.height || STUDIO_IMAGE_HEIGHT
-    const scaleX = STUDIO_IMAGE_WIDTH / sourceWidth
-    const scaleY = STUDIO_IMAGE_HEIGHT / sourceHeight
+    const sourceWidth = metadata.width || 1
+    const sourceHeight = metadata.height || 1
 
     const formData = new FormData()
     formData.append("file", new Blob([buffer], { type: workingAsset.mimeType }), workingAsset.originalName)
@@ -84,18 +79,22 @@ export async function runAISegmentationService(pageId: string, actor: AccessActo
     if (!Array.isArray(data.bubbles)) {
       throw new Error("AI service response did not include bubbles")
     }
-    const suggestions = data.bubbles.map((bubble, idx) => ({
-      suggestionIndex: idx,
-      type: mapBubbleType(),
-      bbox: {
-        x: Math.round(bubble.bbox.x * scaleX),
-        y: Math.round(bubble.bbox.y * scaleY),
-        width: Math.max(1, Math.round(bubble.bbox.width * scaleX)),
-        height: Math.max(1, Math.round(bubble.bbox.height * scaleY)),
-      },
-      confidence: bubble.confidence,
-      decision: "PENDING" as const,
-    }))
+    const suggestions = data.bubbles.map((bubble, idx) => {
+      const x = Math.max(0, Math.min(1 - Number.EPSILON, bubble.bbox.x / sourceWidth))
+      const y = Math.max(0, Math.min(1 - Number.EPSILON, bubble.bbox.y / sourceHeight))
+      return {
+        suggestionIndex: idx,
+        type: mapBubbleType(),
+        bbox: {
+          x,
+          y,
+          width: Math.max(Number.EPSILON, Math.min(1 - x, bubble.bbox.width / sourceWidth)),
+          height: Math.max(Number.EPSILON, Math.min(1 - y, bubble.bbox.height / sourceHeight)),
+        },
+        confidence: bubble.confidence,
+        decision: "PENDING" as const,
+      }
+    })
 
     const updated = await updateAIResultRepository(String(aiResult._id), {
       status: "COMPLETED",
@@ -151,7 +150,7 @@ export async function runAITextWhiteningService(pageId: string, actor: AccessAct
       r2Key: uploaded.r2Key,
       r2Bucket: config.r2Bucket,
       uploadedBy: actor.userId,
-      assetType: "PRODUCTION",
+      assetType: "production",
       slot: "AI_WHITENED",
     })
 
@@ -202,7 +201,7 @@ export async function acceptAISuggestionService(input: { aiResultId: string; sug
     type: suggestion.type,
     bbox: suggestion.bbox,
     source: "AI",
-    status: "ACCEPTED",
+    status: "ACTIVE",
     aiResultId: trimmed,
     confidence: suggestion.confidence,
   })

@@ -66,7 +66,10 @@ function PageStudio() {
   // ── Render States ────────────────────────────────────────────────
   if (isLoadingStudio) {
     return (
-      <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-background text-foreground/50">
+      <div
+        suppressHydrationWarning
+        className="flex h-screen w-full items-center justify-center bg-background text-foreground/50"
+      >
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
         <span className="text-sm font-semibold tracking-wide uppercase">
           Loading Page Studio...
@@ -81,7 +84,10 @@ function PageStudio() {
     const status = apiError.response?.status;
     if (status === 403 || status === 401) {
       return (
-        <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-background">
+        <div
+          suppressHydrationWarning
+          className="flex h-screen w-full items-center justify-center bg-background"
+        >
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-6 text-sm text-rose-400">
             You do not have access to this Page Studio.
           </div>
@@ -89,7 +95,10 @@ function PageStudio() {
       );
     }
     return (
-      <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-background">
+      <div
+        suppressHydrationWarning
+        className="flex h-screen w-full items-center justify-center bg-background"
+      >
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-6 text-sm text-rose-400">
           {apiError.response?.data?.message || apiError.message || "Failed to load Page Studio."}
         </div>
@@ -106,7 +115,10 @@ function PageStudio() {
   // ── Studio Gate Blocks ───────────────────────────────────────────
   if (page.status === "PENDING" || page.status === "UPLOADING" || page.status === "PROCESSING") {
     return (
-      <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-background">
+      <div
+        suppressHydrationWarning
+        className="flex h-screen w-full items-center justify-center bg-background"
+      >
         <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-8 flex flex-col items-center">
           <Loader2 className="h-8 w-8 text-sky-400 animate-spin mb-4" />
           <span className="text-sky-400 font-semibold tracking-wide">Processing assets...</span>
@@ -117,7 +129,10 @@ function PageStudio() {
 
   if (page.status === "PROCESSING_FAILED") {
     return (
-      <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-background">
+      <div
+        suppressHydrationWarning
+        className="flex h-screen w-full items-center justify-center bg-background"
+      >
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-8 text-center max-w-sm">
           <span className="text-rose-400 font-bold block mb-2">Page processing failed.</span>
           <span className="text-rose-400/80 text-sm">Retry upload or replace page.</span>
@@ -128,10 +143,29 @@ function PageStudio() {
 
   if (page.status === "UPLOADED" && !workingFileAssetId) {
     return (
-      <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-background">
+      <div
+        suppressHydrationWarning
+        className="flex h-screen w-full items-center justify-center bg-background"
+      >
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center max-w-sm">
           <span className="text-amber-400 font-bold block mb-2">Missing working image.</span>
           <span className="text-amber-400/80 text-sm">Retry processing or contact admin.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (page.status !== "UPLOADED") {
+    return (
+      <div
+        suppressHydrationWarning
+        className="flex h-screen w-full items-center justify-center bg-background"
+      >
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center max-w-sm">
+          <span className="text-amber-400 font-bold block mb-2">Page Studio is locked.</span>
+          <span className="text-amber-400/80 text-sm">
+            Finish or cancel active tasks before editing this page.
+          </span>
         </div>
       </div>
     );
@@ -165,9 +199,9 @@ function PageStudio() {
             </span>
             <span
               className={`ml-1 inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-                page.status === "approved"
+                page.status === "APPROVED"
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : page.status === "under-review"
+                  : page.status === "IN_TASK"
                     ? "border-sky-500/30 bg-sky-500/10 text-sky-400"
                     : "border-border bg-foreground/5 text-foreground/60"
               }`}

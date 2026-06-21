@@ -1,4 +1,4 @@
-export type RegionStatus = "created" | "ai-suggested" | "accepted" | "rejected" | "linked-to-task";
+export type RegionStatus = "active" | "locked" | "deleted";
 
 export type RegionType = "panel" | "bubble" | "sfx" | "background";
 
@@ -33,7 +33,7 @@ export const regions: Region[] = [
   {
     id: "rg_1",
     pageId: "pg_ch_g2_1",
-    status: "linked-to-task",
+    status: "locked",
     type: "panel",
     coords: { x: 0.05, y: 0.05, w: 0.9, h: 0.4 },
     source: "manual",
@@ -42,7 +42,7 @@ export const regions: Region[] = [
   {
     id: "rg_2",
     pageId: "pg_ch_g2_1",
-    status: "accepted",
+    status: "active",
     type: "bubble",
     coords: { x: 0.3, y: 0.1, w: 0.25, h: 0.12 },
     source: "ai",
@@ -51,7 +51,7 @@ export const regions: Region[] = [
   {
     id: "rg_3",
     pageId: "pg_ch_g2_1",
-    status: "ai-suggested",
+    status: "active",
     type: "sfx",
     coords: { x: 0.6, y: 0.5, w: 0.3, h: 0.15 },
     source: "ai",
@@ -60,7 +60,7 @@ export const regions: Region[] = [
   {
     id: "rg_4",
     pageId: "pg_ch_g2_2",
-    status: "created",
+    status: "active",
     type: "background",
     coords: { x: 0, y: 0.55, w: 1, h: 0.45 },
     source: "manual",
@@ -68,7 +68,7 @@ export const regions: Region[] = [
   {
     id: "rg_5",
     pageId: "pg_ch_g2_2",
-    status: "ai-suggested",
+    status: "active",
     type: "bubble",
     coords: { x: 0.1, y: 0.2, w: 0.2, h: 0.1 },
     source: "ai",
@@ -77,7 +77,7 @@ export const regions: Region[] = [
   {
     id: "rg_6",
     pageId: "pg_ch_ga2_1",
-    status: "accepted",
+    status: "active",
     type: "panel",
     coords: { x: 0.05, y: 0.05, w: 0.9, h: 0.5 },
     source: "ai",

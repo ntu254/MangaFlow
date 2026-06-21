@@ -37,10 +37,10 @@ export function useDeleteChapter() {
   });
 }
 
-export function useCancelChapter() {
+export function useArchiveChapter() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (chapterId: string) => chaptersApi.cancelChapter(chapterId),
+    mutationFn: (chapterId: string) => chaptersApi.archiveChapter(chapterId),
     onSuccess: (_, chapterId) => {
       qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
       qc.invalidateQueries({ queryKey: ["series"] });

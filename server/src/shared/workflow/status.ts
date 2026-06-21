@@ -6,25 +6,23 @@ export const SERIES_STATUSES = [
   "EDITOR_REVIEW",
   "REVISION_REQUESTED",
   "BOARD_REVIEW",
-  "APPROVED",
   "ONGOING",
   "AT_RISK",
-  "REJECTED",
   "CANCELLED",
   "COMPLETED",
-  "WITHDRAWN",
   "ARCHIVED",
+  "REJECTED",
+  "WITHDRAWN",
 ] as const
 export type SeriesStatus = (typeof SERIES_STATUSES)[number]
 
 export const MANUSCRIPT_STATUSES = [
   "DRAFT",
   "SUBMITTED",
-  "UNDER_EDITOR_REVIEW",
   "REVISION_REQUESTED",
-  "FORWARDED_TO_BOARD",
   "APPROVED",
   "REJECTED",
+  "ARCHIVED",
 ] as const
 export type ManuscriptStatus = (typeof MANUSCRIPT_STATUSES)[number]
 
@@ -34,31 +32,28 @@ export type PublicationType = (typeof PUBLICATION_TYPES)[number]
 export const CHAPTER_STATUSES = [
   "DRAFT",
   "IN_PRODUCTION",
-  "IN_REVIEW",
   "READY_FOR_PUBLICATION",
   "PUBLISHED",
-  "REVISION_REQUIRED",
+  "ARCHIVED",
 ] as const
 export type ChapterStatus = (typeof CHAPTER_STATUSES)[number]
 
 export const PAGE_STATUSES = [
+  "PENDING",
   "UPLOADING",
+  "PROCESSING",
   "UPLOADED",
   "PROCESSING_FAILED",
-  "TASK_ASSIGNED",
-  "IN_PROGRESS",
-  "UNDER_REVIEW",
+  "IN_TASK",
   "APPROVED",
+  "LOCKED",
 ] as const
 export type PageStatus = (typeof PAGE_STATUSES)[number]
 
 export const REGION_STATUSES = [
-  "CREATED",
-  "AI_SUGGESTED",
-  "ACCEPTED",
-  "REJECTED",
-  "LINKED_TO_TASK",
-  "ARCHIVED"
+  "ACTIVE",
+  "LOCKED",
+  "DELETED",
 ] as const
 export type RegionStatus = (typeof REGION_STATUSES)[number]
 
@@ -66,30 +61,42 @@ export const TASK_STATUSES = [
   "TODO",
   "IN_PROGRESS",
   "SUBMITTED",
+  "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
   "EDITOR_APPROVED",
-  "REVISION_REQUESTED",
   "REJECTED",
   "CANCELLED",
 ] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 
 export const SUBMISSION_STATUSES = [
+  "DRAFT",
   "SUBMITTED",
+  "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
   "EDITOR_APPROVED",
-  "REVISION_REQUESTED",
   "REJECTED",
 ] as const
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number]
 
 export const COMMENT_STATUSES = [
   "OPEN",
-  "FIXED_BY_ASSISTANT",
-  "VERIFIED_BY_MANGAKA",
-  "RESOLVED_BY_EDITOR",
+  "RESOLVED",
+  "REOPENED",
 ] as const
 export type CommentStatus = (typeof COMMENT_STATUSES)[number]
+
+export const PUBLICATION_STATUSES = [
+  "DRAFT",
+  "SCHEDULED",
+  "PUBLISHED",
+  "FAILED",
+  "CANCELLED",
+] as const
+export type PublicationStatus = (typeof PUBLICATION_STATUSES)[number]
+
+export const NOTIFICATION_STATUSES = ["UNREAD", "READ", "ARCHIVED"] as const
+export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number]
 
 export const BOARD_VOTE_VALUES = ["APPROVE", "REJECT", "NEEDS_REVISION"] as const
 export type BoardVoteValue = (typeof BOARD_VOTE_VALUES)[number]
@@ -115,8 +122,8 @@ export type RankingStatus = (typeof RANKING_STATUSES)[number]
 export const AT_RISK_DECISIONS = [
   "CONTINUE",
   "WARNING",
-  "REQUEST_IMPROVEMENT_PLAN",
   "CANCEL",
+  "COMPLETE",
 ] as const
 export type AtRiskDecision = (typeof AT_RISK_DECISIONS)[number]
 

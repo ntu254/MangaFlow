@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
-import { AuditTimeline } from "@/shared/ui/site/AuditTimeline";
 import {
   TrendingUp,
   Trophy,
@@ -54,9 +53,12 @@ function ActivityPage() {
       />
 
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_320px] mt-8">
-        {/* LEFT COLUMN: Audit Log */}
+        {/* LEFT COLUMN: user-safe production activity (never raw AuditLog) */}
         <div className="rounded-xl border border-[#E5DFD3] bg-card p-6 shadow-sm dark:border-border">
-          <AuditTimeline entity="series" entityId={series.id} title="Audit log" />
+          <SafeActivityTimeline
+            tasks={summary.recentTasks ?? []}
+            submissions={summary.recentSubmissions ?? []}
+          />
         </div>
 
         {/* RIGHT COLUMN: Sidebar */}
@@ -202,6 +204,55 @@ function ActivityPage() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SafeActivityTimeline({
+  tasks,
+  submissions,
+}: {
+  tasks: Array<{ id: string; title: string; assignee?: string; createdAt?: string }>;
+  submissions: Array<{ id: string; status: string; submittedBy?: string; createdAt?: string }>;
+}) {
+  const submissionLabel: Record<string, string> = {
+    SUBMITTED: "Submission submitted",
+    MANGAKA_APPROVED: "Submission approved by Mangaka",
+    EDITOR_APPROVED: "Submission final-approved by Editor",
+    REJECTED: "Submission rejected",
+  };
+  const events = [
+    ...tasks.map((task) => ({
+      id: `task-${task.id}`,
+      label: "Task created and assigned",
+      detail: [task.title, task.assignee].filter(Boolean).join(" · "),
+      at: task.createdAt,
+    })),
+    ...submissions
+      .filter((submission) => submissionLabel[submission.status])
+      .map((submission) => ({
+        id: `submission-${submission.id}`,
+        label: submissionLabel[submission.status],
+        detail: submission.submittedBy ?? "Production team",
+        at: submission.createdAt,
+      })),
+  ].sort((a, b) => String(b.at ?? "").localeCompare(String(a.at ?? "")));
+
+  return (
+    <div>
+      <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Activity</h2>
+      <div className="mt-4 divide-y divide-border">
+        {events.length === 0 ? (
+          <p className="py-6 text-sm text-muted-foreground">No production activity yet.</p>
+        ) : (
+          events.map((event) => (
+            <div key={event.id} className="py-3">
+              <p className="text-sm font-semibold text-foreground">{event.label}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{event.detail}</p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

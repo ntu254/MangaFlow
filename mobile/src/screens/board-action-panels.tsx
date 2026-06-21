@@ -182,7 +182,7 @@ export function BoardAtRiskDecisionPanel({
       <View style={styles.actionButtons}>
         <MFButton tone="success" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("CONTINUE")}>Continue</MFButton>
         <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("WARNING")}>Warning</MFButton>
-        <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("REQUEST_IMPROVEMENT_PLAN")}>Request plan</MFButton>
+        <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("COMPLETE")}>Complete</MFButton>
         <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("CANCEL")}>Cancel</MFButton>
       </View>
       {pendingDecision ? (
@@ -244,14 +244,14 @@ function voteActionTone(value: BoardVoteValue): Tone {
 function atRiskDecisionTitle(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "Continue publication"
   if (decision === "WARNING") return "Issue Board warning"
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan"
+  if (decision === "COMPLETE") return "Complete series"
   return "Cancel series"
 }
 
 function atRiskDecisionLabel(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "continue"
   if (decision === "WARNING") return "warning"
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "request improvement plan"
+  if (decision === "COMPLETE") return "complete"
   return "cancel"
 }
 

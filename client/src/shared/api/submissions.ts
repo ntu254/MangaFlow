@@ -1,10 +1,11 @@
 import { api, unwrap } from "./_client";
 
 export type SubmissionStatus =
+  | "DRAFT"
   | "SUBMITTED"
+  | "REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
   | "EDITOR_APPROVED"
-  | "REVISION_REQUESTED"
   | "REJECTED";
 
 export interface Submission {

@@ -1,6 +1,7 @@
 import mongoose, { Schema, type Document } from "mongoose"
 import type { UserRole } from "../../modules/auth/auth.types.js"
 import { User } from "../../modules/auth/auth.model.js"
+import { NOTIFICATION_STATUSES, type NotificationStatus } from "./status.js"
 
 export interface NotificationDocument extends Document {
   userId: mongoose.Types.ObjectId
@@ -8,8 +9,7 @@ export interface NotificationDocument extends Document {
   title: string
   message: string
   link?: string
-  isRead: boolean
-  isArchived: boolean
+  status: NotificationStatus
   createdAt: Date
   updatedAt: Date
 }
@@ -21,8 +21,7 @@ const notificationSchema = new Schema<NotificationDocument>(
     title: { type: String, required: true, trim: true, maxlength: 200 },
     message: { type: String, required: true, trim: true, maxlength: 1000 },
     link: { type: String, trim: true, maxlength: 500 },
-    isRead: { type: Boolean, default: false, index: true },
-    isArchived: { type: Boolean, default: false, index: true },
+    status: { type: String, enum: NOTIFICATION_STATUSES, default: "UNREAD", index: true },
   },
   { timestamps: true },
 )

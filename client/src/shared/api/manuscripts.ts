@@ -46,12 +46,16 @@ export const manuscriptsApi = {
         originalName: file.name,
         contentType: file.type || "application/octet-stream",
         size: file.size,
-        assetType: ["COVER_DRAFT", "CHARACTER_CONCEPT", "REFERENCE_IMAGE", "OTHER"].includes(
-          category || "",
-        )
-          ? "SUPPORTING"
-          : "MANUSCRIPT",
-        slot: category,
+        assetType:
+          (
+            {
+              COVER_DRAFT: "cover_draft",
+              CHARACTER_CONCEPT: "character_concept",
+              REFERENCE_IMAGE: "reference_image",
+              OTHER: "other",
+            } as const
+          )[category as "COVER_DRAFT" | "CHARACTER_CONCEPT" | "REFERENCE_IMAGE" | "OTHER"] ??
+          "manuscript",
       })
       .then(unwrap<any>);
 

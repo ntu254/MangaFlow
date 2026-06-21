@@ -1,5 +1,4 @@
 import { Chapter, FileAsset, Page } from "../chapter.model.js"
-import { Series } from "../../series/series.model.js"
 
 export async function createPageRepository(chapterId: string, pageNumber: number): Promise<any> {
   const chapter = await Chapter.findById(chapterId)
@@ -59,7 +58,7 @@ async function upsertFileAsset(input: UploadAssetInput, uploadedBy: string, slot
       r2Key: input.r2Key,
       r2Bucket: process.env.R2_BUCKET || "mangaflow",
       uploadedBy,
-      assetType: "PRODUCTION",
+      assetType: "production",
       slot,
     },
     { new: true, upsert: true, setDefaultsOnInsert: true },
@@ -109,13 +108,10 @@ export async function confirmPageUploadRepository(input: ConfirmPageUploadInput)
 
   try {
     if (existingPage.chapterId) {
-      const chapter = await Chapter.findById(existingPage.chapterId)
-      if (chapter?.seriesId) {
-        await Series.updateOne(
-          { _id: chapter.seriesId, status: "APPROVED" },
-          { $set: { status: "ONGOING" } },
-        )
-      }
+      await Chapter.updateOne(
+        { _id: existingPage.chapterId, status: "DRAFT" },
+        { $set: { status: "IN_PRODUCTION" } },
+      )
     }
   } catch {
     // Page upload confirmation must not fail because series lifecycle sync failed.

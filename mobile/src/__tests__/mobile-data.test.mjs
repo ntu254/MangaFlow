@@ -113,17 +113,16 @@ test("mobile domain uses canonical workflow values from contracts", () => {
     "MANGAKA_APPROVED",
     "EDITOR_APPROVED",
     "OPEN",
-    "FIXED_BY_ASSISTANT",
-    "VERIFIED_BY_MANGAKA",
-    "RESOLVED_BY_EDITOR",
+    "RESOLVED",
+    "REOPENED",
     "APPROVE",
     "REJECT",
     "NEEDS_REVISION",
     "TIE_BREAK_REQUIRED",
     "CONTINUE",
     "WARNING",
-    "REQUEST_IMPROVEMENT_PLAN",
     "CANCEL",
+    "COMPLETE",
   ]) {
     assert.match(domainSource, new RegExp(`"${value}"`))
   }
@@ -145,7 +144,7 @@ test("board mock covers ranking and manual at-risk decisions", () => {
   assert.match(boardDataSource, /readerScore: 6\.1/)
   assert.match(boardDataSource, /readerScore: 6\.3/)
   assert.match(boardDataSource, /readerScore: 6\.4/)
-  assert.match(boardDataSource, /"REQUEST_IMPROVEMENT_PLAN"/)
+  assert.match(boardDataSource, /"COMPLETE"/)
   assert.match(boardDataSource, /requiresConfirmation: true/)
   assert.match(boardActionPanelsSource, /Series is not auto-cancelled/)
 })
@@ -340,7 +339,7 @@ test("mobile rich detail previews preserve backend-owned workflow boundaries", (
   assert.match(editorSource, /resolveSelectedComment/)
   assert.match(editorSource, /reopenSelectedComment/)
   assert.match(editorPanelsSource, /Mobile preview does not grant signed file access/)
-  assert.match(editorPanelsSource, /Only this status clears the publication blocker/)
+  assert.match(editorPanelsSource, /This status clears the publication blocker/)
   assert.match(editorPanelsSource, /Readiness evidence/)
   assert.match(editorPanelsSource, /backend-owned result/)
   assert.match(boardHookSource, /selectedRankingId/)

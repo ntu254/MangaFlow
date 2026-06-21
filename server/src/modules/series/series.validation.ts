@@ -57,7 +57,7 @@ export const createManuscriptUploadSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf", "application/zip", "image/vnd.adobe.photoshop", "application/x-photoshop"]),
   size: z.number().int().positive("File size must be positive").max(100 * 1024 * 1024, "File size exceeds 100MB limit"),
   expiresIn: z.number().int().positive().max(3600).optional(),
-  assetType: z.enum(["MANUSCRIPT", "SUPPORTING"]).optional(),
+  assetType: z.enum(["manuscript", "cover_draft", "character_concept", "reference_image", "other"]).optional(),
   slot: z.string().trim().min(1).max(80).optional(),
 })
 

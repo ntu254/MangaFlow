@@ -14,7 +14,7 @@ function NotificationsPage() {
   const { role } = useRole();
   const me = currentUserByRole[role];
   const items = useNotifications(me.id);
-  const unread = items.filter((n) => !n.read).length;
+  const unread = items.filter((n) => n.status === "UNREAD").length;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -45,13 +45,13 @@ function NotificationsPage() {
             to={n.link ?? "/app/notifications"}
             key={n.id}
             onClick={() => markRead(n.id)}
-            className={`flex items-start gap-3 px-4 py-3 hover:bg-foreground/5 ${n.read ? "opacity-60" : ""}`}
+            className={`flex items-start gap-3 px-4 py-3 hover:bg-foreground/5 ${n.status === "READ" ? "opacity-60" : ""}`}
           >
             <Bell className="mt-1 h-4 w-4 text-foreground/50" />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
                 <div className="text-sm font-semibold">{n.title}</div>
-                {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />}
+                {n.status === "UNREAD" && <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />}
               </div>
               <div className="mt-0.5 text-xs text-foreground/70">{n.body}</div>
               <div className="mt-1 font-mono text-[10px] uppercase tracking-wide text-foreground/45">

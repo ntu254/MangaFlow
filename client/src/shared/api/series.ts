@@ -1,6 +1,18 @@
 import { api, unwrap } from "./_client";
 
 export type PublicationType = "WEEKLY" | "MONTHLY";
+export type SeriesStatus =
+  | "DRAFT"
+  | "EDITOR_REVIEW"
+  | "REVISION_REQUESTED"
+  | "BOARD_REVIEW"
+  | "ONGOING"
+  | "AT_RISK"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "ARCHIVED"
+  | "REJECTED"
+  | "WITHDRAWN";
 
 export interface Series {
   id: string;
@@ -17,7 +29,7 @@ export interface Series {
   tags: string[];
   genres: string[];
   ownerId: string;
-  status: string;
+  status: SeriesStatus;
   createdAt: string;
   updatedAt: string;
 }

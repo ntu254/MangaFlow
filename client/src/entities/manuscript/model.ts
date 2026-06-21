@@ -1,11 +1,10 @@
 export type ManuscriptStatus =
   | "draft"
   | "submitted"
-  | "under-editor-review"
   | "revision-requested"
-  | "forwarded-to-board"
   | "approved"
-  | "rejected";
+  | "rejected"
+  | "archived";
 
 export type Manuscript = {
   id: string;
@@ -31,14 +30,14 @@ export const manuscripts: Manuscript[] = [
     id: "ms_jojo",
     proposalId: "pr_jojo",
     seriesId: "se_jojo",
-    status: "forwarded-to-board",
+    status: "submitted",
     currentVersionId: "mv_jojo_2",
   },
   {
     id: "ms_slam",
     proposalId: "pr_slam",
     seriesId: "se_slam",
-    status: "under-editor-review",
+    status: "submitted",
     currentVersionId: "mv_slam_1",
   },
   {
