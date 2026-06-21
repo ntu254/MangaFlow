@@ -2,84 +2,115 @@ import { Link } from "@tanstack/react-router";
 import { StatGrid } from "./StatGrid";
 import { Panel } from "./Panel";
 import { Row } from "./Row";
-import { StatusBadge } from "@/shared/ui/site/StatusBadge";
-import { series, chapters, submissions, publications, findChapter, findSeries } from "@/entities";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2, Inbox, FileCheck2, BookOpen } from "lucide-react";
+import { useDashboard } from "@/shared/queries/useDashboard";
+import { useRole } from "@/shared/lib/role";
 
 export function EditorDash() {
-  const reviewQueue = chapters.filter((c) => c.status === "in-review");
-  const upcoming = publications.filter((p) => p.state === "scheduled").slice(0, 4);
-  const atRisk = series.filter((s) => s.status === "at-risk");
+  const { role } = useRole();
+  const { data, isLoading } = useDashboard(role);
+
+  const seriesReviewCount: number = data?.reviewQueue?.manuscripts ?? 0;
+  const finalReviewCount: number = data?.quickStats?.pendingApprovals ?? 0;
+  const assignedSeries: number = data?.quickStats?.assignedSeries ?? 0;
+  const atRiskCount: number = (data?.atRiskItems ?? []).length;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-48 items-center justify-center text-foreground/40">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <StatGrid
         items={[
-          { label: "Review queue", value: String(reviewQueue.length) },
-          { label: "Scheduled publish", value: String(upcoming.length) },
-          { label: "At-risk series", value: String(atRisk.length) },
           {
-            label: "Round-2 submissions",
-            value: String(
-              submissions.filter((s) => s.mangakaApproved && !s.editorApproved && !s.rejected)
-                .length,
-            ),
+            label: "Series review queue",
+            value: String(seriesReviewCount),
+          },
+          {
+            label: "Final review (Flow 07)",
+            value: String(finalReviewCount),
+          },
+          {
+            label: "Assigned series",
+            value: String(assignedSeries),
+          },
+          {
+            label: "At-risk series",
+            value: String(atRiskCount),
           },
         ]}
       />
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Panel 1 — Series Proposal Review (Flow 01) */}
         <Panel
-          title="Review queue"
+          title="Series proposal review"
           action={
             <Link
-              to="/app/review"
+              to="/app/editor/series-review"
+              className="text-xs text-foreground/60 hover:text-foreground inline-flex items-center gap-1"
+            >
+              Open queue <ArrowRight className="h-3 w-3" />
+            </Link>
+          }
+        >
+          {seriesReviewCount === 0 ? (
+            <Row
+              left={<span className="text-foreground/45">No series waiting for review.</span>}
+              right={null}
+            />
+          ) : (
+            <Row
+              left={
+                <span className="font-medium">
+                  {seriesReviewCount} series pending Editor review
+                </span>
+              }
+              right={
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                  {seriesReviewCount} pending
+                </span>
+              }
+            />
+          )}
+        </Panel>
+
+        {/* Panel 2 — Final Review (Flow 07) */}
+        <Panel
+          title="Final review queue"
+          action={
+            <Link
+              to="/app/editor/final-reviews"
               className="text-xs text-foreground/60 hover:text-foreground inline-flex items-center gap-1"
             >
               Open <ArrowRight className="h-3 w-3" />
             </Link>
           }
         >
-          {reviewQueue.map((c) => {
-            const s = findSeries(c.seriesId)!;
-            return (
-              <Row
-                key={c.id}
-                left={
-                  <>
-                    <span className="font-medium">{s.title}</span> · {c.number} — {c.title}
-                  </>
-                }
-                right={<StatusBadge status={c.status} />}
-              />
-            );
-          })}
-        </Panel>
-        <Panel
-          title="Upcoming publications"
-          action={
-            <Link
-              to="/app/publications"
-              className="text-xs text-foreground/60 hover:text-foreground inline-flex items-center gap-1"
-            >
-              Calendar <ArrowRight className="h-3 w-3" />
-            </Link>
-          }
-        >
-          {upcoming.map((p) => {
-            const ch = findChapter(p.chapterId)!;
-            const s = findSeries(ch.seriesId)!;
-            return (
-              <Row
-                key={p.id}
-                left={
-                  <>
-                    <span className="font-medium">{s.title}</span> · {ch.number}
-                  </>
-                }
-                right={p.scheduledAt}
-              />
-            );
-          })}
+          {finalReviewCount === 0 ? (
+            <Row
+              left={<span className="text-foreground/45">No submissions awaiting final review.</span>}
+              right={null}
+            />
+          ) : (
+            <Row
+              left={
+                <span className="font-medium">
+                  {finalReviewCount} submission(s) pending Editor final approval
+                </span>
+              }
+              right={
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                  {finalReviewCount} to review
+                </span>
+              }
+            />
+          )}
         </Panel>
       </div>
     </div>

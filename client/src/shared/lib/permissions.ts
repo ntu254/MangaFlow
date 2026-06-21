@@ -21,35 +21,35 @@ export const canManageUsers = (role: Role): Verdict =>
 export const canCreateProposal = (role: Role): Verdict =>
   role === "mangaka" ? ok : no("Only Mangaka can create a Series proposal.");
 
-export const canSubmitProposal = (role: Role, series: Series): Verdict => {
+export const canSubmitProposal = (role: Role, series: any): Verdict => {
   if (role !== "mangaka") return no("Only Mangaka can submit.");
   if (!["draft", "revision-requested"].includes(series.status))
     return no(`Series is in ${series.status}; cannot submit now.`);
   return ok;
 };
 
-export const canEditorReview = (role: Role, series: Series): Verdict => {
+export const canEditorReview = (role: Role, series: any): Verdict => {
   if (role !== "editor") return no("Only Editor can act on review.");
   if (workflowStatus(series.status) !== "editor-review")
     return no("Series is not in Editor review.");
   return ok;
 };
 
-export const canForwardToBoard = (role: Role, series: Series) => canEditorReview(role, series);
+export const canForwardToBoard = (role: Role, series: any) => canEditorReview(role, series);
 
-export const canBoardVote = (role: Role, series: Series): Verdict => {
+export const canBoardVote = (role: Role, series: any): Verdict => {
   if (role !== "board") return no("Only Board members can vote.");
   if (workflowStatus(series.status) !== "board-review") return no("Series is not in Board review.");
   return ok;
 };
 
-export const canFinalizeBoardDecision = (role: Role, series: Series): Verdict => {
+export const canFinalizeBoardDecision = (role: Role, series: any): Verdict => {
   const v = canBoardVote(role, series);
   return v.allowed ? ok : v;
 };
 
 // ---- Flow 02 — Chapter / Page ----
-export const canCreateChapter = (role: Role, series: Series): Verdict => {
+export const canCreateChapter = (role: Role, series: any): Verdict => {
   if (!["mangaka", "admin"].includes(role)) return no("Only Mangaka can create Chapters.");
   if (!["approved", "ongoing", "at-risk"].includes(workflowStatus(series.status)))
     return no("Series must be approved/ongoing.");
