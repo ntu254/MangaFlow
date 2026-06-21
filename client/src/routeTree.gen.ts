@@ -43,7 +43,14 @@ import { Route as AppAssistantNotificationsRouteImport } from './routes/app/assi
 import { Route as AppAssistantEarningsRouteImport } from './routes/app/assistant/earnings'
 import { Route as AppAssistantDashboardRouteImport } from './routes/app/assistant/dashboard'
 import { Route as AppAdminUsersRouteImport } from './routes/app/admin/users'
+import { Route as AppAdminUserManagementRouteImport } from './routes/app/admin/user-management'
+import { Route as AppAdminTaskRatesRouteImport } from './routes/app/admin/task-rates'
+import { Route as AppAdminStorageRouteImport } from './routes/app/admin/storage'
+import { Route as AppAdminSettingsRouteImport } from './routes/app/admin/settings'
 import { Route as AppAdminRolesRouteImport } from './routes/app/admin/roles'
+import { Route as AppAdminPayrollRouteImport } from './routes/app/admin/payroll'
+import { Route as AppAdminBoardMembersRouteImport } from './routes/app/admin/board-members'
+import { Route as AppAdminAuditLogsRouteImport } from './routes/app/admin/audit-logs'
 import { Route as AppSeriesIdIndexRouteImport } from './routes/app/series/$id.index'
 import { Route as AppSeriesIdTeamRouteImport } from './routes/app/series/$id.team'
 import { Route as AppSeriesIdTasksRouteImport } from './routes/app/series/$id.tasks'
@@ -232,9 +239,44 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminUserManagementRoute = AppAdminUserManagementRouteImport.update({
+  id: '/admin/user-management',
+  path: '/admin/user-management',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminTaskRatesRoute = AppAdminTaskRatesRouteImport.update({
+  id: '/admin/task-rates',
+  path: '/admin/task-rates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminStorageRoute = AppAdminStorageRouteImport.update({
+  id: '/admin/storage',
+  path: '/admin/storage',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminSettingsRoute = AppAdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminRolesRoute = AppAdminRolesRouteImport.update({
   id: '/admin/roles',
   path: '/admin/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminPayrollRoute = AppAdminPayrollRouteImport.update({
+  id: '/admin/payroll',
+  path: '/admin/payroll',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminBoardMembersRoute = AppAdminBoardMembersRouteImport.update({
+  id: '/admin/board-members',
+  path: '/admin/board-members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAuditLogsRoute = AppAdminAuditLogsRouteImport.update({
+  id: '/admin/audit-logs',
+  path: '/admin/audit-logs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSeriesIdIndexRoute = AppSeriesIdIndexRouteImport.update({
@@ -340,7 +382,14 @@ export interface FileRoutesByFullPath {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
+  '/app/admin/audit-logs': typeof AppAdminAuditLogsRoute
+  '/app/admin/board-members': typeof AppAdminBoardMembersRoute
+  '/app/admin/payroll': typeof AppAdminPayrollRoute
   '/app/admin/roles': typeof AppAdminRolesRoute
+  '/app/admin/settings': typeof AppAdminSettingsRoute
+  '/app/admin/storage': typeof AppAdminStorageRoute
+  '/app/admin/task-rates': typeof AppAdminTaskRatesRoute
+  '/app/admin/user-management': typeof AppAdminUserManagementRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
@@ -389,7 +438,14 @@ export interface FileRoutesByTo {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app': typeof AppIndexRoute
   '/read': typeof ReadIndexRoute
+  '/app/admin/audit-logs': typeof AppAdminAuditLogsRoute
+  '/app/admin/board-members': typeof AppAdminBoardMembersRoute
+  '/app/admin/payroll': typeof AppAdminPayrollRoute
   '/app/admin/roles': typeof AppAdminRolesRoute
+  '/app/admin/settings': typeof AppAdminSettingsRoute
+  '/app/admin/storage': typeof AppAdminStorageRoute
+  '/app/admin/task-rates': typeof AppAdminTaskRatesRoute
+  '/app/admin/user-management': typeof AppAdminUserManagementRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
@@ -442,7 +498,14 @@ export interface FileRoutesById {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
+  '/app/admin/audit-logs': typeof AppAdminAuditLogsRoute
+  '/app/admin/board-members': typeof AppAdminBoardMembersRoute
+  '/app/admin/payroll': typeof AppAdminPayrollRoute
   '/app/admin/roles': typeof AppAdminRolesRoute
+  '/app/admin/settings': typeof AppAdminSettingsRoute
+  '/app/admin/storage': typeof AppAdminStorageRoute
+  '/app/admin/task-rates': typeof AppAdminTaskRatesRoute
+  '/app/admin/user-management': typeof AppAdminUserManagementRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
@@ -497,7 +560,14 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app/'
     | '/read/'
+    | '/app/admin/audit-logs'
+    | '/app/admin/board-members'
+    | '/app/admin/payroll'
     | '/app/admin/roles'
+    | '/app/admin/settings'
+    | '/app/admin/storage'
+    | '/app/admin/task-rates'
+    | '/app/admin/user-management'
     | '/app/admin/users'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
@@ -546,7 +616,14 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app'
     | '/read'
+    | '/app/admin/audit-logs'
+    | '/app/admin/board-members'
+    | '/app/admin/payroll'
     | '/app/admin/roles'
+    | '/app/admin/settings'
+    | '/app/admin/storage'
+    | '/app/admin/task-rates'
+    | '/app/admin/user-management'
     | '/app/admin/users'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
@@ -598,7 +675,14 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app/'
     | '/read/'
+    | '/app/admin/audit-logs'
+    | '/app/admin/board-members'
+    | '/app/admin/payroll'
     | '/app/admin/roles'
+    | '/app/admin/settings'
+    | '/app/admin/storage'
+    | '/app/admin/task-rates'
+    | '/app/admin/user-management'
     | '/app/admin/users'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
@@ -880,11 +964,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/user-management': {
+      id: '/app/admin/user-management'
+      path: '/admin/user-management'
+      fullPath: '/app/admin/user-management'
+      preLoaderRoute: typeof AppAdminUserManagementRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/task-rates': {
+      id: '/app/admin/task-rates'
+      path: '/admin/task-rates'
+      fullPath: '/app/admin/task-rates'
+      preLoaderRoute: typeof AppAdminTaskRatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/storage': {
+      id: '/app/admin/storage'
+      path: '/admin/storage'
+      fullPath: '/app/admin/storage'
+      preLoaderRoute: typeof AppAdminStorageRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/settings': {
+      id: '/app/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/app/admin/settings'
+      preLoaderRoute: typeof AppAdminSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/roles': {
       id: '/app/admin/roles'
       path: '/admin/roles'
       fullPath: '/app/admin/roles'
       preLoaderRoute: typeof AppAdminRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/payroll': {
+      id: '/app/admin/payroll'
+      path: '/admin/payroll'
+      fullPath: '/app/admin/payroll'
+      preLoaderRoute: typeof AppAdminPayrollRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/board-members': {
+      id: '/app/admin/board-members'
+      path: '/admin/board-members'
+      fullPath: '/app/admin/board-members'
+      preLoaderRoute: typeof AppAdminBoardMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/audit-logs': {
+      id: '/app/admin/audit-logs'
+      path: '/admin/audit-logs'
+      fullPath: '/app/admin/audit-logs'
+      preLoaderRoute: typeof AppAdminAuditLogsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/series/$id/': {
@@ -1095,7 +1228,14 @@ interface AppRouteChildren {
   AppSubmissionsRoute: typeof AppSubmissionsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminAuditLogsRoute: typeof AppAdminAuditLogsRoute
+  AppAdminBoardMembersRoute: typeof AppAdminBoardMembersRoute
+  AppAdminPayrollRoute: typeof AppAdminPayrollRoute
   AppAdminRolesRoute: typeof AppAdminRolesRoute
+  AppAdminSettingsRoute: typeof AppAdminSettingsRoute
+  AppAdminStorageRoute: typeof AppAdminStorageRoute
+  AppAdminTaskRatesRoute: typeof AppAdminTaskRatesRoute
+  AppAdminUserManagementRoute: typeof AppAdminUserManagementRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppEditorFinalReviewsRoute: typeof AppEditorFinalReviewsRoute
   AppEditorSeriesReviewRoute: typeof AppEditorSeriesReviewRoute
@@ -1121,7 +1261,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppSubmissionsRoute: AppSubmissionsRoute,
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminAuditLogsRoute: AppAdminAuditLogsRoute,
+  AppAdminBoardMembersRoute: AppAdminBoardMembersRoute,
+  AppAdminPayrollRoute: AppAdminPayrollRoute,
   AppAdminRolesRoute: AppAdminRolesRoute,
+  AppAdminSettingsRoute: AppAdminSettingsRoute,
+  AppAdminStorageRoute: AppAdminStorageRoute,
+  AppAdminTaskRatesRoute: AppAdminTaskRatesRoute,
+  AppAdminUserManagementRoute: AppAdminUserManagementRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppEditorFinalReviewsRoute: AppEditorFinalReviewsRoute,
   AppEditorSeriesReviewRoute: AppEditorSeriesReviewRoute,
