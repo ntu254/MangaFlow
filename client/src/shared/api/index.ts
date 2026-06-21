@@ -10,3 +10,4 @@ export * from "./chapters";
 export * from "./files";
 export * from "./pages";
 export * from "./regions";
+export * from "./rankings";

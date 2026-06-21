@@ -131,4 +131,3 @@ export function useEditorRequestTaskSubmissionRevision(taskId: string) {
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
 }
-

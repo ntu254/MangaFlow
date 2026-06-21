@@ -1,4 +1,10 @@
-export type RegionStatus = "active" | "locked" | "deleted" | "ai-suggested" | "rejected" | "linked-to-task";
+export type RegionStatus =
+  | "active"
+  | "locked"
+  | "deleted"
+  | "ai-suggested"
+  | "rejected"
+  | "linked-to-task";
 
 export type RegionType = "panel" | "bubble" | "sfx" | "background";
 

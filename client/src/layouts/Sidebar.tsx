@@ -22,6 +22,10 @@ import {
   BookOpenCheck,
   Plus,
   Bell,
+  BarChart3,
+  ClipboardCheck,
+  History,
+  ShieldAlert,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -121,6 +125,33 @@ const ADMIN_NAV: NavItem[] = [
   },
 ];
 
+const BOARD_NAV: NavItem[] = [
+  { to: "/app/dashboard", label: "Decision Portal", icon: LayoutDashboard, roles: ["board"] },
+  {
+    to: "/app/board/series-review",
+    label: "Review Workspace",
+    icon: ClipboardCheck,
+    roles: ["board"],
+  },
+  { to: "/app/board/voting-sessions", label: "Voting Panel", icon: Vote, roles: ["board"] },
+  {
+    to: "/app/board/publishing-schedule",
+    label: "Publishing Schedule",
+    icon: CalendarClock,
+    roles: ["board"],
+  },
+  { to: "/app/board/reader-votes", label: "Reader Vote Data", icon: Inbox, roles: ["board"] },
+  { to: "/app/rankings", label: "Ranking Analytics", icon: BarChart3, roles: ["board"] },
+  {
+    to: "/app/board/cancellation-review",
+    label: "Cancellation Cases",
+    icon: ShieldAlert,
+    roles: ["board"],
+  },
+  { to: "/app/board/decision-history", label: "Decision History", icon: History, roles: ["board"] },
+  { to: "/app/settings", label: "Settings", icon: Settings, roles: ["board"] },
+];
+
 // Dedicated worker-view menu
 const ASSISTANT_NAV: NavItem[] = [
   {
@@ -148,11 +179,18 @@ export function Sidebar() {
   const { collapsed, setCollapsed } = useSidebar();
 
   const isAssistant = role === "assistant";
-  const visible = isAssistant ? ASSISTANT_NAV : NAV.filter((n) => n.roles.includes(role));
-  const prod = isAssistant ? [] : PROD_NAV.filter((n) => n.roles.includes(role));
+  const visible = isAssistant
+    ? ASSISTANT_NAV
+    : role === "board"
+      ? BOARD_NAV
+      : NAV.filter((n) => n.roles.includes(role));
+  const prod =
+    isAssistant || role === "board" ? [] : PROD_NAV.filter((n) => n.roles.includes(role));
   const admin = isAssistant
     ? ADMIN_NAV.filter((n) => n.to === "/app/settings")
-    : ADMIN_NAV.filter((n) => n.roles.includes(role));
+    : role === "board"
+      ? []
+      : ADMIN_NAV.filter((n) => n.roles.includes(role));
 
   return (
     <aside
@@ -279,7 +317,9 @@ function Section({
   collapsed?: boolean;
 }) {
   if (collapsed) {
-    return <div suppressHydrationWarning className={`my-2 mx-auto h-px w-6 bg-border ${className}`} />;
+    return (
+      <div suppressHydrationWarning className={`my-2 mx-auto h-px w-6 bg-border ${className}`} />
+    );
   }
   return (
     <div

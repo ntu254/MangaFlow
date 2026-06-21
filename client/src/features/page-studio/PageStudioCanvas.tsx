@@ -563,7 +563,7 @@ export function PageStudioCanvas({
             }
             onClose={() => onSelectRegion(null)}
           />
-      )}
+        )}
 
       {/* Hover tooltip for tasks */}
       {(() => {

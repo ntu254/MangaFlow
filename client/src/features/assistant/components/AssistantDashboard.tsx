@@ -166,7 +166,13 @@ export function AssistantDashboard() {
   );
 }
 
-function taskRenderKey(task: { id?: string; chapterId: string; pageId?: string; title?: string; type: string }) {
+function taskRenderKey(task: {
+  id?: string;
+  chapterId: string;
+  pageId?: string;
+  title?: string;
+  type: string;
+}) {
   return task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}`;
 }
 

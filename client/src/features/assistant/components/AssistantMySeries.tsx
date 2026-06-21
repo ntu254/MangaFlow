@@ -2,10 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, Clock, Inbox, Loader2, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/layouts/AppShell";
 import type { Series, SeriesMember } from "@/shared/api/series";
-import {
-  useAcceptSeriesMemberInvite,
-  useMySeriesMemberships,
-} from "@/shared/queries/useSeries";
+import { useAcceptSeriesMemberInvite, useMySeriesMemberships } from "@/shared/queries/useSeries";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 
 function idOf(value: unknown): string {

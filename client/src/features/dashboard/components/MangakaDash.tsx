@@ -9,7 +9,7 @@ import { MangakaRightPanel } from "./mangaka/MangakaRightPanel";
 import { useDashboard } from "@/shared/queries/useDashboard";
 
 export function MangakaDash() {
-  const { role } = useRole();
+  const { role, user } = useRole();
   const me = currentUserByRole[role];
   const { data: dashboardData } = useDashboard("mangaka");
 
@@ -18,12 +18,12 @@ export function MangakaDash() {
       {/* Main Content Area */}
       <div className="flex-1 min-w-0">
         <MangakaHeader />
-        <MySeriesCarousel mangakaId={me.id} />
+        <MySeriesCarousel mangakaId={user?.id || me.id} />
         <ProductionOverview data={dashboardData} />
 
         <div className="flex flex-col xl:flex-row gap-6">
-          <ReviewQueueList />
-          <RecentChaptersList />
+          <ReviewQueueList data={dashboardData} />
+          <RecentChaptersList data={dashboardData} />
         </div>
       </div>
 

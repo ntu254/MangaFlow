@@ -77,12 +77,16 @@ type RawTask = {
   chapterId?: unknown;
   pageId?: unknown;
   regionId?: unknown;
-  taskTypeId?: string | { _id?: string; id?: string; name?: string; code?: string; baseRate?: number };
+  taskTypeId?:
+    | string
+    | { _id?: string; id?: string; name?: string; code?: string; baseRate?: number };
   title?: string;
   description?: string;
   status?: string;
   priority?: string;
-  assignedTo?: string | { _id?: string; id?: string; name?: string; displayName?: string; email?: string };
+  assignedTo?:
+    | string
+    | { _id?: string; id?: string; name?: string; displayName?: string; email?: string };
   assignedBy?: string | { _id?: string; id?: string };
   baseRate?: number;
   dueDate?: string;
@@ -213,7 +217,8 @@ function normalizeTaskPriority(priority?: string): Task["priority"] {
 
 function normalizeTaskType(task: RawTask): Task["type"] {
   const taskType = typeof task.taskTypeId === "string" ? undefined : task.taskTypeId;
-  const source = `${taskType?.name ?? ""} ${taskType?.code ?? ""} ${task.title ?? ""}`.toLowerCase();
+  const source =
+    `${taskType?.name ?? ""} ${taskType?.code ?? ""} ${task.title ?? ""}`.toLowerCase();
   if (source.includes("tone")) return "Tone";
   if (source.includes("background")) return "Background";
   if (source.includes("letter")) return "Lettering";
@@ -244,7 +249,10 @@ function normalizeTask(task: RawTask): Task {
     assigneeName:
       typeof assignedTo === "string"
         ? "Assigned assistant"
-        : (assignedTo?.displayName ?? assignedTo?.name ?? assignedTo?.email ?? "Assigned assistant"),
+        : (assignedTo?.displayName ??
+          assignedTo?.name ??
+          assignedTo?.email ??
+          "Assigned assistant"),
     pageRange: pageId ? `Page ${pageId}` : "Full Chapter",
     deadline: formatTaskDeadline(task.dueDate),
     payout: task.baseRate ?? taskType?.baseRate ?? 0,
@@ -266,7 +274,9 @@ function aiSuggestionRegions(result: RawAIResult): Region[] {
   const aiResultId = normalizeId(result.id ?? result._id);
   const pageId = normalizeId(result.pageId);
   return (result.suggestions ?? [])
-    .filter((suggestion) => suggestion.decision?.toUpperCase() === "PENDING" && !suggestion.regionId)
+    .filter(
+      (suggestion) => suggestion.decision?.toUpperCase() === "PENDING" && !suggestion.regionId,
+    )
     .map((suggestion) => ({
       id: `${aiResultId}:suggestion:${suggestion.suggestionIndex}`,
       pageId,

@@ -47,5 +47,7 @@ export const filesApi = {
     api.get(`/files/${fileAssetId}/presigned-download`).then(unwrap<PresignedDownload>),
 
   getFileContentBlob: async (fileAssetId: string) =>
-    api.get<Blob>(`/files/${fileAssetId}/content`, { responseType: "blob" }).then((res) => res.data),
+    api
+      .get<Blob>(`/files/${fileAssetId}/content`, { responseType: "blob" })
+      .then((res) => res.data),
 };

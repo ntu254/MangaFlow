@@ -20,14 +20,22 @@ function TaskRatesPage() {
   const updateRate = useUpdateTaskRate();
   const updateStatus = useUpdateTaskRateStatus();
   const [editing, setEditing] = useState<AdminTaskRate | null>(null);
-  const [draft, setDraft] = useState({ name: "", code: "", baseRate: "1000", description: "" });
+  const [draft, setDraft] = useState({
+    name: "",
+    code: "",
+    baseRate: "1000",
+    currency: "VND" as AdminTaskRate["currency"],
+    description: "",
+  });
 
   const totals = useMemo(
     () => ({
       active: rates.filter((rate) => rate.isActive).length,
       disabled: rates.filter((rate) => !rate.isActive).length,
       average: rates.length
-        ? Math.round(rates.reduce((sum, rate) => sum + Number(rate.baseRate || 0), 0) / rates.length)
+        ? Math.round(
+            rates.reduce((sum, rate) => sum + Number(rate.baseRate || 0), 0) / rates.length,
+          )
         : 0,
     }),
     [rates],
@@ -41,9 +49,10 @@ function TaskRatesPage() {
             name: rate.name,
             code: rate.code,
             baseRate: String(rate.baseRate),
+            currency: rate.currency ?? "VND",
             description: rate.description ?? "",
           }
-        : { name: "", code: "", baseRate: "1000", description: "" },
+        : { name: "", code: "", baseRate: "1000", currency: "VND", description: "" },
     );
   }
 
@@ -54,7 +63,7 @@ function TaskRatesPage() {
       code: draft.code.trim().toUpperCase(),
       baseRate: Number(draft.baseRate),
       description: draft.description.trim() || undefined,
-      currency: "JPY",
+      currency: draft.currency,
       allowPageTask: true,
       allowRegionTask: true,
       requiresFileSubmission: true,
@@ -78,12 +87,12 @@ function TaskRatesPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Active rates" value={String(totals.active)} />
         <StatCard label="Disabled rates" value={String(totals.disabled)} />
-        <StatCard label="Average base rate" value={formatMoney(totals.average)} hint="JPY" />
+        <StatCard label="Average base rate" value={formatRate(totals.average, "VND")} hint="VND" />
       </div>
 
       <form
         onSubmit={submit}
-        className="grid gap-3 rounded-md border border-foreground/10 bg-card p-4 lg:grid-cols-[1fr_0.7fr_0.5fr_1.5fr_auto]"
+        className="grid gap-3 rounded-md border border-foreground/10 bg-card p-4 lg:grid-cols-[1fr_0.7fr_0.5fr_0.5fr_1.5fr_auto]"
       >
         <Field label="Name">
           <input
@@ -113,12 +122,26 @@ function TaskRatesPage() {
             className="input"
           />
         </Field>
+        <Field label="Currency">
+          <select
+            required
+            value={draft.currency}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                currency: event.target.value as AdminTaskRate["currency"],
+              }))
+            }
+            className="input"
+          >
+            <option value="VND">VND</option>
+            <option value="POINT">POINT</option>
+          </select>
+        </Field>
         <Field label="Description">
           <input
             value={draft.description}
-            onChange={(event) =>
-              setDraft((prev) => ({ ...prev, description: event.target.value }))
-            }
+            onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
             className="input"
             placeholder="Optional rate note"
           />
@@ -145,10 +168,11 @@ function TaskRatesPage() {
       </form>
 
       <div className="overflow-hidden rounded-md border border-foreground/10 bg-card">
-        <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.5fr_auto] gap-3 border-b border-foreground/10 bg-foreground/5 px-4 py-2.5 text-[11px] uppercase tracking-wider text-foreground/55">
+        <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.6fr_0.8fr_1.5fr_auto] gap-3 border-b border-foreground/10 bg-foreground/5 px-4 py-2.5 text-[11px] uppercase tracking-wider text-foreground/55">
           <span>Name</span>
           <span>Code</span>
           <span>Rate</span>
+          <span>Currency</span>
           <span>Status</span>
           <span>Description</span>
           <span />
@@ -168,11 +192,12 @@ function TaskRatesPage() {
           rates.map((rate) => (
             <div
               key={rate.id}
-              className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.5fr_auto] items-center gap-3 border-b border-foreground/5 px-4 py-3 text-[13px] last:border-b-0"
+              className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.6fr_0.8fr_1.5fr_auto] items-center gap-3 border-b border-foreground/5 px-4 py-3 text-[13px] last:border-b-0"
             >
               <span className="font-medium">{rate.name}</span>
               <span className="font-mono text-xs text-foreground/70">{rate.code}</span>
-              <span className="tabular-nums">{formatMoney(rate.baseRate)}</span>
+              <span className="tabular-nums">{formatRate(rate.baseRate, rate.currency)}</span>
+              <span className="font-mono text-xs text-foreground/60">{rate.currency ?? "VND"}</span>
               <span className={rate.isActive ? "text-emerald-500" : "text-foreground/40"}>
                 {rate.isActive ? "Active" : "Disabled"}
               </span>
@@ -228,10 +253,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("ja-JP", {
+function formatRate(value: number, currency: AdminTaskRate["currency"] = "VND") {
+  if (currency === "POINT") return `${new Intl.NumberFormat("en-US").format(value || 0)} pts`;
+  return new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "JPY",
+    currency: "VND",
     maximumFractionDigits: 0,
   }).format(value || 0);
 }

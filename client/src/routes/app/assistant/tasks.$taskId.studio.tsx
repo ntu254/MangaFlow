@@ -17,7 +17,9 @@ function RouteComponent() {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background text-foreground/50">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        <span className="text-sm font-semibold uppercase tracking-wide">Loading Task Studio...</span>
+        <span className="text-sm font-semibold uppercase tracking-wide">
+          Loading Task Studio...
+        </span>
       </div>
     );
   }

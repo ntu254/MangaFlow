@@ -72,10 +72,13 @@ export const tasksApi = {
 
 export const taskTypesApi = {
   listActive: () =>
-    api.get(`/task-types/active`).then(unwrap<TaskType[]>).then((taskTypes) =>
-      taskTypes.map((taskType) => ({
-        ...taskType,
-        id: taskType.id ?? taskType._id ?? "",
-      })),
-    ),
+    api
+      .get(`/task-types/active`)
+      .then(unwrap<TaskType[]>)
+      .then((taskTypes) =>
+        taskTypes.map((taskType) => ({
+          ...taskType,
+          id: taskType.id ?? taskType._id ?? "",
+        })),
+      ),
 };

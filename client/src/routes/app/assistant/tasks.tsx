@@ -8,8 +8,7 @@ export const Route = createFileRoute("/app/assistant/tasks")({
 function AssistantTasksRoute() {
   const location = useLocation();
   const isTaskStudioRoute =
-    location.pathname.startsWith("/app/assistant/tasks/") &&
-    location.pathname.endsWith("/studio");
+    location.pathname.startsWith("/app/assistant/tasks/") && location.pathname.endsWith("/studio");
 
   return isTaskStudioRoute ? <Outlet /> : <AssistantTasksList />;
 }

@@ -239,7 +239,9 @@ function KanbanView({ tasks }: { tasks: Task[] }) {
                     <span className="text-[11px]">No tasks</span>
                   </div>
                 ) : (
-                  items.map((t, index) => <AssistantTaskCard key={taskRenderKey(t, index)} task={t} />)
+                  items.map((t, index) => (
+                    <AssistantTaskCard key={taskRenderKey(t, index)} task={t} />
+                  ))
                 )}
               </div>
             </section>
@@ -261,5 +263,7 @@ function ListView({ tasks }: { tasks: Task[] }) {
 }
 
 function taskRenderKey(task: Task, index = 0) {
-  return task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}-${index}`;
+  return (
+    task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}-${index}`
+  );
 }

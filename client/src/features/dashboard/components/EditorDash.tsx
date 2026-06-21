@@ -94,7 +94,9 @@ export function EditorDash() {
         >
           {finalReviewCount === 0 ? (
             <Row
-              left={<span className="text-foreground/45">No submissions awaiting final review.</span>}
+              left={
+                <span className="text-foreground/45">No submissions awaiting final review.</span>
+              }
               right={null}
             />
           ) : (

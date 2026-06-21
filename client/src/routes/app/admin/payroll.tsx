@@ -12,7 +12,11 @@ export const Route = createFileRoute("/app/admin/payroll")({
 
 function AdminPayrollPage() {
   const qc = useQueryClient();
-  const { data: earnings = [], isLoading, error } = useQuery({
+  const {
+    data: earnings = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["admin", "payroll"],
     queryFn: payrollApi.listEarnings,
   });
