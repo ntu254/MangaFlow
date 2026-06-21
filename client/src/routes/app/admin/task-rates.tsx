@@ -68,7 +68,7 @@ function TaskRatesPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="admin-console admin-page space-y-5">
       <PageHeader
         title="Task Rates"
         jp="Rate cards"

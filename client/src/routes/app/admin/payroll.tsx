@@ -38,7 +38,7 @@ function AdminPayrollPage() {
   const confirmed = earnings.filter((earning) => normalizeStatus(earning.status) === "confirmed");
 
   return (
-    <div className="space-y-5">
+    <div className="admin-console admin-page space-y-5">
       <PageHeader
         title="Payroll"
         jp="Monthly payout"

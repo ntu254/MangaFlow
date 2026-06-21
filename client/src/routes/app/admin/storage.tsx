@@ -19,7 +19,7 @@ function StoragePage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="admin-console admin-page space-y-5">
       <PageHeader
         title="Storage"
         jp="Files"
