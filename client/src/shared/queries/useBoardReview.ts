@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   boardApi,
+  type AtRiskDecisionInput,
   type CastBoardVoteInput,
   type FinalizeBoardDecisionInput,
   type TieBreakBoardDecisionInput,
@@ -51,6 +52,19 @@ export function useTieBreakBoardDecision(seriesId: string) {
       qc.invalidateQueries({ queryKey: ["series"] });
       qc.invalidateQueries({ queryKey: ["series", seriesId] });
       toast.success("Board tie-break finalized");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useCreateAtRiskDecision(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AtRiskDecisionInput) => boardApi.createAtRiskDecision(seriesId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["series"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("At-risk decision recorded");
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
   });

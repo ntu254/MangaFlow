@@ -100,3 +100,81 @@ Trace status:
 
 - Analysis only; no Board UI behavior changed in this pass.
 - This file records current coverage and gaps for implementation planning.
+
+## 2026-06-22 - Board UI implementation pass
+
+Implementation summary:
+
+- Applied the project-local `design-taste-frontend` and `redesign-existing-projects` skills for an internal SaaS dashboard pass.
+- Updated Board sidebar IA to match the requested Board flow:
+  - Dashboard
+  - Series Approval
+  - Voting Sessions
+  - Publishing Schedule
+  - Reader Vote Data
+  - Ranking Board
+  - Cancellation Review
+  - Decision History
+  - Settings
+- Rebuilt Board Dashboard as an operational control room for pending approvals, open voting sessions, ranking alerts, and at-risk review work.
+- Reworked Series Approval to focus on submitted series, proposal review status, quorum, vote summaries, and handoff into voting sessions.
+- Added Board Voting Sessions screen for active voting, vote submission navigation, results, and Board Chair finalization visibility.
+- Added Board Publishing Schedule screen for approved series and weekly/monthly/special schedule intent.
+- Added Reader Vote Data screen for selecting a series, entering reader vote data, validating input, saving, and updating ranking data through the ranking import API when a real backend series id is available.
+- Reworked Ranking Board to use ranking API data first, with period filtering, series comparison, risk identification, and finalize action.
+- Added Cancellation Review screen for low-ranking/at-risk series with continue, hold, cancel, and finalize decisions.
+- Added Decision History screen with filterable Board decision examples while waiting for a dedicated Board-readable decision history endpoint.
+
+API and product notes:
+
+- Ranking Board and Reader Vote Data now use the new ranking API client/query layer.
+- Cancellation Review now uses the Board at-risk decision endpoint.
+- Publishing Schedule remains partially local because current publication scheduling endpoints are Editor-owned and current Board publication type support only covers weekly/monthly.
+- Requested `special release` still needs backend enum/API support before it can be persisted.
+- Decision History still needs either Board-readable audit logs or a dedicated Board decisions API to become fully live.
+- Board Chair finalization is exposed in the flow, while backend permission remains the source of truth.
+
+Verification:
+
+- Prettier was run on touched frontend files.
+- Frontend build was run after route generation and completed successfully.
+
+## 2026-06-22 - Board Decision Portal UI pass
+
+Design read:
+
+- Board is now treated as a Decision Portal instead of a set of separate Board tables.
+- The UI language stays aligned with the existing app theme tokens for background, card, border, text, muted text, and primary accent.
+- The redesign uses project-local `design-taste-frontend` and `redesign-existing-projects` guidance, but applies only the dashboard/product-UI relevant parts because this is not a marketing page.
+
+Implemented UI structure:
+
+- Sidebar navigation now names the Board role around the portal mental model:
+  - Decision Portal
+  - Review Workspace
+  - Voting Panel
+  - Publishing Schedule
+  - Reader Vote Data
+  - Ranking Analytics
+  - Cancellation Cases
+  - Decision History
+- Added shared Board Decision Portal primitives:
+  - Portal shell
+  - Top portal navigation
+  - Decision timeline
+  - Portal cards
+  - Metrics
+  - Action tiles
+  - Pills, notices, and loading rows
+- Dashboard tổng quan now presents the Board as a unified control room.
+- Review workspace now uses the same portal shell and clearly connects submitted proposals to the vote panel.
+- Voting panel for a series now has evidence, quorum metrics, vote form, Chair finalization, vote ledger, and audit timeline in one case layout.
+- Ranking analytics now sits inside the Decision Portal shell and keeps period filtering, comparison, risk identification, and finalize actions.
+- Cancellation review now behaves like a case page with a case queue and decision panel.
+- Decision history now uses the portal shell and decision ledger styling.
+- Publishing schedule and Reader Vote Data now share the portal shell so supporting Board screens do not visually drift.
+
+Verification:
+
+- Prettier was run on all touched Board UI files.
+- `npm run build` was run inside `client` and completed successfully for client and SSR builds.
