@@ -15,11 +15,12 @@ import {
   Plus,
   Trash2,
   Loader2,
+  Eraser,
 } from "lucide-react";
 import type { Region, AIResult } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { staff, findStaff } from "@/entities";
-import { useRunAISegmentation } from "@/shared/queries/usePageStudio";
+import { useRunAISegmentation, useRunAITextWhitening } from "@/shared/queries/usePageStudio";
 import { useDeleteRegion } from "@/shared/queries/useRegions";
 
 interface Props {
@@ -51,16 +52,19 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
 
   // useDeleteRegion hook
   const { mutate: deleteRegion, isPending: isDeleting } = useDeleteRegion(pageId);
-  const { mutate: runAI, isPending: isRunningAI } = useRunAISegmentation(pageId);
+  const { mutate: detectBubbles, isPending: isDetectingBubbles } = useRunAISegmentation(pageId);
+  const { mutate: whitenText, isPending: isWhiteningText } = useRunAITextWhitening(pageId);
 
   const handleDeleteRegion = () => {
     if (!selectedRegion) return;
+    if (selectedRegion.status === "ai-suggested") return;
     deleteRegion(selectedRegion.id, {
       onSuccess: () => setSelectedRegionId(null),
     });
   };
 
   const hasActiveTask = selectedRegion ? !!regionTasks[selectedRegion.id] : false;
+  const isAISuggestion = selectedRegion?.status === "ai-suggested";
 
   // Mock comments state
   const [comments, setComments] = useState([
@@ -155,12 +159,17 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
                     <div className="flex justify-end pt-1 border-t border-border mt-3 group relative">
                       <button
                         onClick={handleDeleteRegion}
-                        disabled={isDeleting || hasActiveTask}
+                        disabled={isDeleting || hasActiveTask || isAISuggestion}
                         className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         {isDeleting ? "Deleting..." : "Delete Region"}
                       </button>
+                      {isAISuggestion && (
+                        <div className="absolute bottom-full right-0 mb-1 hidden w-52 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
+                          AI suggestions are preview overlays until accepted.
+                        </div>
+                      )}
                       {hasActiveTask && (
                         <div className="absolute bottom-full right-0 mb-1 hidden w-48 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
                           This region has active tasks. Cancel or finish those tasks before
@@ -318,22 +327,63 @@ export function InspectorDrawer({ regions, results = [], pageId }: Props) {
           {/* ── TAB: AI ── */}
           {activeTab === "ai" && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
-              <button
-                onClick={() => runAI()}
-                disabled={isRunningAI}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-900/20 transition-all ${
-                  isRunningAI
-                    ? "opacity-70 cursor-not-allowed"
-                    : "hover:shadow-sky-900/40 hover:-translate-y-[1px]"
-                }`}
-              >
-                {isRunningAI ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                {isRunningAI ? "Running AI..." : "Run AI Segmentation"}
-              </button>
+              <div className="space-y-3">
+                <section className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-sky-300">
+                        Detect bubbles
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-foreground/45">
+                        Find speech bubbles and show AI suggestion boxes on the canvas.
+                      </p>
+                      <button
+                        onClick={() => detectBubbles()}
+                        disabled={isDetectingBubbles || isWhiteningText}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-[11px] font-bold text-white transition-all hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isDetectingBubbles ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        {isDetectingBubbles ? "Detecting..." : "Detect bubbles"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+                      <Eraser className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">
+                        Whiten text
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-foreground/45">
+                        Remove bubble text by generating a whitened working image.
+                      </p>
+                      <button
+                        onClick={() => whitenText()}
+                        disabled={isWhiteningText || isDetectingBubbles}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isWhiteningText ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Eraser className="h-3.5 w-3.5" />
+                        )}
+                        {isWhiteningText ? "Whitening..." : "Whiten text"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </div>
 
               <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/30 mb-1 pt-2">
                 Segmentation Runs ({results.length})

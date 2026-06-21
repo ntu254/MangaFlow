@@ -12,14 +12,14 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
   if (isStudioPage) {
     return (
-      <div className="flex min-h-screen w-full bg-[#141414] text-foreground">
+      <div suppressHydrationWarning className="flex min-h-screen w-full bg-[#141414] text-foreground">
         <main className="flex-1 flex flex-col min-w-0">{children}</main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background text-foreground">
+    <div suppressHydrationWarning className="flex min-h-screen w-full bg-background text-foreground">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />

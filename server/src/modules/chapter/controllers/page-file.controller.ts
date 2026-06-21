@@ -7,10 +7,13 @@ import {
 } from "../chapter.service.js"
 
 export async function getPresignedUploadUrl(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const actor = { userId: req.user!.userId, role: req.user!.role }
   const result = await getPresignedUploadUrlService({
     originalName: req.body.originalName,
     contentType: req.body.contentType,
     expiresIn: req.body.expiresIn,
+    chapterId: req.body.chapterId,
+    actor,
   })
   res.json({ success: true, message: "Presigned upload URL generated", data: result })
 }

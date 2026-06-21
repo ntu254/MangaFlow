@@ -77,6 +77,19 @@ router.post(
 )
 
 /**
+ * POST /api/files/pages/:pageId/ai/whiten-text
+ * Runs AI text cleanup/whitening and stores the result as the page working image.
+ */
+router.post(
+  "/pages/:pageId/ai/whiten-text",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR"),
+  aiLimiter,
+  validate(pageIdParamsSchema, "params"),
+  asyncHandler(fileController.runAITextWhitening),
+)
+
+/**
  * GET /api/files/pages/:pageId/ai-results
  * Spec: GET /api/pages/:pageId/ai-results
  */

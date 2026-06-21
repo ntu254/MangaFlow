@@ -1,7 +1,8 @@
 import { AppError } from "../../../shared/errors/AppError.js"
 import { confirmPageUploadRepository, getFileAssetById, getPageWithFileAsset, markPageProcessingFailed } from "../chapter.repository.js"
 import { createPresignedDownloadUrl, createPresignedUploadUrl, validateFileSize, validateFileType } from "../file.service.js"
-import { assertCanReadFileAsset, assertCanReadPage, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import { assertCanReadFileAsset, assertCanReadPage, assertCanWriteChapter, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import { Chapter } from "../chapter.model.js"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
@@ -9,6 +10,8 @@ export interface GetPresignedUploadUrlInput {
   originalName: string
   contentType: string
   expiresIn?: number
+  chapterId?: string
+  actor: AccessActor
 }
 
 export async function getPresignedUploadUrlService(input: GetPresignedUploadUrlInput) {
@@ -17,7 +20,23 @@ export async function getPresignedUploadUrlService(input: GetPresignedUploadUrlI
   if (!validateFileType(input.contentType, ALLOWED_TYPES)) {
     throw new AppError("File type not allowed. Use JPEG, PNG, WebP, or PDF", 400)
   }
-  return createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
+
+  const chapterId = input.chapterId?.trim()
+  if (!chapterId) {
+    return createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
+  }
+
+  await assertCanWriteChapter(input.actor, chapterId)
+  const chapter = await Chapter.findById(chapterId)
+  if (!chapter) throw new AppError("Chapter not found", 404)
+
+  return createPresignedUploadUrl(
+    input.originalName,
+    input.contentType,
+    input.expiresIn,
+    undefined,
+    { seriesId: String(chapter.seriesId), chapterId },
+  )
 }
 
 export interface UploadAssetInput {
