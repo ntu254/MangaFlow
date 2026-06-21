@@ -1,9 +1,33 @@
-import { Chapter, Page, Region, AIResult } from "../chapter.model.js"
-import { FileAsset } from "../chapter.model.js"
+import { AIResult, Chapter, FileAsset, Page, Region } from "../chapter.model.js"
 import { AppError } from "../../../shared/errors/AppError.js"
 import { createPageRepository, getPagesByChapter } from "../chapter.repository.js"
 import { assertCanReadChapter, assertCanWriteChapter, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
 import { Task } from "../../task/task.model.js"
+import { Submission } from "../../submission/submission.model.js"
+
+const ACTIVE_TASK_STATUSES = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
+
+async function assertPageCanBeChanged(chapterId: string, pageId: string) {
+  const page = await Page.findOne({ _id: pageId, chapterId, deletedAt: { $exists: false } })
+  if (!page) throw new AppError("Page not found", 404)
+
+  const [chapter, activeTask, submission, approvedTask] = await Promise.all([
+    Chapter.findById(chapterId),
+    Task.findOne({ pageId, status: { $in: ACTIVE_TASK_STATUSES } }),
+    Submission.exists({ pageId }),
+    Task.exists({ pageId, status: "EDITOR_APPROVED" }),
+  ])
+  if (chapter?.status === "PUBLISHED") {
+    throw new AppError("Published chapter pages cannot be changed", 409)
+  }
+  if (activeTask) {
+    throw new AppError("This page has active tasks. Cancel or finish tasks first.", 409)
+  }
+  if (submission || approvedTask) {
+    throw new AppError("Pages with submissions or approved work cannot be changed", 409)
+  }
+  return page
+}
 
 export async function createPageService(chapterId: string, pageNumber: number, actor: AccessActor) {
   const trimmed = chapterId.trim()
@@ -82,15 +106,9 @@ export async function deletePageService(chapterId: string, pageId: string, actor
 
   const [chapter, page] = await Promise.all([
     Chapter.findById(trimmedChapterId).select("status").lean(),
-    Page.findOne({ _id: trimmedPageId, chapterId: trimmedChapterId, deletedAt: { $exists: false } }),
+    assertPageCanBeChanged(trimmedChapterId, trimmedPageId),
   ])
   if (!chapter) throw new AppError("Chapter not found", 404)
-  if (!page) throw new AppError("Page not found", 404)
-
-  const tasksCount = await Task.countDocuments({ pageId: trimmedPageId })
-  if (tasksCount > 0) {
-    throw new AppError("Cannot delete page with tasks. Reassign or cancel tasks first.", 400)
-  }
 
   const assetIds = [
     page.originalFileAssetId,
@@ -128,13 +146,7 @@ export async function replacePageAssetService(chapterId: string, pageId: string,
   
   await assertCanWriteChapter(actor, trimmedChapterId)
 
-  const tasksCount = await Task.countDocuments({ pageId: trimmedPageId })
-  if (tasksCount > 0) {
-    throw new AppError("Cannot replace page asset with active tasks. Reassign or cancel tasks first.", 400)
-  }
-
-  const page = await Page.findOne({ _id: trimmedPageId, chapterId: trimmedChapterId })
-  if (!page) throw new AppError("Page not found", 404)
+  const page = await assertPageCanBeChanged(trimmedChapterId, trimmedPageId)
 
   const oldAssetId = page.originalFileAssetId
 

@@ -20,6 +20,12 @@ import {
 } from "./board.repository.js"
 
 const RESULT_TO_SERIES = {
+  APPROVE: "ONGOING",
+  REJECT: "REJECTED",
+  NEEDS_REVISION: "REVISION_REQUESTED",
+} as const
+
+const RESULT_TO_MANUSCRIPT = {
   APPROVE: "APPROVED",
   REJECT: "REJECTED",
   NEEDS_REVISION: "REVISION_REQUESTED",
@@ -127,7 +133,7 @@ export async function listBoardQueueService() {
         seriesStatus: series.status,
         requestedPublicationType: series.requestedPublicationType,
         publicationType: series.publicationType,
-        decisionStatus: decision?.status ?? (series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "APPROVED" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : "NEEDS_REVISION"),
+        decisionStatus: decision?.status ?? (series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "ONGOING" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : "NEEDS_REVISION"),
         voteSummary: summarize(votes),
         voteCount: votes.length,
         eligibleBoardCount,
@@ -178,8 +184,14 @@ async function applyBoardResult(seriesId: string, reviewSessionId: string, resul
   }
 
   const seriesStatus = RESULT_TO_SERIES[result]
-  const updatedSeries = await updateSeriesAfterDecision(seriesId, seriesStatus, session, result === "APPROVE" ? publicationType : undefined)
-  await updateLatestManuscriptAfterDecision(seriesId, seriesStatus, session)
+  const updatedSeries = await updateSeriesAfterDecision(
+    seriesId,
+    seriesStatus,
+    session,
+    result === "APPROVE" ? publicationType : undefined,
+    result === "APPROVE" ? decidedBy : undefined,
+  )
+  await updateLatestManuscriptAfterDecision(seriesId, RESULT_TO_MANUSCRIPT[result], session)
   await closeBoardReviewSession(reviewSessionId, session)
   const decision = await updateDecision(seriesId, RESULT_TO_DECISION[result], result, decidedBy, session, result === "APPROVE" ? publicationType : undefined, input.note?.trim() || undefined)
   const event = result === "APPROVE" ? "BOARD_APPROVED_SERIES" : result === "REJECT" ? "BOARD_REJECTED_SERIES" : "BOARD_REQUESTED_REVISION"
@@ -274,8 +286,8 @@ export async function tieBreakBoardDecisionService(seriesId: string, userId: str
 const AT_RISK_TO_SERIES = {
   CONTINUE: "ONGOING",
   WARNING: "AT_RISK",
-  REQUEST_IMPROVEMENT_PLAN: "AT_RISK",
   CANCEL: "CANCELLED",
+  COMPLETE: "COMPLETED",
 } as const
 
 export async function createAtRiskDecisionService(seriesId: string, userId: string, decision: AtRiskDecision, note?: string) {

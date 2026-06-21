@@ -42,6 +42,9 @@ export async function createPublicationService(input: { chapterId: string; sched
     throw new AppError("Chapter not found", 404)
   }
   await assertEditorForSeries(String(chapter.seriesId), input.actor)
+  if (chapter.status !== "READY_FOR_PUBLICATION") {
+    throw new AppError("Publication can be created only after the chapter is READY_FOR_PUBLICATION", 409)
+  }
 
   const scheduledFor = input.scheduledFor ? parseScheduleDate(input.scheduledFor) : undefined
   if (scheduledFor) {
@@ -84,8 +87,10 @@ export async function publishPublicationService(publicationId: string, actor: Pu
     const failed = readiness.items.filter((item) => !item.passed).map((item) => item.key).join(", ")
     throw new AppError(`Chapter is not ready for publication: ${failed}`, 409)
   }
+  if (readiness.chapterStatus !== "READY_FOR_PUBLICATION") {
+    throw new AppError("Chapter must be READY_FOR_PUBLICATION before publishing", 409)
+  }
 
-  await updateChapterPublicationStatus(String(publication.chapterId), "READY_FOR_PUBLICATION")
   await updateChapterPublicationStatus(String(publication.chapterId), "PUBLISHED")
   return markPublicationPublished(publicationId, actor.userId, new Date())
 }

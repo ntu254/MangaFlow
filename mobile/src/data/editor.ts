@@ -34,7 +34,7 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "primary",
     coverTone: "dark",
     tags: ["Fantasy", "Dark", "Action"],
-    manuscriptStatus: "EDITOR_REVIEW",
+    manuscriptStatus: "SUBMITTED",
     seriesStatus: "EDITOR_REVIEW",
     version: "1.4",
     requestedPublicationType: "MONTHLY",
@@ -66,7 +66,7 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "danger",
     coverTone: "red",
     tags: ["Historical", "Romance", "Drama"],
-    manuscriptStatus: "EDITOR_REVIEW",
+    manuscriptStatus: "SUBMITTED",
     seriesStatus: "EDITOR_REVIEW",
     version: "3.0",
     requestedPublicationType: "WEEKLY",
@@ -82,7 +82,7 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "success",
     coverTone: "warm",
     tags: ["Slice of Life", "Romance", "Food"],
-    manuscriptStatus: "EDITOR_REVIEW",
+    manuscriptStatus: "SUBMITTED",
     seriesStatus: "EDITOR_REVIEW",
     version: "1.2",
     requestedPublicationType: "MONTHLY",
@@ -132,9 +132,9 @@ export type EditorCommentItem = CommentItem & { canonicalStatus: CommentStatus; 
 
 export const productionComments: EditorCommentItem[] = [
   { id: "eclipse-p18", title: "Eclipse of Eternity / Ch.12 / Page 18", body: "Please soften texture around the speech bubble before final approval.", owner: "Mangaka", status: "Open", canonicalStatus: "OPEN", tone: "danger", action: "Review", page: "18", coverTone: "mono", blocking: true },
-  { id: "neon-p12", title: "Neon Reverie / Ch.8 / Page 12", body: "Check letter spacing consistency in the upper-right bubble.", owner: "Editor", status: "Fixed by Assistant", canonicalStatus: "FIXED_BY_ASSISTANT", tone: "warning", action: "Reopen", page: "12", coverTone: "mono", blocking: true },
-  { id: "lotus-p05", title: "Crimson Lotus / Ch.7 / Page 05", body: "Background cleanup looks fixed. Please verify one remaining edge.", owner: "Editor", status: "Verified by Mangaka", canonicalStatus: "VERIFIED_BY_MANGAKA", tone: "success", action: "Resolve", page: "05", coverTone: "mono", blocking: false },
-  { id: "dawn-p03", title: "Dawn of Ashes / Ch.10 / Page 03", body: "Panel rhythm approved. Keep lighting direction consistent with previous page.", owner: "Editor", status: "Resolved", canonicalStatus: "RESOLVED_BY_EDITOR", tone: "neutral", action: "View", page: "03", coverTone: "mono", blocking: false },
+  { id: "neon-p12", title: "Neon Reverie / Ch.8 / Page 12", body: "Check letter spacing consistency in the upper-right bubble.", owner: "Editor", status: "Reopened", canonicalStatus: "REOPENED", tone: "warning", action: "Resolve", page: "12", coverTone: "mono", blocking: true },
+  { id: "lotus-p05", title: "Crimson Lotus / Ch.7 / Page 05", body: "Background cleanup looks fixed. Please verify one remaining edge.", owner: "Editor", status: "Open", canonicalStatus: "OPEN", tone: "danger", action: "Resolve", page: "05", coverTone: "mono", blocking: true },
+  { id: "dawn-p03", title: "Dawn of Ashes / Ch.10 / Page 03", body: "Panel rhythm approved. Keep lighting direction consistent with previous page.", owner: "Editor", status: "Resolved", canonicalStatus: "RESOLVED", tone: "neutral", action: "Reopen", page: "03", coverTone: "mono", blocking: false },
 ]
 
 export const commentActivity: ActivityItem[] = [

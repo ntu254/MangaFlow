@@ -66,7 +66,7 @@ export async function updateCommentStatus(
   actorId: string,
 ) {
   const update: Record<string, unknown> = { status, [actorField]: actorId }
-  if (status === "OPEN") {
+  if (status === "REOPENED") {
     update.fixedBy = undefined
     update.verifiedBy = undefined
     update.resolvedBy = undefined
@@ -77,7 +77,7 @@ export async function updateCommentStatus(
 export async function countBlockingUnresolvedComments(filter: { seriesId?: string; chapterId?: string; taskId?: string }) {
   const query: Record<string, unknown> = {
     isBlocking: true,
-    status: { $ne: "RESOLVED_BY_EDITOR" },
+    status: { $ne: "RESOLVED" },
   }
   if (filter.seriesId) query.seriesId = filter.seriesId
   if (filter.chapterId) query.chapterId = filter.chapterId

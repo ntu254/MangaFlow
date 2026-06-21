@@ -24,7 +24,7 @@ export async function addSeriesMemberService(input: {
   }
 
   // Series must be in a production-eligible state
-  const productionStatuses = ["APPROVED", "ONGOING", "AT_RISK"]
+  const productionStatuses = ["ONGOING", "AT_RISK"]
   if (!productionStatuses.includes(series.status)) {
     throw new AppError("Cannot add members to a series that is not in production", 409)
   }
@@ -230,7 +230,7 @@ export async function removeSeriesMemberService(input: {
   const activeTask = await Task.findOne({
     seriesId: input.seriesId,
     assignedTo: member.userId,
-    status: { $nin: ["DONE", "CANCELLED", "APPROVED", "EDITOR_APPROVED", "REJECTED"] },
+    status: { $in: ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"] },
   })
   if (activeTask) {
     throw new AppError("Cannot remove member with active tasks. Reassign or cancel tasks first.", 409)

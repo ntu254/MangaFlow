@@ -1,7 +1,6 @@
 export type Ballot = {
   id: string;
   seriesId: string;
-  chapterId?: string;
   reason: "manuscript" | "at-risk" | "new-series";
   openedAt: string;
   status: "open" | "closed";
@@ -23,10 +22,9 @@ export const ballots: Ballot[] = [
   {
     id: "b2",
     seriesId: "se_jojo",
-    chapterId: "ch_jojo",
     reason: "manuscript",
     openedAt: "Jun 17, 2026",
     status: "open",
-    votes: [{ staffId: "s_bd_kojiro", vote: "approve", note: "Strong finale." }],
+    votes: [{ staffId: "s_bd_kojiro", vote: "approve", note: "Strong proposal." }],
   },
 ];

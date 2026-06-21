@@ -8,6 +8,7 @@ import {
 } from "./task.service.js"
 import * as taskRepository from "./task.repository.js"
 import { SeriesMember } from "../series/series.model.js"
+import { Page } from "../chapter/chapter.model.js"
 
 const taskScopeGuardMock = vi.hoisted(() => ({
   validateTaskCreationScope: vi.fn(),
@@ -34,12 +35,19 @@ vi.mock("../chapter/chapter.model.js", () => ({
   Chapter: {
     findById: vi.fn(),
   },
+  Page: {
+    findByIdAndUpdate: vi.fn(),
+  },
+  Region: {
+    findByIdAndUpdate: vi.fn(),
+  },
 }))
 
 describe("createTaskService", () => {
   const mockInput = {
     seriesId: "507f1f77bcf86cd799439011",
     chapterId: "507f1f77bcf86cd799439012",
+    pageId: "507f1f77bcf86cd799439018",
     taskTypeId: "507f1f77bcf86cd799439013",
     assignedTo: "507f1f77bcf86cd799439014",
     assignedBy: "507f1f77bcf86cd799439016",
@@ -76,6 +84,7 @@ describe("createTaskService", () => {
     expect(taskRepository.createTaskRecord).toHaveBeenCalledWith({
       seriesId: mockInput.seriesId,
       chapterId: mockInput.chapterId,
+      pageId: mockInput.pageId,
       taskTypeId: mockInput.taskTypeId,
       assignedTo: mockInput.assignedTo,
       assignedBy: mockInput.assignedBy,
@@ -87,6 +96,7 @@ describe("createTaskService", () => {
       baseRate: 100,
     })
     expect(result).toMatchObject({ id: "507f1f77bcf86cd799439017", baseRate: 100, status: "TODO" })
+    expect(Page.findByIdAndUpdate).toHaveBeenCalledWith(mockInput.pageId, { status: "IN_TASK" })
   })
 
   it("snapshots the current TaskType base rate for payroll history", async () => {

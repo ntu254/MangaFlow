@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { Chapter, FileAsset, Page } from "../chapter.model.js"
-import { Series } from "../../series/series.model.js"
 import { confirmPageUploadRepository } from "./page.repository.js"
 
 vi.mock("../chapter.model.js", () => ({
   Chapter: {
     findById: vi.fn(),
+    updateOne: vi.fn(),
   },
   Page: {
     findById: vi.fn(),
@@ -19,16 +19,10 @@ vi.mock("../chapter.model.js", () => ({
   },
 }))
 
-vi.mock("../../series/series.model.js", () => ({
-  Series: {
-    updateOne: vi.fn(),
-  },
-}))
-
 describe("confirmPageUploadRepository", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(Series.updateOne).mockResolvedValue({ acknowledged: true } as any)
+    vi.mocked(Chapter.updateOne).mockResolvedValue({ acknowledged: true } as any)
   })
 
   it("confirms upload when original, working, and thumbnail reuse the same uploaded asset", async () => {
@@ -79,7 +73,7 @@ describe("confirmPageUploadRepository", () => {
     })
   })
 
-  it("moves an approved series to ongoing after the first production page upload", async () => {
+  it("moves a draft chapter to in-production after the first page upload", async () => {
     const upload = {
       fileAssetId: "asset-1",
       r2Key: "uploads/asset-1.jpg",
@@ -96,7 +90,6 @@ describe("confirmPageUploadRepository", () => {
     }
 
     vi.mocked(Page.findById).mockResolvedValue({ _id: "page-1", chapterId: "chapter-1" } as any)
-    vi.mocked(Chapter.findById).mockResolvedValue({ _id: "chapter-1", seriesId: "series-1" } as any)
     vi.mocked(FileAsset.findByIdAndUpdate).mockResolvedValue({ _id: "asset-1" } as any)
     vi.mocked(Page.findByIdAndUpdate).mockResolvedValue(page as any)
 
@@ -108,13 +101,13 @@ describe("confirmPageUploadRepository", () => {
       thumbnail: upload,
     })
 
-    expect(Series.updateOne).toHaveBeenCalledWith(
-      { _id: "series-1", status: "APPROVED" },
-      { $set: { status: "ONGOING" } },
+    expect(Chapter.updateOne).toHaveBeenCalledWith(
+      { _id: "chapter-1", status: "DRAFT" },
+      { $set: { status: "IN_PRODUCTION" } },
     )
   })
 
-  it("keeps page upload confirmed if series lifecycle sync fails", async () => {
+  it("keeps page upload confirmed if chapter lifecycle sync fails", async () => {
     const upload = {
       fileAssetId: "asset-1",
       r2Key: "uploads/asset-1.jpg",
@@ -131,10 +124,9 @@ describe("confirmPageUploadRepository", () => {
     }
 
     vi.mocked(Page.findById).mockResolvedValue({ _id: "page-1", chapterId: "chapter-1" } as any)
-    vi.mocked(Chapter.findById).mockResolvedValue({ _id: "chapter-1", seriesId: "series-1" } as any)
     vi.mocked(FileAsset.findByIdAndUpdate).mockResolvedValue({ _id: "asset-1" } as any)
     vi.mocked(Page.findByIdAndUpdate).mockResolvedValue(page as any)
-    vi.mocked(Series.updateOne).mockRejectedValue(new Error("series sync failed"))
+    vi.mocked(Chapter.updateOne).mockRejectedValue(new Error("chapter sync failed"))
 
     const result = await confirmPageUploadRepository({
       pageId: "page-1",

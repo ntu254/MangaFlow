@@ -404,11 +404,11 @@ function SeriesManuscript() {
                         <td className="py-4 pr-3">
                           <div className="flex items-center gap-3">
                             <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${file.status === "MISSING" ? "bg-red-500/10 text-red-500" : file.assetType === "MANUSCRIPT" ? "bg-indigo-500/10 text-indigo-500" : "bg-blue-500/10 text-blue-500"}`}
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${file.status === "MISSING" ? "bg-red-500/10 text-red-500" : file.assetType === "manuscript" ? "bg-indigo-500/10 text-indigo-500" : "bg-blue-500/10 text-blue-500"}`}
                             >
                               {file.status === "MISSING" ? (
                                 <AlertTriangle className="h-4 w-4" />
-                              ) : file.assetType === "MANUSCRIPT" ? (
+                              ) : file.assetType === "manuscript" ? (
                                 <FileText className="h-4 w-4" />
                               ) : (
                                 <ImageIcon className="h-4 w-4" />
@@ -430,9 +430,9 @@ function SeriesManuscript() {
                         </td>
                         <td className="py-4 pr-3">
                           <div
-                            className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${file.assetType === "MANUSCRIPT" ? "bg-indigo-500/10 text-indigo-600" : "bg-blue-500/10 text-blue-600"}`}
+                            className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${file.assetType === "manuscript" ? "bg-indigo-500/10 text-indigo-600" : "bg-blue-500/10 text-blue-600"}`}
                           >
-                            {file.assetType || "SUPPORTING"}
+                            {file.assetType || "other"}
                           </div>
                         </td>
                         <td className="py-4 pr-3 text-foreground/70">—</td>

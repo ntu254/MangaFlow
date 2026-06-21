@@ -201,27 +201,25 @@ function boardDecisionStatus(status: string | undefined): BoardSeriesReviewItem[
 }
 
 function commentStatus(status: string | undefined): CommentStatus {
-  if (status === "FIXED_BY_ASSISTANT" || status === "VERIFIED_BY_MANGAKA" || status === "RESOLVED_BY_EDITOR") return status
+  if (status === "RESOLVED" || status === "REOPENED") return status
   return "OPEN"
 }
 
 function commentStatusLabel(status: CommentStatus): string {
-  if (status === "FIXED_BY_ASSISTANT") return "Fixed by Assistant"
-  if (status === "VERIFIED_BY_MANGAKA") return "Verified by Mangaka"
-  if (status === "RESOLVED_BY_EDITOR") return "Resolved"
+  if (status === "RESOLVED") return "Resolved"
+  if (status === "REOPENED") return "Reopened"
   return "Open"
 }
 
 function commentTone(status: CommentStatus, blocking: boolean): Tone {
-  if (status === "RESOLVED_BY_EDITOR") return "neutral"
-  if (status === "VERIFIED_BY_MANGAKA") return "success"
-  if (status === "FIXED_BY_ASSISTANT") return "warning"
+  if (status === "RESOLVED") return "neutral"
+  if (status === "REOPENED") return "warning"
   return blocking ? "danger" : "primary"
 }
 
 function commentAction(status: CommentStatus): string {
-  if (status === "VERIFIED_BY_MANGAKA") return "Resolve"
-  if (status === "RESOLVED_BY_EDITOR") return "View"
+  if (status === "RESOLVED") return "Reopen"
+  if (status === "REOPENED") return "Resolve"
   return "Review"
 }
 
@@ -570,7 +568,7 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         tone: toneForStatus(status),
         coverTone: index % 2 === 0 ? "dark" : "violet",
         tags: asArray<string>(series?.genres),
-        manuscriptStatus: "EDITOR_REVIEW",
+        manuscriptStatus: "SUBMITTED",
         seriesStatus: status === "REVISION_REQUESTED" ? "REVISION_REQUESTED" : "EDITOR_REVIEW",
         version: String(manuscript?.version ?? 1),
         requestedPublicationType: publicationType(series?.requestedPublicationType ?? series?.publicationType),
@@ -653,14 +651,14 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
     })
 
     const open = comments.filter((item) => item.canonicalStatus === "OPEN").length
-    const fixed = comments.filter((item) => item.canonicalStatus === "FIXED_BY_ASSISTANT").length
-    const blocking = comments.filter((item) => item.blocking && item.canonicalStatus !== "RESOLVED_BY_EDITOR").length
-    const resolved = comments.filter((item) => item.canonicalStatus === "RESOLVED_BY_EDITOR").length
+    const reopened = comments.filter((item) => item.canonicalStatus === "REOPENED").length
+    const blocking = comments.filter((item) => item.blocking && item.canonicalStatus !== "RESOLVED").length
+    const resolved = comments.filter((item) => item.canonicalStatus === "RESOLVED").length
 
     return {
       metrics: [
         { id: "open", label: "Open", value: String(open), tone: open > 0 ? "primary" : "success", icon: "message-square" },
-        { id: "fixed", label: "Fixed by Assistant", value: String(fixed), tone: fixed > 0 ? "warning" : "neutral", icon: "check-circle" },
+        { id: "reopened", label: "Reopened", value: String(reopened), tone: reopened > 0 ? "warning" : "neutral", icon: "check-circle" },
         { id: "blocking", label: "Blocking", value: String(blocking), tone: blocking > 0 ? "danger" : "success", icon: "alert-triangle" },
         { id: "resolved", label: "Resolved", value: String(resolved), tone: "neutral", icon: "calendar" },
       ],
@@ -807,7 +805,7 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
       coverTone: index % 2 === 0 ? "dark" : "red",
       seriesStatus: "AT_RISK",
       rankingStatus: "AT_RISK",
-      availableDecisions: ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"],
+      availableDecisions: ["CONTINUE", "WARNING", "CANCEL", "COMPLETE"],
       supportNote: "Backend marks this title at risk; mobile does not auto-cancel.",
       requiresConfirmation: true,
     } satisfies BoardAtRiskCase))

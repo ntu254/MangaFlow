@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest"
 import {
   BOARD_VOTE_VALUES,
+  CHAPTER_STATUSES,
   COMMENT_STATUSES,
+  MANUSCRIPT_STATUSES,
+  NOTIFICATION_STATUSES,
+  PAGE_STATUSES,
+  PUBLICATION_STATUSES,
+  REGION_STATUSES,
   SERIES_STATUSES,
+  SUBMISSION_STATUSES,
   TASK_STATUSES,
   isSeriesStatus,
 } from "./status.js"
@@ -14,20 +21,26 @@ describe("workflow status constants", () => {
       "EDITOR_REVIEW",
       "REVISION_REQUESTED",
       "BOARD_REVIEW",
-      "APPROVED",
       "ONGOING",
       "AT_RISK",
-      "REJECTED",
       "CANCELLED",
       "COMPLETED",
-      "WITHDRAWN",
       "ARCHIVED",
+      "REJECTED",
+      "WITHDRAWN",
     ])
   })
 
-  it("exposes review and Board values needed by future workflow services", () => {
-    expect(TASK_STATUSES).toContain("EDITOR_APPROVED")
-    expect(COMMENT_STATUSES).toContain("RESOLVED_BY_EDITOR")
+  it("exposes every canonical production lifecycle", () => {
+    expect(MANUSCRIPT_STATUSES).toEqual(["DRAFT", "SUBMITTED", "REVISION_REQUESTED", "APPROVED", "REJECTED", "ARCHIVED"])
+    expect(CHAPTER_STATUSES).toEqual(["DRAFT", "IN_PRODUCTION", "READY_FOR_PUBLICATION", "PUBLISHED", "ARCHIVED"])
+    expect(PAGE_STATUSES).toEqual(["PENDING", "UPLOADING", "PROCESSING", "UPLOADED", "PROCESSING_FAILED", "IN_TASK", "APPROVED", "LOCKED"])
+    expect(REGION_STATUSES).toEqual(["ACTIVE", "LOCKED", "DELETED"])
+    expect(TASK_STATUSES).toEqual(["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REJECTED", "CANCELLED"])
+    expect(SUBMISSION_STATUSES).toEqual(["DRAFT", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "REJECTED"])
+    expect(PUBLICATION_STATUSES).toEqual(["DRAFT", "SCHEDULED", "PUBLISHED", "FAILED", "CANCELLED"])
+    expect(COMMENT_STATUSES).toEqual(["OPEN", "RESOLVED", "REOPENED"])
+    expect(NOTIFICATION_STATUSES).toEqual(["UNREAD", "READ", "ARCHIVED"])
     expect(BOARD_VOTE_VALUES).toEqual(["APPROVE", "REJECT", "NEEDS_REVISION"])
   })
 

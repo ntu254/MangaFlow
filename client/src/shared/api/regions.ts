@@ -1,8 +1,5 @@
 import { api } from "./_client";
 
-const IMG_W = 800;
-const IMG_H = 1131;
-
 type RegionCoords = { x: number; y: number; w: number; h: number };
 
 function toServerType(type?: string): string | undefined {
@@ -13,12 +10,24 @@ function toServerType(type?: string): string | undefined {
 
 function coordsToBbox(coords?: RegionCoords) {
   if (!coords) return undefined;
-  return {
-    x: Math.round(coords.x * IMG_W),
-    y: Math.round(coords.y * IMG_H),
-    width: Math.round(coords.w * IMG_W),
-    height: Math.round(coords.h * IMG_H),
+  const bounds = {
+    x: coords.x,
+    y: coords.y,
+    width: coords.w,
+    height: coords.h,
   };
+  if (
+    Object.values(bounds).some((value) => !Number.isFinite(value)) ||
+    bounds.x < 0 ||
+    bounds.y < 0 ||
+    bounds.width <= 0 ||
+    bounds.height <= 0 ||
+    bounds.x + bounds.width > 1 ||
+    bounds.y + bounds.height > 1
+  ) {
+    throw new Error("Region bounds must be normalized within the working image");
+  }
+  return bounds;
 }
 
 function toRegionPayload(payload: any) {

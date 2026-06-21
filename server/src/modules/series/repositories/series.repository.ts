@@ -39,7 +39,7 @@ export interface CreateSeriesResult {
   updatedAt: Date
 }
 
-export const BOARD_VISIBLE_STATUSES: SeriesStatus[] = ["BOARD_REVIEW", "APPROVED", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"]
+export const BOARD_VISIBLE_STATUSES: SeriesStatus[] = ["BOARD_REVIEW", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"]
 
 export async function createSeriesRepository(input: CreateSeriesInput): Promise<CreateSeriesResult> {
   const slug = buildSlug(input.title)

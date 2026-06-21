@@ -3,12 +3,12 @@ export type Payroll = {
   id: string;
   taskId: string;
   amount: number;
-  status: "pending" | "confirmed" | "paid";
+  status: "pending" | "confirmed" | "paid" | "void";
   period: string;
 };
 
 export const payroll: Payroll[] = tasks
-  .filter((t) => t.status === "approved" || t.status === "submitted")
+  .filter((t) => t.status === "editor-approved")
   .map((t, i) => ({
     id: `pay_${t.id}`,
     taskId: t.id,

@@ -29,6 +29,6 @@ export const boardTieBreakBodySchema = z.object({
 })
 
 export const atRiskDecisionBodySchema = z.object({
-  decision: z.enum(["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"]),
+  decision: z.enum(["CONTINUE", "WARNING", "CANCEL", "COMPLETE"]),
   note: z.string().max(2000).optional(),
 })

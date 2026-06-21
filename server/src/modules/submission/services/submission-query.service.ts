@@ -31,7 +31,7 @@ async function assertSubmissionFileAsset(fileAssetId: string, actor: SubmissionA
   if (String(fileAsset.uploadedBy) !== actor.userId) {
     throw new AppError("Submission file asset belongs to another user", 403)
   }
-  if (fileAsset.assetType !== "PRODUCTION") {
+  if (fileAsset.assetType !== "production") {
     throw new AppError("Submission requires a production file asset", 400)
   }
   if (!(await checkObjectExists(fileAsset.r2Key))) {
@@ -145,7 +145,7 @@ export async function getTaskUploadUrlService(input: GetTaskUploadUrlInput) {
     r2Key: signed.r2Key,
     r2Bucket: config.r2Bucket,
     uploadedBy: input.actor.userId,
-    assetType: "PRODUCTION",
+    assetType: "production",
   })
 
   return {

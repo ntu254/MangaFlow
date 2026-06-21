@@ -24,8 +24,8 @@ describe("createChapterRepository", () => {
     vi.clearAllMocks()
   })
 
-  it("creates a draft chapter for a Board-approved series with publication type", async () => {
-    findSeriesById.mockResolvedValue({ status: "APPROVED", publicationType: "WEEKLY" })
+  it("creates a draft chapter only for an ONGOING series with publication type", async () => {
+    findSeriesById.mockResolvedValue({ status: "ONGOING", publicationType: "WEEKLY" })
     findExistingChapter.mockResolvedValue(null)
     createChapter.mockResolvedValue({
       id: "chapter-1",
@@ -68,16 +68,26 @@ describe("createChapterRepository", () => {
       seriesId: "series-1",
       chapterNumber: 1,
       title: "Chapter 1",
-    })).rejects.toThrow("Must be APPROVED, ONGOING, or AT_RISK")
+    })).rejects.toThrow("Must be ONGOING")
   })
 
-  it("blocks approved series without an official publication type", async () => {
-    findSeriesById.mockResolvedValue({ status: "APPROVED" })
+  it("blocks ONGOING series without an official publication type", async () => {
+    findSeriesById.mockResolvedValue({ status: "ONGOING" })
 
     await expect(createChapterRepository({
       seriesId: "series-1",
       chapterNumber: 1,
       title: "Chapter 1",
     })).rejects.toThrow("official publication type")
+  })
+
+  it("blocks chapter creation while a series is AT_RISK", async () => {
+    findSeriesById.mockResolvedValue({ status: "AT_RISK", publicationType: "WEEKLY" })
+
+    await expect(createChapterRepository({
+      seriesId: "series-1",
+      chapterNumber: 1,
+      title: "Chapter 1",
+    })).rejects.toThrow("Must be ONGOING")
   })
 })

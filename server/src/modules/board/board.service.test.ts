@@ -126,7 +126,7 @@ describe("board.service", () => {
     })
   })
 
-  it("finalizes APPROVE plurality to APPROVED series", async () => {
+  it("finalizes APPROVE plurality to ONGOING series", async () => {
     getBoardSeries.mockResolvedValue({
       id: "series-1",
       status: "BOARD_REVIEW",
@@ -145,7 +145,7 @@ describe("board.service", () => {
       publicationType: "WEEKLY",
     })
 
-    expect(updateSeriesAfterDecision).toHaveBeenCalledWith("series-1", "APPROVED", expect.any(Object), "WEEKLY")
+    expect(updateSeriesAfterDecision).toHaveBeenCalledWith("series-1", "ONGOING", expect.any(Object), "WEEKLY", "board-1")
     expect(updateLatestManuscriptAfterDecision).toHaveBeenCalledWith("series-1", "APPROVED", expect.any(Object))
     expect(closeBoardReviewSession).toHaveBeenCalledWith("session-1", expect.any(Object))
     expect(updateDecision).toHaveBeenCalledWith("series-1", "APPROVED", "APPROVE", "board-1", expect.any(Object), "WEEKLY", undefined)
@@ -203,7 +203,7 @@ describe("board.service", () => {
       publicationType: "MONTHLY",
     })
 
-    expect(updateSeriesAfterDecision).toHaveBeenCalledWith("series-1", "APPROVED", expect.any(Object), "MONTHLY")
+    expect(updateSeriesAfterDecision).toHaveBeenCalledWith("series-1", "ONGOING", expect.any(Object), "MONTHLY", "chair-1")
     expect(updateDecision).toHaveBeenCalledWith("series-1", "APPROVED", "APPROVE", "chair-1", expect.any(Object), "MONTHLY", undefined)
   })
 

@@ -1,25 +1,25 @@
 import { AppError } from "../../../shared/errors/AppError.js"
 
 export function assertMarkFixedTransition(status: string) {
-  if (status !== "OPEN") {
-    throw new AppError("Only open comments can be marked fixed", 409)
+  if (!["OPEN", "REOPENED"].includes(status)) {
+    throw new AppError("Only open or reopened comments can be resolved", 409)
   }
 }
 
 export function assertMangakaVerifyTransition(status: string) {
-  if (status !== "FIXED_BY_ASSISTANT") {
-    throw new AppError("Mangaka verification requires Assistant fixed state", 409)
+  if (status !== "RESOLVED") {
+    throw new AppError("Mangaka verification requires a resolved comment", 409)
   }
 }
 
 export function assertEditorResolveTransition(status: string) {
-  if (status !== "VERIFIED_BY_MANGAKA") {
-    throw new AppError("Editor resolution requires Mangaka verification first", 409)
+  if (!["OPEN", "REOPENED", "RESOLVED"].includes(status)) {
+    throw new AppError("Editor can resolve only an active comment", 409)
   }
 }
 
 export function assertEditorReopenTransition(status: string) {
-  if (!["FIXED_BY_ASSISTANT", "VERIFIED_BY_MANGAKA"].includes(status)) {
-    throw new AppError("Editor can reopen only fixed or verified comments", 409)
+  if (status !== "RESOLVED") {
+    throw new AppError("Editor can reopen only resolved comments", 409)
   }
 }

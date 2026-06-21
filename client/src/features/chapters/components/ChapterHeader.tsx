@@ -41,10 +41,10 @@ export function ChapterHeader({
             <StatusBadge status={chapter.status} />
             <span>·</span>
             <span>{pageCount} pages</span>
-            {chapter.scheduledAt && (
+            {false && (
               <>
                 <span>·</span>
-                <span>scheduled {chapter.scheduledAt}</span>
+                <span>Scheduling belongs to Publication</span>
               </>
             )}
             {chapter.publishedAt && (

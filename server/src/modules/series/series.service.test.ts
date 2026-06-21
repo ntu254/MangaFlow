@@ -124,7 +124,7 @@ describe("series read access", () => {
     await listSeriesService("board-1", "BOARD")
 
     expect(seriesFind).toHaveBeenCalledWith({
-      status: { $in: ["BOARD_REVIEW", "APPROVED", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"] },
+      status: { $in: ["BOARD_REVIEW", "ONGOING", "AT_RISK", "REJECTED", "CANCELLED", "COMPLETED"] },
     })
   })
 

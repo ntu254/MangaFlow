@@ -9,9 +9,9 @@ describe("TASK_STATUSES", () => {
       "TODO",
       "IN_PROGRESS",
       "SUBMITTED",
+      "REVISION_REQUESTED",
       "MANGAKA_APPROVED",
       "EDITOR_APPROVED",
-      "REVISION_REQUESTED",
       "REJECTED",
       "CANCELLED",
     ] as const)

@@ -69,7 +69,7 @@ export function EditorManuscriptsScreen() {
       <MFHero title="Manuscripts" subtitle="Proposal review before Board review." />
       <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading manuscript review queue..." />
       <MFMetricStrip items={[
-        { id: "waiting", label: "Waiting", value: String(flow.manuscriptItems.filter((item) => item.manuscriptStatus === "EDITOR_REVIEW").length), tone: "primary", icon: "file-text" },
+        { id: "waiting", label: "Waiting", value: String(flow.manuscriptItems.filter((item) => item.manuscriptStatus === "SUBMITTED").length), tone: "primary", icon: "file-text" },
         { id: "revision", label: "Revisions", value: String(flow.manuscriptItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED").length), tone: "warning", icon: "refresh-cw" },
         { id: "ready", label: "Ready for Board", value: String(flow.manuscriptItems.filter((item) => item.decisionActions.includes("forward-to-board")).length), tone: "success", icon: "shield-check" },
       ]} />
@@ -192,7 +192,7 @@ export function EditorCommentsScreen() {
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
           <Text style={styles.title}>Blocking publication</Text>
-          <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED_BY_EDITOR.</Text>
+          <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED.</Text>
         </View>
         <MFButton tone={showBlockingOnly ? "neutral" : "danger"} variant="soft" style={styles.calloutButton} onPress={() => setShowBlockingOnly((value) => !value)}>
           {showBlockingOnly ? "Show all" : "Open blockers"}

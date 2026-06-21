@@ -6,12 +6,12 @@ export async function listNotifications(req: Request, res: Response): Promise<vo
   const limit = parseInt(req.query.limit as string) || 20
   const skip = (page - 1) * limit
 
-  const notifications = await Notification.find({ userId: req.user!.userId, isArchived: { $ne: true } })
+  const notifications = await Notification.find({ userId: req.user!.userId, status: { $ne: "ARCHIVED" } })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
 
-  const total = await Notification.countDocuments({ userId: req.user!.userId, isArchived: { $ne: true } })
+  const total = await Notification.countDocuments({ userId: req.user!.userId, status: { $ne: "ARCHIVED" } })
 
   const mappedNotifs = notifications.map(n => ({
     _id: n._id,
@@ -20,7 +20,7 @@ export async function listNotifications(req: Request, res: Response): Promise<vo
     title: n.title,
     body: n.message,
     link: n.link,
-    status: n.isRead ? "READ" : "UNREAD",
+    status: n.status ?? "UNREAD",
     createdAt: n.createdAt,
     updatedAt: n.updatedAt
   }))
@@ -43,7 +43,7 @@ export async function listNotifications(req: Request, res: Response): Promise<vo
 export async function markNotificationRead(req: Request, res: Response): Promise<void> {
   const notification = await Notification.findOneAndUpdate(
     { _id: req.params.notificationId, userId: req.user!.userId },
-    { isRead: true },
+    { status: "READ" },
     { new: true }
   )
 
@@ -58,7 +58,7 @@ export async function markNotificationRead(req: Request, res: Response): Promise
 export async function archiveNotification(req: Request, res: Response): Promise<void> {
   const notification = await Notification.findOneAndUpdate(
     { _id: req.params.notificationId, userId: req.user!.userId },
-    { isArchived: true, isRead: true },
+    { status: "ARCHIVED" },
     { new: true }
   )
 

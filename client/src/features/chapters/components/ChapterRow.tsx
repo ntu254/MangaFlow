@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { MoreHorizontal, CheckCircle2, Trash2, XCircle } from "lucide-react";
 import { Progress } from "@/shared/ui/shadcn/progress";
 import { useState } from "react";
-import { useDeleteChapter, useCancelChapter } from "@/shared/queries/useChapterPages";
+import { useDeleteChapter, useArchiveChapter } from "@/shared/queries/useChapterPages";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +33,7 @@ export function ChapterRow({
 }: ChapterRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const deleteChapter = useDeleteChapter();
-  const cancelChapter = useCancelChapter();
+  const archiveChapter = useArchiveChapter();
 
   const [dialogConfig, setDialogConfig] = useState<{
     open: boolean;
@@ -158,12 +158,12 @@ export function ChapterRow({
         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {dialogConfig.action === "delete" ? "Delete Chapter" : "Cancel Chapter"}
+              {dialogConfig.action === "delete" ? "Delete Chapter" : "Archive Chapter"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {dialogConfig.action === "delete"
                 ? "Are you sure you want to delete this chapter? This action cannot be undone."
-                : "Are you sure you want to cancel this chapter?"}
+                : "Are you sure you want to archive this chapter?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -171,7 +171,7 @@ export function ChapterRow({
             <AlertDialogAction
               onClick={() => {
                 if (dialogConfig.action === "delete") deleteChapter.mutate(chapter.id);
-                if (dialogConfig.action === "cancel") cancelChapter.mutate(chapter.id);
+                if (dialogConfig.action === "cancel") archiveChapter.mutate(chapter.id);
               }}
               className={
                 dialogConfig.action === "delete"

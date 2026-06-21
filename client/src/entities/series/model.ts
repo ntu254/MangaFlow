@@ -17,11 +17,13 @@ export type SeriesStatus =
   | "editor-review"
   | "revision-requested"
   | "board-review"
-  | "approved"
   | "ongoing"
   | "at-risk"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "archived"
+  | "rejected"
+  | "withdrawn";
 export type PublicationType = "weekly" | "monthly" | "bi-weekly";
 
 export type Series = {

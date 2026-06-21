@@ -57,6 +57,9 @@ export async function updateChapterStatusService(chapterId: string, status: stri
   await assertCanWriteChapter(actor, trimmed)
 
   if (!status?.trim()) throw new AppError("Status is required", 400)
+  if (status !== "ARCHIVED") {
+    throw new AppError("Chapter lifecycle transitions are managed by page upload, readiness, and publication workflows", 409)
+  }
   const chapter = await updateChapterStatus(trimmed, status as ChapterStatus)
   if (!chapter) throw new AppError("Chapter not found", 404)
   return chapter
@@ -105,13 +108,14 @@ export async function cancelChapterService(chapterId: string, actor: AccessActor
   const chapter = await getChapterById(trimmed)
   if (!chapter) throw new AppError("Chapter not found", 404)
 
-  if (chapter.status !== "IN_PRODUCTION") {
-    throw new AppError("Only IN_PRODUCTION chapters can be cancelled", 400)
+  if (!['DRAFT', 'IN_PRODUCTION'].includes(chapter.status)) {
+    throw new AppError("Only DRAFT or IN_PRODUCTION chapters can be archived", 400)
   }
 
   await Chapter.updateOne({ _id: trimmed }, { 
     $set: { 
-      status: "CANCELLED"
+      status: "ARCHIVED",
+      archivedAt: new Date()
     } 
   })
 }

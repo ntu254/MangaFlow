@@ -401,8 +401,8 @@ function SeriesChapters() {
                       pageNumber?: number;
                     }) => {
                       const isApproved = page.status === "APPROVED";
-                      const isUnderReview = page.status === "UNDER_REVIEW";
-                      const isTaskAssigned = page.status === "TASK_ASSIGNED";
+                      const isUnderReview = page.status === "IN_TASK";
+                      const isTaskAssigned = page.status === "IN_TASK";
                       const isUploaded = page.status === "UPLOADED";
                       const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(
                         page.status,
@@ -622,8 +622,8 @@ function SeriesChapters() {
           <DialogHeader>
             <DialogTitle>Create Chapter</DialogTitle>
             <DialogDescription>
-              Creates a draft chapter for this Board-approved series. The backend still checks
-              series status, publication type, and series membership.
+              Creates a draft chapter for this ongoing series. The backend still checks series
+              status, publication type, and series membership.
             </DialogDescription>
           </DialogHeader>
           <form

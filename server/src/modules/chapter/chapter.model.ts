@@ -1,16 +1,15 @@
 import mongoose, { Schema, type Document } from "mongoose"
-import { CHAPTER_STATUSES, type ChapterStatus } from "../../shared/workflow/status.js"
+import {
+  CHAPTER_STATUSES,
+  PAGE_STATUSES,
+  REGION_STATUSES,
+  type ChapterStatus,
+  type PageStatus,
+  type RegionStatus,
+} from "../../shared/workflow/status.js"
 
-export const PAGE_STATUSES = [
-  "UPLOADING",
-  "UPLOADED",
-  "PROCESSING_FAILED",
-  "TASK_ASSIGNED",
-  "IN_PROGRESS",
-  "UNDER_REVIEW",
-  "APPROVED",
-] as const
-export type PageStatus = (typeof PAGE_STATUSES)[number]
+export { PAGE_STATUSES, REGION_STATUSES }
+export type { PageStatus, RegionStatus }
 
 export interface PageDocument extends Document {
   chapterId: mongoose.Types.ObjectId
@@ -128,7 +127,7 @@ export interface FileAssetDocument extends Document {
   r2Key: string
   r2Bucket: string
   uploadedBy: mongoose.Types.ObjectId
-  assetType?: "MANUSCRIPT" | "SUPPORTING" | "PRODUCTION"
+  assetType?: "manuscript" | "cover_draft" | "character_concept" | "reference_image" | "other" | "production"
   slot?: string
   status: "ACTIVE" | "MISSING" | "DELETED"
   createdAt: Date
@@ -144,7 +143,7 @@ const fileAssetSchema = new Schema<FileAssetDocument>(
     r2Key: { type: String, required: true },
     r2Bucket: { type: String, required: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    assetType: { type: String, enum: ["MANUSCRIPT", "SUPPORTING", "PRODUCTION"] },
+    assetType: { type: String, enum: ["manuscript", "cover_draft", "character_concept", "reference_image", "other", "production"] },
     slot: { type: String, trim: true, maxlength: 80 },
     status: { type: String, enum: ["ACTIVE", "MISSING", "DELETED"], default: "ACTIVE" },
   },
@@ -155,16 +154,6 @@ export const FileAsset = mongoose.model<FileAssetDocument>("FileAsset", fileAsse
 
 export const REGION_TYPES = ["PANEL", "BUBBLE", "SFX", "AREA", "OTHER"] as const
 export type RegionType = (typeof REGION_TYPES)[number]
-
-export const REGION_STATUSES = [
-  "CREATED",
-  "AI_SUGGESTED",
-  "ACCEPTED",
-  "REJECTED",
-  "LINKED_TO_TASK",
-  "ARCHIVED",
-] as const
-export type RegionStatus = (typeof REGION_STATUSES)[number]
 
 export interface RegionDocument extends Document {
   pageId: mongoose.Types.ObjectId
@@ -190,16 +179,16 @@ const regionSchema = new Schema<RegionDocument>(
     regionIndex: { type: Number, required: true },
     type: { type: String, enum: REGION_TYPES, required: true, default: "PANEL" },
     bbox: {
-      x: { type: Number, required: true },
-      y: { type: Number, required: true },
-      width: { type: Number, required: true, min: 1 },
-      height: { type: Number, required: true, min: 1 },
+      x: { type: Number, required: true, min: 0, max: 1 },
+      y: { type: Number, required: true, min: 0, max: 1 },
+      width: { type: Number, required: true, min: Number.EPSILON, max: 1 },
+      height: { type: Number, required: true, min: Number.EPSILON, max: 1 },
     },
     status: {
       type: String,
       enum: REGION_STATUSES,
       required: true,
-      default: "CREATED",
+      default: "ACTIVE",
     },
     source: { type: String, enum: ["MANUAL", "AI"], required: true, default: "MANUAL" },
     aiResultId: { type: Schema.Types.ObjectId, ref: "AIResult" },
@@ -209,6 +198,13 @@ const regionSchema = new Schema<RegionDocument>(
 )
 
 regionSchema.index({ pageId: 1, regionIndex: 1 }, { unique: true })
+
+regionSchema.pre("validate", function validateNormalizedBounds() {
+  const { x, y, width, height } = this.bbox
+  if (x + width > 1 || y + height > 1) {
+    this.invalidate("bbox", "Region bounds must stay within the normalized working image")
+  }
+})
 
 regionSchema.set("toJSON", {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
