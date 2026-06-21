@@ -6,9 +6,7 @@ export function useFileDownloadUrl(fileAssetId: string | undefined) {
     queryKey: ["file-download-url", fileAssetId],
     queryFn: async () => {
       const res = await filesApi.getPresignedDownloadUrl(fileAssetId!);
-      // Ensure we extract the URL correctly from the response structure
-      // e.g. { success: true, data: { url: "..." } } or similar
-      return res?.data?.url || res?.data || res;
+      return res.downloadUrl;
     },
     enabled: !!fileAssetId,
     staleTime: 5 * 60 * 1000,

@@ -8,6 +8,11 @@ const seriesMemberFindOne = vi.fn()
 const submissionFindOne = vi.fn()
 const taskFindOne = vi.fn()
 
+const pageId = "507f1f77bcf86cd799439011"
+const chapterId = "507f1f77bcf86cd799439012"
+const seriesId = "507f1f77bcf86cd799439013"
+const fileAssetId = "507f1f77bcf86cd799439014"
+
 vi.mock("../../modules/chapter/chapter.model.js", () => ({
   Page: { findById: pageFindById, findOne: pageFindOne },
   Chapter: { findById: chapterFindById },
@@ -31,9 +36,9 @@ const { assertCanReadFileAsset, canReadPage } = await import("./accessPolicy.ser
 describe("AccessPolicyService", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    pageFindById.mockResolvedValue({ _id: "page1", chapterId: "chapter1" })
-    chapterFindById.mockResolvedValue({ _id: "chapter1", seriesId: "series1" })
-    fileAssetFindById.mockResolvedValue({ _id: "file1", uploadedBy: "owner1" })
+    pageFindById.mockResolvedValue({ _id: pageId, chapterId })
+    chapterFindById.mockResolvedValue({ _id: chapterId, seriesId })
+    fileAssetFindById.mockResolvedValue({ _id: fileAssetId, uploadedBy: "owner1" })
     pageFindOne.mockResolvedValue(null)
     submissionFindOne.mockResolvedValue(null)
     seriesMemberFindOne.mockResolvedValue(null)
@@ -43,31 +48,31 @@ describe("AccessPolicyService", () => {
   it("denies Assistant page access from SeriesMember alone", async () => {
     seriesMemberFindOne.mockResolvedValue({ role: "ASSISTANT", isActive: true, accessScope: "TASK_ONLY" })
 
-    await expect(canReadPage({ userId: "assistant1", role: "ASSISTANT" }, "page1")).resolves.toBe(false)
+    await expect(canReadPage({ userId: "assistant1", role: "ASSISTANT" }, pageId)).resolves.toBe(false)
     expect(taskFindOne).toHaveBeenCalledWith({
-      seriesId: "series1",
+      seriesId,
       assignedTo: "assistant1",
-      $or: [{ pageId: "page1" }, { contextPageIds: "page1" }],
+      $or: [{ pageId }, { contextPageIds: pageId }],
     })
   })
 
   it("allows Assistant page access for assigned task or explicit context page", async () => {
     taskFindOne.mockResolvedValue({ _id: "task1", assignedTo: "assistant1" })
 
-    await expect(canReadPage({ userId: "assistant1", role: "ASSISTANT" }, "page1")).resolves.toBe(true)
+    await expect(canReadPage({ userId: "assistant1", role: "ASSISTANT" }, pageId)).resolves.toBe(true)
   })
 
   it("denies signed file access when file is outside task/page/submission scope", async () => {
-    await expect(assertCanReadFileAsset({ userId: "assistant1", role: "ASSISTANT" }, "file1")).rejects.toMatchObject({
+    await expect(assertCanReadFileAsset({ userId: "assistant1", role: "ASSISTANT" }, fileAssetId)).rejects.toMatchObject({
       statusCode: 403,
       message: "File access denied",
     })
   })
 
   it("allows signed file access for a scoped page file", async () => {
-    pageFindOne.mockResolvedValue({ _id: "page1", chapterId: "chapter1" })
+    pageFindOne.mockResolvedValue({ _id: pageId, chapterId })
     taskFindOne.mockResolvedValue({ _id: "task1", assignedTo: "assistant1" })
 
-    await expect(assertCanReadFileAsset({ userId: "assistant1", role: "ASSISTANT" }, "file1")).resolves.toBeUndefined()
+    await expect(assertCanReadFileAsset({ userId: "assistant1", role: "ASSISTANT" }, fileAssetId)).resolves.toBeUndefined()
   })
 })

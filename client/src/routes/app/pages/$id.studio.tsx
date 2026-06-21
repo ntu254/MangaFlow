@@ -22,6 +22,26 @@ export const Route = createFileRoute("/app/pages/$id/studio")({
   component: PageStudio,
 });
 
+function getFileAssetId(asset: unknown): string | undefined {
+  if (!asset) return undefined;
+  if (typeof asset === "string") return asset;
+  if (typeof asset === "object") {
+    const record = asset as { _id?: string; id?: string };
+    return record._id ?? record.id;
+  }
+  return undefined;
+}
+
+type ApiErrorLike = {
+  message?: string;
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+    };
+  };
+};
+
 function PageStudio() {
   const { pageId } = Route.useLoaderData();
   const { seriesId } = Route.useSearch();
@@ -37,11 +57,11 @@ function PageStudio() {
   } = usePageStudio(pageId);
 
   // We only fetch the download URLs if the assets exist.
-  const workingFileAssetId = studioData?.workingFileAsset?._id || studioData?.workingFileAsset;
-  const originalFileAssetId = studioData?.originalFileAsset?._id || studioData?.originalFileAsset;
+  const workingFileAssetId = getFileAssetId(studioData?.workingFileAsset);
+  const originalFileAssetId = getFileAssetId(studioData?.originalFileAsset);
 
-  const { data: workingUrlData } = useFileDownloadUrl(workingFileAssetId as string);
-  const { data: originalUrlData } = useFileDownloadUrl(originalFileAssetId as string);
+  const { data: workingImageUrl } = useFileDownloadUrl(workingFileAssetId);
+  const { data: originalImageUrl } = useFileDownloadUrl(originalFileAssetId);
 
   // ── Render States ────────────────────────────────────────────────
   if (isLoadingStudio) {
@@ -57,7 +77,8 @@ function PageStudio() {
 
   // 403 Forbidden or other API errors
   if (studioError) {
-    const status = (studioError as any)?.response?.status;
+    const apiError = studioError as ApiErrorLike;
+    const status = apiError.response?.status;
     if (status === 403 || status === 401) {
       return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -70,9 +91,7 @@ function PageStudio() {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-6 text-sm text-rose-400">
-          {(studioError as any)?.response?.data?.message ||
-            studioError.message ||
-            "Failed to load Page Studio."}
+          {apiError.response?.data?.message || apiError.message || "Failed to load Page Studio."}
         </div>
       </div>
     );
@@ -211,8 +230,8 @@ function PageStudio() {
               regions={regions}
               pageId={pageId}
               onSelectRegion={(id) => useStudioStore.getState().setSelectedRegionId(id)}
-              workingImageUrl={workingUrlData?.url}
-              originalImageUrl={originalUrlData?.url}
+              workingImageUrl={workingImageUrl}
+              originalImageUrl={originalImageUrl}
             />
           </div>
 
@@ -232,7 +251,7 @@ function PageStudio() {
             <span>
               Regions:{" "}
               <span className="text-foreground/60">
-                {regions.filter((r: any) => r.status !== "rejected").length}
+                {regions.filter((r: { status?: string }) => r.status !== "rejected").length}
               </span>
             </span>
             <span className="h-3 w-px bg-border" />

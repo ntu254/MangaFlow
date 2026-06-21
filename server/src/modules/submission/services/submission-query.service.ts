@@ -4,12 +4,12 @@ import {
   getTaskForSubmission,
   listReviewQueueSubmissions,
   listSubmissionsByTask,
-  updateTaskStatusForSubmission,
+  updateTaskForNewSubmission,
 } from "../submission.repository.js"
 import type { SubmissionActor } from "../policies/submission-access.policy.js"
 import { assertSubmissionSeriesMember } from "../policies/submission-access.policy.js"
 import { assertSubmissionPayload, assertTaskSubmittable } from "../guards/submission-transition.guard.js"
-import { createPresignedUploadUrl } from "../../chapter/file.service.js"
+import { checkObjectExists, createPresignedUploadUrl } from "../../chapter/file.service.js"
 import { FileAsset } from "../../chapter/chapter.model.js"
 import { config } from "../../../shared/utils/env.js"
 
@@ -18,6 +18,25 @@ export interface SubmitTaskInput {
   actor: SubmissionActor
   resultText?: string
   fileAssetId?: string
+}
+
+async function assertSubmissionFileAsset(fileAssetId: string, actor: SubmissionActor) {
+  const fileAsset = await FileAsset.findById(fileAssetId)
+  if (!fileAsset) {
+    throw new AppError("Submission file asset not found", 404)
+  }
+  if (fileAsset.status !== "ACTIVE") {
+    throw new AppError("Submission file asset is not active", 400)
+  }
+  if (String(fileAsset.uploadedBy) !== actor.userId) {
+    throw new AppError("Submission file asset belongs to another user", 403)
+  }
+  if (fileAsset.assetType !== "PRODUCTION") {
+    throw new AppError("Submission requires a production file asset", 400)
+  }
+  if (!(await checkObjectExists(fileAsset.r2Key))) {
+    throw new AppError("Submission file upload is not complete", 400)
+  }
 }
 
 export async function createTaskSubmissionService(input: SubmitTaskInput) {
@@ -34,6 +53,10 @@ export async function createTaskSubmissionService(input: SubmitTaskInput) {
   assertTaskSubmittable(task.status)
   assertSubmissionPayload(input)
 
+  if (input.fileAssetId) {
+    await assertSubmissionFileAsset(input.fileAssetId, input.actor)
+  }
+
   const submission = await createSubmissionRecord({
     taskId: input.taskId,
     submittedBy: input.actor.userId,
@@ -45,7 +68,7 @@ export async function createTaskSubmissionService(input: SubmitTaskInput) {
     throw new AppError("Task not found", 404)
   }
 
-  await updateTaskStatusForSubmission(input.taskId, "SUBMITTED")
+  await updateTaskForNewSubmission(input.taskId, String(submission._id))
   return submission
 }
 

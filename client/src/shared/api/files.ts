@@ -1,25 +1,40 @@
-import { api } from "./_client";
+import { api, unwrap } from "./_client";
+
+export interface PresignedUpload {
+  uploadUrl: string;
+  fileAssetId: string;
+  r2Key: string;
+  expiresIn: number;
+}
+
+export interface PresignedDownload {
+  downloadUrl: string;
+  expiresIn: number;
+}
+
+export interface UploadAssetPayload {
+  fileAssetId: string;
+  r2Key: string;
+  originalName: string;
+  mimeType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+  size: number;
+}
 
 export const filesApi = {
-  getPresignedUploadUrl: async (originalName: string, contentType: string) => {
-    const res = await api.post("/files/presigned-upload", { originalName, contentType });
-    return res.data;
-  },
+  getPresignedUploadUrl: async (originalName: string, contentType: string) =>
+    api
+      .post("/files/presigned-upload", { originalName, contentType })
+      .then(unwrap<PresignedUpload>),
 
   confirmPageUpload: async (
     pageId: string,
     payload: {
-      original: any;
-      working: any;
-      thumbnail: any;
+      original: UploadAssetPayload;
+      working: UploadAssetPayload;
+      thumbnail: UploadAssetPayload;
     },
-  ) => {
-    const res = await api.post(`/files/pages/${pageId}/confirm-upload`, payload);
-    return res.data;
-  },
+  ) => api.post(`/files/pages/${pageId}/confirm-upload`, payload).then(unwrap<unknown>),
 
-  getPresignedDownloadUrl: async (fileAssetId: string) => {
-    const res = await api.get(`/files/${fileAssetId}/presigned-download`);
-    return res.data;
-  },
+  getPresignedDownloadUrl: async (fileAssetId: string) =>
+    api.get(`/files/${fileAssetId}/presigned-download`).then(unwrap<PresignedDownload>),
 };

@@ -80,7 +80,12 @@ const NAV: NavItem[] = [
 
 const PROD_NAV: NavItem[] = [
   { to: "/app/tasks", label: "Task Overview", icon: ListChecks, roles: ["mangaka"] },
-  { to: "/app/board", label: "Board voting", icon: Vote, roles: ["board", "editor", "admin"] },
+  {
+    to: "/app/board/series-review",
+    label: "Board voting",
+    icon: Vote,
+    roles: ["board", "editor", "admin"],
+  },
   { to: "/app/submissions", label: "Submissions", icon: CheckCircle2, roles: ["editor", "admin"] },
   {
     to: "/app/publications",

@@ -11,6 +11,7 @@ import { isAssistantEligible } from "@/entities/series-member/model";
 export type Verdict = { allowed: boolean; reason?: string };
 const ok: Verdict = { allowed: true };
 const no = (reason: string): Verdict => ({ allowed: false, reason });
+const workflowStatus = (status: string) => status.toLowerCase().replaceAll("_", "-");
 
 // ---- Flow 00 — Auth / Admin ----
 export const canManageUsers = (role: Role): Verdict =>
@@ -29,7 +30,8 @@ export const canSubmitProposal = (role: Role, series: Series): Verdict => {
 
 export const canEditorReview = (role: Role, series: Series): Verdict => {
   if (role !== "editor") return no("Only Editor can act on review.");
-  if (series.status !== "editor-review") return no("Series is not in Editor review.");
+  if (workflowStatus(series.status) !== "editor-review")
+    return no("Series is not in Editor review.");
   return ok;
 };
 
@@ -37,7 +39,7 @@ export const canForwardToBoard = (role: Role, series: Series) => canEditorReview
 
 export const canBoardVote = (role: Role, series: Series): Verdict => {
   if (role !== "board") return no("Only Board members can vote.");
-  if (series.status !== "board-review") return no("Series is not in Board review.");
+  if (workflowStatus(series.status) !== "board-review") return no("Series is not in Board review.");
   return ok;
 };
 
@@ -49,7 +51,7 @@ export const canFinalizeBoardDecision = (role: Role, series: Series): Verdict =>
 // ---- Flow 02 — Chapter / Page ----
 export const canCreateChapter = (role: Role, series: Series): Verdict => {
   if (!["mangaka", "admin"].includes(role)) return no("Only Mangaka can create Chapters.");
-  if (!["approved", "ongoing", "at-risk"].includes(series.status))
+  if (!["approved", "ongoing", "at-risk"].includes(workflowStatus(series.status)))
     return no("Series must be approved/ongoing.");
   if (!series.publicationType) return no("Series is missing publicationType.");
   return ok;

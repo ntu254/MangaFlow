@@ -28,6 +28,7 @@ import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppBoardRouteImport } from './routes/app/board'
 import { Route as AppAssistantRouteRouteImport } from './routes/app/assistant/route'
 import { Route as AppSeriesIndexRouteImport } from './routes/app/series/index'
+import { Route as AppBoardIndexRouteImport } from './routes/app/board/index'
 import { Route as AppAssistantIndexRouteImport } from './routes/app/assistant/index'
 import { Route as ReadSlugChapterRouteImport } from './routes/read/$slug/$chapter'
 import { Route as AppSeriesNewRouteImport } from './routes/app/series/new'
@@ -152,6 +153,11 @@ const AppSeriesIndexRoute = AppSeriesIndexRouteImport.update({
   id: '/series/',
   path: '/series/',
   getParentRoute: () => AppRoute,
+} as any)
+const AppBoardIndexRoute = AppBoardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppBoardRoute,
 } as any)
 const AppAssistantIndexRoute = AppAssistantIndexRouteImport.update({
   id: '/',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/assistant/': typeof AppAssistantIndexRoute
+  '/app/board/': typeof AppBoardIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
@@ -355,7 +362,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/app/board': typeof AppBoardRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/payroll': typeof AppPayrollRoute
@@ -381,6 +387,7 @@ export interface FileRoutesByTo {
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/assistant': typeof AppAssistantIndexRoute
+  '/app/board': typeof AppBoardIndexRoute
   '/app/series': typeof AppSeriesIndexRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
@@ -432,6 +439,7 @@ export interface FileRoutesById {
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/assistant/': typeof AppAssistantIndexRoute
+  '/app/board/': typeof AppBoardIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
@@ -484,6 +492,7 @@ export interface FileRouteTypes {
     | '/app/series/new'
     | '/read/$slug/$chapter'
     | '/app/assistant/'
+    | '/app/board/'
     | '/app/series/'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
@@ -504,7 +513,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/app/board'
     | '/app/dashboard'
     | '/app/notifications'
     | '/app/payroll'
@@ -530,6 +538,7 @@ export interface FileRouteTypes {
     | '/app/series/new'
     | '/read/$slug/$chapter'
     | '/app/assistant'
+    | '/app/board'
     | '/app/series'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
@@ -580,6 +589,7 @@ export interface FileRouteTypes {
     | '/app/series/new'
     | '/read/$slug/$chapter'
     | '/app/assistant/'
+    | '/app/board/'
     | '/app/series/'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
@@ -739,6 +749,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/series/'
       preLoaderRoute: typeof AppSeriesIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/app/board/': {
+      id: '/app/board/'
+      path: '/'
+      fullPath: '/app/board/'
+      preLoaderRoute: typeof AppBoardIndexRouteImport
+      parentRoute: typeof AppBoardRoute
     }
     '/app/assistant/': {
       id: '/app/assistant/'
@@ -982,11 +999,13 @@ const AppAssistantRouteRouteWithChildren =
 
 interface AppBoardRouteChildren {
   AppBoardSeriesReviewRoute: typeof AppBoardSeriesReviewRoute
+  AppBoardIndexRoute: typeof AppBoardIndexRoute
   AppBoardSeriesIdVoteRoute: typeof AppBoardSeriesIdVoteRoute
 }
 
 const AppBoardRouteChildren: AppBoardRouteChildren = {
   AppBoardSeriesReviewRoute: AppBoardSeriesReviewRoute,
+  AppBoardIndexRoute: AppBoardIndexRoute,
   AppBoardSeriesIdVoteRoute: AppBoardSeriesIdVoteRoute,
 }
 
