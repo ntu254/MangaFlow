@@ -5,6 +5,7 @@ export const getPresignedUploadUrlSchema = z.object({
     originalName: z.string().min(1, "Original name is required"),
     contentType: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
     expiresIn: z.number().int().positive().optional(),
+    chapterId: z.string().min(1, "Chapter ID is required").optional(),
   }),
 })
 

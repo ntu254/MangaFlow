@@ -38,11 +38,17 @@ const TOOLS: ToolItem[] = [
 ];
 
 export function HeaderToolBar() {
-  const { activeTool, setActiveTool } = useStudioStore();
+  const { activeTool, setActiveTool, setActiveTab, setInspectorCollapsed } = useStudioStore();
 
   const handleToolClick = (toolId: Tool) => {
     if (toolId === "save") {
       toast.success("Canvas changes saved to workspace.");
+      return;
+    }
+    if (toolId === "ai") {
+      setActiveTab("ai");
+      setInspectorCollapsed(false);
+      toast.info("AI tools opened. Run segmentation from the right panel.");
       return;
     }
     setActiveTool(toolId);
@@ -52,7 +58,7 @@ export function HeaderToolBar() {
     <div className="flex items-center gap-1 bg-foreground/[0.03] border border-border rounded-lg p-1 h-8.5 shadow-sm">
       {TOOLS.map((t, idx) => {
         const isDividerAfter = idx === 1 || idx === 4 || idx === 7 || idx === 8;
-        const isActive = activeTool === t.id;
+        const isActive = t.id !== "ai" && activeTool === t.id;
 
         return (
           <div key={t.id} className="flex items-center">

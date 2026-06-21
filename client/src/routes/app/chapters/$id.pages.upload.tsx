@@ -75,6 +75,7 @@ function PageUploadPage() {
       const { uploadUrl, fileAssetId, r2Key } = await filesApi.getPresignedUploadUrl(
         item.file.name,
         item.file.type,
+        { chapterId: chapter.id },
       );
 
       // 3. PUT file using XMLHttpRequest to track progress

@@ -36,14 +36,29 @@ function buildR2Key(fileAssetId: string, originalName: string): string {
   return `uploads/${fileAssetId}.${ext}`;
 }
 
+function buildChapterImageR2Key(
+  fileAssetId: string,
+  originalName: string,
+  seriesId: string,
+  chapterId: string,
+): string {
+  const ext = originalName.split(".").pop()?.toLowerCase() || "bin";
+  return `series/${seriesId}/chapters/${chapterId}/images/${fileAssetId}.${ext}`;
+}
+
 export async function createPresignedUploadUrl(
   originalName: string,
   contentType: string,
   expiresIn = 3600,
   customR2Key?: string,
+  scope?: { seriesId: string; chapterId: string },
 ): Promise<PresignedUploadResult> {
   const fileAssetId = new Types.ObjectId().toString();
-  const r2Key = customR2Key || buildR2Key(fileAssetId, originalName);
+  const r2Key = customR2Key || (
+    scope
+      ? buildChapterImageR2Key(fileAssetId, originalName, scope.seriesId, scope.chapterId)
+      : buildR2Key(fileAssetId, originalName)
+  );
 
   const command = new PutObjectCommand({
     Bucket: config.r2Bucket,

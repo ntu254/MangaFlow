@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express"
 import {
   runAISegmentationService,
+  runAITextWhiteningService,
   listAIResultsService,
   acceptAISuggestionService,
   rejectAISuggestionService,
@@ -13,6 +14,11 @@ function actorOf(req: Request) {
 export async function runAISegmentation(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const aiResult = await runAISegmentationService(String(req.params.pageId), actorOf(req))
   res.status(201).json({ success: true, message: "AI segmentation completed", data: aiResult })
+}
+
+export async function runAITextWhitening(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const fileAsset = await runAITextWhiteningService(String(req.params.pageId), actorOf(req))
+  res.status(201).json({ success: true, message: "AI text whitening completed", data: fileAsset })
 }
 
 export async function listAIResults(req: Request, res: Response, _next: NextFunction): Promise<void> {

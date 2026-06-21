@@ -13,4 +13,21 @@ describe("createPresignedUploadUrl", () => {
     expect(isValidObjectId(result.fileAssetId)).toBe(true)
     expect(result.r2Key).toBe(`uploads/${result.fileAssetId}.jpg`)
   })
+
+  it("stores chapter page images under series/chapter/image folders when scoped", async () => {
+    const result = await createPresignedUploadUrl(
+      "Page 01.PNG",
+      "image/png",
+      3600,
+      undefined,
+      {
+        seriesId: "series-1",
+        chapterId: "chapter-2",
+      },
+    )
+
+    expect(result.r2Key).toBe(
+      `series/series-1/chapters/chapter-2/images/${result.fileAssetId}.png`,
+    )
+  })
 })

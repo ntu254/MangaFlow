@@ -20,10 +20,18 @@ export interface UploadAssetPayload {
   size: number;
 }
 
+export interface PresignedUploadScope {
+  chapterId?: string;
+}
+
 export const filesApi = {
-  getPresignedUploadUrl: async (originalName: string, contentType: string) =>
+  getPresignedUploadUrl: async (
+    originalName: string,
+    contentType: string,
+    scope?: PresignedUploadScope,
+  ) =>
     api
-      .post("/files/presigned-upload", { originalName, contentType })
+      .post("/files/presigned-upload", { originalName, contentType, ...scope })
       .then(unwrap<PresignedUpload>),
 
   confirmPageUpload: async (
