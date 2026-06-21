@@ -5,6 +5,7 @@ import {
   listReviewQueueSubmissions,
   listSubmissionsByTask,
   updateTaskForNewSubmission,
+  listAllSubmissionsRepo,
 } from "../submission.repository.js"
 import type { SubmissionActor } from "../policies/submission-access.policy.js"
 import { assertSubmissionSeriesMember } from "../policies/submission-access.policy.js"
@@ -153,4 +154,41 @@ export async function getTaskUploadUrlService(input: GetTaskUploadUrlInput) {
     fileAssetId: fileAsset.id,
   }
 }
+
+export async function listAllSubmissionsService(actor: SubmissionActor) {
+  if (actor.role === "ADMIN") {
+    return listAllSubmissionsRepo(null);
+  }
+
+  if (["MANGAKA", "EDITOR"].includes(actor.role)) {
+    const { SeriesMember } = await import("../../series/series.model.js")
+    const { ACTIVE_MEMBER_QUERY } = await import("../../../shared/policies/seriesMember.policy.js")
+    const members = await SeriesMember.find({
+      userId: actor.userId,
+      role: actor.role,
+      ...ACTIVE_MEMBER_QUERY,
+    }).lean()
+    const seriesIds = members.map((member: any) => String(member.seriesId))
+    if (seriesIds.length === 0) return []
+    return listAllSubmissionsRepo(seriesIds)
+  }
+
+  if (actor.role === "ASSISTANT") {
+    const docs = await FileAsset.find({ uploadedBy: actor.userId }).lean()
+    // For assistant, they can view their own submissions directly
+    const { Submission } = await import("../submission.model.js")
+    const submissions = await Submission.find({ submittedBy: actor.userId })
+      .sort({ updatedAt: -1 })
+      .populate("submittedBy", "name role")
+      .populate("fileAssetId", "originalName")
+      .populate("seriesId", "title")
+      .populate("taskId", "title")
+      .populate("chapterId", "chapterNumber title")
+      .lean()
+    return submissions.map((d: any) => ({ ...d, id: String(d._id) }))
+  }
+
+  return []
+}
+
 

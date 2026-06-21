@@ -9,6 +9,13 @@ export function useReviewQueue(seriesId?: string) {
   });
 }
 
+export function useAllSubmissions() {
+  return useQuery({
+    queryKey: qk.submissions.root,
+    queryFn: submissionsApi.listAll,
+  });
+}
+
 export function useTaskSubmissions(taskId: string) {
   return useQuery({
     queryKey: qk.submissions.byTask(taskId),

@@ -42,6 +42,12 @@ router.get(
   asyncHandler(controller.listReviewQueueSubmissions),
 )
 
+router.get(
+  "/submissions",
+  requireAuth,
+  asyncHandler(controller.listAllSubmissions),
+)
+
 router.post(
   "/submissions/:submissionId/mangaka-approve",
   requireAuth,

@@ -5,6 +5,7 @@ import { RoleSwitcher } from "@/shared/ui/site/RoleSwitcher";
 import { NotificationBell } from "@/shared/ui/site/NotificationBell";
 import { useRole } from "@/shared/lib/role";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
+import { useTaskDetail } from "@/shared/queries/useTasks";
 
 const LABELS: Record<string, string> = {
   app: "App",
@@ -47,6 +48,8 @@ const LABELS: Record<string, string> = {
   "series-review": "Series review",
   vote: "Vote",
   proposal: "Proposal",
+  "final-reviews": "Final Reviews",
+  "final-review": "Final Review",
 };
 
 export function Topbar() {
@@ -62,6 +65,10 @@ export function Topbar() {
   const { data: summary } = useSeriesSummary(seriesId || "");
   const seriesTitle = summary?.series?.title?.trim();
 
+  const taskId = extractTaskIdFromPath(rawParts);
+  const { data: taskDetail } = useTaskDetail(taskId || "");
+  const taskTitle = taskDetail?.title?.trim();
+
   const handleLogout = async () => {
     await logout();
     navigate({ to: "/login", replace: true });
@@ -76,6 +83,10 @@ export function Topbar() {
 
           let label = LABELS[p] ?? decodeURIComponent(p);
 
+          if (p === "tasks" && rawParts.includes("editor")) {
+            label = "Final Reviews";
+          }
+
           if (isSeriesId) {
             label = seriesTitle || "Untitled draft";
             // Truncate if too long
@@ -83,7 +94,15 @@ export function Topbar() {
               label = label.substring(0, 30) + "...";
             }
           } else if (isObjectId) {
-            label = "Task";
+            const isTaskId = !!taskId && p === taskId;
+            if (isTaskId) {
+              label = taskTitle || "Task";
+              if (label.length > 30) {
+                label = label.substring(0, 30) + "...";
+              }
+            } else {
+              label = "Task";
+            }
           }
 
           // We still need the original href which might include /app
@@ -151,5 +170,12 @@ function extractSeriesIdFromPath(rawParts: string[]) {
   const seriesIndex = rawParts.indexOf("series");
   if (seriesIndex < 0) return "";
   const candidate = rawParts[seriesIndex + 1] ?? "";
+  return candidate.length === 24 && /^[0-9a-fA-F]{24}$/.test(candidate) ? candidate : "";
+}
+
+function extractTaskIdFromPath(rawParts: string[]) {
+  const tasksIndex = rawParts.indexOf("tasks");
+  if (tasksIndex < 0) return "";
+  const candidate = rawParts[tasksIndex + 1] ?? "";
   return candidate.length === 24 && /^[0-9a-fA-F]{24}$/.test(candidate) ? candidate : "";
 }
