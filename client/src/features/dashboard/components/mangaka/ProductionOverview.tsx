@@ -1,6 +1,6 @@
 import { BookOpen, FileText, Image as ImageIcon, CheckCircle, Users } from "lucide-react";
 
-export function ProductionOverview({ data }: { data?: any }) {
+export function ProductionOverview({ data }: { data?: { quickStats?: { activeSeries?: number; completedTasks?: number; pendingReviews?: number }; activeSeriesPipeline?: { production?: number } } }) {
   const stats = [
     {
       icon: BookOpen,

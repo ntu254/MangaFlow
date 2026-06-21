@@ -3,7 +3,7 @@ import { getChapterReadinessData } from "../chapter.repository.js"
 import { Chapter } from "../chapter.model.js"
 
 export interface PublicationReadinessItemResult {
-  key: "allPagesUploaded" | "allTasksApproved" | "noPendingMangakaReview" | "noPendingEditorReview" | "allCommentsResolved"
+  key: "allPagesUploaded" | "allPagesApproved" | "allTasksApproved" | "noPendingMangakaReview" | "noPendingEditorReview" | "allCommentsResolved"
   passed: boolean
   reason: string
 }
@@ -22,8 +22,9 @@ export async function getChapterReadinessService(chapterId: string) {
   const hasPendingEditorReview = submissions.some((submission) => submission.status === "MANGAKA_APPROVED")
 
   const items: PublicationReadinessItemResult[] = [
-    { key: "allPagesUploaded", passed: hasPages && pages.every((page) => page.status === "UPLOADED" || page.status === "APPROVED"), reason: hasPages ? pages.every((page) => page.status === "UPLOADED" || page.status === "APPROVED") ? "All chapter pages exist and are uploaded." : "One or more pages are missing upload-ready status." : "No pages exist for this chapter." },
-    { key: "allTasksApproved", passed: hasTasks && tasks.every((task) => task.status === "EDITOR_APPROVED"), reason: hasTasks ? tasks.every((task) => task.status === "EDITOR_APPROVED") ? "All tasks reached Editor approval." : "One or more tasks are not Editor-approved." : "No tasks exist for this chapter." },
+    { key: "allPagesUploaded", passed: hasPages && pages.every((page) => page.status === "UPLOADED" || page.status === "APPROVED" || page.status === "IN_TASK"), reason: hasPages ? pages.every((page) => page.status === "UPLOADED" || page.status === "APPROVED" || page.status === "IN_TASK") ? "All chapter pages exist and are uploaded." : "One or more pages are missing upload-ready status." : "No pages exist for this chapter." },
+    { key: "allPagesApproved", passed: hasPages && pages.every((page) => page.status === "APPROVED"), reason: hasPages ? pages.every((page) => page.status === "APPROVED") ? "All pages have passed quality control (Editor approval)." : "One or more pages have not passed quality control yet." : "No pages exist for this chapter." },
+    { key: "allTasksApproved", passed: !hasTasks || tasks.every((task) => task.status === "EDITOR_APPROVED"), reason: hasTasks ? tasks.every((task) => task.status === "EDITOR_APPROVED") ? "All tasks reached Editor approval." : "One or more tasks are not Editor-approved." : "No tasks exist for this chapter." },
     { key: "noPendingMangakaReview", passed: !hasPendingMangakaReview, reason: hasPendingMangakaReview ? "A submission is waiting for Mangaka review." : "No submissions are waiting for Mangaka review." },
     { key: "noPendingEditorReview", passed: !hasPendingEditorReview, reason: hasPendingEditorReview ? "A submission is waiting for Editor final review." : "No submissions are waiting for Editor final review." },
     { key: "allCommentsResolved", passed: blockingComments.length === 0, reason: blockingComments.length === 0 ? "All blocking comments are resolved by Editor." : `${blockingComments.length} blocking comment(s) still need Editor resolution.` },

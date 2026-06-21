@@ -95,6 +95,18 @@ export async function rejectSubmissionService(input: ReviewInput) {
   const updated = await updateSubmissionStatus(input.submissionId, "REJECTED", input.reviewerNote)
   await updateTaskStatusForSubmission(String(task._id), "REJECTED")
   await syncFinishedTaskTarget(task)
+
+  // If earning was already created for this task (e.g. from a previous approval cycle), void it
+  try {
+    const { getEarningByTaskId, updateEarningStatus } = await import("../../payroll/payroll.repository.js")
+    const existingEarning = await getEarningByTaskId(String(task._id))
+    if (existingEarning && existingEarning.status === "PENDING") {
+      await updateEarningStatus(String(existingEarning._id), "VOID")
+    }
+  } catch {
+    // Non-fatal: payroll cleanup is best-effort
+  }
+
   return updated
 }
 
@@ -110,5 +122,17 @@ export async function editorRejectSubmissionService(input: ReviewInput) {
   const updated = await updateSubmissionStatus(input.submissionId, "REJECTED", input.reviewerNote)
   await updateTaskStatusForSubmission(String(task._id), "REJECTED")
   await syncFinishedTaskTarget(task)
+
+  // If earning was already created for this task (e.g. from a previous approval cycle), void it
+  try {
+    const { getEarningByTaskId, updateEarningStatus } = await import("../../payroll/payroll.repository.js")
+    const existingEarning = await getEarningByTaskId(String(task._id))
+    if (existingEarning && existingEarning.status === "PENDING") {
+      await updateEarningStatus(String(existingEarning._id), "VOID")
+    }
+  } catch {
+    // Non-fatal: payroll cleanup is best-effort
+  }
+
   return updated
 }

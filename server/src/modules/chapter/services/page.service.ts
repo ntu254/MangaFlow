@@ -11,11 +11,20 @@ async function assertPageCanBeChanged(chapterId: string, pageId: string) {
   const page = await Page.findOne({ _id: pageId, chapterId, deletedAt: { $exists: false } })
   if (!page) throw new AppError("Page not found", 404)
 
-  const [chapter, activeTask, submission, approvedTask] = await Promise.all([
+  const [chapter, activeTask, submission, approvedTask, regionSubmissions] = await Promise.all([
     Chapter.findById(chapterId),
     Task.findOne({ pageId, status: { $in: ACTIVE_TASK_STATUSES } }),
     Submission.exists({ pageId }),
     Task.exists({ pageId, status: "EDITOR_APPROVED" }),
+    // Also check for submissions linked via regions on this page
+    Region.exists({ pageId }).then((regionExists) =>
+      regionExists
+        ? Submission.exists({
+            pageId: { $exists: false },
+            regionId: { $in: (await Region.find({ pageId }).select("_id").lean()).map((r) => r._id) },
+          })
+        : null,
+    ),
   ])
   if (chapter?.status === "PUBLISHED") {
     throw new AppError("Published chapter pages cannot be changed", 409)
@@ -23,7 +32,7 @@ async function assertPageCanBeChanged(chapterId: string, pageId: string) {
   if (activeTask) {
     throw new AppError("This page has active tasks. Cancel or finish tasks first.", 409)
   }
-  if (submission || approvedTask) {
+  if (submission || approvedTask || regionSubmissions) {
     throw new AppError("Pages with submissions or approved work cannot be changed", 409)
   }
   return page

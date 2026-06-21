@@ -25,8 +25,9 @@ export async function createChapterRepository(input: CreateChapterInput): Promis
     throw new Error("Series not found")
   }
 
-  if (series.status !== "ONGOING") {
-    throw new Error(`Chapter creation not allowed. Series status is ${series.status}. Must be ONGOING.`)
+  const allowedStatuses = ["ONGOING", "AT_RISK"]
+  if (!allowedStatuses.includes(series.status as string)) {
+    throw new Error(`Chapter creation not allowed. Series status is ${series.status}. Must be ONGOING or AT_RISK.`)
   }
   if (!series.publicationType) {
     throw new Error("Chapter creation not allowed. Series must have an official publication type.")

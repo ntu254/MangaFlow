@@ -21,7 +21,7 @@ export async function markCommentFixedService(commentId: string, actor: CommentA
   }
 
   assertMarkFixedTransition(comment.status)
-  return updateCommentStatus(commentId, "RESOLVED", "fixedBy", actor.userId)
+  return updateCommentStatus(commentId, "FIXED", "fixedBy", actor.userId)
 }
 
 export async function verifyCommentFixedService(commentId: string, actor: CommentActor) {

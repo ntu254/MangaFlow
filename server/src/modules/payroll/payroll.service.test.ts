@@ -34,11 +34,11 @@ describe("payroll service", () => {
   })
 
   it("calculates deadline multipliers from task completion time", () => {
-    expect(calculateDeadlineMultiplier("EDITOR_APPROVED", approvedTask.dueDate, new Date("2026-06-07T09:00:00.000Z"))).toEqual({ multiplier: 1.1, isLate: false })
-    expect(calculateDeadlineMultiplier("EDITOR_APPROVED", approvedTask.dueDate, new Date("2026-06-08T09:00:00.000Z"))).toEqual({ multiplier: 1, isLate: false })
-    expect(calculateDeadlineMultiplier("EDITOR_APPROVED", approvedTask.dueDate, new Date("2026-06-09T09:00:00.000Z"))).toEqual({ multiplier: 0.95, isLate: true })
-    expect(calculateDeadlineMultiplier("EDITOR_APPROVED", approvedTask.dueDate, new Date("2026-06-10T11:00:00.000Z"))).toEqual({ multiplier: 1, isLate: true })
-    expect(calculateDeadlineMultiplier("REJECTED", approvedTask.dueDate, new Date("2026-06-08T09:00:00.000Z"))).toEqual({ multiplier: 0, isLate: false })
+    expect(calculateDeadlineMultiplier(approvedTask.dueDate, new Date("2026-06-07T09:00:00.000Z"))).toEqual({ multiplier: 1.1, isLate: false })
+    expect(calculateDeadlineMultiplier(approvedTask.dueDate, new Date("2026-06-08T09:00:00.000Z"))).toEqual({ multiplier: 1, isLate: false })
+    expect(calculateDeadlineMultiplier(approvedTask.dueDate, new Date("2026-06-09T09:00:00.000Z"))).toEqual({ multiplier: 0.95, isLate: true })
+    expect(calculateDeadlineMultiplier(approvedTask.dueDate, new Date("2026-06-10T11:00:00.000Z"))).toEqual({ multiplier: 0.9, isLate: true })
+    expect(calculateDeadlineMultiplier(approvedTask.dueDate, new Date("2026-06-15T10:00:00.000Z"))).toEqual({ multiplier: 0.8, isLate: true })
   })
 
   it("creates a pending earning from Task snapshot baseRate after Editor approval", async () => {
@@ -69,30 +69,19 @@ describe("payroll service", () => {
     )
   })
 
-  it("calculates rejected task payment as zero", async () => {
+  it("rejects calculation for rejected tasks — no earnings are created for rejected work", async () => {
     vi.mocked(repository.getTaskForPayroll).mockResolvedValue({
       ...approvedTask,
       status: "REJECTED",
     } as any)
     vi.mocked(SeriesMember.findOne).mockResolvedValue({ isActive: true, role: "MANGAKA" } as any)
-    vi.mocked(repository.getEarningByTaskId).mockResolvedValue(null)
-    vi.mocked(repository.createEarningRecord).mockResolvedValue({
-      id: "earning1",
-      status: "PENDING",
-      finalPayment: 0,
-    } as any)
 
-    await calculateTaskEarningService("task1", {
-      userId: "mangaka1",
-      role: "MANGAKA",
-    })
-
-    expect(repository.createEarningRecord).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deadlineMultiplier: 0,
-        finalPayment: 0,
+    await expect(
+      calculateTaskEarningService("task1", {
+        userId: "mangaka1",
+        role: "MANGAKA",
       }),
-    )
+    ).rejects.toThrow("Payroll can be calculated only after Editor approval")
   })
 
   it("blocks calculation before Editor approval or rejection", async () => {
@@ -107,7 +96,7 @@ describe("payroll service", () => {
         userId: "mangaka1",
         role: "MANGAKA",
       }),
-    ).rejects.toThrow("Payroll can be calculated only after Editor approval or rejection")
+    ).rejects.toThrow("Payroll can be calculated only after Editor approval")
   })
 
   it("blocks Assistant from confirming payroll", async () => {

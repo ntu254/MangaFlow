@@ -19,7 +19,7 @@ const GENERIC_MUTABLE_TASK_STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS"]
 export interface CreateTaskServiceInput {
   seriesId: string
   chapterId: string
-  pageId?: string
+  pageId: string
   regionId?: string
   taskTypeId: string
   assignedTo: string
@@ -33,7 +33,6 @@ export interface CreateTaskServiceInput {
 
 export async function createTaskService(input: CreateTaskServiceInput) {
   if (!input.title?.trim()) throw new AppError("Task title is required", 400)
-  if (!input.pageId) throw new AppError("Task must target a page or a region on a page", 400)
   if (typeof input.dueDate !== "object" || !(input.dueDate instanceof Date) || isNaN(input.dueDate.getTime())) {
     throw new AppError("Valid due date is required", 400)
   }
@@ -52,28 +51,6 @@ export async function createTaskService(input: CreateTaskServiceInput) {
     assignedTo: input.assignedTo,
     assignedBy: input.assignedBy,
   })
-
-  // Strict duplicate task prevention logic
-  const activeStatuses = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
-  const duplicateQuery: any = {
-    taskTypeId: input.taskTypeId,
-    status: { $in: activeStatuses },
-  }
-  if (input.regionId) {
-    duplicateQuery.regionId = input.regionId
-  } else if (input.pageId) {
-    duplicateQuery.pageId = input.pageId
-  } else {
-    duplicateQuery.chapterId = input.chapterId
-    duplicateQuery.pageId = { $exists: false }
-    duplicateQuery.regionId = { $exists: false }
-  }
-
-  const { Task } = await import("../task.model.js")
-  const existingActiveTask = await Task.findOne(duplicateQuery)
-  if (existingActiveTask) {
-    throw new AppError("An active task of this type already exists for the specified target", 409)
-  }
 
   const task = await createTaskRecord({
     seriesId: input.seriesId,

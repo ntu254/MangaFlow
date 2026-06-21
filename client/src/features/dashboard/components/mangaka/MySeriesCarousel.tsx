@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { series } from "@/entities";
+import { series, type Series } from "@/entities";
 import { Progress } from "@/shared/ui/shadcn/progress";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -38,7 +38,7 @@ export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: -360, behavior: "smooth" });
   };
 
-  const handleActionClick = (e: React.MouseEvent, s: any) => {
+  const handleActionClick = (e: React.MouseEvent, s: Series) => {
     e.preventDefault();
     e.stopPropagation();
     if (s.nextAction?.includes("Review")) navigate({ to: `/app/series/${s.id}/reviews` });

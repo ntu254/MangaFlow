@@ -38,9 +38,15 @@ export async function addSeriesMemberService(input: {
   if (!user) throw new AppError("User not found. Create an assistant account before inviting by email.", 404)
   if (!user.isActive) throw new AppError("User is not active", 400)
 
-  // Enforce system role matches series role for ASSISTANT
+  // Enforce system role matches series role
   if (input.role === "ASSISTANT" && user.role !== "ASSISTANT") {
     throw new AppError("User does not have the ASSISTANT system role", 400)
+  }
+  if (input.role === "EDITOR" && user.role !== "EDITOR") {
+    throw new AppError("User does not have the EDITOR system role", 400)
+  }
+  if (input.role === "CO_MANGAKA" && user.role !== "MANGAKA" && user.role !== "CO_MANGAKA") {
+    throw new AppError("User does not have the MANGAKA or CO_MANGAKA system role", 400)
   }
 
   const existingMember = await SeriesMember.findOne({
@@ -54,6 +60,7 @@ export async function addSeriesMemberService(input: {
       throw new AppError("User is already an active member of this series", 409)
     }
     existingMember.status = input.email ? "INVITED" : "ACTIVE"
+    // DEPRECATED: isActive is derived from status; kept for backward compat
     existingMember.isActive = existingMember.status === "ACTIVE"
     existingMember.role = input.role as any
     existingMember.accessScope = input.accessScope
@@ -75,6 +82,7 @@ export async function addSeriesMemberService(input: {
     userId: user._id,
     role: input.role,
     status: input.email ? "INVITED" : "ACTIVE",
+    // DEPRECATED: isActive is derived from status; kept for backward compat
     isActive: !input.email,
     accessScope: input.accessScope,
   })
