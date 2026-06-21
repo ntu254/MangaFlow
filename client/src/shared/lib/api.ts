@@ -57,7 +57,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config ?? {};
     if (error.response?.status === 401 && !originalRequest._retry && refreshToken) {
       originalRequest._retry = true;
       try {
@@ -75,6 +75,12 @@ api.interceptors.response.use(
         setTokens(null, null);
         window.location.href = "/login";
         return Promise.reject(refreshError);
+      }
+    }
+    if (error.response?.status === 401 && !refreshToken && typeof window !== "undefined") {
+      setTokens(null, null);
+      if (!window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);

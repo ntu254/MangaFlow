@@ -1,17 +1,36 @@
-<!DOCTYPE html><html><head><style>
-  .box {
-    width: 200px; height: 200px;
-    background: red;
-    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-    filter: url(#round-corners);
-  }
-</style></head><body>
-  <div class="box"></div>
-  <svg width="0" height="0">
-    <filter id="round-corners">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
-      <feColorMatrix in="blur" mode="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 19 -9" result="mask"/>
-      <feComposite in="SourceGraphic" in2="mask" operator="in"/>
-    </filter>
-  </svg>
-</body></html>
+<!doctype html>
+<html>
+  <head>
+    <style>
+      .box {
+        width: 200px;
+        height: 200px;
+        background: red;
+        clip-path: polygon(
+          20px 0,
+          100% 0,
+          100% calc(100% - 20px),
+          calc(100% - 20px) 100%,
+          0 100%,
+          0 20px
+        );
+        filter: url(#round-corners);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box"></div>
+    <svg width="0" height="0">
+      <filter id="round-corners">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
+        <feColorMatrix
+          in="blur"
+          mode="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 19 -9"
+          result="mask"
+        />
+        <feComposite in="SourceGraphic" in2="mask" operator="in" />
+      </filter>
+    </svg>
+  </body>
+</html>

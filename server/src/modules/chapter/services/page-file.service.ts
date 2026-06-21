@@ -1,7 +1,8 @@
 import { AppError } from "../../../shared/errors/AppError.js"
 import { confirmPageUploadRepository, getFileAssetById, getPageWithFileAsset, markPageProcessingFailed } from "../chapter.repository.js"
-import { createPresignedDownloadUrl, createPresignedUploadUrl, validateFileSize, validateFileType } from "../file.service.js"
-import { assertCanReadFileAsset, assertCanReadPage, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import { createPresignedDownloadUrl, createPresignedUploadUrl, getFileBuffer, validateFileSize, validateFileType } from "../file.service.js"
+import { assertCanReadFileAsset, assertCanReadPage, assertCanWriteChapter, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
+import { Chapter } from "../chapter.model.js"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
@@ -9,6 +10,8 @@ export interface GetPresignedUploadUrlInput {
   originalName: string
   contentType: string
   expiresIn?: number
+  chapterId?: string
+  actor: AccessActor
 }
 
 export async function getPresignedUploadUrlService(input: GetPresignedUploadUrlInput) {
@@ -17,7 +20,23 @@ export async function getPresignedUploadUrlService(input: GetPresignedUploadUrlI
   if (!validateFileType(input.contentType, ALLOWED_TYPES)) {
     throw new AppError("File type not allowed. Use JPEG, PNG, WebP, or PDF", 400)
   }
-  return createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
+
+  const chapterId = input.chapterId?.trim()
+  if (!chapterId) {
+    return createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
+  }
+
+  await assertCanWriteChapter(input.actor, chapterId)
+  const chapter = await Chapter.findById(chapterId)
+  if (!chapter) throw new AppError("Chapter not found", 404)
+
+  return createPresignedUploadUrl(
+    input.originalName,
+    input.contentType,
+    input.expiresIn,
+    undefined,
+    { seriesId: String(chapter.seriesId), chapterId },
+  )
 }
 
 export interface UploadAssetInput {
@@ -86,6 +105,21 @@ export async function getPresignedDownloadUrlService(fileAssetId: string, actor:
   if (!fileAsset) throw new AppError("File asset not found", 404)
   await assertCanReadFileAsset(actor, trimmed)
   return createPresignedDownloadUrl(fileAsset.r2Key, expiresIn)
+}
+
+export async function getFileAssetContentService(fileAssetId: string, actor: AccessActor) {
+  const trimmed = fileAssetId.trim()
+  if (!trimmed) throw new AppError("File asset id is required", 400)
+  const fileAsset = await getFileAssetById(trimmed)
+  if (!fileAsset) throw new AppError("File asset not found", 404)
+  await assertCanReadFileAsset(actor, trimmed)
+
+  const buffer = await getFileBuffer(fileAsset.r2Key)
+  return {
+    buffer,
+    mimeType: fileAsset.mimeType,
+    originalName: fileAsset.originalName,
+  }
 }
 
 export async function getPageWithFileAssetService(pageId: string, actor: AccessActor) {

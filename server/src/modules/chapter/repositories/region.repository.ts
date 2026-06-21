@@ -27,7 +27,7 @@ export async function createRegionRepository(input: CreateRegionInput): Promise<
     regionIndex: input.regionIndex,
     type: input.type,
     bbox: input.bbox,
-    status: input.status ?? "CREATED",
+    status: input.status ?? "ACTIVE",
     source: input.source ?? "MANUAL",
     aiResultId: input.aiResultId,
     confidence: input.confidence,
@@ -42,7 +42,7 @@ export async function nextRegionIndex(pageId: string): Promise<number> {
 }
 
 export async function getRegionsByPage(pageId: string): Promise<any[]> {
-  return Region.find({ pageId }).sort({ regionIndex: 1 }).lean()
+  return Region.find({ pageId, status: { $ne: "DELETED" } }).sort({ regionIndex: 1 }).lean()
 }
 
 export async function getRegionById(regionId: string): Promise<any | null> {
@@ -64,9 +64,5 @@ export async function updateRegionRepository(regionId: string, patch: UpdateRegi
 }
 
 export async function deleteRegionRepository(regionId: string): Promise<any | null> {
-  const region = await Region.findByIdAndDelete(regionId)
-  if (region) {
-    await Page.findByIdAndUpdate(region.pageId, { $pull: { regionIds: region._id } })
-  }
-  return region
+  return Region.findByIdAndUpdate(regionId, { status: "DELETED" }, { new: true })
 }

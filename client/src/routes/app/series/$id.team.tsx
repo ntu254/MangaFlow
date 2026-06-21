@@ -6,7 +6,12 @@ import { logAudit } from "@/shared/lib/audit";
 import { notify } from "@/shared/lib/notifications";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { useSeriesSummary } from "@/shared/queries/useSeries";
+import {
+  useAddSeriesMember,
+  useSeriesMembers,
+  useUpdateSeriesMember,
+  useRemoveSeriesMember,
+} from "@/shared/queries/useSeries";
 import {
   Search,
   MoreVertical,
@@ -16,8 +21,18 @@ import {
   UserPlus,
   ShieldAlert,
   Send,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export const Route = createFileRoute("/app/series/$id/team")({
   component: TeamPage,
@@ -25,6 +40,7 @@ export const Route = createFileRoute("/app/series/$id/team")({
 
 const statusStyles: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-600 border-emerald-200",
+  invited: "bg-orange-50 text-orange-600 border-orange-200",
   "pending invite": "bg-orange-50 text-orange-600 border-orange-200",
   paused: "bg-slate-100 text-slate-500 border-slate-200",
   removed: "bg-red-50 text-red-500 border-red-200",
@@ -32,52 +48,104 @@ const statusStyles: Record<string, string> = {
 
 function TeamPage() {
   const { id } = Route.useParams();
-  const { data: summary, isLoading } = useSeriesSummary(id);
+  const { data: members = [], isLoading } = useSeriesMembers(id);
   const { role } = useRole();
   const me = currentUserByRole[role];
   const perm = canManageTeam(role);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteAccessScope, setInviteAccessScope] = useState<"FULL" | "TASK_ONLY">("TASK_ONLY");
 
   const [filter, setFilter] = useState<"All" | "Active" | "Pending" | "Paused" | "Removed">("All");
 
-  if (isLoading || !summary) {
+  const [dialogConfig, setDialogConfig] = useState<{
+    open: boolean;
+    memberId: string | null;
+  }>({
+    open: false,
+    memberId: null,
+  });
+
+  const updateMember = useUpdateSeriesMember(id);
+  const removeMember = useRemoveSeriesMember(id);
+  const addMember = useAddSeriesMember(id);
+
+  if (isLoading) {
     return <div className="p-8 text-center text-foreground/50 text-sm">Loading team...</div>;
   }
 
-  const members = summary.members;
-  
-  // Note: we'll simulate 'invited', 'paused', and 'removed' if they don't exist in backend mapping, 
-  // but let's just use what we have (isActive).
   const mappedMembers = members.map((m: any) => ({
     ...m,
-    status: m.isActive ? "active" : "paused",
+    id: m.id ?? m._id,
+    user:
+      m.user ??
+      (typeof m.userId === "object"
+        ? {
+            id: m.userId.id ?? m.userId._id,
+            name: m.userId.displayName ?? m.userId.name,
+            email: m.userId.email,
+            role: m.userId.role,
+          }
+        : undefined),
+    status: m.status ? m.status.toLowerCase() : m.isActive ? "active" : "paused",
   }));
 
   const activeMembers = mappedMembers.filter((m: any) => m.status === "active");
+  const pendingInvites = mappedMembers.filter((m: any) => m.status === "invited");
 
   const filteredMembers = mappedMembers.filter((m: any) => {
     if (filter === "All") return true;
-    if (filter === "Active") return m.status === "active";
-    if (filter === "Paused") return m.status === "paused";
-    return false; // Real data might not have pending/removed yet
+    if (filter === "Pending") return m.status === "invited";
+    return m.status === filter.toLowerCase();
   });
 
   function setStatus(memberId: string, status: string, type: string) {
-    // Optimistic or real API call here. For now we just show a toast
-    toast.success(`Simulated action: ${type.replaceAll("_", " ").toLowerCase()}`);
+    if (status === "removed") {
+      setDialogConfig({ open: true, memberId });
+    } else {
+      updateMember.mutate({ memberId, status: status.toUpperCase() });
+    }
   }
 
-  // Mock pending invites for UI realism since backend doesn't explicitly store "pending invites" as members
-  const pendingInvites = [
-    { email: "a.yamamoto@example.com", role: "Background Assistant", date: "May 17, 2025 11:32 AM", status: "PENDING" },
-  ];
+  function sendInvite(event: React.FormEvent) {
+    event.preventDefault();
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) {
+      toast.error("Enter an assistant email to invite.");
+      return;
+    }
+    addMember.mutate(
+      {
+        email,
+        role: "ASSISTANT",
+        accessScope: inviteAccessScope,
+      },
+      {
+        onSuccess: () => {
+          logAudit({
+            type: "SERIES_MEMBER_INVITED",
+            actorId: me.id,
+            entity: "series",
+            entityId: id,
+            payload: { email, role: "ASSISTANT", accessScope: inviteAccessScope },
+          });
+          notify(me.id, {
+            type: "TEAM_INVITE_SENT",
+            title: "Team invite sent",
+            body: email,
+            link: `/app/series/${id}/team`,
+          });
+          setInviteEmail("");
+        },
+      },
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl pb-12">
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-6">
-          
           {/* Main List Container */}
           <div className="rounded-xl border border-border bg-card shadow-sm mt-6">
             {/* Header */}
@@ -86,13 +154,13 @@ function TeamPage() {
               <p className="mt-1 text-[13px] text-muted-foreground">
                 Manage assistant eligibility and collaboration for this series.
               </p>
-              
+
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input 
-                    type="text" 
-                    placeholder="Search team member" 
+                  <input
+                    type="text"
+                    placeholder="Search team member"
                     className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
@@ -103,9 +171,9 @@ function TeamPage() {
                       key={f}
                       onClick={() => setFilter(f as any)}
                       className={`px-3 py-1.5 text-[12px] font-medium rounded-sm transition-colors ${
-                        filter === f 
-                        ? "bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900" 
-                        : "text-muted-foreground hover:text-foreground"
+                        filter === f
+                          ? "bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900"
+                          : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {f}
@@ -137,12 +205,11 @@ function TeamPage() {
                 <tbody className="divide-y divide-border">
                   {filteredMembers.map((m: any) => {
                     const user = m.user || { name: "Unknown User", email: "unknown@example.com" };
-                    let statusLabel = m.status.toUpperCase();
+                    const statusLabel = m.status.toUpperCase();
                     const initials = user.name.substring(0, 2).toUpperCase();
 
                     return (
                       <tr key={m.id} className="transition-colors hover:bg-muted/30 group">
-                        
                         {/* User Info */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -150,8 +217,12 @@ function TeamPage() {
                               {initials}
                             </div>
                             <div className="flex flex-col">
-                              <span className="font-semibold text-foreground text-[14px] leading-tight">{user.name}</span>
-                              <span className="text-[12px] text-muted-foreground mt-0.5">{user.email}</span>
+                              <span className="font-semibold text-foreground text-[14px] leading-tight">
+                                {user.name}
+                              </span>
+                              <span className="text-[12px] text-muted-foreground mt-0.5">
+                                {user.email}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -159,7 +230,13 @@ function TeamPage() {
                         {/* Role */}
                         <td className="px-4 py-4 align-middle">
                           <span className="text-[13px] font-medium text-foreground">
-                            {m.role === "ASSISTANT" ? "Assistant" : m.role === "EDITOR" ? "Editor" : m.role === "MANGAKA" ? "Mangaka" : (m.role || "Unknown Role")}
+                            {m.role === "ASSISTANT"
+                              ? "Assistant"
+                              : m.role === "EDITOR"
+                                ? "Editor"
+                                : m.role === "MANGAKA"
+                                  ? "Mangaka"
+                                  : m.role || "Unknown Role"}
                           </span>
                         </td>
 
@@ -178,7 +255,11 @@ function TeamPage() {
                         <td className="px-4 py-4 align-middle">
                           <div className="flex flex-col gap-0.5">
                             <span className="text-[13px] font-medium text-foreground">
-                              {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "Unknown")}
+                              {m.joinedAt
+                                ? new Date(m.joinedAt).toLocaleDateString()
+                                : m.createdAt
+                                  ? new Date(m.createdAt).toLocaleDateString()
+                                  : "Unknown"}
                             </span>
                             <span className="text-[11px] text-muted-foreground">Joined At</span>
                           </div>
@@ -193,40 +274,45 @@ function TeamPage() {
                               </button>
                             )}
                             {m.status === "paused" && (
-                              <button 
-                                  onClick={() => setStatus(m.id, "active", "SERIES_MEMBER_REACTIVATED")}
-                                  className="rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground shadow-sm hover:bg-muted"
-                                >
-                                  Reactivate
-                                </button>
+                              <button
+                                onClick={() =>
+                                  setStatus(m.id, "active", "SERIES_MEMBER_REACTIVATED")
+                                }
+                                className="rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground shadow-sm hover:bg-muted"
+                              >
+                                Reactivate
+                              </button>
                             )}
                             <div className="relative">
-                              <button 
+                              <button
                                 onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
                                 className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </button>
-                              
+
                               {openMenuId === m.id && (
                                 <>
-                                  <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setOpenMenuId(null)}
+                                  />
                                   <div className="absolute right-0 top-9 z-50 w-40 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in zoom-in-95">
                                     {m.status !== "paused" && (
-                                      <button 
+                                      <button
                                         className="flex w-full items-center rounded-sm px-2 py-1.5 text-[13px] hover:bg-accent hover:text-accent-foreground"
-                                        onClick={() => { 
-                                          setOpenMenuId(null); 
+                                        onClick={() => {
+                                          setOpenMenuId(null);
                                           setStatus(m.id, "paused", "SERIES_MEMBER_PAUSED");
                                         }}
                                       >
                                         Pause member
                                       </button>
                                     )}
-                                    <button 
+                                    <button
                                       className="flex w-full items-center rounded-sm px-2 py-1.5 text-[13px] text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                      onClick={() => { 
-                                        setOpenMenuId(null); 
+                                      onClick={() => {
+                                        setOpenMenuId(null);
                                         setStatus(m.id, "removed", "SERIES_MEMBER_REMOVED");
                                       }}
                                     >
@@ -238,111 +324,74 @@ function TeamPage() {
                             </div>
                           </div>
                         </td>
-
                       </tr>
                     );
                   })}
-                  
-                  {pendingInvites
-                    .filter(() => filter === "All" || filter === "Pending")
-                    .map((inv, i) => {
-                      const nameParts = inv.email.split('@')[0].split('.');
-                      const generatedName = nameParts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 
-                      return (
-                        <tr key={`inv_${i}`} className="transition-colors hover:bg-muted/30 group">
-                          
-                          {/* User Info */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-700">
-                                {generatedName.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-foreground text-[14px] leading-tight">{generatedName}</span>
-                                <span className="text-[12px] text-muted-foreground mt-0.5">{inv.email}</span>
-                              </div>
-                            </div>
-                          </td>
-
-                        {/* Role */}
-                        <td className="px-4 py-4 align-middle">
-                          <span className="text-[13px] font-medium text-foreground">
-                            {inv.role}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-4 py-4 align-middle">
-                          <span
-                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wide ${statusStyles["pending invite"]}`}
-                          >
-                            PENDING INVITE
-                          </span>
-                        </td>
-
-                        {/* Time */}
-                        <td className="px-4 py-4 align-middle">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[13px] font-medium text-foreground">
-                              {inv.date}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">Invite sent</span>
-                          </div>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-6 py-4 align-middle text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button className="rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground shadow-sm hover:bg-muted">
-                              Resend
-                            </button>
-                            <button className="rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground shadow-sm hover:bg-muted">
-                              Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
                 </tbody>
               </table>
 
-              {filteredMembers.length === 0 && (filter !== "All" && filter !== "Pending" || pendingInvites.length === 0) && (
-                <div className="p-12 text-center text-sm text-muted-foreground border-t border-border">
-                  No members found matching this filter.
-                </div>
-              )}
+              {filteredMembers.length === 0 &&
+                ((filter !== "All" && filter !== "Pending") || pendingInvites.length === 0) && (
+                  <div className="p-12 text-center text-sm text-muted-foreground border-t border-border">
+                    No members found matching this filter.
+                  </div>
+                )}
             </div>
           </div>
-
         </div>
 
         {/* RIGHT COLUMN (SIDEBAR) */}
         <div className="flex flex-col gap-6 mt-6">
-                  {/* Quick Invite */}
+          {/* Quick Invite */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h3 className="mb-4 font-bold text-foreground">Quick Invite</h3>
-            <div className="space-y-3">
-              <input 
-                type="text" 
-                placeholder="Email / user search" 
+            <form className="space-y-3" onSubmit={sendInvite}>
+              <input
+                type="email"
+                placeholder="assistant@example.com"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
                 className="h-9 w-full rounded-md border border-[#E5DFD3] bg-[#F5EFE6] px-3 text-[13px] text-foreground placeholder:text-[#A39B8B] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted/50"
               />
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Role</label>
+                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Role
+                  </label>
                   <select className="h-9 w-full rounded-md border border-[#E5DFD3] bg-[#F5EFE6] px-2 text-[13px] text-foreground focus:outline-none dark:border-border dark:bg-muted/50">
                     <option>Assistant</option>
                   </select>
                 </div>
-                <button className="flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-slate-900">
-                  Send Invite
+                <button
+                  type="submit"
+                  disabled={!perm.allowed || addMember.isPending}
+                  className="flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900"
+                >
+                  {addMember.isPending ? "Sending..." : "Send Invite"}
                 </button>
               </div>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Access
+                </label>
+                <select
+                  value={inviteAccessScope}
+                  onChange={(event) =>
+                    setInviteAccessScope(event.target.value as "FULL" | "TASK_ONLY")
+                  }
+                  className="h-9 w-full rounded-md border border-[#E5DFD3] bg-[#F5EFE6] px-2 text-[13px] text-foreground focus:outline-none dark:border-border dark:bg-muted/50"
+                >
+                  <option value="TASK_ONLY">Task only</option>
+                  <option value="FULL">Full team access</option>
+                </select>
+              </div>
+              {!perm.allowed && (
+                <p className="text-[11px] font-medium text-amber-600">{perm.reason}</p>
+              )}
+            </form>
           </div>
-          
+
           {/* Team Summary */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h3 className="mb-4 font-bold text-foreground">Team Summary</h3>
@@ -351,13 +400,17 @@ function TeamPage() {
                 <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <Users className="h-4 w-4 text-blue-500" /> Active members
                 </div>
-                <span className="mt-1 text-2xl font-black text-foreground">{activeMembers.length}</span>
+                <span className="mt-1 text-2xl font-black text-foreground">
+                  {activeMembers.length}
+                </span>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <UserPlus className="h-4 w-4 text-orange-500" /> Pending invites
                 </div>
-                <span className="mt-1 text-2xl font-black text-foreground">{pendingInvites.length}</span>
+                <span className="mt-1 text-2xl font-black text-foreground">
+                  {pendingInvites.length}
+                </span>
               </div>
             </div>
           </div>
@@ -380,9 +433,35 @@ function TeamPage() {
               </li>
             </ul>
           </div>
-
         </div>
       </div>
+
+      <AlertDialog
+        open={dialogConfig.open}
+        onOpenChange={(open) =>
+          setDialogConfig({ open, memberId: open ? dialogConfig.memberId : null })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this member? They will lose access to the series.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (dialogConfig.memberId) removeMember.mutate(dialogConfig.memberId);
+              }}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

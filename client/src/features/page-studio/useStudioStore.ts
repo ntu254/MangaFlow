@@ -19,10 +19,14 @@ export interface Viewport {
 }
 
 export interface RegionTask {
+  taskId?: string;
   taskType: string;
   assigneeId: string;
+  assigneeName?: string;
   priority: "high" | "medium" | "low";
   dueDate: string;
+  status?: string;
+  title?: string;
 }
 
 interface StudioStore {
@@ -32,7 +36,7 @@ interface StudioStore {
   isPanning: boolean;
   isSpaceDown: boolean;
   containerSize: { w: number; h: number };
-  
+
   // UI Panels and Toggles
   activeTab: "inspect" | "layers" | "ai" | "comments";
   isInspectorCollapsed: boolean;
@@ -40,7 +44,7 @@ interface StudioStore {
   showRegions: boolean;
   showComments: boolean;
   compareOriginal: boolean;
-  
+
   // Region Task Mappings
   regionTasks: Record<string, RegionTask>;
 
@@ -51,7 +55,7 @@ interface StudioStore {
   setIsPanning: (v: boolean) => void;
   setIsSpaceDown: (v: boolean) => void;
   setContainerSize: (size: { w: number; h: number }) => void;
-  
+
   // New UI Actions
   setActiveTab: (tab: "inspect" | "layers" | "ai" | "comments") => void;
   setInspectorCollapsed: (v: boolean) => void;
@@ -60,6 +64,7 @@ interface StudioStore {
   setShowComments: (v: boolean) => void;
   setCompareOriginal: (v: boolean) => void;
   assignTaskToRegion: (regionId: string, task: RegionTask | null) => void;
+  replaceRegionTasks: (tasks: Record<string, RegionTask>) => void;
 }
 
 export const useStudioStore = create<StudioStore>((set) => ({
@@ -69,14 +74,14 @@ export const useStudioStore = create<StudioStore>((set) => ({
   isPanning: false,
   isSpaceDown: false,
   containerSize: { w: 800, h: 600 },
-  
+
   activeTab: "inspect",
   isInspectorCollapsed: false,
   isCarouselCollapsed: false,
   showRegions: true,
   showComments: true,
   compareOriginal: false,
-  
+
   regionTasks: {},
 
   setViewport: (fn) =>
@@ -88,7 +93,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
   setIsPanning: (v) => set({ isPanning: v }),
   setIsSpaceDown: (v) => set({ isSpaceDown: v }),
   setContainerSize: (containerSize) => set({ containerSize }),
-  
+
   setActiveTab: (activeTab) => set({ activeTab }),
   setInspectorCollapsed: (isInspectorCollapsed) => set({ isInspectorCollapsed }),
   setCarouselCollapsed: (isCarouselCollapsed) => set({ isCarouselCollapsed }),
@@ -105,4 +110,5 @@ export const useStudioStore = create<StudioStore>((set) => ({
       }
       return { regionTasks: updated };
     }),
+  replaceRegionTasks: (regionTasks) => set({ regionTasks }),
 }));

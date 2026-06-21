@@ -1,12 +1,11 @@
 import { useMemo } from "react";
-import { tasks, type Task } from "@/entities";
+import type { Task } from "@/entities";
+import { useMyTasks } from "@/shared/queries/useTasks";
 import { normalizeStatus, type AssistantStatus } from "../lib/taskLifecycle";
 
 export function useAssistantTasks(assistantId: string) {
-  const mine = useMemo<Task[]>(
-    () => tasks.filter((t) => t.assigneeId === assistantId),
-    [assistantId],
-  );
+  const query = useMyTasks();
+  const mine = useMemo<Task[]>(() => query.data ?? [], [query.data]);
 
   const byStatus = useMemo(() => {
     const map: Record<AssistantStatus, Task[]> = {
@@ -38,5 +37,5 @@ export function useAssistantTasks(assistantId: string) {
     return c;
   }, [mine, byStatus]);
 
-  return { mine, byStatus, counts };
+  return { mine, byStatus, counts, query, assistantId };
 }

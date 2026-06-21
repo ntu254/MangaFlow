@@ -1,18 +1,28 @@
 import { fileAssets } from "@/entities/file-asset/model";
 
 export type PageStatus =
+  | "pending"
   | "uploading"
+  | "processing"
   | "uploaded"
   | "processing-failed"
-  | "task-assigned"
-  | "in-progress"
-  | "under-review"
-  | "approved";
+  | "in-task"
+  | "approved"
+  | "locked"
+  | "PENDING"
+  | "UPLOADING"
+  | "PROCESSING"
+  | "PROCESSING_FAILED"
+  | "UPLOADED"
+  | "IN_TASK"
+  | "APPROVED"
+  | "LOCKED";
 
 export type Page = {
   id: string;
   chapterId: string;
   order: number;
+  pageNumber?: number;
   status: PageStatus;
   originalFileAssetId: string;
   workingFileAssetId: string;
@@ -24,8 +34,7 @@ function mkPages(chapterId: string, count: number, startOrder = 1, startTriple =
   return Array.from({ length: count }).map((_, i) => {
     const tripleIdx = startTriple + i;
     const base = tripleIdx * 3;
-    const status: PageStatus =
-      i === 0 ? "approved" : i === 1 ? "under-review" : i < 4 ? "task-assigned" : "uploaded";
+    const status: PageStatus = i === 0 ? "approved" : i < 4 ? "in-task" : "uploaded";
     return {
       id: `pg_${chapterId}_${i + startOrder}`,
       chapterId,

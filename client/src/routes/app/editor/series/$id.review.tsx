@@ -1,77 +1,78 @@
-import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
-import { PageHeader } from "@/layouts/AppShell";
-import {
-  findSeries,
-  proposalBySeries,
-  manuscriptBySeries,
-  versionsByManuscript,
-  reviewsBySeries,
-  findStaff,
-  currentUserByRole,
-} from "@/entities";
-import { AuditTimeline } from "@/shared/ui/site/AuditTimeline";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
+import { PageHeader } from "@/layouts/AppShell";
+import { AuditTimeline } from "@/shared/ui/site/AuditTimeline";
 import { useRole } from "@/shared/lib/role";
 import { canEditorReview } from "@/shared/lib/permissions";
-import { logAudit } from "@/shared/lib/audit";
-import { notify } from "@/shared/lib/notifications";
-import { toast } from "sonner";
+import {
+  useEditorForwardToBoard,
+  useEditorRejectSeries,
+  useEditorRequestRevision,
+  useEditorSeriesReview,
+} from "@/shared/queries/useEditorReview";
+import type { PublicationType } from "@/shared/api/series";
 
 export const Route = createFileRoute("/app/editor/series/$id/review")({
-  loader: ({ params }) => {
-    const s = findSeries(params.id);
-    if (!s) throw notFound();
-    return { series: s };
-  },
   component: EditorReviewDetail,
 });
 
 function EditorReviewDetail() {
-  const { series } = Route.useLoaderData();
+  const { id } = Route.useParams();
   const router = useRouter();
   const { role } = useRole();
-  const me = currentUserByRole[role];
-  const perm = canEditorReview(role, series);
-
-  const proposal = proposalBySeries(series.id);
-  const manuscript = manuscriptBySeries(series.id);
-  const versions = manuscript ? versionsByManuscript(manuscript.id) : [];
-  const reviews = reviewsBySeries(series.id);
+  const { data: review, isLoading } = useEditorSeriesReview(id);
 
   const [decision, setDecision] = useState<"revision" | "reject" | "forward">("forward");
   const [comment, setComment] = useState("");
+  const [publicationType, setPublicationType] = useState<PublicationType>("WEEKLY");
 
-  function submit() {
+  const requestRevision = useEditorRequestRevision(id);
+  const rejectSeries = useEditorRejectSeries(id);
+  const forwardToBoard = useEditorForwardToBoard(id);
+  const isSubmitting =
+    requestRevision.isPending || rejectSeries.isPending || forwardToBoard.isPending;
+
+  if (isLoading || !review) {
+    return <div className="p-8 text-center text-sm text-foreground/55">Loading review...</div>;
+  }
+
+  const { series, manuscript } = review;
+  const perm = canEditorReview(role, series as any);
+
+  async function submit() {
     if (!perm.allowed) return toast.error(perm.reason);
-    if (!comment.trim()) return toast.error("Add a review comment.");
-    const typeMap = {
-      revision: "EDITOR_REVISION_REQUESTED",
-      reject: "EDITOR_REJECTED_SERIES",
-      forward: "SERIES_FORWARDED_TO_BOARD",
-    } as const;
-    logAudit({ type: typeMap[decision], actorId: me.id, entity: "series", entityId: series.id });
-    notify(series.mangakaId, {
-      type: typeMap[decision],
-      title:
-        decision === "forward"
-          ? "Series forwarded to Board"
-          : decision === "revision"
-            ? "Editor requested a revision"
-            : "Series rejected by Editor",
-      body: `${series.title} · ${comment.slice(0, 80)}`,
-      link: `/app/series/${series.id}/revisions`,
-    });
-    toast.success(`Recorded: ${typeMap[decision]}`);
-    setComment("");
+    const trimmed = comment.trim();
+    if (!trimmed) return toast.error("Add a review comment.");
+
+    if (decision === "revision") {
+      await requestRevision.mutateAsync({
+        revisionReason: trimmed,
+        feedbackSummary: trimmed,
+        reviewNote: trimmed,
+      });
+    } else if (decision === "reject") {
+      await rejectSeries.mutateAsync({
+        rejectReason: trimmed,
+        reviewNote: trimmed,
+      });
+    } else {
+      await forwardToBoard.mutateAsync({
+        editorRecommendation: trimmed,
+        feasibilityNote: trimmed,
+        suggestedPublicationType: publicationType,
+      });
+    }
+
     router.navigate({ to: "/app/editor/series-review" });
   }
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <div className="lg:col-span-2 space-y-5">
+    <div className="max-w-5xl mx-auto grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="space-y-5 lg:col-span-2">
         <PageHeader
           title={series.title}
-          jp={series.jp}
+          jp="編集レビュー"
           description={
             <Link to="/app/editor/series-review" className="underline-offset-2 hover:underline">
               ← Review queue
@@ -81,19 +82,21 @@ function EditorReviewDetail() {
 
         <div className="rounded-md border border-foreground/10 bg-card p-5">
           <div className="text-[10px] uppercase tracking-wider text-foreground/55">Proposal</div>
-          <div className="mt-2 text-sm">{proposal?.synopsis ?? series.synopsis}</div>
+          <div className="mt-2 text-sm">{series.synopsis}</div>
           <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
             <div>
               <dt className="text-foreground/55">Requested cadence</dt>
-              <dd className="font-medium capitalize">{proposal?.requestedPublicationType ?? "—"}</dd>
+              <dd className="font-medium">{series.requestedPublicationType ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-foreground/55">Genre</dt>
-              <dd className="font-medium">{proposal?.genre.join(", ") ?? "—"}</dd>
+              <dt className="text-foreground/55">Genres</dt>
+              <dd className="font-medium">
+                {series.genres.length ? series.genres.join(", ") : "—"}
+              </dd>
             </div>
             <div>
               <dt className="text-foreground/55">Audience</dt>
-              <dd className="font-medium capitalize">{proposal?.targetAudience ?? "—"}</dd>
+              <dd className="font-medium">{series.targetAudience ?? "—"}</dd>
             </div>
             <div>
               <dt className="text-foreground/55">Status</dt>
@@ -103,33 +106,22 @@ function EditorReviewDetail() {
         </div>
 
         <div className="rounded-md border border-foreground/10 bg-card p-5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/55 mb-3">
-            Manuscript versions
+          <div className="mb-3 text-[10px] uppercase tracking-wider text-foreground/55">
+            Latest manuscript
           </div>
-          {versions.length === 0 && (
-            <div className="text-xs text-foreground/55">No versions uploaded.</div>
-          )}
-          <div className="divide-y divide-foreground/10">
-            {versions.map((v) => {
-              const uploader = findStaff(v.uploadedBy);
-              return (
-                <div key={v.id} className="flex items-center gap-3 py-2 text-sm">
-                  <div className="font-mono text-xs text-foreground/55">v{v.version}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">{v.fileName}</div>
-                    <div className="text-[11px] text-foreground/55">
-                      {uploader?.name} · {v.uploadedAt} · {v.pageCount} pages
-                    </div>
-                    {v.note && <div className="mt-0.5 text-xs text-foreground/70">{v.note}</div>}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="rounded border border-foreground/10 p-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="font-semibold">Version {manuscript.version}</div>
+              <div className="text-xs text-foreground/55">{manuscript.status}</div>
+            </div>
+            {manuscript.reviewNote && (
+              <div className="mt-2 text-xs text-foreground/70">{manuscript.reviewNote}</div>
+            )}
           </div>
         </div>
 
         <div className="rounded-md border border-foreground/10 bg-card p-5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/55 mb-3">
+          <div className="mb-3 text-[10px] uppercase tracking-wider text-foreground/55">
             Decision
           </div>
           {!perm.allowed && (
@@ -137,35 +129,60 @@ function EditorReviewDetail() {
               {perm.reason}
             </div>
           )}
-          <div className="flex gap-2 mb-3">
-            {(["forward", "revision", "reject"] as const).map((d) => (
+          <div className="mb-3 flex gap-2">
+            {(["forward", "revision", "reject"] as const).map((value) => (
               <button
-                key={d}
-                onClick={() => setDecision(d)}
+                key={value}
+                onClick={() => setDecision(value)}
                 className={`h-8 rounded-md px-3 text-xs font-bold capitalize ${
-                  decision === d
+                  decision === value
                     ? "bg-foreground text-background"
                     : "border border-foreground/15 hover:bg-foreground/5"
                 }`}
               >
-                {d === "forward" ? "Forward to Board" : d === "revision" ? "Request revision" : "Reject"}
+                {value === "forward"
+                  ? "Forward to Board"
+                  : value === "revision"
+                    ? "Request revision"
+                    : "Reject"}
               </button>
             ))}
           </div>
+
+          {decision === "forward" && (
+            <label className="mb-3 block text-xs font-semibold text-foreground/70">
+              Suggested publication type
+              <select
+                value={publicationType}
+                onChange={(event) => setPublicationType(event.target.value as PublicationType)}
+                className="mt-1 h-9 w-full rounded-md border border-foreground/15 bg-background px-3 text-sm"
+              >
+                <option value="WEEKLY">WEEKLY</option>
+                <option value="MONTHLY">MONTHLY</option>
+              </select>
+            </label>
+          )}
+
           <textarea
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Leave feedback for the Mangaka…"
+            onChange={(event) => setComment(event.target.value)}
+            placeholder={
+              decision === "forward"
+                ? "Recommendation and feasibility note for Board..."
+                : decision === "revision"
+                  ? "Revision reason and feedback summary for the Mangaka..."
+                  : "Reject reason for the Mangaka..."
+            }
             rows={4}
             className="w-full rounded-md border border-foreground/15 bg-background p-3 text-sm"
           />
           <div className="mt-3 flex justify-end">
             <button
               onClick={submit}
-              disabled={!perm.allowed}
+              disabled={!perm.allowed || isSubmitting}
               className="h-9 rounded-md bg-foreground px-4 text-xs font-bold text-background disabled:opacity-50"
             >
-              Submit decision
+              {isSubmitting ? "Submitting..." : "Submit decision"}
             </button>
           </div>
         </div>
@@ -173,26 +190,18 @@ function EditorReviewDetail() {
 
       <div className="space-y-5">
         <div className="rounded-md border border-foreground/10 bg-card p-4">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/55 mb-2">
-            Editor history
+          <div className="mb-2 text-[10px] uppercase tracking-wider text-foreground/55">
+            Editor notes
           </div>
-          {reviews.length === 0 && (
-            <div className="text-xs text-foreground/55">No prior reviews.</div>
-          )}
-          <div className="space-y-2">
-            {reviews.map((r) => {
-              const reviewer = findStaff(r.reviewerId);
-              return (
-                <div key={r.id} className="rounded border border-foreground/10 p-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="font-bold uppercase tracking-wide">{r.decision}</span>
-                    <span className="text-foreground/55">{r.at}</span>
-                  </div>
-                  <div className="mt-1">{r.comment}</div>
-                  <div className="mt-1 text-foreground/55">— {reviewer?.name}</div>
-                </div>
-              );
-            })}
+          <div className="space-y-2 text-xs text-foreground/70">
+            {manuscript.editorRecommendation && <div>{manuscript.editorRecommendation}</div>}
+            {manuscript.feasibilityNote && <div>{manuscript.feasibilityNote}</div>}
+            {manuscript.riskNote && <div>{manuscript.riskNote}</div>}
+            {!manuscript.editorRecommendation &&
+              !manuscript.feasibilityNote &&
+              !manuscript.riskNote && (
+                <div className="text-foreground/55">No prior editor notes.</div>
+              )}
           </div>
         </div>
         <AuditTimeline entity="series" entityId={series.id} limit={10} />

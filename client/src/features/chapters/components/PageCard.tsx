@@ -34,14 +34,15 @@ export function PageCard({ page, variant = "detailed", onClick, isSelected }: Pa
         </div>
         <div className="absolute bottom-2 left-2 right-2 z-10">
           <div
-            className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shadow-sm inline-block w-full text-center truncate ${isApproved
+            className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shadow-sm inline-block w-full text-center truncate ${
+              isApproved
                 ? "bg-emerald-500 text-white"
                 : isUnderReview
                   ? "bg-sky-500 text-white"
                   : isTaskAssigned
                     ? "bg-amber-500 text-white"
                     : "bg-background/80 backdrop-blur-sm text-foreground"
-              }`}
+            }`}
           >
             {page.status.replace("-", " ")}
           </div>
@@ -66,21 +67,31 @@ export function PageCard({ page, variant = "detailed", onClick, isSelected }: Pa
           {page.id}
         </div>
         {/* Status Dot */}
-        <div className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white z-10 ${isApproved ? "bg-emerald-500" : isUnderReview ? "bg-blue-500" : isTaskAssigned ? "bg-orange-500" : "bg-white"}`} />
+        <div
+          className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white z-10 ${isApproved ? "bg-emerald-500" : isUnderReview ? "bg-blue-500" : isTaskAssigned ? "bg-orange-500" : "bg-white"}`}
+        />
       </div>
     );
   }
 
   // Detailed variant (default)
-  const badgeColor = isApproved ? "bg-emerald-500" : isUnderReview ? "bg-blue-500" : isTaskAssigned ? "bg-orange-500" : "bg-[#e5e1d8] text-foreground/60";
+  const badgeColor = isApproved
+    ? "bg-emerald-500"
+    : isUnderReview
+      ? "bg-blue-500"
+      : isTaskAssigned
+        ? "bg-orange-500"
+        : "bg-[#e5e1d8] text-foreground/60";
 
   return (
     <div
       onClick={() => onClick?.(page.id)}
       className={`group flex flex-col rounded-[8px] border bg-card cursor-pointer transition-all relative overflow-visible
-        ${isSelected
-          ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
-          : "border-foreground/10 hover:border-foreground/20 hover:shadow-sm"}`}
+        ${
+          isSelected
+            ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
+            : "border-foreground/10 hover:border-foreground/20 hover:shadow-sm"
+        }`}
     >
       <div className="aspect-[1.1] relative flex items-center justify-center p-2 rounded-t-[8px]">
         {/* Faint dotted background */}
@@ -98,7 +109,9 @@ export function PageCard({ page, variant = "detailed", onClick, isSelected }: Pa
 
       {/* Badge slightly overlapping the divider */}
       <div className="absolute top-[52%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-3 flex justify-center z-10">
-        <div className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm w-full text-center truncate text-white ${badgeColor}`}>
+        <div
+          className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm w-full text-center truncate text-white ${badgeColor}`}
+        >
           {page.status.replace("-", " ")}
         </div>
       </div>
@@ -107,11 +120,9 @@ export function PageCard({ page, variant = "detailed", onClick, isSelected }: Pa
 
       <div className="p-2.5 pt-4 bg-card rounded-b-[8px] flex items-center justify-between mt-auto">
         <div className="text-[10px] font-semibold text-foreground/60">
-          {page.tasks || 0} {(page.tasks || 0) === 1 ? 'task' : 'tasks'}
+          {page.tasks || 0} {(page.tasks || 0) === 1 ? "task" : "tasks"}
         </div>
-        <div className="text-[10px] font-semibold text-foreground/40">
-          {page.time || "-"}
-        </div>
+        <div className="text-[10px] font-semibold text-foreground/40">{page.time || "-"}</div>
       </div>
     </div>
   );

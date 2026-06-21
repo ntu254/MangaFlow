@@ -1,11 +1,9 @@
 export type TaskStatus =
-  | "assigned"
   | "todo"
   | "in-progress"
   | "submitted"
   | "revision-requested"
   | "mangaka-approved"
-  | "approved"
   | "editor-approved"
   | "rejected"
   | "cancelled";
@@ -14,6 +12,7 @@ export type TaskPriority = "low" | "medium" | "high";
 
 export type Task = {
   id: string;
+  seriesId?: string;
   chapterId: string;
   type: "Linework" | "Tone" | "Background" | "Lettering" | "FX";
   assigneeId: string;
@@ -21,16 +20,19 @@ export type Task = {
   deadline: string;
   payout: number;
   status: TaskStatus;
-  // Optional richer metadata used by Assistant workspace
   title?: string;
+  assigneeName?: string;
   regionId?: string;
   pageId?: string;
   pageNumber?: number;
   priority?: TaskPriority;
   assignedById?: string;
   instruction?: string;
+  description?: string;
   currentVersion?: number;
   requiredFiles?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export const tasks: Task[] = [
@@ -49,8 +51,7 @@ export const tasks: Task[] = [
     regionId: "rg_4",
     priority: "high",
     assignedById: "s_man_kei",
-    instruction:
-      "Render full cityscape backgrounds for the rooftop chase. Match lighting on p.3.",
+    instruction: "Render full cityscape backgrounds for the rooftop chase. Match lighting on p.3.",
     currentVersion: 1,
     requiredFiles: ["PSD with layers", "Flattened PNG"],
   },
@@ -62,7 +63,7 @@ export const tasks: Task[] = [
     pageRange: "p. 9–16",
     deadline: "Jun 19",
     payout: 15000,
-    status: "assigned",
+    status: "todo",
     title: "Screentone interior scenes",
     assignedById: "s_man_kei",
     currentVersion: 0,
@@ -104,7 +105,7 @@ export const tasks: Task[] = [
     pageRange: "p. 11–23",
     deadline: "Jun 22",
     payout: 16500,
-    status: "assigned",
+    status: "todo",
   },
   {
     id: "t6",
@@ -114,7 +115,7 @@ export const tasks: Task[] = [
     pageRange: "p. 1–21",
     deadline: "Jun 14",
     payout: 9000,
-    status: "approved",
+    status: "editor-approved",
   },
   {
     id: "t7",

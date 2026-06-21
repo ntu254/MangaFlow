@@ -20,13 +20,11 @@ export function ChapterHeader({
   return (
     <div className="border-b border-foreground/10 pb-4 mb-4">
       <nav className="text-[11px] text-foreground/55 mb-2">
-        <Link to="/app/series" className="hover:text-foreground">My Series</Link>
+        <Link to="/app/series" className="hover:text-foreground">
+          My Series
+        </Link>
         <span className="mx-1.5">/</span>
-        <Link
-          to="/app/series/$id"
-          params={{ id: series.id }}
-          className="hover:text-foreground"
-        >
+        <Link to="/app/series/$id" params={{ id: series.id }} className="hover:text-foreground">
           {series.title}
         </Link>
         <span className="mx-1.5">/</span>
@@ -38,17 +36,15 @@ export function ChapterHeader({
           <h1 className="truncate text-xl font-semibold tracking-tight">
             {chapter.number} — {chapter.title}
           </h1>
-          {series.jp && (
-            <div className="mt-0.5 text-[12px] text-foreground/55">{series.jp}</div>
-          )}
+          {series.jp && <div className="mt-0.5 text-[12px] text-foreground/55">{series.jp}</div>}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-foreground/70">
             <StatusBadge status={chapter.status} />
             <span>·</span>
             <span>{pageCount} pages</span>
-            {chapter.scheduledAt && (
+            {false && (
               <>
                 <span>·</span>
-                <span>scheduled {chapter.scheduledAt}</span>
+                <span>Scheduling belongs to Publication</span>
               </>
             )}
             {chapter.publishedAt && (

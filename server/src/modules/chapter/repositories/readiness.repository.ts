@@ -11,7 +11,7 @@ export async function getChapterReadinessData(chapterId: string) {
     Page.find({ chapterId }).sort({ pageNumber: 1 }).lean(),
     Task.find({ chapterId }).lean(),
     Submission.find({ chapterId }).sort({ createdAt: -1 }).lean(),
-    Comment.find({ chapterId, isBlocking: true, status: { $ne: "RESOLVED_BY_EDITOR" } }).lean(),
+    Comment.find({ chapterId, isBlocking: true, status: { $ne: "RESOLVED" } }).lean(),
   ])
 
   return { chapter, pages, tasks, submissions, blockingComments }

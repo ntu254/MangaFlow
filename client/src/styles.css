@@ -107,7 +107,7 @@
 
   --panel: rgba(20, 20, 20, 0.6);
   --panel-border: oklch(1 0 0 / 10%);
-  --canvas-dots: rgba(255, 255, 255, 0.20);
+  --canvas-dots: rgba(255, 255, 255, 0.2);
 }
 
 @layer base {
@@ -171,4 +171,322 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@layer components {
+  .admin-console {
+    --admin-bg: var(--background);
+    --admin-surface: var(--card);
+    --admin-surface-2: color-mix(in oklab, var(--card) 94%, var(--foreground) 6%);
+    --admin-border: var(--border);
+    --admin-text: var(--foreground);
+    --admin-text-strong: var(--foreground);
+    --admin-text-soft: var(--muted-foreground);
+    --admin-text-faint: color-mix(in oklab, var(--muted-foreground) 72%, transparent);
+    --admin-accent: var(--primary);
+    --admin-accent-foreground: var(--primary-foreground);
+    --admin-soft-layer: color-mix(in oklab, var(--foreground) 5%, transparent);
+    --admin-hover-layer: color-mix(in oklab, var(--foreground) 8%, transparent);
+    margin: -0.25rem;
+    border-radius: 8px;
+    background:
+      radial-gradient(
+        circle at 16% 0%,
+        color-mix(in oklab, var(--admin-accent) 10%, transparent),
+        transparent 28%
+      ),
+      radial-gradient(circle at 92% 8%, rgb(53 194 117 / 0.08), transparent 24%), var(--admin-bg);
+    padding: 1rem;
+    color: var(--admin-text);
+  }
+
+  .admin-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklab, var(--admin-accent) 9%, var(--admin-surface)),
+        transparent 44%
+      ),
+      var(--admin-surface);
+    padding: 1.25rem;
+  }
+
+  .admin-kicker {
+    width: fit-content;
+    border: 1px solid color-mix(in oklab, var(--admin-accent) 28%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--admin-accent) 10%, transparent);
+    padding: 0.3rem 0.6rem;
+    color: color-mix(in oklab, var(--admin-accent) 82%, var(--admin-text) 18%);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .admin-hero-status {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgb(53 194 117 / 0.24);
+    border-radius: 999px;
+    background: rgb(53 194 117 / 0.08);
+    padding: 0.45rem 0.7rem;
+    color: rgb(168 239 196);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .admin-live-dot {
+    height: 0.45rem;
+    width: 0.45rem;
+    border-radius: 999px;
+    background: #35c275;
+    box-shadow: 0 0 0 4px rgb(53 194 117 / 0.12);
+  }
+
+  .admin-metric,
+  .admin-panel {
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--admin-soft-layer), transparent), var(--admin-surface);
+    color: var(--admin-text);
+  }
+
+  .admin-metric {
+    min-height: 10rem;
+    padding: 1rem;
+  }
+
+  .admin-panel {
+    padding: 1rem;
+  }
+
+  .admin-icon {
+    display: flex;
+    height: 2rem;
+    width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: 1px solid var(--admin-border);
+  }
+
+  .admin-icon-blue {
+    background: rgb(99 165 255 / 0.12);
+    color: #8bc0ff;
+  }
+
+  .admin-icon-green {
+    background: rgb(53 194 117 / 0.12);
+    color: #7de1aa;
+  }
+
+  .admin-icon-amber {
+    background: rgb(245 184 75 / 0.12);
+    color: #ffd17c;
+  }
+
+  .admin-icon-red {
+    background: rgb(239 91 91 / 0.12);
+    color: #ff9c9c;
+  }
+
+  .admin-icon-neutral {
+    background: var(--admin-soft-layer);
+    color: var(--admin-text-soft);
+  }
+
+  .admin-panel-link {
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1px solid var(--admin-border);
+    padding: 0.4rem 0.55rem;
+    color: var(--admin-text-soft);
+    font-size: 0.75rem;
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .admin-panel-link:hover {
+    border-color: color-mix(in oklab, var(--admin-accent) 34%, transparent);
+    background: color-mix(in oklab, var(--admin-accent) 8%, var(--admin-surface));
+    color: var(--admin-text-strong);
+  }
+
+  .admin-action-row,
+  .admin-quick-action {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--admin-border);
+    border-radius: 7px;
+    background: color-mix(in oklab, var(--admin-surface) 92%, var(--admin-text) 4%);
+    transition:
+      transform 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .admin-action-row {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .admin-quick-action {
+    gap: 0.6rem;
+    padding: 0.75rem;
+    color: var(--admin-text-soft);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .admin-action-row:hover,
+  .admin-quick-action:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--admin-accent) 28%, transparent);
+    background: color-mix(in oklab, var(--admin-accent) 7%, var(--admin-surface));
+    color: var(--admin-text-strong);
+  }
+
+  .admin-pill {
+    display: inline-flex;
+    min-width: max-content;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--admin-border);
+    padding: 0.18rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .admin-pill-blue {
+    border-color: rgb(99 165 255 / 0.22);
+    background: rgb(99 165 255 / 0.1);
+    color: #a8ceff;
+  }
+
+  .admin-pill-green {
+    border-color: rgb(53 194 117 / 0.22);
+    background: rgb(53 194 117 / 0.1);
+    color: #a8efc4;
+  }
+
+  .admin-pill-amber {
+    border-color: rgb(245 184 75 / 0.24);
+    background: rgb(245 184 75 / 0.1);
+    color: #ffd17c;
+  }
+
+  .admin-pill-red {
+    border-color: rgb(239 91 91 / 0.24);
+    background: rgb(239 91 91 / 0.1);
+    color: #ffadad;
+  }
+
+  .admin-pill-neutral {
+    background: var(--admin-soft-layer);
+    color: var(--admin-text-soft);
+  }
+
+  @media (max-width: 768px) {
+    .admin-console {
+      margin: 0;
+      padding: 0.75rem;
+    }
+
+    .admin-hero {
+      flex-direction: column;
+    }
+  }
+}
+
+.admin-page {
+  min-height: calc(100dvh - 5rem);
+}
+
+.admin-page button {
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.admin-page button:active {
+  transform: translateY(1px);
+}
+
+.admin-page .rounded-md,
+.admin-page .rounded-lg,
+.admin-page .rounded-xl {
+  border-radius: 8px;
+}
+
+.admin-page .bg-card {
+  border-color: var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.admin-page .bg-background,
+.admin-page input,
+.admin-page select,
+.admin-page textarea,
+.admin-page .input {
+  border-color: var(--admin-border);
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+}
+
+.admin-page option {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.admin-page h1,
+.admin-page h2,
+.admin-page h3,
+.admin-page .font-semibold,
+.admin-page .font-medium,
+.admin-console h1,
+.admin-console h2,
+.admin-console h3 {
+  color: var(--admin-text-strong);
+}
+
+.admin-page p,
+.admin-page .text-muted-foreground,
+.admin-page [class*="text-muted"] {
+  color: var(--admin-text-soft);
+}
+
+.admin-page [class*="bg-foreground/5"],
+.admin-page [class*="bg-foreground/[0.05]"] {
+  background: var(--admin-soft-layer);
+}
+
+.admin-page .bg-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.admin-page .text-primary,
+.admin-console .text-sky-300 {
+  color: color-mix(in oklab, var(--admin-accent) 78%, var(--admin-text) 12%);
+}
+
+.admin-page .text-primary-foreground {
+  color: var(--primary-foreground);
 }

@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useSidebar } from "@/layouts/SidebarContext";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
 import { useState, useMemo, useEffect } from "react";
-import { useDeleteManuscript, useGetManuscriptDownloadUrl, useVerifyManuscriptFiles } from "@/shared/queries/useManuscripts";
+import {
+  useDeleteManuscript,
+  useGetManuscriptDownloadUrl,
+  useVerifyManuscriptFiles,
+} from "@/shared/queries/useManuscripts";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -18,8 +22,18 @@ import {
   Image as ImageIcon,
   Archive,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export const Route = createFileRoute("/app/series/$id/manuscript")({
   component: SeriesManuscript,
@@ -64,6 +78,14 @@ function SeriesManuscript() {
   const downloadMutation = useGetManuscriptDownloadUrl();
   const queryClient = useQueryClient();
 
+  const [dialogConfig, setDialogConfig] = useState<{
+    open: boolean;
+    fileId: string | null;
+  }>({
+    open: false,
+    fileId: null,
+  });
+
   // On mount, verify every file still exists in storage so MISSING status shows
   // up automatically. When the verification reports any change, refresh summary.
   const { data: verifyResult } = useVerifyManuscriptFiles(id);
@@ -79,41 +101,31 @@ function SeriesManuscript() {
   }, [verifyResult, summary?.files, id, queryClient]);
 
   const handlePreviewOrDownload = (fileId: string, isPreview: boolean) => {
-    downloadMutation.mutate({ seriesId: id, fileId }, {
-      onSuccess: (data) => {
-        if (isPreview) {
-          window.open(data.downloadUrl, "_blank");
-        } else {
-          const a = document.createElement("a");
-          a.href = data.downloadUrl;
-          a.download = "";
-          a.click();
-        }
+    downloadMutation.mutate(
+      { seriesId: id, fileId },
+      {
+        onSuccess: (data) => {
+          if (isPreview) {
+            window.open(data.downloadUrl, "_blank");
+          } else {
+            const a = document.createElement("a");
+            a.href = data.downloadUrl;
+            a.download = "";
+            a.click();
+          }
+        },
+        onError: (err: any) => {
+          if (err?.message?.includes("missing")) {
+            // Invalidate to update the UI status to MISSING
+            queryClient.invalidateQueries({ queryKey: ["series", id, "summary"] });
+          }
+        },
       },
-      onError: (err: any) => {
-        if (err?.message?.includes("missing")) {
-          // Invalidate to update the UI status to MISSING
-          queryClient.invalidateQueries({ queryKey: ["series", id, "summary"] });
-        }
-      }
-    });
+    );
   };
 
   const handleDelete = (fileId: string) => {
-    if (confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
-      deleteMutation.mutate({ seriesId: id, fileId }, {
-        onSuccess: () => {
-          toast.success("File deleted successfully");
-          // Optimistically drop the file from the cached summary so the table
-          // updates immediately, then refetch to stay in sync with the server.
-          queryClient.setQueryData(["series", id, "summary"], (prev: any) => {
-            if (!prev?.files) return prev;
-            return { ...prev, files: prev.files.filter((f: any) => f.id !== fileId) };
-          });
-          queryClient.invalidateQueries({ queryKey: ["series", id, "summary"] });
-        }
-      });
-    }
+    setDialogConfig({ open: true, fileId });
   };
 
   const mappedManuscripts = useMemo(() => {
@@ -126,10 +138,19 @@ function SeriesManuscript() {
         status: m.status || "DRAFT",
         submittedAt: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "Unknown",
         round: summary.manuscripts.length - index,
-        files: summary.files ? summary.files.length : (m.fileCount || 0),
+        files: summary.files ? summary.files.length : m.fileCount || 0,
         filesList: summary.files || [],
         pages: m.pages || 0,
-        size: summary.files ? (Math.round(summary.files.reduce((acc: number, f: any) => acc + (f.size || 0), 0) / 1024 / 1024 * 10) / 10) + " MB" : "Unknown",
+        size: summary.files
+          ? Math.round(
+              (summary.files.reduce((acc: number, f: any) => acc + (f.size || 0), 0) /
+                1024 /
+                1024) *
+                10,
+            ) /
+              10 +
+            " MB"
+          : "Unknown",
         isActive: m.isActive || m.status === "ACTIVE" || m.status === "IN_REVIEW",
       };
     });
@@ -148,10 +169,11 @@ function SeriesManuscript() {
 
   return (
     <div
-      className={`grid grid-cols-1 gap-5 pt-2 ${collapsed
-        ? "xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]"
-        : "xl:grid-cols-[minmax(0,390px)_minmax(0,1fr)]"
-        }`}
+      className={`grid grid-cols-1 gap-5 pt-2 ${
+        collapsed
+          ? "xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]"
+          : "xl:grid-cols-[minmax(0,390px)_minmax(0,1fr)]"
+      }`}
     >
       {/* Left Column: Versions List */}
       <section className="flex min-h-full flex-col overflow-hidden rounded-[10px] border border-foreground/10 bg-card shadow-[0_2px_14px_rgba(5,24,38,0.05)]">
@@ -171,88 +193,92 @@ function SeriesManuscript() {
         </button>
 
         <div className="flex-1 overflow-y-auto">
-          {mappedManuscripts.length > 0 ? mappedManuscripts.map((v: any) => (
-            <div
-              key={v.id}
-              onClick={() => setActiveVersionId(v.id)}
-              className={`mx-4 mb-3 rounded-md border p-4 transition-all cursor-pointer bg-card ${activeVersion?.id === v.id
-                ? "border-[#061A2B]/30 shadow-sm ring-1 ring-[#061A2B]/10"
-                : "border-foreground/10 hover:border-foreground/20 hover:shadow-sm"
+          {mappedManuscripts.length > 0 ? (
+            mappedManuscripts.map((v: any) => (
+              <div
+                key={v.id}
+                onClick={() => setActiveVersionId(v.id)}
+                className={`mx-4 mb-3 rounded-md border p-4 transition-all cursor-pointer bg-card ${
+                  activeVersion?.id === v.id
+                    ? "border-[#061A2B]/30 shadow-sm ring-1 ring-[#061A2B]/10"
+                    : "border-foreground/10 hover:border-foreground/20 hover:shadow-sm"
                 }`}
-            >
-              {v.isActive && (
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded w-fit mb-3">
-                  Current Version
-                </div>
-              )}
+              >
+                {v.isActive && (
+                  <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded w-fit mb-3">
+                    Current Version
+                  </div>
+                )}
 
-              <div>
                 <div>
-                  <div className="mb-1 flex min-w-0 items-center gap-2">
-                    <h3 className="min-w-0 truncate text-[15px] font-extrabold tracking-tight text-foreground">
-                      {v.title}
-                    </h3>
-                    <div
-                      className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${v.status === "IN_REVIEW" || v.status === "EDITOR_REVIEW"
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : v.status === "REVISION_REQUESTED"
-                          ? "bg-amber-500/10 text-amber-600"
-                          : "bg-foreground/10 text-foreground/60"
+                  <div>
+                    <div className="mb-1 flex min-w-0 items-center gap-2">
+                      <h3 className="min-w-0 truncate text-[15px] font-extrabold tracking-tight text-foreground">
+                        {v.title}
+                      </h3>
+                      <div
+                        className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                          v.status === "IN_REVIEW" || v.status === "EDITOR_REVIEW"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : v.status === "REVISION_REQUESTED"
+                              ? "bg-amber-500/10 text-amber-600"
+                              : "bg-foreground/10 text-foreground/60"
                         }`}
-                    >
-                      {v.status.replace("_", " ")}
+                      >
+                        {v.status.replace("_", " ")}
+                      </div>
+                    </div>
+                    <div className="text-[11px] font-medium text-foreground/50">
+                      {v.submittedAt} {v.round && `· Revision Round ${v.round}`}
                     </div>
                   </div>
-                  <div className="text-[11px] font-medium text-foreground/50">
-                    {v.submittedAt} {v.round && `· Revision Round ${v.round}`}
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <button className="flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded border border-foreground/15 bg-card px-3 text-[11px] font-bold text-[#061A2B] transition-colors hover:bg-foreground/5 dark:text-blue-400">
+                      {v.status === "DRAFT" ? (
+                        <>
+                          <Pencil className="h-3 w-3" /> Continue Editing
+                        </>
+                      ) : v.status === "REVISION_REQUESTED" ? (
+                        <>
+                          <Eye className="h-3 w-3" /> View Feedback
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3" /> Preview Version
+                        </>
+                      )}
+                    </button>
+                    <button className="flex h-8 w-8 items-center justify-center rounded border border-foreground/15 bg-card text-foreground/60 transition-colors hover:bg-foreground/5">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center gap-2">
-                  <button className="flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded border border-foreground/15 bg-card px-3 text-[11px] font-bold text-[#061A2B] transition-colors hover:bg-foreground/5 dark:text-blue-400">
-                    {v.status === "DRAFT" ? (
-                      <>
-                        <Pencil className="h-3 w-3" /> Continue Editing
-                      </>
-                    ) : v.status === "REVISION_REQUESTED" ? (
-                      <>
-                        <Eye className="h-3 w-3" /> View Feedback
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-3 w-3" /> Preview Version
-                      </>
-                    )}
-                  </button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded border border-foreground/15 bg-card text-foreground/60 transition-colors hover:bg-foreground/5">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium text-foreground/60">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" /> {v.files} Files
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" /> {v.pages} Pages (Approx.)
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Archive className="h-3.5 w-3.5" /> {v.size}
+                  </span>
                 </div>
-              </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium text-foreground/60">
-                <span className="flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5" /> {v.files} Files
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <ImageIcon className="h-3.5 w-3.5" /> {v.pages} Pages (Approx.)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Archive className="h-3.5 w-3.5" /> {v.size}
-                </span>
-              </div>
-
-              {v.isActive && v.status === "IN_REVIEW" && (
-                <div className="mt-4 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg p-3 flex items-start gap-2.5 text-[#061A2B] dark:text-indigo-200 text-[12px] font-medium border border-indigo-100 dark:border-indigo-500/20">
-                  <Info className="h-4 w-4 shrink-0 mt-0.5 text-indigo-500" />
-                  <div className="leading-relaxed">
-                    The editor is currently reviewing this version. You can view the feedback once
-                    it's available.
+                {v.isActive && v.status === "IN_REVIEW" && (
+                  <div className="mt-4 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg p-3 flex items-start gap-2.5 text-[#061A2B] dark:text-indigo-200 text-[12px] font-medium border border-indigo-100 dark:border-indigo-500/20">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-indigo-500" />
+                    <div className="leading-relaxed">
+                      The editor is currently reviewing this version. You can view the feedback once
+                      it's available.
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )) : (
+                )}
+              </div>
+            ))
+          ) : (
             <div className="p-8 text-center text-[12px] font-medium text-foreground/50">
               No manuscript versions found.
             </div>
@@ -260,7 +286,10 @@ function SeriesManuscript() {
         </div>
 
         <footer className="mt-auto flex items-center justify-between gap-3 border-t border-foreground/7 px-4 py-3 text-[10px] font-semibold text-foreground/50">
-          <span>Showing 1 to {Math.min(mappedManuscripts.length, 3)} of {mappedManuscripts.length} versions</span>
+          <span>
+            Showing 1 to {Math.min(mappedManuscripts.length, 3)} of {mappedManuscripts.length}{" "}
+            versions
+          </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -296,7 +325,9 @@ function SeriesManuscript() {
                   <h2 className="text-[20px] font-extrabold text-foreground tracking-tight">
                     {activeVersion.title}
                   </h2>
-                  <div className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${activeVersion.status === "IN_REVIEW" ? "bg-emerald-500/10 text-emerald-600" : "bg-foreground/10 text-foreground/60"}`}>
+                  <div
+                    className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${activeVersion.status === "IN_REVIEW" ? "bg-emerald-500/10 text-emerald-600" : "bg-foreground/10 text-foreground/60"}`}
+                  >
                     {activeVersion.status.replace("_", " ")}
                   </div>
                 </div>
@@ -316,25 +347,33 @@ function SeriesManuscript() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 border-b border-foreground/5 pb-5 mb-5">
               <div className="flex flex-col text-center">
-                <div className="text-[20px] font-extrabold text-foreground">{activeVersion.files}</div>
+                <div className="text-[20px] font-extrabold text-foreground">
+                  {activeVersion.files}
+                </div>
                 <div className="text-[11px] text-foreground/50 font-bold uppercase tracking-wider mt-1">
                   Files
                 </div>
               </div>
               <div className="flex flex-col text-center sm:border-l border-foreground/5">
-                <div className="text-[20px] font-extrabold text-foreground">{activeVersion.pages}</div>
+                <div className="text-[20px] font-extrabold text-foreground">
+                  {activeVersion.pages}
+                </div>
                 <div className="text-[11px] text-foreground/50 font-bold uppercase tracking-wider mt-1">
                   Pages (Approx.)
                 </div>
               </div>
               <div className="flex flex-col text-center border-t sm:border-t-0 sm:border-l border-foreground/5 pt-4 sm:pt-0">
-                <div className="text-[20px] font-extrabold text-foreground">{activeVersion.size}</div>
+                <div className="text-[20px] font-extrabold text-foreground">
+                  {activeVersion.size}
+                </div>
                 <div className="text-[11px] text-foreground/50 font-bold uppercase tracking-wider mt-1">
                   Total Size
                 </div>
               </div>
               <div className="flex flex-col text-center border-t sm:border-t-0 sm:border-l border-foreground/5 pt-4 sm:pt-0">
-                <div className="text-[20px] font-extrabold text-foreground">{activeVersion.round}</div>
+                <div className="text-[20px] font-extrabold text-foreground">
+                  {activeVersion.round}
+                </div>
                 <div className="text-[11px] text-foreground/50 font-bold uppercase tracking-wider mt-1">
                   Revision Round
                 </div>
@@ -358,30 +397,47 @@ function SeriesManuscript() {
                 <tbody className="divide-y divide-foreground/5">
                   {activeVersion.filesList && activeVersion.filesList.length > 0 ? (
                     activeVersion.filesList.map((file: any) => (
-                      <tr key={file.id} className={`group transition-colors ${file.status === 'MISSING' ? 'bg-red-500/[0.02]' : 'hover:bg-foreground/[0.02]'}`}>
+                      <tr
+                        key={file.id}
+                        className={`group transition-colors ${file.status === "MISSING" ? "bg-red-500/[0.02]" : "hover:bg-foreground/[0.02]"}`}
+                      >
                         <td className="py-4 pr-3">
                           <div className="flex items-center gap-3">
-                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${file.status === 'MISSING' ? 'bg-red-500/10 text-red-500' : file.assetType === 'MANUSCRIPT' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                              {file.status === 'MISSING' ? <AlertTriangle className="h-4 w-4" /> : file.assetType === 'MANUSCRIPT' ? <FileText className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+                            <div
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${file.status === "MISSING" ? "bg-red-500/10 text-red-500" : file.assetType === "manuscript" ? "bg-indigo-500/10 text-indigo-500" : "bg-blue-500/10 text-blue-500"}`}
+                            >
+                              {file.status === "MISSING" ? (
+                                <AlertTriangle className="h-4 w-4" />
+                              ) : file.assetType === "manuscript" ? (
+                                <FileText className="h-4 w-4" />
+                              ) : (
+                                <ImageIcon className="h-4 w-4" />
+                              )}
                             </div>
                             <div className="flex flex-col">
-                              <span className={`font-semibold ${file.status === 'MISSING' ? 'text-red-500 line-through opacity-70' : 'text-foreground'}`}>
+                              <span
+                                className={`font-semibold ${file.status === "MISSING" ? "text-red-500 line-through opacity-70" : "text-foreground"}`}
+                              >
                                 {file.originalName}
                               </span>
-                              {file.status === 'MISSING' && (
-                                <span className="text-[10px] text-red-500 font-medium">Missing from storage</span>
+                              {file.status === "MISSING" && (
+                                <span className="text-[10px] text-red-500 font-medium">
+                                  Missing from storage
+                                </span>
                               )}
                             </div>
                           </div>
                         </td>
                         <td className="py-4 pr-3">
-                          <div className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${file.assetType === 'MANUSCRIPT' ? 'bg-indigo-500/10 text-indigo-600' : 'bg-blue-500/10 text-blue-600'}`}>
-                            {file.assetType || "SUPPORTING"}
+                          <div
+                            className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${file.assetType === "manuscript" ? "bg-indigo-500/10 text-indigo-600" : "bg-blue-500/10 text-blue-600"}`}
+                          >
+                            {file.assetType || "other"}
                           </div>
                         </td>
                         <td className="py-4 pr-3 text-foreground/70">—</td>
                         <td className="py-4 pr-3 text-foreground/70">
-                          {Math.round((file.size || 0) / 1024 / 1024 * 10) / 10} MB
+                          {Math.round(((file.size || 0) / 1024 / 1024) * 10) / 10} MB
                         </td>
                         <td className="py-4 pr-3 text-foreground/70">
                           {new Date(file.createdAt).toLocaleString()}
@@ -391,7 +447,7 @@ function SeriesManuscript() {
                             <button
                               type="button"
                               onClick={() => handlePreviewOrDownload(file.id, true)}
-                              disabled={file.status === 'MISSING'}
+                              disabled={file.status === "MISSING"}
                               className="flex h-7 w-7 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <Eye className="h-3.5 w-3.5" />
@@ -399,7 +455,7 @@ function SeriesManuscript() {
                             <button
                               type="button"
                               onClick={() => handlePreviewOrDownload(file.id, false)}
-                              disabled={file.status === 'MISSING'}
+                              disabled={file.status === "MISSING"}
                               className="flex h-7 w-7 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <Download className="h-3.5 w-3.5" />
@@ -451,6 +507,50 @@ function SeriesManuscript() {
           </div>
         )}
       </section>
+
+      <AlertDialog
+        open={dialogConfig.open}
+        onOpenChange={(open) =>
+          setDialogConfig({ open, fileId: open ? dialogConfig.fileId : null })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this file? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (dialogConfig.fileId) {
+                  deleteMutation.mutate(
+                    { seriesId: id, fileId: dialogConfig.fileId },
+                    {
+                      onSuccess: () => {
+                        toast.success("File deleted successfully");
+                        queryClient.setQueryData(["series", id, "summary"], (prev: any) => {
+                          if (!prev?.files) return prev;
+                          return {
+                            ...prev,
+                            files: prev.files.filter((f: any) => f.id !== dialogConfig.fileId),
+                          };
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["series", id, "summary"] });
+                      },
+                    },
+                  );
+                }
+              }}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -12,5 +12,9 @@ export async function getSubmissionWithTask(submissionId: string) {
     throw new AppError("Task not found", 404)
   }
 
+  if (!task.currentSubmissionId || String(task.currentSubmissionId) !== submissionId) {
+    throw new AppError("Review action must target the task's current submission", 409)
+  }
+
   return { submission, task }
 }

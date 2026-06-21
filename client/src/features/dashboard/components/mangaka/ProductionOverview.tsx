@@ -1,43 +1,31 @@
 import { BookOpen, FileText, Image as ImageIcon, CheckCircle, Users } from "lucide-react";
 
-export function ProductionOverview() {
+export function ProductionOverview({ data }: { data?: any }) {
   const stats = [
     {
       icon: BookOpen,
-      value: "3",
+      value: data?.quickStats?.activeSeries || "0",
       label: "Series Ongoing",
-      subLabel: "2 At Risk",
-    },
-    {
-      icon: FileText,
-      value: "12",
-      label: "Chapters",
-      subLabel: "In Production",
-    },
-    {
-      icon: ImageIcon,
-      value: "184",
-      label: "Pages",
-      subLabel: "Uploaded",
+      subLabel: `${data?.activeSeriesPipeline?.production || 0} In Production`,
     },
     {
       icon: CheckCircle,
-      value: "27",
-      label: "Tasks",
-      subLabel: <span className="text-destructive font-medium">Waiting Review</span>,
+      value: data?.quickStats?.completedTasks || "0",
+      label: "Tasks Completed",
+      subLabel: "Total Approved",
     },
     {
       icon: Users,
-      value: "18",
-      label: "Team Members",
-      subLabel: "Active",
+      value: data?.quickStats?.pendingReviews || "0",
+      label: "Pending Reviews",
+      subLabel: <span className="text-destructive font-medium">Waiting Review</span>,
     },
   ];
 
   return (
     <section className="mb-8">
       <h2 className="mb-4 text-[15px] font-bold text-foreground">Production Overview</h2>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {stats.map((s, i) => (
           <div
             key={i}

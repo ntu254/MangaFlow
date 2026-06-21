@@ -8,6 +8,7 @@ import {
 } from "./task.service.js"
 import * as taskRepository from "./task.repository.js"
 import { SeriesMember } from "../series/series.model.js"
+import { Page } from "../chapter/chapter.model.js"
 
 const taskScopeGuardMock = vi.hoisted(() => ({
   validateTaskCreationScope: vi.fn(),
@@ -34,12 +35,19 @@ vi.mock("../chapter/chapter.model.js", () => ({
   Chapter: {
     findById: vi.fn(),
   },
+  Page: {
+    findByIdAndUpdate: vi.fn(),
+  },
+  Region: {
+    findByIdAndUpdate: vi.fn(),
+  },
 }))
 
 describe("createTaskService", () => {
   const mockInput = {
     seriesId: "507f1f77bcf86cd799439011",
     chapterId: "507f1f77bcf86cd799439012",
+    pageId: "507f1f77bcf86cd799439018",
     taskTypeId: "507f1f77bcf86cd799439013",
     assignedTo: "507f1f77bcf86cd799439014",
     assignedBy: "507f1f77bcf86cd799439016",
@@ -76,6 +84,7 @@ describe("createTaskService", () => {
     expect(taskRepository.createTaskRecord).toHaveBeenCalledWith({
       seriesId: mockInput.seriesId,
       chapterId: mockInput.chapterId,
+      pageId: mockInput.pageId,
       taskTypeId: mockInput.taskTypeId,
       assignedTo: mockInput.assignedTo,
       assignedBy: mockInput.assignedBy,
@@ -87,6 +96,7 @@ describe("createTaskService", () => {
       baseRate: 100,
     })
     expect(result).toMatchObject({ id: "507f1f77bcf86cd799439017", baseRate: 100, status: "TODO" })
+    expect(Page.findByIdAndUpdate).toHaveBeenCalledWith(mockInput.pageId, { status: "IN_TASK" })
   })
 
   it("snapshots the current TaskType base rate for payroll history", async () => {
@@ -157,6 +167,7 @@ describe("task access service rules", () => {
       id: "507f1f77bcf86cd799439017",
       seriesId: "507f1f77bcf86cd799439011",
       assignedTo: "507f1f77bcf86cd799439014",
+      status: "TODO",
     } as any)
     vi.mocked(SeriesMember.findOne).mockResolvedValue({
       isActive: true,
@@ -167,6 +178,104 @@ describe("task access service rules", () => {
     await expect(
       updateTaskStatusService("507f1f77bcf86cd799439017", { userId: "507f1f77bcf86cd799439014", role: "ASSISTANT" }, "SUBMITTED"),
     ).rejects.toThrow("Only active Mangaka or Editor series members can manage tasks")
+  })
+
+  it.each([
+    "SUBMITTED",
+    "MANGAKA_APPROVED",
+    "EDITOR_APPROVED",
+    "REVISION_REQUESTED",
+    "REJECTED",
+  ] as const)("blocks generic task status updates to review-owned status %s", async (status) => {
+    vi.mocked(taskRepository.getTaskById).mockResolvedValue({
+      id: "507f1f77bcf86cd799439017",
+      seriesId: "507f1f77bcf86cd799439011",
+      assignedTo: "507f1f77bcf86cd799439014",
+      status: "TODO",
+    } as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "MANGAKA",
+    } as any)
+
+    await expect(
+      updateTaskStatusService(
+        "507f1f77bcf86cd799439017",
+        { userId: "507f1f77bcf86cd799439016", role: "MANGAKA" },
+        status,
+      ),
+    ).rejects.toThrow("Submission review statuses cannot be changed through the generic task endpoint")
+
+    expect(taskRepository.updateTaskStatus).not.toHaveBeenCalled()
+  })
+
+  it("blocks generic status changes once submission review has started", async () => {
+    vi.mocked(taskRepository.getTaskById).mockResolvedValue({
+      id: "507f1f77bcf86cd799439017",
+      seriesId: "507f1f77bcf86cd799439011",
+      assignedTo: "507f1f77bcf86cd799439014",
+      status: "SUBMITTED",
+    } as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "MANGAKA",
+    } as any)
+
+    await expect(
+      updateTaskStatusService(
+        "507f1f77bcf86cd799439017",
+        { userId: "507f1f77bcf86cd799439016", role: "MANGAKA" },
+        "TODO",
+      ),
+    ).rejects.toThrow("Only TODO or IN_PROGRESS tasks can be changed through the generic task endpoint")
+
+    expect(taskRepository.updateTaskStatus).not.toHaveBeenCalled()
+  })
+
+  it("preserves the assigned Assistant TODO to IN_PROGRESS transition", async () => {
+    vi.mocked(taskRepository.getTaskById).mockResolvedValue({
+      id: "507f1f77bcf86cd799439017",
+      seriesId: "507f1f77bcf86cd799439011",
+      assignedTo: "507f1f77bcf86cd799439014",
+      status: "TODO",
+    } as any)
+    vi.mocked(taskRepository.updateTaskStatus).mockResolvedValue({
+      id: "507f1f77bcf86cd799439017",
+      status: "IN_PROGRESS",
+    } as any)
+
+    await expect(
+      updateTaskStatusService(
+        "507f1f77bcf86cd799439017",
+        { userId: "507f1f77bcf86cd799439014", role: "ASSISTANT" },
+        "IN_PROGRESS",
+      ),
+    ).resolves.toMatchObject({ status: "IN_PROGRESS" })
+  })
+
+  it("preserves manager cancellation before submission review starts", async () => {
+    vi.mocked(taskRepository.getTaskById).mockResolvedValue({
+      id: "507f1f77bcf86cd799439017",
+      seriesId: "507f1f77bcf86cd799439011",
+      assignedTo: "507f1f77bcf86cd799439014",
+      status: "IN_PROGRESS",
+    } as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({
+      isActive: true,
+      role: "MANGAKA",
+    } as any)
+    vi.mocked(taskRepository.updateTaskStatus).mockResolvedValue({
+      id: "507f1f77bcf86cd799439017",
+      status: "CANCELLED",
+    } as any)
+
+    await expect(
+      updateTaskStatusService(
+        "507f1f77bcf86cd799439017",
+        { userId: "507f1f77bcf86cd799439016", role: "MANGAKA" },
+        "CANCELLED",
+      ),
+    ).resolves.toMatchObject({ status: "CANCELLED" })
   })
 })
 

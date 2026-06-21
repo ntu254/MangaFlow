@@ -1,4 +1,5 @@
 import { Image } from "expo-image"
+import { useState } from "react"
 import { Pressable, Text, View, StyleSheet } from "react-native"
 import {
   ActivityList,
@@ -25,6 +26,7 @@ import { colors, radius, spacing } from "@/design/tokens"
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow"
 import { EditorFinalApprovalDecisionPanel, EditorProposalDecisionPanel } from "@/screens/editor-action-panels"
 import { EditorCommentDetailPanel, EditorReadinessEvidencePanel } from "@/screens/editor-panels"
+import { SeriesProposalSummaryPanel } from "@/screens/series-proposal-summary-panel"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
 const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg")
@@ -36,7 +38,7 @@ export function EditorHomeScreen() {
   return (
     <>
       <MFHero title="Today" subtitle="Review and publication companion" />
-      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading mock Editor home..." />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Editor home..." />
       <SectionTitle title="Next actions" action="View all" />
       <MFActionCards items={flow.home.actions} />
       <SectionTitle title="Review queues" />
@@ -67,7 +69,7 @@ export function EditorManuscriptsScreen() {
       <MFHero title="Manuscripts" subtitle="Proposal review before Board review." />
       <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading manuscript review queue..." />
       <MFMetricStrip items={[
-        { id: "waiting", label: "Waiting", value: String(flow.manuscriptItems.filter((item) => item.manuscriptStatus === "EDITOR_REVIEW").length), tone: "primary", icon: "file-text" },
+        { id: "waiting", label: "Waiting", value: String(flow.manuscriptItems.filter((item) => item.manuscriptStatus === "SUBMITTED").length), tone: "primary", icon: "file-text" },
         { id: "revision", label: "Revisions", value: String(flow.manuscriptItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED").length), tone: "warning", icon: "refresh-cw" },
         { id: "ready", label: "Ready for Board", value: String(flow.manuscriptItems.filter((item) => item.decisionActions.includes("forward-to-board")).length), tone: "success", icon: "shield-check" },
       ]} />
@@ -84,13 +86,22 @@ export function EditorManuscriptsScreen() {
         )) : <MFEmptyState title="No manuscripts waiting" subtitle="When the API returns an empty proposal queue, this panel keeps the review route stable." icon="file-text" />}
       </View>
       {selected ? (
-        <EditorProposalDecisionPanel
-          item={selected}
-          pendingAction={flow.pendingProposalAction}
-          onStartAction={flow.startProposalAction}
-          onConfirm={flow.confirmProposalAction}
-          onCancel={flow.cancelProposalAction}
-        />
+        <>
+          <SeriesProposalSummaryPanel summary={flow.selectedProposalSummary} loading={flow.proposalSummaryLoading} role="editor" />
+          <EditorProposalDecisionPanel
+            item={selected}
+            pendingAction={flow.pendingProposalAction}
+            onStartAction={flow.startProposalAction}
+            onConfirm={flow.confirmProposalAction}
+            onCancel={flow.cancelProposalAction}
+            noteValue={flow.proposalNote}
+            onChangeNote={flow.setProposalNote}
+            selectedPublicationType={flow.proposalPublicationType}
+            onChangePublicationType={flow.setProposalPublicationType}
+            busy={flow.actionBusy}
+            errorText={flow.actionError}
+          />
+        </>
       ) : null}
       <EditorFinalApprovalsPanel />
     </>
@@ -99,8 +110,11 @@ export function EditorManuscriptsScreen() {
 
 export function EditorReadinessScreen() {
   const flow = useEditorMobileFlow()
+  const [showBlockersOnly, setShowBlockersOnly] = useState(false)
   const passed = flow.readiness.checks.filter((check) => check.passed).length
   const readinessChecks = flow.readiness.checks.map(readinessCheckToQueueItem)
+  const visibleReadinessChecks = showBlockersOnly ? flow.readiness.checks.filter((check) => !check.passed) : flow.readiness.checks
+  const blockerItems = readinessChecks.filter((check) => check.tone === "danger")
 
   return (
     <>
@@ -121,29 +135,40 @@ export function EditorReadinessScreen() {
         </View>
       </MFCard>
       <MFCard>
-        {flow.readiness.checks.map((check) => <ReadinessRow key={check.id} check={check} />)}
+        {visibleReadinessChecks.length > 0 ? visibleReadinessChecks.map((check) => <ReadinessRow key={check.id} check={check} />) : (
+          <MFEmptyState title="No blockers" subtitle="Backend readiness returned no failing checks for this chapter context." icon="check-circle" tone="success" />
+        )}
       </MFCard>
       <EditorReadinessEvidencePanel readiness={flow.readiness} />
       <SectionTitle title="Blockers" />
-      <MFQueueList items={readinessChecks.filter((check) => check.tone === "danger")} />
-      <MFButton tone="primary" variant="soft">Open blockers</MFButton>
-      <MFButton>Schedule publication mock</MFButton>
+      <MFQueueList items={blockerItems} />
+      <MFButton tone="primary" variant="soft" onPress={() => setShowBlockersOnly((value) => !value)}>
+        {showBlockersOnly ? "Show all checks" : "Open blockers"}
+      </MFButton>
+      <MFCard>
+        <Text style={styles.title}>Publication scheduling boundary</Text>
+        <Text style={styles.body}>Mobile displays readiness evidence only. Schedule and publish actions remain outside this Editor mobile slice.</Text>
+      </MFCard>
     </>
   )
 }
 
 export function EditorCommentsScreen() {
   const flow = useEditorMobileFlow()
+  const [showBlockingOnly, setShowBlockingOnly] = useState(false)
   const blockingCount = flow.commentsPayload.comments.filter((comment) => "blocking" in comment && comment.blocking).length
+  const visibleComments = showBlockingOnly
+    ? flow.commentsPayload.comments.filter((comment) => "blocking" in comment && comment.blocking)
+    : flow.commentsPayload.comments
 
   return (
     <>
       <MFHero title="Comments" subtitle="Resolve production feedback through the canonical lifecycle." />
       <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading comment lifecycle..." />
       <MFMetricStrip items={flow.commentsPayload.metrics} />
-      <SegmentedControl labels={["All", "Open", "Fixed", "Verified", "Resolved"]} />
+      <SegmentedControl labels={showBlockingOnly ? ["Blocking", "All", "Fixed", "Verified", "Resolved"] : ["All", "Open", "Fixed", "Verified", "Resolved"]} />
       <View style={styles.stack}>
-        {flow.commentsPayload.comments.length > 0 ? flow.commentsPayload.comments.map((comment) => (
+        {visibleComments.length > 0 ? visibleComments.map((comment) => (
           <CommentReviewRow
             key={comment.id}
             item={comment as EditorCommentItem}
@@ -151,17 +176,27 @@ export function EditorCommentsScreen() {
             onPress={() => flow.setSelectedCommentId(comment.id)}
           />
         )) : (
-          <MFEmptyState title="No production comments" subtitle="Resolved or empty comment states remain visible without hiding the lifecycle route." icon="message-circle" tone="success" />
+          <MFEmptyState title={showBlockingOnly ? "No blocking comments" : "No production comments"} subtitle={showBlockingOnly ? "The current live task context has no unresolved blocking comments." : "Resolved or empty comment states remain visible without hiding the lifecycle route."} icon="message-circle" tone="success" />
         )}
       </View>
-      {flow.selectedComment ? <EditorCommentDetailPanel item={flow.selectedComment as EditorCommentItem} /> : null}
+      {flow.selectedComment ? (
+        <EditorCommentDetailPanel
+          item={flow.selectedComment as EditorCommentItem}
+          onResolve={flow.resolveSelectedComment}
+          onReopen={flow.reopenSelectedComment}
+          busy={flow.actionBusy}
+          errorText={flow.actionError}
+        />
+      ) : null}
       <MFCard style={styles.blockingCallout}>
         <MFIconCircle tone="danger" icon="alert-triangle" size={54} />
         <View style={styles.flex}>
           <Text style={styles.title}>Blocking publication</Text>
-          <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED_BY_EDITOR.</Text>
+          <Text style={styles.body}>There are {blockingCount} unresolved blocking comments. Publication remains blocked until RESOLVED.</Text>
         </View>
-        <MFButton tone="danger" variant="soft" style={styles.calloutButton}>Open blockers</MFButton>
+        <MFButton tone={showBlockingOnly ? "neutral" : "danger"} variant="soft" style={styles.calloutButton} onPress={() => setShowBlockingOnly((value) => !value)}>
+          {showBlockingOnly ? "Show all" : "Open blockers"}
+        </MFButton>
       </MFCard>
       <SectionTitle title="Recent activity" action="View all" />
       <ActivityList items={flow.commentsPayload.activity} />
@@ -194,6 +229,9 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             { id: "assistant", title: "Assistant", subtitle: item.assistantName, value: "", tone: "primary" },
             { id: "note", title: "Mangaka approval note", subtitle: item.mangakaNote, value: "", tone: "success" },
             { id: "status", title: "Review status", subtitle: item.submissionStatus, value: "", tone: item.tone },
+            { id: "task-detail", title: "Task detail", subtitle: `Priority ${item.taskPriority ?? "n/a"} / due ${item.taskDueDate ?? "n/a"}`, value: item.taskStatus, tone: item.taskStatus === "EDITOR_APPROVED" ? "success" : "primary" },
+            { id: "chapter-detail", title: "Chapter detail", subtitle: item.subtitle, value: item.chapterStatus ?? "API", tone: item.chapterStatus === "READY_FOR_PUBLICATION" ? "success" : "neutral" },
+            { id: "page-detail", title: "Page metadata", subtitle: "Read-only page list; mobile does not request signed file URLs.", value: item.pageCount === undefined ? "API" : String(item.pageCount), tone: "neutral" },
             { id: "comments", title: "Linked comments", subtitle: "Resolve before publication readiness", value: String(item.linkedCommentCount), tone: item.linkedCommentCount > 0 ? "warning" : "success" },
           ]} />
           <EditorFinalApprovalDecisionPanel
@@ -202,6 +240,10 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
             onStartAction={flow.startFinalApprovalAction}
             onConfirm={flow.confirmFinalApprovalAction}
             onCancel={flow.cancelFinalApprovalAction}
+            noteValue={flow.finalApprovalNote}
+            onChangeNote={flow.setFinalApprovalNote}
+            busy={flow.actionBusy}
+            errorText={flow.actionError}
           />
         </>
       ) : <MFEmptyState title="No selected submission" subtitle="Select a Mangaka-approved submission to preview final approval details." icon="file-check" />}

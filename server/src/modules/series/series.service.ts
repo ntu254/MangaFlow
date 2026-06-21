@@ -1,6 +1,6 @@
 import { Series } from "./series.model.js"
 import { Manuscript } from "./series.model.js"
-import { Chapter, Page, FileAsset } from "../chapter/chapter.model.js"
+import { Chapter, FileAsset } from "../chapter/chapter.model.js"
 import { Task } from "../task/task.model.js"
 import { Submission } from "../submission/submission.model.js"
 import { Comment } from "../comment/comment.model.js"
@@ -109,7 +109,7 @@ export interface CreateManuscriptUploadServiceInput {
   contentType: string
   size: number
   expiresIn?: number
-  assetType?: "MANUSCRIPT" | "SUPPORTING"
+  assetType?: "manuscript" | "cover_draft" | "character_concept" | "reference_image" | "other"
   slot?: string
 }
 
@@ -129,8 +129,8 @@ export async function createManuscriptUploadService(input: CreateManuscriptUploa
   const version = isDraft ? latest.version : (latest ? latest.version + 1 : 1)
   const versionId = isDraft ? String(latest._id) : new Types.ObjectId().toString()
   const fileAssetId = new Types.ObjectId().toString()
-  const assetType = input.assetType ?? "MANUSCRIPT"
-  const typeKey = (input.slot || assetType).toLowerCase()
+  const assetType = input.assetType ?? "manuscript"
+  const typeKey = assetType.replaceAll("_", "-")
   const ext = input.originalName.split(".").pop()?.toLowerCase() || "bin"
   
   const seriesSlug = series.slug
@@ -143,7 +143,7 @@ export async function createManuscriptUploadService(input: CreateManuscriptUploa
   const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn, customR2Key)
   let persisted
   try {
-    persisted = assetType === "MANUSCRIPT"
+    persisted = assetType === "manuscript"
       ? await createManuscriptUploadDraft({
           fileAssetId,
           versionId,
@@ -173,7 +173,7 @@ export async function createManuscriptUploadService(input: CreateManuscriptUploa
     throw error
   }
 
-  if (assetType === "MANUSCRIPT" && persisted.manuscript?.id) {
+  if (assetType === "manuscript" && persisted.manuscript?.id) {
     void recordAuditLog({
       event: "MANUSCRIPT_VERSION_UPLOADED",
       actorId: input.userId,
@@ -277,8 +277,8 @@ export async function getSeriesSummaryService(seriesId: string, userId: string, 
     }
   })
 
-  const completedTaskStatuses = new Set(["EDITOR_APPROVED", "REJECTED"])
-  const openComments = (data.comments as any[]).filter((comment) => comment.status !== "RESOLVED_BY_EDITOR")
+  const completedTaskStatuses = new Set(["EDITOR_APPROVED", "REJECTED", "CANCELLED"])
+  const openComments = (data.comments as any[]).filter((comment) => comment.status !== "RESOLVED")
   const blockingComments = openComments.filter((comment) => comment.isBlocking)
   const totalPages = (data.pages as any[]).length
   const approvedPages = (data.pages as any[]).filter((page) => page.status === "APPROVED").length
@@ -321,7 +321,7 @@ export async function getSeriesSummaryService(seriesId: string, userId: string, 
     chapterSummary: {
       total: chapters.length,
       completed: chapters.filter((chapter) => chapter.status === "PUBLISHED").length,
-      inProduction: chapters.filter((chapter) => ["IN_PRODUCTION", "IN_REVIEW", "REVISION_REQUIRED"].includes(chapter.status)).length,
+      inProduction: chapters.filter((chapter) => chapter.status === "IN_PRODUCTION").length,
       totalPages,
       approvedPages,
       readinessPercent,
@@ -338,6 +338,7 @@ export async function getSeriesSummaryService(seriesId: string, userId: string, 
       status: task.status,
       priority: task.priority,
       dueDate: task.dueDate,
+      createdAt: task.createdAt,
       assignee: task.assignedTo ? task.assignedTo.displayName || task.assignedTo.name : null,
     })),
     recentSubmissions: (data.submissions as any[]).slice(0, 5).map((submission) => ({
@@ -391,7 +392,7 @@ export async function getSeriesSummaryService(seriesId: string, userId: string, 
     allowedActions: {
       canEditSeries: role === "MANGAKA" && ["DRAFT", "REVISION_REQUESTED"].includes(series.status),
       canUploadManuscript: role === "MANGAKA" && String(series.ownerId) === userId && ["DRAFT", "REVISION_REQUESTED"].includes(series.status),
-      canOpenWorkspace: ["APPROVED", "ONGOING", "AT_RISK", "COMPLETED"].includes(series.status),
+      canOpenWorkspace: ["ONGOING", "AT_RISK", "COMPLETED"].includes(series.status),
     },
   }
 }
@@ -555,14 +556,14 @@ export async function cancelSeriesService(seriesId: string, userId: string, role
   if (!series) throw new AppError("Series not found", 404)
   assertIsSeriesOwner(series, userId, role)
 
-  const allowedStatuses = ["APPROVED", "ONGOING", "AT_RISK"]
+  const allowedStatuses = ["ONGOING", "AT_RISK"]
   if (!allowedStatuses.includes(series.status)) {
-    throw new AppError("Only approved or ongoing series can be cancelled", 400)
+    throw new AppError("Only ongoing or at-risk series can request cancellation", 400)
   }
 
   await Series.updateOne(
     { _id: seriesId },
-    { $set: { status: "CANCELLED", cancelledAt: new Date() } }
+    { $set: { cancellationRequestedAt: new Date(), cancellationRequestedBy: userId } }
   )
 }
 
@@ -572,13 +573,24 @@ export async function hardDeleteSeriesService(seriesId: string, _userId: string,
   }
   const series = await getSeriesById(seriesId)
   if (!series) throw new AppError("Series not found", 404)
+  if (series.status !== "DRAFT") {
+    throw new AppError("Only an unsubmitted draft without production history can be hard deleted", 409)
+  }
 
-  // Cascade delete logic (simplified MVP version)
+  const [chapterCount, taskCount, submissionCount] = await Promise.all([
+    Chapter.countDocuments({ seriesId }),
+    Task.countDocuments({ seriesId }),
+    Submission.countDocuments({ seriesId }),
+  ])
+  if (chapterCount > 0 || taskCount > 0 || submissionCount > 0) {
+    throw new AppError("Series has production history and must be archived instead", 409)
+  }
+
+  // Draft-only cleanup. Deep production entities are never hard deleted here.
   await Promise.all([
     Series.deleteOne({ _id: seriesId }),
     Manuscript.deleteMany({ seriesId }),
     Chapter.deleteMany({ seriesId }),
-    Page.deleteMany({ seriesId }), // assuming Page schema has seriesId, if not chapterId need to be fetched
     FileAsset.deleteMany({ seriesId }),
     Task.deleteMany({ seriesId }),
     Submission.deleteMany({ seriesId }),

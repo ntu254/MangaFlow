@@ -20,7 +20,9 @@ const listeners = new Set<() => void>();
 function persist() {
   try {
     if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(store));
-  } catch {}
+  } catch {
+    /* ignore */
+  }
   listeners.forEach((l) => l());
 }
 
@@ -45,9 +47,7 @@ export function useAuditLog(entity?: AuditEntity, entityId?: string) {
     () => store,
   );
   if (!entity) return snapshot;
-  return snapshot.filter(
-    (e) => e.entity === entity && (entityId ? e.entityId === entityId : true),
-  );
+  return snapshot.filter((e) => e.entity === entity && (entityId ? e.entityId === entityId : true));
 }
 
 export function resetAudit() {

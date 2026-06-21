@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  submissions,
-  findTask,
-  findChapter,
-  findSeries,
-  findStaff,
-} from "@/entities";
+  useReviewQueue,
+  useApproveSubmission,
+  useEditorApproveSubmission,
+  useRequestRevision,
+  useTaskSubmissions,
+} from "@/shared/queries/useSubmissions";
+import { refId, refLabel } from "@/shared/api/submissions";
+import { findTask, findChapter, findSeries, findStaff } from "@/entities";
+import { usePageStudio } from "@/shared/queries/usePageStudio";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import {
   CheckCircle2,
   XCircle,
@@ -24,36 +28,73 @@ export const Route = createFileRoute("/app/series/$id/reviews")({
 function SeriesReviews() {
   const { id } = Route.useParams();
 
-  // Find submissions that belong to chapters of this series
-  let seriesSubmissions = submissions.filter((sm) => {
-    const task = findTask(sm.taskId);
-    if (!task) return false;
-    const chapter = findChapter(task.chapterId);
-    if (!chapter) return false;
-    return chapter.seriesId === id;
-  });
+  const { data: queueData, isLoading } = useReviewQueue(id);
+  const seriesSubmissions = queueData || [];
 
-  // Fallback for mock data purposes (since the user's series ID might not match mock IDs)
-  if (seriesSubmissions.length === 0) {
-    seriesSubmissions = submissions;
-  }
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
 
-  const [selectedSubId, setSelectedSubId] = useState<string | null>(
-    seriesSubmissions[0]?.id || null
-  );
-
-  const [viewMode, setViewMode] = useState<"split" | "overlay" | "submitted">(
-    "split"
-  );
+  const [viewMode, setViewMode] = useState<"split" | "overlay" | "submitted">("split");
   const [commentText, setCommentText] = useState("");
 
-  const selectedSub = seriesSubmissions.find((s) => s.id === selectedSubId);
+  const selectedSub = seriesSubmissions.find((s) => s.id === selectedSubId) || seriesSubmissions[0];
+  const actualSelectedId = selectedSub?.id || null;
 
-  // Mock Images
-  const originalImage =
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop";
-  const submittedImage =
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop&blur=50"; // Just a mock visual difference
+  const approveMutation = useApproveSubmission();
+  const editorApproveMutation = useEditorApproveSubmission();
+  const requestRevisionMutation = useRequestRevision();
+
+  const handleApprove = () => {
+    if (!actualSelectedId || !selectedSub) return;
+    const isEditorPhase = selectedSub.status === "MANGAKA_APPROVED";
+    const mutation = isEditorPhase ? editorApproveMutation : approveMutation;
+
+    mutation.mutate(
+      { id: actualSelectedId, note: commentText },
+      {
+        onSuccess: () => setCommentText(""),
+      },
+    );
+  };
+
+  const handleRequestRevision = () => {
+    if (!actualSelectedId) return;
+    requestRevisionMutation.mutate(
+      { id: actualSelectedId, note: commentText },
+      {
+        onSuccess: () => setCommentText(""),
+      },
+    );
+  };
+
+  const submittedFileAssetId = typeof selectedSub?.fileAssetId === "object"
+    ? selectedSub.fileAssetId?.id || selectedSub.fileAssetId?._id
+    : selectedSub?.fileAssetId;
+
+  const { data: submittedImageUrl } = useFileObjectUrl(submittedFileAssetId);
+
+  const { data: pageStudioData } = usePageStudio(selectedSub?.pageId || "");
+
+  const originalFileAssetId = pageStudioData?.page?.originalFileAssetId;
+
+  const { data: originalImageUrl } = useFileObjectUrl(originalFileAssetId);
+
+  const subTaskId = selectedSub?.taskId
+    ? (typeof selectedSub.taskId === "object" ? selectedSub.taskId.id || selectedSub.taskId._id : selectedSub.taskId)
+    : "";
+
+  const { data: submissionsHistory = [] } = useTaskSubmissions(subTaskId || "");
+
+  // Mock Images fallback
+  const originalImage = originalImageUrl || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop";
+  const submittedImage = submittedImageUrl || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop&blur=50"; // Just a mock visual difference
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center rounded-xl border border-dashed border-foreground/15 text-[13px] text-foreground/50">
+        Loading...
+      </div>
+    );
+  }
 
   if (seriesSubmissions.length === 0) {
     return (
@@ -75,9 +116,9 @@ function SeriesReviews() {
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
           {seriesSubmissions.map((sm) => {
-            const t = findTask(sm.taskId);
-            const a = findStaff(t?.assigneeId || "");
-            const isSelected = sm.id === selectedSubId;
+            const t = findTask(refId(sm.taskId));
+            const taskLabel = t?.type ?? refLabel(sm.taskId, "Task");
+            const isSelected = sm.id === actualSelectedId;
             return (
               <button
                 key={sm.id}
@@ -89,17 +130,15 @@ function SeriesReviews() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold truncate">
-                    {t?.type}
-                  </span>
-                  {sm.mangakaApproved ? (
+                  <span className="text-[12px] font-semibold truncate">{taskLabel}</span>
+                  {sm.status === "MANGAKA_APPROVED" ? (
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                   ) : (
                     <div className="h-2 w-2 rounded-full bg-amber-500" />
                   )}
                 </div>
                 <div className="mt-1 text-[11px] opacity-70">
-                  {a?.name || "Unknown"} &bull; {sm.submittedAt}
+                  {sm.submittedBy.name} &bull; {new Date(sm.createdAt).toLocaleDateString()}
                 </div>
               </button>
             );
@@ -144,26 +183,55 @@ function SeriesReviews() {
           {viewMode === "split" && (
             <div className="flex gap-4 w-full max-w-4xl">
               <div className="flex-1 space-y-2">
-                <div className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider text-center">Original</div>
-                <img src={originalImage} className="w-full h-auto rounded shadow-sm border border-foreground/10" alt="Original" />
+                <div className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider text-center">
+                  Original
+                </div>
+                <img
+                  src={originalImage}
+                  className="w-full h-auto rounded shadow-sm border border-foreground/10"
+                  alt="Original"
+                />
               </div>
               <div className="flex-1 space-y-2">
-                <div className="text-[11px] font-semibold text-primary uppercase tracking-wider text-center">Submitted</div>
-                <img src={submittedImage} className="w-full h-auto rounded shadow-sm border border-primary/30" alt="Submitted" />
+                <div className="text-[11px] font-semibold text-primary uppercase tracking-wider text-center">
+                  Submitted
+                </div>
+                <img
+                  src={submittedImage}
+                  className="w-full h-auto rounded shadow-sm border border-primary/30"
+                  alt="Submitted"
+                />
               </div>
             </div>
           )}
           {viewMode === "overlay" && (
-             <div className="relative w-full max-w-xl group cursor-pointer" onPointerDown={() => setViewMode("submitted")} onPointerUp={() => setViewMode("overlay")} onPointerLeave={() => setViewMode("overlay")}>
-               <div className="text-[11px] mb-2 font-semibold text-foreground/50 uppercase tracking-wider text-center">Hold to view Original</div>
-               <img src={submittedImage} className="w-full h-auto rounded shadow-sm border border-foreground/10 transition-all duration-200" alt="Overlay Viewer" />
-             </div>
+            <div
+              className="relative w-full max-w-xl group cursor-pointer"
+              onPointerDown={() => setViewMode("submitted")}
+              onPointerUp={() => setViewMode("overlay")}
+              onPointerLeave={() => setViewMode("overlay")}
+            >
+              <div className="text-[11px] mb-2 font-semibold text-foreground/50 uppercase tracking-wider text-center">
+                Hold to view Original
+              </div>
+              <img
+                src={submittedImage}
+                className="w-full h-auto rounded shadow-sm border border-foreground/10 transition-all duration-200"
+                alt="Overlay Viewer"
+              />
+            </div>
           )}
           {viewMode === "submitted" && (
-             <div className="relative w-full max-w-xl">
-               <div className="text-[11px] mb-2 font-semibold text-foreground/50 uppercase tracking-wider text-center">Original</div>
-               <img src={originalImage} className="w-full h-auto rounded shadow-sm border border-foreground/10 transition-all duration-200" alt="Original" />
-             </div>
+            <div className="relative w-full max-w-xl">
+              <div className="text-[11px] mb-2 font-semibold text-foreground/50 uppercase tracking-wider text-center">
+                Original
+              </div>
+              <img
+                src={originalImage}
+                className="w-full h-auto rounded shadow-sm border border-foreground/10 transition-all duration-200"
+                alt="Original"
+              />
+            </div>
           )}
         </div>
       </div>
@@ -175,21 +243,46 @@ function SeriesReviews() {
             <h4 className="text-[14px] font-bold">Feedback & Approval</h4>
             <div className="mt-1 flex items-center gap-2 text-[12px] text-foreground/60">
               <span className="inline-flex items-center rounded-full bg-foreground/10 px-2 py-0.5">
-                {selectedSub.mangakaApproved ? "Approved" : "Pending Review"}
+                {selectedSub.status === "MANGAKA_APPROVED" ? "Approved" : "Pending Review"}
               </span>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-            {/* Mock previous comments */}
+            <h5 className="text-[11px] font-bold uppercase tracking-wider text-foreground/50 mb-2">History & Comments</h5>
             <div className="space-y-3">
-              <div className="flex gap-2">
-                <div className="h-6 w-6 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">A</div>
-                <div className="rounded-xl rounded-tl-none bg-foreground/5 px-3 py-2 text-[12px]">
-                  I've added the screen tones to the background as requested. Let me know if the density is okay.
-                  <div className="mt-1 text-[10px] opacity-50">Assistant &bull; 2 hours ago</div>
-                </div>
-              </div>
+              {submissionsHistory.length === 0 ? (
+                <div className="text-[11px] text-foreground/45 italic">No comment history.</div>
+              ) : (
+                [...submissionsHistory].reverse().map((h: any) => (
+                  <div key={h.id} className="space-y-2 border-b border-foreground/5 pb-3 last:border-b-0">
+                    <div className="flex gap-2">
+                      <div className="h-6 w-6 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                        {h.submittedBy?.name?.[0] || "A"}
+                      </div>
+                      <div className="rounded-xl rounded-tl-none bg-foreground/5 px-3 py-2 text-[12px] flex-1">
+                        <div>{h.resultText || "Submitted version for review."}</div>
+                        <div className="mt-1 text-[10px] opacity-50">
+                          {h.submittedBy?.name || "Assistant"} &bull; v{h.version} &bull; {new Date(h.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    {h.reviewerNote && (
+                      <div className="flex gap-2 pl-4">
+                        <div className="h-6 w-6 shrink-0 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                          R
+                        </div>
+                        <div className="rounded-xl rounded-tl-none bg-amber-500/5 px-3 py-2 text-[12px] flex-1 border border-amber-500/10">
+                          <div>{h.reviewerNote}</div>
+                          <div className="mt-1 text-[10px] opacity-50 text-amber-600 dark:text-amber-400">
+                            Reviewer Feedback &bull; {h.status.replace("_", " ")}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -205,13 +298,21 @@ function SeriesReviews() {
                 <Send className="h-3.5 w-3.5" />
               </button>
             </div>
-            
+
             <div className="flex gap-2">
-              <button className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 py-2 text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400">
+              <button
+                onClick={handleRequestRevision}
+                disabled={requestRevisionMutation.isPending || approveMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 py-2 text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400 disabled:opacity-50"
+              >
                 <XCircle className="h-3.5 w-3.5" />
                 Request Changes
               </button>
-              <button className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-[#061A2B] py-2 text-[12px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-blue-600">
+              <button
+                onClick={handleApprove}
+                disabled={approveMutation.isPending || editorApproveMutation.isPending || requestRevisionMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-[#061A2B] py-2 text-[12px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-blue-600 disabled:opacity-50"
+              >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Approve
               </button>

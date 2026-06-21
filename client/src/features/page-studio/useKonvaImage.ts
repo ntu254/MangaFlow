@@ -8,9 +8,7 @@ export function useKonvaImage(
   src: string,
 ): [HTMLImageElement | null, "loading" | "loaded" | "error"] {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">(
-    "loading",
-  );
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   useEffect(() => {
     if (!src) return;
@@ -18,7 +16,9 @@ export function useKonvaImage(
     setImage(null);
 
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (shouldUseAnonymousCors(src)) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => {
       setImage(img);
       setStatus("loaded");
@@ -35,4 +35,13 @@ export function useKonvaImage(
   }, [src]);
 
   return [image, status];
+}
+
+function shouldUseAnonymousCors(src: string) {
+  try {
+    const url = new URL(src, window.location.href);
+    return url.protocol === "blob:" || url.protocol === "data:" || url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }

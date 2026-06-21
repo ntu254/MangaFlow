@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  createFileRoute,
-  useNavigate,
-  Link,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,11 +7,7 @@ import { ChevronLeft, ChevronRight, ChevronRight as Chevron } from "lucide-react
 
 import { useRole } from "@/shared/lib/role";
 import { EmptyState, PageHeader } from "@/layouts/AppShell";
-import {
-  useCreateSeries,
-  useUpdateSeries,
-  useSubmitSeries,
-} from "@/shared/queries/useSeries";
+import { useCreateSeries, useUpdateSeries, useSubmitSeries } from "@/shared/queries/useSeries";
 import type { CreateSeriesInput, UpdateSeriesInput } from "@/shared/api/series";
 
 import { Stepper } from "@/features/series/new/Stepper";
@@ -73,9 +65,7 @@ function NewSeriesPage() {
   const updateMut = useUpdateSeries();
   const submitMut = useSubmitSeries();
 
-  const [visited, setVisited] = useState<Set<WizardStep>>(
-    () => new Set([currentStep]),
-  );
+  const [visited, setVisited] = useState<Set<WizardStep>>(() => new Set([currentStep]));
   const [invalid, setInvalid] = useState<Set<WizardStep>>(new Set());
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 
@@ -110,7 +100,7 @@ function NewSeriesPage() {
       if (firstIncomplete !== "basic") {
         navigate({
           to: "/app/series/new",
-          search: (prev) => ({ ...prev, step: firstIncomplete }),
+          search: (prev: any) => ({ ...prev, step: firstIncomplete }),
           replace: true,
         });
       }
@@ -124,7 +114,7 @@ function NewSeriesPage() {
     (step: WizardStep) => {
       navigate({
         to: "/app/series/new",
-        search: (prev: Record<string, unknown>) => ({ ...prev, step }),
+        search: (prev: any) => ({ ...prev, step }),
         replace: true,
       });
     },
@@ -353,12 +343,7 @@ function NewSeriesPage() {
                 DRAFT
               </span>
             </div>
-            {hydrated && (
-              <AutosaveIndicator
-                status={autosaveStatus}
-                lastSavedAt={lastSavedAt}
-              />
-            )}
+            {hydrated && <AutosaveIndicator status={autosaveStatus} lastSavedAt={lastSavedAt} />}
           </div>
         </div>
 
@@ -415,9 +400,7 @@ function NewSeriesPage() {
                   onRemove={removeManuscript}
                 />
               )}
-              {currentStep === "review" && (
-                <ReviewStep manuscripts={manuscripts} onJump={goTo} />
-              )}
+              {currentStep === "review" && <ReviewStep manuscripts={manuscripts} onJump={goTo} />}
 
               {/* Step nav */}
               <div className="mt-4 flex items-center justify-between">
@@ -474,9 +457,8 @@ function NewSeriesPage() {
           >
             <h3 className="text-base font-semibold">Submit for editor review?</h3>
             <p className="mt-1 text-[13px] text-foreground/60">
-              You won't be able to edit the proposal while your editor reviews
-              it. They may request a revision, reject, or forward it to the
-              Board.
+              You won't be able to edit the proposal while your editor reviews it. They may request
+              a revision, reject, or forward it to the Board.
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -505,4 +487,3 @@ function NewSeriesPage() {
     </FormProvider>
   );
 }
-

@@ -95,10 +95,7 @@ export function useCanvasViewport(imgW: number, imgH: number) {
         const sy = e.clientY - rect.top;
         const factor = e.deltaY < 0 ? SCALE_FACTOR : 1 / SCALE_FACTOR;
         setViewport((prev) => {
-          const newScale = Math.max(
-            MIN_SCALE,
-            Math.min(MAX_SCALE, prev.scale * factor),
-          );
+          const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * factor));
           const worldX = (sx - prev.x) / prev.scale;
           const worldY = (sy - prev.y) / prev.scale;
           return {

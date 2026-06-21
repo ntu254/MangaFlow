@@ -5,7 +5,7 @@ import { AtRiskDecisionRecord, BoardDecision, BoardMember, BoardReviewSession, B
 import type { AtRiskDecision, BoardDecisionStatus, BoardVoteValue, PublicationType, SeriesStatus } from "../../shared/workflow/status.js"
 
 export async function listBoardQueueSeries(): Promise<any[]> {
-  return Series.find({ status: { $in: ["BOARD_REVIEW", "APPROVED", "REJECTED", "REVISION_REQUESTED"] } }).sort({ updatedAt: -1 })
+  return Series.find({ status: { $in: ["BOARD_REVIEW", "ONGOING", "REJECTED", "REVISION_REQUESTED"] } }).sort({ updatedAt: -1 })
 }
 
 export async function getDecisionBySeries(seriesId: string, session?: ClientSession): Promise<any | null> {
@@ -74,9 +74,13 @@ export async function updateDecision(
   )
 }
 
-export async function updateSeriesAfterDecision(seriesId: string, status: SeriesStatus, session?: ClientSession, publicationType?: PublicationType): Promise<any> {
+export async function updateSeriesAfterDecision(seriesId: string, status: SeriesStatus, session?: ClientSession, publicationType?: PublicationType, approvedBy?: string): Promise<any> {
   const patch: Record<string, unknown> = { status }
   if (publicationType) patch.publicationType = publicationType
+  if (status === "ONGOING" && approvedBy) {
+    patch.approvedAt = new Date()
+    patch.approvedBy = approvedBy
+  }
   return Series.findByIdAndUpdate(seriesId, patch, { new: true, session })
 }
 

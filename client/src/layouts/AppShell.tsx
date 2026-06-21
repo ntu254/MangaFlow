@@ -3,29 +3,27 @@ import { useLocation } from "@tanstack/react-router";
 import { ThemeProvider } from "@/shared/lib/theme";
 import { Sidebar } from "@/layouts/Sidebar";
 import { Topbar } from "@/layouts/Topbar";
-import { SidebarProvider, useSidebar } from "@/layouts/SidebarContext";
+import { SidebarProvider } from "@/layouts/SidebarContext";
 
 function AppShellInner({ children }: { children: ReactNode }) {
-  const { collapsed } = useSidebar();
   const { pathname } = useLocation();
-  const isStudioPage = pathname.endsWith("/studio");
-
-  if (isStudioPage) {
-    return (
-      <div className="flex min-h-screen w-full bg-[#141414] text-foreground">
-        <main className="flex-1 flex flex-col min-w-0">
-          {children}
-        </main>
-      </div>
-    );
-  }
+  const isPageStudio = pathname.startsWith("/app/pages/") && pathname.endsWith("/studio");
+  const isAssistantTaskStudio =
+    pathname.startsWith("/app/assistant/tasks/") && pathname.endsWith("/studio");
+  const isStudioWorkspace = isPageStudio || isAssistantTaskStudio;
 
   return (
-    <div className="flex min-h-screen w-full bg-background text-foreground">
+    <div suppressHydrationWarning className="flex min-h-screen w-full bg-background text-foreground">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 px-10 py-5">
+        <main
+          className={
+            isStudioWorkspace
+              ? "flex h-[calc(100vh-3.5rem)] min-h-0 flex-col overflow-hidden"
+              : "flex-1 px-10 py-5"
+          }
+        >
           {children}
         </main>
       </div>
@@ -42,7 +40,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     </ThemeProvider>
   );
 }
-
 
 export function PageHeader({
   title,
@@ -90,7 +87,9 @@ export function EmptyState({
         </div>
       )}
       <div className="text-[14px] font-semibold text-foreground">{title}</div>
-      {hint && <div className="max-w-[280px] text-[12px] leading-relaxed text-foreground/50">{hint}</div>}
+      {hint && (
+        <div className="max-w-[280px] text-[12px] leading-relaxed text-foreground/50">{hint}</div>
+      )}
       {action && (
         <button
           onClick={action.onClick}

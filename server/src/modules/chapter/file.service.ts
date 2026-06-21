@@ -6,7 +6,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { v4 as uuidv4 } from "uuid";
+import { Types } from "mongoose";
 import { config } from "../../shared/utils/env.js";
 
 const s3 = new S3Client({
@@ -36,14 +36,29 @@ function buildR2Key(fileAssetId: string, originalName: string): string {
   return `uploads/${fileAssetId}.${ext}`;
 }
 
+function buildChapterImageR2Key(
+  fileAssetId: string,
+  originalName: string,
+  seriesId: string,
+  chapterId: string,
+): string {
+  const ext = originalName.split(".").pop()?.toLowerCase() || "bin";
+  return `series/${seriesId}/chapters/${chapterId}/images/${fileAssetId}.${ext}`;
+}
+
 export async function createPresignedUploadUrl(
   originalName: string,
   contentType: string,
   expiresIn = 3600,
   customR2Key?: string,
+  scope?: { seriesId: string; chapterId: string },
 ): Promise<PresignedUploadResult> {
-  const fileAssetId = uuidv4();
-  const r2Key = customR2Key || buildR2Key(fileAssetId, originalName);
+  const fileAssetId = new Types.ObjectId().toString();
+  const r2Key = customR2Key || (
+    scope
+      ? buildChapterImageR2Key(fileAssetId, originalName, scope.seriesId, scope.chapterId)
+      : buildR2Key(fileAssetId, originalName)
+  );
 
   const command = new PutObjectCommand({
     Bucket: config.r2Bucket,
@@ -101,7 +116,7 @@ export async function uploadBuffer(
   originalName: string,
   contentType: string,
 ): Promise<{ fileAssetId: string; r2Key: string; size: number }> {
-  const fileAssetId = uuidv4();
+  const fileAssetId = new Types.ObjectId().toString();
   const r2Key = buildR2Key(fileAssetId, originalName);
   const size = buffer.length;
 

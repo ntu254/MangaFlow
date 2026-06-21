@@ -4,12 +4,13 @@ import {
   getTaskForSubmission,
   listReviewQueueSubmissions,
   listSubmissionsByTask,
-  updateTaskStatusForSubmission,
+  updateTaskForNewSubmission,
+  listAllSubmissionsRepo,
 } from "../submission.repository.js"
 import type { SubmissionActor } from "../policies/submission-access.policy.js"
 import { assertSubmissionSeriesMember } from "../policies/submission-access.policy.js"
 import { assertSubmissionPayload, assertTaskSubmittable } from "../guards/submission-transition.guard.js"
-import { createPresignedUploadUrl } from "../../chapter/file.service.js"
+import { checkObjectExists, createPresignedUploadUrl } from "../../chapter/file.service.js"
 import { FileAsset } from "../../chapter/chapter.model.js"
 import { config } from "../../../shared/utils/env.js"
 
@@ -18,6 +19,25 @@ export interface SubmitTaskInput {
   actor: SubmissionActor
   resultText?: string
   fileAssetId?: string
+}
+
+async function assertSubmissionFileAsset(fileAssetId: string, actor: SubmissionActor) {
+  const fileAsset = await FileAsset.findById(fileAssetId)
+  if (!fileAsset) {
+    throw new AppError("Submission file asset not found", 404)
+  }
+  if (fileAsset.status !== "ACTIVE") {
+    throw new AppError("Submission file asset is not active", 400)
+  }
+  if (String(fileAsset.uploadedBy) !== actor.userId) {
+    throw new AppError("Submission file asset belongs to another user", 403)
+  }
+  if (fileAsset.assetType !== "production") {
+    throw new AppError("Submission requires a production file asset", 400)
+  }
+  if (!(await checkObjectExists(fileAsset.r2Key))) {
+    throw new AppError("Submission file upload is not complete", 400)
+  }
 }
 
 export async function createTaskSubmissionService(input: SubmitTaskInput) {
@@ -34,6 +54,10 @@ export async function createTaskSubmissionService(input: SubmitTaskInput) {
   assertTaskSubmittable(task.status)
   assertSubmissionPayload(input)
 
+  if (input.fileAssetId) {
+    await assertSubmissionFileAsset(input.fileAssetId, input.actor)
+  }
+
   const submission = await createSubmissionRecord({
     taskId: input.taskId,
     submittedBy: input.actor.userId,
@@ -45,7 +69,7 @@ export async function createTaskSubmissionService(input: SubmitTaskInput) {
     throw new AppError("Task not found", 404)
   }
 
-  await updateTaskStatusForSubmission(input.taskId, "SUBMITTED")
+  await updateTaskForNewSubmission(input.taskId, String(submission._id))
   return submission
 }
 
@@ -63,7 +87,12 @@ export async function listTaskSubmissionsService(taskId: string, actor: Submissi
   return listSubmissionsByTask(taskId)
 }
 
-export async function listReviewQueueSubmissionsService(actor: SubmissionActor) {
+export async function listReviewQueueSubmissionsService(actor: SubmissionActor, seriesIdFilter?: string) {
+  if (actor.role === "ADMIN") {
+    const { listReviewQueueSubmissionsAdmin } = await import("../submission.repository.js")
+    return listReviewQueueSubmissionsAdmin(["SUBMITTED", "MANGAKA_APPROVED"], seriesIdFilter)
+  }
+
   if (!["MANGAKA", "EDITOR"].includes(actor.role)) {
     throw new AppError("Review queue access denied", 403)
   }
@@ -76,7 +105,10 @@ export async function listReviewQueueSubmissionsService(actor: SubmissionActor) 
     role,
     ...ACTIVE_MEMBER_QUERY,
   }).lean()
-  const seriesIds = members.map((member: any) => String(member.seriesId))
+  let seriesIds = members.map((member: any) => String(member.seriesId))
+  if (seriesIdFilter) {
+    seriesIds = seriesIds.filter(id => id === seriesIdFilter)
+  }
   if (seriesIds.length === 0) {
     return []
   }
@@ -114,7 +146,7 @@ export async function getTaskUploadUrlService(input: GetTaskUploadUrlInput) {
     r2Key: signed.r2Key,
     r2Bucket: config.r2Bucket,
     uploadedBy: input.actor.userId,
-    assetType: "PRODUCTION",
+    assetType: "production",
   })
 
   return {
@@ -122,4 +154,41 @@ export async function getTaskUploadUrlService(input: GetTaskUploadUrlInput) {
     fileAssetId: fileAsset.id,
   }
 }
+
+export async function listAllSubmissionsService(actor: SubmissionActor) {
+  if (actor.role === "ADMIN") {
+    return listAllSubmissionsRepo(null);
+  }
+
+  if (["MANGAKA", "EDITOR"].includes(actor.role)) {
+    const { SeriesMember } = await import("../../series/series.model.js")
+    const { ACTIVE_MEMBER_QUERY } = await import("../../../shared/policies/seriesMember.policy.js")
+    const members = await SeriesMember.find({
+      userId: actor.userId,
+      role: actor.role,
+      ...ACTIVE_MEMBER_QUERY,
+    }).lean()
+    const seriesIds = members.map((member: any) => String(member.seriesId))
+    if (seriesIds.length === 0) return []
+    return listAllSubmissionsRepo(seriesIds)
+  }
+
+  if (actor.role === "ASSISTANT") {
+    const docs = await FileAsset.find({ uploadedBy: actor.userId }).lean()
+    // For assistant, they can view their own submissions directly
+    const { Submission } = await import("../submission.model.js")
+    const submissions = await Submission.find({ submittedBy: actor.userId })
+      .sort({ updatedAt: -1 })
+      .populate("submittedBy", "name role")
+      .populate("fileAssetId", "originalName")
+      .populate("seriesId", "title")
+      .populate("taskId", "title")
+      .populate("chapterId", "chapterNumber title")
+      .lean()
+    return submissions.map((d: any) => ({ ...d, id: String(d._id) }))
+  }
+
+  return []
+}
+
 

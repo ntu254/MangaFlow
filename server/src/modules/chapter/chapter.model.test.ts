@@ -6,14 +6,13 @@ describe("CHAPTER_STATUSES", () => {
     expect(CHAPTER_STATUSES).toEqual([
       "DRAFT",
       "IN_PRODUCTION",
-      "IN_REVIEW",
       "READY_FOR_PUBLICATION",
       "PUBLISHED",
-      "REVISION_REQUIRED",
+      "ARCHIVED",
     ])
   })
 
   it("has correct length", () => {
-    expect(CHAPTER_STATUSES).toHaveLength(6)
+    expect(CHAPTER_STATUSES).toHaveLength(5)
   })
 })

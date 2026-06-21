@@ -25,13 +25,13 @@ Out of scope: Chapter creation, page upload, production team, task assignment, a
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Mangaka | Tạo proposal, upload manuscript, sửa revision |
-| Tantou Editor | Review manuscript, request revision, reject, forward to Board |
-| Editorial Board | Vote và quyết định Series có được approve không |
-| Board Chair | Finalize decision nếu cần tie-break |
-| System | Validate, update status, notify, audit |
+| Actor           | Vai trò                                                       |
+| --------------- | ------------------------------------------------------------- |
+| Mangaka         | Tạo proposal, upload manuscript, sửa revision                 |
+| Tantou Editor   | Review manuscript, request revision, reject, forward to Board |
+| Editorial Board | Vote và quyết định Series có được approve không               |
+| Board Chair     | Finalize decision nếu cần tie-break                           |
+| System          | Validate, update status, notify, audit                        |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -68,30 +68,30 @@ AuditLog
 
 ## 7. Series Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| DRAFT | Mangaka đang soạn proposal |
-| EDITOR_REVIEW | Đã submit cho Editor review |
-| REVISION_REQUESTED | Cần Mangaka sửa proposal/manuscript |
-| BOARD_REVIEW | Editor đã forward cho Board |
-| APPROVED | Board approve Series và chốt publicationType |
-| REJECTED | Series bị từ chối |
-| ONGOING | Series đã vào sản xuất/xuất bản |
-| AT_RISK | Series có rủi ro do ranking/performance |
-| CANCELLED | Series bị hủy |
-| COMPLETED | Series hoàn thành |
+| Status             | Ý nghĩa                                      |
+| ------------------ | -------------------------------------------- |
+| DRAFT              | Mangaka đang soạn proposal                   |
+| EDITOR_REVIEW      | Đã submit cho Editor review                  |
+| REVISION_REQUESTED | Cần Mangaka sửa proposal/manuscript          |
+| BOARD_REVIEW       | Editor đã forward cho Board                  |
+| APPROVED           | Board approve Series và chốt publicationType |
+| REJECTED           | Series bị từ chối                            |
+| ONGOING            | Series đã vào sản xuất/xuất bản              |
+| AT_RISK            | Series có rủi ro do ranking/performance      |
+| CANCELLED          | Series bị hủy                                |
+| COMPLETED          | Series hoàn thành                            |
 
 ## 8. Manuscript Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| DRAFT | Bản thảo đang được chuẩn bị |
-| SUBMITTED | Mangaka đã submit |
-| UNDER_EDITOR_REVIEW | Editor đang review |
-| REVISION_REQUESTED | Cần sửa bản thảo |
-| FORWARDED_TO_BOARD | Đã chuyển lên Board |
-| APPROVED | Manuscript được chấp nhận trong proposal |
-| REJECTED | Manuscript bị từ chối |
+| Status              | Ý nghĩa                                  |
+| ------------------- | ---------------------------------------- |
+| DRAFT               | Bản thảo đang được chuẩn bị              |
+| SUBMITTED           | Mangaka đã submit                        |
+| UNDER_EDITOR_REVIEW | Editor đang review                       |
+| REVISION_REQUESTED  | Cần sửa bản thảo                         |
+| FORWARDED_TO_BOARD  | Đã chuyển lên Board                      |
+| APPROVED            | Manuscript được chấp nhận trong proposal |
+| REJECTED            | Manuscript bị từ chối                    |
 
 ## 9. Step-by-step flow
 
@@ -153,19 +153,19 @@ Manuscript version không được ghi đè.
 
 ## 11. Permission Matrix
 
-| Action | Mangaka | Editor | Board | Admin |
-| --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: |
-| Create proposal | Có | Không | Không | Optional |
-| Edit draft proposal | Có | Không | Không | Optional |
-| Submit to Editor | Có | Không | Không | Không |
-| Review manuscript | Không | Có | Có khi Board review | Không |
-| Request revision | Không | Có | Có | Không |
-| Reject proposal | Không | Có | Có | Không |
-| Forward to Board | Không | Có | Không | Không |
-| Vote Series | Không | Không | Có | Không |
-| Finalize Board decision | Không | Không | Có | Không |
-| Create Chapter production | Sau khi APPROVED | Optional | Không | Optional |
+| Action                    | Mangaka          | Editor   | Board               | Admin    |
+| ------------------------- | ---------------- | -------- | ------------------- | -------- |
+| ---                       | ---:             | ---:     | ---:                | ---:     |
+| Create proposal           | Có               | Không    | Không               | Optional |
+| Edit draft proposal       | Có               | Không    | Không               | Optional |
+| Submit to Editor          | Có               | Không    | Không               | Không    |
+| Review manuscript         | Không            | Có       | Có khi Board review | Không    |
+| Request revision          | Không            | Có       | Có                  | Không    |
+| Reject proposal           | Không            | Có       | Có                  | Không    |
+| Forward to Board          | Không            | Có       | Không               | Không    |
+| Vote Series               | Không            | Không    | Có                  | Không    |
+| Finalize Board decision   | Không            | Không    | Có                  | Không    |
+| Create Chapter production | Sau khi APPROVED | Optional | Không               | Optional |
 
 ## 12. API đề xuất
 
@@ -242,14 +242,14 @@ SERIES_REJECTED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Submit proposal thiếu manuscript | Block submit |
-| Editor reject | Series.status = REJECTED |
-| Board approve thiếu publicationType | Block finalize decision |
-| Board vote hòa | Board Chair finalizes |
-| Mangaka resubmit revision | Tạo ManuscriptVersion mới |
-| Series rejected | Không tạo Chapter được |
+| Case                                             | Expected behavior                        |
+| ------------------------------------------------ | ---------------------------------------- |
+| Submit proposal thiếu manuscript                 | Block submit                             |
+| Editor reject                                    | Series.status = REJECTED                 |
+| Board approve thiếu publicationType              | Block finalize decision                  |
+| Board vote hòa                                   | Board Chair finalizes                    |
+| Mangaka resubmit revision                        | Tạo ManuscriptVersion mới                |
+| Series rejected                                  | Không tạo Chapter được                   |
 | Series approved thiếu publicationType vì data cũ | Block Chapter Creation, require data fix |
 
 ## 18. Mermaid activity flow

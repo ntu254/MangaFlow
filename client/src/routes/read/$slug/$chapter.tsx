@@ -30,7 +30,9 @@ function Reader() {
         const prev = JSON.parse(localStorage.getItem(key) || "[]");
         prev.push({ chapter: chapter.id, secs, pagesSeen: seen, at: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(prev.slice(-50)));
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     };
   }, [chapter.id, seen]);
 

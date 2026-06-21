@@ -2,7 +2,7 @@
 
 Expo + React Native + TypeScript mobile foundation for MangaFlow.
 
-This slice is UI-only and uses an async mock data-source boundary for Board Chair and Tantou Editor flows. It does not wire API, auth, signed URLs, Board decisions, or publication readiness mutations.
+This mobile slice supports Board Chair/Board and Tantou Editor flows with live API auth, live read endpoints, and live workflow mutations for proposal review, final approval, comments, Board votes, finalize, tie-break, and at-risk decisions. Read calls still keep a local reference-data fallback so the mobile shell remains stable when the API is unavailable.
 
 For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile. Recent story packets:
 
@@ -53,14 +53,14 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Editor shell: Home, Review, Comments, Readiness, Profile.
 - Shared MangaFlow UI primitives under `src/components/mf.tsx`.
 - Contract-aligned mobile types under `src/domain/workflow.ts`.
-- Role-specific mock data under `src/data/editor.ts` and `src/data/board.ts`.
-- Future API replacement boundary under `src/services/mobile-workflow-data-source.ts`.
+- Role-specific reference fallback data under `src/data/editor.ts` and `src/data/board.ts`.
+- Live API + fallback boundary under `src/services/mobile-workflow-data-source.ts`.
 - Role flow hooks under `src/hooks/use-editor-mobile-flow.ts` and `src/hooks/use-board-mobile-flow.ts`.
-- Local confirmation detail panels for mock Editor and Board decisions before future POST action endpoints are wired.
-- Selectable queue rows for Editor and Board detail panels, using local mock state only.
-- Shared empty/loading/error UI states for API-ready mobile flows.
-- Rich local detail previews for Editor comment/readiness evidence and Board ranking/history context.
-- Role handoff and profile scope panels that explain mock/API boundaries without adding auth or new mobile roles.
+- Confirmation detail panels for live Editor and Board workflow mutations.
+- Selectable queue rows for Editor and Board detail panels, backed by live reads with local reference fallback.
+- Shared empty/loading/error UI states for mobile API flows.
+- Rich detail previews for Editor proposal/comment/readiness evidence and Board proposal/ranking/history context.
+- Role handoff and profile scope panels that explain live API/fallback boundaries without adding Mangaka or Assistant mobile roles.
 - Componentized Editor and Board detail panels under `src/screens/*-panels.tsx`.
 - Componentized Editor and Board action/confirmation panels under `src/screens/*-action-panels.tsx`.
 - Polished mobile action controls, status chips, readiness blockers, ranking rows, segmented controls, and confirmation panels for narrow mobile widths.

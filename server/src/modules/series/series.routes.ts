@@ -7,21 +7,46 @@ import { validate } from "../../shared/middleware/validate.js"
 import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./series.controller.js"
 import { createManuscriptUploadSchema, createSeriesSchema, manuscriptFileParamsSchema, seriesIdParamsSchema, updateSeriesSchema } from "./series.validation.js"
-import { addSeriesMemberSchema, updateSeriesMemberSchema } from "./series-member.validation.js"
+import { acceptOwnSeriesInviteSchema, acceptSeriesMemberSchema, addSeriesMemberSchema, updateSeriesMemberSchema } from "./series-member.validation.js"
 import {
+  acceptSeriesMemberInvite,
   addSeriesMember,
   listSeriesMembers,
+  listMySeriesMemberships,
   updateSeriesMember,
   removeSeriesMember,
   getEligibleAssistants,
 } from "./series-member.controller.js"
 
 const router = Router()
+const createSeriesChapterSchema = z.object({
+  params: z.object({
+    seriesId: z.string().min(1, "Series ID is required"),
+  }),
+  body: z.object({
+    chapterNumber: z.number().int().positive("Chapter number must be positive"),
+    title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  }),
+})
 
 router.get("/", requireAuth, asyncHandler(controller.listSeries))
+router.get(
+  "/memberships/my",
+  requireAuth,
+  requireRole("ASSISTANT"),
+  asyncHandler(listMySeriesMemberships),
+)
 router.get("/:seriesId", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesDetail))
 router.get("/:seriesId/summary", requireAuth, validate(seriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesSummary))
 router.post("/", requireAuth, requireRole("MANGAKA"), validate(createSeriesSchema), asyncHandler(controller.createSeries))
+
+router.post(
+  "/:seriesId/chapters",
+  requireAuth,
+  validate(createSeriesChapterSchema),
+  requireSeriesRole("MANGAKA", "EDITOR"),
+  asyncHandler(controller.createChapterForSeries),
+)
 
 router.post(
   "/:seriesId/manuscripts/uploads",
@@ -102,6 +127,22 @@ router.patch(
   requireRole("MANGAKA", "EDITOR"),
   validate(updateSeriesMemberSchema),
   asyncHandler(updateSeriesMember),
+)
+
+router.post(
+  "/:seriesId/members/accept",
+  requireAuth,
+  requireRole("ASSISTANT"),
+  validate(acceptOwnSeriesInviteSchema),
+  asyncHandler(acceptSeriesMemberInvite),
+)
+
+router.post(
+  "/:seriesId/members/:memberId/accept",
+  requireAuth,
+  requireRole("ASSISTANT"),
+  validate(acceptSeriesMemberSchema),
+  asyncHandler(acceptSeriesMemberInvite),
 )
 
 router.delete(

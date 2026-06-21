@@ -12,8 +12,18 @@ import ghostFixers from "@/shared/assets/cover-ghostfixers.jpg";
 import gokuragukai from "@/shared/assets/cover-gokuragukai.jpg";
 import gachiakuta from "@/shared/assets/cover-gachiakuta.jpg";
 
-
-export type SeriesStatus = "draft" | "editor-review" | "revision-requested" | "board-review" | "approved" | "ongoing" | "at-risk" | "completed" | "cancelled";
+export type SeriesStatus =
+  | "draft"
+  | "editor-review"
+  | "revision-requested"
+  | "board-review"
+  | "ongoing"
+  | "at-risk"
+  | "completed"
+  | "cancelled"
+  | "archived"
+  | "rejected"
+  | "withdrawn";
 export type PublicationType = "weekly" | "monthly" | "bi-weekly";
 
 export type Series = {

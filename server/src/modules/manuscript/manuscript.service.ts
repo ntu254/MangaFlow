@@ -56,8 +56,8 @@ async function getReviewContext(input: Pick<ReviewInput, "manuscriptId" | "serie
     throw new AppError("Series must be in EDITOR_REVIEW for manuscript review", 409)
   }
 
-  if (!["SUBMITTED", "UNDER_EDITOR_REVIEW"].includes(manuscript.status)) {
-    throw new AppError("Manuscript must be SUBMITTED or UNDER_EDITOR_REVIEW for this action", 409)
+  if (manuscript.status !== "SUBMITTED") {
+    throw new AppError("Manuscript must be SUBMITTED for this action", 409)
   }
 
   return { manuscript, series }
@@ -134,11 +134,7 @@ export async function listEditorReviewQueueService(actor: ManuscriptReviewActor)
 export async function getEditorSeriesReviewService(seriesId: string, actor: ManuscriptReviewActor) {
   await assertEditor(actor)
   const { manuscript, series } = await getReviewContext({ seriesId })
-  if (manuscript.status === "SUBMITTED") {
-    await updateManuscriptReviewStatus(String(manuscript._id), "UNDER_EDITOR_REVIEW")
-    manuscript.status = "UNDER_EDITOR_REVIEW"
-    void recordAuditLog({ event: "EDITOR_STARTED_REVIEW", actorId: actor.userId, entityType: "Series", entityId: seriesId }).catch(() => undefined)
-  }
+  void recordAuditLog({ event: "EDITOR_STARTED_REVIEW", actorId: actor.userId, entityType: "Series", entityId: seriesId }).catch(() => undefined)
   return { series, manuscript }
 }
 
@@ -174,7 +170,7 @@ export async function forwardManuscriptToBoardService(input: ReviewInput) {
       feasibilityNote: input.feasibilityNote.trim(),
       riskNote: input.riskNote?.trim() || undefined,
     },
-    "FORWARDED_TO_BOARD",
+    "SUBMITTED",
     "BOARD_REVIEW",
   )
 }

@@ -1,9 +1,4 @@
-import {
-  findChapter,
-  findStaff,
-  isAssistantEligible,
-  type Task,
-} from "@/entities";
+import { findChapter, findStaff, isAssistantEligible, type Task } from "@/entities";
 
 export type AccessVerdict = { allowed: boolean; reason?: string };
 
@@ -17,13 +12,9 @@ const no = (reason: string): AccessVerdict => ({ allowed: false, reason });
  *  - they are an active SeriesMember of that series
  *  - the task is not cancelled
  */
-export function canOpenAssistantTask(
-  task: Task | undefined,
-  assistantId: string,
-): AccessVerdict {
+export function canOpenAssistantTask(task: Task | undefined, assistantId: string): AccessVerdict {
   if (!task) return no("Task not found.");
-  if (task.assigneeId !== assistantId)
-    return no("This task is not assigned to you.");
+  if (task.assigneeId !== assistantId) return no("This task is not assigned to you.");
   if (task.status === "cancelled") return no("This task has been cancelled.");
   const staff = findStaff(assistantId);
   if (!staff || staff.role !== "assistant")

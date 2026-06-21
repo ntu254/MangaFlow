@@ -55,6 +55,13 @@ router.get(
 )
 
 router.get(
+  "/:fileAssetId/content",
+  requireAuth,
+  validate(fileAssetIdParamsSchema, "params"),
+  asyncHandler(fileController.getFileAssetContent),
+)
+
+router.get(
   "/pages/:pageId",
   requireAuth,
   validate(pageIdParamsSchema, "params"),
@@ -74,6 +81,19 @@ router.post(
   aiLimiter,
   validate(pageIdParamsSchema, "params"),
   asyncHandler(fileController.runAISegmentation),
+)
+
+/**
+ * POST /api/files/pages/:pageId/ai/whiten-text
+ * Runs AI text cleanup/whitening and stores the result as the page working image.
+ */
+router.post(
+  "/pages/:pageId/ai/whiten-text",
+  requireAuth,
+  requireRole("MANGAKA", "EDITOR"),
+  aiLimiter,
+  validate(pageIdParamsSchema, "params"),
+  asyncHandler(fileController.runAITextWhitening),
 )
 
 /**

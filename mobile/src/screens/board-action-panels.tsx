@@ -4,7 +4,15 @@ import type { AtRiskDecision, BoardAtRiskCase, BoardSeriesReviewItem, BoardVoteV
 import { MFIcon, type IconName } from "@/design/icons"
 import { colors, spacing } from "@/design/tokens"
 
-export function BoardVotePanel({ item, onVote }: { item: BoardSeriesReviewItem; onVote: (value: BoardVoteValue) => void }) {
+export function BoardVotePanel({
+  item,
+  onVote,
+  onFinalize,
+}: {
+  item: BoardSeriesReviewItem
+  onVote: (value: BoardVoteValue) => void
+  onFinalize: () => void
+}) {
   return (
     <MFCard>
       <View style={styles.rowBetween}>
@@ -23,7 +31,53 @@ export function BoardVotePanel({ item, onVote }: { item: BoardSeriesReviewItem; 
         <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("REJECT")}>Reject</MFButton>
       </View>
       <MFButton tone="warning" variant="soft" style={styles.actionButtonFull} onPress={() => onVote("NEEDS_REVISION")}>Needs revision</MFButton>
+      <View style={styles.finalizeBlock}>
+        <Text style={styles.muted}>Finalize is backend-owned: quorum {item.voteSummary.quorum ?? "API"}, plurality, tie-break status, notifications, and audit are resolved server-side.</Text>
+        <MFButton style={styles.actionButtonFull} onPress={onFinalize} disabled={item.voteSummary.canFinalize === false}>Finalize Board decision</MFButton>
+      </View>
     </MFCard>
+  )
+}
+
+export function BoardFinalizeConfirmationPanel({
+  visible,
+  selectedTitle,
+  publicationType,
+  noteValue,
+  onChangeNote,
+  busy,
+  errorText,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean
+  selectedTitle?: string
+  publicationType?: "WEEKLY" | "MONTHLY"
+  noteValue: string
+  onChangeNote: (value: string) => void
+  busy: boolean
+  errorText: string | null
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  if (!visible) return null
+
+  return (
+    <MFConfirmationPanel
+      title="Finalize Board decision"
+      body={`Send finalize request for ${selectedTitle ?? "the selected Board review"}. Backend verifies quorum and vote result; ties become TIE_BREAK_REQUIRED.`}
+      confirmLabel="Submit finalize"
+      tone="primary"
+      endpointHint="Live endpoint: POST /api/board/series/:seriesId/decisions/finalize"
+      noteLabel="Finalize note"
+      notePlaceholder={`Optional finalization note. Publication type sent when approval wins: ${publicationType ?? "MONTHLY"}.`}
+      noteValue={noteValue}
+      onChangeNote={onChangeNote}
+      busy={busy}
+      errorText={errorText}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   )
 }
 
@@ -31,12 +85,20 @@ export function BoardVoteConfirmationPanel({
   pendingVote,
   selectedTitle,
   mode,
+  noteValue,
+  onChangeNote,
+  busy,
+  errorText,
   onConfirm,
   onCancel,
 }: {
   pendingVote: BoardVoteValue | null
   selectedTitle?: string
   mode: "vote" | "tie-break"
+  noteValue: string
+  onChangeNote: (value: string) => void
+  busy: boolean
+  errorText: string | null
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -48,11 +110,17 @@ export function BoardVoteConfirmationPanel({
     <MFConfirmationPanel
       title={voteActionTitle(pendingVote)}
       body={isTieBreak
-        ? `Confirm Board Chair mock tie-break for ${selectedTitle ?? "the selected proposal"}. This action appears only because decision status is TIE_BREAK_REQUIRED.`
-        : `Confirm mock ${voteActionLabel(pendingVote)} vote for ${selectedTitle ?? "the selected Board review"}. Mobile displays the vote boundary only and does not finalize Board decisions.`}
-      confirmLabel={isTieBreak ? "Confirm tie-break mock" : "Confirm vote mock"}
+        ? `Confirm Board Chair tie-break for ${selectedTitle ?? "the selected proposal"}. This action appears only because decision status is TIE_BREAK_REQUIRED.`
+        : `Confirm ${voteActionLabel(pendingVote)} vote for ${selectedTitle ?? "the selected Board review"}. Mobile records the vote; backend handles quorum and final decision state.`}
+      confirmLabel={isTieBreak ? "Submit tie-break" : "Submit vote"}
       tone={voteActionTone(pendingVote)}
-      endpointHint={isTieBreak ? "Future endpoint: POST /api/board/series/:seriesId/decisions/tie-break" : "Future endpoint: POST /api/board/series/:seriesId/votes"}
+      endpointHint={isTieBreak ? "Live endpoint: POST /api/board/series/:seriesId/decisions/tie-break" : "Live endpoint: POST /api/board/series/:seriesId/votes"}
+      noteLabel={isTieBreak ? "Chair decision note" : "Vote note"}
+      notePlaceholder={isTieBreak ? "Explain the tie-break rationale for audit." : "Optional Board note for audit."}
+      noteValue={noteValue}
+      onChangeNote={onChangeNote}
+      busy={busy}
+      errorText={errorText}
       onConfirm={onConfirm}
       onCancel={onCancel}
     />
@@ -66,7 +134,7 @@ export function BoardTieBreakActionsPanel({ onVote }: { onVote: (value: BoardVot
         <MFButton tone="success" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("APPROVE")}>Approve</MFButton>
         <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onVote("NEEDS_REVISION")}>Needs revision</MFButton>
       </View>
-      <MFButton style={styles.actionButtonFull} onPress={() => onVote("NEEDS_REVISION")}>Finalize tie-break mock</MFButton>
+      <MFButton tone="danger" variant="soft" style={styles.actionButtonFull} onPress={() => onVote("REJECT")}>Reject</MFButton>
     </>
   )
 }
@@ -74,6 +142,10 @@ export function BoardTieBreakActionsPanel({ onVote }: { onVote: (value: BoardVot
 export function BoardAtRiskDecisionPanel({
   item,
   pendingDecision,
+  noteValue,
+  onChangeNote,
+  busy,
+  errorText,
   onStartDecision,
   onConfirm,
   onCancel,
@@ -81,6 +153,10 @@ export function BoardAtRiskDecisionPanel({
 }: {
   item: BoardAtRiskCase
   pendingDecision: AtRiskDecision | null
+  noteValue: string
+  onChangeNote: (value: string) => void
+  busy: boolean
+  errorText: string | null
   onStartDecision: (decision: AtRiskDecision) => void
   onConfirm: () => void
   onCancel: () => void
@@ -106,16 +182,22 @@ export function BoardAtRiskDecisionPanel({
       <View style={styles.actionButtons}>
         <MFButton tone="success" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("CONTINUE")}>Continue</MFButton>
         <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("WARNING")}>Warning</MFButton>
-        <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("REQUEST_IMPROVEMENT_PLAN")}>Request plan</MFButton>
+        <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("COMPLETE")}>Complete</MFButton>
         <MFButton tone="danger" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartDecision("CANCEL")}>Cancel</MFButton>
       </View>
       {pendingDecision ? (
         <MFConfirmationPanel
           title={atRiskDecisionTitle(pendingDecision)}
-          body={`Confirm mock ${atRiskDecisionLabel(pendingDecision)} for ${item.title}. Series is never auto-cancelled; Board action must remain auditable on the backend.`}
-          confirmLabel="Confirm at-risk mock"
+          body={`Confirm ${atRiskDecisionLabel(pendingDecision)} for ${item.title}. Series is never auto-cancelled; Board action remains auditable on the backend.`}
+          confirmLabel="Submit at-risk decision"
           tone={atRiskDecisionTone(pendingDecision)}
-          endpointHint="Future endpoint: POST /api/board/series/:seriesId/at-risk-decisions"
+          endpointHint="Live endpoint: POST /api/board/series/:seriesId/at-risk-decisions"
+          noteLabel="Board decision note"
+          notePlaceholder="Optional reason or follow-up direction for audit."
+          noteValue={noteValue}
+          onChangeNote={onChangeNote}
+          busy={busy}
+          errorText={errorText}
           onConfirm={onConfirm}
           onCancel={onCancel}
         />
@@ -162,14 +244,14 @@ function voteActionTone(value: BoardVoteValue): Tone {
 function atRiskDecisionTitle(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "Continue publication"
   if (decision === "WARNING") return "Issue Board warning"
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan"
+  if (decision === "COMPLETE") return "Complete series"
   return "Cancel series"
 }
 
 function atRiskDecisionLabel(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "continue"
   if (decision === "WARNING") return "warning"
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "request improvement plan"
+  if (decision === "COMPLETE") return "complete"
   return "cancel"
 }
 
@@ -192,6 +274,7 @@ const styles = StyleSheet.create({
   actionButtons: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
   actionButtonHalf: { flexGrow: 1, flexBasis: "47%", minWidth: 132 },
   actionButtonFull: { marginTop: spacing.sm },
+  finalizeBlock: { marginTop: spacing.md, gap: spacing.xs },
   voteSplit: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: spacing.xs, marginTop: spacing.sm },
   voteCount: { alignItems: "center", flex: 1, minWidth: 0 },
   voteCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, marginBottom: 6, alignItems: "center", justifyContent: "center" },

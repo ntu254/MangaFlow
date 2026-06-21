@@ -3,11 +3,7 @@ import type { Task } from "@/entities";
 // Map current entity statuses to canonical buckets.
 // Active: TODO, IN_PROGRESS, SUBMITTED, REVISION_REQUESTED, MANGAKA_APPROVED
 // Finished: EDITOR_APPROVED, REJECTED, CANCELLED
-export const ACTIVE_TASK_STATUSES: Task["status"][] = [
-  "assigned",
-  "in-progress",
-  "submitted",
-];
+export const ACTIVE_TASK_STATUSES: Task["status"][] = ["assigned", "in-progress", "submitted"];
 export const FINISHED_TASK_STATUSES: Task["status"][] = ["approved", "rejected"];
 
 export const isTaskActive = (t: Task) => ACTIVE_TASK_STATUSES.includes(t.status);

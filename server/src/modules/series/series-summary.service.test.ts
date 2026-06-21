@@ -27,7 +27,7 @@ describe("getSeriesSummaryService", () => {
       manuscripts: [{
         _id: "manuscript-1",
         version: 2,
-        status: "EDITOR_REVIEW",
+        status: "SUBMITTED",
         fileAssetId: "file-1",
         uploadedBy: { _id: "owner-1", name: "Owner", email: "owner@example.com" },
         createdAt: new Date(),
@@ -43,7 +43,7 @@ describe("getSeriesSummaryService", () => {
       }],
       pages: [
         { chapterId: "chapter-1", status: "APPROVED" },
-        { chapterId: "chapter-1", status: "IN_PROGRESS" },
+        { chapterId: "chapter-1", status: "IN_TASK" },
       ],
       tasks: [
         { _id: "task-1", title: "Tone", status: "TODO", priority: "NORMAL", dueDate: new Date(), assignedTo: { name: "Assistant" } },
@@ -52,7 +52,7 @@ describe("getSeriesSummaryService", () => {
       submissions: [{ _id: "submission-1", version: 1, status: "SUBMITTED", createdAt: new Date() }],
       comments: [
         { _id: "comment-1", body: "Fix panel", status: "OPEN", isBlocking: true, updatedAt: new Date() },
-        { _id: "comment-2", body: "Done", status: "RESOLVED_BY_EDITOR", isBlocking: true, updatedAt: new Date() },
+        { _id: "comment-2", body: "Done", status: "RESOLVED", isBlocking: true, updatedAt: new Date() },
       ],
       boardDecision: null,
       boardVotes: [],

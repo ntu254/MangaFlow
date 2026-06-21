@@ -14,10 +14,11 @@ import {
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
-import { BoardAtRiskDecisionPanel, BoardTieBreakActionsPanel, BoardVoteConfirmationPanel, BoardVoteCount, BoardVotePanel } from "@/screens/board-action-panels"
+import { BoardAtRiskDecisionPanel, BoardFinalizeConfirmationPanel, BoardTieBreakActionsPanel, BoardVoteConfirmationPanel, BoardVoteCount, BoardVotePanel } from "@/screens/board-action-panels"
 import { colors, radius, spacing } from "@/design/tokens"
 import { useBoardMobileFlow } from "@/hooks/use-board-mobile-flow"
 import { BoardDecisionHistoryPanel, BoardRankingInsightPanel } from "@/screens/board-panels"
+import { SeriesProposalSummaryPanel } from "@/screens/series-proposal-summary-panel"
 
 export function BoardHomeScreen() {
   const flow = useBoardMobileFlow()
@@ -25,7 +26,7 @@ export function BoardHomeScreen() {
   return (
     <>
       <MFHero role="board" title="Board Today" subtitle="Governance and decision companion" />
-      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading mock Board home..." />
+      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Board home..." />
       <SectionTitle title="Next decisions" />
       <MFActionCards items={flow.home.decisionCards} />
       <SectionTitle title="Decision queues" />
@@ -59,8 +60,34 @@ export function BoardReviewsScreen() {
           />
         )) : <MFEmptyState title="No Board reviews" subtitle="When the Board queue is empty, the vote route still renders a stable review state." icon="check-circle" tone="success" />}
       </View>
-      {selected ? <BoardVotePanel item={selected} onVote={flow.startVote} /> : null}
-      <BoardVoteConfirmationPanel pendingVote={flow.pendingVote} selectedTitle={selected?.title} mode="vote" onConfirm={flow.confirmVote} onCancel={flow.cancelVote} />
+      {selected ? (
+        <>
+          <SeriesProposalSummaryPanel summary={flow.selectedProposalSummary} loading={flow.proposalSummaryLoading} role="board" />
+          <BoardVotePanel item={selected} onVote={flow.startVote} onFinalize={flow.startFinalizeDecision} />
+        </>
+      ) : null}
+      <BoardVoteConfirmationPanel
+        pendingVote={flow.pendingVote}
+        selectedTitle={selected?.title}
+        mode="vote"
+        noteValue={flow.voteNote}
+        onChangeNote={flow.setVoteNote}
+        busy={flow.actionBusy}
+        errorText={flow.actionError}
+        onConfirm={flow.confirmVote}
+        onCancel={flow.cancelVote}
+      />
+      <BoardFinalizeConfirmationPanel
+        visible={flow.pendingFinalize}
+        selectedTitle={selected?.title}
+        publicationType={selected?.publicationType}
+        noteValue={flow.finalizeNote}
+        onChangeNote={flow.setFinalizeNote}
+        busy={flow.actionBusy}
+        errorText={flow.actionError}
+        onConfirm={flow.confirmFinalizeDecision}
+        onCancel={flow.cancelFinalizeDecision}
+      />
     </>
   )
 }
@@ -96,8 +123,18 @@ export function BoardTieBreakScreen() {
             <Text style={styles.subhead}>Board Chair boundary</Text>
             <Text style={styles.body}>Chair tie-break is a separate action only because normal votes produced TIE_BREAK_REQUIRED.</Text>
           </MFCard>
-          <BoardTieBreakActionsPanel onVote={flow.startVote} />
-          <BoardVoteConfirmationPanel pendingVote={flow.pendingVote} selectedTitle={item.title} mode="tie-break" onConfirm={flow.confirmVote} onCancel={flow.cancelVote} />
+          <BoardTieBreakActionsPanel onVote={flow.startTieBreakVote} />
+          <BoardVoteConfirmationPanel
+            pendingVote={flow.pendingVote}
+            selectedTitle={item.title}
+            mode="tie-break"
+            noteValue={flow.voteNote}
+            onChangeNote={flow.setVoteNote}
+            busy={flow.actionBusy}
+            errorText={flow.actionError}
+            onConfirm={flow.confirmVote}
+            onCancel={flow.cancelVote}
+          />
         </>
       ) : (
         <MFEmptyState title="No tie-break decisions" subtitle="Board Chair action appears only when backend decision status is TIE_BREAK_REQUIRED." icon="scale-balance" tone="success" />
@@ -187,6 +224,10 @@ function BoardAtRiskPanel() {
         <BoardAtRiskDecisionPanel
           item={item}
           pendingDecision={flow.pendingAtRiskDecision}
+          noteValue={flow.atRiskNote}
+          onChangeNote={flow.setAtRiskNote}
+          busy={flow.actionBusy}
+          errorText={flow.actionError}
           onStartDecision={flow.startAtRiskDecision}
           onConfirm={flow.confirmAtRiskDecision}
           onCancel={flow.cancelAtRiskDecision}

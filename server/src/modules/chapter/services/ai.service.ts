@@ -1,6 +1,7 @@
 import { AppError } from "../../../shared/errors/AppError.js"
 import { config } from "../../../shared/utils/env.js"
 import { Page, FileAsset, type RegionType } from "../chapter.model.js"
+import sharp from "sharp"
 import {
   createAIResultRepository,
   getAIResultByIdRepository,
@@ -9,11 +10,10 @@ import {
   createRegionRepository,
   nextRegionIndex,
 } from "../chapter.repository.js"
-import { getFileBuffer } from "../file.service.js"
+import { getFileBuffer, uploadBuffer } from "../file.service.js"
 import { assertCanReadPage, assertCanWritePage, type AccessActor } from "../../../shared/policies/accessPolicy.service.js"
 
 const AI_SERVICE_URL = config.aiServiceUrl ?? "http://127.0.0.1:8000"
-
 interface AIBubbleResponse {
   bubble_count: number
   bubbles: Array<{
@@ -26,6 +26,11 @@ interface AIBubbleResponse {
 
 function mapBubbleType(): RegionType {
   return "BUBBLE"
+}
+
+function asErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message
+  return String(error || "AI segmentation failed")
 }
 
 export async function runAISegmentationService(pageId: string, actor: AccessActor) {
@@ -57,25 +62,39 @@ export async function runAISegmentationService(pageId: string, actor: AccessActo
 
   try {
     const buffer = await getFileBuffer(workingAsset.r2Key)
+    const metadata = await sharp(buffer).metadata()
+    const sourceWidth = metadata.width || 1
+    const sourceHeight = metadata.height || 1
+
     const formData = new FormData()
     formData.append("file", new Blob([buffer], { type: workingAsset.mimeType }), workingAsset.originalName)
 
     const response = await fetch(`${AI_SERVICE_URL}/bubble/detect`, { method: "POST", body: formData })
-    if (!response.ok) throw new Error(`AI service responded with ${response.status}`)
+    if (!response.ok) {
+      const body = await response.text().catch(() => "")
+      throw new Error(`AI service responded with ${response.status}${body ? `: ${body.slice(0, 200)}` : ""}`)
+    }
 
     const data = (await response.json()) as AIBubbleResponse
-    const suggestions = data.bubbles.map((bubble, idx) => ({
-      suggestionIndex: idx,
-      type: mapBubbleType(),
-      bbox: {
-        x: Math.round(bubble.bbox.x),
-        y: Math.round(bubble.bbox.y),
-        width: Math.round(bubble.bbox.width),
-        height: Math.round(bubble.bbox.height),
-      },
-      confidence: bubble.confidence,
-      decision: "PENDING" as const,
-    }))
+    if (!Array.isArray(data.bubbles)) {
+      throw new Error("AI service response did not include bubbles")
+    }
+    const suggestions = data.bubbles.map((bubble, idx) => {
+      const x = Math.max(0, Math.min(1 - Number.EPSILON, bubble.bbox.x / sourceWidth))
+      const y = Math.max(0, Math.min(1 - Number.EPSILON, bubble.bbox.y / sourceHeight))
+      return {
+        suggestionIndex: idx,
+        type: mapBubbleType(),
+        bbox: {
+          x,
+          y,
+          width: Math.max(Number.EPSILON, Math.min(1 - x, bubble.bbox.width / sourceWidth)),
+          height: Math.max(Number.EPSILON, Math.min(1 - y, bubble.bbox.height / sourceHeight)),
+        },
+        confidence: bubble.confidence,
+        decision: "PENDING" as const,
+      }
+    })
 
     const updated = await updateAIResultRepository(String(aiResult._id), {
       status: "COMPLETED",
@@ -85,9 +104,64 @@ export async function runAISegmentationService(pageId: string, actor: AccessActo
   } catch (error) {
     await updateAIResultRepository(String(aiResult._id), {
       status: "FAILED",
-      error: String((error as Error).message ?? "AI segmentation failed"),
+      error: asErrorMessage(error),
     })
-    throw new AppError("AI segmentation failed", 502)
+    throw new AppError(`AI segmentation failed: ${asErrorMessage(error)}`, 502)
+  }
+}
+
+export async function runAITextWhiteningService(pageId: string, actor: AccessActor) {
+  const trimmed = pageId.trim()
+  if (!trimmed) throw new AppError("Page id is required", 400)
+  await assertCanWritePage(actor, trimmed)
+
+  const page = await Page.findById(trimmed)
+  if (!page) throw new AppError("Page not found", 404)
+  if (page.status === "UPLOADING" || page.status === "PROCESSING_FAILED") {
+    throw new AppError(`AI text whitening unavailable: page status is ${page.status}`, 409)
+  }
+  if (!page.workingFileAssetId) {
+    throw new AppError("Working image is required before running AI text whitening", 409)
+  }
+
+  const workingAsset = await FileAsset.findById(page.workingFileAssetId)
+  if (!workingAsset) throw new AppError("Working file asset not found", 404)
+
+  try {
+    const buffer = await getFileBuffer(workingAsset.r2Key)
+    const formData = new FormData()
+    formData.append("file", new Blob([buffer], { type: workingAsset.mimeType }), workingAsset.originalName)
+
+    const response = await fetch(`${AI_SERVICE_URL}/bubble/whiten`, { method: "POST", body: formData })
+    if (!response.ok) {
+      const body = await response.text().catch(() => "")
+      throw new Error(`AI service responded with ${response.status}${body ? `: ${body.slice(0, 200)}` : ""}`)
+    }
+
+    const mimeType = response.headers.get("content-type")?.split(";")[0] || workingAsset.mimeType
+    const resultBuffer = Buffer.from(await response.arrayBuffer())
+    const extension = mimeType === "image/webp" ? "webp" : mimeType === "image/png" ? "png" : "jpg"
+    const uploaded = await uploadBuffer(resultBuffer, `whitened-${trimmed}.${extension}`, mimeType)
+    const fileAsset = await FileAsset.create({
+      _id: uploaded.fileAssetId,
+      originalName: `whitened-${workingAsset.originalName}`,
+      mimeType,
+      size: uploaded.size,
+      r2Key: uploaded.r2Key,
+      r2Bucket: config.r2Bucket,
+      uploadedBy: actor.userId,
+      assetType: "production",
+      slot: "AI_WHITENED",
+    })
+
+    await Page.findByIdAndUpdate(trimmed, {
+      workingFileAssetId: fileAsset._id,
+      $addToSet: { variantFileAssetIds: fileAsset._id },
+    })
+
+    return fileAsset
+  } catch (error) {
+    throw new AppError(`AI text whitening failed: ${asErrorMessage(error)}`, 502)
   }
 }
 
@@ -127,7 +201,7 @@ export async function acceptAISuggestionService(input: { aiResultId: string; sug
     type: suggestion.type,
     bbox: suggestion.bbox,
     source: "AI",
-    status: "ACCEPTED",
+    status: "ACTIVE",
     aiResultId: trimmed,
     confidence: suggestion.confidence,
   })

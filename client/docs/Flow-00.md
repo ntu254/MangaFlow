@@ -19,14 +19,14 @@ Out of scope: tạo Series, production team, task assignment, payroll, board vot
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Admin | Tạo user, đổi role, khóa/mở tài khoản |
-| Mangaka | Login vào Mangaka dashboard và các màn production được phép |
-| Assistant | Login vào Assistant dashboard và Task Studio của task được assign |
-| Tantou Editor | Login vào Editor dashboard và các màn review được phép |
-| Editorial Board | Login vào Board dashboard và các màn Board decision |
-| System | Authenticate, authorize, audit |
+| Actor           | Vai trò                                                           |
+| --------------- | ----------------------------------------------------------------- |
+| Admin           | Tạo user, đổi role, khóa/mở tài khoản                             |
+| Mangaka         | Login vào Mangaka dashboard và các màn production được phép       |
+| Assistant       | Login vào Assistant dashboard và Task Studio của task được assign |
+| Tantou Editor   | Login vào Editor dashboard và các màn review được phép            |
+| Editorial Board | Login vào Board dashboard và các màn Board decision               |
+| System          | Authenticate, authorize, audit                                    |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -60,12 +60,12 @@ Task Studio
 
 ## 7. User Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| PENDING_INVITE | Đã được tạo nhưng chưa kích hoạt |
-| ACTIVE | Có thể login và dùng hệ thống |
-| INACTIVE | Không thể login |
-| SUSPENDED | Bị khóa vì lý do bảo mật/quản trị |
+| Status         | Ý nghĩa                           |
+| -------------- | --------------------------------- |
+| PENDING_INVITE | Đã được tạo nhưng chưa kích hoạt  |
+| ACTIVE         | Có thể login và dùng hệ thống     |
+| INACTIVE       | Không thể login                   |
+| SUSPENDED      | Bị khóa vì lý do bảo mật/quản trị |
 
 ## 8. Role / Permission Status
 
@@ -141,18 +141,18 @@ Active sessions refresh permission or require relogin
 
 ## 11. Permission Matrix
 
-| Action | Admin | Mangaka | Assistant | Editor | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Create user | Có | Không | Không | Không | Không |
-| Update user role | Có | Không | Không | Không | Không |
-| Suspend user | Có | Không | Không | Không | Không |
-| Login | Có | Có | Có | Có | Có |
-| View own profile | Có | Có | Có | Có | Có |
-| Access admin config | Có | Không | Không | Không | Không |
-| Open Production Hub | Có | Có nếu có quyền với Series | Không mặc định | Có nếu có quyền | Summary/Không tùy rule |
-| Open Page Studio | Có | Có nếu có quyền với Page | Chỉ khi task assigned | Có nếu có quyền | Không |
-| Open Task Studio | Có | Không | Chỉ task được assign | Optional review | Không |
+| Action              | Admin | Mangaka                    | Assistant             | Editor          | Board                  |
+| ------------------- | ----- | -------------------------- | --------------------- | --------------- | ---------------------- |
+| ---                 | ---:  | ---:                       | ---:                  | ---:            | ---:                   |
+| Create user         | Có    | Không                      | Không                 | Không           | Không                  |
+| Update user role    | Có    | Không                      | Không                 | Không           | Không                  |
+| Suspend user        | Có    | Không                      | Không                 | Không           | Không                  |
+| Login               | Có    | Có                         | Có                    | Có              | Có                     |
+| View own profile    | Có    | Có                         | Có                    | Có              | Có                     |
+| Access admin config | Có    | Không                      | Không                 | Không           | Không                  |
+| Open Production Hub | Có    | Có nếu có quyền với Series | Không mặc định        | Có nếu có quyền | Summary/Không tùy rule |
+| Open Page Studio    | Có    | Có nếu có quyền với Page   | Chỉ khi task assigned | Có nếu có quyền | Không                  |
+| Open Task Studio    | Có    | Không                      | Chỉ task được assign  | Optional review | Không                  |
 
 ## 12. API đề xuất
 
@@ -224,15 +224,15 @@ PERMISSION_DENIED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Wrong password | Return auth error |
-| User suspended | Block login |
-| User inactive | Block login |
-| User has no role | Block login, ask Admin fix |
-| Role changed while logged in | Refresh permission or force relogin |
-| Token expired | Require login again |
-| Assistant opens unassigned Task Studio | Block |
+| Case                                      | Expected behavior                     |
+| ----------------------------------------- | ------------------------------------- |
+| Wrong password                            | Return auth error                     |
+| User suspended                            | Block login                           |
+| User inactive                             | Block login                           |
+| User has no role                          | Block login, ask Admin fix            |
+| Role changed while logged in              | Refresh permission or force relogin   |
+| Token expired                             | Require login again                   |
+| Assistant opens unassigned Task Studio    | Block                                 |
 | User calls API without backend permission | Return forbidden and optionally audit |
 
 ## 18. Mermaid activity flow

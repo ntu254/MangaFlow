@@ -35,7 +35,7 @@ export function BoardDecisionHistoryPanel({ items }: { items: BoardDecisionHisto
         id: item.id,
         title: item.title,
         subtitle: `${decisionLabel(item.decision)} / ${statusLabel(item.status)} / immutable record / ${item.time}`,
-        tone: item.decision === "CANCEL" ? "danger" : item.decision === "REQUEST_IMPROVEMENT_PLAN" || item.decision === "NEEDS_REVISION" ? "warning" : "success",
+        tone: item.decision === "CANCEL" ? "danger" : item.decision === "WARNING" || item.decision === "NEEDS_REVISION" ? "warning" : "success",
         icon: item.decision === "CANCEL" ? "alert-triangle" : "check-circle",
       }))} />
     </>
@@ -46,7 +46,7 @@ function decisionLabel(decision: BoardDecisionHistoryItem["decision"]) {
   if (decision === "APPROVE") return "Approved"
   if (decision === "REJECT") return "Rejected"
   if (decision === "NEEDS_REVISION") return "Needs revision"
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Improvement plan requested"
+  if (decision === "COMPLETE") return "Completed"
   if (decision === "CONTINUE") return "Continue"
   if (decision === "WARNING") return "Warning issued"
   return "Cancelled"

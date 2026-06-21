@@ -52,7 +52,7 @@ export async function createManuscriptUploadDraft(input: CreateManuscriptUploadD
     r2Key: input.r2Key,
     r2Bucket: config.r2Bucket,
     uploadedBy: input.uploadedBy,
-    assetType: "MANUSCRIPT",
+    assetType: "manuscript",
     slot: input.slot,
   })
 
@@ -101,7 +101,7 @@ export interface CreateSeriesFileAssetDraftInput {
   originalName: string
   mimeType: string
   size: number
-  assetType: "SUPPORTING"
+  assetType: "cover_draft" | "character_concept" | "reference_image" | "other"
   slot?: string
 }
 

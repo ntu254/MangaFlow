@@ -22,13 +22,17 @@ export const manuscriptsApi = {
     api.get(`/series/${seriesId}/manuscripts`).then(unwrap<ManuscriptFile[]>),
 
   getDownloadUrl: (seriesId: string, fileAssetId: string) =>
-    api.get(`/series/${seriesId}/manuscripts/files/${fileAssetId}/download`).then(unwrap<{ downloadUrl: string, expiresIn: number }>),
+    api
+      .get(`/series/${seriesId}/manuscripts/files/${fileAssetId}/download`)
+      .then(unwrap<{ downloadUrl: string; expiresIn: number }>),
 
   deleteFile: (seriesId: string, fileAssetId: string) =>
     api.delete(`/series/${seriesId}/manuscripts/files/${fileAssetId}`).then(unwrap<null>),
 
   verifyFiles: (seriesId: string) =>
-    api.post(`/series/${seriesId}/manuscripts/files/verify`).then(unwrap<{ id: string; status: string }[]>),
+    api
+      .post(`/series/${seriesId}/manuscripts/files/verify`)
+      .then(unwrap<{ id: string; status: string }[]>),
 
   upload: async (
     seriesId: string,
@@ -42,8 +46,16 @@ export const manuscriptsApi = {
         originalName: file.name,
         contentType: file.type || "application/octet-stream",
         size: file.size,
-        assetType: ["COVER_DRAFT", "CHARACTER_CONCEPT", "REFERENCE_IMAGE", "OTHER"].includes(category || "") ? "SUPPORTING" : "MANUSCRIPT",
-        slot: category,
+        assetType:
+          (
+            {
+              COVER_DRAFT: "cover_draft",
+              CHARACTER_CONCEPT: "character_concept",
+              REFERENCE_IMAGE: "reference_image",
+              OTHER: "other",
+            } as const
+          )[category as "COVER_DRAFT" | "CHARACTER_CONCEPT" | "REFERENCE_IMAGE" | "OTHER"] ??
+          "manuscript",
       })
       .then(unwrap<any>);
 
@@ -54,7 +66,7 @@ export const manuscriptsApi = {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", uploadUrl, true);
       xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-      
+
       xhr.upload.onprogress = (e) => {
         if (onProgress && e.lengthComputable) {
           onProgress(Math.round((e.loaded / e.total) * 100));
@@ -68,7 +80,7 @@ export const manuscriptsApi = {
           reject(new Error(`Upload failed with status ${xhr.status}`));
         }
       };
-      
+
       xhr.onerror = () => reject(new Error("Upload failed"));
       xhr.send(file);
     });

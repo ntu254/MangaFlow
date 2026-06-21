@@ -20,6 +20,10 @@ export interface SeriesDocument extends Document {
   genres: string[]
   ownerId: mongoose.Types.ObjectId
   status: SeriesStatus
+  approvedAt?: Date
+  approvedBy?: mongoose.Types.ObjectId
+  cancellationRequestedAt?: Date
+  cancellationRequestedBy?: mongoose.Types.ObjectId
   deletedAt?: Date
   deletedBy?: mongoose.Types.ObjectId
   deleteReason?: string
@@ -51,6 +55,10 @@ const seriesSchema = new Schema<SeriesDocument>(
       default: "DRAFT",
       index: true,
     },
+    approvedAt: { type: Date },
+    approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    cancellationRequestedAt: { type: Date },
+    cancellationRequestedBy: { type: Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date },
     deletedBy: { type: Schema.Types.ObjectId, ref: "User" },
     deleteReason: { type: String, maxlength: 500 },

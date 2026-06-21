@@ -19,11 +19,15 @@ export function WidgetCard({
   children,
 }: WidgetCardProps) {
   return (
-    <section className={`rounded-xl border border-foreground/10 bg-card p-5 shadow-sm flex flex-col ${className}`}>
-      <div className={`flex items-center justify-between ${actionPosition === "top" ? "mb-4" : "mb-4"}`}>
+    <section
+      className={`rounded-xl border border-foreground/10 bg-card p-5 shadow-sm flex flex-col ${className}`}
+    >
+      <div
+        className={`flex items-center justify-between ${actionPosition === "top" ? "mb-4" : "mb-4"}`}
+      >
         <h2 className="text-[15px] font-bold text-foreground">{title}</h2>
         {actionText && actionPosition === "top" && (
-          <button 
+          <button
             onClick={onAction}
             className="flex items-center gap-1 text-[12px] font-medium text-foreground/60 hover:text-foreground transition-colors"
           >
@@ -31,13 +35,11 @@ export function WidgetCard({
           </button>
         )}
       </div>
-      
-      <div className="space-y-4 flex-1">
-        {children}
-      </div>
+
+      <div className="space-y-4 flex-1">{children}</div>
 
       {actionText && actionPosition === "bottom" && (
-        <button 
+        <button
           onClick={onAction}
           className="mt-4 flex items-center gap-1 text-[12px] font-medium text-foreground/60 hover:text-foreground transition-colors self-start"
         >

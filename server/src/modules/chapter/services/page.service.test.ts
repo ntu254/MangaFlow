@@ -14,6 +14,7 @@ vi.mock("../chapter.model.js", () => ({
 
 vi.mock("../../../shared/policies/accessPolicy.service.js", () => ({
   assertCanReadChapter: vi.fn(),
+  assertCanWriteChapter: vi.fn(),
 }))
 
 vi.mock("../../task/task.model.js", () => ({
@@ -29,11 +30,11 @@ describe("listPagesService", () => {
 
   it("returns activeTask if page has an active task", async () => {
     const mockPages = [
-      { _id: "page1" },
-      { _id: "page2" },
-      { _id: "page3" },
-      { _id: "page4" },
-      { _id: "page5" },
+      { _id: "page1", chapterId: "chapter1" },
+      { _id: "page2", chapterId: "chapter1" },
+      { _id: "page3", chapterId: "chapter1" },
+      { _id: "page4", chapterId: "chapter1" },
+      { _id: "page5", chapterId: "chapter1" },
     ]
 
     const pageFindQuery = {
@@ -65,6 +66,8 @@ describe("listPagesService", () => {
     const result = await listPagesService("507f1f77bcf86cd799439011", { userId: "user1", role: "MANGAKA" })
 
     expect(result).toHaveLength(5)
+    expect(result[0].id).toBe("page1")
+    expect(result[0].chapterId).toBe("chapter1")
     expect(result[0].activeTask?.status).toBe("TODO")
     expect(result[1].activeTask?.status).toBe("IN_PROGRESS")
     expect(result[2].activeTask?.status).toBe("SUBMITTED")
@@ -74,7 +77,7 @@ describe("listPagesService", () => {
 
   it("does not return activeTask for EDITOR_APPROVED, REJECTED, CANCELLED tasks (they should not be fetched by Task.find)", async () => {
     const mockPages = [
-      { _id: "page1" },
+      { _id: "page1", chapterId: "chapter1" },
     ]
 
     const pageFindQuery = {
@@ -107,7 +110,7 @@ describe("listPagesService", () => {
 
   it("returns the most recent task when there are legacy duplicate active tasks for the same page", async () => {
     const mockPages = [
-      { _id: "page1" },
+      { _id: "page1", chapterId: "chapter1" },
     ]
 
     const pageFindQuery = {
@@ -140,5 +143,45 @@ describe("listPagesService", () => {
     // it will return the newest one.
     expect(result[0].activeTask?.id).toBe("task1_new")
     expect(result[0].activeTask?.status).toBe("IN_PROGRESS")
+  })
+
+  it("normalizes lean page object ids for client studio links", async () => {
+    const mockPages = [
+      {
+        _id: "507f1f77bcf86cd799439013",
+        chapterId: "507f1f77bcf86cd799439011",
+        originalFileAssetId: "507f1f77bcf86cd799439021",
+        workingFileAssetId: "507f1f77bcf86cd799439022",
+        thumbnailFileAssetId: "507f1f77bcf86cd799439023",
+      },
+    ]
+
+    const pageFindQuery = {
+      sort: vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue(mockPages) }),
+    }
+    vi.mocked(Page.find).mockReturnValue(pageFindQuery as any)
+
+    const taskFindQuery = {
+      sort: vi.fn().mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          populate: vi.fn().mockReturnValue({
+            populate: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(Task.find).mockReturnValue(taskFindQuery as any)
+
+    const result = await listPagesService("507f1f77bcf86cd799439011", { userId: "user1", role: "MANGAKA" })
+
+    expect(result[0]).toMatchObject({
+      id: "507f1f77bcf86cd799439013",
+      chapterId: "507f1f77bcf86cd799439011",
+      originalFileAssetId: "507f1f77bcf86cd799439021",
+      workingFileAssetId: "507f1f77bcf86cd799439022",
+      thumbnailFileAssetId: "507f1f77bcf86cd799439023",
+    })
   })
 })

@@ -20,6 +20,12 @@ import {
 } from "./board.repository.js"
 
 const RESULT_TO_SERIES = {
+  APPROVE: "ONGOING",
+  REJECT: "REJECTED",
+  NEEDS_REVISION: "REVISION_REQUESTED",
+} as const
+
+const RESULT_TO_MANUSCRIPT = {
   APPROVE: "APPROVED",
   REJECT: "REJECTED",
   NEEDS_REVISION: "REVISION_REQUESTED",
@@ -38,10 +44,13 @@ const DECISION_TO_RESULT = {
 } as const
 
 function summarize(votes: Array<{ value: BoardVoteValue }>) {
-  return votes.reduce<Record<BoardVoteValue, number>>((acc, vote) => {
-    acc[vote.value] += 1
-    return acc
-  }, { APPROVE: 0, REJECT: 0, NEEDS_REVISION: 0 })
+  return votes.reduce<Record<BoardVoteValue, number>>(
+    (acc, vote) => {
+      acc[vote.value] += 1
+      return acc
+    },
+    { APPROVE: 0, REJECT: 0, NEEDS_REVISION: 0 },
+  )
 }
 
 function plurality(counts: Record<BoardVoteValue, number>): BoardVoteValue | "TIE_BREAK_REQUIRED" {
@@ -57,6 +66,33 @@ function userIdOfEligible(record: any): string {
 
 function isDuplicateVoteError(error: unknown): boolean {
   return Boolean(error && typeof error === "object" && "code" in error && error.code === 11000)
+}
+
+function isTransactionUnsupportedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes("Transaction numbers are only allowed") || message.includes("replica set member or mongos")
+}
+
+async function runBoardWrite<T>(operation: (session?: mongoose.ClientSession) => Promise<T>): Promise<T> {
+  const session = await mongoose.startSession()
+  try {
+    session.startTransaction()
+    const result = await operation(session)
+    await session.commitTransaction()
+    return result
+  } catch (error) {
+    try {
+      await session.abortTransaction()
+    } catch {
+      // Keep the original write error; abort failures are secondary cleanup noise.
+    }
+    if (isTransactionUnsupportedError(error)) {
+      return operation(undefined)
+    }
+    throw error
+  } finally {
+    session.endSession()
+  }
 }
 
 async function assertEligibleBoardUser(userId: string) {
@@ -82,48 +118,56 @@ async function getOpenSessionOrThrow(seriesId: string, session?: mongoose.Client
 }
 
 export async function listBoardQueueService() {
+  const eligible = await listEligibleBoardUsers()
+  const eligibleBoardCount = eligible.length
+  const quorum = Math.ceil(eligibleBoardCount / 2)
   const seriesList = await listBoardQueueSeries()
-  return Promise.all(seriesList.map(async (series) => {
-    const reviewSession = await getOpenBoardReviewSession(series.id)
-    const [votes, decision] = await Promise.all([
-      listBoardVotes(series.id, undefined, reviewSession?.id),
-      getDecisionBySeries(series.id),
-    ])
-    return {
-      id: series.id,
-      seriesTitle: series.title,
-      ownerId: String(series.ownerId),
-      seriesStatus: series.status,
-      requestedPublicationType: series.requestedPublicationType,
-      publicationType: series.publicationType,
-      decisionStatus: decision?.status ?? (series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "APPROVED" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : "NEEDS_REVISION"),
-      voteSummary: summarize(votes),
-      voteCount: votes.length,
-      sessionId: reviewSession?.id ?? null,
-      updatedAt: series.updatedAt,
-    }
-  }))
+  return Promise.all(
+    seriesList.map(async (series) => {
+      const reviewSession = await getOpenBoardReviewSession(series.id)
+      const [votes, decision] = await Promise.all([listBoardVotes(series.id, undefined, reviewSession?.id), getDecisionBySeries(series.id)])
+      return {
+        id: series.id,
+        seriesTitle: series.title,
+        ownerId: String(series.ownerId),
+        seriesStatus: series.status,
+        requestedPublicationType: series.requestedPublicationType,
+        publicationType: series.publicationType,
+        decisionStatus: decision?.status ?? (series.status === "BOARD_REVIEW" ? "PENDING" : series.status === "ONGOING" ? "APPROVED" : series.status === "REJECTED" ? "REJECTED" : "NEEDS_REVISION"),
+        voteSummary: summarize(votes),
+        voteCount: votes.length,
+        eligibleBoardCount,
+        quorum,
+        canFinalize: eligibleBoardCount > 0 && series.status === "BOARD_REVIEW" && Boolean(reviewSession) && votes.length >= quorum,
+        sessionId: reviewSession?.id ?? null,
+        updatedAt: series.updatedAt,
+      }
+    }),
+  )
 }
 
 export async function castBoardVoteService(seriesId: string, userId: string, value: BoardVoteValue, note?: string) {
-  const session = await mongoose.startSession()
   try {
-    session.startTransaction()
-    await assertBoardReviewSeries(seriesId, session)
-    await assertEligibleBoardUser(userId)
-    const reviewSession = await getOpenSessionOrThrow(seriesId, session)
-    await getOrCreateDecision(seriesId, session)
-    const vote = await createBoardVote(seriesId, reviewSession.id, userId, value, note?.trim() || undefined, session)
-    const votes = await listBoardVotes(seriesId, session, reviewSession.id)
-    await session.commitTransaction()
-    void recordAuditLog({ event: "BOARD_MEMBER_VOTED", actorId: userId, entityType: "Series", entityId: seriesId, metadata: { value } }).catch(() => undefined)
-    return { vote, summary: summarize(votes) }
+    const result = await runBoardWrite(async (session) => {
+      await assertBoardReviewSeries(seriesId, session)
+      await assertEligibleBoardUser(userId)
+      const reviewSession = await getOpenSessionOrThrow(seriesId, session)
+      await getOrCreateDecision(seriesId, session)
+      const vote = await createBoardVote(seriesId, reviewSession.id, userId, value, note?.trim() || undefined, session)
+      const votes = await listBoardVotes(seriesId, session, reviewSession.id)
+      return { vote, summary: summarize(votes) }
+    })
+    void recordAuditLog({
+      event: "BOARD_MEMBER_VOTED",
+      actorId: userId,
+      entityType: "Series",
+      entityId: seriesId,
+      metadata: { value },
+    }).catch(() => undefined)
+    return result
   } catch (error) {
-    await session.abortTransaction()
     if (isDuplicateVoteError(error)) throw new AppError("Board member has already voted in this review session", 409)
     throw error
-  } finally {
-    session.endSession()
   }
 }
 
@@ -133,61 +177,54 @@ export interface FinalizeBoardDecisionInput {
   note?: string
 }
 
-async function applyBoardResult(
-  seriesId: string,
-  reviewSessionId: string,
-  result: BoardVoteValue,
-  decidedBy: string,
-  input: FinalizeBoardDecisionInput,
-  session: mongoose.ClientSession,
-) {
+async function applyBoardResult(seriesId: string, reviewSessionId: string, result: BoardVoteValue, decidedBy: string, input: FinalizeBoardDecisionInput, session?: mongoose.ClientSession) {
   const publicationType = input.publicationType
   if (result === "APPROVE" && !publicationType) {
     throw new AppError("Publication type is required when approving a series", 400)
   }
 
   const seriesStatus = RESULT_TO_SERIES[result]
-  const updatedSeries = await updateSeriesAfterDecision(seriesId, seriesStatus, session, result === "APPROVE" ? publicationType : undefined)
-  await updateLatestManuscriptAfterDecision(seriesId, seriesStatus, session)
-  await closeBoardReviewSession(reviewSessionId, session)
-  const decision = await updateDecision(
+  const updatedSeries = await updateSeriesAfterDecision(
     seriesId,
-    RESULT_TO_DECISION[result],
-    result,
-    decidedBy,
+    seriesStatus,
     session,
     result === "APPROVE" ? publicationType : undefined,
-    input.note?.trim() || undefined,
+    result === "APPROVE" ? decidedBy : undefined,
   )
-  const event = result === "APPROVE"
-    ? "BOARD_APPROVED_SERIES"
-    : result === "REJECT"
-      ? "BOARD_REJECTED_SERIES"
-      : "BOARD_REQUESTED_REVISION"
+  await updateLatestManuscriptAfterDecision(seriesId, RESULT_TO_MANUSCRIPT[result], session)
+  await closeBoardReviewSession(reviewSessionId, session)
+  const decision = await updateDecision(seriesId, RESULT_TO_DECISION[result], result, decidedBy, session, result === "APPROVE" ? publicationType : undefined, input.note?.trim() || undefined)
+  const event = result === "APPROVE" ? "BOARD_APPROVED_SERIES" : result === "REJECT" ? "BOARD_REJECTED_SERIES" : "BOARD_REQUESTED_REVISION"
 
   void Promise.all([
-    updatedSeries?.ownerId ? notifyUsers([String(updatedSeries.ownerId)], {
-      event,
-      title: result === "APPROVE" ? "Series approved" : result === "REJECT" ? "Series rejected" : "Revision requested by Board",
-      message: `${updatedSeries.title ?? "Series"} Board decision: ${RESULT_TO_DECISION[result]}.`,
-      link: `/app/mangaka/series/${seriesId}`,
-    }) : Promise.resolve([]),
+    updatedSeries?.ownerId
+      ? notifyUsers([String(updatedSeries.ownerId)], {
+          event,
+          title: result === "APPROVE" ? "Series approved" : result === "REJECT" ? "Series rejected" : "Revision requested by Board",
+          message: `${updatedSeries.title ?? "Series"} Board decision: ${RESULT_TO_DECISION[result]}.`,
+          link: `/app/mangaka/series/${seriesId}`,
+        })
+      : Promise.resolve([]),
     notifyRole("EDITOR", {
       event,
       title: "Board decision finalized",
       message: `${updatedSeries?.title ?? "Series"} Board decision: ${RESULT_TO_DECISION[result]}.`,
       link: `/app/editor/series/${seriesId}/review`,
     }),
-    recordAuditLog({ event, actorId: decidedBy, entityType: "Series", entityId: seriesId, metadata: { result, publicationType } }),
+    recordAuditLog({
+      event,
+      actorId: decidedBy,
+      entityType: "Series",
+      entityId: seriesId,
+      metadata: { result, publicationType },
+    }),
   ]).catch(() => undefined)
 
   return decision
 }
 
 export async function finalizeBoardDecisionService(seriesId: string, userId: string, input: FinalizeBoardDecisionInput = {}) {
-  const session = await mongoose.startSession()
-  try {
-    session.startTransaction()
+  return runBoardWrite(async (session) => {
     await assertBoardReviewSeries(seriesId, session)
     const eligible = await assertEligibleBoardUser(userId)
     const reviewSession = await getOpenSessionOrThrow(seriesId, session)
@@ -198,8 +235,12 @@ export async function finalizeBoardDecisionService(seriesId: string, userId: str
     const result = plurality(summarize(votes))
     if (result === "TIE_BREAK_REQUIRED") {
       const decision = await updateDecision(seriesId, "TIE_BREAK_REQUIRED", undefined, userId, session)
-      await session.commitTransaction()
-      void recordAuditLog({ event: "BOARD_TIE_BREAK_REQUIRED", actorId: userId, entityType: "Series", entityId: seriesId }).catch(() => undefined)
+      void recordAuditLog({
+        event: "BOARD_TIE_BREAK_REQUIRED",
+        actorId: userId,
+        entityType: "Series",
+        entityId: seriesId,
+      }).catch(() => undefined)
       return decision
     }
 
@@ -208,14 +249,8 @@ export async function finalizeBoardDecisionService(seriesId: string, userId: str
     }
 
     const decision = await applyBoardResult(seriesId, reviewSession.id, result, userId, input, session)
-    await session.commitTransaction()
     return decision
-  } catch (error) {
-    await session.abortTransaction()
-    throw error
-  } finally {
-    session.endSession()
-  }
+  })
 }
 
 export interface TieBreakBoardDecisionInput {
@@ -229,9 +264,7 @@ export async function tieBreakBoardDecisionService(seriesId: string, userId: str
   const publicationType = typeof input === "string" ? undefined : input.publicationType
   const note = typeof input === "string" ? undefined : input.note
 
-  const session = await mongoose.startSession()
-  try {
-    session.startTransaction()
+  return runBoardWrite(async (session) => {
     await assertBoardReviewSeries(seriesId, session)
     await assertEligibleBoardUser(userId)
     if (!(await isBoardChair(userId))) throw new AppError("Only Board Chair can tie-break", 403)
@@ -239,22 +272,22 @@ export async function tieBreakBoardDecisionService(seriesId: string, userId: str
     const decision = await getOrCreateDecision(seriesId, session)
     if (decision.status !== "TIE_BREAK_REQUIRED") throw new AppError("Tie-break is not required", 409)
     const updated = await applyBoardResult(seriesId, reviewSession.id, value, userId, { publicationType, note }, session)
-    await session.commitTransaction()
-    void recordAuditLog({ event: "BOARD_TIE_BREAK_DECIDED", actorId: userId, entityType: "Series", entityId: seriesId, metadata: { value } }).catch(() => undefined)
+    void recordAuditLog({
+      event: "BOARD_TIE_BREAK_DECIDED",
+      actorId: userId,
+      entityType: "Series",
+      entityId: seriesId,
+      metadata: { value },
+    }).catch(() => undefined)
     return updated
-  } catch (error) {
-    await session.abortTransaction()
-    throw error
-  } finally {
-    session.endSession()
-  }
+  })
 }
 
 const AT_RISK_TO_SERIES = {
   CONTINUE: "ONGOING",
   WARNING: "AT_RISK",
-  REQUEST_IMPROVEMENT_PLAN: "AT_RISK",
   CANCEL: "CANCELLED",
+  COMPLETE: "COMPLETED",
 } as const
 
 export async function createAtRiskDecisionService(seriesId: string, userId: string, decision: AtRiskDecision, note?: string) {

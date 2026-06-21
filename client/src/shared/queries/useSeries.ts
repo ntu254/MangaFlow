@@ -2,6 +2,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   seriesApi,
+  type AddSeriesMemberInput,
   type CreateSeriesInput,
   type UpdateSeriesInput,
 } from "@/shared/api/series";
@@ -52,6 +53,34 @@ export function useSeriesSummary(id: string) {
   });
 }
 
+export function useSeriesMembers(seriesId: string) {
+  return useQuery({
+    queryKey: ["series", seriesId, "members"],
+    queryFn: () => seriesApi.listMembers(seriesId),
+    enabled: !!seriesId,
+  });
+}
+
+export function useMySeriesMemberships() {
+  return useQuery({
+    queryKey: ["series", "memberships", "my"],
+    queryFn: seriesApi.listMyMemberships,
+  });
+}
+
+export function useAddSeriesMember(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AddSeriesMemberInput) => seriesApi.addMember(seriesId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "members"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
+      toast.success("Team invite sent successfully");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
 export function useDeleteDraftSeries() {
   const qc = useQueryClient();
   return useMutation({
@@ -95,6 +124,51 @@ export function useHardDeleteSeries() {
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: ["series"] });
       qc.invalidateQueries({ queryKey: ["series", id] });
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useUpdateSeriesMember(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, status }: { memberId: string; status: string }) =>
+      seriesApi.updateMember(seriesId, memberId, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["series", seriesId] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "members"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
+      toast.success("Team member updated successfully");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useAcceptSeriesMemberInvite(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId?: string) => seriesApi.acceptMemberInvite(seriesId, memberId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["series"] });
+      qc.invalidateQueries({ queryKey: ["series", "memberships", "my"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "members"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
+      toast.success("Team invite accepted");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useRemoveSeriesMember(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) => seriesApi.removeMember(seriesId, memberId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["series", seriesId] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "members"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
+      toast.success("Team member removed successfully");
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
   });

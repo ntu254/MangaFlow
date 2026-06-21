@@ -5,6 +5,7 @@ import { RoleSwitcher } from "@/shared/ui/site/RoleSwitcher";
 import { NotificationBell } from "@/shared/ui/site/NotificationBell";
 import { useRole } from "@/shared/lib/role";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
+import { useTaskDetail } from "@/shared/queries/useTasks";
 
 const LABELS: Record<string, string> = {
   app: "App",
@@ -21,6 +22,11 @@ const LABELS: Record<string, string> = {
   bubble: "Bubble studio",
   admin: "Admin",
   users: "Users",
+  "user-management": "Users",
+  "board-members": "Board members",
+  "task-rates": "Task rates",
+  storage: "Storage",
+  "audit-logs": "Audit logs",
   roles: "Roles & types",
   settings: "Settings",
   chapters: "Chapters",
@@ -36,7 +42,9 @@ const LABELS: Record<string, string> = {
   editor: "Editor",
   "series-review": "Series review",
   vote: "Vote",
-  proposal: "Proposal"
+  proposal: "Proposal",
+  "final-reviews": "Final Reviews",
+  "final-review": "Final Review",
 };
 
 export function Topbar() {
@@ -44,14 +52,17 @@ export function Topbar() {
   // Skip the "app" prefix to simplify breadcrumbs
   const rawParts = pathname.split("/").filter(Boolean);
   const parts = rawParts[0] === "app" ? rawParts.slice(1) : rawParts;
-  
+
   const { user, logout, role } = useRole();
   const navigate = useNavigate();
 
-  // Look for a MongoDB ObjectId in the URL parts
-  const seriesId = rawParts.find(p => p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p));
+  const seriesId = extractSeriesIdFromPath(rawParts);
   const { data: summary } = useSeriesSummary(seriesId || "");
   const seriesTitle = summary?.series?.title?.trim();
+
+  const taskId = extractTaskIdFromPath(rawParts);
+  const { data: taskDetail } = useTaskDetail(taskId || "");
+  const taskTitle = taskDetail?.title?.trim();
 
   const handleLogout = async () => {
     await logout();
@@ -63,14 +74,29 @@ export function Topbar() {
       <nav className="flex items-center text-[13px] text-foreground/60">
         {parts.map((p, i) => {
           const isObjectId = p.length === 24 && /^[0-9a-fA-F]{24}$/.test(p);
-          
+          const isSeriesId = !!seriesId && p === seriesId;
+
           let label = LABELS[p] ?? decodeURIComponent(p);
-          
-          if (isObjectId) {
+
+          if (p === "tasks" && rawParts.includes("editor")) {
+            label = "Final Reviews";
+          }
+
+          if (isSeriesId) {
             label = seriesTitle || "Untitled draft";
             // Truncate if too long
             if (label.length > 30) {
               label = label.substring(0, 30) + "...";
+            }
+          } else if (isObjectId) {
+            const isTaskId = !!taskId && p === taskId;
+            if (isTaskId) {
+              label = taskTitle || "Task";
+              if (label.length > 30) {
+                label = label.substring(0, 30) + "...";
+              }
+            } else {
+              label = "Task";
             }
           }
 
@@ -83,11 +109,18 @@ export function Topbar() {
             <span key={href} className="flex items-center">
               {i > 0 && <span className="mx-2 text-foreground/30">/</span>}
               {isLast ? (
-                <span className="font-medium text-foreground" title={isObjectId ? seriesTitle : undefined}>
+                <span
+                  className="font-medium text-foreground"
+                  title={isSeriesId ? seriesTitle : undefined}
+                >
                   {label}
                 </span>
               ) : (
-                <Link to={href} className="hover:text-foreground" title={isObjectId ? seriesTitle : undefined}>
+                <Link
+                  to={href}
+                  className="hover:text-foreground"
+                  title={isSeriesId ? seriesTitle : undefined}
+                >
                   {label}
                 </Link>
               )}
@@ -126,4 +159,18 @@ export function Topbar() {
       )}
     </div>
   );
+}
+
+function extractSeriesIdFromPath(rawParts: string[]) {
+  const seriesIndex = rawParts.indexOf("series");
+  if (seriesIndex < 0) return "";
+  const candidate = rawParts[seriesIndex + 1] ?? "";
+  return candidate.length === 24 && /^[0-9a-fA-F]{24}$/.test(candidate) ? candidate : "";
+}
+
+function extractTaskIdFromPath(rawParts: string[]) {
+  const tasksIndex = rawParts.indexOf("tasks");
+  if (tasksIndex < 0) return "";
+  const candidate = rawParts[tasksIndex + 1] ?? "";
+  return candidate.length === 24 && /^[0-9a-fA-F]{24}$/.test(candidate) ? candidate : "";
 }

@@ -4,13 +4,7 @@ import type { Chapter, Task } from "@/entities";
 import { findStaff } from "@/entities";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 
-export function AssistantMinimalView({
-  chapter,
-  myTasks,
-}: {
-  chapter: Chapter;
-  myTasks: Task[];
-}) {
+export function AssistantMinimalView({ chapter, myTasks }: { chapter: Chapter; myTasks: Task[] }) {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-4">

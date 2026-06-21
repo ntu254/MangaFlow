@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   Layers,
@@ -14,15 +14,29 @@ import {
   AlertCircle,
   Plus,
   Trash2,
+  Loader2,
+  Eraser,
 } from "lucide-react";
-import type { Region, AIResult } from "@/entities";
+import type { Region, AIResult, Task } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { staff, findStaff } from "@/entities";
+import {
+  useAcceptAISuggestion,
+  useRejectAISuggestion,
+  useRunAISegmentation,
+  useRunAITextWhitening,
+} from "@/shared/queries/usePageStudio";
+import { useDeleteRegion } from "@/shared/queries/useRegions";
+import { AssistantTaskWorkPanel } from "./AssistantTaskWorkPanel";
 
 interface Props {
   regions: Region[];
   results?: AIResult[];
   pageId: string;
+  readOnly?: boolean;
+  assistantTask?: Task;
+  originalFileAssetId?: string;
+  workingFileAssetId?: string;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -33,10 +47,31 @@ const STATUS_COLOR: Record<string, string> = {
   "linked-to-task": "text-amber-400 bg-amber-400/10 border-amber-400/20",
 };
 
+function getSuggestionPayload(region?: Region) {
+  if (!region) return null;
+  if (region.aiResultId && typeof region.aiSuggestionIndex === "number") {
+    return {
+      aiResultId: region.aiResultId,
+      suggestionIndex: region.aiSuggestionIndex,
+    };
+  }
+
+  const match = region.id.match(/^(.+):suggestion:(\d+)$/);
+  if (!match) return null;
+  return {
+    aiResultId: match[1],
+    suggestionIndex: Number(match[2]),
+  };
+}
+
 export function InspectorDrawer({
   regions,
   results = [],
   pageId,
+  readOnly = false,
+  assistantTask,
+  originalFileAssetId,
+  workingFileAssetId,
 }: Props) {
   const {
     selectedRegionId,
@@ -51,17 +86,49 @@ export function InspectorDrawer({
   const selectedRegion = regions.find((r) => r.id === selectedRegionId);
 
   // useDeleteRegion hook
-  const { mutate: deleteRegion, isPending: isDeleting } =
-    import.meta.env.SSR ? { mutate: () => {}, isPending: false } : require("@/shared/queries/useRegions").useDeleteRegion(pageId);
+  const { mutate: deleteRegion, isPending: isDeleting } = useDeleteRegion(pageId);
+  const { mutate: detectBubbles, isPending: isDetectingBubbles } = useRunAISegmentation(pageId);
+  const { mutate: whitenText, isPending: isWhiteningText } = useRunAITextWhitening(pageId);
+  const { mutate: acceptSuggestion, isPending: isAcceptingSuggestion } =
+    useAcceptAISuggestion(pageId);
+  const { mutate: rejectSuggestion, isPending: isRejectingSuggestion } =
+    useRejectAISuggestion(pageId);
 
-  const handleDeleteRegion = () => {
-    if (!selectedRegion) return;
-    deleteRegion(selectedRegion.id, {
-      onSuccess: () => setSelectedRegionId(null)
+  const hasActiveTask = selectedRegion ? !!regionTasks[selectedRegion.id] : false;
+  const isAISuggestion =
+    selectedRegion?.status === "ai-suggested" || selectedRegion?.id.includes(":suggestion:");
+  const isSuggestionMutationPending = isAcceptingSuggestion || isRejectingSuggestion;
+
+  const getSelectedSuggestionPayload = () => {
+    return getSuggestionPayload(selectedRegion);
+  };
+
+  const handleAcceptSuggestion = () => {
+    const payload = getSelectedSuggestionPayload();
+    if (!payload) return;
+    acceptSuggestion(payload, {
+      onSuccess: () => setSelectedRegionId(null),
     });
   };
 
-  const hasActiveTask = selectedRegion ? !!regionTasks[selectedRegion.id] : false;
+  const handleRejectSuggestion = () => {
+    const payload = getSelectedSuggestionPayload();
+    if (!payload) return;
+    rejectSuggestion(payload, {
+      onSuccess: () => setSelectedRegionId(null),
+    });
+  };
+
+  const handleDeleteRegion = () => {
+    if (!selectedRegion) return;
+    if (isAISuggestion) {
+      handleRejectSuggestion();
+      return;
+    }
+    deleteRegion(selectedRegion.id, {
+      onSuccess: () => setSelectedRegionId(null),
+    });
+  };
 
   // Mock comments state
   const [comments, setComments] = useState([
@@ -111,9 +178,15 @@ export function InspectorDrawer({
   const tabsConfig = [
     { id: "inspect" as const, icon: Info, label: "Inspect" },
     { id: "layers" as const, icon: Layers, label: "Layers" },
-    { id: "ai" as const, icon: Brain, label: "AI Tools" },
-    { id: "comments" as const, icon: MessageSquare, label: "Comments" },
+    ...(!readOnly ? [{ id: "ai" as const, icon: Brain, label: "AI Tools" }] : []),
+    ...(!readOnly ? [{ id: "comments" as const, icon: MessageSquare, label: "Comments" }] : []),
   ];
+
+  useEffect(() => {
+    if (readOnly && activeTab !== "inspect" && activeTab !== "layers") {
+      setActiveTab("inspect");
+    }
+  }, [activeTab, readOnly, setActiveTab]);
 
   return (
     <div className="flex h-full shrink-0 border-l border-border bg-background overflow-hidden select-none transition-all duration-300">
@@ -136,6 +209,14 @@ export function InspectorDrawer({
           {/* ── TAB: INSPECT ── */}
           {activeTab === "inspect" && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
+              {assistantTask && (
+                <AssistantTaskWorkPanel
+                  task={assistantTask}
+                  pageId={pageId}
+                  originalFileAssetId={originalFileAssetId}
+                  workingFileAssetId={workingFileAssetId}
+                />
+              )}
               {selectedRegion ? (
                 <div className="space-y-4">
                   {/* Region Properties Card */}
@@ -153,21 +234,65 @@ export function InspectorDrawer({
                       </span>
                     </div>
 
-                    <div className="flex justify-end pt-1 border-t border-border mt-3 group relative">
-                      <button
-                        onClick={handleDeleteRegion}
-                        disabled={isDeleting || hasActiveTask}
-                        className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {isDeleting ? "Deleting..." : "Delete Region"}
-                      </button>
-                      {hasActiveTask && (
-                        <div className="absolute bottom-full right-0 mb-1 hidden w-48 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
-                          This region has active tasks. Cancel or finish those tasks before deleting.
-                        </div>
-                      )}
-                    </div>
+                    {!readOnly && isAISuggestion && (
+                      <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
+                        <button
+                          onClick={handleAcceptSuggestion}
+                          disabled={isSuggestionMutationPending}
+                          className="flex items-center justify-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 transition-colors hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isAcceptingSuggestion ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                          Accept
+                        </button>
+                        <button
+                          onClick={handleRejectSuggestion}
+                          disabled={isSuggestionMutationPending}
+                          className="flex items-center justify-center gap-1 rounded-lg border border-rose-500/20 bg-rose-500/10 px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-rose-400 transition-colors hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isRejectingSuggestion ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <X className="h-3.5 w-3.5" />
+                          )}
+                          Reject
+                        </button>
+                      </div>
+                    )}
+
+                    {!readOnly && (
+                      <div className="flex justify-end pt-1 border-t border-border mt-3 group relative">
+                        <button
+                          onClick={handleDeleteRegion}
+                          disabled={
+                            isDeleting || isSuggestionMutationPending || (!isAISuggestion && hasActiveTask)
+                          }
+                          className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
+                        >
+                          {isDeleting || isRejectingSuggestion ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          {isAISuggestion
+                            ? isRejectingSuggestion
+                              ? "Removing..."
+                              : "Remove Suggestion"
+                            : isDeleting
+                              ? "Deleting..."
+                              : "Delete Region"}
+                        </button>
+                        {!isAISuggestion && hasActiveTask && (
+                          <div className="absolute bottom-full right-0 mb-1 hidden w-48 rounded bg-zinc-800 px-2 py-1 text-center text-[10px] text-white group-hover:block">
+                            This region has active tasks. Cancel or finish those tasks before
+                            deleting.
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Coordinates */}
                     <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-[10px] text-foreground/40 font-mono">
@@ -218,13 +343,22 @@ export function InspectorDrawer({
                             <User className="h-3.5 w-3.5" /> Assignee:
                           </span>
                           <span className="font-semibold text-foreground/85">
-                            {
-                              findStaff(
-                                regionTasks[selectedRegion.id].assigneeId
-                              )?.name
-                            }
+                            {regionTasks[selectedRegion.id].assigneeName ??
+                              findStaff(regionTasks[selectedRegion.id].assigneeId)?.name ??
+                              "Assigned assistant"}
                           </span>
                         </div>
+
+                        {regionTasks[selectedRegion.id].status && (
+                          <div className="flex justify-between items-center text-foreground/50">
+                            <span className="flex items-center gap-1">
+                              <Info className="h-3.5 w-3.5" /> Status:
+                            </span>
+                            <span className="font-semibold capitalize text-foreground/85">
+                              {regionTasks[selectedRegion.id].status?.replace(/-/g, " ")}
+                            </span>
+                          </div>
+                        )}
 
                         <div className="flex justify-between items-center text-foreground/50">
                           <span className="flex items-center gap-1">
@@ -232,11 +366,9 @@ export function InspectorDrawer({
                           </span>
                           <span
                             className={`font-semibold capitalize ${
-                              regionTasks[selectedRegion.id].priority ===
-                              "high"
+                              regionTasks[selectedRegion.id].priority === "high"
                                 ? "text-red-400"
-                                : regionTasks[selectedRegion.id].priority ===
-                                    "medium"
+                                : regionTasks[selectedRegion.id].priority === "medium"
                                   ? "text-amber-400"
                                   : "text-blue-400"
                             }`}
@@ -266,8 +398,10 @@ export function InspectorDrawer({
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-foreground/30">
                   <Info className="h-8 w-8 text-foreground/10 mb-2" />
-                  <p className="text-[11px] font-medium leading-relaxed px-4">
-                    Select a region overlay on the canvas to inspect details and assign tasks.
+                    <p className="text-[11px] font-medium leading-relaxed px-4">
+                    {readOnly
+                      ? "Select an assigned region overlay to inspect the task scope."
+                      : "Select a region overlay on the canvas to inspect details and assign tasks."}
                   </p>
                 </div>
               )}
@@ -293,9 +427,7 @@ export function InspectorDrawer({
                   return (
                     <button
                       key={r.id}
-                      onClick={() =>
-                        setSelectedRegionId(r.id === selectedRegionId ? null : r.id)
-                      }
+                      onClick={() => setSelectedRegionId(r.id === selectedRegionId ? null : r.id)}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors border ${
                         isSelected
                           ? "bg-foreground/8 border-border text-foreground ring-1 ring-foreground/10"
@@ -307,9 +439,7 @@ export function InspectorDrawer({
                         {r.type} #{idxStr || idx + 1}
                       </span>
                       <div className="flex items-center gap-1.5">
-                        {hasTask && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                        )}
+                        {hasTask && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
                         <span
                           className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                             STATUS_COLOR[r.status] ?? ""
@@ -328,13 +458,63 @@ export function InspectorDrawer({
           {/* ── TAB: AI ── */}
           {activeTab === "ai" && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
-              <button
-                disabled
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-900/20 transition-all opacity-40 cursor-not-allowed"
-              >
-                <Sparkles className="h-4 w-4" />
-                Run AI Segmentation (Out of scope)
-              </button>
+              <div className="space-y-3">
+                <section className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-sky-300">
+                        Detect bubbles
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-foreground/45">
+                        Find speech bubbles and show AI suggestion boxes on the canvas.
+                      </p>
+                      <button
+                        onClick={() => detectBubbles()}
+                        disabled={isDetectingBubbles || isWhiteningText}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-[11px] font-bold text-white transition-all hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isDetectingBubbles ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        {isDetectingBubbles ? "Detecting..." : "Detect bubbles"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+                      <Eraser className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">
+                        Whiten text
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-foreground/45">
+                        Remove bubble text by generating a whitened working image.
+                      </p>
+                      <button
+                        onClick={() => whitenText()}
+                        disabled={isWhiteningText || isDetectingBubbles}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isWhiteningText ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Eraser className="h-3.5 w-3.5" />
+                        )}
+                        {isWhiteningText ? "Whitening..." : "Whiten text"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </div>
 
               <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/30 mb-1 pt-2">
                 Segmentation Runs ({results.length})
@@ -347,10 +527,7 @@ export function InspectorDrawer({
                   </div>
                 )}
                 {results.map((r) => (
-                  <div
-                    key={r.id}
-                    className="rounded-xl border border-border bg-card p-3"
-                  >
+                  <div key={r.id} className="rounded-xl border border-border bg-card p-3">
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-[10px] font-bold uppercase ${
@@ -366,8 +543,7 @@ export function InspectorDrawer({
                       <span className="text-[9px] text-foreground/30">{r.at}</span>
                     </div>
                     <div className="mt-1.5 text-[10px] text-foreground/40">
-                      {r.suggestionsCount} suggestions · {r.acceptedCount}{" "}
-                      accepted
+                      {r.suggestionsCount} suggestions · {r.acceptedCount} accepted
                     </div>
                   </div>
                 ))}
@@ -394,9 +570,7 @@ export function InspectorDrawer({
                       </span>
                       <span className="text-foreground/25">{c.time}</span>
                     </div>
-                    <p className="mt-1 leading-relaxed text-foreground/60">
-                      {c.content}
-                    </p>
+                    <p className="mt-1 leading-relaxed text-foreground/60">{c.content}</p>
                   </div>
                 ))}
               </div>

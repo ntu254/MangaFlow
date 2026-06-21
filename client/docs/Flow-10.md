@@ -27,13 +27,13 @@ Out of scope: reader view, ranking input creation, publication scheduling, payme
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Editorial Board | Review ranking report và quyết định |
-| Board Chair | Finalize decision nếu cần |
-| Editor | Chuẩn bị/giải thích report, theo dõi Series |
-| System | Aggregate ranking, detect at-risk, update status, audit |
-| Mangaka | Nhận thông báo kết quả |
+| Actor           | Vai trò                                                 |
+| --------------- | ------------------------------------------------------- |
+| Editorial Board | Review ranking report và quyết định                     |
+| Board Chair     | Finalize decision nếu cần                               |
+| Editor          | Chuẩn bị/giải thích report, theo dõi Series             |
+| System          | Aggregate ranking, detect at-risk, update status, audit |
+| Mangaka         | Nhận thông báo kết quả                                  |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -66,12 +66,12 @@ AuditLog
 
 ## 7. Series Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| ONGOING | Series tiếp tục sản xuất/xuất bản |
-| AT_RISK | Series có rủi ro do ranking/performance |
-| CANCELLED | Series bị hủy |
-| COMPLETED | Series hoàn thành |
+| Status    | Ý nghĩa                                 |
+| --------- | --------------------------------------- |
+| ONGOING   | Series tiếp tục sản xuất/xuất bản       |
+| AT_RISK   | Series có rủi ro do ranking/performance |
+| CANCELLED | Series bị hủy                           |
+| COMPLETED | Series hoàn thành                       |
 
 MVP không dùng `HIATUS`.
 
@@ -79,21 +79,21 @@ MVP không dùng `HIATUS`.
 
 Decision status:
 
-| Status | Ý nghĩa |
-| --- | --- |
-| DRAFT | Decision đang chuẩn bị |
-| VOTING | Board đang vote |
-| FINALIZED | Đã chốt quyết định |
-| VOIDED | Decision bị hủy/không dùng |
+| Status    | Ý nghĩa                    |
+| --------- | -------------------------- |
+| DRAFT     | Decision đang chuẩn bị     |
+| VOTING    | Board đang vote            |
+| FINALIZED | Đã chốt quyết định         |
+| VOIDED    | Decision bị hủy/không dùng |
 
 Decision type:
 
-| Type | Ý nghĩa |
-| --- | --- |
+| Type     | Ý nghĩa                     |
+| -------- | --------------------------- |
 | CONTINUE | Series tiếp tục bình thường |
-| WARNING | Cảnh báo / theo dõi sát |
-| CANCEL | Hủy Series |
-| COMPLETE | Chốt hoàn thành Series |
+| WARNING  | Cảnh báo / theo dõi sát     |
+| CANCEL   | Hủy Series                  |
+| COMPLETE | Chốt hoàn thành Series      |
 
 ## 9. Step-by-step flow
 
@@ -137,14 +137,14 @@ After BoardDecision is finalized, correction should create a new decision or voi
 
 ## 11. Permission Matrix
 
-| Action | Board | Board Chair | Editor | Admin | Mangaka |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View ranking report | Có | Có | Có | Có | Optional summary |
-| Vote decision | Có | Có | Không | Không | Không |
-| Finalize decision | Optional | Có | Không | Optional | Không |
-| Update threshold config | Không | Không | Không | Có | Không |
-| View finalized decision | Có | Có | Có | Có | Có |
+| Action                  | Board    | Board Chair | Editor | Admin    | Mangaka          |
+| ----------------------- | -------- | ----------- | ------ | -------- | ---------------- |
+| ---                     | ---:     | ---:        | ---:   | ---:     | ---:             |
+| View ranking report     | Có       | Có          | Có     | Có       | Optional summary |
+| Vote decision           | Có       | Có          | Không  | Không    | Không            |
+| Finalize decision       | Optional | Có          | Không  | Optional | Không            |
+| Update threshold config | Không    | Không       | Không  | Có       | Không            |
+| View finalized decision | Có       | Có          | Có     | Có       | Có               |
 
 ## 12. API đề xuất
 
@@ -206,14 +206,14 @@ SERIES_STATUS_UPDATED_BY_BOARD
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| RankingInput chưa finalized | Block evaluation |
-| Missing ranking config | Block evaluation, require Admin config |
-| Tie vote | Board Chair finalizes |
-| Finalize decision thiếu reason | Block |
-| Series already CANCELLED | Block duplicate cancel |
-| Data correction after finalized decision | Void/create new decision with audit |
+| Case                                     | Expected behavior                      |
+| ---------------------------------------- | -------------------------------------- |
+| RankingInput chưa finalized              | Block evaluation                       |
+| Missing ranking config                   | Block evaluation, require Admin config |
+| Tie vote                                 | Board Chair finalizes                  |
+| Finalize decision thiếu reason           | Block                                  |
+| Series already CANCELLED                 | Block duplicate cancel                 |
+| Data correction after finalized decision | Void/create new decision with audit    |
 
 ## 18. Mermaid activity flow
 

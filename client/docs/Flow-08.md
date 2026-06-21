@@ -27,13 +27,13 @@ Out of scope: Reader view, ranking input, board ranking decision, payment tracki
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Editor | Kiểm tra readiness và schedule publication |
-| Mangaka | Theo dõi trạng thái Chapter |
-| Admin | Optional manage schedule |
-| System | Validate readiness, schedule, publish trigger, audit |
-| Board | Không duyệt từng Chapter trong MVP |
+| Actor   | Vai trò                                              |
+| ------- | ---------------------------------------------------- |
+| Editor  | Kiểm tra readiness và schedule publication           |
+| Mangaka | Theo dõi trạng thái Chapter                          |
+| Admin   | Optional manage schedule                             |
+| System  | Validate readiness, schedule, publish trigger, audit |
+| Board   | Không duyệt từng Chapter trong MVP                   |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -77,23 +77,23 @@ AuditLog
 
 ## 7. Chapter Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| IN_PRODUCTION | Chapter đang production |
+| Status                | Ý nghĩa                         |
+| --------------------- | ------------------------------- |
+| IN_PRODUCTION         | Chapter đang production         |
 | READY_FOR_PUBLICATION | Chapter đã đủ điều kiện publish |
-| PUBLISHED | Chapter đã xuất bản |
-| ARCHIVED | Chapter không còn active |
+| PUBLISHED             | Chapter đã xuất bản             |
+| ARCHIVED              | Chapter không còn active        |
 
 Không dùng `SCHEDULED` cho Chapter trong MVP.
 
 ## 8. Publication Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| DRAFT | Publication record mới tạo hoặc chưa có lịch |
-| SCHEDULED | Đã có lịch publish |
-| PUBLISHED | Đã publish thành công |
-| CANCELLED | Lịch publish bị hủy |
+| Status    | Ý nghĩa                                      |
+| --------- | -------------------------------------------- |
+| DRAFT     | Publication record mới tạo hoặc chưa có lịch |
+| SCHEDULED | Đã có lịch publish                           |
+| PUBLISHED | Đã publish thành công                        |
+| CANCELLED | Lịch publish bị hủy                          |
 
 ## 9. Step-by-step flow
 
@@ -134,14 +134,14 @@ Editor runs readiness check again
 
 ## 11. Permission Matrix
 
-| Action | Mangaka | Editor | Admin | Board | Assistant |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View readiness | Có | Có | Có | Summary only | Không |
-| Run readiness check | Optional | Có | Có | Không | Không |
-| Mark ready | Không | Có | Optional | Không | Không |
-| Schedule publication | Không | Có | Có | Không | Không |
-| Cancel schedule | Không | Có | Có | Không | Không |
+| Action               | Mangaka  | Editor | Admin    | Board        | Assistant |
+| -------------------- | -------- | ------ | -------- | ------------ | --------- |
+| ---                  | ---:     | ---:   | ---:     | ---:         | ---:      |
+| View readiness       | Có       | Có     | Có       | Summary only | Không     |
+| Run readiness check  | Optional | Có     | Có       | Không        | Không     |
+| Mark ready           | Không    | Có     | Optional | Không        | Không     |
+| Schedule publication | Không    | Có     | Có       | Không        | Không     |
+| Cancel schedule      | Không    | Có     | Có       | Không        | Không     |
 
 ## 12. API đề xuất
 
@@ -197,14 +197,14 @@ CHAPTER_PUBLISHED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Còn Task chưa EDITOR_APPROVED | Block mark ready |
-| Series cancelled | Block schedule |
-| Missing publicationType | Block schedule |
-| scheduledAt ở quá khứ | Block hoặc require publish immediately rule |
-| Publication already published | Block duplicate publish |
-| Cancel published publication | Block hoặc require admin correction flow |
+| Case                          | Expected behavior                           |
+| ----------------------------- | ------------------------------------------- |
+| Còn Task chưa EDITOR_APPROVED | Block mark ready                            |
+| Series cancelled              | Block schedule                              |
+| Missing publicationType       | Block schedule                              |
+| scheduledAt ở quá khứ         | Block hoặc require publish immediately rule |
+| Publication already published | Block duplicate publish                     |
+| Cancel published publication  | Block hoặc require admin correction flow    |
 
 ## 18. Mermaid activity flow
 

@@ -21,13 +21,13 @@ Out of scope: real payment gateway, automatic payout, tax/compliance, invoice ex
 
 ## 4. Actor tham gia
 
-| Actor | Vai trò |
-| --- | --- |
-| Assistant | Xem earning của mình |
-| Admin/Finance | Confirm earning và mark paid |
-| Editor | Approval kích hoạt earning candidate |
-| System | Calculate earning dựa trên TaskType rate |
-| Mangaka | Không xử lý payment trong MVP |
+| Actor         | Vai trò                                  |
+| ------------- | ---------------------------------------- |
+| Assistant     | Xem earning của mình                     |
+| Admin/Finance | Confirm earning và mark paid             |
+| Editor        | Approval kích hoạt earning candidate     |
+| System        | Calculate earning dựa trên TaskType rate |
+| Mangaka       | Không xử lý payment trong MVP            |
 
 ## 5. Điều kiện bắt đầu / kết thúc
 
@@ -56,21 +56,21 @@ AuditLog
 
 ## 7. Task Payment Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| NOT_ELIGIBLE | Task chưa đủ điều kiện tính tiền |
-| EARNING_CALCULATED | Đã tạo earning |
-| PAYMENT_CONFIRMED | Admin/Finance đã confirm |
-| PAID | Đã được mark paid sau khi thanh toán ngoài hệ thống |
+| Status             | Ý nghĩa                                             |
+| ------------------ | --------------------------------------------------- |
+| NOT_ELIGIBLE       | Task chưa đủ điều kiện tính tiền                    |
+| EARNING_CALCULATED | Đã tạo earning                                      |
+| PAYMENT_CONFIRMED  | Admin/Finance đã confirm                            |
+| PAID               | Đã được mark paid sau khi thanh toán ngoài hệ thống |
 
 ## 8. AssistantEarning Status
 
-| Status | Ý nghĩa |
-| --- | --- |
-| CALCULATED | Hệ thống đã tính earning |
-| CONFIRMED | Admin/Finance xác nhận |
-| PAID | Admin/Finance đánh dấu đã thanh toán ngoài hệ thống |
-| VOIDED | Earning bị hủy |
+| Status     | Ý nghĩa                                             |
+| ---------- | --------------------------------------------------- |
+| CALCULATED | Hệ thống đã tính earning                            |
+| CONFIRMED  | Admin/Finance xác nhận                              |
+| PAID       | Admin/Finance đánh dấu đã thanh toán ngoài hệ thống |
+| VOIDED     | Earning bị hủy                                      |
 
 ## 9. Step-by-step flow
 
@@ -114,14 +114,14 @@ Optional: create corrected earning
 
 ## 11. Permission Matrix
 
-| Action | Assistant | Admin/Finance | Editor | Mangaka | Board |
-| --- | --- | --- | --- | --- | --- |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| View own earning | Có | Có | Không | Không | Không |
-| View all earnings | Không | Có | Optional | Không | Không |
-| Confirm earning | Không | Có | Không | Không | Không |
-| Mark paid | Không | Có | Không | Không | Không |
-| Void earning | Không | Có | Không | Không | Không |
+| Action            | Assistant | Admin/Finance | Editor   | Mangaka | Board |
+| ----------------- | --------- | ------------- | -------- | ------- | ----- |
+| ---               | ---:      | ---:          | ---:     | ---:    | ---:  |
+| View own earning  | Có        | Có            | Không    | Không   | Không |
+| View all earnings | Không     | Có            | Optional | Không   | Không |
+| Confirm earning   | Không     | Có            | Không    | Không   | Không |
+| Mark paid         | Không     | Có            | Không    | Không   | Không |
+| Void earning      | Không     | Có            | Không    | Không   | Không |
 
 ## 12. API đề xuất
 
@@ -176,14 +176,14 @@ PAYMENT_RATE_USED
 
 ## 17. Edge cases
 
-| Case | Expected behavior |
-| --- | --- |
-| Task chưa Editor approved | Block calculate earning |
-| Missing rate config | Mark error / require admin config |
-| Duplicate earning | Block duplicate |
-| Earning paid rồi void | Require admin reason |
-| Rate changed after approval | Existing earning keeps snapshot |
-| Payment made outside but not marked paid | Earning remains CONFIRMED |
+| Case                                     | Expected behavior                 |
+| ---------------------------------------- | --------------------------------- |
+| Task chưa Editor approved                | Block calculate earning           |
+| Missing rate config                      | Mark error / require admin config |
+| Duplicate earning                        | Block duplicate                   |
+| Earning paid rồi void                    | Require admin reason              |
+| Rate changed after approval              | Existing earning keeps snapshot   |
+| Payment made outside but not marked paid | Earning remains CONFIRMED         |
 
 ## 18. Mermaid activity flow
 

@@ -50,6 +50,24 @@ function toMobileRole(role: string): MobileAuthRole {
   throw new Error("This mobile build supports Board and Tantou Editor accounts only.")
 }
 
+async function fetchMobileMe(accessToken: string): Promise<MobileAuthUser> {
+  const apiBaseUrl = getMobileApiBaseUrl()
+  const response = await fetch(`${apiBaseUrl}/auth/me`, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Session verification failed with status ${response.status}.`)
+  }
+
+  const envelope = await response.json() as ApiEnvelope<MobileAuthUser>
+  toMobileRole(envelope.data.role)
+  return envelope.data
+}
+
 export async function loginMobile(email: string, password: string): Promise<MobileAuthSession> {
   const apiBaseUrl = getMobileApiBaseUrl()
   const response = await fetch(`${apiBaseUrl}/auth/login`, {
@@ -66,11 +84,12 @@ export async function loginMobile(email: string, password: string): Promise<Mobi
   }
 
   const envelope = await response.json() as ApiEnvelope<AuthPayload>
-  const role = toMobileRole(envelope.data.user.role)
+  const verifiedUser = await fetchMobileMe(envelope.data.accessToken)
+  const role = toMobileRole(verifiedUser.role)
   setMobileWorkflowAuthToken(role, envelope.data.accessToken)
 
   return {
-    user: envelope.data.user,
+    user: verifiedUser,
     accessToken: envelope.data.accessToken,
     refreshToken: envelope.data.refreshToken,
     role,
@@ -91,6 +110,7 @@ export async function logoutMobile(session: MobileAuthSession | null): Promise<v
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.accessToken}`,
       },
+      body: JSON.stringify({ refreshToken: session.refreshToken }),
     })
   } finally {
     clearMobileWorkflowAuthTokens()

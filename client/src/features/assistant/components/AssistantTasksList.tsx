@@ -4,7 +4,12 @@ import { currentUserByRole, type Task } from "@/entities";
 import { PageHeader } from "@/layouts/AppShell";
 import { useAssistantTasks } from "../hooks/useAssistantTasks";
 import { AssistantTaskCard } from "./AssistantTaskCard";
-import { KANBAN_COLUMNS, LIFECYCLE_META, normalizeStatus, type AssistantStatus } from "../lib/taskLifecycle";
+import {
+  KANBAN_COLUMNS,
+  LIFECYCLE_META,
+  normalizeStatus,
+  type AssistantStatus,
+} from "../lib/taskLifecycle";
 import { Inbox, LayoutGrid, List, Search } from "lucide-react";
 import { useTaskFilters } from "@/features/tasks/hooks/useTaskFilters";
 
@@ -24,7 +29,7 @@ const VIEW_KEY = "assistant.tasks.view";
 export function AssistantTasksList() {
   const { role } = useRole();
   const me = currentUserByRole[role];
-  const { mine, counts } = useAssistantTasks(me.id);
+  const { mine, counts, query } = useAssistantTasks(me.id);
 
   const [tab, setTab] = useState<TabKey>("all");
   const [view, setView] = useState<"kanban" | "list">(() => {
@@ -37,19 +42,17 @@ export function AssistantTasksList() {
     setView(v);
     try {
       window.localStorage.setItem(VIEW_KEY, v);
-    } catch {}
+    } catch {
+      // View preference persistence is non-critical.
+    }
   }
 
   const scoped = useMemo(
-    () =>
-      tab === "all"
-        ? mine
-        : mine.filter((t) => normalizeStatus(t.status) === tab),
+    () => (tab === "all" ? mine : mine.filter((t) => normalizeStatus(t.status) === tab)),
     [mine, tab],
   );
 
-  const { state, setters, options, filtered, hasActiveFilter, clear } =
-    useTaskFilters(scoped);
+  const { state, setters, options, filtered, hasActiveFilter, clear } = useTaskFilters(scoped);
 
   return (
     <div className="space-y-5">
@@ -169,7 +172,15 @@ export function AssistantTasksList() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {query.isLoading ? (
+        <div className="rounded-md border border-dashed border-foreground/15 bg-card py-16 text-center text-[12px] text-foreground/55">
+          Loading assigned tasks…
+        </div>
+      ) : query.isError ? (
+        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] text-destructive">
+          {query.error instanceof Error ? query.error.message : "Could not load assigned tasks."}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-foreground/15 bg-card py-16 text-foreground/55">
           <Inbox className="h-5 w-5" />
           <div className="text-[13px] font-medium text-foreground">No tasks here</div>
@@ -228,7 +239,7 @@ function KanbanView({ tasks }: { tasks: Task[] }) {
                     <span className="text-[11px]">No tasks</span>
                   </div>
                 ) : (
-                  items.map((t) => <AssistantTaskCard key={t.id} task={t} />)
+                  items.map((t, index) => <AssistantTaskCard key={taskRenderKey(t, index)} task={t} />)
                 )}
               </div>
             </section>
@@ -243,8 +254,12 @@ function ListView({ tasks }: { tasks: Task[] }) {
   return (
     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
       {tasks.map((t) => (
-        <AssistantTaskCard key={t.id} task={t} />
+        <AssistantTaskCard key={taskRenderKey(t)} task={t} />
       ))}
     </div>
   );
+}
+
+function taskRenderKey(task: Task, index = 0) {
+  return task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}-${index}`;
 }

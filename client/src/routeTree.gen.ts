@@ -28,11 +28,13 @@ import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppBoardRouteImport } from './routes/app/board'
 import { Route as AppAssistantRouteRouteImport } from './routes/app/assistant/route'
 import { Route as AppSeriesIndexRouteImport } from './routes/app/series/index'
+import { Route as AppBoardIndexRouteImport } from './routes/app/board/index'
 import { Route as AppAssistantIndexRouteImport } from './routes/app/assistant/index'
 import { Route as ReadSlugChapterRouteImport } from './routes/read/$slug/$chapter'
 import { Route as AppSeriesNewRouteImport } from './routes/app/series/new'
 import { Route as AppSeriesIdRouteImport } from './routes/app/series/$id'
 import { Route as AppEditorSeriesReviewRouteImport } from './routes/app/editor/series-review'
+import { Route as AppEditorFinalReviewsRouteImport } from './routes/app/editor/final-reviews'
 import { Route as AppBoardSeriesReviewRouteImport } from './routes/app/board/series-review'
 import { Route as AppAssistantTasksRouteImport } from './routes/app/assistant/tasks'
 import { Route as AppAssistantSubmissionsRouteImport } from './routes/app/assistant/submissions'
@@ -41,7 +43,14 @@ import { Route as AppAssistantNotificationsRouteImport } from './routes/app/assi
 import { Route as AppAssistantEarningsRouteImport } from './routes/app/assistant/earnings'
 import { Route as AppAssistantDashboardRouteImport } from './routes/app/assistant/dashboard'
 import { Route as AppAdminUsersRouteImport } from './routes/app/admin/users'
+import { Route as AppAdminUserManagementRouteImport } from './routes/app/admin/user-management'
+import { Route as AppAdminTaskRatesRouteImport } from './routes/app/admin/task-rates'
+import { Route as AppAdminStorageRouteImport } from './routes/app/admin/storage'
+import { Route as AppAdminSettingsRouteImport } from './routes/app/admin/settings'
 import { Route as AppAdminRolesRouteImport } from './routes/app/admin/roles'
+import { Route as AppAdminPayrollRouteImport } from './routes/app/admin/payroll'
+import { Route as AppAdminBoardMembersRouteImport } from './routes/app/admin/board-members'
+import { Route as AppAdminAuditLogsRouteImport } from './routes/app/admin/audit-logs'
 import { Route as AppSeriesIdIndexRouteImport } from './routes/app/series/$id.index'
 import { Route as AppSeriesIdTeamRouteImport } from './routes/app/series/$id.team'
 import { Route as AppSeriesIdTasksRouteImport } from './routes/app/series/$id.tasks'
@@ -53,6 +62,7 @@ import { Route as AppSeriesIdManuscriptRouteImport } from './routes/app/series/$
 import { Route as AppSeriesIdChaptersRouteImport } from './routes/app/series/$id.chapters'
 import { Route as AppSeriesIdActivityRouteImport } from './routes/app/series/$id.activity'
 import { Route as AppPagesIdStudioRouteImport } from './routes/app/pages/$id.studio'
+import { Route as AppEditorTasksIdFinalReviewRouteImport } from './routes/app/editor/tasks/$id.final-review'
 import { Route as AppEditorSeriesIdReviewRouteImport } from './routes/app/editor/series/$id.review'
 import { Route as AppChaptersIdPagesUploadRouteImport } from './routes/app/chapters/$id.pages.upload'
 import { Route as AppBoardSeriesIdVoteRouteImport } from './routes/app/board/series/$id.vote'
@@ -153,6 +163,11 @@ const AppSeriesIndexRoute = AppSeriesIndexRouteImport.update({
   path: '/series/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBoardIndexRoute = AppBoardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppBoardRoute,
+} as any)
 const AppAssistantIndexRoute = AppAssistantIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -176,6 +191,11 @@ const AppSeriesIdRoute = AppSeriesIdRouteImport.update({
 const AppEditorSeriesReviewRoute = AppEditorSeriesReviewRouteImport.update({
   id: '/editor/series-review',
   path: '/editor/series-review',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEditorFinalReviewsRoute = AppEditorFinalReviewsRouteImport.update({
+  id: '/editor/final-reviews',
+  path: '/editor/final-reviews',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBoardSeriesReviewRoute = AppBoardSeriesReviewRouteImport.update({
@@ -219,9 +239,44 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminUserManagementRoute = AppAdminUserManagementRouteImport.update({
+  id: '/admin/user-management',
+  path: '/admin/user-management',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminTaskRatesRoute = AppAdminTaskRatesRouteImport.update({
+  id: '/admin/task-rates',
+  path: '/admin/task-rates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminStorageRoute = AppAdminStorageRouteImport.update({
+  id: '/admin/storage',
+  path: '/admin/storage',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminSettingsRoute = AppAdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminRolesRoute = AppAdminRolesRouteImport.update({
   id: '/admin/roles',
   path: '/admin/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminPayrollRoute = AppAdminPayrollRouteImport.update({
+  id: '/admin/payroll',
+  path: '/admin/payroll',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminBoardMembersRoute = AppAdminBoardMembersRouteImport.update({
+  id: '/admin/board-members',
+  path: '/admin/board-members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAuditLogsRoute = AppAdminAuditLogsRouteImport.update({
+  id: '/admin/audit-logs',
+  path: '/admin/audit-logs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSeriesIdIndexRoute = AppSeriesIdIndexRouteImport.update({
@@ -279,6 +334,12 @@ const AppPagesIdStudioRoute = AppPagesIdStudioRouteImport.update({
   path: '/pages/$id/studio',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEditorTasksIdFinalReviewRoute =
+  AppEditorTasksIdFinalReviewRouteImport.update({
+    id: '/editor/tasks/$id/final-review',
+    path: '/editor/tasks/$id/final-review',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppEditorSeriesIdReviewRoute = AppEditorSeriesIdReviewRouteImport.update({
   id: '/editor/series/$id/review',
   path: '/editor/series/$id/review',
@@ -321,7 +382,14 @@ export interface FileRoutesByFullPath {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
+  '/app/admin/audit-logs': typeof AppAdminAuditLogsRoute
+  '/app/admin/board-members': typeof AppAdminBoardMembersRoute
+  '/app/admin/payroll': typeof AppAdminPayrollRoute
   '/app/admin/roles': typeof AppAdminRolesRoute
+  '/app/admin/settings': typeof AppAdminSettingsRoute
+  '/app/admin/storage': typeof AppAdminStorageRoute
+  '/app/admin/task-rates': typeof AppAdminTaskRatesRoute
+  '/app/admin/user-management': typeof AppAdminUserManagementRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
@@ -330,11 +398,13 @@ export interface FileRoutesByFullPath {
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/$id': typeof AppSeriesIdRouteWithChildren
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/assistant/': typeof AppAssistantIndexRoute
+  '/app/board/': typeof AppBoardIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
@@ -351,11 +421,11 @@ export interface FileRoutesByFullPath {
   '/app/board/series/$id/vote': typeof AppBoardSeriesIdVoteRoute
   '/app/chapters/$id/pages/upload': typeof AppChaptersIdPagesUploadRoute
   '/app/editor/series/$id/review': typeof AppEditorSeriesIdReviewRoute
+  '/app/editor/tasks/$id/final-review': typeof AppEditorTasksIdFinalReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/app/board': typeof AppBoardRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/payroll': typeof AppPayrollRoute
@@ -368,7 +438,14 @@ export interface FileRoutesByTo {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app': typeof AppIndexRoute
   '/read': typeof ReadIndexRoute
+  '/app/admin/audit-logs': typeof AppAdminAuditLogsRoute
+  '/app/admin/board-members': typeof AppAdminBoardMembersRoute
+  '/app/admin/payroll': typeof AppAdminPayrollRoute
   '/app/admin/roles': typeof AppAdminRolesRoute
+  '/app/admin/settings': typeof AppAdminSettingsRoute
+  '/app/admin/storage': typeof AppAdminStorageRoute
+  '/app/admin/task-rates': typeof AppAdminTaskRatesRoute
+  '/app/admin/user-management': typeof AppAdminUserManagementRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
@@ -377,10 +454,12 @@ export interface FileRoutesByTo {
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/assistant': typeof AppAssistantIndexRoute
+  '/app/board': typeof AppBoardIndexRoute
   '/app/series': typeof AppSeriesIndexRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
@@ -397,6 +476,7 @@ export interface FileRoutesByTo {
   '/app/board/series/$id/vote': typeof AppBoardSeriesIdVoteRoute
   '/app/chapters/$id/pages/upload': typeof AppChaptersIdPagesUploadRoute
   '/app/editor/series/$id/review': typeof AppEditorSeriesIdReviewRoute
+  '/app/editor/tasks/$id/final-review': typeof AppEditorTasksIdFinalReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -418,7 +498,14 @@ export interface FileRoutesById {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
+  '/app/admin/audit-logs': typeof AppAdminAuditLogsRoute
+  '/app/admin/board-members': typeof AppAdminBoardMembersRoute
+  '/app/admin/payroll': typeof AppAdminPayrollRoute
   '/app/admin/roles': typeof AppAdminRolesRoute
+  '/app/admin/settings': typeof AppAdminSettingsRoute
+  '/app/admin/storage': typeof AppAdminStorageRoute
+  '/app/admin/task-rates': typeof AppAdminTaskRatesRoute
+  '/app/admin/user-management': typeof AppAdminUserManagementRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
@@ -427,11 +514,13 @@ export interface FileRoutesById {
   '/app/assistant/submissions': typeof AppAssistantSubmissionsRoute
   '/app/assistant/tasks': typeof AppAssistantTasksRouteWithChildren
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
+  '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/series-review': typeof AppEditorSeriesReviewRoute
   '/app/series/$id': typeof AppSeriesIdRouteWithChildren
   '/app/series/new': typeof AppSeriesNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/assistant/': typeof AppAssistantIndexRoute
+  '/app/board/': typeof AppBoardIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
@@ -448,6 +537,7 @@ export interface FileRoutesById {
   '/app/board/series/$id/vote': typeof AppBoardSeriesIdVoteRoute
   '/app/chapters/$id/pages/upload': typeof AppChaptersIdPagesUploadRoute
   '/app/editor/series/$id/review': typeof AppEditorSeriesIdReviewRoute
+  '/app/editor/tasks/$id/final-review': typeof AppEditorTasksIdFinalReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -470,7 +560,14 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app/'
     | '/read/'
+    | '/app/admin/audit-logs'
+    | '/app/admin/board-members'
+    | '/app/admin/payroll'
     | '/app/admin/roles'
+    | '/app/admin/settings'
+    | '/app/admin/storage'
+    | '/app/admin/task-rates'
+    | '/app/admin/user-management'
     | '/app/admin/users'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
@@ -479,11 +576,13 @@ export interface FileRouteTypes {
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
     | '/app/board/series-review'
+    | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/$id'
     | '/app/series/new'
     | '/read/$slug/$chapter'
     | '/app/assistant/'
+    | '/app/board/'
     | '/app/series/'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
@@ -500,11 +599,11 @@ export interface FileRouteTypes {
     | '/app/board/series/$id/vote'
     | '/app/chapters/$id/pages/upload'
     | '/app/editor/series/$id/review'
+    | '/app/editor/tasks/$id/final-review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/app/board'
     | '/app/dashboard'
     | '/app/notifications'
     | '/app/payroll'
@@ -517,7 +616,14 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app'
     | '/read'
+    | '/app/admin/audit-logs'
+    | '/app/admin/board-members'
+    | '/app/admin/payroll'
     | '/app/admin/roles'
+    | '/app/admin/settings'
+    | '/app/admin/storage'
+    | '/app/admin/task-rates'
+    | '/app/admin/user-management'
     | '/app/admin/users'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
@@ -526,10 +632,12 @@ export interface FileRouteTypes {
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
     | '/app/board/series-review'
+    | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/new'
     | '/read/$slug/$chapter'
     | '/app/assistant'
+    | '/app/board'
     | '/app/series'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
@@ -546,6 +654,7 @@ export interface FileRouteTypes {
     | '/app/board/series/$id/vote'
     | '/app/chapters/$id/pages/upload'
     | '/app/editor/series/$id/review'
+    | '/app/editor/tasks/$id/final-review'
   id:
     | '__root__'
     | '/'
@@ -566,7 +675,14 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app/'
     | '/read/'
+    | '/app/admin/audit-logs'
+    | '/app/admin/board-members'
+    | '/app/admin/payroll'
     | '/app/admin/roles'
+    | '/app/admin/settings'
+    | '/app/admin/storage'
+    | '/app/admin/task-rates'
+    | '/app/admin/user-management'
     | '/app/admin/users'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
@@ -575,11 +691,13 @@ export interface FileRouteTypes {
     | '/app/assistant/submissions'
     | '/app/assistant/tasks'
     | '/app/board/series-review'
+    | '/app/editor/final-reviews'
     | '/app/editor/series-review'
     | '/app/series/$id'
     | '/app/series/new'
     | '/read/$slug/$chapter'
     | '/app/assistant/'
+    | '/app/board/'
     | '/app/series/'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
@@ -596,6 +714,7 @@ export interface FileRouteTypes {
     | '/app/board/series/$id/vote'
     | '/app/chapters/$id/pages/upload'
     | '/app/editor/series/$id/review'
+    | '/app/editor/tasks/$id/final-review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -740,6 +859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSeriesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/board/': {
+      id: '/app/board/'
+      path: '/'
+      fullPath: '/app/board/'
+      preLoaderRoute: typeof AppBoardIndexRouteImport
+      parentRoute: typeof AppBoardRoute
+    }
     '/app/assistant/': {
       id: '/app/assistant/'
       path: '/'
@@ -773,6 +899,13 @@ declare module '@tanstack/react-router' {
       path: '/editor/series-review'
       fullPath: '/app/editor/series-review'
       preLoaderRoute: typeof AppEditorSeriesReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/editor/final-reviews': {
+      id: '/app/editor/final-reviews'
+      path: '/editor/final-reviews'
+      fullPath: '/app/editor/final-reviews'
+      preLoaderRoute: typeof AppEditorFinalReviewsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/board/series-review': {
@@ -831,11 +964,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/user-management': {
+      id: '/app/admin/user-management'
+      path: '/admin/user-management'
+      fullPath: '/app/admin/user-management'
+      preLoaderRoute: typeof AppAdminUserManagementRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/task-rates': {
+      id: '/app/admin/task-rates'
+      path: '/admin/task-rates'
+      fullPath: '/app/admin/task-rates'
+      preLoaderRoute: typeof AppAdminTaskRatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/storage': {
+      id: '/app/admin/storage'
+      path: '/admin/storage'
+      fullPath: '/app/admin/storage'
+      preLoaderRoute: typeof AppAdminStorageRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/settings': {
+      id: '/app/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/app/admin/settings'
+      preLoaderRoute: typeof AppAdminSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/roles': {
       id: '/app/admin/roles'
       path: '/admin/roles'
       fullPath: '/app/admin/roles'
       preLoaderRoute: typeof AppAdminRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/payroll': {
+      id: '/app/admin/payroll'
+      path: '/admin/payroll'
+      fullPath: '/app/admin/payroll'
+      preLoaderRoute: typeof AppAdminPayrollRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/board-members': {
+      id: '/app/admin/board-members'
+      path: '/admin/board-members'
+      fullPath: '/app/admin/board-members'
+      preLoaderRoute: typeof AppAdminBoardMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/audit-logs': {
+      id: '/app/admin/audit-logs'
+      path: '/admin/audit-logs'
+      fullPath: '/app/admin/audit-logs'
+      preLoaderRoute: typeof AppAdminAuditLogsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/series/$id/': {
@@ -915,6 +1097,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPagesIdStudioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/editor/tasks/$id/final-review': {
+      id: '/app/editor/tasks/$id/final-review'
+      path: '/editor/tasks/$id/final-review'
+      fullPath: '/app/editor/tasks/$id/final-review'
+      preLoaderRoute: typeof AppEditorTasksIdFinalReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/editor/series/$id/review': {
       id: '/app/editor/series/$id/review'
       path: '/editor/series/$id/review'
@@ -982,11 +1171,13 @@ const AppAssistantRouteRouteWithChildren =
 
 interface AppBoardRouteChildren {
   AppBoardSeriesReviewRoute: typeof AppBoardSeriesReviewRoute
+  AppBoardIndexRoute: typeof AppBoardIndexRoute
   AppBoardSeriesIdVoteRoute: typeof AppBoardSeriesIdVoteRoute
 }
 
 const AppBoardRouteChildren: AppBoardRouteChildren = {
   AppBoardSeriesReviewRoute: AppBoardSeriesReviewRoute,
+  AppBoardIndexRoute: AppBoardIndexRoute,
   AppBoardSeriesIdVoteRoute: AppBoardSeriesIdVoteRoute,
 }
 
@@ -1037,8 +1228,16 @@ interface AppRouteChildren {
   AppSubmissionsRoute: typeof AppSubmissionsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminAuditLogsRoute: typeof AppAdminAuditLogsRoute
+  AppAdminBoardMembersRoute: typeof AppAdminBoardMembersRoute
+  AppAdminPayrollRoute: typeof AppAdminPayrollRoute
   AppAdminRolesRoute: typeof AppAdminRolesRoute
+  AppAdminSettingsRoute: typeof AppAdminSettingsRoute
+  AppAdminStorageRoute: typeof AppAdminStorageRoute
+  AppAdminTaskRatesRoute: typeof AppAdminTaskRatesRoute
+  AppAdminUserManagementRoute: typeof AppAdminUserManagementRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppEditorFinalReviewsRoute: typeof AppEditorFinalReviewsRoute
   AppEditorSeriesReviewRoute: typeof AppEditorSeriesReviewRoute
   AppSeriesIdRoute: typeof AppSeriesIdRouteWithChildren
   AppSeriesNewRoute: typeof AppSeriesNewRoute
@@ -1046,6 +1245,7 @@ interface AppRouteChildren {
   AppPagesIdStudioRoute: typeof AppPagesIdStudioRoute
   AppChaptersIdPagesUploadRoute: typeof AppChaptersIdPagesUploadRoute
   AppEditorSeriesIdReviewRoute: typeof AppEditorSeriesIdReviewRoute
+  AppEditorTasksIdFinalReviewRoute: typeof AppEditorTasksIdFinalReviewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1061,8 +1261,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppSubmissionsRoute: AppSubmissionsRoute,
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminAuditLogsRoute: AppAdminAuditLogsRoute,
+  AppAdminBoardMembersRoute: AppAdminBoardMembersRoute,
+  AppAdminPayrollRoute: AppAdminPayrollRoute,
   AppAdminRolesRoute: AppAdminRolesRoute,
+  AppAdminSettingsRoute: AppAdminSettingsRoute,
+  AppAdminStorageRoute: AppAdminStorageRoute,
+  AppAdminTaskRatesRoute: AppAdminTaskRatesRoute,
+  AppAdminUserManagementRoute: AppAdminUserManagementRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppEditorFinalReviewsRoute: AppEditorFinalReviewsRoute,
   AppEditorSeriesReviewRoute: AppEditorSeriesReviewRoute,
   AppSeriesIdRoute: AppSeriesIdRouteWithChildren,
   AppSeriesNewRoute: AppSeriesNewRoute,
@@ -1070,6 +1278,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPagesIdStudioRoute: AppPagesIdStudioRoute,
   AppChaptersIdPagesUploadRoute: AppChaptersIdPagesUploadRoute,
   AppEditorSeriesIdReviewRoute: AppEditorSeriesIdReviewRoute,
+  AppEditorTasksIdFinalReviewRoute: AppEditorTasksIdFinalReviewRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

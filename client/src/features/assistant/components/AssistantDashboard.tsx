@@ -39,14 +39,25 @@ export function AssistantDashboard() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatCard label="My tasks" value={String(counts.all)} />
         <StatCard label="In progress" value={String(counts["in-progress"])} />
-        <StatCard label="Under review" value={String(counts.submitted + counts["mangaka-approved"])} />
+        <StatCard
+          label="Under review"
+          value={String(counts.submitted + counts["mangaka-approved"])}
+        />
         <StatCard
           label="Revision requested"
           value={String(counts["revision-requested"])}
           hint={counts["revision-requested"] > 0 ? "Needs your attention" : undefined}
         />
-        <StatCard label="Completed" value={String(counts["editor-approved"])} hint="Editor approved" />
-        <StatCard label="Earnings (Jun)" value={jpy(totals.thisMonth)} hint={`${jpy(totals.pending)} pending`} />
+        <StatCard
+          label="Completed"
+          value={String(counts["editor-approved"])}
+          hint="Editor approved"
+        />
+        <StatCard
+          label="Earnings (Jun)"
+          value={jpy(totals.thisMonth)}
+          hint={`${jpy(totals.pending)} pending`}
+        />
       </div>
 
       {needsAttention.length > 0 && (
@@ -61,7 +72,7 @@ export function AssistantDashboard() {
         >
           <div className="grid gap-2 p-3 md:grid-cols-2 lg:grid-cols-3">
             {needsAttention.map((t) => (
-              <AssistantTaskCard key={t.id} task={t} />
+              <AssistantTaskCard key={taskRenderKey(t)} task={t} />
             ))}
           </div>
         </Panel>
@@ -81,7 +92,7 @@ export function AssistantDashboard() {
           ) : (
             <div className="space-y-2 p-3">
               {inProgress.map((t) => (
-                <AssistantTaskCard key={t.id} task={t} />
+                <AssistantTaskCard key={taskRenderKey(t)} task={t} />
               ))}
             </div>
           )}
@@ -112,7 +123,9 @@ export function AssistantDashboard() {
                       <span className="font-medium text-foreground line-clamp-1">
                         {series?.title} · {ch?.number}
                       </span>
-                      <span className="text-[11px] text-foreground/55">v{t.currentVersion ?? 1}</span>
+                      <span className="text-[11px] text-foreground/55">
+                        v{t.currentVersion ?? 1}
+                      </span>
                     </div>
                     <div className="mt-1 text-[11px] text-foreground/60">
                       {t.type} · {t.pageRange}
@@ -144,7 +157,7 @@ export function AssistantDashboard() {
         ) : (
           <div className="grid gap-2 p-3 md:grid-cols-2 lg:grid-cols-3">
             {completed.map((t) => (
-              <AssistantTaskCard key={t.id} task={t} />
+              <AssistantTaskCard key={taskRenderKey(t)} task={t} />
             ))}
           </div>
         )}
@@ -153,13 +166,11 @@ export function AssistantDashboard() {
   );
 }
 
-function EmptyRow({
-  icon: Icon,
-  text,
-}: {
-  icon: typeof Inbox;
-  text: string;
-}) {
+function taskRenderKey(task: { id?: string; chapterId: string; pageId?: string; title?: string; type: string }) {
+  return task.id || `${task.chapterId}-${task.pageId ?? "chapter"}-${task.title ?? task.type}`;
+}
+
+function EmptyRow({ icon: Icon, text }: { icon: typeof Inbox; text: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-6 text-[12px] text-foreground/55">
       <Icon className="h-4 w-4" /> {text}

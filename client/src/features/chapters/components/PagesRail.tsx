@@ -121,6 +121,7 @@ export function PagesRail({
                   <Link
                     to="/app/pages/$id/studio"
                     params={{ id: p.id }}
+                    search={(prev: any) => ({ seriesId: prev?.seriesId })}
                     className="block rounded px-2 py-1 hover:bg-foreground/5"
                   >
                     Open Page Studio

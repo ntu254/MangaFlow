@@ -16,13 +16,7 @@ const STEPS: { id: WizardStep; label: string }[] = [
   { id: "review", label: "Review & submit" },
 ];
 
-export function Stepper({
-  current,
-  visited,
-  completed,
-  invalid,
-  onJump,
-}: StepperProps) {
+export function Stepper({ current, visited, completed, invalid, onJump }: StepperProps) {
   return (
     <ol className="flex w-full min-w-max items-center justify-between gap-4 overflow-x-auto py-1">
       {STEPS.map((s, i) => {

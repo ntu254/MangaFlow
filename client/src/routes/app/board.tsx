@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { BoardView } from "@/features/board/components/BoardView";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/board")({
-  component: BoardView,
+  component: () => <Outlet />,
 });

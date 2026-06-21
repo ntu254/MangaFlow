@@ -67,7 +67,7 @@ describe("comment resolution service", () => {
     ).rejects.toThrow("Comment access denied")
   })
 
-  it("lets the assigned Assistant mark an open comment fixed", async () => {
+  it("lets the assigned Assistant resolve an open comment", async () => {
     vi.mocked(repository.getCommentById).mockResolvedValue(openComment as any)
     vi.mocked(SeriesMember.findOne).mockResolvedValue({
       isActive: true,
@@ -80,7 +80,7 @@ describe("comment resolution service", () => {
     } as any)
     vi.mocked(repository.updateCommentStatus).mockResolvedValue({
       id: "comment1",
-      status: "FIXED_BY_ASSISTANT",
+      status: "RESOLVED",
     } as any)
 
     const result = await markCommentFixedService("comment1", {
@@ -88,10 +88,10 @@ describe("comment resolution service", () => {
       role: "ASSISTANT",
     })
 
-    expect(result).toMatchObject({ status: "FIXED_BY_ASSISTANT" })
+    expect(result).toMatchObject({ status: "RESOLVED" })
     expect(repository.updateCommentStatus).toHaveBeenCalledWith(
       "comment1",
-      "FIXED_BY_ASSISTANT",
+      "RESOLVED",
       "fixedBy",
       "assistant1",
     )
@@ -117,10 +117,10 @@ describe("comment resolution service", () => {
     ).rejects.toThrow("Assistant can mark fixed only for their assigned task")
   })
 
-  it("requires Mangaka verification before Editor resolution", async () => {
+  it("blocks Editor resolution for an invalid feedback state", async () => {
     vi.mocked(repository.getCommentById).mockResolvedValue({
       ...openComment,
-      status: "FIXED_BY_ASSISTANT",
+      status: "DELETED",
     } as any)
     vi.mocked(SeriesMember.findOne).mockResolvedValue({ isActive: true, role: "EDITOR" } as any)
 
@@ -129,19 +129,19 @@ describe("comment resolution service", () => {
         userId: "editor1",
         role: "EDITOR",
       }),
-    ).rejects.toThrow("Editor resolution requires Mangaka verification first")
+    ).rejects.toThrow("Editor can resolve only an active comment")
   })
 
-  it("lets Mangaka verify fixed comments and Editor resolve verified comments", async () => {
+  it("keeps resolved feedback resolved through Mangaka and Editor verification", async () => {
     vi.mocked(repository.getCommentById)
-      .mockResolvedValueOnce({ ...openComment, status: "FIXED_BY_ASSISTANT" } as any)
-      .mockResolvedValueOnce({ ...openComment, status: "VERIFIED_BY_MANGAKA" } as any)
+      .mockResolvedValueOnce({ ...openComment, status: "RESOLVED" } as any)
+      .mockResolvedValueOnce({ ...openComment, status: "RESOLVED" } as any)
     vi.mocked(SeriesMember.findOne)
       .mockResolvedValueOnce({ isActive: true, role: "MANGAKA" } as any)
       .mockResolvedValueOnce({ isActive: true, role: "EDITOR" } as any)
     vi.mocked(repository.updateCommentStatus)
-      .mockResolvedValueOnce({ id: "comment1", status: "VERIFIED_BY_MANGAKA" } as any)
-      .mockResolvedValueOnce({ id: "comment1", status: "RESOLVED_BY_EDITOR" } as any)
+      .mockResolvedValueOnce({ id: "comment1", status: "RESOLVED" } as any)
+      .mockResolvedValueOnce({ id: "comment1", status: "RESOLVED" } as any)
 
     await verifyCommentFixedService("comment1", {
       userId: "mangaka1",
@@ -152,18 +152,18 @@ describe("comment resolution service", () => {
       role: "EDITOR",
     })
 
-    expect(resolved).toMatchObject({ status: "RESOLVED_BY_EDITOR" })
+    expect(resolved).toMatchObject({ status: "RESOLVED" })
   })
 
-  it("lets Editor reopen fixed or verified comments", async () => {
+  it("lets Editor reopen resolved comments", async () => {
     vi.mocked(repository.getCommentById).mockResolvedValue({
       ...openComment,
-      status: "VERIFIED_BY_MANGAKA",
+      status: "RESOLVED",
     } as any)
     vi.mocked(SeriesMember.findOne).mockResolvedValue({ isActive: true, role: "EDITOR" } as any)
     vi.mocked(repository.updateCommentStatus).mockResolvedValue({
       id: "comment1",
-      status: "OPEN",
+      status: "REOPENED",
     } as any)
 
     const result = await reopenCommentService("comment1", {
@@ -171,10 +171,10 @@ describe("comment resolution service", () => {
       role: "EDITOR",
     })
 
-    expect(result).toMatchObject({ status: "OPEN" })
+    expect(result).toMatchObject({ status: "REOPENED" })
     expect(repository.updateCommentStatus).toHaveBeenCalledWith(
       "comment1",
-      "OPEN",
+      "REOPENED",
       "reopenedBy",
       "editor1",
     )

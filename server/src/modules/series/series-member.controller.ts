@@ -1,7 +1,9 @@
 import type { Request, Response } from "express"
 import {
   addSeriesMemberService,
+  acceptSeriesMemberInviteService,
   listSeriesMembersService,
+  listMySeriesMembershipsService,
   updateSeriesMemberService,
   removeSeriesMemberService,
   getEligibleAssistantsService,
@@ -11,6 +13,7 @@ export async function addSeriesMember(req: Request, res: Response): Promise<void
   const member = await addSeriesMemberService({
     seriesId: String(req.params.seriesId),
     userId: req.body.userId,
+    email: req.body.email,
     role: req.body.role,
     accessScope: req.body.accessScope,
     actorId: req.user!.userId,
@@ -27,6 +30,11 @@ export async function listSeriesMembers(req: Request, res: Response): Promise<vo
   res.json({ success: true, message: "Members retrieved", data: members })
 }
 
+export async function listMySeriesMemberships(req: Request, res: Response): Promise<void> {
+  const memberships = await listMySeriesMembershipsService(req.user!.userId, req.user!.role)
+  res.json({ success: true, message: "Assistant memberships retrieved", data: memberships })
+}
+
 export async function updateSeriesMember(req: Request, res: Response): Promise<void> {
   const member = await updateSeriesMemberService({
     seriesId: String(req.params.seriesId),
@@ -35,6 +43,15 @@ export async function updateSeriesMember(req: Request, res: Response): Promise<v
     actorId: req.user!.userId,
   })
   res.json({ success: true, message: "Member updated", data: member })
+}
+
+export async function acceptSeriesMemberInvite(req: Request, res: Response): Promise<void> {
+  const member = await acceptSeriesMemberInviteService({
+    seriesId: String(req.params.seriesId),
+    memberId: req.params.memberId ? String(req.params.memberId) : undefined,
+    actorId: req.user!.userId,
+  })
+  res.json({ success: true, message: "Series invite accepted", data: member })
 }
 
 export async function removeSeriesMember(req: Request, res: Response): Promise<void> {

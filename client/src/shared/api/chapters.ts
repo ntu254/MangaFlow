@@ -1,22 +1,67 @@
-import { api } from "./_client";
+import { api, unwrap } from "./_client";
+
+export type ChapterStatus =
+  | "DRAFT"
+  | "IN_PRODUCTION"
+  | "READY_FOR_PUBLICATION"
+  | "PUBLISHED"
+  | "ARCHIVED";
+export type PageStatus =
+  | "PENDING"
+  | "UPLOADING"
+  | "PROCESSING"
+  | "UPLOADED"
+  | "PROCESSING_FAILED"
+  | "IN_TASK"
+  | "APPROVED"
+  | "LOCKED";
+
+export interface Chapter {
+  id: string;
+  seriesId: string;
+  chapterNumber: number;
+  title: string;
+  status: ChapterStatus;
+  publicationTypeSnapshot?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChapterPage {
+  id: string;
+  chapterId: string;
+  pageNumber: number;
+  status: PageStatus;
+  originalFileAssetId?: string;
+  workingFileAssetId?: string;
+  thumbnailFileAssetId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateChapterInput {
+  chapterNumber: number;
+  title: string;
+}
 
 export const chaptersApi = {
-  getChapterPages: async (chapterId: string) => {
-    const res = await api.get(`/chapters/${chapterId}/pages`);
-    return res.data;
-  },
+  createChapter: async (seriesId: string, data: CreateChapterInput) =>
+    api.post(`/series/${seriesId}/chapters`, data).then(unwrap<Chapter>),
 
-  createPage: async (chapterId: string, data: { pageNumber: number }) => {
-    const res = await api.post(`/chapters/${chapterId}/pages`, data);
-    return res.data;
-  },
+  getChapter: async (chapterId: string) => api.get(`/chapters/${chapterId}`).then(unwrap<Chapter>),
+
+  getChapterPages: async (chapterId: string) =>
+    api.get(`/chapters/${chapterId}/pages`).then(unwrap<ChapterPage[]>),
+
+  createPage: async (chapterId: string, data: { pageNumber: number }) =>
+    api.post(`/chapters/${chapterId}/pages`, data).then(unwrap<ChapterPage>),
 
   deleteChapter: async (chapterId: string) => {
     const res = await api.delete(`/chapters/${chapterId}`);
     return res.data;
   },
 
-  cancelChapter: async (chapterId: string) => {
+  archiveChapter: async (chapterId: string) => {
     const res = await api.post(`/chapters/${chapterId}/cancel`);
     return res.data;
   },
@@ -27,7 +72,9 @@ export const chaptersApi = {
   },
 
   replacePage: async (chapterId: string, pageId: string, originalFileAssetId: string) => {
-    const res = await api.put(`/chapters/${chapterId}/pages/${pageId}/replace`, { originalFileAssetId });
+    const res = await api.put(`/chapters/${chapterId}/pages/${pageId}/replace`, {
+      originalFileAssetId,
+    });
     return res.data;
   },
 };

@@ -61,20 +61,21 @@ export type SeriesStatus =
   | "EDITOR_REVIEW"
   | "REVISION_REQUESTED"
   | "BOARD_REVIEW"
-  | "APPROVED"
   | "ONGOING"
   | "AT_RISK"
-  | "REJECTED"
   | "CANCELLED"
   | "COMPLETED"
+  | "ARCHIVED"
+  | "REJECTED"
+  | "WITHDRAWN"
 
-export type ManuscriptStatus = "DRAFT" | "SUBMITTED" | "EDITOR_REVIEW" | "REVISION_REQUESTED" | "APPROVED_TO_BOARD" | "REJECTED"
+export type ManuscriptStatus = "DRAFT" | "SUBMITTED" | "REVISION_REQUESTED" | "APPROVED" | "REJECTED" | "ARCHIVED"
 
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "SUBMITTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REVISION_REQUESTED" | "REJECTED"
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "SUBMITTED" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REJECTED" | "CANCELLED"
 
-export type SubmissionStatus = "SUBMITTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REVISION_REQUESTED" | "REJECTED"
+export type SubmissionStatus = "DRAFT" | "SUBMITTED" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "EDITOR_APPROVED" | "REJECTED"
 
-export type CommentStatus = "OPEN" | "FIXED_BY_ASSISTANT" | "VERIFIED_BY_MANGAKA" | "RESOLVED_BY_EDITOR"
+export type CommentStatus = "OPEN" | "RESOLVED" | "REOPENED"
 
 export type BoardVoteValue = "APPROVE" | "REJECT" | "NEEDS_REVISION"
 
@@ -82,21 +83,58 @@ export type BoardDecisionStatus = "PENDING" | "APPROVED" | "REJECTED" | "NEEDS_R
 
 export type RankingStatus = "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "WARNING" | "AT_RISK"
 
-export type AtRiskDecision = "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL"
+export type AtRiskDecision = "CONTINUE" | "WARNING" | "CANCEL" | "COMPLETE"
 
-export type EditorProposalAction = "request-revision" | "reject" | "forward-to-board"
+export type EditorProposalAction = "start-review" | "request-revision" | "reject" | "forward-to-board"
 
 export type EditorFinalApprovalAction = "request-revision" | "add-comment" | "editor-approve"
+
+export interface SeriesProposalSummary {
+  seriesId: string
+  title: string
+  status: SeriesStatus | string
+  synopsis: string
+  logline: string
+  premise: string
+  characters: string
+  conflict: string
+  targetAudience: string
+  requestedPublicationType: "WEEKLY" | "MONTHLY"
+  genres: string[]
+  tags: string[]
+  currentManuscript?: {
+    id: string
+    version: string
+    status: ManuscriptStatus | string
+    fileName: string
+    fileType: string
+    fileSize: string
+  }
+  boardReview?: {
+    status: string
+    result: string
+    voteCount: string
+  }
+}
 
 export interface EditorManuscriptReviewItem extends SeriesCard {
   manuscriptStatus: ManuscriptStatus
   seriesStatus: SeriesStatus
   version: string
+  requestedPublicationType: "WEEKLY" | "MONTHLY"
   editorRecommendation: string
   decisionActions: EditorProposalAction[]
 }
 
 export interface EditorSubmissionReviewItem extends SeriesCard {
+  seriesId?: string
+  taskId?: string
+  chapterId?: string
+  pageId?: string
+  pageCount?: number
+  chapterStatus?: string
+  taskPriority?: string
+  taskDueDate?: string
   taskStatus: TaskStatus
   submissionStatus: SubmissionStatus
   assistantName: string
@@ -113,6 +151,8 @@ export interface EditorReadinessCheck {
 }
 
 export interface EditorReadinessResult {
+  chapterId?: string
+  chapterStatus?: string
   chapterTitle: string
   overallPassed: boolean
   checks: EditorReadinessCheck[]
@@ -125,6 +165,8 @@ export interface BoardVoteSummary {
   needsRevision: number
   pending: number
   eligible: number
+  quorum?: number
+  canFinalize?: boolean
 }
 
 export interface BoardSeriesReviewItem extends SeriesCard {

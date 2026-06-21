@@ -67,7 +67,9 @@ export function TaskList({
                       {t.type}
                     </span>
                   </td>
-                  <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">{t.pageRange}</td>
+                  <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
+                    {t.pageRange}
+                  </td>
                   {showAssignee && (
                     <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
                       {assignee?.name ?? "—"}
@@ -88,7 +90,8 @@ export function TaskList({
                     <Link
                       to="/app/pages/$id/studio"
                       params={{ id: firstPageId }}
-                      className="inline-flex h-7 items-center rounded-md border border-foreground/15 bg-background px-2.5 text-[11px] font-medium text-foreground transition hover:border-foreground/30 hover:bg-muted"
+                      search={(prev: any) => ({ seriesId: prev?.seriesId })}
+                      className="flex h-7 items-center justify-center rounded border border-primary/20 bg-primary/10 px-3 text-[11px] font-bold uppercase tracking-wider text-primary hover:bg-primary/20"
                     >
                       Open
                     </Link>

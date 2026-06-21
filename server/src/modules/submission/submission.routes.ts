@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { requireAuth } from "../../shared/middleware/requireAuth.js"
 import { validate } from "../../shared/middleware/validate.js"
+import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./submission.controller.js"
 import {
   createSubmissionBodySchema,
@@ -17,7 +18,7 @@ router.post(
   requireAuth,
   validate(taskIdParamsSchema, "params"),
   validate(createSubmissionBodySchema),
-  controller.createTaskSubmission,
+  asyncHandler(controller.createTaskSubmission),
 )
 
 router.post(
@@ -25,20 +26,26 @@ router.post(
   requireAuth,
   validate(taskIdParamsSchema, "params"),
   validate(getTaskUploadUrlBodySchema),
-  controller.getTaskUploadUrl,
+  asyncHandler(controller.getTaskUploadUrl),
 )
 
 router.get(
   "/tasks/:taskId/submissions",
   requireAuth,
   validate(taskIdParamsSchema, "params"),
-  controller.listTaskSubmissions,
+  asyncHandler(controller.listTaskSubmissions),
 )
 
 router.get(
   "/submissions/review-queue",
   requireAuth,
-  controller.listReviewQueueSubmissions,
+  asyncHandler(controller.listReviewQueueSubmissions),
+)
+
+router.get(
+  "/submissions",
+  requireAuth,
+  asyncHandler(controller.listAllSubmissions),
 )
 
 router.post(
@@ -46,7 +53,7 @@ router.post(
   requireAuth,
   validate(submissionIdParamsSchema, "params"),
   validate(reviewActionBodySchema),
-  controller.mangakaApproveSubmission,
+  asyncHandler(controller.mangakaApproveSubmission),
 )
 
 router.post(
@@ -54,7 +61,7 @@ router.post(
   requireAuth,
   validate(submissionIdParamsSchema, "params"),
   validate(reviewActionBodySchema),
-  controller.requestSubmissionRevision,
+  asyncHandler(controller.requestSubmissionRevision),
 )
 
 router.post(
@@ -62,7 +69,7 @@ router.post(
   requireAuth,
   validate(submissionIdParamsSchema, "params"),
   validate(reviewActionBodySchema),
-  controller.rejectSubmission,
+  asyncHandler(controller.rejectSubmission),
 )
 
 router.post(
@@ -70,7 +77,7 @@ router.post(
   requireAuth,
   validate(submissionIdParamsSchema, "params"),
   validate(reviewActionBodySchema),
-  controller.editorApproveSubmission,
+  asyncHandler(controller.editorApproveSubmission),
 )
 
 /** Flow-07: Editor reject from MANGAKA_APPROVED state — requires reviewerNote. */
@@ -79,7 +86,7 @@ router.post(
   requireAuth,
   validate(submissionIdParamsSchema, "params"),
   validate(reviewActionBodySchema),
-  controller.editorRejectSubmission,
+  asyncHandler(controller.editorRejectSubmission),
 )
 
 export default router

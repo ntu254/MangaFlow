@@ -67,7 +67,7 @@ describe("manuscript review service", () => {
   it("forwards manuscript to Board and sets Series BOARD_REVIEW", async () => {
     vi.mocked(repository.updateManuscriptReviewStatus).mockResolvedValue({
       id: "manuscript1",
-      status: "FORWARDED_TO_BOARD",
+      status: "SUBMITTED",
     } as any)
 
     await forwardManuscriptToBoardService({
@@ -80,7 +80,7 @@ describe("manuscript review service", () => {
 
     expect(repository.updateManuscriptReviewStatus).toHaveBeenCalledWith(
       "manuscript1",
-      "FORWARDED_TO_BOARD",
+      "SUBMITTED",
       undefined,
       {
         editorRecommendation: "Strong proposal",
@@ -153,6 +153,6 @@ describe("manuscript review service", () => {
         feasibilityNote: "Feasible",
         suggestedPublicationType: "WEEKLY",
       }),
-    ).rejects.toThrow("Manuscript must be SUBMITTED or UNDER_EDITOR_REVIEW")
+    ).rejects.toThrow("Manuscript must be SUBMITTED")
   })
 })

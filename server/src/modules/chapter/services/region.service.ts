@@ -18,10 +18,14 @@ function assertBbox(bbox: { x: number; y: number; width: number; height: number 
     typeof bbox.y !== "number" ||
     typeof bbox.width !== "number" ||
     typeof bbox.height !== "number" ||
+    bbox.x < 0 ||
+    bbox.y < 0 ||
     bbox.width <= 0 ||
-    bbox.height <= 0
+    bbox.height <= 0 ||
+    bbox.x + bbox.width > 1 ||
+    bbox.y + bbox.height > 1
   ) {
-    throw new AppError("Valid bbox with positive width/height is required", 400)
+    throw new AppError("Region bounds must be normalized within the working image", 400)
   }
 }
 
@@ -52,7 +56,7 @@ export async function createRegionService(input: CreateRegionInput) {
       type,
       bbox: input.bbox,
       source: "MANUAL",
-      status: "CREATED",
+      status: "ACTIVE",
     })
   } catch (error) {
     const message = String((error as Error).message ?? "")
@@ -92,11 +96,11 @@ export async function updateRegionService(regionId: string, input: UpdateRegionI
   const region = await getRegionById(trimmed)
   if (!region) throw new AppError("Region not found", 404)
 
-  // Block editing geometry of a region already linked to an active task
-  if (region.status === "LINKED_TO_TASK") {
-    const activeTask = await Task.findOne({ regionId: trimmed, status: { $nin: ["DONE", "CANCELLED", "APPROVED"] } })
-    if (activeTask) throw new AppError("Region is linked to an active task and cannot be edited", 409)
-  }
+  const activeTask = await Task.findOne({
+    regionId: trimmed,
+    status: { $in: ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"] },
+  })
+  if (activeTask) throw new AppError("This region has active tasks. Cancel or finish those tasks first.", 409)
 
   const patch: { type?: RegionType; bbox?: typeof input.bbox } = {}
   if (input.type !== undefined) {
@@ -124,10 +128,11 @@ export async function deleteRegionService(regionId: string, actor: AccessActor) 
   const region = await getRegionById(trimmed)
   if (!region) throw new AppError("Region not found", 404)
 
-  if (region.status === "LINKED_TO_TASK") {
-    const activeTask = await Task.findOne({ regionId: trimmed, status: { $nin: ["DONE", "CANCELLED", "APPROVED"] } })
-    if (activeTask) throw new AppError("Region is linked to an active task and cannot be deleted", 409)
-  }
+  const activeTask = await Task.findOne({
+    regionId: trimmed,
+    status: { $in: ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"] },
+  })
+  if (activeTask) throw new AppError("This region has active tasks. Cancel or finish those tasks first.", 409)
 
   const deleted = await deleteRegionRepository(trimmed)
   if (!deleted) throw new AppError("Region not found", 404)

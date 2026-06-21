@@ -21,26 +21,26 @@ export async function markCommentFixedService(commentId: string, actor: CommentA
   }
 
   assertMarkFixedTransition(comment.status)
-  return updateCommentStatus(commentId, "FIXED_BY_ASSISTANT", "fixedBy", actor.userId)
+  return updateCommentStatus(commentId, "RESOLVED", "fixedBy", actor.userId)
 }
 
 export async function verifyCommentFixedService(commentId: string, actor: CommentActor) {
   const comment = await getCommentOrThrow(commentId)
   await assertCommentSeriesMember(String(comment.seriesId), actor, ["MANGAKA"])
   assertMangakaVerifyTransition(comment.status)
-  return updateCommentStatus(commentId, "VERIFIED_BY_MANGAKA", "verifiedBy", actor.userId)
+  return updateCommentStatus(commentId, "RESOLVED", "verifiedBy", actor.userId)
 }
 
 export async function resolveCommentService(commentId: string, actor: CommentActor) {
   const comment = await getCommentOrThrow(commentId)
   await assertCommentSeriesMember(String(comment.seriesId), actor, ["EDITOR"])
   assertEditorResolveTransition(comment.status)
-  return updateCommentStatus(commentId, "RESOLVED_BY_EDITOR", "resolvedBy", actor.userId)
+  return updateCommentStatus(commentId, "RESOLVED", "resolvedBy", actor.userId)
 }
 
 export async function reopenCommentService(commentId: string, actor: CommentActor) {
   const comment = await getCommentOrThrow(commentId)
   await assertCommentSeriesMember(String(comment.seriesId), actor, ["EDITOR"])
   assertEditorReopenTransition(comment.status)
-  return updateCommentStatus(commentId, "OPEN", "reopenedBy", actor.userId)
+  return updateCommentStatus(commentId, "REOPENED", "reopenedBy", actor.userId)
 }

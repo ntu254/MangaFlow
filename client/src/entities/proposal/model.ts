@@ -3,10 +3,10 @@ export type ProposalStatus =
   | "submitted"
   | "editor-review"
   | "revision-requested"
-  | "forwarded-to-board"
   | "board-review"
-  | "approved"
-  | "rejected";
+  | "ongoing"
+  | "rejected"
+  | "withdrawn";
 
 export type SeriesProposal = {
   id: string;
@@ -70,7 +70,7 @@ export const proposals: SeriesProposal[] = [
     genre: ["Action", "Supernatural"],
     targetAudience: "shonen",
     requestedPublicationType: "weekly",
-    status: "approved",
+    status: "ongoing",
     createdBy: "s_man_kei",
     createdAt: "Feb 02, 2026",
   },
@@ -82,7 +82,7 @@ export const proposals: SeriesProposal[] = [
     genre: ["Action", "Shonen"],
     targetAudience: "shonen",
     requestedPublicationType: "weekly",
-    status: "approved",
+    status: "ongoing",
     createdBy: "s_man_kei",
     createdAt: "Jan 15, 2026",
   },

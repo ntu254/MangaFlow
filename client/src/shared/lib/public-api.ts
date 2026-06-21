@@ -9,7 +9,7 @@ export const publicGetSeries = (slug: string) => series.find((s) => s.slug === s
 export const publicListChapters = (slug: string) => {
   const s = series.find((x) => x.slug === slug);
   if (!s) return [];
-  return chaptersBySeries(s.id).filter((c) => c.status === "published" || c.status === "scheduled");
+  return chaptersBySeries(s.id).filter((c) => c.status === "published");
 };
 
 export const publicGetChapter = (slug: string, chapterId: string) => {
