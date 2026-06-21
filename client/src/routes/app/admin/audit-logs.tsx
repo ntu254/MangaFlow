@@ -20,7 +20,7 @@ function AuditLogsPage() {
   const logs = data?.logs ?? [];
 
   return (
-    <div className="space-y-5">
+    <div className="admin-console admin-page space-y-5">
       <PageHeader
         title="Audit Logs"
         jp="System trace"

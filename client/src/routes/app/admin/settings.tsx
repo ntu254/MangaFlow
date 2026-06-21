@@ -24,7 +24,7 @@ function AdminSettingsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="admin-console admin-page space-y-5">
       <PageHeader
         title="Settings"
         jp="System config"
