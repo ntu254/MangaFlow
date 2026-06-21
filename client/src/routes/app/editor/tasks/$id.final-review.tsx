@@ -303,7 +303,7 @@ function TaskFinalReviewDetail() {
   );
 }
 
-function SubmissionImagePreview({ fileAssetId }: { fileAssetId: string }) {
+function SubmissionImagePreview({ fileAssetId }: { fileAssetId: string | undefined }) {
   const { data: url, isLoading } = useFileObjectUrl(fileAssetId);
   const [zoom, setZoom] = useState(false);
 

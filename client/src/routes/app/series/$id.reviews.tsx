@@ -5,9 +5,12 @@ import {
   useApproveSubmission,
   useEditorApproveSubmission,
   useRequestRevision,
+  useTaskSubmissions,
 } from "@/shared/queries/useSubmissions";
 import { refId, refLabel } from "@/shared/api/submissions";
 import { findTask, findChapter, findSeries, findStaff } from "@/entities";
+import { usePageStudio } from "@/shared/queries/usePageStudio";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import {
   CheckCircle2,
   XCircle,
@@ -63,11 +66,27 @@ function SeriesReviews() {
     );
   };
 
-  // Mock Images
-  const originalImage =
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop";
-  const submittedImage =
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop&blur=50"; // Just a mock visual difference
+  const submittedFileAssetId = typeof selectedSub?.fileAssetId === "object"
+    ? selectedSub.fileAssetId?.id || selectedSub.fileAssetId?._id
+    : selectedSub?.fileAssetId;
+
+  const { data: submittedImageUrl } = useFileObjectUrl(submittedFileAssetId);
+
+  const { data: pageStudioData } = usePageStudio(selectedSub?.pageId || "");
+
+  const originalFileAssetId = pageStudioData?.page?.originalFileAssetId;
+
+  const { data: originalImageUrl } = useFileObjectUrl(originalFileAssetId);
+
+  const subTaskId = selectedSub?.taskId
+    ? (typeof selectedSub.taskId === "object" ? selectedSub.taskId.id || selectedSub.taskId._id : selectedSub.taskId)
+    : "";
+
+  const { data: submissionsHistory = [] } = useTaskSubmissions(subTaskId || "");
+
+  // Mock Images fallback
+  const originalImage = originalImageUrl || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop";
+  const submittedImage = submittedImageUrl || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop&blur=50"; // Just a mock visual difference
 
   if (isLoading) {
     return (
@@ -230,18 +249,40 @@ function SeriesReviews() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-            {/* Mock previous comments */}
+            <h5 className="text-[11px] font-bold uppercase tracking-wider text-foreground/50 mb-2">History & Comments</h5>
             <div className="space-y-3">
-              <div className="flex gap-2">
-                <div className="h-6 w-6 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-                  A
-                </div>
-                <div className="rounded-xl rounded-tl-none bg-foreground/5 px-3 py-2 text-[12px]">
-                  I've added the screen tones to the background as requested. Let me know if the
-                  density is okay.
-                  <div className="mt-1 text-[10px] opacity-50">Assistant &bull; 2 hours ago</div>
-                </div>
-              </div>
+              {submissionsHistory.length === 0 ? (
+                <div className="text-[11px] text-foreground/45 italic">No comment history.</div>
+              ) : (
+                [...submissionsHistory].reverse().map((h: any) => (
+                  <div key={h.id} className="space-y-2 border-b border-foreground/5 pb-3 last:border-b-0">
+                    <div className="flex gap-2">
+                      <div className="h-6 w-6 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                        {h.submittedBy?.name?.[0] || "A"}
+                      </div>
+                      <div className="rounded-xl rounded-tl-none bg-foreground/5 px-3 py-2 text-[12px] flex-1">
+                        <div>{h.resultText || "Submitted version for review."}</div>
+                        <div className="mt-1 text-[10px] opacity-50">
+                          {h.submittedBy?.name || "Assistant"} &bull; v{h.version} &bull; {new Date(h.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    {h.reviewerNote && (
+                      <div className="flex gap-2 pl-4">
+                        <div className="h-6 w-6 shrink-0 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                          R
+                        </div>
+                        <div className="rounded-xl rounded-tl-none bg-amber-500/5 px-3 py-2 text-[12px] flex-1 border border-amber-500/10">
+                          <div>{h.reviewerNote}</div>
+                          <div className="mt-1 text-[10px] opacity-50 text-amber-600 dark:text-amber-400">
+                            Reviewer Feedback &bull; {h.status.replace("_", " ")}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

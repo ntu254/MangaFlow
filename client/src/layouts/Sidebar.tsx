@@ -91,6 +91,12 @@ const PROD_NAV: NavItem[] = [
   },
   { to: "/app/submissions", label: "Submissions", icon: CheckCircle2, roles: ["editor"] },
   {
+    to: "/app/editor/final-reviews",
+    label: "Final Review",
+    icon: Inbox,
+    roles: ["editor"],
+  },
+  {
     to: "/app/publications",
     label: "Publications",
     icon: CalendarClock,

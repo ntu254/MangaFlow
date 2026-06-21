@@ -8,10 +8,16 @@ export async function getTaskService(taskId: string, actor: TaskActor) {
   const task = await getTaskById(taskId)
   if (!task) throw new AppError("Task not found", 404)
   await assertSeriesTaskAccess(String(task.seriesId), actor, task.assignedTo)
-  if (!task.pageId && task.regionId) {
-    const region = await Region.findById(task.regionId).select("pageId").lean()
+
+  let populatedTask = task
+  if (typeof task.populate === "function") {
+    populatedTask = await task.populate("assignedTo", "name role")
+  }
+
+  if (!populatedTask.pageId && populatedTask.regionId) {
+    const region = await Region.findById(populatedTask.regionId).select("pageId").lean()
     if (region?.pageId) {
-      const taskObject = typeof task.toObject === "function" ? task.toObject() : task
+      const taskObject = typeof populatedTask.toObject === "function" ? populatedTask.toObject() : populatedTask
       return {
         ...taskObject,
         id: String(taskObject._id ?? taskObject.id),
@@ -19,7 +25,7 @@ export async function getTaskService(taskId: string, actor: TaskActor) {
       }
     }
   }
-  return task
+  return populatedTask
 }
 
 export async function listTasksBySeriesService(seriesId: string, actor: TaskActor, filters?: { status?: string; assignedTo?: string }) {
