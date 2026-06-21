@@ -581,10 +581,12 @@ function SeriesChapters() {
           chapter={{ id: selectedChapter.id, chapterNumber: selectedChapter.chapter }}
           series={{
             id,
-            title: (summary as { series?: { title?: string }; title?: string }).series?.title ??
+            title:
+              (summary as { series?: { title?: string }; title?: string }).series?.title ??
               (summary as { title?: string }).title ??
               "Series",
-            status: (summary as { series?: { status?: string }; status?: string }).series?.status ??
+            status:
+              (summary as { series?: { status?: string }; status?: string }).series?.status ??
               (summary as { status?: string }).status,
           }}
         />

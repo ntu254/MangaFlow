@@ -55,7 +55,9 @@ function StoragePage() {
             <Database className="h-4 w-4 text-foreground/50" />
             <div>
               <div className="text-sm font-semibold">Uploaded files</div>
-              <div className="text-xs text-foreground/55">Latest file records by generated asset.</div>
+              <div className="text-xs text-foreground/55">
+                Latest file records by generated asset.
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-[1fr_0.8fr_0.8fr_0.8fr] gap-3 border-b border-foreground/10 bg-foreground/5 px-4 py-2.5 text-[11px] uppercase tracking-wider text-foreground/55">

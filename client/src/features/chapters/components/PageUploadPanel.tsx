@@ -50,7 +50,12 @@ type PageUploadPanelProps = {
   onUploaded?: () => void;
 };
 
-export function PageUploadPanel({ chapter, series, compact = false, onUploaded }: PageUploadPanelProps) {
+export function PageUploadPanel({
+  chapter,
+  series,
+  compact = false,
+  onUploaded,
+}: PageUploadPanelProps) {
   const { role } = useRole();
   const me = currentUserByRole[role];
   const perm = canUploadPage(role, series);
@@ -250,7 +255,9 @@ export function PageUploadPanel({ chapter, series, compact = false, onUploaded }
                   <div className="font-mono text-foreground/60">{item.name}</div>
                   <div className="text-foreground/45">{(item.size / 1024).toFixed(0)} KB</div>
                   <div className="ml-auto flex items-center gap-2">
-                    {item.status === "pending" && <span className="text-foreground/55">Queued</span>}
+                    {item.status === "pending" && (
+                      <span className="text-foreground/55">Queued</span>
+                    )}
                     {item.status === "processing" && (
                       <span className="text-sky-600">Uploading ({item.progress}%)...</span>
                     )}
@@ -276,7 +283,9 @@ export function PageUploadPanel({ chapter, series, compact = false, onUploaded }
                     )}
                     <button
                       type="button"
-                      onClick={() => setItems((prev) => prev.filter((entry) => entry.id !== item.id))}
+                      onClick={() =>
+                        setItems((prev) => prev.filter((entry) => entry.id !== item.id))
+                      }
                       className="p-1 text-foreground/40 hover:text-foreground"
                     >
                       <X className="h-3 w-3" />

@@ -268,7 +268,9 @@ export function InspectorDrawer({
                         <button
                           onClick={handleDeleteRegion}
                           disabled={
-                            isDeleting || isSuggestionMutationPending || (!isAISuggestion && hasActiveTask)
+                            isDeleting ||
+                            isSuggestionMutationPending ||
+                            (!isAISuggestion && hasActiveTask)
                           }
                           className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
                         >
@@ -398,7 +400,7 @@ export function InspectorDrawer({
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-foreground/30">
                   <Info className="h-8 w-8 text-foreground/10 mb-2" />
-                    <p className="text-[11px] font-medium leading-relaxed px-4">
+                  <p className="text-[11px] font-medium leading-relaxed px-4">
                     {readOnly
                       ? "Select an assigned region overlay to inspect the task scope."
                       : "Select a region overlay on the canvas to inspect details and assign tasks."}

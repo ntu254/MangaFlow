@@ -13,7 +13,10 @@ function AppShellInner({ children }: { children: ReactNode }) {
   const isStudioWorkspace = isPageStudio || isAssistantTaskStudio;
 
   return (
-    <div suppressHydrationWarning className="flex min-h-screen w-full bg-background text-foreground">
+    <div
+      suppressHydrationWarning
+      className="flex min-h-screen w-full bg-background text-foreground"
+    >
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />

@@ -40,7 +40,9 @@ export function useKonvaImage(
 function shouldUseAnonymousCors(src: string) {
   try {
     const url = new URL(src, window.location.href);
-    return url.protocol === "blob:" || url.protocol === "data:" || url.origin === window.location.origin;
+    return (
+      url.protocol === "blob:" || url.protocol === "data:" || url.origin === window.location.origin
+    );
   } catch {
     return false;
   }

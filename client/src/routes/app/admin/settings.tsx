@@ -68,9 +68,7 @@ function AdminSettingsPage() {
           </Field>
         </div>
         {saved && (
-          <div className="mt-3 text-xs text-emerald-600 dark:text-emerald-400">
-            Settings saved.
-          </div>
+          <div className="mt-3 text-xs text-emerald-600 dark:text-emerald-400">Settings saved.</div>
         )}
       </section>
 

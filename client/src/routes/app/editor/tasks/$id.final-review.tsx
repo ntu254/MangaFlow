@@ -20,7 +20,7 @@ import {
   Loader2,
   User,
   AlertCircle,
-  FolderOpen
+  FolderOpen,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/editor/tasks/$id/final-review")({
@@ -40,9 +40,7 @@ function TaskFinalReviewDetail() {
   const requestRevisionMutation = useEditorRequestTaskSubmissionRevision(id);
 
   const isPending =
-    approveMutation.isPending ||
-    rejectMutation.isPending ||
-    requestRevisionMutation.isPending;
+    approveMutation.isPending || rejectMutation.isPending || requestRevisionMutation.isPending;
 
   const isLoading = isTaskLoading || isSubsLoading;
 
@@ -74,7 +72,9 @@ function TaskFinalReviewDetail() {
     const trimmedComment = comment.trim();
 
     if ((action === "revision" || action === "reject") && !trimmedComment) {
-      toast.error(`A comment is required to ${action === "revision" ? "request revision" : "reject"} the submission.`);
+      toast.error(
+        `A comment is required to ${action === "revision" ? "request revision" : "reject"} the submission.`,
+      );
       return;
     }
 
@@ -127,7 +127,9 @@ function TaskFinalReviewDetail() {
               </div>
               <h2 className="mt-2 text-xl font-bold">{task.title}</h2>
               {task.description && (
-                <p className="mt-2 text-sm text-foreground/75 whitespace-pre-wrap">{task.description}</p>
+                <p className="mt-2 text-sm text-foreground/75 whitespace-pre-wrap">
+                  {task.description}
+                </p>
               )}
             </div>
 
@@ -203,10 +205,19 @@ function TaskFinalReviewDetail() {
                   </h4>
                   <div className="divide-y divide-foreground/5">
                     {submissions.slice(1).map((sub: any) => (
-                      <div key={sub.id} className="py-2.5 flex items-start justify-between text-xs last:pb-0">
+                      <div
+                        key={sub.id}
+                        className="py-2.5 flex items-start justify-between text-xs last:pb-0"
+                      >
                         <div className="space-y-1">
-                          <div className="font-semibold text-foreground/80">Version {sub.version}</div>
-                          {sub.resultText && <div className="text-foreground/60 italic">&ldquo;{sub.resultText}&rdquo;</div>}
+                          <div className="font-semibold text-foreground/80">
+                            Version {sub.version}
+                          </div>
+                          {sub.resultText && (
+                            <div className="text-foreground/60 italic">
+                              &ldquo;{sub.resultText}&rdquo;
+                            </div>
+                          )}
                           {sub.reviewerNote && (
                             <div className="text-[11px] text-amber-600 dark:text-amber-400">
                               Feedback: {sub.reviewerNote}
@@ -231,7 +242,9 @@ function TaskFinalReviewDetail() {
             <div className="rounded-md border border-dashed border-foreground/10 p-12 text-center bg-card">
               <FolderOpen className="mx-auto h-8 w-8 text-foreground/30" />
               <h3 className="mt-2 text-sm font-semibold">No Submissions yet</h3>
-              <p className="mt-1 text-xs text-foreground/45">The assistant has not uploaded any results for this task.</p>
+              <p className="mt-1 text-xs text-foreground/45">
+                The assistant has not uploaded any results for this task.
+              </p>
             </div>
           )}
         </div>
@@ -241,7 +254,9 @@ function TaskFinalReviewDetail() {
           <div className="rounded-md border border-foreground/10 bg-card p-6 space-y-4 shadow-sm">
             <div>
               <h3 className="text-sm font-bold">Review Decision</h3>
-              <p className="text-xs text-foreground/45">Decide if the work meets standard quality guidelines.</p>
+              <p className="text-xs text-foreground/45">
+                Decide if the work meets standard quality guidelines.
+              </p>
             </div>
 
             <div className="space-y-2">

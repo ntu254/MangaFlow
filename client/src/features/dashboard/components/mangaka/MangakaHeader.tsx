@@ -1,9 +1,7 @@
 import { useRole } from "@/shared/lib/role";
-import { currentUserByRole } from "@/entities";
 
 export function MangakaHeader() {
-  const { role } = useRole();
-  const me = currentUserByRole[role];
+  const { user } = useRole();
 
   return (
     <div className="relative mb-8 overflow-hidden rounded-lg bg-[#FAF8F5] dark:bg-foreground/5 px-8 py-10">
@@ -17,7 +15,7 @@ export function MangakaHeader() {
       />
       <div className="relative z-10">
         <h1 className="text-[28px] font-bold tracking-tight text-foreground">
-          Welcome back, {me.name}
+          Welcome back, {user?.name || "Mangaka"}
         </h1>
         <p className="mt-1 text-[13px] text-foreground/60">
           Here's what's happening with your manga today.

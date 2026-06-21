@@ -386,7 +386,9 @@ function InfoPanel({ task }: { task: Task }) {
       <Field
         label="Instruction"
         value={
-          task.instruction ?? task.description ?? "No specific instructions. Match house style and reference pages."
+          task.instruction ??
+          task.description ??
+          "No specific instructions. Match house style and reference pages."
         }
       />
       <Field label="Due" value={task.deadline} />
@@ -423,7 +425,10 @@ function FeedbackPanel({ submissions }: { submissions: Submission[] }) {
   return (
     <div className="space-y-3">
       {feedback.map((submission) => (
-        <div key={submission.id} className="rounded-md border border-foreground/10 bg-background p-3">
+        <div
+          key={submission.id}
+          className="rounded-md border border-foreground/10 bg-background p-3"
+        >
           <div className="flex items-center justify-between text-[11px]">
             <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-foreground/70">
@@ -458,7 +463,10 @@ function HistoryPanel({ submissions }: { submissions: Submission[] }) {
   return (
     <ol className="space-y-2">
       {submissions.map((submission) => (
-        <li key={submission.id} className="rounded-md border border-foreground/10 bg-background p-3">
+        <li
+          key={submission.id}
+          className="rounded-md border border-foreground/10 bg-background p-3"
+        >
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-medium text-foreground">Version v{submission.version}</span>
             <StatusBadge status={submission.status.toLowerCase().replace(/_/g, "-") as any} />
@@ -510,7 +518,12 @@ function AssignedTaskPreview({
   }
 
   if (isLoading) {
-    return <PreviewEmpty title="Loading assigned page..." hint="Fetching working image and assigned region." />;
+    return (
+      <PreviewEmpty
+        title="Loading assigned page..."
+        hint="Fetching working image and assigned region."
+      />
+    );
   }
 
   if (error) {
@@ -531,7 +544,9 @@ function AssignedTaskPreview({
     <div className="w-full max-w-[520px]">
       <div className="mb-2 flex items-center justify-between text-[11px] text-white/55">
         <span>{pageLabel}</span>
-        <span>{regions.length > 0 ? `${regions.length} assigned region(s)` : "Full page scope"}</span>
+        <span>
+          {regions.length > 0 ? `${regions.length} assigned region(s)` : "Full page scope"}
+        </span>
       </div>
       <div className="relative overflow-hidden rounded-md border border-white/15 bg-black shadow-2xl">
         <img src={imageUrl} alt={pageLabel} className="block w-full select-none" />
