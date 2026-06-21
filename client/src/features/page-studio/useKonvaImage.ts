@@ -16,7 +16,9 @@ export function useKonvaImage(
     setImage(null);
 
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (shouldUseAnonymousCors(src)) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => {
       setImage(img);
       setStatus("loaded");
@@ -33,4 +35,13 @@ export function useKonvaImage(
   }, [src]);
 
   return [image, status];
+}
+
+function shouldUseAnonymousCors(src: string) {
+  try {
+    const url = new URL(src, window.location.href);
+    return url.protocol === "blob:" || url.protocol === "data:" || url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express"
 import {
   confirmPageUploadService,
+  getFileAssetContentService,
   getPageWithFileAssetService,
   getPresignedDownloadUrlService,
   getPresignedUploadUrlService,
@@ -41,8 +42,22 @@ export async function getPresignedDownloadUrl(req: Request, res: Response, _next
   res.json({ success: true, message: "Presigned download URL generated", data: result })
 }
 
+export async function getFileAssetContent(req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const actor = { userId: req.user!.userId, role: req.user!.role }
+  const result = await getFileAssetContentService(String(req.params.fileAssetId), actor)
+  res.setHeader("Content-Type", result.mimeType)
+  res.setHeader("Content-Length", String(result.buffer.length))
+  res.setHeader("Cache-Control", "private, max-age=300")
+  res.setHeader("Content-Disposition", `inline; filename="${safeHeaderFilename(result.originalName)}"`)
+  res.end(result.buffer)
+}
+
 export async function getPageWithFileAsset(req: Request, res: Response, _next: NextFunction): Promise<void> {
   const actor = { userId: req.user!.userId, role: req.user!.role }
   const page = await getPageWithFileAssetService(String(req.params.pageId), actor)
   res.json({ success: true, message: "Page with file assets retrieved", data: page })
+}
+
+function safeHeaderFilename(value: string) {
+  return value.replace(/["\r\n]/g, "_")
 }

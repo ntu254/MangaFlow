@@ -19,10 +19,14 @@ export interface Viewport {
 }
 
 export interface RegionTask {
+  taskId?: string;
   taskType: string;
   assigneeId: string;
+  assigneeName?: string;
   priority: "high" | "medium" | "low";
   dueDate: string;
+  status?: string;
+  title?: string;
 }
 
 interface StudioStore {
@@ -60,6 +64,7 @@ interface StudioStore {
   setShowComments: (v: boolean) => void;
   setCompareOriginal: (v: boolean) => void;
   assignTaskToRegion: (regionId: string, task: RegionTask | null) => void;
+  replaceRegionTasks: (tasks: Record<string, RegionTask>) => void;
 }
 
 export const useStudioStore = create<StudioStore>((set) => ({
@@ -105,4 +110,5 @@ export const useStudioStore = create<StudioStore>((set) => ({
       }
       return { regionTasks: updated };
     }),
+  replaceRegionTasks: (regionTasks) => set({ regionTasks }),
 }));

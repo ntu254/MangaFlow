@@ -6,6 +6,7 @@ import {
   useEditorApproveSubmission,
   useRequestRevision,
 } from "@/shared/queries/useSubmissions";
+import { refId, refLabel } from "@/shared/api/submissions";
 import { findTask, findChapter, findSeries, findStaff } from "@/entities";
 import {
   CheckCircle2,
@@ -96,7 +97,8 @@ function SeriesReviews() {
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
           {seriesSubmissions.map((sm) => {
-            const t = findTask(sm.taskId);
+            const t = findTask(refId(sm.taskId));
+            const taskLabel = t?.type ?? refLabel(sm.taskId, "Task");
             const isSelected = sm.id === actualSelectedId;
             return (
               <button
@@ -109,7 +111,7 @@ function SeriesReviews() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold truncate">{t?.type}</span>
+                  <span className="text-[12px] font-semibold truncate">{taskLabel}</span>
                   {sm.status === "MANGAKA_APPROVED" ? (
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                   ) : (

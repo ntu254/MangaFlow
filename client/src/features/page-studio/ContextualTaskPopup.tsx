@@ -90,6 +90,7 @@ export function ContextualTaskPopup({
   const missingContext = !seriesId || !chapterId || !pageId;
   const cannotAssign =
     missingContext ||
+    Boolean(existingTask) ||
     !selectedTaskType ||
     !selectedAssistant ||
     createTask.isPending ||
@@ -126,12 +127,16 @@ export function ContextualTaskPopup({
         dueDate: endOfLocalDayIso(dueDate),
       },
       {
-        onSuccess: () => {
+        onSuccess: (createdTask) => {
           assignTaskToRegion(region.id, {
+            taskId: createdTask.id ?? createdTask._id,
             taskType: selectedTaskType.name,
             assigneeId: selectedAssistant.id,
+            assigneeName: selectedAssistant.name,
             priority,
             dueDate,
+            status: "todo",
+            title: selectedTaskType.name,
           });
           toast.success(`Task "${selectedTaskType.name}" assigned to ${selectedAssistant.name}`);
           onClose();
@@ -280,6 +285,13 @@ export function ContextualTaskPopup({
           </div>
         )}
 
+        {existingTask && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] font-semibold text-amber-700">
+            This region already has an active task. Select the region and use the right panel to
+            inspect its task details.
+          </div>
+        )}
+
         <div className="mt-1 flex items-center gap-2 border-t border-zinc-100 pt-2">
           <button
             type="submit"
@@ -287,7 +299,7 @@ export function ContextualTaskPopup({
             className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-center font-bold text-white shadow-sm transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createTask.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-            {existingTask ? "Create New Task" : "Assign Task"}
+            {existingTask ? "Already Assigned" : "Assign Task"}
           </button>
         </div>
       </form>

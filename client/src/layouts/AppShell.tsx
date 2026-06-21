@@ -10,14 +10,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
   const isPageStudio = pathname.startsWith("/app/pages/") && pathname.endsWith("/studio");
   const isAssistantTaskStudio =
     pathname.startsWith("/app/assistant/tasks/") && pathname.endsWith("/studio");
-
-  if (isPageStudio) {
-    return (
-      <div suppressHydrationWarning className="flex min-h-screen w-full bg-[#141414] text-foreground">
-        <main className="flex-1 flex flex-col min-w-0">{children}</main>
-      </div>
-    );
-  }
+  const isStudioWorkspace = isPageStudio || isAssistantTaskStudio;
 
   return (
     <div suppressHydrationWarning className="flex min-h-screen w-full bg-background text-foreground">
@@ -26,7 +19,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
         <Topbar />
         <main
           className={
-            isAssistantTaskStudio
+            isStudioWorkspace
               ? "flex h-[calc(100vh-3.5rem)] min-h-0 flex-col overflow-hidden"
               : "flex-1 px-10 py-5"
           }

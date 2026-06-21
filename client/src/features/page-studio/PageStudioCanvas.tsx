@@ -28,6 +28,9 @@ const getRegionColor = (r: Region | { status: string; type: string }) => {
   }
 };
 
+const isAISuggestionRegion = (region: Region) =>
+  region.status === "ai-suggested" || region.id.includes(":suggestion:");
+
 interface Props {
   regions: Region[];
   pageId: string;
@@ -230,7 +233,7 @@ export function PageStudioCanvas({
   };
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>, r: Region) => {
-    if (compareOriginal || readOnly) return;
+    if (compareOriginal || readOnly || isAISuggestionRegion(r)) return;
     const node = e.target;
     const clamp = (val: number) => Math.max(0, Math.min(1, val));
     let newX = clamp(node.x() / IMG_W);
@@ -248,7 +251,7 @@ export function PageStudioCanvas({
   };
 
   const handleTransformEnd = (e: Konva.KonvaEventObject<Event>, r: Region) => {
-    if (compareOriginal || readOnly) return;
+    if (compareOriginal || readOnly || isAISuggestionRegion(r)) return;
     const node = e.target;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
@@ -292,13 +295,18 @@ export function PageStudioCanvas({
       trRef.current?.nodes([]);
       return;
     }
-    if (selectedRegionId && shapeRefs.current[selectedRegionId]) {
+    if (
+      selectedRegionId &&
+      selectedRegion &&
+      !isAISuggestionRegion(selectedRegion) &&
+      shapeRefs.current[selectedRegionId]
+    ) {
       trRef.current?.nodes([shapeRefs.current[selectedRegionId]!]);
       trRef.current?.getLayer()?.batchDraw();
     } else {
       trRef.current?.nodes([]);
     }
-  }, [selectedRegionId, compareOriginal, regions]);
+  }, [selectedRegion, selectedRegionId, compareOriginal, regions]);
 
   // ── render ──────────────────────────────────────────────────────────
   return (
@@ -389,6 +397,11 @@ export function PageStudioCanvas({
                   r.status === "ai-suggested"
                     ? [10 / viewport.scale, 5 / viewport.scale]
                     : undefined;
+                const task = regionTasks[r.id];
+                const hasTask = Boolean(task);
+                const isAISuggestion = isAISuggestionRegion(r);
+                const badgeW = 34 / viewport.scale;
+                const badgeH = 14 / viewport.scale;
 
                 return (
                   <Group key={r.id}>
@@ -412,7 +425,7 @@ export function PageStudioCanvas({
                       strokeWidth={sw}
                       dash={dash}
                       cornerRadius={3 / viewport.scale}
-                      draggable={!readOnly && !compareOriginal && isSelected}
+                      draggable={!readOnly && !compareOriginal && isSelected && !isAISuggestion}
                       onDragEnd={(e) => handleDragEnd(e, r)}
                       onTransformEnd={(e) => handleTransformEnd(e, r)}
                       onClick={(e) => {
@@ -445,7 +458,7 @@ export function PageStudioCanvas({
                       listening={false}
                     />
                     {/* AI badge */}
-                    {r.status === "ai-suggested" && (
+                    {isAISuggestion && (
                       <Text
                         x={rx + rw - 22 / viewport.scale}
                         y={ry + 5 / viewport.scale}
@@ -455,6 +468,43 @@ export function PageStudioCanvas({
                         fill={color}
                         listening={false}
                       />
+                    )}
+                    {/* Assigned task badge */}
+                    {hasTask && (
+                      <Group
+                        x={Math.max(rx, rx + rw - badgeW - 5 / viewport.scale)}
+                        y={ry + 5 / viewport.scale}
+                        onClick={(e) => {
+                          e.cancelBubble = true;
+                          onSelectRegion(r.id);
+                        }}
+                        onTap={(e) => {
+                          e.cancelBubble = true;
+                          onSelectRegion(r.id);
+                        }}
+                      >
+                        <Rect
+                          width={badgeW}
+                          height={badgeH}
+                          fill="#f59e0b"
+                          opacity={0.95}
+                          cornerRadius={badgeH / 2}
+                          shadowColor="#000"
+                          shadowBlur={6 / viewport.scale}
+                          shadowOpacity={0.22}
+                        />
+                        <Text
+                          width={badgeW}
+                          height={badgeH}
+                          text="TASK"
+                          fontSize={7 / viewport.scale}
+                          fontStyle="bold"
+                          fill="#111827"
+                          align="center"
+                          verticalAlign="middle"
+                          listening={false}
+                        />
+                      </Group>
                     )}
                   </Group>
                 );
@@ -498,7 +548,8 @@ export function PageStudioCanvas({
       {/* Contextual Task Popup */}
       {selectedRegion &&
         selectedRegion.status !== "rejected" &&
-        selectedRegion.status !== "ai-suggested" &&
+        !isAISuggestionRegion(selectedRegion) &&
+        !regionTasks[selectedRegion.id] &&
         !readOnly &&
         !compareOriginal && (
           <ContextualTaskPopup
@@ -521,7 +572,7 @@ export function PageStudioCanvas({
         if (!hoveredRegion || hoveredRegion.id === selectedRegionId) return null;
         const task = regionTasks[hoveredRegion.id];
         if (!task) return null;
-        const staffName = findStaff(task.assigneeId)?.name || "Unassigned";
+        const staffName = task.assigneeName ?? findStaff(task.assigneeId)?.name ?? "Unassigned";
 
         const rx = hoveredRegion.coords.x * IMG_W;
         const ry = hoveredRegion.coords.y * IMG_H;

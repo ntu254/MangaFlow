@@ -16,7 +16,7 @@ import { PageUploadDialog } from "@/features/chapters/components/PageUploadPanel
 import { useChapterPages } from "@/shared/queries/useChapterPages";
 import { useCreateChapter, useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
-import { useFileDownloadUrl } from "@/shared/queries/useFileDownloadUrl";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import { Input } from "@/shared/ui/shadcn/input";
 import { Label } from "@/shared/ui/shadcn/label";
 import {
@@ -63,7 +63,7 @@ const chapterBadgeLabel: Record<string, string> = {
 };
 
 function PageThumbnail({ page }: { page: { thumbnailFileAssetId?: string; pageNumber?: number } }) {
-  const { data: url, isLoading } = useFileDownloadUrl(page.thumbnailFileAssetId);
+  const { data: url, isLoading } = useFileObjectUrl(page.thumbnailFileAssetId);
   if (isLoading) return <div className="absolute inset-0 bg-foreground/5 animate-pulse" />;
   if (!url)
     return (
@@ -403,14 +403,15 @@ function SeriesChapters() {
                       const isApproved = page.status === "APPROVED";
                       const isUnderReview = page.status === "IN_TASK";
                       const isTaskAssigned = page.status === "IN_TASK";
-                      const isUploaded = page.status === "UPLOADED";
                       const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(
                         page.status,
                       );
                       const isFailed = ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(page.status);
 
-                      // Open Studio Gate
-                      const canOpenStudio = isUploaded && Boolean(page.workingFileAssetId);
+                      // Mangaka still needs read/edit visibility after a task is assigned.
+                      const canOpenStudio =
+                        ["UPLOADED", "IN_TASK", "APPROVED", "LOCKED"].includes(page.status) &&
+                        Boolean(page.workingFileAssetId);
 
                       return (
                         <div

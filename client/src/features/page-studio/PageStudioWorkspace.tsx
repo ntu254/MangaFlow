@@ -2,12 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronLeft, FileImage, Info, Keyboard, Loader2 } from "lucide-react";
 import type { Region, Task } from "@/entities";
-import { useFileDownloadUrl } from "@/shared/queries/useFileDownloadUrl";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
+import { useChapterPages } from "@/shared/queries/useChapterPages";
 import { usePageStudio } from "@/shared/queries/usePageStudio";
+import { BottomPageCarousel } from "./BottomPageCarousel";
 import { HeaderToolBar } from "./HeaderToolBar";
 import { InspectorDrawer } from "./InspectorDrawer";
 import { PageStudioCanvas, IMG_H, IMG_W } from "./PageStudioCanvas";
-import { useStudioStore } from "./useStudioStore";
+import { useStudioStore, type RegionTask } from "./useStudioStore";
 
 type ApiErrorLike = {
   message?: string;
@@ -47,6 +49,34 @@ function getAssignedRegions(regions: Region[], task?: Task) {
   return regions.filter((region) => region.status !== "ai-suggested" && region.status !== "rejected");
 }
 
+function mapTasksByRegion(tasks: Task[] = []): Record<string, RegionTask> {
+  return tasks.reduce<Record<string, RegionTask>>((acc, task) => {
+    if (!task.regionId) return acc;
+    if (task.status === "cancelled" || task.status === "rejected") return acc;
+    if (acc[task.regionId]) return acc;
+
+    acc[task.regionId] = {
+      taskId: task.id,
+      taskType: task.title ?? task.type,
+      assigneeId: task.assigneeId,
+      assigneeName: task.assigneeName,
+      priority: task.priority ?? "medium",
+      dueDate: task.deadline,
+      status: task.status,
+      title: task.title,
+    };
+    return acc;
+  }, {});
+}
+
+function normalizePageStatusForCarousel(status: string) {
+  return status.toLowerCase().replace(/_/g, "-");
+}
+
+function isObjectId(value?: string): value is string {
+  return typeof value === "string" && /^[0-9a-fA-F]{24}$/.test(value);
+}
+
 export function PageStudioWorkspace({
   pageId,
   seriesId,
@@ -68,6 +98,7 @@ export function PageStudioWorkspace({
     setActiveTool,
     setSelectedRegionId,
     setActiveTab,
+    replaceRegionTasks,
   } = useStudioStore();
 
   const {
@@ -75,6 +106,11 @@ export function PageStudioWorkspace({
     isLoading: isLoadingStudio,
     error: studioError,
   } = usePageStudio(pageId);
+
+  const chapterIdForPages = studioData?.chapter?.id ?? studioData?.page?.chapterId;
+  const { data: chapterPages = [] } = useChapterPages(
+    !isAssistantWorkspace && isObjectId(chapterIdForPages) ? chapterIdForPages : undefined,
+  );
 
   useEffect(() => {
     if (!isAssistantWorkspace) return;
@@ -85,12 +121,17 @@ export function PageStudioWorkspace({
     }
   }, [assistantTask?.regionId, isAssistantWorkspace, setActiveTab, setActiveTool, setSelectedRegionId]);
 
+  useEffect(() => {
+    if (!studioData) return;
+    replaceRegionTasks(mapTasksByRegion(studioData.tasks));
+  }, [replaceRegionTasks, studioData]);
+
   const workingFileAssetId = getFileAssetId(studioData?.workingFileAsset);
   const originalFileAssetId = getFileAssetId(studioData?.originalFileAsset);
 
-  const { data: workingImageUrl } = useFileDownloadUrl(workingFileAssetId);
-  const { data: originalImageUrl } = useFileDownloadUrl(originalFileAssetId);
-  const frameClass = embedded ? "h-full" : "h-screen";
+  const { data: workingImageUrl } = useFileObjectUrl(workingFileAssetId);
+  const { data: originalImageUrl } = useFileObjectUrl(originalFileAssetId);
+  const frameClass = "h-full min-h-0";
 
   if (isLoadingStudio) {
     return (
@@ -123,6 +164,16 @@ export function PageStudioWorkspace({
   const effectiveSeriesId = seriesId ?? studioData.chapter?.seriesId;
   const effectiveChapterId = studioData.chapter?.id ?? page.chapterId;
   const visibleRegions = getAssignedRegions(studioData.regions, assistantTask);
+  const carouselPages = (chapterPages.length > 0 ? chapterPages : [page]).map((chapterPage) => ({
+    id: chapterPage.id,
+    chapterId: chapterPage.chapterId,
+    order: chapterPage.pageNumber ?? ("order" in chapterPage ? chapterPage.order : 1),
+    pageNumber: chapterPage.pageNumber,
+    status: normalizePageStatusForCarousel(chapterPage.status) as typeof page.status,
+    originalFileAssetId: chapterPage.originalFileAssetId ?? "",
+    workingFileAssetId: chapterPage.workingFileAssetId ?? "",
+    thumbnailFileAssetId: chapterPage.thumbnailFileAssetId ?? "",
+  }));
 
   if (page.status === "PENDING" || page.status === "UPLOADING" || page.status === "PROCESSING") {
     return (
@@ -146,7 +197,7 @@ export function PageStudioWorkspace({
     );
   }
 
-  if (page.status === "UPLOADED" && !workingFileAssetId) {
+  if (!workingFileAssetId) {
     return (
       <div suppressHydrationWarning className={`flex ${frameClass} w-full items-center justify-center bg-background`}>
         <div className="max-w-sm rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
@@ -246,6 +297,9 @@ export function PageStudioWorkspace({
       )}
 
       <div className="flex flex-1 overflow-hidden">
+        {!isAssistantWorkspace && (
+          <BottomPageCarousel pages={carouselPages} currentPageId={pageId} />
+        )}
         <div className="flex flex-1 flex-col overflow-hidden border-r border-border">
           <div className="relative flex flex-1 flex-col overflow-hidden">
             <PageStudioCanvas
@@ -320,6 +374,8 @@ export function PageStudioWorkspace({
           pageId={pageId}
           readOnly={isAssistantWorkspace}
           assistantTask={assistantTask}
+          originalFileAssetId={originalFileAssetId}
+          workingFileAssetId={workingFileAssetId}
         />
       </div>
     </div>

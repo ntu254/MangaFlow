@@ -2,8 +2,6 @@ import { useNavigate } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import type { Task } from "@/entities";
 import { findChapter, findSeries, findStaff } from "@/entities";
-import { extractErrorMessage } from "@/shared/api/_client";
-import { useUpdateTaskStatus } from "@/shared/queries/useTasks";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { deadlineClass, deadlineLabel, deadlineTone } from "@/features/tasks/lib/deadline";
 import { ctaFor, normalizeStatus } from "../lib/taskLifecycle";
@@ -21,7 +19,6 @@ const INTENT_CLS: Record<string, string> = {
 
 export function AssistantTaskCard({ task }: { task: Task }) {
   const navigate = useNavigate();
-  const startTask = useUpdateTaskStatus();
   const ch = findChapter(task.chapterId);
   const series = ch ? findSeries(ch.seriesId) : null;
   const tone = deadlineTone(task.deadline);
@@ -29,7 +26,6 @@ export function AssistantTaskCard({ task }: { task: Task }) {
   const normalized = normalizeStatus(task.status);
   const assignedBy = task.assignedById ? findStaff(task.assignedById) : null;
   const disabled = cta.intent === "disabled";
-  const shouldMarkInProgress = (normalized === "todo" || normalized === "in-progress") && !!task.id;
 
   function openTask() {
     if (!task.id) {
@@ -41,25 +37,8 @@ export function AssistantTaskCard({ task }: { task: Task }) {
 
   function handleCtaClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
-    if (!task.id || startTask.isPending || disabled) return;
-
-    if (!shouldMarkInProgress) {
-      openTask();
-      return;
-    }
-
-    startTask.mutate(
-      { taskId: task.id, status: "IN_PROGRESS" },
-      {
-        onSuccess: () => {
-          toast.success(normalized === "todo" ? "Task started." : "Opening Task Studio.");
-          openTask();
-        },
-        onError: (error) => {
-          toast.error(extractErrorMessage(error));
-        },
-      },
-    );
+    if (!task.id || disabled) return;
+    openTask();
   }
 
   const body = (
@@ -123,12 +102,12 @@ export function AssistantTaskCard({ task }: { task: Task }) {
         <button
           type="button"
           onClick={handleCtaClick}
-          disabled={startTask.isPending || disabled || !task.id}
+          disabled={disabled || !task.id}
           className={`inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition ${
-            INTENT_CLS[startTask.isPending && shouldMarkInProgress ? "disabled" : cta.intent]
+            INTENT_CLS[cta.intent]
           }`}
         >
-          {startTask.isPending && shouldMarkInProgress ? "Opening..." : cta.label}
+          {cta.label}
           {!disabled && <ArrowRight className="h-3 w-3" />}
         </button>
       </div>
