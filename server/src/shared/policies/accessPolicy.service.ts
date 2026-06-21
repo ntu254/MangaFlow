@@ -46,9 +46,11 @@ export async function canReadPage(actor: AccessActor, pageId: string): Promise<b
 
   if (actor.role !== "ASSISTANT") return false
 
+  const activeTaskStatuses = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
   const assignedOrContextTask = await Task.findOne({
     seriesId,
     assignedTo: actor.userId,
+    status: { $in: activeTaskStatuses },
     $or: [
       { pageId },
       { contextPageIds: pageId },
@@ -59,6 +61,7 @@ export async function canReadPage(actor: AccessActor, pageId: string): Promise<b
   const regionScopedTasks = await Task.find({
     seriesId,
     assignedTo: actor.userId,
+    status: { $in: activeTaskStatuses },
     pageId: { $exists: false },
     regionId: { $exists: true },
   }).select("regionId").lean()

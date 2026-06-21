@@ -15,11 +15,8 @@ export async function calculateTaskEarningService(taskId: string, actor: Payroll
 
   await assertSeriesMangakaOrAdmin(String(task.seriesId), actor)
 
-  if (![
-    "EDITOR_APPROVED",
-    "REJECTED",
-  ].includes(task.status)) {
-    throw new AppError("Payroll can be calculated only after Editor approval or rejection", 409)
+  if (task.status !== "EDITOR_APPROVED") {
+    throw new AppError("Payroll can be calculated only after Editor approval", 409)
   }
 
   const existing = await getEarningByTaskId(taskId)
@@ -31,7 +28,7 @@ export async function calculateTaskEarningService(taskId: string, actor: Payroll
   }
 
   const completedAt = task.updatedAt instanceof Date ? task.updatedAt : new Date()
-  const { multiplier, isLate } = calculateDeadlineMultiplier(task.status, task.dueDate, completedAt)
+  const { multiplier, isLate } = calculateDeadlineMultiplier(task.dueDate, completedAt)
   const finalPayment = roundMoney(task.baseRate * multiplier)
 
   return createEarningRecord({

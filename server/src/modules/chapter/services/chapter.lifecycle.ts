@@ -57,12 +57,28 @@ export async function updateChapterStatusService(chapterId: string, status: stri
   await assertCanWriteChapter(actor, trimmed)
 
   if (!status?.trim()) throw new AppError("Status is required", 400)
-  if (status !== "ARCHIVED") {
+
+  const chapter = await getChapterById(trimmed)
+  if (!chapter) throw new AppError("Chapter not found", 404)
+
+  // Allowed direct transitions:
+  // DRAFT -> IN_PRODUCTION (manual start of production)
+  // DRAFT/IN_PRODUCTION -> ARCHIVED (archive/cancel)
+  if (status === "IN_PRODUCTION") {
+    if (chapter.status !== "DRAFT") {
+      throw new AppError("Only DRAFT chapters can be transitioned to IN_PRODUCTION", 409)
+    }
+  } else if (status === "ARCHIVED") {
+    if (!['DRAFT', 'IN_PRODUCTION'].includes(chapter.status)) {
+      throw new AppError("Only DRAFT or IN_PRODUCTION chapters can be archived", 409)
+    }
+  } else {
     throw new AppError("Chapter lifecycle transitions are managed by page upload, readiness, and publication workflows", 409)
   }
-  const chapter = await updateChapterStatus(trimmed, status as ChapterStatus)
-  if (!chapter) throw new AppError("Chapter not found", 404)
-  return chapter
+
+  const updated = await updateChapterStatus(trimmed, status as ChapterStatus)
+  if (!updated) throw new AppError("Chapter not found", 404)
+  return updated
 }
 export async function deleteChapterService(chapterId: string, actor: AccessActor) {
   const trimmed = chapterId.trim()
@@ -76,11 +92,15 @@ export async function deleteChapterService(chapterId: string, actor: AccessActor
     throw new AppError(`Cannot delete a chapter that is ${chapter.status}. Archive it instead.`, 400)
   }
 
-  const tasksCount = await Task.countDocuments({ chapterId: trimmed })
-  const submissionsCount = await Submission.countDocuments({ chapterId: trimmed })
+  const activeTaskStatuses = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
+  const activeTasksCount = await Task.countDocuments({ chapterId: trimmed, status: { $in: activeTaskStatuses } })
+  const activeSubmissionsCount = await Submission.countDocuments({
+    chapterId: trimmed,
+    status: { $in: ["DRAFT", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"] },
+  })
 
-  if (tasksCount > 0 || submissionsCount > 0) {
-    throw new AppError("Cannot delete chapter with active tasks or submissions. Cancel tasks first.", 400)
+  if (activeTasksCount > 0 || activeSubmissionsCount > 0) {
+    throw new AppError("Cannot delete chapter with active tasks or submissions. Cancel or resolve tasks first.", 400)
   }
 
   await Chapter.updateOne({ _id: trimmed }, { 
@@ -109,13 +129,21 @@ export async function cancelChapterService(chapterId: string, actor: AccessActor
   if (!chapter) throw new AppError("Chapter not found", 404)
 
   if (!['DRAFT', 'IN_PRODUCTION'].includes(chapter.status)) {
-    throw new AppError("Only DRAFT or IN_PRODUCTION chapters can be archived", 400)
+    throw new AppError("Only DRAFT or IN_PRODUCTION chapters can be cancelled", 400)
   }
+
+  // Cancel all active tasks in this chapter
+  const activeTaskStatuses = ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"]
+  await Task.updateMany(
+    { chapterId: trimmed, status: { $in: activeTaskStatuses } },
+    { $set: { status: "CANCELLED" } }
+  )
 
   await Chapter.updateOne({ _id: trimmed }, { 
     $set: { 
       status: "ARCHIVED",
-      archivedAt: new Date()
+      archivedAt: new Date(),
+      archiveReason: "Chapter cancelled by user"
     } 
   })
 }

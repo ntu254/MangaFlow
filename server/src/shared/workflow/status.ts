@@ -81,6 +81,7 @@ export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number]
 
 export const COMMENT_STATUSES = [
   "OPEN",
+  "FIXED",
   "RESOLVED",
   "REOPENED",
 ] as const

@@ -14,12 +14,30 @@ export function assertTaskSubmittable(status: string) {
 
 export function assertMangakaApprovalState(submissionStatus: string, taskStatus: string) {
   if (submissionStatus !== "SUBMITTED" || taskStatus !== "SUBMITTED") {
+    if (submissionStatus === "REVISION_REQUESTED") {
+      throw new AppError("Cannot review a submission that is awaiting revision. A new submission must be created first.", 409)
+    }
+    if (submissionStatus === "MANGAKA_APPROVED" || submissionStatus === "EDITOR_APPROVED") {
+      throw new AppError("This submission has already been approved. Cannot review again.", 409)
+    }
+    if (submissionStatus === "REJECTED") {
+      throw new AppError("This submission has been rejected and cannot be reviewed further.", 409)
+    }
     throw new AppError("Mangaka approval requires submitted work", 409)
   }
 }
 
 export function assertEditorApprovalState(submissionStatus: string, taskStatus: string) {
   if (submissionStatus !== "MANGAKA_APPROVED" || taskStatus !== "MANGAKA_APPROVED") {
+    if (submissionStatus === "REVISION_REQUESTED") {
+      throw new AppError("Cannot review a submission that is awaiting revision. A new submission must be created first.", 409)
+    }
+    if (submissionStatus === "EDITOR_APPROVED") {
+      throw new AppError("This submission has already been approved by Editor.", 409)
+    }
+    if (submissionStatus === "REJECTED") {
+      throw new AppError("This submission has been rejected and cannot be reviewed further.", 409)
+    }
     throw new AppError("Editor final approval requires Mangaka approval first", 409)
   }
 }

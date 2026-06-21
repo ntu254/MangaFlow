@@ -37,7 +37,7 @@ export async function listTasksByChapterService(chapterId: string, actor: TaskAc
   const member = await findActiveSeriesMember(seriesId, actor.userId)
   if (!member) throw new AppError("Task access denied", 403)
   if (member.role === "ASSISTANT") {
-    return (await listTasksByChapter(chapterId)).filter((task) => String(task.assignedTo) === actor.userId)
+    return listTasksByChapter(chapterId, { assignedTo: actor.userId })
   }
   if (!["MANGAKA", "EDITOR"].includes(member.role)) throw new AppError("Task access denied", 403)
   return listTasksByChapter(chapterId)

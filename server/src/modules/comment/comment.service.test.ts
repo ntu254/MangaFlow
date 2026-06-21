@@ -67,7 +67,7 @@ describe("comment resolution service", () => {
     ).rejects.toThrow("Comment access denied")
   })
 
-  it("lets the assigned Assistant resolve an open comment", async () => {
+  it("lets the assigned Assistant mark an open comment as fixed", async () => {
     vi.mocked(repository.getCommentById).mockResolvedValue(openComment as any)
     vi.mocked(SeriesMember.findOne).mockResolvedValue({
       isActive: true,
@@ -80,7 +80,7 @@ describe("comment resolution service", () => {
     } as any)
     vi.mocked(repository.updateCommentStatus).mockResolvedValue({
       id: "comment1",
-      status: "RESOLVED",
+      status: "FIXED",
     } as any)
 
     const result = await markCommentFixedService("comment1", {
@@ -88,10 +88,10 @@ describe("comment resolution service", () => {
       role: "ASSISTANT",
     })
 
-    expect(result).toMatchObject({ status: "RESOLVED" })
+    expect(result).toMatchObject({ status: "FIXED" })
     expect(repository.updateCommentStatus).toHaveBeenCalledWith(
       "comment1",
-      "RESOLVED",
+      "FIXED",
       "fixedBy",
       "assistant1",
     )
@@ -129,13 +129,13 @@ describe("comment resolution service", () => {
         userId: "editor1",
         role: "EDITOR",
       }),
-    ).rejects.toThrow("Editor can resolve only an active comment")
+    ).rejects.toThrow("Editor can resolve only an active or fixed comment")
   })
 
-  it("keeps resolved feedback resolved through Mangaka and Editor verification", async () => {
+  it("walks through the full comment lifecycle: fixed -> verified -> resolved", async () => {
+    // Step 1: Assistant marks comment as FIXED
     vi.mocked(repository.getCommentById)
-      .mockResolvedValueOnce({ ...openComment, status: "RESOLVED" } as any)
-      .mockResolvedValueOnce({ ...openComment, status: "RESOLVED" } as any)
+      .mockResolvedValueOnce({ ...openComment, status: "FIXED" } as any)
     vi.mocked(SeriesMember.findOne)
       .mockResolvedValueOnce({ isActive: true, role: "MANGAKA" } as any)
       .mockResolvedValueOnce({ isActive: true, role: "EDITOR" } as any)
@@ -143,10 +143,12 @@ describe("comment resolution service", () => {
       .mockResolvedValueOnce({ id: "comment1", status: "RESOLVED" } as any)
       .mockResolvedValueOnce({ id: "comment1", status: "RESOLVED" } as any)
 
+    // Step 2: Mangaka verifies the fixed comment -> RESOLVED
     await verifyCommentFixedService("comment1", {
       userId: "mangaka1",
       role: "MANGAKA",
     })
+    // Step 3: Editor can also resolve
     const resolved = await resolveCommentService("comment1", {
       userId: "editor1",
       role: "EDITOR",

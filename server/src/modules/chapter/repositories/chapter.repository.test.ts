@@ -81,13 +81,26 @@ describe("createChapterRepository", () => {
     })).rejects.toThrow("official publication type")
   })
 
-  it("blocks chapter creation while a series is AT_RISK", async () => {
+  it("allows chapter creation while a series is AT_RISK (consistent with task creation policy)", async () => {
     findSeriesById.mockResolvedValue({ status: "AT_RISK", publicationType: "WEEKLY" })
-
-    await expect(createChapterRepository({
+    findExistingChapter.mockResolvedValue(null)
+    createChapter.mockResolvedValue({
+      id: "chapter-1",
       seriesId: "series-1",
       chapterNumber: 1,
       title: "Chapter 1",
-    })).rejects.toThrow("Must be ONGOING")
+      status: "DRAFT",
+      publicationTypeSnapshot: "WEEKLY",
+      createdAt: new Date("2026-06-21T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-21T00:00:00.000Z"),
+    })
+
+    const result = await createChapterRepository({
+      seriesId: "series-1",
+      chapterNumber: 1,
+      title: "Chapter 1",
+    })
+
+    expect(result).toMatchObject({ status: "DRAFT" })
   })
 })

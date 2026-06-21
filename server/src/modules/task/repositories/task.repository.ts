@@ -52,8 +52,10 @@ export async function listTasksBySeriesIds(seriesIds: string[]): Promise<any[]> 
   return Task.find({ seriesId: { $in: seriesIds } }).sort({ createdAt: -1 }).populate("taskTypeId").lean()
 }
 
-export async function listTasksByChapter(chapterId: string): Promise<any[]> {
-  return Task.find({ chapterId }).sort({ createdAt: -1 }).populate("taskTypeId").lean()
+export async function listTasksByChapter(chapterId: string, filters?: { assignedTo?: string }): Promise<any[]> {
+  const query: Record<string, unknown> = { chapterId }
+  if (filters?.assignedTo) query.assignedTo = filters.assignedTo
+  return Task.find(query).sort({ createdAt: -1 }).populate("taskTypeId").lean()
 }
 
 export async function listTasksByAssignee(assigneeId: string): Promise<any[]> {
