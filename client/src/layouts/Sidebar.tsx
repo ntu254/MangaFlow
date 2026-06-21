@@ -16,6 +16,9 @@ import {
   Users as UsersIcon,
   Shield,
   Settings,
+  FileClock,
+  ScrollText,
+  SlidersHorizontal,
   BookOpenCheck,
   Plus,
   Bell,
@@ -43,38 +46,38 @@ const NAV: NavItem[] = [
     to: "/app/series",
     label: "My Series",
     icon: BookOpen,
-    roles: ["admin", "mangaka", "editor", "board"],
+    roles: ["mangaka", "editor", "board"],
   },
   {
     to: "/app/review",
     label: "Review Queue",
     icon: Inbox,
-    roles: ["editor", "admin", "mangaka"],
+    roles: ["editor", "mangaka"],
     badge: "12",
   },
   {
     to: "/app/editor/series-review",
     label: "Editor: Series review",
     icon: Inbox,
-    roles: ["editor", "admin"],
+    roles: ["editor"],
   },
   {
     to: "/app/board/series-review",
     label: "Board: Series vote",
     icon: Vote,
-    roles: ["board", "admin"],
+    roles: ["board"],
   },
   {
     to: "/app/notifications",
     label: "Notifications",
     icon: Bell,
-    roles: ["admin", "mangaka", "editor", "board"],
+    roles: ["mangaka", "editor", "board"],
   },
   {
     to: "/read",
     label: "Reader Preview",
     icon: BookOpenCheck,
-    roles: ["admin", "mangaka", "editor", "board"],
+    roles: ["mangaka", "editor", "board"],
   },
 ];
 
@@ -84,36 +87,41 @@ const PROD_NAV: NavItem[] = [
     to: "/app/board/series-review",
     label: "Board voting",
     icon: Vote,
-    roles: ["board", "editor", "admin"],
+    roles: ["board", "editor"],
   },
-  { to: "/app/submissions", label: "Submissions", icon: CheckCircle2, roles: ["editor", "admin"] },
+  { to: "/app/submissions", label: "Submissions", icon: CheckCircle2, roles: ["editor"] },
   {
     to: "/app/publications",
     label: "Publications",
     icon: CalendarClock,
-    roles: ["editor", "admin"],
+    roles: ["editor"],
   },
   {
     to: "/app/rankings",
     label: "Rankings",
     icon: Trophy,
-    roles: ["board", "editor", "admin", "mangaka"],
+    roles: ["board", "editor", "mangaka"],
   },
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { to: "/app/payroll", label: "Payroll", icon: Wallet, roles: ["admin", "editor"] },
-  { to: "/app/admin/users", label: "Users", icon: UsersIcon, roles: ["admin"] },
-  { to: "/app/admin/roles", label: "Roles & types", icon: Shield, roles: ["admin"] },
+  { to: "/app/admin/user-management", label: "Users", icon: UsersIcon, roles: ["admin"] },
+  { to: "/app/admin/board-members", label: "Board Members", icon: Shield, roles: ["admin"] },
+  { to: "/app/admin/task-rates", label: "Task Rates", icon: SlidersHorizontal, roles: ["admin"] },
+  { to: "/app/admin/payroll", label: "Payroll", icon: Wallet, roles: ["admin"] },
+  { to: "/app/admin/storage", label: "Storage", icon: FileClock, roles: ["admin"] },
+  { to: "/app/admin/audit-logs", label: "Audit Logs", icon: ScrollText, roles: ["admin"] },
+  { to: "/app/admin/settings", label: "Settings", icon: Settings, roles: ["admin"] },
+  { to: "/app/payroll", label: "Payroll", icon: Wallet, roles: ["editor"] },
   {
     to: "/app/settings",
     label: "Settings",
     icon: Settings,
-    roles: ["admin", "mangaka", "editor", "assistant", "board"],
+    roles: ["mangaka", "editor", "assistant", "board"],
   },
 ];
 
-// Dedicated worker-view menu — assistants only see this scope.
+// Dedicated worker-view menu
 const ASSISTANT_NAV: NavItem[] = [
   {
     to: "/app/assistant/dashboard",
