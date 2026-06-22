@@ -17,15 +17,6 @@ import { useChapterPages } from "@/shared/queries/useChapterPages";
 import { useCreateChapter, useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
 import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
-import { useRole } from "@/shared/lib/role";
-import { chapterPermissions } from "@/features/chapters/lib/chapterPermissions";
-import { useTasksBySeries } from "@/shared/queries/useTasks";
-import { useAllSubmissions } from "@/shared/queries/useSubmissions";
-import { TasksTab } from "@/features/chapters/components/tabs/TasksTab";
-import { ReviewsTab } from "@/features/chapters/components/tabs/ReviewsTab";
-import { CommentsTab } from "@/features/chapters/components/tabs/CommentsTab";
-import { ReadinessTab } from "@/features/chapters/components/tabs/ReadinessTab";
-
 import { Input } from "@/shared/ui/shadcn/input";
 import { Label } from "@/shared/ui/shadcn/label";
 import {
@@ -187,26 +178,6 @@ function SeriesChapters() {
       );
   }, [summary?.chapters]);
 
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
-  const { role } = useRole();
-  const perms = useMemo(() => chapterPermissions(role), [role]);
-
-  const { data: allTasks = [] } = useTasksBySeries(id);
-  const { data: allSubmissions = [] } = useAllSubmissions();
-
-  const [activePreviewTab, setActivePreviewTab] = useState<string>("Pages");
-
-  const chapterTasks = useMemo(() => {
-    return allTasks.filter((t) => t.chapterId === selectedChapterId);
-  }, [allTasks, selectedChapterId]);
-
-  const chapterSubmissions = useMemo(() => {
-    return allSubmissions.filter((s) => {
-      const cId = typeof s.chapterId === "object" ? (s.chapterId as any).id || (s.chapterId as any)._id : s.chapterId;
-      return cId === selectedChapterId;
-    });
-  }, [allSubmissions, selectedChapterId]);
-
   const selectedChapterId = search.chapterId ?? null;
   const nextChapterNumber = useMemo(() => {
     const chapterNumbers = mappedChapters
@@ -277,11 +248,10 @@ function SeriesChapters() {
               {["All", "Draft", "In Production", "Ready", "Published"].map((filter, i) => (
                 <button
                   key={filter}
-                  className={`h-7 rounded-md px-2.5 text-[10px] font-extrabold transition-colors ${
-                    i === 0
+                  className={`h-7 rounded-md px-2.5 text-[10px] font-extrabold transition-colors ${i === 0
                       ? "bg-[#061A2B] text-white shadow-sm dark:bg-blue-600"
                       : "border border-foreground/12 bg-foreground/[0.025] text-foreground/60 hover:bg-foreground/7 hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   {filter}
                 </button>
@@ -354,11 +324,10 @@ function SeriesChapters() {
               <button
                 key={page}
                 type="button"
-                className={`h-7 min-w-7 rounded-md px-2 text-[10px] font-black transition-colors ${
-                  page === 1
+                className={`h-7 min-w-7 rounded-md px-2 text-[10px] font-black transition-colors ${page === 1
                     ? "bg-[#061A2B] text-white shadow-sm dark:bg-blue-600"
                     : "border border-foreground/12 bg-card text-foreground/55 shadow-sm hover:bg-foreground/5"
-                }`}
+                  }`}
               >
                 {page}
               </button>
@@ -374,12 +343,12 @@ function SeriesChapters() {
         </footer>
       </section>
 
-      <section className="overflow-hidden rounded-[10px] border border-foreground/10 bg-card shadow-[0_2px_14px_rgba(5,24,38,0.05)] flex flex-col">
-        <header className="flex items-start justify-between gap-4 px-4 pb-3 pt-4 border-b border-foreground/7 shrink-0">
+      <section className="overflow-hidden rounded-[10px] border border-foreground/10 bg-card shadow-[0_2px_14px_rgba(5,24,38,0.05)]">
+        <header className="flex items-start justify-between gap-4 px-4 pb-3 pt-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-[18px] font-extrabold leading-none tracking-tight text-foreground">
-                {selectedChapter ? `Chapter ${selectedChapter.chapter}` : "Chapter Preview"}
+                Chapter Preview
               </h2>
               {selectedChapter && (
                 <span
@@ -389,24 +358,12 @@ function SeriesChapters() {
                 </span>
               )}
             </div>
-            {selectedChapter && (
-              <p className="text-[11px] text-foreground/55 mt-1 truncate max-w-[200px]">
-                {selectedChapter.title}
-              </p>
-            )}
           </div>
-          <button className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/12 bg-card text-foreground/55 shadow-sm hover:bg-foreground/5 shrink-0">
+          <button className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/12 bg-card text-foreground/55 shadow-sm hover:bg-foreground/5">
             <MoreHorizontal className="h-3.5 w-3.5" />
           </button>
         </header>
 
-        {selectedChapter ? (
-          <>
-            {/* Tabs Selector */}
-            <div className="flex border-b border-foreground/7 px-4 bg-foreground/[0.015] shrink-0 overflow-x-auto scrollbar-none">
-              {["Pages", "Tasks", "Reviews", "Comments", "Readiness"].map((tab) => {
-                const isActive = activePreviewTab === tab;
-                return (
         <div className="px-4 pb-4">
           <section className="mt-3 rounded-md border border-foreground/10 bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -426,44 +383,12 @@ function SeriesChapters() {
                 </div>
                 <div className="relative">
                   <button
-                    key={tab}
-                    onClick={() => setActivePreviewTab(tab)}
-                    className={`py-2.5 px-3 text-[12px] font-bold border-b-2 -mb-[1px] whitespace-nowrap transition-colors ${
-                      isActive
-                        ? "border-[#061A2B] dark:border-blue-400 text-foreground"
-                        : "border-transparent text-foreground/50 hover:text-foreground/80"
-                    }`}
+                    className={`flex h-6 w-6 items-center justify-center rounded border transition-colors shrink-0 ${isFilterOpen ? "border-foreground/20 bg-foreground/5 text-foreground" : "border-transparent text-foreground/40 hover:bg-foreground/5 hover:text-foreground"}`}
+                    title="Filter pages"
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
                   >
-                    {tab}
+                    <Filter className="h-3.5 w-3.5" />
                   </button>
-                );
-              })}
-            </div>
-
-            {/* Tab Contents */}
-            <div className="flex-grow overflow-y-auto p-4 custom-scrollbar">
-              {activePreviewTab === "Pages" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-[12px] font-bold text-foreground/50 tracking-wider uppercase">
-                      PAGES ({pages.length})
-                    </h2>
-                    <div className="flex items-center gap-1">
-                      <div className="flex items-center pl-1.5 pr-1 py-0.5 rounded border border-foreground/10 bg-foreground/5 hover:bg-foreground/10 focus-within:bg-foreground/5 focus-within:border-foreground/30 focus-within:w-28 w-20 transition-all duration-300 overflow-hidden">
-                        <Search className="h-3.5 w-3.5 text-foreground/40 shrink-0" />
-                        <input
-                          type="text"
-                          placeholder="Search..."
-                          className="w-full min-w-0 text-[11px] bg-transparent border-none focus:ring-0 px-1.5 outline-none text-foreground placeholder:text-foreground/30"
-                          value={pageSearchQuery}
-                          onChange={(e) => setPageSearchQuery(e.target.value)}
-                        />
-                      </div>
-                      <div className="relative">
-                        <button
-                          className={`flex h-6 w-6 items-center justify-center rounded border transition-colors shrink-0 ${isFilterOpen ? "border-foreground/20 bg-foreground/5 text-foreground" : "border-transparent text-foreground/40 hover:bg-foreground/5 hover:text-foreground"}`}
-                          title="Filter pages"
-                          onClick={() => setIsFilterOpen(!isFilterOpen)}
                   {isFilterOpen && (
                     <div className="absolute top-full right-0 mt-1 w-36 bg-card border border-foreground/10 shadow-lg rounded-md overflow-hidden z-20 py-1">
                       {PAGE_FILTERS.map((filter) => {
@@ -545,28 +470,46 @@ function SeriesChapters() {
                           key={page.id}
                           className="relative aspect-[3/4] rounded-md overflow-hidden group border border-foreground/10 block bg-foreground/5"
                         >
-                          <Filter className="h-3.5 w-3.5" />
-                        </button>
-                        {isFilterOpen && (
-                          <div className="absolute top-full right-0 mt-1 w-36 bg-card border border-foreground/10 shadow-lg rounded-md overflow-hidden z-20 py-1">
-                            {["All", "Approved", "Under review", "With tasks", "Pending"].map(
-                              (filter) => {
-                                const dotClass =
-                                  filter === "Approved"
-                                    ? "bg-emerald-500"
-                                    : filter === "Under review"
-                                      ? "bg-blue-500"
-                                      : filter === "With tasks"
-                                        ? "bg-orange-500"
-                                        : filter === "Pending"
-                                          ? "border border-foreground/30 bg-white"
-                                          : null;
-                                return (
+                          <PageThumbnail page={page} />
+
+                          {/* Number Badge */}
+                          <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-1.5 py-0.5 rounded-sm min-w-[20px] text-center z-10">
+                            {page.pageNumber}
+                          </div>
+
+                          {/* Status Dot */}
+                          <div
+                            title={page.status}
+                            className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white shadow-sm z-10 ${isApproved
+                                ? "bg-emerald-500"
+                                : isUnderReview
+                                  ? "bg-blue-500"
+                                  : isTaskAssigned
+                                    ? "bg-orange-500"
+                                    : isFailed
+                                      ? "bg-destructive"
+                                      : isProcessing
+                                        ? "bg-sky-400 animate-pulse"
+                                        : "bg-white"
+                              }`}
+                          />
+
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-20 gap-2">
+                            <div className="absolute top-2 left-2 flex gap-1">
+                              {!isTaskAssigned && !isApproved && !isUnderReview ? (
+                                <>
                                   <button
-                                    key={filter}
-                                    onClick={() => {
-                                      setSelectedFilter(filter);
-                                      setIsFilterOpen(false);
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setDialogConfig({ open: true, pageId: page.id });
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center bg-red-500/80 text-white rounded hover:bg-red-600 transition-colors"
+                                    title="Delete Page"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                  <button
                                     onClick={(e) => {
                                       e.preventDefault();
                                       const newId = prompt(
@@ -579,230 +522,56 @@ function SeriesChapters() {
                                           originalFileAssetId: newId,
                                         });
                                     }}
-                                    className={`flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-left hover:bg-foreground/5 transition-colors ${selectedFilter === filter ? "bg-foreground/5 font-semibold text-foreground" : "text-foreground/70"}`}
+                                    className="w-6 h-6 flex items-center justify-center bg-blue-500/80 text-white rounded hover:bg-blue-600 transition-colors"
+                                    title="Replace Page"
                                   >
-                                    {dotClass ? (
-                                      <div
-                                        className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${dotClass}`}
-                                      />
-                                    ) : (
-                                      <div className="w-2 h-2 shrink-0" />
-                                    )}
-                                    {filter}
+                                    <RefreshCw className="w-3 h-3" />
                                   </button>
-                                );
-                              },
+                                </>
+                              ) : (
+                                <div
+                                  title="This page has active tasks/submissions. Cancel or reassign tasks first to modify."
+                                  className="w-6 h-6 flex items-center justify-center bg-foreground/20 text-white/50 rounded cursor-not-allowed"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </div>
+                              )}
+                            </div>
+                            {canOpenStudio ? (
+                              <Link
+                                to="/app/pages/$id/studio"
+                                params={{ id: page.id }}
+                                search={{ seriesId: id }}
+                                className="bg-white text-black px-3 py-1.5 rounded text-[10px] font-bold shadow hover:bg-gray-100 transition-colors"
+                              >
+                                Open Studio
+                              </Link>
+                            ) : isProcessing ? (
+                              <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
+                                <Clock className="w-4 h-4 mb-1" />
+                                <span>Processing assets...</span>
+                              </div>
+                            ) : isFailed ? (
+                              <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
+                                <span className="text-red-300">Upload Failed</span>
+                              </div>
+                            ) : (
+                              <div
+                                className="flex flex-col items-center gap-1 text-white/80 text-[10px] font-semibold text-center px-2"
+                                title="Studio is only available for UPLOADED pages with a working image"
+                              >
+                                <Lock className="w-4 h-4 mb-1" />
+                                <span>Studio Locked</span>
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    ref={gridRef}
-                    className="grid grid-cols-3 gap-3 max-h-[440px] overflow-y-auto pr-1 -mr-1 custom-scrollbar"
-                  >
-                    {pagesLoading ? (
-                      <div className="col-span-3 text-center text-[11px] py-6 text-foreground/40">
-                        Loading pages...
-                      </div>
-                    ) : pages.length === 0 ? (
-                      <div className="col-span-3 text-center text-[11px] py-6 text-foreground/40">
-                        No pages uploaded yet.
-                      </div>
-                    ) : (
-                      pages
-                        .slice(0, visiblePagesCount)
-                        .map(
-                          (page: {
-                            id: string;
-                            status: string;
-                            workingFileAssetId?: string;
-                            thumbnailFileAssetId?: string;
-                            sequenceNumber?: number;
-                            pageNumber?: number;
-                          }) => {
-                            const isApproved = page.status === "APPROVED";
-                            const isUnderReview = page.status === "IN_TASK";
-                            const isTaskAssigned = page.status === "IN_TASK";
-                            const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(
-                              page.status,
-                            );
-                            const isFailed = ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(page.status);
-
-                            // Mangaka still needs read/edit visibility after a task is assigned.
-                            const canOpenStudio =
-                              ["UPLOADED", "IN_TASK", "APPROVED", "LOCKED"].includes(page.status) &&
-                              Boolean(page.workingFileAssetId);
-
-                            return (
-                              <div
-                                key={page.id}
-                                className="relative aspect-[3/4] rounded-md overflow-hidden group border border-foreground/10 block bg-foreground/5"
-                              >
-                                <PageThumbnail page={page} />
-
-                                {/* Number Badge */}
-                                <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-1.5 py-0.5 rounded-sm min-w-[20px] text-center z-10">
-                                  {page.pageNumber}
-                                </div>
-
-                                {/* Status Dot */}
-                                <div
-                                  title={page.status}
-                                  className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white shadow-sm z-10 ${
-                                    isApproved
-                                      ? "bg-emerald-500"
-                                      : isUnderReview
-                                        ? "bg-blue-500"
-                                        : isTaskAssigned
-                                          ? "bg-orange-500"
-                                          : isFailed
-                                            ? "bg-destructive"
-                                            : isProcessing
-                                              ? "bg-sky-400 animate-pulse"
-                                              : "bg-white"
-                                  }`}
-                                />
-
-                                {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-20 gap-2">
-                                  <div className="absolute top-2 left-2 flex gap-1">
-                                    {!isTaskAssigned && !isApproved && !isUnderReview ? (
-                                      <>
-                                        <button
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            setDialogConfig({ open: true, pageId: page.id });
-                                          }}
-                                          className="w-6 h-6 flex items-center justify-center bg-red-500/80 text-white rounded hover:bg-red-600 transition-colors"
-                                          title="Delete Page"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            const newId = prompt(
-                                              "Enter new originalFileAssetId to replace:",
-                                            );
-                                            if (newId)
-                                              replacePage.mutate({
-                                                chapterId: selectedChapterId!,
-                                                pageId: page.id,
-                                                originalFileAssetId: newId,
-                                              });
-                                          }}
-                                          className="w-6 h-6 flex items-center justify-center bg-blue-500/80 text-white rounded hover:bg-blue-600 transition-colors"
-                                          title="Replace Page"
-                                        >
-                                          <RefreshCw className="w-3 h-3" />
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <div
-                                        title="This page has active tasks/submissions. Cancel or reassign tasks first to modify."
-                                        className="w-6 h-6 flex items-center justify-center bg-foreground/20 text-white/50 rounded cursor-not-allowed"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  {canOpenStudio ? (
-                                    <Link
-                                      to="/app/pages/$id/studio"
-                                      params={{ id: page.id }}
-                                      search={{ seriesId: id }}
-                                      className="bg-white text-black px-3 py-1.5 rounded text-[10px] font-bold shadow hover:bg-gray-100 transition-colors"
-                                    >
-                                      Open Studio
-                                    </Link>
-                                  ) : isProcessing ? (
-                                    <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
-                                      <Clock className="w-4 h-4 mb-1" />
-                                      <span>Processing assets...</span>
-                                    </div>
-                                  ) : isFailed ? (
-                                    <div className="flex flex-col items-center gap-1 text-white text-[10px] font-semibold text-center px-2">
-                                      <span className="text-red-300">Upload Failed</span>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className="flex flex-col items-center gap-1 text-white/80 text-[10px] font-semibold text-center px-2"
-                                      title="Studio is only available for UPLOADED pages with a working image"
-                                    >
-                                      <Lock className="w-4 h-4 mb-1" />
-                                      <span>Studio Locked</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          },
-                        )
-                    )}
-                  </div>
-
-                  {pages.length > visiblePagesCount && (
-                    <button
-                      onClick={() => {
-                        setVisiblePagesCount((prev) => prev + 9);
-                        setTimeout(() => {
-                          if (gridRef.current) {
-                            gridRef.current.scrollTo({
-                              top: gridRef.current.scrollHeight,
-                              behavior: "smooth",
-                            });
-                          }
-                        }, 100);
-                      }}
-                      className="mx-auto block mt-4 text-[11px] font-bold text-foreground/50 hover:text-foreground transition-colors"
-                    >
-                      View more
-                    </button>
-                  )}
-
-                  <div className="border-t border-foreground/10 my-4" />
-
-                  <div className="flex items-center justify-between text-[10px] font-medium text-foreground/60 mb-4">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
-                      <span>Approved</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
-                      <span>Review</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
-                      <span>Tasks</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full border border-foreground/20 bg-white shadow-sm" />
-                      <span>Pending</span>
-                    </div>
-                  </div>
-
-                  {selectedChapter && perms.canUploadPages && (
-                    <button
-                      type="button"
-                      onClick={() => setIsUploadPagesOpen(true)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-dashed border-foreground/20 text-[#061A2B] dark:text-blue-400 font-semibold text-[13px] hover:bg-foreground/5 transition-colors"
-                    >
-                      <Upload className="h-4 w-4" /> Upload pages
-                    </button>
-                  )}
-                </div>
+                        </div>
+                      );
+                    },
+                  )
               )}
+            </div>
 
-              {activePreviewTab === "Tasks" && (
-                <TasksTab
-                  tasks={chapterTasks}
-                  perms={perms}
-                  onCreate={() => setIsUploadPagesOpen(true)}
-                />
-              )}
             {filteredPages.length > visiblePagesCount && (
               <button
                 onClick={() => {
@@ -822,38 +591,38 @@ function SeriesChapters() {
               </button>
             )}
 
-              {activePreviewTab === "Reviews" && (
-                <ReviewsTab
-                  tasks={chapterTasks}
-                  subs={chapterSubmissions}
-                  perms={perms}
-                />
-              )}
+            <div className="border-t border-foreground/10 my-4" />
 
-              {activePreviewTab === "Comments" && (
-                <CommentsTab
-                  tasks={chapterTasks}
-                  perms={perms}
-                  seriesId={id}
-                  chapterId={selectedChapterId || ""}
-                />
-              )}
-
-              {activePreviewTab === "Readiness" && (
-                <ReadinessTab
-                  tasks={chapterTasks}
-                  subs={chapterSubmissions}
-                  perms={perms}
-                  chapterId={selectedChapterId || ""}
-                />
-              )}
+            <div className="flex items-center justify-between text-[10px] font-medium text-foreground/60 mb-4">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
+                <span>Approved</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
+                <span>Review</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+                <span>Tasks</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full border border-foreground/20 bg-white shadow-sm" />
+                <span>Pending</span>
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-grow flex items-center justify-center p-8 text-center text-[12px] font-medium text-foreground/45">
-            Select a chapter from the list to view details.
-          </div>
-        )}
+
+            {selectedChapter && (
+              <button
+                type="button"
+                onClick={() => setIsUploadPagesOpen(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-dashed border-foreground/20 text-[#061A2B] dark:text-blue-400 font-semibold text-[13px] hover:bg-foreground/5 transition-colors"
+              >
+                <Upload className="h-4 w-4" /> Upload pages
+              </button>
+            )}
+          </section>
+        </div>
       </section>
 
       {selectedChapter && (
