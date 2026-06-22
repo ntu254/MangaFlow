@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { MoreHorizontal, CheckCircle2, Trash2, XCircle } from "lucide-react";
 import { Progress } from "@/shared/ui/shadcn/progress";
 import { useState } from "react";
@@ -15,12 +14,25 @@ import {
 } from "@/shared/ui/shadcn/alert-dialog";
 
 export interface ChapterRowProps {
-  chapter: any; // Using any for mock data compatibility
+  chapter: {
+    id: string;
+    chapter?: string;
+    chapterNumber?: number | string;
+    title?: string;
+    status?: string;
+    cadence?: string;
+    updated?: string;
+    pages?: string;
+    meta?: string;
+    progress?: number;
+    active?: boolean;
+  };
   seriesId: string;
   chapterBadgeClass?: Record<string, string>;
   chapterBadgeLabel?: Record<string, string>;
   isSelected?: boolean;
   onClick?: () => void;
+  onViewPages?: () => void;
 }
 
 export function ChapterRow({
@@ -30,6 +42,7 @@ export function ChapterRow({
   chapterBadgeLabel = {},
   isSelected,
   onClick,
+  onViewPages,
 }: ChapterRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const deleteChapter = useDeleteChapter();
@@ -43,13 +56,6 @@ export function ChapterRow({
     action: null,
   });
 
-  // Note: For MVP we use basic tasks check. In reality, chapter object would need `tasksCount` returned from summary API.
-  // Assuming if progress/active is truthy it might have tasks.
-  const hasTasks = Boolean(chapter.active || (chapter.progress && chapter.progress > 0));
-  const isDraftOrEarly =
-    chapter.status === "DRAFT" || (chapter.status === "IN_PRODUCTION" && !hasTasks);
-  const isInProductionWithTasks = chapter.status === "IN_PRODUCTION" && hasTasks;
-
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDialogConfig({ open: true, action: "delete" });
@@ -58,6 +64,11 @@ export function ChapterRow({
   const handleCancel = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDialogConfig({ open: true, action: "cancel" });
+  };
+
+  const handleViewPages = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onViewPages?.();
   };
 
   return (
@@ -99,15 +110,7 @@ export function ChapterRow({
           {chapter.pages || "0 / 20 pages"}
         </div>
         <div className="mt-1 text-[10px] font-semibold text-foreground/45">
-          {chapter.active ? (
-            <>
-              <span>15 tasks</span>
-              <span className="px-1 text-foreground/25">-</span>
-              <span className="text-amber-600">3 pending</span>
-            </>
-          ) : (
-            chapter.meta || "No tasks yet"
-          )}
+          {chapter.meta || "No task summary available"}
         </div>
         {chapter.status?.toLowerCase() === "published" ||
         chapter.status?.toLowerCase() === "archived" ? (
@@ -139,6 +142,7 @@ export function ChapterRow({
 
       <button
         type="button"
+        onClick={handleViewPages}
         className={`col-start-2 inline-flex h-8 w-fit items-center justify-center rounded-md px-3 text-[10px] font-extrabold transition-all sm:col-start-auto sm:w-full whitespace-nowrap text-center ${
           chapter.active
             ? "bg-[#061A2B] text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg dark:bg-blue-600"

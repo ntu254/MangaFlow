@@ -148,6 +148,26 @@ export function useUpdateTaskStatus() {
         taskId: task.id ?? task._id,
         seriesId: normalizeId(task.seriesId),
       });
+      const pageId = normalizeId(task.pageId);
+      if (pageId) {
+        invalidatePageStudio(queryClient, pageId);
+      }
     },
   });
+}
+
+export function useCancelTaskAssignment() {
+  const updateTaskStatus = useUpdateTaskStatus();
+
+  return {
+    ...updateTaskStatus,
+    mutate: (
+      variables: { taskId: string },
+      options?: Parameters<typeof updateTaskStatus.mutate>[1],
+    ) => updateTaskStatus.mutate({ ...variables, status: "CANCELLED" }, options),
+    mutateAsync: (
+      variables: { taskId: string },
+      options?: Parameters<typeof updateTaskStatus.mutateAsync>[1],
+    ) => updateTaskStatus.mutateAsync({ ...variables, status: "CANCELLED" }, options),
+  };
 }
