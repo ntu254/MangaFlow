@@ -37,6 +37,7 @@ export async function calculateTaskEarningService(taskId: string, actor: Payroll
     chapterId: String(task.chapterId),
     assistantId: String(task.assignedTo),
     baseRate: task.baseRate,
+    currency: task.currency ?? "VND",
     deadlineMultiplier: multiplier,
     finalPayment,
     isLate,

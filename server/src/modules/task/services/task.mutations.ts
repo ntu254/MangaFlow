@@ -64,6 +64,7 @@ export async function createTaskService(input: CreateTaskServiceInput) {
     description: input.description,
     priority: input.priority,
     baseRate: taskType.baseRate,
+    currency: taskType.currency ?? "VND",
     dueDate: input.dueDate,
     contextPageIds: input.contextPageIds,
   })

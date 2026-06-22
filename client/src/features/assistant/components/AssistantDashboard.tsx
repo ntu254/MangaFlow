@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useRole } from "@/shared/lib/role";
 import { currentUserByRole, findChapter, findSeries } from "@/entities";
 import { PageHeader, StatCard } from "@/layouts/AppShell";
 import { Panel } from "@/features/dashboard/components/Panel";
-import { jpy } from "@/shared/lib/format";
+import { payrollMoney } from "@/shared/lib/format";
 import { useAssistantTasks } from "../hooks/useAssistantTasks";
-import { totalsBy } from "../lib/earnings";
+import { payrollApi, type PayrollEarning } from "@/shared/api/payroll";
 import { AssistantTaskCard } from "./AssistantTaskCard";
 import { AlertTriangle, Clock, Eye, Sparkles, ArrowRight, Inbox } from "lucide-react";
 import { parseDeadline } from "@/features/tasks/lib/deadline";
@@ -14,7 +15,11 @@ export function AssistantDashboard() {
   const { role } = useRole();
   const me = currentUserByRole[role];
   const { mine, byStatus, counts } = useAssistantTasks(me.id);
-  const totals = totalsBy(me.id);
+  const { data: earnings = [], isLoading: isEarningsLoading } = useQuery({
+    queryKey: ["assistant", "earnings"],
+    queryFn: payrollApi.listEarnings,
+  });
+  const totals = calculateAssistantEarningTotals(earnings);
 
   const sortByDue = (list: typeof mine) =>
     [...list].sort((a, b) => {
@@ -54,9 +59,9 @@ export function AssistantDashboard() {
           hint="Editor approved"
         />
         <StatCard
-          label="Earnings (Jun)"
-          value={jpy(totals.thisMonth)}
-          hint={`${jpy(totals.pending)} pending`}
+          label="Earnings"
+          value={isEarningsLoading ? "..." : payrollMoney(totals.thisMonth, totals.currency)}
+          hint={`${payrollMoney(totals.pending, totals.currency)} pending`}
         />
       </div>
 
@@ -113,7 +118,8 @@ export function AssistantDashboard() {
               {waiting.map((t) => {
                 const ch = findChapter(t.chapterId);
                 const series = ch ? findSeries(ch.seriesId) : null;
-                const reviewer = t.status === "mangaka-approved" ? "Editor" : "Mangaka";
+                const isMangakaApproved = t.status === "mangaka-approved";
+                const reviewer = isMangakaApproved ? "Editor" : "Mangaka";
                 return (
                   <div
                     key={t.id}
@@ -131,7 +137,9 @@ export function AssistantDashboard() {
                       {t.type} · {t.pageRange}
                     </div>
                     <div className="mt-1 text-[11px] text-foreground/55">
-                      Awaiting {reviewer} review
+                      {isMangakaApproved
+                        ? "Mangaka approved. Earnings unlock after Editor final approval."
+                        : `Awaiting ${reviewer} review`}
                     </div>
                   </div>
                 );
@@ -182,4 +190,25 @@ function EmptyRow({ icon: Icon, text }: { icon: typeof Inbox; text: string }) {
       <Icon className="h-4 w-4" /> {text}
     </div>
   );
+}
+
+function calculateAssistantEarningTotals(earnings: PayrollEarning[]) {
+  const effective = earnings.filter(
+    (earning) => normalizePayrollStatus(earning.status) !== "voided",
+  );
+  const pending = effective
+    .filter((earning) => normalizePayrollStatus(earning.status) === "calculated")
+    .reduce((total, earning) => total + Number(earning.amount ?? 0), 0);
+  return {
+    thisMonth: effective.reduce((total, earning) => total + Number(earning.amount ?? 0), 0),
+    pending,
+    currency: effective[0]?.currency ?? "VND",
+  };
+}
+
+function normalizePayrollStatus(status: PayrollEarning["status"]) {
+  const normalized = String(status).toUpperCase();
+  if (normalized === "VOID") return "voided";
+  if (normalized === "PENDING") return "calculated";
+  return normalized.toLowerCase();
 }

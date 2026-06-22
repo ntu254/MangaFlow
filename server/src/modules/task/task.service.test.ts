@@ -60,7 +60,7 @@ describe("createTaskService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    taskScopeGuardMock.validateTaskCreationScope.mockResolvedValue({ taskType: { baseRate: 100 } })
+    taskScopeGuardMock.validateTaskCreationScope.mockResolvedValue({ taskType: { baseRate: 100, currency: "VND" } })
   })
 
   it("throws AppError if title is empty", async () => {
@@ -76,7 +76,7 @@ describe("createTaskService", () => {
   })
 
   it("calls createTaskRecord with normalized input", async () => {
-    const mockResult = { id: "507f1f77bcf86cd799439017", seriesId: "507f1f77bcf86cd799439011", chapterId: "507f1f77bcf86cd799439012", taskTypeId: "507f1f77bcf86cd799439013", assignedTo: "507f1f77bcf86cd799439014", assignedBy: "507f1f77bcf86cd799439016", title: "Test Task", status: "TODO", priority: "NORMAL", baseRate: 100, dueDate: mockInput.dueDate, contextPageIds: [], createdAt: new Date(), updatedAt: new Date() }
+    const mockResult = { id: "507f1f77bcf86cd799439017", seriesId: "507f1f77bcf86cd799439011", chapterId: "507f1f77bcf86cd799439012", taskTypeId: "507f1f77bcf86cd799439013", assignedTo: "507f1f77bcf86cd799439014", assignedBy: "507f1f77bcf86cd799439016", title: "Test Task", status: "TODO", priority: "NORMAL", baseRate: 100, currency: "VND", dueDate: mockInput.dueDate, contextPageIds: [], createdAt: new Date(), updatedAt: new Date() }
     vi.mocked(taskRepository.createTaskRecord).mockResolvedValue(mockResult as any)
 
     const result = await createTaskService(mockInput)
@@ -94,14 +94,15 @@ describe("createTaskService", () => {
       dueDate: mockInput.dueDate,
       contextPageIds: mockInput.contextPageIds,
       baseRate: 100,
+      currency: "VND",
     })
-    expect(result).toMatchObject({ id: "507f1f77bcf86cd799439017", baseRate: 100, status: "TODO" })
+    expect(result).toMatchObject({ id: "507f1f77bcf86cd799439017", baseRate: 100, currency: "VND", status: "TODO" })
     expect(Page.findByIdAndUpdate).toHaveBeenCalledWith(mockInput.pageId, { status: "IN_TASK" })
   })
 
   it("snapshots the current TaskType base rate for payroll history", async () => {
-    taskScopeGuardMock.validateTaskCreationScope.mockResolvedValue({ taskType: { baseRate: 275 } })
-    const mockResult = { id: "507f1f77bcf86cd799439017", seriesId: "507f1f77bcf86cd799439011", chapterId: "507f1f77bcf86cd799439012", taskTypeId: "507f1f77bcf86cd799439013", assignedTo: "507f1f77bcf86cd799439014", assignedBy: "507f1f77bcf86cd799439016", title: "Test Task", status: "TODO", priority: "NORMAL", baseRate: 275, dueDate: mockInput.dueDate, contextPageIds: [], createdAt: new Date(), updatedAt: new Date() }
+    taskScopeGuardMock.validateTaskCreationScope.mockResolvedValue({ taskType: { baseRate: 275, currency: "VND" } })
+    const mockResult = { id: "507f1f77bcf86cd799439017", seriesId: "507f1f77bcf86cd799439011", chapterId: "507f1f77bcf86cd799439012", taskTypeId: "507f1f77bcf86cd799439013", assignedTo: "507f1f77bcf86cd799439014", assignedBy: "507f1f77bcf86cd799439016", title: "Test Task", status: "TODO", priority: "NORMAL", baseRate: 275, currency: "VND", dueDate: mockInput.dueDate, contextPageIds: [], createdAt: new Date(), updatedAt: new Date() }
     vi.mocked(taskRepository.createTaskRecord).mockResolvedValue(mockResult as any)
 
     const result = await createTaskService(mockInput)
@@ -109,8 +110,9 @@ describe("createTaskService", () => {
     expect(taskRepository.createTaskRecord).toHaveBeenCalledWith(expect.objectContaining({
       taskTypeId: mockInput.taskTypeId,
       baseRate: 275,
+      currency: "VND",
     }))
-    expect(result).toMatchObject({ id: "507f1f77bcf86cd799439017", baseRate: 275 })
+    expect(result).toMatchObject({ id: "507f1f77bcf86cd799439017", baseRate: 275, currency: "VND" })
   })
 })
 
