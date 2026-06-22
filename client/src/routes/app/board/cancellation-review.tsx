@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/layouts/AppShell";
-import { seriesApi } from "@/shared/api";
-import { useCreateAtRiskDecision } from "@/shared/queries/useBoardReview";
-import { series as fallbackSeries } from "@/entities";
-import type { AtRiskDecisionValue } from "@/shared/api/board";
+import {
+  useAtRiskDecisionHistory,
+  useCancellationCases,
+  useCreateAtRiskDecision,
+} from "@/shared/queries/useBoardReview";
+import type { AtRiskDecisionValue, CancellationCaseItem } from "@/shared/api/board";
 import {
   boardFlowSteps,
   DecisionPortalShell,
@@ -23,74 +24,65 @@ export const Route = createFileRoute("/app/board/cancellation-review")({
 
 const decisionOptions: Array<{ label: string; value: AtRiskDecisionValue; hint: string }> = [
   { label: "Continue", value: "CONTINUE", hint: "Keep production running" },
-  { label: "Hold", value: "WARNING", hint: "Backend maps hold to warning" },
+  { label: "Hold", value: "WARNING", hint: "Keep at-risk status with warning" },
   { label: "Cancel", value: "CANCEL", hint: "Stop the series" },
   { label: "Finalize", value: "COMPLETE", hint: "Close the review" },
 ];
 
 function CancellationReviewPage() {
-  const { data: remoteSeries = [], isLoading } = useQuery({
-    queryKey: ["series"],
-    queryFn: seriesApi.list,
-  });
-  const items = useMemo(() => {
-    const remote = remoteSeries.filter((item) => item.status === "AT_RISK");
-    if (remote.length) {
-      return remote.map((item) => ({
-        id: item.id,
-        title: item.title,
-        status: item.status,
-        synopsis: item.synopsis,
-        canPersist: isObjectId(item.id),
-      }));
-    }
-    return fallbackSeries
-      .filter((item) => item.status === "at-risk")
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        status: item.status,
-        synopsis: item.synopsis,
-        canPersist: false,
-      }));
-  }, [remoteSeries]);
-
+  const { data: items = [], isLoading, error } = useCancellationCases();
   const [selectedId, setSelectedId] = useState("");
-  const selected = items.find((item) => item.id === (selectedId || items[0]?.id));
+
+  useEffect(() => {
+    if (!selectedId && items[0]?.seriesId) setSelectedId(items[0].seriesId);
+  }, [items, selectedId]);
+
+  const selected = items.find((item) => item.seriesId === selectedId) ?? items[0];
 
   return (
     <DecisionPortalShell
       active="/app/board/cancellation-review"
       title="Cancellation review cases"
-      description="Open low-ranking series, review performance evidence, choose continue, hold, cancel, or finalize, then save the Board decision."
+      description="Review real at-risk and cancellation-requested series, then record the Board decision through the API."
     >
       <DecisionTimeline steps={boardFlowSteps} activeStep={5} />
 
-      <section className="grid gap-4 lg:grid-cols-[0.42fr_0.58fr]">
-        <PortalCard
-          title="Case queue"
-          description="Series marked at risk by ranking or production review."
-        >
+      <section className="grid gap-4 lg:grid-cols-[0.4fr_0.6fr]">
+        <PortalCard title="Case queue" description="Live cases from Board review data.">
           {isLoading ? (
             <PortalLoadingRows count={4} />
+          ) : error ? (
+            <div className="px-4 py-8 text-sm text-destructive">
+              Unable to load cancellation review cases.
+            </div>
           ) : items.length === 0 ? (
             <EmptyState
               title="No cancellation reviews"
-              hint="At-risk series will appear here."
+              hint="At-risk or cancellation-requested series will appear here."
               icon={ShieldAlert}
             />
           ) : (
             <div className="divide-y divide-border">
               {items.map((item) => (
                 <button
-                  key={item.id}
+                  key={item.seriesId}
                   type="button"
-                  onClick={() => setSelectedId(item.id)}
-                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-foreground/5 ${
-                    selected?.id === item.id ? "bg-foreground/5" : ""
-                  }`}
+                  onClick={() => setSelectedId(item.seriesId)}
+                  className={
+                    "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition hover:bg-foreground/5 " +
+                    (selected?.seriesId === item.seriesId ? "bg-foreground/5" : "")
+                  }
                 >
-                  <span className="font-medium">{item.title}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{item.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {item.latestRanking
+                        ? item.latestRanking.period +
+                          " / score " +
+                          item.latestRanking.finalScore.toFixed(1)
+                        : "No ranking signal"}
+                    </span>
+                  </span>
                   <PortalPill tone="warn">
                     <AlertTriangle className="h-3.5 w-3.5" /> risk
                   </PortalPill>
@@ -106,18 +98,14 @@ function CancellationReviewPage() {
   );
 }
 
-function DecisionPanel({
-  item,
-}: {
-  item: { id: string; title: string; status: string; synopsis?: string; canPersist: boolean };
-}) {
+function DecisionPanel({ item }: { item: CancellationCaseItem }) {
   const [decision, setDecision] = useState<AtRiskDecisionValue>("CONTINUE");
   const [note, setNote] = useState("");
-  const mutation = useCreateAtRiskDecision(item.id);
+  const mutation = useCreateAtRiskDecision(item.seriesId);
+  const { data: history = [] } = useAtRiskDecisionHistory(item.seriesId);
 
   async function submit() {
     if (!note.trim()) return toast.error("Add a decision note.");
-    if (!item.canPersist) return toast.error("Mock series ids cannot save Board decisions.");
     await mutation.mutateAsync({ decision, note: note.trim() });
     setNote("");
   }
@@ -128,20 +116,14 @@ function DecisionPanel({
       description={item.synopsis || "No synopsis provided."}
       action={<PortalPill tone="warn">{item.status}</PortalPill>}
     >
-      <div className="p-5">
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-md border border-border bg-background p-3">
-            <div className="text-[11px] text-muted-foreground">Reader signal</div>
-            <div className="mt-1 font-mono text-lg font-semibold">Low</div>
-          </div>
-          <div className="rounded-md border border-border bg-background p-3">
-            <div className="text-[11px] text-muted-foreground">Case status</div>
-            <div className="mt-1 font-mono text-lg font-semibold">Open</div>
-          </div>
-          <div className="rounded-md border border-border bg-background p-3">
-            <div className="text-[11px] text-muted-foreground">Decision</div>
-            <div className="mt-1 font-mono text-lg font-semibold">{decision}</div>
-          </div>
+      <div className="space-y-5 p-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricBox
+            label="Reader score"
+            value={item.latestRanking ? item.latestRanking.finalScore.toFixed(1) : "None"}
+          />
+          <MetricBox label="Case status" value={item.latestDecision?.decision || "Open"} />
+          <MetricBox label="Selected" value={decision} />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -150,15 +132,19 @@ function DecisionPanel({
               key={option.value}
               type="button"
               onClick={() => setDecision(option.value)}
-              className={`rounded-md border p-3 text-left transition active:translate-y-px ${
-                decision === option.value
+              className={
+                "rounded-md border p-3 text-left transition active:translate-y-px " +
+                (decision === option.value
                   ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border hover:bg-foreground/5"
-              }`}
+                  : "border-border hover:bg-foreground/5")
+              }
             >
               <div className="text-sm font-semibold">{option.label}</div>
               <div
-                className={`mt-1 text-xs ${decision === option.value ? "opacity-80" : "text-muted-foreground"}`}
+                className={
+                  "mt-1 text-xs " +
+                  (decision === option.value ? "opacity-80" : "text-muted-foreground")
+                }
               >
                 {option.hint}
               </div>
@@ -171,14 +157,12 @@ function DecisionPanel({
           onChange={(event) => setNote(event.target.value)}
           rows={4}
           placeholder="Performance evidence, ranking movement, and final recommendation..."
-          className="mt-4 w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary/60"
+          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary/60"
         />
 
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
           <div className="text-xs text-muted-foreground">
-            {item.canPersist
-              ? "Ready to save to Board decision API."
-              : "Waiting for backend series id."}
+            Decisions are recorded to the Board at-risk API.
           </div>
           <button
             type="button"
@@ -189,11 +173,41 @@ function DecisionPanel({
             Finalize decision
           </button>
         </div>
+
+        <div className="rounded-md border border-border bg-background">
+          <div className="border-b border-border px-3 py-2 text-sm font-semibold">
+            Decision history
+          </div>
+          <div className="divide-y divide-border">
+            {history.length ? (
+              history.map((record) => (
+                <div key={record.id} className="px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{record.decision}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {record.createdAt ? new Date(record.createdAt).toLocaleString() : "No date"}
+                    </span>
+                  </div>
+                  {record.note ? (
+                    <div className="mt-1 text-xs text-muted-foreground">{record.note}</div>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <div className="px-3 py-6 text-sm text-muted-foreground">No prior decisions.</div>
+            )}
+          </div>
+        </div>
       </div>
     </PortalCard>
   );
 }
 
-function isObjectId(value: string) {
-  return /^[0-9a-fA-F]{24}$/.test(value);
+function MetricBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-background p-3">
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="mt-1 font-mono text-lg font-semibold">{value}</div>
+    </div>
+  );
 }

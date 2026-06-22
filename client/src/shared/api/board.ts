@@ -51,6 +51,72 @@ export interface AtRiskDecisionInput {
   note?: string;
 }
 
+export interface BoardPublishingScheduleItem {
+  seriesId: string;
+  title: string;
+  status: string;
+  publicationType?: PublicationType;
+  requestedPublicationType?: PublicationType;
+  publishAt?: string;
+  note?: string;
+  approvedAt?: string;
+  updatedAt?: string;
+  decidedBy?: string;
+  scheduleManagedBy?: string;
+}
+
+export interface BoardPublishingScheduleInput {
+  publicationType: PublicationType;
+  publishAt: string;
+  note?: string;
+}
+
+export interface CancellationCaseItem {
+  seriesId: string;
+  title: string;
+  status: string;
+  synopsis?: string;
+  cancellationRequestedAt?: string;
+  updatedAt?: string;
+  latestRanking?: {
+    id: string;
+    period: string;
+    voteCount: number;
+    readerScore: number;
+    finalScore: number;
+    status: string;
+  } | null;
+  latestDecision?: {
+    id: string;
+    decision: AtRiskDecisionValue;
+    note?: string;
+    decidedBy?: string;
+    createdAt?: string;
+  } | null;
+}
+
+export interface AtRiskDecisionRecord {
+  id: string;
+  seriesId: string;
+  decision: AtRiskDecisionValue;
+  note?: string;
+  decidedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BoardDecisionHistoryItem {
+  id: string;
+  type: "Series Approval" | "Cancellation Review" | "Ranking" | string;
+  target: string;
+  seriesId?: string;
+  result: string;
+  detail?: string;
+  actor?: string;
+  date?: string;
+  metadata?: Record<string, unknown>;
+}
+
 function normalizeStatus(status: string) {
   return status.toUpperCase().replaceAll("-", "_");
 }
@@ -82,6 +148,18 @@ async function boardReviewSeriesFallback() {
 }
 
 export const boardApi = {
+  publishingSchedule: () =>
+    api.get("/board/publishing-schedule").then(unwrap<BoardPublishingScheduleItem[]>),
+  savePublishingSchedule: (seriesId: string, input: BoardPublishingScheduleInput) =>
+    api.post(`/board/series/${seriesId}/publishing-schedule`, input).then(unwrap<unknown>),
+  cancellationCases: () =>
+    api.get("/board/cancellation-cases").then(unwrap<CancellationCaseItem[]>),
+  atRiskDecisions: (seriesId: string) =>
+    api.get(`/board/series/${seriesId}/at-risk-decisions`).then(unwrap<AtRiskDecisionRecord[]>),
+  decisionHistory: (type?: string) =>
+    api
+      .get("/board/decision-history", { params: type && type !== "all" ? { type } : undefined })
+      .then(unwrap<BoardDecisionHistoryItem[]>),
   queue: async () => {
     try {
       const queue = await api.get("/board/queue").then(unwrap<BoardQueueItem[]>);

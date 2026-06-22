@@ -1,4 +1,4 @@
-﻿import mongoose, { Schema, type Document } from "mongoose"
+import mongoose, { Schema, type Document } from "mongoose"
 import { AT_RISK_DECISIONS, BOARD_DECISION_STATUSES, BOARD_VOTE_VALUES, PUBLICATION_TYPES, type AtRiskDecision, type BoardDecisionStatus, type BoardVoteValue, type PublicationType } from "../../shared/workflow/status.js"
 
 export interface BoardMemberDocument extends Document {
@@ -72,6 +72,9 @@ export interface BoardDecisionDocument extends Document {
   status: BoardDecisionStatus
   result?: BoardVoteValue
   publicationType?: PublicationType
+  publishAt?: Date
+  scheduleNote?: string
+  scheduleManagedBy?: mongoose.Types.ObjectId
   note?: string
   decidedBy?: mongoose.Types.ObjectId
   finalizedAt?: Date
@@ -85,6 +88,9 @@ const boardDecisionSchema = new Schema<BoardDecisionDocument>(
     status: { type: String, enum: BOARD_DECISION_STATUSES, required: true, default: "PENDING", index: true },
     result: { type: String, enum: BOARD_VOTE_VALUES },
     publicationType: { type: String, enum: PUBLICATION_TYPES },
+    publishAt: { type: Date, index: true },
+    scheduleNote: { type: String, trim: true, maxlength: 2000 },
+    scheduleManagedBy: { type: Schema.Types.ObjectId, ref: "User" },
     note: { type: String, trim: true, maxlength: 2000 },
     decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
     finalizedAt: { type: Date },

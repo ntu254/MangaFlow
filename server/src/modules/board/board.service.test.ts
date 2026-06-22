@@ -25,6 +25,16 @@ const getOpenBoardReviewSession = vi.fn()
 const closeBoardReviewSession = vi.fn()
 const updateLatestManuscriptAfterDecision = vi.fn()
 const createAtRiskDecision = vi.fn()
+const listApprovedSeriesForSchedule = vi.fn()
+const listScheduleDecisions = vi.fn()
+const updateBoardSchedule = vi.fn()
+const listCancellationCaseSeries = vi.fn()
+const listLatestRankingsBySeries = vi.fn()
+const listAtRiskDecisionsBySeries = vi.fn()
+const listAtRiskDecisionsForSeries = vi.fn()
+const listBoardDecisionsForHistory = vi.fn()
+const listAtRiskDecisionsForHistory = vi.fn()
+const listFinalizedRankingsForHistory = vi.fn()
 
 vi.mock("./board.repository.js", () => ({
   closeBoardReviewSession,
@@ -41,6 +51,16 @@ vi.mock("./board.repository.js", () => ({
   updateLatestManuscriptAfterDecision,
   updateSeriesAfterDecision,
   createAtRiskDecision,
+  listApprovedSeriesForSchedule,
+  listScheduleDecisions,
+  updateBoardSchedule,
+  listCancellationCaseSeries,
+  listLatestRankingsBySeries,
+  listAtRiskDecisionsBySeries,
+  listAtRiskDecisionsForSeries,
+  listBoardDecisionsForHistory,
+  listAtRiskDecisionsForHistory,
+  listFinalizedRankingsForHistory,
 }))
 vi.mock("../../shared/workflow/events.js", () => ({
   notifyRole: vi.fn().mockResolvedValue([]),
@@ -241,7 +261,7 @@ describe("board.service", () => {
     getBoardSeries.mockResolvedValue({ id: "series-1", status: "ONGOING" })
 
     await expect(createAtRiskDecisionService("series-1", "board-1", "WARNING")).rejects.toMatchObject({
-      message: "At-risk decision requires Series in AT_RISK status",
+      message: "At-risk decision requires Series in AT_RISK status or a cancellation request",
       statusCode: 409,
     })
   })

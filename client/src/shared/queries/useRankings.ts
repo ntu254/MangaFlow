@@ -32,3 +32,15 @@ export function useFinalizeRanking() {
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
 }
+
+export function useSubmitRanking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rankingId: string) => rankingsApi.submit(rankingId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rankings"] });
+      toast.success("Ranking submitted");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}

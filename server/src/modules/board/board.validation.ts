@@ -1,4 +1,4 @@
-﻿import mongoose from "mongoose"
+import mongoose from "mongoose"
 import { z } from "zod"
 
 export const seriesIdParamsSchema = z.object({
@@ -31,4 +31,10 @@ export const boardTieBreakBodySchema = z.object({
 export const atRiskDecisionBodySchema = z.object({
   decision: z.enum(["CONTINUE", "WARNING", "CANCEL", "COMPLETE"]),
   note: z.string().max(2000).optional(),
+})
+
+export const boardScheduleBodySchema = z.object({
+  publicationType: z.enum(["WEEKLY", "MONTHLY"]),
+  publishAt: z.string().datetime({ offset: true }),
+  note: z.string().trim().max(2000).optional(),
 })

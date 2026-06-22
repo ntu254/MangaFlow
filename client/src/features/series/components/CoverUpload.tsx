@@ -93,7 +93,7 @@ export function CoverUpload({ seriesId, currentCover, onSuccess }: Props) {
       
       {currentCover && !isUploading && (
         <img
-          src={`/api/public/images/${currentCover}`}
+          src={currentCover.startsWith("http") || currentCover.startsWith("/") || currentCover.startsWith("data:") ? currentCover : `/api/public/images/${currentCover}`}
           alt="Cover"
           className="absolute inset-0 h-full w-full object-cover"
         />

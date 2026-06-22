@@ -127,12 +127,12 @@ const ADMIN_NAV: NavItem[] = [
     to: "/app/settings",
     label: "Settings",
     icon: Settings,
-    roles: ["mangaka", "editor", "assistant", "board"],
+    roles: ["mangaka", "editor", "assistant"],
   },
 ];
 
 const BOARD_NAV: NavItem[] = [
-  { to: "/app/dashboard", label: "Decision Portal", icon: LayoutDashboard, roles: ["board"] },
+  { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["board"] },
   {
     to: "/app/board/series-review",
     label: "Review Workspace",
@@ -155,7 +155,6 @@ const BOARD_NAV: NavItem[] = [
     roles: ["board"],
   },
   { to: "/app/board/decision-history", label: "Decision History", icon: History, roles: ["board"] },
-  { to: "/app/settings", label: "Settings", icon: Settings, roles: ["board"] },
 ];
 
 // Dedicated worker-view menu
