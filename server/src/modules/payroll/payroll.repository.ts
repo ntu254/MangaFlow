@@ -1,5 +1,5 @@
 import type { PopulateOptions } from "mongoose"
-import type { AssistantEarningStatus } from "../../shared/workflow/status.js"
+import type { AssistantEarningStatus, TaskCurrency } from "../../shared/workflow/status.js"
 import { Task } from "../task/task.model.js"
 import { AssistantEarning } from "./payroll.model.js"
 
@@ -9,6 +9,7 @@ export interface CreateEarningInput {
   chapterId: string
   assistantId: string
   baseRate: number
+  currency?: TaskCurrency
   deadlineMultiplier: number
   finalPayment: number
   isLate: boolean
@@ -30,6 +31,7 @@ export async function createEarningRecord(input: CreateEarningInput) {
     chapterId: input.chapterId,
     assistantId: input.assistantId,
     baseRate: input.baseRate,
+    currency: input.currency ?? "VND",
     deadlineMultiplier: input.deadlineMultiplier,
     finalPayment: input.finalPayment,
     isLate: input.isLate,
@@ -70,6 +72,7 @@ export async function updateEarningStatus(
   )
     .populate(EARNING_POPULATE)
     .lean()
+    .then((earning) => (earning ? withEarningDefaults(earning) : earning))
 }
 
 export async function listEarnings(query: Record<string, unknown>) {
@@ -77,4 +80,9 @@ export async function listEarnings(query: Record<string, unknown>) {
     .sort({ createdAt: -1 })
     .populate(EARNING_POPULATE)
     .lean()
+    .then((earnings) => earnings.map(withEarningDefaults))
+}
+
+function withEarningDefaults<T extends { currency?: TaskCurrency }>(earning: T): T & { currency: TaskCurrency } {
+  return { ...earning, currency: earning.currency ?? "VND" }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { TASK_STATUSES, TASK_PRIORITIES } from "../../shared/workflow/status.js"
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_CURRENCIES } from "../../shared/workflow/status.js"
 import { SeriesMember } from "../series/series.model.js"
 import { Task } from "./task.model.js"
 
@@ -27,6 +27,15 @@ describe("TASK_STATUSES", () => {
 describe("TASK_PRIORITIES", () => {
   it("contains expected priorities", () => {
     expect(TASK_PRIORITIES).toEqual(["LOW", "NORMAL", "HIGH", "URGENT"] as const)
+  })
+})
+
+describe("Task currency snapshots", () => {
+  it("uses the canonical task currency enum and defaults to VND", () => {
+    const currencyPath = Task.schema.path("currency")
+
+    expect(currencyPath.options.enum).toEqual(TASK_CURRENCIES)
+    expect(currencyPath.options.default).toBe("VND")
   })
 })
 

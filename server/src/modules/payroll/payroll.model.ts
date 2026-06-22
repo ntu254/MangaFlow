@@ -1,7 +1,9 @@
 import mongoose, { Schema, type Document } from "mongoose"
 import {
   ASSISTANT_EARNING_STATUSES,
+  TASK_CURRENCIES,
   type AssistantEarningStatus,
+  type TaskCurrency,
 } from "../../shared/workflow/status.js"
 
 export interface AssistantEarningDocument extends Document {
@@ -10,6 +12,7 @@ export interface AssistantEarningDocument extends Document {
   chapterId: mongoose.Types.ObjectId
   assistantId: mongoose.Types.ObjectId
   baseRate: number
+  currency: TaskCurrency
   deadlineMultiplier: number
   finalPayment: number
   isLate: boolean
@@ -30,6 +33,7 @@ const assistantEarningSchema = new Schema<AssistantEarningDocument>(
     chapterId: { type: Schema.Types.ObjectId, ref: "Chapter", required: true, index: true },
     assistantId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     baseRate: { type: Number, required: true, min: 0 },
+    currency: { type: String, enum: TASK_CURRENCIES, required: true, default: "VND" },
     deadlineMultiplier: { type: Number, required: true, min: 0 },
     finalPayment: { type: Number, required: true, min: 0 },
     isLate: { type: Boolean, default: false },

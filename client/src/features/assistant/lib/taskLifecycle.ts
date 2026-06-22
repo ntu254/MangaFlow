@@ -32,7 +32,7 @@ export const LIFECYCLE_META: Record<
   },
   "mangaka-approved": {
     label: "Mangaka approved",
-    hint: "Awaiting Editor final review",
+    hint: "Earnings unlock after Editor final approval.",
     order: 4,
   },
   "editor-approved": { label: "Completed", hint: "Editor approved", order: 5 },

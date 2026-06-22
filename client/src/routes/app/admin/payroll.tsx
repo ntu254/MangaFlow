@@ -4,6 +4,7 @@ import { Loader2, Wallet } from "lucide-react";
 import { PageHeader, StatCard } from "@/layouts/AppShell";
 import { payrollApi, type PayrollEarning } from "@/shared/api/payroll";
 import { extractErrorMessage } from "@/shared/api";
+import { payrollMoney } from "@/shared/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/admin/payroll")({
@@ -38,6 +39,7 @@ function AdminPayrollPage() {
   });
 
   const total = earnings.reduce((sum, earning) => sum + Number(earning.amount || 0), 0);
+  const totalCurrency = earnings[0]?.currency ?? "VND";
   const pending = earnings.filter((earning) => normalizeStatus(earning.status) === "pending");
   const confirmed = earnings.filter((earning) => normalizeStatus(earning.status) === "confirmed");
 
@@ -50,7 +52,11 @@ function AdminPayrollPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <StatCard label="Monthly payroll" value={formatMoney(total)} hint="Current loaded period" />
+        <StatCard
+          label="Monthly payroll"
+          value={formatMoney(total, totalCurrency)}
+          hint="Current loaded period"
+        />
         <StatCard label="Assistant earnings" value={String(earnings.length)} />
         <StatCard label="Pending confirm" value={String(pending.length)} />
         <StatCard label="Ready to pay" value={String(confirmed.length)} />
@@ -88,7 +94,9 @@ function AdminPayrollPage() {
                 <span className="font-medium">{personLabel(earning.assistantId)}</span>
                 <span className="truncate text-foreground/70">{entityLabel(earning.seriesId)}</span>
                 <span className="truncate text-foreground/70">{entityLabel(earning.taskId)}</span>
-                <span className="tabular-nums">{formatMoney(earning.amount)}</span>
+                <span className="tabular-nums">
+                  {formatMoney(earning.amount, earning.currency)}
+                </span>
                 <span className={statusTone(status)}>{status}</span>
                 <div className="flex justify-end gap-1.5">
                   {status === "pending" && taskId && (
@@ -149,10 +157,6 @@ function statusTone(status: string) {
   return "capitalize text-foreground/45";
 }
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("ja-JP", {
-    style: "currency",
-    currency: "JPY",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+function formatMoney(value: number, currency = "VND") {
+  return payrollMoney(value || 0, currency);
 }

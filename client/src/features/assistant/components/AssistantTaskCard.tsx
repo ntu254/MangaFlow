@@ -92,7 +92,7 @@ export function AssistantTaskCard({ task }: { task: Task }) {
           {normalized === "revision-requested"
             ? "Open feedback in Task Studio"
             : normalized === "mangaka-approved"
-              ? "Waiting Editor final review"
+              ? "Mangaka approved. Earnings unlock after Editor final approval."
               : normalized === "submitted"
                 ? "Mangaka is reviewing"
                 : normalized === "editor-approved"

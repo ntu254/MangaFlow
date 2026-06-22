@@ -1,4 +1,4 @@
-import type { TaskPriority, TaskStatus } from "../../../shared/workflow/status.js"
+import type { TaskCurrency, TaskPriority, TaskStatus } from "../../../shared/workflow/status.js"
 
 export interface CreateTaskResult {
   id: string
@@ -14,6 +14,7 @@ export interface CreateTaskResult {
   status: TaskStatus
   priority: TaskPriority
   baseRate: number
+  currency: TaskCurrency
   dueDate: Date
   contextPageIds: string[]
   createdAt: Date
@@ -35,6 +36,7 @@ export function toCreateTaskResult(task: any): CreateTaskResult {
     status: task.status as TaskStatus,
     priority: task.priority as TaskPriority,
     baseRate: task.baseRate,
+    currency: (task.currency ?? "VND") as TaskCurrency,
     dueDate: task.dueDate,
     contextPageIds: task.contextPageIds.map(String),
     createdAt: task.createdAt,

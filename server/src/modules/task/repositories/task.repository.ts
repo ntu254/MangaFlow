@@ -1,5 +1,5 @@
 import { Task } from "../task.model.js"
-import type { TaskStatus, TaskPriority } from "../../../shared/workflow/status.js"
+import type { TaskStatus, TaskPriority, TaskCurrency } from "../../../shared/workflow/status.js"
 
 export interface CreateTaskRecordInput {
   seriesId: string
@@ -14,6 +14,7 @@ export interface CreateTaskRecordInput {
   status?: TaskStatus
   priority?: TaskPriority
   baseRate: number
+  currency?: TaskCurrency
   dueDate: Date
   contextPageIds?: string[]
 }
@@ -32,6 +33,7 @@ export async function createTaskRecord(input: CreateTaskRecordInput): Promise<an
     status: input.status || "TODO",
     priority: input.priority || "NORMAL",
     baseRate: input.baseRate,
+    currency: input.currency ?? "VND",
     dueDate: input.dueDate,
     contextPageIds: input.contextPageIds || [],
   })

@@ -23,7 +23,7 @@ const taskTypeSchema = new Schema<TaskTypeDocument>(
     code: { type: String, required: true, unique: true, uppercase: true, trim: true, maxlength: 80 },
     description: { type: String, trim: true, maxlength: 500 },
     baseRate: { type: Number, required: true, min: 0 },
-    currency: { type: String, enum: TASK_CURRENCIES, required: true, default: "POINT" },
+    currency: { type: String, enum: TASK_CURRENCIES, required: true, default: "VND" },
     isActive: { type: Boolean, default: true, index: true },
     allowRegionTask: { type: Boolean, required: true, default: true },
     allowPageTask: { type: Boolean, required: true, default: true },
@@ -59,6 +59,7 @@ export interface TaskDocument extends Document {
   status: TaskStatus
   priority: TaskPriority
   baseRate: number
+  currency: TaskCurrency
   dueDate: Date
   contextPageIds: mongoose.Types.ObjectId[]
   /** Flow-07: points to the latest Submission so approve/revision can resolve the current version fast. */
@@ -96,6 +97,7 @@ const taskSchema = new Schema<TaskDocument>(
       default: "NORMAL",
     },
     baseRate: { type: Number, required: true, min: 0 },
+    currency: { type: String, enum: TASK_CURRENCIES, required: true, default: "VND" },
     dueDate: { type: Date, required: true },
     contextPageIds: [{ type: Schema.Types.ObjectId, ref: "Page" }],
     currentSubmissionId: { type: Schema.Types.ObjectId, ref: "Submission" },

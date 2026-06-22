@@ -25,6 +25,7 @@ describe("payroll service", () => {
     assignedTo: "assistant1",
     status: "EDITOR_APPROVED",
     baseRate: 100,
+    currency: "VND",
     dueDate: new Date("2026-06-08T10:00:00.000Z"),
     updatedAt: new Date("2026-06-08T09:00:00.000Z"),
   }
@@ -49,6 +50,7 @@ describe("payroll service", () => {
       id: "earning1",
       status: "PENDING",
       baseRate: 100,
+      currency: "VND",
       deadlineMultiplier: 1,
       finalPayment: 100,
     } as any)
@@ -58,13 +60,40 @@ describe("payroll service", () => {
       role: "MANGAKA",
     })
 
-    expect(result).toMatchObject({ status: "PENDING", finalPayment: 100 })
+    expect(result).toMatchObject({ status: "PENDING", finalPayment: 100, currency: "VND" })
     expect(repository.createEarningRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         baseRate: 100,
+        currency: "VND",
         deadlineMultiplier: 1,
         finalPayment: 100,
         assistantId: "assistant1",
+      }),
+    )
+  })
+
+  it("defaults earning currency to VND for older tasks without a currency snapshot", async () => {
+    vi.mocked(repository.getTaskForPayroll).mockResolvedValue({
+      ...approvedTask,
+      currency: undefined,
+    } as any)
+    vi.mocked(SeriesMember.findOne).mockResolvedValue({ isActive: true, role: "MANGAKA" } as any)
+    vi.mocked(repository.getEarningByTaskId).mockResolvedValue(null)
+    vi.mocked(repository.createEarningRecord).mockResolvedValue({
+      id: "earning1",
+      status: "PENDING",
+      currency: "VND",
+      finalPayment: 100,
+    } as any)
+
+    await calculateTaskEarningService("task1", {
+      userId: "mangaka1",
+      role: "MANGAKA",
+    })
+
+    expect(repository.createEarningRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currency: "VND",
       }),
     )
   })
