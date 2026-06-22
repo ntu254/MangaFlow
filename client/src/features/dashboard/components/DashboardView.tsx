@@ -31,7 +31,7 @@ export function DashboardView() {
 
   return (
     <div>
-      {role !== "mangaka" && role !== "admin" && role !== "board" && (
+      {role !== "mangaka" && role !== "admin" && role !== "board" && role !== "editor" && (
         <PageHeader
           title={`Welcome, ${firstName}`}
           jp={m.jp}

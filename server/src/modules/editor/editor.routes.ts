@@ -8,6 +8,11 @@ import { editorForwardBodySchema, editorRejectBodySchema, editorRevisionBodySche
 
 const router = Router()
 
+router.get("/managed-series", requireAuth, requireRole("EDITOR", "ADMIN"), asyncHandler(controller.listManagedSeries))
+router.get("/production-progress", requireAuth, requireRole("EDITOR", "ADMIN"), asyncHandler(controller.listProductionProgress))
+router.get("/ranking-risk", requireAuth, requireRole("EDITOR", "ADMIN"), asyncHandler(controller.listRankingRisk))
+router.get("/decision-history", requireAuth, requireRole("EDITOR", "ADMIN"), asyncHandler(controller.listDecisionHistory))
+router.get("/activity", requireAuth, requireRole("EDITOR", "ADMIN"), asyncHandler(controller.listActivity))
 router.get("/manuscripts/review-queue", requireAuth, requireRole("EDITOR"), asyncHandler(controller.listReviewQueue))
 router.get("/series/:seriesId/review", requireAuth, requireRole("EDITOR"), validate(editorSeriesIdParamsSchema, "params"), asyncHandler(controller.getSeriesReview))
 router.post("/series/:seriesId/start-review", requireAuth, requireRole("EDITOR"), validate(editorSeriesIdParamsSchema, "params"), asyncHandler(controller.startSeriesReview))

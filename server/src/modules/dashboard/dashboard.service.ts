@@ -4,6 +4,7 @@ import { Series } from "../series/series.model.js"
 import { Submission } from "../submission/submission.model.js"
 import { Task } from "../task/task.model.js"
 import { Chapter } from "../chapter/chapter.model.js"
+import { SeriesMember } from "../series/series.model.js"
 export async function getAdminSidebarSummaryService() {
   const [
     activeUsers,
@@ -133,7 +134,7 @@ export async function getMangakaSummaryService(userId: string) {
     recentActivity: recentActivity.map(ch => ({
       id: ch._id.toString(),
       seriesTitle: (ch.seriesId as any)?.title || "Unknown Series",
-      number: ch.number,
+      number: ch.chapterNumber,
       status: ch.status,
       updatedAt: ch.updatedAt,
     })),
@@ -169,15 +170,39 @@ export async function getAssistantSummaryService(_userId: string) {
 
 
 export async function getEditorSummaryService(userId: string) {
-  const assignedSeries = await Series.countDocuments({ editorId: userId })
-  const pendingApprovals = await Submission.countDocuments({ status: "EDITOR_FINAL_REVIEW" })
+  const memberships = await SeriesMember.find({
+    userId: new mongoose.Types.ObjectId(userId),
+    role: "EDITOR",
+    status: "ACTIVE",
+  }).select("seriesId").lean()
+  const assignedSeriesIds = memberships.map((membership) => membership.seriesId)
+  const assignedSeries = assignedSeriesIds.length
+    ? await Series.countDocuments({ _id: { $in: assignedSeriesIds } })
+    : 0
+  const pendingApprovals = assignedSeriesIds.length
+    ? await Submission.countDocuments({ seriesId: { $in: assignedSeriesIds }, status: "MANGAKA_APPROVED" })
+    : await Submission.countDocuments({ status: "MANGAKA_APPROVED" })
+  const proposalReviews = await Series.countDocuments({ status: "EDITOR_REVIEW" })
+  const deadlineSoon = assignedSeriesIds.length
+    ? await Task.countDocuments({
+        seriesId: { $in: assignedSeriesIds },
+        status: { $in: ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "MANGAKA_APPROVED"] },
+        dueDate: { $lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+      })
+    : 0
+  const atRiskItems = assignedSeriesIds.length
+    ? await Series.find({ _id: { $in: assignedSeriesIds }, status: "AT_RISK" }).select("title status updatedAt").lean()
+    : []
   
   return {
-    nextActions: [],
-    reviewQueue: { manuscripts: 0, productions: pendingApprovals, publications: 0 },
-    dueSoon: [],
-    atRiskItems: [],
-    quickStats: { assignedSeries, pendingApprovals },
+    nextActions: [
+      ...(proposalReviews > 0 ? [{ id: "proposal-review", type: "PROPOSAL_REVIEW", label: `${proposalReviews} proposal(s) need Editor review`, isUrgent: true, targetId: "editor-series-review" }] : []),
+      ...(pendingApprovals > 0 ? [{ id: "final-review", type: "FINAL_REVIEW", label: `${pendingApprovals} submission(s) need final approval`, isUrgent: true, targetId: "editor-final-reviews" }] : []),
+    ],
+    reviewQueue: { manuscripts: proposalReviews, productions: pendingApprovals, publications: 0 },
+    dueSoon: deadlineSoon ? [{ id: "deadline-risk", label: `${deadlineSoon} active task(s) due within 3 days`, count: deadlineSoon }] : [],
+    atRiskItems,
+    quickStats: { assignedSeries, pendingApprovals, deadlineSoon },
     recentActivity: []
   }
 }

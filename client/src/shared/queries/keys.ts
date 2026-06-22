@@ -53,6 +53,11 @@ export const qk = {
     finalReviewQueue: (seriesId?: string) =>
       ["editor", "final-review-queue", seriesId ?? "all"] as const,
     task: (taskId: string) => ["editor", "task", taskId] as const,
+    managedSeries: () => ["editor", "managed-series"] as const,
+    productionProgress: () => ["editor", "production-progress"] as const,
+    rankingRisk: () => ["editor", "ranking-risk"] as const,
+    decisionHistory: () => ["editor", "decision-history"] as const,
+    activity: () => ["editor", "activity"] as const,
   },
   board: {
     seriesReviewQueue: () => ["board", "series-review-queue"] as const,
