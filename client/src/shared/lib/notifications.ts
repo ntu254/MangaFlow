@@ -20,6 +20,7 @@ function load(): NotificationItem[] {
 
 let store: NotificationItem[] = load();
 const listeners = new Set<() => void>();
+const serverSnapshot = seedNotifications;
 
 function emit() {
   try {
@@ -62,7 +63,7 @@ export function useNotifications(userId?: string) {
       return () => listeners.delete(cb);
     },
     () => store,
-    () => store,
+    () => serverSnapshot,
   );
   const visible = snap.filter((n) => n.status !== "ARCHIVED");
   return userId ? visible.filter((n) => n.userId === userId) : visible;

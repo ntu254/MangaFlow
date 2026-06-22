@@ -74,6 +74,12 @@ export interface AuditLogPage {
 }
 
 export const auditLogsApi = {
-  list: (params?: { action?: string; actorId?: string; targetId?: string; page?: number }) =>
-    api.get("/audit-logs", { params: { limit: 20, ...params } }).then(unwrap<AuditLogPage>),
+  list: (params?: {
+    action?: string;
+    actorId?: string;
+    targetId?: string;
+    page?: number;
+    limit?: number;
+  }) =>
+    api.get("/admin/audit-logs", { params: { limit: 20, ...params } }).then(unwrap<AuditLogPage>),
 };

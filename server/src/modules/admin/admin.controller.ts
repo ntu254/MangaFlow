@@ -43,7 +43,7 @@ export async function createAdminUser(req: Request, res: Response, next: NextFun
       notes?: string
       role: UserRole
       isActive?: boolean
-    })
+    }, req.user!.userId)
     res.status(201).json({ success: true, message: "User created successfully", data: toAdminUserResponse(user) })
   } catch (err) {
     next(err)
@@ -52,7 +52,7 @@ export async function createAdminUser(req: Request, res: Response, next: NextFun
 
 export async function updateAdminUserRole(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const user = await updateAdminUserRoleService(String(req.params.userId), (req.body as { role: UserRole }).role)
+    const user = await updateAdminUserRoleService(String(req.params.userId), (req.body as { role: UserRole }).role, req.user!.userId)
     res.json({ success: true, message: "User role updated", data: user })
   } catch (err) {
     next(err)
@@ -80,7 +80,7 @@ export async function updateAdminUserStatus(req: Request, res: Response, next: N
   try {
     const isActive = (req.body as { isActive: boolean }).isActive
     const user = isActive
-      ? await activateAdminUserService(String(req.params.userId))
+      ? await activateAdminUserService(String(req.params.userId), req.user!.userId)
       : await suspendAdminUserService(req.user!.userId, String(req.params.userId))
     res.json({ success: true, message: isActive ? "User activated" : "User suspended", data: user })
   } catch (err) {
@@ -178,7 +178,7 @@ export async function listAdminTaskTypes(_req: Request, res: Response, next: Nex
 
 export async function createAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const taskType = await createAdminTaskTypeService(req.body as TaskTypeInput)
+    const taskType = await createAdminTaskTypeService(req.body as TaskTypeInput, req.user!.userId)
     res.status(201).json({ success: true, message: "Task type created", data: toAdminTaskTypeResponse(taskType) })
   } catch (err) {
     next(err)
@@ -187,7 +187,7 @@ export async function createAdminTaskType(req: Request, res: Response, next: Nex
 
 export async function updateAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const taskType = await updateAdminTaskTypeService(String(req.params.taskTypeId), req.body as TaskTypeUpdateInput)
+    const taskType = await updateAdminTaskTypeService(String(req.params.taskTypeId), req.body as TaskTypeUpdateInput, req.user!.userId)
     res.json({ success: true, message: "Task type updated", data: toAdminTaskTypeResponse(taskType) })
   } catch (err) {
     next(err)
@@ -198,8 +198,8 @@ export async function updateAdminTaskTypeStatus(req: Request, res: Response, nex
   try {
     const isActive = (req.body as { isActive: boolean }).isActive
     const taskType = isActive
-      ? await activateAdminTaskTypeService(String(req.params.taskTypeId))
-      : await deactivateAdminTaskTypeService(String(req.params.taskTypeId))
+      ? await activateAdminTaskTypeService(String(req.params.taskTypeId), req.user!.userId)
+      : await deactivateAdminTaskTypeService(String(req.params.taskTypeId), req.user!.userId)
     res.json({ success: true, message: isActive ? "Task type activated" : "Task type deactivated", data: toAdminTaskTypeResponse(taskType) })
   } catch (err) {
     next(err)
@@ -208,7 +208,7 @@ export async function updateAdminTaskTypeStatus(req: Request, res: Response, nex
 
 export async function deleteAdminTaskType(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const taskType = await deleteAdminTaskTypeService(String(req.params.taskTypeId))
+    const taskType = await deleteAdminTaskTypeService(String(req.params.taskTypeId), req.user!.userId)
     res.json({ success: true, message: "Task type deleted", data: taskType ? toAdminTaskTypeResponse(taskType) : null })
   } catch (err) {
     next(err)
