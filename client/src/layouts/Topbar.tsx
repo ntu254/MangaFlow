@@ -87,6 +87,10 @@ export function Topbar() {
             label = "Final Reviews";
           }
 
+          if (p === "series" && rawParts.includes("assistant")) {
+            label = "My Team";
+          }
+
           if (isSeriesId) {
             label = seriesTitle || "Untitled draft";
             // Truncate if too long
