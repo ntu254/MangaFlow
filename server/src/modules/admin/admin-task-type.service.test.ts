@@ -8,6 +8,7 @@ const updateTaskType = vi.fn()
 const getTaskType = vi.fn()
 const taskTypeInUse = vi.fn()
 const deleteTaskType = vi.fn()
+const recordAuditLog = vi.fn()
 
 vi.mock("./admin.repository.js", () => ({
   listTaskTypes,
@@ -20,10 +21,17 @@ vi.mock("./admin.repository.js", () => ({
   deleteTaskType,
 }))
 
+vi.mock("../../shared/workflow/events.js", () => ({
+  recordAuditLog,
+}))
+
 const service = await import("./admin.service.js")
 
 describe("admin task type service", () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    recordAuditLog.mockResolvedValue(null)
+  })
 
   it("lists all task types for Admin configuration", async () => {
     listTaskTypes.mockResolvedValue([{ name: "Lettering", isActive: false }])
@@ -36,8 +44,14 @@ describe("admin task type service", () => {
     getTaskTypeByCode.mockResolvedValue(null)
     createTaskType.mockResolvedValue({ name: "Cleanup", code: "CLEANUP", baseRate: 100, isActive: true })
 
-    await expect(service.createAdminTaskTypeService({ name: "Cleanup", code: "CLEANUP", description: "Clean page art", baseRate: 100 }))
+    await expect(service.createAdminTaskTypeService({ name: "Cleanup", code: "CLEANUP", description: "Clean page art", baseRate: 100 }, "admin1"))
       .resolves.toMatchObject({ name: "Cleanup", baseRate: 100 })
+    expect(recordAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      event: "CONFIG_UPDATED",
+      actorId: "admin1",
+      entityType: "TaskType",
+      metadata: expect.objectContaining({ action: "TASK_TYPE_CREATED" }),
+    }))
   })
 
   it("rejects duplicate task type names", async () => {
@@ -49,10 +63,20 @@ describe("admin task type service", () => {
 
   it("updates editable task type fields", async () => {
     getTaskTypeByName.mockResolvedValue(null)
+    getTaskType.mockResolvedValue({ _id: "type1", name: "Lettering", description: "Old", baseRate: 100 })
     updateTaskType.mockResolvedValue({ name: "Lettering Updated", description: "Updated", baseRate: 150 })
 
-    await expect(service.updateAdminTaskTypeService("type1", { name: "Lettering Updated", description: "Updated", baseRate: 150 }))
+    await expect(service.updateAdminTaskTypeService("type1", { name: "Lettering Updated", description: "Updated", baseRate: 150 }, "admin1"))
       .resolves.toMatchObject({ name: "Lettering Updated", description: "Updated", baseRate: 150 })
+    expect(recordAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      event: "CONFIG_UPDATED",
+      actorId: "admin1",
+      entityType: "TaskType",
+      metadata: expect.objectContaining({
+        action: "TASK_TYPE_UPDATED",
+        changedFields: ["name", "description", "baseRate"],
+      }),
+    }))
   })
 
   it("rejects duplicate task type names during update", async () => {
@@ -64,11 +88,14 @@ describe("admin task type service", () => {
   })
 
   it("toggles active state through explicit services", async () => {
+    getTaskType.mockResolvedValueOnce({ _id: "type1", name: "Tone", isActive: false })
+    getTaskType.mockResolvedValueOnce({ _id: "type1", name: "Tone", isActive: true })
     updateTaskType.mockResolvedValueOnce({ name: "Tone", isActive: true })
     updateTaskType.mockResolvedValueOnce({ name: "Tone", isActive: false })
 
-    await expect(service.activateAdminTaskTypeService("type1")).resolves.toMatchObject({ isActive: true })
-    await expect(service.deactivateAdminTaskTypeService("type1")).resolves.toMatchObject({ isActive: false })
+    await expect(service.activateAdminTaskTypeService("type1", "admin1")).resolves.toMatchObject({ isActive: true })
+    await expect(service.deactivateAdminTaskTypeService("type1", "admin1")).resolves.toMatchObject({ isActive: false })
+    expect(recordAuditLog).toHaveBeenCalledTimes(2)
   })
 
   it("hard-deletes unused task types", async () => {

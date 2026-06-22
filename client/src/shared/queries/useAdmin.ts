@@ -53,7 +53,13 @@ export function useUpdateTaskRateStatus() {
   });
 }
 
-export function useAuditLogs(filters: { action?: string; actorId?: string; targetId?: string }) {
+export function useAuditLogs(filters: {
+  action?: string;
+  actorId?: string;
+  targetId?: string;
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
     queryKey: ["admin", "audit-logs", filters],
     queryFn: () => auditLogsApi.list(filters),
