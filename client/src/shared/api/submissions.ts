@@ -10,6 +10,16 @@ export type SubmissionStatus =
 
 export type PopulatedRef = string | { _id?: string; id?: string; title?: string; name?: string };
 export type FileAssetRef = string | { _id?: string; id?: string; originalName?: string };
+export type PageRef =
+  | string
+  | {
+      _id?: string;
+      id?: string;
+      pageNumber?: number;
+      originalFileAssetId?: FileAssetRef;
+      workingFileAssetId?: FileAssetRef;
+      thumbnailFileAssetId?: FileAssetRef;
+    };
 
 export function refId(value: PopulatedRef | undefined): string {
   if (!value) return "";
@@ -28,7 +38,7 @@ export interface Submission {
   taskId: PopulatedRef;
   seriesId: PopulatedRef;
   chapterId: PopulatedRef;
-  pageId?: string;
+  pageId?: PageRef;
   regionId?: string;
   submittedBy: {
     _id: string;

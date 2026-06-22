@@ -11,6 +11,7 @@ import type { SubmissionActor } from "../policies/submission-access.policy.js"
 import { assertSubmissionSeriesMember } from "../policies/submission-access.policy.js"
 import { assertSubmissionPayload, assertTaskSubmittable } from "../guards/submission-transition.guard.js"
 import { checkObjectExists, createPresignedUploadUrl } from "../../chapter/file.service.js"
+import { Types } from "mongoose"
 import { FileAsset } from "../../chapter/chapter.model.js"
 import { config } from "../../../shared/utils/env.js"
 
@@ -137,9 +138,33 @@ export async function getTaskUploadUrlService(input: GetTaskUploadUrlInput) {
 
   assertTaskSubmittable(task.status)
 
-  const signed = await createPresignedUploadUrl(input.originalName, input.contentType)
+  const fileAssetId = new Types.ObjectId().toString();
+  const { pathBuilder } = await import("../../chapter/file.service.js")
+  
+  const ext = input.originalName.split(".").pop()?.toLowerCase() || "bin"
+  const filename = `${fileAssetId}.${ext}`
+  
+  let customR2Key: string;
+  if (task.pageId) {
+    customR2Key = pathBuilder.pageTaskSubmission(
+      String(task.seriesId),
+      String(task.chapterId),
+      String(task.pageId),
+      input.taskId,
+      fileAssetId, // using fileAssetId as submission folder
+      1,
+      filename
+    )
+  } else {
+    // Fallback if no pageId
+    const ENV = process.env.NODE_ENV === "production" ? "prod" : "dev";
+    customR2Key = `${ENV}/tenant_main/series/${task.seriesId}/chapters/${task.chapterId}/tasks/${input.taskId}/submissions/${fileAssetId}/v1/${filename}`
+  }
+
+  const signed = await createPresignedUploadUrl(input.originalName, input.contentType, undefined, customR2Key)
 
   const fileAsset = await FileAsset.create({
+    _id: fileAssetId,
     originalName: input.originalName,
     mimeType: input.contentType,
     size: input.size,

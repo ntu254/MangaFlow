@@ -7,6 +7,13 @@ import {
   requestManuscriptRevisionService,
   startEditorReviewService,
 } from "../manuscript/manuscript.service.js"
+import {
+  listEditorActivityService,
+  listEditorDecisionHistoryService,
+  listEditorManagedSeriesService,
+  listEditorProductionProgressService,
+  listEditorRankingRiskService,
+} from "./editor-workspace.service.js"
 
 export async function listReviewQueue(req: Request, res: Response): Promise<void> {
   const data = await listEditorReviewQueueService(req.user!)
@@ -48,4 +55,29 @@ export async function forwardToBoard(req: Request, res: Response): Promise<void>
     ...req.body,
   })
   res.json({ success: true, message: "Series forwarded to Board", data })
+}
+
+export async function listManagedSeries(req: Request, res: Response): Promise<void> {
+  const data = await listEditorManagedSeriesService(req.user!)
+  res.json({ success: true, message: "Editor managed series retrieved", data })
+}
+
+export async function listProductionProgress(req: Request, res: Response): Promise<void> {
+  const data = await listEditorProductionProgressService(req.user!)
+  res.json({ success: true, message: "Editor production progress retrieved", data })
+}
+
+export async function listRankingRisk(req: Request, res: Response): Promise<void> {
+  const data = await listEditorRankingRiskService(req.user!)
+  res.json({ success: true, message: "Editor ranking risk retrieved", data })
+}
+
+export async function listDecisionHistory(req: Request, res: Response): Promise<void> {
+  const data = await listEditorDecisionHistoryService(req.user!)
+  res.json({ success: true, message: "Editor decision history retrieved", data })
+}
+
+export async function listActivity(req: Request, res: Response): Promise<void> {
+  const data = await listEditorActivityService(req.user!)
+  res.json({ success: true, message: "Editor activity retrieved", data })
 }

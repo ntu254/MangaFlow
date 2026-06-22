@@ -1,4 +1,6 @@
 import { useSidebar } from "@/layouts/SidebarContext";
+import { series as mockSeries } from "@/entities";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import {
   createFileRoute,
   Link,
@@ -116,12 +118,26 @@ function SeriesDetailLayout() {
     );
 
   const { series, chapters, currentChapter } = summary;
+  
+  // Find mock series to get cover image fallback
+  let mockIndex = 0;
+  if (id) {
+    const charCodes = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    mockIndex = charCodes % mockSeries.length;
+  }
+  const mockSeriesData = mockSeries.find((s) => s.id === id || s.title === series.title) || mockSeries[mockIndex];
+
+  // Try to find an uploaded cover draft file in series summary files as fallback
+  const filesList = summary?.files ?? [];
+  const coverDraftFile = filesList.find((f: any) => f.assetType === "cover_draft" || f.category === "COVER_DRAFT");
+  const coverDraftUrlState = useFileObjectUrl(series?.cover ? undefined : coverDraftFile?.id);
 
   // Safe defaults for properties that might not exist yet
-  series.cover =
-    series.cover ||
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
-  series.jp = series.jp || "";
+  const resolvedCover = series?.cover
+    ? (series.cover.startsWith("http") || series.cover.startsWith("/") || series.cover.startsWith("data:") ? series.cover : `/api/public/images/${series.cover}`)
+    : (coverDraftUrlState?.data || "");
+
+  series.jp = series.jp || mockSeriesData?.jp || "";
 
   const displayChapters = chapters && chapters.length > 0 ? chapters : [];
   const displayCurrentChapter =
@@ -147,11 +163,18 @@ function SeriesDetailLayout() {
           {/* Left Section */}
           <div className="flex gap-6 min-w-0 flex-1">
             {/* Cover */}
-            <img
-              src={series.cover}
-              alt={series.title}
-              className="w-[120px] h-[176px] rounded-lg shadow-xl shrink-0 object-cover border border-white/10"
-            />
+            {resolvedCover ? (
+              <img
+                src={resolvedCover}
+                alt={series.title}
+                className="w-[120px] h-[176px] rounded-lg shadow-xl shrink-0 object-cover border border-white/10"
+              />
+            ) : (
+              <div className="w-[120px] h-[176px] rounded-lg shadow-xl shrink-0 border border-foreground/10 bg-foreground/5 flex flex-col items-center justify-center p-3 text-center">
+                <BookOpen className="w-7 h-7 text-foreground/30 mb-1.5" />
+                <span className="text-[10px] text-foreground/45 font-bold uppercase tracking-wider">No Cover</span>
+              </div>
+            )}
 
             {/* Details */}
             <div className="flex flex-col justify-between py-1 min-w-0">

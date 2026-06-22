@@ -136,6 +136,7 @@ export interface UpdateSeriesInput {
   publicationType?: PublicationType
   tags?: string[]
   genres?: string[]
+  cover?: string
 }
 
 const UPDATABLE_STATUSES: SeriesStatus[] = ["DRAFT", "REVISION_REQUESTED"]
@@ -170,6 +171,7 @@ export async function updateSeriesRepository(
   if (input.publicationType !== undefined) patch.publicationType = input.publicationType
   if (input.tags !== undefined) patch.tags = input.tags
   if (input.genres !== undefined) patch.genres = input.genres
+  if (input.cover !== undefined) patch.cover = input.cover
 
   // Only rebuild the slug when the title actually changes. Slugs must stay
   // unique, so leave existing one in place if title is unchanged.
@@ -194,6 +196,7 @@ export async function updateSeriesRepository(
     publicationType: series.publicationType,
     tags: series.tags ?? [],
     genres: series.genres ?? [],
+    cover: series.cover,
     ownerId: String(series.ownerId),
     status: series.status as SeriesStatus,
     createdAt: series.createdAt,

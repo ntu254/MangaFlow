@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Crown, Loader2, Plus, Power, PowerOff } from "lucide-react";
-import { PageHeader } from "@/layouts/AppShell";
-import { ROLES } from "@/shared/lib/role";
+import { EmptyState, PageHeader } from "@/layouts/AppShell";
+import { ROLES, useRole } from "@/shared/lib/role";
 import {
   useAddBoardMember,
   useBoardMembers,
@@ -83,8 +83,15 @@ function RolesPage() {
 }
 
 function BoardMembersPanel() {
-  const { data: users = [], isLoading: isUsersLoading } = useUsers();
-  const { data: members = [], isLoading: isMembersLoading, error } = useBoardMembers();
+  const { user } = useRole();
+  const canAccessAdmin = user?.role === "ADMIN";
+  const adminQueryOptions = { enabled: canAccessAdmin };
+  const { data: users = [], isLoading: isUsersLoading } = useUsers(adminQueryOptions);
+  const {
+    data: members = [],
+    isLoading: isMembersLoading,
+    error,
+  } = useBoardMembers(adminQueryOptions);
   const addMember = useAddBoardMember();
   const updateStatus = useUpdateBoardMemberStatus();
   const setChair = useSetBoardChair();
@@ -98,6 +105,17 @@ function BoardMembersPanel() {
 
   const isLoading = isUsersLoading || isMembersLoading;
   const isMutating = addMember.isPending || updateStatus.isPending || setChair.isPending;
+
+  if (!canAccessAdmin) {
+    return (
+      <div className="rounded-md border border-foreground/10 bg-card p-4">
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to load and manage board membership."
+        />
+      </div>
+    );
+  }
 
   function addSelectedMember() {
     if (!selectedUserId) return;

@@ -20,7 +20,8 @@ const SERVER_ROLES: ServerRole[] = ["ADMIN", "MANGAKA", "EDITOR", "ASSISTANT", "
 
 function UserManagementPage() {
   const { user: me } = useRole();
-  const { data: users, isLoading, error } = useUsers();
+  const canAccessAdmin = me?.role === "ADMIN";
+  const { data: users, isLoading, error } = useUsers({ enabled: canAccessAdmin });
   const updateRole = useUpdateUserRole();
   const updateStatus = useUpdateUserStatus();
   const deleteUser = useDeleteUser();
@@ -30,7 +31,7 @@ function UserManagementPage() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
-  const list: AdminUser[] = users ?? [];
+  const list: AdminUser[] = useMemo(() => users ?? [], [users]);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return list.filter((user) => {
@@ -55,6 +56,18 @@ function UserManagementPage() {
     }
     return c;
   }, [list]);
+
+  if (!canAccessAdmin) {
+    return (
+      <div className="admin-console admin-page space-y-5">
+        <PageHeader title="Users" jp="User admin" />
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to load and manage user accounts."
+        />
+      </div>
+    );
+  }
 
   if (error) {
     return (

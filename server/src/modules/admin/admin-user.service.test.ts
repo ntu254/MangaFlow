@@ -11,6 +11,7 @@ const updateBoardMember = vi.fn()
 const hashPassword = vi.fn()
 const revokeAllUserTokens = vi.fn()
 const toAuthUser = vi.fn()
+const recordAuditLog = vi.fn()
 
 vi.mock("./admin.repository.js", () => ({
   listUsers,
@@ -29,12 +30,17 @@ vi.mock("../auth/auth.service.js", () => ({
   toAuthUser,
 }))
 
+vi.mock("../../shared/workflow/events.js", () => ({
+  recordAuditLog,
+}))
+
 const service = await import("./admin.service.js")
 
 describe("admin user service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     hashPassword.mockResolvedValue("hashed-password")
+    recordAuditLog.mockResolvedValue(null)
     toAuthUser.mockImplementation((id: string) => Promise.resolve({ id, email: "user@example.com", name: "User", role: "MANGAKA", isActive: true }))
   })
 
@@ -49,9 +55,15 @@ describe("admin user service", () => {
     getUserByEmail.mockResolvedValue(null)
     createUser.mockResolvedValue({ id: "user1" })
 
-    const result = await service.createAdminUserService({ email: "New@Example.com", password: "Password123", name: "New User", role: "ASSISTANT" })
+    const result = await service.createAdminUserService({ email: "New@Example.com", password: "Password123", name: "New User", role: "ASSISTANT" }, "admin1")
 
     expect(createUser).toHaveBeenCalledWith(expect.objectContaining({ email: "new@example.com", passwordHash: "hashed-password", role: "ASSISTANT" }))
+    expect(recordAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      event: "CONFIG_UPDATED",
+      actorId: "admin1",
+      entityType: "User",
+      entityId: "user1",
+    }))
     expect(result).toMatchObject({ id: "user1" })
   })
 
@@ -79,13 +91,22 @@ describe("admin user service", () => {
   })
 
   it("revokes tokens after role update and disables stale board member when role is not BOARD", async () => {
+    getUserById.mockResolvedValue({ id: "user1", role: "BOARD" })
     updateUser.mockResolvedValue({ id: "user1" })
     getBoardMemberByUser.mockResolvedValue({ userId: "user1" })
 
-    await service.updateAdminUserRoleService("user1", "EDITOR")
+    await service.updateAdminUserRoleService("user1", "EDITOR", "admin1")
 
     expect(updateBoardMember).toHaveBeenCalledWith("user1", { isActive: false, isChair: false })
     expect(revokeAllUserTokens).toHaveBeenCalledWith("user1")
+    expect(recordAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      event: "USER_ROLE_UPDATED",
+      actorId: "admin1",
+      metadata: expect.objectContaining({
+        from: { role: "BOARD" },
+        to: { role: "EDITOR" },
+      }),
+    }))
   })
 
   it("updates user profile fields and lowercases changed email", async () => {
@@ -131,11 +152,16 @@ describe("admin user service", () => {
   })
 
   it("activates a suspended user", async () => {
+    getUserById.mockResolvedValue({ id: "user1", isActive: false })
     updateUser.mockResolvedValue({ id: "user1" })
 
-    const result = await service.activateAdminUserService("user1")
+    const result = await service.activateAdminUserService("user1", "admin1")
 
     expect(updateUser).toHaveBeenCalledWith("user1", { isActive: true })
+    expect(recordAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      event: "USER_STATUS_UPDATED",
+      actorId: "admin1",
+    }))
     expect(result).toMatchObject({ id: "user1" })
   })
 

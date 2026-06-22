@@ -1,4 +1,5 @@
 import { AppError } from "../../../shared/errors/AppError.js"
+import { recordAuditLog } from "../../../shared/workflow/events.js"
 import { hashPassword, revokeAllUserTokens, toAuthUser } from "../../auth/auth.service.js"
 import type { UserRole } from "../../auth/auth.types.js"
 import * as repository from "../admin.repository.js"
@@ -28,7 +29,7 @@ export async function listAdminUsersService() {
   return repository.listUsers()
 }
 
-export async function createAdminUserService(input: AdminCreateUserInput) {
+export async function createAdminUserService(input: AdminCreateUserInput, actorId?: string) {
   const existing = await repository.getUserByEmail(input.email)
   if (existing) throw new AppError("Email already registered", 409)
 
@@ -44,10 +45,26 @@ export async function createAdminUserService(input: AdminCreateUserInput) {
     isActive: input.isActive,
   })
 
+  await recordAdminAudit({
+    event: "CONFIG_UPDATED",
+    actorId,
+    entityType: "User",
+    entityId: toAuditId(user),
+    metadata: {
+      action: "USER_CREATED",
+      role: user.role,
+      isActive: user.isActive,
+      changedFields: ["email", "name", "role", "isActive"],
+    },
+  })
+
   return user
 }
 
-export async function updateAdminUserRoleService(userId: string, role: UserRole) {
+export async function updateAdminUserRoleService(userId: string, role: UserRole, actorId?: string) {
+  const existing = await repository.getUserById(userId)
+  if (!existing) throw new AppError("User not found", 404)
+
   const user = await repository.updateUser(userId, { role })
   if (!user) throw new AppError("User not found", 404)
 
@@ -57,6 +74,17 @@ export async function updateAdminUserRoleService(userId: string, role: UserRole)
   }
 
   await revokeAllUserTokens(userId)
+  await recordAdminAudit({
+    event: "USER_ROLE_UPDATED",
+    actorId,
+    entityType: "User",
+    entityId: userId,
+    metadata: {
+      changedFields: ["role"],
+      from: { role: existing.role },
+      to: { role },
+    },
+  })
   return toAuthUser(user.id)
 }
 
@@ -95,20 +123,90 @@ export async function updateAdminUserService(actorId: string, userId: string, in
     await revokeAllUserTokens(userId)
   }
 
+  if (input.role !== undefined && input.role !== existing.role) {
+    await recordAdminAudit({
+      event: "USER_ROLE_UPDATED",
+      actorId,
+      entityType: "User",
+      entityId: userId,
+      metadata: {
+        changedFields: ["role"],
+        from: { role: existing.role },
+        to: { role: input.role },
+      },
+    })
+  }
+
+  if (input.isActive !== undefined && input.isActive !== existing.isActive) {
+    await recordAdminAudit({
+      event: "USER_STATUS_UPDATED",
+      actorId,
+      entityType: "User",
+      entityId: userId,
+      metadata: {
+        changedFields: ["isActive"],
+        from: { isActive: existing.isActive },
+        to: { isActive: input.isActive },
+      },
+    })
+  }
+
+  const profileChanges = changedFields(existing, updates, ["email", "name", "displayName", "team", "notes"])
+  if (profileChanges.length > 0) {
+    await recordAdminAudit({
+      event: "CONFIG_UPDATED",
+      actorId,
+      entityType: "User",
+      entityId: userId,
+      metadata: {
+        action: "USER_PROFILE_UPDATED",
+        changedFields: profileChanges,
+        from: pickFields(existing, profileChanges),
+        to: pickFields(updates, profileChanges),
+      },
+    })
+  }
+
   return user
 }
 
 export async function suspendAdminUserService(actorId: string, userId: string) {
   if (actorId === userId) throw new AppError("Admin cannot suspend their own account", 409)
+  const existing = await repository.getUserById(userId)
+  if (!existing) throw new AppError("User not found", 404)
   const user = await repository.updateUser(userId, { isActive: false })
   if (!user) throw new AppError("User not found", 404)
   await revokeAllUserTokens(userId)
+  await recordAdminAudit({
+    event: "USER_STATUS_UPDATED",
+    actorId,
+    entityType: "User",
+    entityId: userId,
+    metadata: {
+      changedFields: ["isActive"],
+      from: { isActive: existing.isActive },
+      to: { isActive: false },
+    },
+  })
   return toAuthUser(user.id)
 }
 
-export async function activateAdminUserService(userId: string) {
+export async function activateAdminUserService(userId: string, actorId?: string) {
+  const existing = await repository.getUserById(userId)
+  if (!existing) throw new AppError("User not found", 404)
   const user = await repository.updateUser(userId, { isActive: true })
   if (!user) throw new AppError("User not found", 404)
+  await recordAdminAudit({
+    event: "USER_STATUS_UPDATED",
+    actorId,
+    entityType: "User",
+    entityId: userId,
+    metadata: {
+      changedFields: ["isActive"],
+      from: { isActive: existing.isActive },
+      to: { isActive: true },
+    },
+  })
   return toAuthUser(user.id)
 }
 
@@ -122,5 +220,42 @@ export async function deleteAdminUserService(actorId: string, userId: string) {
   if (member) await repository.updateBoardMember(userId, { isActive: false, isChair: false })
 
   await revokeAllUserTokens(userId)
+  await recordAdminAudit({
+    event: "CONFIG_UPDATED",
+    actorId,
+    entityType: "User",
+    entityId: userId,
+    metadata: {
+      action: "USER_DELETED",
+      deletedRole: user.role,
+      deletedEmail: user.email,
+    },
+  })
   return user
+}
+
+function toAuditId(document: any) {
+  return String(document?._id ?? document?.id)
+}
+
+function changedFields(source: any, patch: Record<string, unknown>, fields: string[]) {
+  return fields.filter((field) => field in patch && source[field] !== patch[field])
+}
+
+function pickFields(source: any, fields: string[]) {
+  return Object.fromEntries(fields.map((field) => [field, source[field]]))
+}
+
+async function recordAdminAudit(input: {
+  event: string
+  actorId?: string
+  entityType: string
+  entityId: string
+  metadata?: Record<string, unknown>
+}) {
+  try {
+    await recordAuditLog(input)
+  } catch {
+    // Admin audit is best-effort in this MVP; business action should not fail on log write.
+  }
 }

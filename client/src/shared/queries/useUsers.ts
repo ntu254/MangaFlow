@@ -2,12 +2,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { boardMembersApi, usersApi, type CreateUserInput, type ServerRole } from "@/shared/api";
 import { extractErrorMessage } from "@/shared/api";
+import { useRole } from "@/shared/lib/role";
 import { qk } from "./keys";
 
-export function useUsers() {
+type QueryGate = { enabled?: boolean };
+
+function useAdminQueryEnabled(options: QueryGate = {}) {
+  const { user, loading } = useRole();
+  return (options.enabled ?? true) && !loading && user?.role === "ADMIN";
+}
+
+export function useUsers(options: QueryGate = {}) {
+  const enabled = useAdminQueryEnabled(options);
   return useQuery({
     queryKey: qk.users.list(),
     queryFn: usersApi.list,
+    enabled,
   });
 }
 
@@ -58,10 +68,12 @@ export function useDeleteUser() {
   });
 }
 
-export function useBoardMembers() {
+export function useBoardMembers(options: QueryGate = {}) {
+  const enabled = useAdminQueryEnabled(options);
   return useQuery({
     queryKey: qk.boardMembers.list(),
     queryFn: boardMembersApi.list,
+    enabled,
   });
 }
 

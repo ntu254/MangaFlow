@@ -7,6 +7,7 @@ import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import { usePageStudio } from "@/shared/queries/usePageStudio";
 import { useSubmitTaskSubmission, useTaskSubmissions } from "@/shared/queries/useSubmissions";
 import { useTaskDetail, useUpdateTaskStatus } from "@/shared/queries/useTasks";
+import { writeStorageString } from "@/shared/lib/storage";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { deadlineClass, deadlineLabel, deadlineTone } from "@/features/tasks/lib/deadline";
 import { normalizeStatus } from "../lib/taskLifecycle";
@@ -140,12 +141,11 @@ function StudioBody({ task, onBack }: { task: Task; onBack: () => void }) {
   }
 
   function handleSaveLocalDraft() {
-    try {
-      window.localStorage.setItem(`assistant.task-draft.${task.id}`, note);
+    if (writeStorageString(`assistant.task-draft.${task.id}`, note)) {
       setNotice({ tone: "success", message: "Draft note saved locally for this device." });
-    } catch {
-      setNotice({ tone: "error", message: "Could not save the local draft note." });
+      return;
     }
+    setNotice({ tone: "error", message: "Could not save the local draft note." });
   }
 
   return (

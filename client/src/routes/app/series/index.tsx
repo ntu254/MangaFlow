@@ -5,6 +5,7 @@ import { useState } from "react";
 import { EmptyState } from "@/layouts/AppShell";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/lib/api";
+import { series as mockSeries } from "@/entities";
 import {
   Search,
   ChevronDown,
@@ -14,6 +15,7 @@ import {
   ArrowUpCircle,
   Plus,
   ArrowRight,
+  BookOpen,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/series/")({
@@ -67,7 +69,22 @@ function SeriesList() {
     },
   });
 
-  const seriesList: any[] = apiResponse?.data || [];
+  const rawSeriesList: any[] = apiResponse?.data || [];
+  const seriesList = rawSeriesList.map((s) => {
+    let mockIndex = 0;
+    const id = s.id || s._id;
+    if (id) {
+      const charCodes = id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+      mockIndex = charCodes % mockSeries.length;
+    }
+    const mock = mockSeries.find(ms => ms.id === id || ms.title === s.title) || mockSeries[mockIndex];
+    
+    return {
+      ...s,
+      cover: s.cover || "",
+      jp: s.jp || mock?.jp || "",
+    };
+  });
 
   const counts = {
     all: seriesList.length,
@@ -249,12 +266,16 @@ function SeriesList() {
                     }`}
                   >
                     {/* Background Image */}
-                    {s.cover && (
+                    {s.cover ? (
                       <img
-                        src={s.cover}
+                        src={s.cover.startsWith("http") || s.cover.startsWith("/") || s.cover.startsWith("data:") ? s.cover : `/api/public/images/${s.cover}`}
                         alt={s.title}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
+                    ) : (
+                      <div className="absolute inset-0 bg-[#0B2A43] flex items-center justify-center opacity-30">
+                        <BookOpen className="w-10 h-10 text-white/20" />
+                      </div>
                     )}
 
                     {/* Gradient Overlay */}
@@ -326,13 +347,15 @@ function SeriesList() {
                         : "border-foreground/10 bg-card hover:border-foreground/20"
                     }`}
                   >
-                    <div className="h-full w-[110px] flex-none bg-foreground/5">
-                      {s.cover && (
+                    <div className="h-full w-[110px] flex-none bg-foreground/5 flex items-center justify-center">
+                      {s.cover ? (
                         <img
-                          src={s.cover}
+                          src={s.cover.startsWith("http") || s.cover.startsWith("/") || s.cover.startsWith("data:") ? s.cover : `/api/public/images/${s.cover}`}
                           alt={s.title}
-                          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                          className="h-full w-full object-cover"
                         />
+                      ) : (
+                        <BookOpen className="w-6 h-6 text-foreground/20" />
                       )}
                     </div>
                     <div className="flex flex-1 flex-col p-4 relative">

@@ -10,6 +10,7 @@ import {
   Vote,
   ListChecks,
   CheckCircle2,
+  FileCheck2,
   CalendarClock,
   Wallet,
   Trophy,
@@ -28,6 +29,10 @@ import {
   ShieldAlert,
   PanelLeftClose,
   PanelLeftOpen,
+  PencilLine,
+  ClipboardList,
+  Activity,
+  FileText,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -56,12 +61,12 @@ const NAV: NavItem[] = [
     to: "/app/review",
     label: "Review Queue",
     icon: Inbox,
-    roles: ["editor", "mangaka"],
+    roles: ["mangaka"],
     badge: "12",
   },
   {
     to: "/app/editor/series-review",
-    label: "Editor: Series review",
+    label: "Proposal Review",
     icon: Inbox,
     roles: ["editor"],
   },
@@ -87,12 +92,6 @@ const NAV: NavItem[] = [
 
 const PROD_NAV: NavItem[] = [
   { to: "/app/tasks", label: "Task Overview", icon: ListChecks, roles: ["mangaka"] },
-  {
-    to: "/app/board/series-review",
-    label: "Board voting",
-    icon: Vote,
-    roles: ["board", "editor"],
-  },
   { to: "/app/submissions", label: "Submissions", icon: CheckCircle2, roles: ["editor"] },
   {
     to: "/app/editor/final-reviews",
@@ -110,8 +109,41 @@ const PROD_NAV: NavItem[] = [
     to: "/app/rankings",
     label: "Rankings",
     icon: Trophy,
-    roles: ["board", "editor", "mangaka"],
+    roles: ["board", "mangaka"],
   },
+];
+
+const EDITOR_NAV: NavItem[] = [
+  { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["editor"] },
+  { to: "/app/editor/managed-series", label: "Managed Series", icon: BookOpen, roles: ["editor"] },
+  { to: "/app/editor/series-review", label: "Manuscript Review", icon: Inbox, roles: ["editor"] },
+  { to: "/app/editor/final-reviews", label: "Final Reviews", icon: FileCheck2, roles: ["editor"] },
+  {
+    to: "/app/editor/page-annotation",
+    label: "Page Annotation",
+    icon: PencilLine,
+    roles: ["editor"],
+  },
+  {
+    to: "/app/editor/production-progress",
+    label: "Production Progress",
+    icon: Activity,
+    roles: ["editor"],
+  },
+  { to: "/app/editor/board-reports", label: "Board Reports", icon: FileText, roles: ["editor"] },
+  {
+    to: "/app/editor/ranking-risk",
+    label: "Ranking & Risk",
+    icon: ClipboardList,
+    roles: ["editor"],
+  },
+  {
+    to: "/app/editor/decision-history",
+    label: "Decision History",
+    icon: History,
+    roles: ["editor"],
+  },
+  { to: "/app/notifications", label: "Notifications", icon: Bell, roles: ["editor"] },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -122,17 +154,16 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/app/admin/storage", label: "Storage", icon: FileClock, roles: ["admin"] },
   { to: "/app/admin/audit-logs", label: "Audit Logs", icon: ScrollText, roles: ["admin"] },
   { to: "/app/admin/settings", label: "Settings", icon: Settings, roles: ["admin"] },
-  { to: "/app/payroll", label: "Payroll", icon: Wallet, roles: ["editor"] },
   {
     to: "/app/settings",
     label: "Settings",
     icon: Settings,
-    roles: ["mangaka", "editor", "assistant", "board"],
+    roles: ["mangaka", "assistant"],
   },
 ];
 
 const BOARD_NAV: NavItem[] = [
-  { to: "/app/dashboard", label: "Decision Portal", icon: LayoutDashboard, roles: ["board"] },
+  { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["board"] },
   {
     to: "/app/board/series-review",
     label: "Review Workspace",
@@ -155,7 +186,6 @@ const BOARD_NAV: NavItem[] = [
     roles: ["board"],
   },
   { to: "/app/board/decision-history", label: "Decision History", icon: History, roles: ["board"] },
-  { to: "/app/settings", label: "Settings", icon: Settings, roles: ["board"] },
 ];
 
 // Dedicated worker-view menu
@@ -189,9 +219,13 @@ export function Sidebar() {
     ? ASSISTANT_NAV
     : role === "board"
       ? BOARD_NAV
-      : NAV.filter((n) => n.roles.includes(role));
+      : role === "editor"
+        ? EDITOR_NAV
+        : NAV.filter((n) => n.roles.includes(role));
   const prod =
-    isAssistant || role === "board" ? [] : PROD_NAV.filter((n) => n.roles.includes(role));
+    isAssistant || role === "board" || role === "editor"
+      ? []
+      : PROD_NAV.filter((n) => n.roles.includes(role));
   const admin = isAssistant
     ? ADMIN_NAV.filter((n) => n.to === "/app/settings")
     : role === "board"

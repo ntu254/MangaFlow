@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import type { Page } from "@/entities";
+import { PageAssetImage } from "@/shared/ui/PageAssetImage";
 import { useStudioStore } from "./useStudioStore";
 
 interface Props {
@@ -139,10 +140,12 @@ export function BottomPageCarousel({ pages, currentPageId }: Props) {
                   <span className="absolute top-1 left-1.5 z-10 text-[8px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
                     {pageNumStr}
                   </span>
-                  <img
-                    src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=120&h=170&fit=crop&q=80"
+                  <PageAssetImage
+                    thumbnailFileAssetId={p.thumbnailFileAssetId}
+                    workingFileAssetId={p.workingFileAssetId}
+                    originalFileAssetId={p.originalFileAssetId}
                     alt={`Page ${p.order}`}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full"
                   />
                 </div>
 

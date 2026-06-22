@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Crown, Loader2, Plus, Power, PowerOff, ShieldCheck } from "lucide-react";
-import { PageHeader, StatCard } from "@/layouts/AppShell";
+import { EmptyState, PageHeader, StatCard } from "@/layouts/AppShell";
 import {
   useAddBoardMember,
   useBoardMembers,
@@ -10,14 +10,22 @@ import {
   useUsers,
 } from "@/shared/queries/useUsers";
 import type { AdminBoardMember, AdminUser } from "@/shared/api";
+import { useRole } from "@/shared/lib/role";
 
 export const Route = createFileRoute("/app/admin/board-members")({
   component: BoardMembersPage,
 });
 
 function BoardMembersPage() {
-  const { data: users = [], isLoading: isUsersLoading } = useUsers();
-  const { data: members = [], isLoading: isMembersLoading, error } = useBoardMembers();
+  const { user } = useRole();
+  const canAccessAdmin = user?.role === "ADMIN";
+  const adminQueryOptions = { enabled: canAccessAdmin };
+  const { data: users = [], isLoading: isUsersLoading } = useUsers(adminQueryOptions);
+  const {
+    data: members = [],
+    isLoading: isMembersLoading,
+    error,
+  } = useBoardMembers(adminQueryOptions);
   const addMember = useAddBoardMember();
   const updateStatus = useUpdateBoardMemberStatus();
   const setChair = useSetBoardChair();
@@ -32,6 +40,18 @@ function BoardMembersPage() {
   const chair = members.find((member) => member.isChair);
   const isLoading = isUsersLoading || isMembersLoading;
   const isMutating = addMember.isPending || updateStatus.isPending || setChair.isPending;
+
+  if (!canAccessAdmin) {
+    return (
+      <div className="admin-console admin-page space-y-5">
+        <PageHeader title="Board Members" jp="Board access" />
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to manage board membership and chair assignment."
+        />
+      </div>
+    );
+  }
 
   function addSelectedMember() {
     if (!selectedUserId) return;

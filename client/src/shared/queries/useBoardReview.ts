@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   boardApi,
   type AtRiskDecisionInput,
+  type BoardPublishingScheduleInput,
   type CastBoardVoteInput,
   type FinalizeBoardDecisionInput,
   type TieBreakBoardDecisionInput,
@@ -67,5 +68,49 @@ export function useCreateAtRiskDecision(seriesId: string) {
       toast.success("At-risk decision recorded");
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useBoardPublishingSchedule() {
+  return useQuery({
+    queryKey: ["board", "publishing-schedule"],
+    queryFn: boardApi.publishingSchedule,
+  });
+}
+
+export function useSaveBoardPublishingSchedule(seriesId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: BoardPublishingScheduleInput) =>
+      boardApi.savePublishingSchedule(seriesId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["board", "publishing-schedule"] });
+      qc.invalidateQueries({ queryKey: ["board", "decision-history"] });
+      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
+      toast.success("Publishing schedule saved");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
+export function useCancellationCases() {
+  return useQuery({
+    queryKey: ["board", "cancellation-cases"],
+    queryFn: boardApi.cancellationCases,
+  });
+}
+
+export function useAtRiskDecisionHistory(seriesId: string) {
+  return useQuery({
+    queryKey: ["board", "at-risk-decisions", seriesId],
+    queryFn: () => boardApi.atRiskDecisions(seriesId),
+    enabled: Boolean(seriesId),
+  });
+}
+
+export function useDecisionHistory(type = "all") {
+  return useQuery({
+    queryKey: ["board", "decision-history", type],
+    queryFn: () => boardApi.decisionHistory(type),
   });
 }

@@ -6,7 +6,7 @@ import {
   type Task as APITask,
 } from "@/shared/api/tasks";
 import type { Task, TaskStatus } from "@/entities/task/model";
-import { qk } from "./keys";
+import { invalidatePageStudio, invalidateTasks, qk } from "./keys";
 
 const STATUS_MAP: Record<APITask["status"], TaskStatus> = {
   TODO: "todo",
@@ -86,7 +86,7 @@ function normalizeId(value: unknown): string | undefined {
 
 export function useTasksBySeries(seriesId: string) {
   return useQuery({
-    queryKey: ["tasks", "series", seriesId],
+    queryKey: qk.tasks.bySeries(seriesId),
     queryFn: async () => {
       const data = await tasksApi.listBySeries(seriesId);
       return data.map(mapApiTask);
@@ -107,7 +107,7 @@ export function useMyTasks() {
 
 export function useTaskDetail(taskId: string) {
   return useQuery({
-    queryKey: ["tasks", "detail", taskId],
+    queryKey: qk.tasks.detail(taskId),
     queryFn: async () => {
       const data = await tasksApi.get(taskId);
       return mapApiTask(data);
@@ -118,7 +118,7 @@ export function useTaskDetail(taskId: string) {
 
 export function useActiveTaskTypes() {
   return useQuery({
-    queryKey: ["task-types", "active"],
+    queryKey: qk.tasks.types.active(),
     queryFn: taskTypesApi.listActive,
   });
 }
@@ -129,13 +129,9 @@ export function useCreateTask(options?: { seriesId?: string; pageId?: string }) 
   return useMutation({
     mutationFn: (payload: CreateTaskPayload) => tasksApi.create(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.tasks.root });
-      queryClient.invalidateQueries({ queryKey: qk.tasks.mine() });
-      if (options?.seriesId) {
-        queryClient.invalidateQueries({ queryKey: ["tasks", "series", options.seriesId] });
-      }
+      invalidateTasks(queryClient, { seriesId: options?.seriesId });
       if (options?.pageId) {
-        queryClient.invalidateQueries({ queryKey: qk.pages.studio(options.pageId) });
+        invalidatePageStudio(queryClient, options.pageId);
       }
     },
   });
@@ -148,12 +144,10 @@ export function useUpdateTaskStatus() {
     mutationFn: ({ taskId, status }: { taskId: string; status: APITask["status"] }) =>
       tasksApi.updateStatus(taskId, status),
     onSuccess: (task) => {
-      queryClient.invalidateQueries({ queryKey: qk.tasks.root });
-      queryClient.invalidateQueries({ queryKey: qk.tasks.mine() });
-      queryClient.invalidateQueries({ queryKey: ["tasks", "detail", task.id ?? task._id] });
-      if (task.seriesId) {
-        queryClient.invalidateQueries({ queryKey: ["tasks", "series", task.seriesId] });
-      }
+      invalidateTasks(queryClient, {
+        taskId: task.id ?? task._id,
+        seriesId: normalizeId(task.seriesId),
+      });
     },
   });
 }

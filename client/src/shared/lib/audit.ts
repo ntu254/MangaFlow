@@ -1,28 +1,21 @@
 import { useSyncExternalStore } from "react";
 import { seedAudit, type AuditEvent, type AuditEntity } from "@/entities/audit/model";
+import { readJsonStorage, writeJsonStorage } from "./storage";
 
 const KEY = "mangaflow.audit";
 
 function load(): AuditEvent[] {
-  if (typeof window === "undefined") return seedAudit;
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return seedAudit;
-    return JSON.parse(raw) as AuditEvent[];
-  } catch {
-    return seedAudit;
-  }
+  return readJsonStorage(KEY, {
+    fallback: seedAudit,
+    validate: Array.isArray,
+  });
 }
 
 let store: AuditEvent[] = load();
 const listeners = new Set<() => void>();
 
 function persist() {
-  try {
-    if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(store));
-  } catch {
-    /* ignore */
-  }
+  writeJsonStorage(KEY, store);
   listeners.forEach((l) => l());
 }
 

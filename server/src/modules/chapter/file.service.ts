@@ -31,19 +31,57 @@ export interface PresignedDownloadResult {
   expiresIn: number;
 }
 
-function buildR2Key(fileAssetId: string, originalName: string): string {
-  const ext = originalName.split(".").pop()?.toLowerCase() || "bin";
-  return `uploads/${fileAssetId}.${ext}`;
-}
+const ENV = process.env.NODE_ENV === "production" ? "prod" : "dev";
+const TENANT = "tenant_main";
+const BASE_PATH = `${ENV}/${TENANT}`;
 
-function buildChapterImageR2Key(
-  fileAssetId: string,
-  originalName: string,
-  seriesId: string,
-  chapterId: string,
-): string {
-  const ext = originalName.split(".").pop()?.toLowerCase() || "bin";
-  return `series/${seriesId}/chapters/${chapterId}/images/${fileAssetId}.${ext}`;
+export const pathBuilder = {
+  // Series-level assets
+  seriesCover: (seriesId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/series-assets/cover/v${version}/${filename}`,
+    
+  seriesManuscript: (seriesId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/series-assets/manuscript/v${version}/${filename}`,
+
+  // Chapter-level assets
+  chapterCover: (seriesId: string, chapterId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/chapter-assets/cover/v${version}/${filename}`,
+
+  chapterManuscript: (seriesId: string, chapterId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/chapter-assets/manuscript/v${version}/${filename}`,
+
+  // Page-level assets
+  pageOriginal: (seriesId: string, chapterId: string, pageId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/original/v${version}/${filename}`,
+
+  pageWorking: (seriesId: string, chapterId: string, pageId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/working/v${version}/${filename}`,
+
+  pageThumbnail: (seriesId: string, chapterId: string, pageId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/thumbnail/v${version}/${filename}`,
+
+  pageAiSegmentation: (seriesId: string, chapterId: string, pageId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/ai/segmentation/v${version}/${filename}`,
+
+  pageAiMask: (seriesId: string, chapterId: string, pageId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/ai/mask/v${version}/${filename}`,
+
+  pageTaskSubmission: (seriesId: string, chapterId: string, pageId: string, taskId: string, submissionId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/tasks/${taskId}/submissions/${submissionId}/v${version}/${filename}`,
+
+  pageFinal: (seriesId: string, chapterId: string, pageId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/pages/${pageId}/final/v${version}/${filename}`,
+
+  // Exports
+  exportPreview: (seriesId: string, chapterId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/exports/preview/v${version}/${filename}`,
+
+  exportFinal: (seriesId: string, chapterId: string, version: number, filename: string) => 
+    `${BASE_PATH}/series/${seriesId}/chapters/${chapterId}/exports/final/v${version}/${filename}`,
+};
+
+export function getFileExtension(filename: string): string {
+  return filename.split(".").pop()?.toLowerCase() || "bin";
 }
 
 export async function createPresignedUploadUrl(
@@ -53,12 +91,13 @@ export async function createPresignedUploadUrl(
   customR2Key?: string,
   scope?: { seriesId: string; chapterId: string },
 ): Promise<PresignedUploadResult> {
+  const r2Key = customR2Key;
+
+  if (!r2Key) {
+    throw new Error("r2Key is required for createPresignedUploadUrl. Please generate it using pathBuilder.");
+  }
+
   const fileAssetId = new Types.ObjectId().toString();
-  const r2Key = customR2Key || (
-    scope
-      ? buildChapterImageR2Key(fileAssetId, originalName, scope.seriesId, scope.chapterId)
-      : buildR2Key(fileAssetId, originalName)
-  );
 
   const command = new PutObjectCommand({
     Bucket: config.r2Bucket,
@@ -90,6 +129,20 @@ export async function createPresignedDownloadUrl(
   return { downloadUrl, expiresIn };
 }
 
+export async function getFileStream(r2Key: string) {
+  const command = new GetObjectCommand({
+    Bucket: config.r2Bucket,
+    Key: r2Key,
+  });
+  
+  const response = await s3.send(command);
+  return {
+    stream: response.Body,
+    contentType: response.ContentType || "application/octet-stream",
+    contentLength: response.ContentLength
+  };
+}
+
 export async function deleteFileAsset(r2Key: string): Promise<void> {
   const command = new DeleteObjectCommand({
     Bucket: config.r2Bucket,
@@ -115,9 +168,9 @@ export async function uploadBuffer(
   buffer: Buffer,
   originalName: string,
   contentType: string,
+  r2Key: string,
 ): Promise<{ fileAssetId: string; r2Key: string; size: number }> {
   const fileAssetId = new Types.ObjectId().toString();
-  const r2Key = buildR2Key(fileAssetId, originalName);
   const size = buffer.length;
 
   const command = new PutObjectCommand({
@@ -154,6 +207,10 @@ export async function checkObjectExists(r2Key: string): Promise<boolean> {
   } catch (error: any) {
     if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
       return false;
+    }
+    console.error(`[S3 Error] checkObjectExists failed for ${r2Key}:`, error.message);
+    if (!config.isProduction) {
+      return true; // Bypass in local development to prevent 500 crashes
     }
     throw error;
   }

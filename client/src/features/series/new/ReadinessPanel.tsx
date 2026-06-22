@@ -5,6 +5,7 @@ import type { ReadinessItem } from "./useProposalForm";
 import type { ProposalFormValues } from "./schema";
 import type { ManuscriptFile } from "@/shared/api/manuscripts";
 import { useUploadManuscript, useDeleteManuscript } from "@/shared/queries/useManuscripts";
+import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 
 interface Props {
   status: string;

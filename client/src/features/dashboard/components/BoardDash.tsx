@@ -40,8 +40,8 @@ export function BoardDash() {
   return (
     <DecisionPortalShell
       active="/app/dashboard"
-      title="Board decision portal"
-      description="A single review surface for proposal evidence, Board voting, reader ranking signals, cancellation cases, and decision history."
+      title="Board dashboard"
+      description="Review proposal evidence, Board voting, reader ranking signals, cancellation cases, and decision history from one dashboard."
       actions={
         <Link
           to="/app/board/series-review"

@@ -16,5 +16,10 @@ export async function getPublicChapterBySlug(slug: string) {
 
 export async function getPublicPagesByChapterId(chapterId: string) {
   // Only return approved/uploaded pages for a published chapter
-  return Page.find({ chapterId, status: "APPROVED" }).sort({ order: 1 }).select("imageUrl order width height")
+  return Page.find({ chapterId, status: "APPROVED" })
+    .sort({ pageNumber: 1 })
+    .select("pageNumber order width height workingFileAssetId originalFileAssetId thumbnailFileAssetId")
+    .populate("workingFileAssetId", "r2Key mimeType originalName")
+    .populate("originalFileAssetId", "r2Key mimeType originalName")
+    .populate("thumbnailFileAssetId", "r2Key mimeType originalName")
 }

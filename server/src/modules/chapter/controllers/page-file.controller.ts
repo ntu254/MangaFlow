@@ -14,6 +14,7 @@ export async function getPresignedUploadUrl(req: Request, res: Response, _next: 
     contentType: req.body.contentType,
     expiresIn: req.body.expiresIn,
     chapterId: req.body.chapterId,
+    pageId: req.body.pageId,
     actor,
   })
   res.json({ success: true, message: "Presigned upload URL generated", data: result })

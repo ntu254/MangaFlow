@@ -1,23 +1,47 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Loader2, Search } from "lucide-react";
-import { PageHeader, StatCard } from "@/layouts/AppShell";
+import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
+import { EmptyState, PageHeader, StatCard } from "@/layouts/AppShell";
 import { useAuditLogs } from "@/shared/queries/useAdmin";
 import type { AuditLogItem } from "@/shared/api/admin";
+import { useRole } from "@/shared/lib/role";
 
 export const Route = createFileRoute("/app/admin/audit-logs")({
   component: AuditLogsPage,
 });
 
 function AuditLogsPage() {
+  const { user } = useRole();
+  const canAccessAdmin = user?.role === "ADMIN";
   const [filters, setFilters] = useState({ action: "", actorId: "", targetId: "" });
+  const [page, setPage] = useState(1);
   const queryFilters = {
     action: filters.action.trim() || undefined,
     actorId: filters.actorId.trim() || undefined,
     targetId: filters.targetId.trim() || undefined,
+    page,
+    limit: 20,
   };
-  const { data, isLoading, error } = useAuditLogs(queryFilters);
+  const { data, isLoading, error } = useAuditLogs(queryFilters, { enabled: canAccessAdmin });
   const logs = data?.logs ?? [];
+  const totalPages = data?.pagination.totalPages ?? 1;
+
+  if (!canAccessAdmin) {
+    return (
+      <div className="admin-console admin-page space-y-5">
+        <PageHeader title="Audit Logs" jp="System trace" />
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to view raw audit logs."
+        />
+      </div>
+    );
+  }
+
+  function updateFilter(name: keyof typeof filters, value: string) {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setPage(1);
+  }
 
   return (
     <div className="admin-console admin-page space-y-5">
@@ -37,19 +61,19 @@ function AuditLogsPage() {
         <FilterInput
           label="Filter logs by action"
           value={filters.action}
-          onChange={(action) => setFilters((prev) => ({ ...prev, action }))}
+          onChange={(action) => updateFilter("action", action)}
           placeholder="USER_ROLE_UPDATED"
         />
         <FilterInput
           label="Actor ID"
           value={filters.actorId}
-          onChange={(actorId) => setFilters((prev) => ({ ...prev, actorId }))}
+          onChange={(actorId) => updateFilter("actorId", actorId)}
           placeholder="User id"
         />
         <FilterInput
           label="Target ID"
           value={filters.targetId}
-          onChange={(targetId) => setFilters((prev) => ({ ...prev, targetId }))}
+          onChange={(targetId) => updateFilter("targetId", targetId)}
           placeholder="Entity id"
         />
       </div>
@@ -63,7 +87,7 @@ function AuditLogsPage() {
           <span>Time</span>
         </div>
         {error ? (
-          <div className="px-4 py-8 text-sm text-destructive">{(error as Error).message}</div>
+          <div className="px-4 py-8 text-sm text-destructive">{auditErrorMessage(error)}</div>
         ) : isLoading ? (
           <div className="flex items-center justify-center py-10 text-sm text-foreground/50">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
@@ -75,6 +99,30 @@ function AuditLogsPage() {
         ) : (
           logs.map((log) => <AuditLogRow key={log._id} log={log} />)
         )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => setPage((current) => Math.max(1, current - 1))}
+          disabled={page <= 1 || isLoading}
+          className="inline-flex h-9 items-center gap-1 rounded-md border border-foreground/15 px-3 text-foreground/70 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </button>
+        <span className="px-2 text-xs text-foreground/50">
+          Page {data?.pagination.page ?? page} of {Math.max(1, totalPages)}
+        </span>
+        <button
+          type="button"
+          onClick={() => setPage((current) => current + 1)}
+          disabled={page >= totalPages || isLoading}
+          className="inline-flex h-9 items-center gap-1 rounded-md border border-foreground/15 px-3 text-foreground/70 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
@@ -137,4 +185,21 @@ function formatDate(value?: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function auditErrorMessage(error: unknown) {
+  const status =
+    typeof error === "object" && error && "response" in error
+      ? (error as { response?: { status?: number; data?: { message?: string } } }).response?.status
+      : undefined;
+
+  if (status === 403) return "Admin permission required";
+  if (status === 404) return "Audit log endpoint not found";
+  if (typeof error === "object" && error && "response" in error) {
+    return (
+      (error as { response?: { data?: { message?: string } } }).response?.data?.message ??
+      "Failed to load audit logs"
+    );
+  }
+  return error instanceof Error ? error.message : "Failed to load audit logs";
 }

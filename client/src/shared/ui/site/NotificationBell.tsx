@@ -10,7 +10,7 @@ export function NotificationBell() {
   const { role } = useRole();
   const me = currentUserByRole[role];
   const items = useNotifications(me.id).slice(0, 8);
-  const unread = items.filter((n) => !n.read).length;
+  const unread = items.filter((n) => n.status === "UNREAD").length;
   const [open, setOpen] = useState(false);
 
   return (
@@ -52,10 +52,10 @@ export function NotificationBell() {
                 markRead(n.id);
                 setOpen(false);
               }}
-              className={`block px-3 py-2.5 text-xs hover:bg-foreground/5 ${n.read ? "opacity-60" : ""}`}
+              className={`block px-3 py-2.5 text-xs hover:bg-foreground/5 ${n.status === "READ" ? "opacity-60" : ""}`}
             >
               <div className="flex items-start gap-2">
-                {!n.read && (
+                {n.status === "UNREAD" && (
                   <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
                 )}
                 <div className="min-w-0 flex-1">
@@ -65,7 +65,7 @@ export function NotificationBell() {
                     {n.at}
                   </div>
                 </div>
-                {n.read && <Check className="mt-0.5 h-3 w-3 text-foreground/40" />}
+                {n.status === "READ" && <Check className="mt-0.5 h-3 w-3 text-foreground/40" />}
               </div>
             </Link>
           ))}

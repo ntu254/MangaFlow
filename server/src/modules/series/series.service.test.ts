@@ -36,6 +36,10 @@ vi.mock("../chapter/chapter.model.js", () => ({
 
 vi.mock("../chapter/file.service.js", () => ({
   createPresignedUploadUrl,
+  pathBuilder: {
+    seriesManuscript: vi.fn((seriesId, version, filename) => `series/${seriesId}/manuscripts/v${version}/${filename}`),
+    seriesCover: vi.fn((seriesId, version, filename) => `series/${seriesId}/cover/v${version}/${filename}`),
+  },
 }))
 vi.mock("../../shared/workflow/events.js", () => ({
   notifyRole: vi.fn().mockResolvedValue([]),

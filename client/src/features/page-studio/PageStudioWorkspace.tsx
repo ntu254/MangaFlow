@@ -100,6 +100,7 @@ export function PageStudioWorkspace({
     setActiveTool,
     setSelectedRegionId,
     setActiveTab,
+    resetForPage,
     replaceRegionTasks,
   } = useStudioStore();
 
@@ -113,6 +114,10 @@ export function PageStudioWorkspace({
   const { data: chapterPages = [] } = useChapterPages(
     !isAssistantWorkspace && isObjectId(chapterIdForPages) ? chapterIdForPages : undefined,
   );
+
+  useEffect(() => {
+    resetForPage(pageId);
+  }, [pageId, resetForPage]);
 
   useEffect(() => {
     if (!isAssistantWorkspace) return;

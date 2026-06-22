@@ -11,6 +11,7 @@ export interface GetPresignedUploadUrlInput {
   contentType: string
   expiresIn?: number
   chapterId?: string
+  pageId?: string
   actor: AccessActor
 }
 
@@ -23,19 +24,34 @@ export async function getPresignedUploadUrlService(input: GetPresignedUploadUrlI
 
   const chapterId = input.chapterId?.trim()
   if (!chapterId) {
-    return createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn)
+    throw new AppError("Chapter ID is required for generating a standard path", 400)
   }
 
   await assertCanWriteChapter(input.actor, chapterId)
   const chapter = await Chapter.findById(chapterId)
   if (!chapter) throw new AppError("Chapter not found", 404)
 
+  const pageId = input.pageId?.trim()
+  if (!pageId) {
+    throw new AppError("Page ID is required for generating a standard path", 400)
+  }
+
+  const ext = input.originalName.split(".").pop()?.toLowerCase() || "bin"
+  const filename = `upload-${Date.now()}.${ext}`
+
+  const customR2Key = (await import("../file.service.js")).pathBuilder.pageOriginal(
+    String(chapter.seriesId),
+    chapterId,
+    pageId,
+    1,
+    filename
+  )
+
   return createPresignedUploadUrl(
     input.originalName,
     input.contentType,
     input.expiresIn,
-    undefined,
-    { seriesId: String(chapter.seriesId), chapterId },
+    customR2Key,
   )
 }
 

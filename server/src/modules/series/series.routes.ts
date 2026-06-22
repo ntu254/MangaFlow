@@ -57,6 +57,21 @@ router.post(
   asyncHandler(controller.createManuscriptUpload),
 )
 
+const createCoverUploadSchema = z.object({
+  originalName: z.string().trim().min(1, "Original name is required").max(255),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  expiresIn: z.number().int().positive().max(3600).optional(),
+})
+
+router.post(
+  "/:seriesId/cover/upload-url",
+  requireAuth,
+  requireRole("MANGAKA"),
+  validate(seriesIdParamsSchema, "params"),
+  validate(createCoverUploadSchema),
+  asyncHandler(controller.createCoverUpload),
+)
+
 router.delete(
   "/:seriesId/manuscripts/files/:fileAssetId",
   requireAuth,

@@ -1,4 +1,4 @@
-﻿import mongoose from "mongoose"
+import mongoose from "mongoose"
 import { z } from "zod"
 
 const objectId = z.string().refine((value) => mongoose.isValidObjectId(value), {
@@ -40,6 +40,7 @@ export const updateSeriesSchema = z
     publicationType: publicationTypeSchema.optional(),
     tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
     genres: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
+    cover: z.string().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required to update",
