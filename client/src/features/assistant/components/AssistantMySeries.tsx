@@ -30,9 +30,9 @@ export function AssistantMySeries() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="My series"
+        title="My team"
         jp="参加シリーズ"
-        description="Accept team invites, then work only on tasks assigned to you."
+        description="Accept production team invites across multiple series, then work only on tasks assigned to you."
       />
 
       {isLoading ? (
@@ -46,10 +46,10 @@ export function AssistantMySeries() {
         </div>
       ) : error ? (
         <div className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-8 text-center text-sm font-medium text-destructive">
-          Unable to load your series memberships.
+          Unable to load your team memberships.
         </div>
       ) : memberships.length === 0 ? (
-        <EmptyState text="No series invites or active memberships yet." />
+        <EmptyState text="No team invites or active memberships yet." />
       ) : (
         <>
           {invited.length > 0 && (
@@ -81,7 +81,7 @@ export function AssistantMySeries() {
               <div>
                 <h2 className="text-[15px] font-bold text-foreground">Active production teams</h2>
                 <p className="mt-1 text-[11px] font-medium text-foreground/50">
-                  These are the series where you can receive assigned work.
+                  These are the production teams where you can receive assigned work.
                 </p>
               </div>
               {paused.length > 0 && (
@@ -92,7 +92,7 @@ export function AssistantMySeries() {
             </div>
 
             {active.length === 0 ? (
-              <EmptyState text="No active series team yet. Accept an invite to become eligible." />
+              <EmptyState text="No active production team yet. Accept an invite to become eligible." />
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {active.map((member) => (

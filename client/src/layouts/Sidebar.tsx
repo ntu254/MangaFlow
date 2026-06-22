@@ -158,7 +158,7 @@ const ADMIN_NAV: NavItem[] = [
     to: "/app/settings",
     label: "Settings",
     icon: Settings,
-    roles: ["mangaka", "assistant"],
+    roles: ["mangaka"],
   },
 ];
 
@@ -205,7 +205,7 @@ const ASSISTANT_NAV: NavItem[] = [
   },
   { to: "/app/assistant/earnings", label: "Earnings", icon: Wallet, roles: ["assistant"] },
   { to: "/app/assistant/notifications", label: "Notifications", icon: Bell, roles: ["assistant"] },
-  { to: "/app/assistant/series", label: "My Series", icon: BookOpen, roles: ["assistant"] },
+  { to: "/app/assistant/series", label: "My Team", icon: UsersIcon, roles: ["assistant"] },
 ];
 
 export function Sidebar() {
@@ -227,7 +227,7 @@ export function Sidebar() {
       ? []
       : PROD_NAV.filter((n) => n.roles.includes(role));
   const admin = isAssistant
-    ? ADMIN_NAV.filter((n) => n.to === "/app/settings")
+    ? []
     : role === "board"
       ? []
       : ADMIN_NAV.filter((n) => n.roles.includes(role));

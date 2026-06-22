@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
 import {
   getAiBaseUrl,
@@ -47,5 +47,12 @@ function SettingsRoute() {
 }
 
 export const Route = createFileRoute("/app/settings")({
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    const role = window.localStorage.getItem("mangaflow.role");
+    if (role === "assistant") {
+      throw redirect({ to: "/app/assistant/dashboard" });
+    }
+  },
   component: SettingsRoute,
 });
