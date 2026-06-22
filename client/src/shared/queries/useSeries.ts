@@ -7,6 +7,7 @@ import {
   type UpdateSeriesInput,
 } from "@/shared/api/series";
 import { extractErrorMessage } from "@/shared/api";
+import { useRole } from "@/shared/lib/role";
 import { invalidateSeries, invalidateSeriesMembers, qk } from "./keys";
 
 export function useCreateSeries() {
@@ -60,10 +61,13 @@ export function useSeriesMembers(seriesId: string) {
   });
 }
 
-export function useMySeriesMemberships() {
+export function useMySeriesMemberships(options: { enabled?: boolean } = {}) {
+  const { user, loading } = useRole();
+  const enabled = (options.enabled ?? true) && !loading && user?.role === "ASSISTANT";
   return useQuery({
     queryKey: qk.series.memberships(),
     queryFn: seriesApi.listMyMemberships,
+    enabled,
   });
 }
 

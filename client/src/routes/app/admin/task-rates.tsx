@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Loader2, Pencil, Plus, Power, PowerOff, Save } from "lucide-react";
-import { PageHeader, StatCard } from "@/layouts/AppShell";
+import { EmptyState, PageHeader, StatCard } from "@/layouts/AppShell";
 import {
   useCreateTaskRate,
   useTaskRates,
@@ -9,13 +9,16 @@ import {
   useUpdateTaskRateStatus,
 } from "@/shared/queries/useAdmin";
 import type { AdminTaskRate } from "@/shared/api/admin";
+import { useRole } from "@/shared/lib/role";
 
 export const Route = createFileRoute("/app/admin/task-rates")({
   component: TaskRatesPage,
 });
 
 function TaskRatesPage() {
-  const { data: rates = [], isLoading, error } = useTaskRates();
+  const { user } = useRole();
+  const canAccessAdmin = user?.role === "ADMIN";
+  const { data: rates = [], isLoading, error } = useTaskRates({ enabled: canAccessAdmin });
   const createRate = useCreateTaskRate();
   const updateRate = useUpdateTaskRate();
   const updateStatus = useUpdateTaskRateStatus();
@@ -40,6 +43,18 @@ function TaskRatesPage() {
     }),
     [rates],
   );
+
+  if (!canAccessAdmin) {
+    return (
+      <div className="admin-console admin-page space-y-5">
+        <PageHeader title="Task Rates" jp="Rate cards" />
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to view and manage task payout rates."
+        />
+      </div>
+    );
+  }
 
   function resetForm(rate?: AdminTaskRate) {
     setEditing(rate ?? null);

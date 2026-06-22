@@ -31,12 +31,12 @@ export function MangakaHeader() {
   return (
     <div className="relative mb-8 overflow-hidden rounded-lg bg-[#FAF8F5] dark:bg-foreground/5 px-8 py-10">
       {/* Background Image */}
-      <div 
+      <div
         className="absolute inset-0 z-0 opacity-20 transition-opacity"
         style={{
           backgroundImage: `url(${headerImageUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       />
       {/* Gradient Overlay */}

@@ -1,15 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
-import { PageHeader, StatCard } from "@/layouts/AppShell";
+import { EmptyState, PageHeader, StatCard } from "@/layouts/AppShell";
 import { useAuditLogs } from "@/shared/queries/useAdmin";
 import type { AuditLogItem } from "@/shared/api/admin";
+import { useRole } from "@/shared/lib/role";
 
 export const Route = createFileRoute("/app/admin/audit-logs")({
   component: AuditLogsPage,
 });
 
 function AuditLogsPage() {
+  const { user } = useRole();
+  const canAccessAdmin = user?.role === "ADMIN";
   const [filters, setFilters] = useState({ action: "", actorId: "", targetId: "" });
   const [page, setPage] = useState(1);
   const queryFilters = {
@@ -19,9 +22,21 @@ function AuditLogsPage() {
     page,
     limit: 20,
   };
-  const { data, isLoading, error } = useAuditLogs(queryFilters);
+  const { data, isLoading, error } = useAuditLogs(queryFilters, { enabled: canAccessAdmin });
   const logs = data?.logs ?? [];
   const totalPages = data?.pagination.totalPages ?? 1;
+
+  if (!canAccessAdmin) {
+    return (
+      <div className="admin-console admin-page space-y-5">
+        <PageHeader title="Audit Logs" jp="System trace" />
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to view raw audit logs."
+        />
+      </div>
+    );
+  }
 
   function updateFilter(name: keyof typeof filters, value: string) {
     setFilters((prev) => ({ ...prev, [name]: value }));

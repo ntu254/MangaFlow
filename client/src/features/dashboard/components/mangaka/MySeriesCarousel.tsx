@@ -62,7 +62,7 @@ export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: -360, behavior: "smooth" });
   };
 
-  const handleActionClick = (e: React.MouseEvent, s: any) => {
+  const handleActionClick = (e: React.MouseEvent, s: MockSeriesType) => {
     e.preventDefault();
     e.stopPropagation();
     if (s.nextAction?.includes("Review")) navigate({ to: `/app/series/${s.id}/reviews` });
@@ -71,10 +71,6 @@ export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
     else if (s.nextAction?.includes("archives")) navigate({ to: `/app/series/${s.id}/archives` });
     else if (s.nextAction?.includes("Finalize")) navigate({ to: `/app/series/${s.id}/proposal` });
   };
-
-  if (isLoading) {
-    return <div className="h-[180px] flex items-center justify-center"><div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" /></div>;
-  }
 
   if (mine.length === 0) {
     return null;

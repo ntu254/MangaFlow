@@ -30,7 +30,8 @@ const SERVER_ROLES: ServerRole[] = ["ADMIN", "MANGAKA", "EDITOR", "ASSISTANT", "
 
 function UsersPage() {
   const { user: me } = useRole();
-  const { data: users, isLoading, error } = useUsers();
+  const canAccessAdmin = me?.role === "ADMIN";
+  const { data: users, isLoading, error } = useUsers({ enabled: canAccessAdmin });
   const updateRole = useUpdateUserRole();
   const updateStatus = useUpdateUserStatus();
   const deleteUser = useDeleteUser();
@@ -46,7 +47,7 @@ function UsersPage() {
     email: "",
   });
 
-  const list: AdminUser[] = users ?? [];
+  const list: AdminUser[] = useMemo(() => users ?? [], [users]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -57,6 +58,18 @@ function UsersPage() {
     }
     return c;
   }, [list]);
+
+  if (!canAccessAdmin) {
+    return (
+      <div>
+        <PageHeader title="Users" jp="User admin" />
+        <EmptyState
+          title="Admin permission required"
+          hint="Sign in as Admin to load and manage user accounts."
+        />
+      </div>
+    );
+  }
 
   if (error) {
     return (
