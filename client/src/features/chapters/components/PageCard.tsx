@@ -1,9 +1,14 @@
+import { PageAssetImage } from "@/shared/ui/PageAssetImage";
+
 interface PageCardProps {
   page: {
     id: number;
     status: string;
     tasks?: number;
     time?: string;
+    originalFileAssetId?: string;
+    workingFileAssetId?: string;
+    thumbnailFileAssetId?: string;
   };
   variant?: "simple" | "detailed" | "thumbnail";
   onClick?: (id: number) => void;
@@ -57,10 +62,13 @@ export function PageCard({ page, variant = "detailed", onClick, isSelected }: Pa
         onClick={() => onClick?.(page.id)}
         className={`relative aspect-[3/4] rounded-md overflow-hidden group cursor-pointer border ${isSelected ? "border-[#061A2B] ring-1 ring-[#061A2B]" : "border-foreground/10"}`}
       >
-        <img
-          src="https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=400&auto=format&fit=crop"
+        <PageAssetImage
+          thumbnailFileAssetId={page.thumbnailFileAssetId}
+          workingFileAssetId={page.workingFileAssetId}
+          originalFileAssetId={page.originalFileAssetId}
           alt={`Page ${page.id}`}
-          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="absolute inset-0 h-full w-full"
+          imageClassName="transition-transform duration-500 group-hover:scale-105"
         />
         {/* Number Badge */}
         <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-1.5 py-0.5 rounded-sm min-w-[20px] text-center z-10">

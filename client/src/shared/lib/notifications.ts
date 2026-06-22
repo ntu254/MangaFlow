@@ -1,32 +1,25 @@
 import { useSyncExternalStore } from "react";
 import { seedNotifications, type NotificationItem } from "@/entities/notification/model";
+import { readJsonStorage, writeJsonStorage } from "./storage";
 
 const KEY = "mangaflow.notifications";
 
 function load(): NotificationItem[] {
-  if (typeof window === "undefined") return seedNotifications;
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return seedNotifications;
-    const parsed = JSON.parse(raw) as Array<NotificationItem & { read?: boolean }>;
-    return parsed.map(({ read, ...item }) => ({
-      ...item,
-      status: item.status ?? (read ? "READ" : "UNREAD"),
-    }));
-  } catch {
-    return seedNotifications;
-  }
+  const parsed = readJsonStorage<Array<NotificationItem & { read?: boolean }>>(KEY, {
+    fallback: seedNotifications,
+    validate: Array.isArray,
+  });
+  return parsed.map(({ read, ...item }) => ({
+    ...item,
+    status: item.status ?? (read ? "READ" : "UNREAD"),
+  }));
 }
 
 let store: NotificationItem[] = load();
 const listeners = new Set<() => void>();
 
 function emit() {
-  try {
-    if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(store));
-  } catch {
-    /* ignore */
-  }
+  writeJsonStorage(KEY, store);
   listeners.forEach((l) => l());
 }
 

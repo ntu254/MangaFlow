@@ -133,9 +133,10 @@ describe("comment resolution service", () => {
   })
 
   it("walks through the full comment lifecycle: fixed -> verified -> resolved", async () => {
-    // Step 1: Assistant marks comment as FIXED
+    // Step 1: Mangaka verifies a FIXED comment -> RESOLVED
     vi.mocked(repository.getCommentById)
       .mockResolvedValueOnce({ ...openComment, status: "FIXED" } as any)
+      .mockResolvedValueOnce({ ...openComment, status: "RESOLVED" } as any)
     vi.mocked(SeriesMember.findOne)
       .mockResolvedValueOnce({ isActive: true, role: "MANGAKA" } as any)
       .mockResolvedValueOnce({ isActive: true, role: "EDITOR" } as any)

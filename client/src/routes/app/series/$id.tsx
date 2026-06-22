@@ -1,4 +1,5 @@
 import { useSidebar } from "@/layouts/SidebarContext";
+import { series as mockSeries } from "@/entities";
 import {
   createFileRoute,
   Link,
@@ -116,12 +117,16 @@ function SeriesDetailLayout() {
     );
 
   const { series, chapters, currentChapter } = summary;
+  
+  // Find mock series to get cover image fallback
+  const mockSeriesData = mockSeries.find((s) => s.id === id || s.title === series.title);
 
   // Safe defaults for properties that might not exist yet
   series.cover =
     series.cover ||
+    mockSeriesData?.cover ||
     "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
-  series.jp = series.jp || "";
+  series.jp = series.jp || mockSeriesData?.jp || "";
 
   const displayChapters = chapters && chapters.length > 0 ? chapters : [];
   const displayCurrentChapter =

@@ -3,7 +3,7 @@ import * as repository from "./dashboard.repository.js"
 import { Series } from "../series/series.model.js"
 import { Submission } from "../submission/submission.model.js"
 import { Task } from "../task/task.model.js"
-
+import { Chapter } from "../chapter/chapter.model.js"
 export async function getAdminSidebarSummaryService() {
   const [
     activeUsers,
@@ -99,6 +99,27 @@ export async function getMangakaSummaryService(userId: string) {
   const realPendingReviews = await Submission.countDocuments({ seriesId: { $in: mySeriesIds }, status: "SUBMITTED" })
   const realCompletedTasks = await Task.countDocuments({ seriesId: { $in: mySeriesIds }, status: { $in: ["MANGAKA_APPROVED", "EDITOR_APPROVED"] } })
 
+  const pendingReviewsList = await Submission.find({ seriesId: { $in: mySeriesIds }, status: "SUBMITTED" })
+    .populate("seriesId", "title")
+    .populate("chapterId", "number")
+    .populate("taskId", "title")
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .lean()
+
+  const recentActivity = await Chapter.find({ seriesId: { $in: mySeriesIds } })
+    .populate("seriesId", "title")
+    .sort({ updatedAt: -1 })
+    .limit(5)
+    .lean()
+    
+  const scheduleTasks = await Task.find({ seriesId: { $in: mySeriesIds }, status: { $in: ["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED"] } })
+    .populate("seriesId", "title")
+    .populate("chapterId", "number")
+    .sort({ dueDate: 1 })
+    .limit(5)
+    .lean()
+
   return {
     nextActions: [
       { id: "1", type: "REVIEW_SUBMISSION", label: "Review 2 assistant submissions", isUrgent: true, targetId: "series-1" },
@@ -109,7 +130,28 @@ export async function getMangakaSummaryService(userId: string) {
     dueSoon: [],
     atRiskItems: [],
     quickStats: { activeSeries: seriesCount, completedTasks: realCompletedTasks, pendingReviews: realPendingReviews },
-    recentActivity: []
+    recentActivity: recentActivity.map(ch => ({
+      id: ch._id.toString(),
+      seriesTitle: (ch.seriesId as any)?.title || "Unknown Series",
+      number: ch.number,
+      status: ch.status,
+      updatedAt: ch.updatedAt,
+    })),
+    pendingReviewsList: pendingReviewsList.map(sub => ({
+      id: sub._id.toString(),
+      seriesTitle: (sub.seriesId as any)?.title || "Unknown Series",
+      chapterNumber: (sub.chapterId as any)?.number || 0,
+      taskTitle: (sub.taskId as any)?.title || "Unknown Task",
+      createdAt: sub.createdAt,
+    })),
+    scheduleTasks: scheduleTasks.map(t => ({
+      id: t._id.toString(),
+      seriesTitle: (t.seriesId as any)?.title || "Unknown Series",
+      chapterNumber: (t.chapterId as any)?.number || 0,
+      taskTitle: t.title,
+      dueDate: t.dueDate,
+      status: t.status,
+    }))
   }
 }
 

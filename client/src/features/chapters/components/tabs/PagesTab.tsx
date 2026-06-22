@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
-import { findSeries, type Page, type Task } from "@/entities";
+import { type Page, type Task } from "@/entities";
 import { taskCoversPage } from "../../lib/taskStatus";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
+import { PageAssetImage } from "@/shared/ui/PageAssetImage";
 
 export function PagesTab({
   pages,
@@ -17,7 +18,6 @@ export function PagesTab({
   tasks: Task[];
   seriesId: string;
 }) {
-  const series = findSeries(seriesId)!;
   const idx = Math.max(
     0,
     pages.findIndex((p) => p.id === selectedId),
@@ -64,10 +64,14 @@ export function PagesTab({
       </div>
 
       <div className="mx-auto max-w-md overflow-hidden rounded border border-foreground/10 bg-foreground/5">
-        <img
-          src={series.cover}
+        <PageAssetImage
+          workingFileAssetId={current.workingFileAssetId}
+          originalFileAssetId={current.originalFileAssetId}
+          thumbnailFileAssetId={current.thumbnailFileAssetId}
           alt={`Page ${current.order}`}
-          className="h-auto w-full object-cover"
+          className="aspect-[3/4] w-full"
+          mode="preview"
+          fit="contain"
         />
       </div>
 

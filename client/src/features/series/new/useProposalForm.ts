@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ManuscriptFile } from "@/shared/api/manuscripts";
+import { readJsonStorage, removeStorageItem, writeJsonStorage } from "@/shared/lib/storage";
 import {
   basicSchema,
   pitchSchema,
@@ -19,23 +20,28 @@ interface PersistedDraft {
   savedAt: number;
 }
 
+const DRAFT_VERSION = 1;
 const draftKey = (seriesId: string | null) => `mangaflow:proposal-draft:${seriesId ?? "new"}`;
 
 function readDraft(seriesId: string | null): PersistedDraft | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(draftKey(seriesId));
-    if (!raw) return null;
-    return JSON.parse(raw) as PersistedDraft;
-  } catch {
-    return null;
-  }
+  const key = draftKey(seriesId);
+  const versioned = readJsonStorage(key, {
+    fallback: null,
+    version: DRAFT_VERSION,
+    validate: isPersistedDraft,
+  });
+  if (versioned) return versioned;
+
+  return readJsonStorage(key, {
+    fallback: null,
+    validate: isPersistedDraft,
+  });
 }
 
 function writeDraft(seriesId: string | null, draft: PersistedDraft) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(draftKey(seriesId), JSON.stringify(draft));
+    writeJsonStorage(draftKey(seriesId), draft, { version: DRAFT_VERSION });
   } catch {
     /* quota — ignore */
   }
@@ -43,7 +49,15 @@ function writeDraft(seriesId: string | null, draft: PersistedDraft) {
 
 function clearDraft(seriesId: string | null) {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(draftKey(seriesId));
+  removeStorageItem(draftKey(seriesId));
+}
+
+function isPersistedDraft(value: unknown): value is PersistedDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Partial<PersistedDraft>;
+  return (
+    Boolean(draft.values) && Array.isArray(draft.manuscripts) && typeof draft.savedAt === "number"
+  );
 }
 
 export interface UseProposalFormResult {

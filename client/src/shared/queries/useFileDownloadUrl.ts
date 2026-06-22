@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { filesApi } from "../api/files";
+import { qk } from "./keys";
 
 export function useFileDownloadUrl(fileAssetId: string | undefined) {
   return useQuery({
-    queryKey: ["file-download-url", fileAssetId],
+    queryKey: qk.files.downloadUrl(fileAssetId),
     queryFn: async () => {
       const res = await filesApi.getPresignedDownloadUrl(fileAssetId!);
       return res.downloadUrl;

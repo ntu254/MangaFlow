@@ -1,12 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Logo } from "@/shared/ui/site/Logo";
 import { ThemeToggle } from "@/shared/ui/site/ThemeToggle";
-import { publicGetChapter } from "@/shared/lib/public-api";
+import { publicGetChapterWithPages } from "@/shared/lib/public-api";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/read/$slug/$chapter")({
-  loader: ({ params }) => {
-    const r = publicGetChapter(params.slug, params.chapter);
+  loader: async ({ params }) => {
+    const r = await publicGetChapterWithPages(params.slug, params.chapter);
     if (!r) throw notFound();
     return r;
   },
@@ -54,6 +54,11 @@ function Reader() {
       </div>
 
       <div className="mt-4 space-y-2">
+        {pages.length === 0 && (
+          <div className="rounded border border-dashed border-foreground/15 p-8 text-center text-sm text-foreground/55">
+            No public page images are available for this chapter yet.
+          </div>
+        )}
         {pages.map((p: (typeof pages)[number]) => (
           <img
             key={p.index}
