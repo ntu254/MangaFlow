@@ -45,6 +45,101 @@ export interface EditorForwardInput {
   riskNote?: string;
 }
 
+export interface EditorWorkspaceSeries {
+  series: Series;
+  currentChapter?: {
+    id: string;
+    title: string;
+    chapterNumber: number;
+    status: string;
+    updatedAt?: string;
+  } | null;
+  pendingFinalReviews: number;
+  activeTasks: number;
+  blockers: number;
+  deadlineRisk: number;
+  latestRanking?: {
+    id: string;
+    period: string;
+    voteCount: number;
+    readerScore: number;
+    finalScore: number;
+    status: string;
+  } | null;
+}
+
+export interface EditorProductionProgress {
+  series: Series;
+  chapters: Array<{
+    id: string;
+    title: string;
+    chapterNumber: number;
+    status: string;
+    pagesTotal: number;
+    pagesApproved: number;
+    pages?: Array<{
+      id: string;
+      pageNumber: number;
+      status: string;
+      hasWorkingFile: boolean;
+    }>;
+    tasksTotal: number;
+    tasksApproved: number;
+    pendingEditorReviews: number;
+    readinessPercent: number;
+    updatedAt?: string;
+  }>;
+}
+
+export interface EditorRankingRisk {
+  series: Series;
+  latestRanking?: {
+    id: string;
+    period: string;
+    voteCount: number;
+    readerScore: number;
+    finalScore: number;
+    status: string;
+    updatedAt?: string;
+  } | null;
+  riskLevel: "HIGH" | "WATCH" | "STABLE";
+  trend: Array<{
+    id: string;
+    period: string;
+    voteCount: number;
+    readerScore: number;
+    finalScore: number;
+    status: string;
+    updatedAt?: string;
+  }>;
+  latestDecision?: {
+    id: string;
+    decision: string;
+    note?: string;
+    createdAt?: string;
+  } | null;
+}
+
+export interface EditorDecisionHistoryItem {
+  id: string;
+  type: string;
+  seriesId: string;
+  seriesTitle: string;
+  result: string;
+  detail?: string;
+  actor?: string;
+  decidedAt?: string;
+}
+
+export interface EditorActivityItem {
+  id: string;
+  type: string;
+  seriesId: string;
+  seriesTitle: string;
+  detail?: string;
+  at?: string;
+}
+
 function asRecord(value: unknown): ApiRecord {
   return value && typeof value === "object" ? (value as ApiRecord) : {};
 }
@@ -142,13 +237,22 @@ export const editorApi = {
     api.post(`/editor/series/${seriesId}/reject`, input).then(unwrap<unknown>),
   forwardToBoard: (seriesId: string, input: EditorForwardInput) =>
     api.post(`/editor/series/${seriesId}/forward-to-board`, input).then(unwrap<unknown>),
-  getTask: (taskId: string) => api.get(`/tasks/${taskId}`).then(unwrap<any>),
+  managedSeries: () => api.get("/editor/managed-series").then(unwrap<EditorWorkspaceSeries[]>),
+  productionProgress: () =>
+    api.get("/editor/production-progress").then(unwrap<EditorProductionProgress[]>),
+  rankingRisk: () => api.get("/editor/ranking-risk").then(unwrap<EditorRankingRisk[]>),
+  decisionHistory: () =>
+    api.get("/editor/decision-history").then(unwrap<EditorDecisionHistoryItem[]>),
+  activity: () => api.get("/editor/activity").then(unwrap<EditorActivityItem[]>),
+  getTask: (taskId: string) => api.get(`/tasks/${taskId}`).then(unwrap<unknown>),
   listFinalReviewQueue: (seriesId?: string) =>
-    api.get(`/submissions/review-queue`, { params: { seriesId } }).then(unwrap<any[]>),
+    api.get(`/submissions/review-queue`, { params: { seriesId } }).then(unwrap<unknown[]>),
   editorApproveSubmission: (submissionId: string, reviewerNote?: string) =>
-    api.post(`/submissions/${submissionId}/editor-approve`, { reviewerNote }).then(unwrap<any>),
+    api.post(`/submissions/${submissionId}/editor-approve`, { reviewerNote }).then(unwrap<unknown>),
   editorRejectSubmission: (submissionId: string, reviewerNote: string) =>
-    api.post(`/submissions/${submissionId}/editor-reject`, { reviewerNote }).then(unwrap<any>),
+    api.post(`/submissions/${submissionId}/editor-reject`, { reviewerNote }).then(unwrap<unknown>),
   editorRequestSubmissionRevision: (submissionId: string, reviewerNote: string) =>
-    api.post(`/submissions/${submissionId}/request-revision`, { reviewerNote }).then(unwrap<any>),
+    api
+      .post(`/submissions/${submissionId}/request-revision`, { reviewerNote })
+      .then(unwrap<unknown>),
 };

@@ -7,6 +7,7 @@ import {
   type EditorRevisionInput,
 } from "@/shared/api/editor";
 import { extractErrorMessage } from "@/shared/api";
+import { qk } from "./keys";
 
 export function useEditorReviewQueue() {
   return useQuery({
@@ -68,7 +69,7 @@ export function useEditorForwardToBoard(seriesId: string) {
 
 export function useEditorFinalReviewQueue(seriesId?: string) {
   return useQuery({
-    queryKey: ["editor", "final-review-queue", seriesId],
+    queryKey: qk.editor.finalReviewQueue(seriesId),
     queryFn: () => editorApi.listFinalReviewQueue(seriesId),
   });
 }
@@ -78,6 +79,41 @@ export function useEditorGetTask(taskId: string) {
     queryKey: ["editor", "task", taskId],
     queryFn: () => editorApi.getTask(taskId),
     enabled: !!taskId,
+  });
+}
+
+export function useEditorManagedSeries() {
+  return useQuery({
+    queryKey: qk.editor.managedSeries(),
+    queryFn: editorApi.managedSeries,
+  });
+}
+
+export function useEditorProductionProgress() {
+  return useQuery({
+    queryKey: qk.editor.productionProgress(),
+    queryFn: editorApi.productionProgress,
+  });
+}
+
+export function useEditorRankingRisk() {
+  return useQuery({
+    queryKey: qk.editor.rankingRisk(),
+    queryFn: editorApi.rankingRisk,
+  });
+}
+
+export function useEditorDecisionHistory() {
+  return useQuery({
+    queryKey: qk.editor.decisionHistory(),
+    queryFn: editorApi.decisionHistory,
+  });
+}
+
+export function useEditorActivity() {
+  return useQuery({
+    queryKey: qk.editor.activity(),
+    queryFn: editorApi.activity,
   });
 }
 

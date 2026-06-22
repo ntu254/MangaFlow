@@ -10,6 +10,11 @@ const countSeriesPendingReview = vi.fn()
 const countActiveBoardChairs = vi.fn()
 const countInactiveTaskTypes = vi.fn()
 const countPendingPayrollConfirmations = vi.fn()
+const seriesCountDocuments = vi.fn()
+const seriesFind = vi.fn()
+const seriesMemberFind = vi.fn()
+const submissionCountDocuments = vi.fn()
+const taskCountDocuments = vi.fn()
 
 vi.mock("./dashboard.repository.js", () => ({
   countActiveUsers,
@@ -24,7 +29,35 @@ vi.mock("./dashboard.repository.js", () => ({
   countPendingPayrollConfirmations,
 }))
 
-const { getAdminSidebarSummaryService } = await import("./dashboard.service.js")
+vi.mock("../series/series.model.js", () => ({
+  Series: {
+    countDocuments: seriesCountDocuments,
+    find: seriesFind,
+  },
+  SeriesMember: {
+    find: seriesMemberFind,
+  },
+}))
+
+vi.mock("../submission/submission.model.js", () => ({
+  Submission: {
+    countDocuments: submissionCountDocuments,
+  },
+}))
+
+vi.mock("../task/task.model.js", () => ({
+  Task: {
+    countDocuments: taskCountDocuments,
+  },
+}))
+
+vi.mock("../chapter/chapter.model.js", () => ({
+  Chapter: {
+    find: vi.fn(),
+  },
+}))
+
+const { getAdminSidebarSummaryService, getEditorSummaryService } = await import("./dashboard.service.js")
 
 describe("dashboard.service", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -59,5 +92,38 @@ describe("dashboard.service", () => {
       aiUnhealthy: true,
     })
     expect(result.auditPreview).toContain("Admin can view counts but cannot override Board decisions")
+  })
+
+  it("counts Editor final reviews from Mangaka-approved submissions and active Editor memberships", async () => {
+    seriesMemberFind.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([{ seriesId: "64f000000000000000000001" }]),
+      }),
+    })
+    seriesCountDocuments
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(3)
+    submissionCountDocuments.mockResolvedValue(2)
+    taskCountDocuments.mockResolvedValue(4)
+    seriesFind.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([{ title: "At Risk", status: "AT_RISK" }]),
+      }),
+    })
+
+    const result = await getEditorSummaryService("64f000000000000000000099")
+
+    expect(seriesMemberFind).toHaveBeenCalledWith({
+      userId: expect.anything(),
+      role: "EDITOR",
+      status: "ACTIVE",
+    })
+    expect(submissionCountDocuments).toHaveBeenCalledWith({
+      seriesId: { $in: ["64f000000000000000000001"] },
+      status: "MANGAKA_APPROVED",
+    })
+    expect(seriesCountDocuments).toHaveBeenLastCalledWith({ status: "EDITOR_REVIEW" })
+    expect(result.reviewQueue).toMatchObject({ manuscripts: 3, productions: 2 })
+    expect(result.quickStats).toMatchObject({ assignedSeries: 1, pendingApprovals: 2, deadlineSoon: 4 })
   })
 })
