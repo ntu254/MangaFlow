@@ -48,6 +48,13 @@ const TABS = [
   { name: "Activity", path: "activity" },
 ];
 
+type ChapterLike = {
+  status?: string;
+  active?: boolean;
+  chapter?: string | number;
+  chapterNumber?: string | number;
+};
+
 function SeriesDetailLayout() {
   const { id } = Route.useLoaderData();
   const { data: summary, isLoading, isError } = useSeriesSummary(id);
@@ -108,6 +115,16 @@ function SeriesDetailLayout() {
     });
   };
 
+  const series = summary?.series;
+  const chapters = summary?.chapters ?? [];
+  const currentChapter = summary?.currentChapter;
+  const filesList = summary?.files ?? [];
+  const coverDraftFile = filesList.find(
+    (f: { assetType?: string; category?: string }) =>
+      f.assetType === "cover_draft" || f.category === "COVER_DRAFT",
+  );
+  const coverDraftUrlState = useFileObjectUrl(series?.cover ? undefined : coverDraftFile?.id);
+
   if (isLoading)
     return (
       <div className="p-8 text-sm text-foreground/55 animate-pulse">Loading series data...</div>
@@ -117,25 +134,23 @@ function SeriesDetailLayout() {
       <div className="p-8 text-sm text-foreground/55">Series not found or error loading data.</div>
     );
 
-  const { series, chapters, currentChapter } = summary;
-  
   // Find mock series to get cover image fallback
   let mockIndex = 0;
   if (id) {
-    const charCodes = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const charCodes = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     mockIndex = charCodes % mockSeries.length;
   }
-  const mockSeriesData = mockSeries.find((s) => s.id === id || s.title === series.title) || mockSeries[mockIndex];
-
-  // Try to find an uploaded cover draft file in series summary files as fallback
-  const filesList = summary?.files ?? [];
-  const coverDraftFile = filesList.find((f: any) => f.assetType === "cover_draft" || f.category === "COVER_DRAFT");
-  const coverDraftUrlState = useFileObjectUrl(series?.cover ? undefined : coverDraftFile?.id);
+  const mockSeriesData =
+    mockSeries.find((s) => s.id === id || s.title === series.title) || mockSeries[mockIndex];
 
   // Safe defaults for properties that might not exist yet
   const resolvedCover = series?.cover
-    ? (series.cover.startsWith("http") || series.cover.startsWith("/") || series.cover.startsWith("data:") ? series.cover : `/api/public/images/${series.cover}`)
-    : (coverDraftUrlState?.data || "");
+    ? series.cover.startsWith("http") ||
+      series.cover.startsWith("/") ||
+      series.cover.startsWith("data:")
+      ? series.cover
+      : `/api/public/images/${series.cover}`
+    : coverDraftUrlState?.data || "";
 
   series.jp = series.jp || mockSeriesData?.jp || "";
 
@@ -144,7 +159,7 @@ function SeriesDetailLayout() {
     currentChapter ||
     (displayChapters.length > 0
       ? displayChapters.find(
-          (c: any) => c.status === "in-production" || c.status === "draft" || c.active,
+          (c: ChapterLike) => c.status === "in-production" || c.status === "draft" || c.active,
         ) || displayChapters[0]
       : null);
   const currentChapterNumber = displayCurrentChapter
@@ -172,7 +187,9 @@ function SeriesDetailLayout() {
             ) : (
               <div className="w-[120px] h-[176px] rounded-lg shadow-xl shrink-0 border border-foreground/10 bg-foreground/5 flex flex-col items-center justify-center p-3 text-center">
                 <BookOpen className="w-7 h-7 text-foreground/30 mb-1.5" />
-                <span className="text-[10px] text-foreground/45 font-bold uppercase tracking-wider">No Cover</span>
+                <span className="text-[10px] text-foreground/45 font-bold uppercase tracking-wider">
+                  No Cover
+                </span>
               </div>
             )}
 
@@ -263,7 +280,7 @@ function SeriesDetailLayout() {
           <div className="flex flex-col gap-2 shrink-0 justify-center min-w-[220px]">
             {displayCurrentChapter && (
               <Link
-                to={`/app/series/${id}/chapters` as any}
+                to={`/app/series/${id}/chapters` as never}
                 className="w-full h-10 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-md flex items-center justify-between px-4 text-[13px] font-semibold transition-colors shadow-sm"
               >
                 Continue to Next Action <ArrowRight className="w-4 h-4" />
@@ -317,7 +334,7 @@ function SeriesDetailLayout() {
           return (
             <Link
               key={tab.name}
-              to={`/app/series/${id}/${tab.path}` as any}
+              to={`/app/series/${id}/${tab.path}` as never}
               className={`relative flex-1 flex justify-center py-2.5 text-[13px] whitespace-nowrap transition-colors ${
                 isActive
                   ? "text-[#061A2B] dark:text-foreground font-bold"

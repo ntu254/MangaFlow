@@ -1,5 +1,38 @@
 # Editor Flow UI Progress
 
+## 2026-06-22 - Mangaka review task studio link fix
+
+Task summary:
+
+- Check the Mangaka review flow for tasks submitted by assistants.
+- Fix the browser error where opening Page Studio called `/api/pages/pg_6a391cccff1c3e271bc310eb_1/studio` and received `400`.
+
+Root cause:
+
+- Shared task overview components generated a fake page id with `pg_${chapterId}_1`.
+- Real backend Page records use their actual `task.pageId` ObjectId, so the generated id was invalid for `/api/pages/:pageId/studio`.
+
+Actions taken:
+
+- Updated task table and task card studio links to use the real `task.pageId`.
+- Added a disabled `No page` state when a task does not have a linked page instead of making a bad API request.
+- Kept Assistant Task Studio unchanged because it already opens by `taskId` and resolves `task.pageId`.
+
+Files changed:
+
+- `client/src/features/tasks/components/TaskList.tsx`
+- `client/src/features/tasks/components/TaskCard.tsx`
+
+Validation run:
+
+- `cmd /c "cd client && npx prettier --write src/features/tasks/components/TaskList.tsx src/features/tasks/components/TaskCard.tsx"` passed.
+- `cmd /c "cd client && npx eslint src/features/tasks/components/TaskList.tsx src/features/tasks/components/TaskCard.tsx"` passed.
+- `cmd /c "npm --prefix client run build"` passed.
+
+Outcome:
+
+- Opening Studio from task overview no longer sends generated `pg_<chapterId>_1` IDs to the backend.
+
 ## 2026-06-22 - Tantou Editor Control Desk implementation
 
 Requested Editor flow:

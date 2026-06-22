@@ -139,10 +139,19 @@ export function PageStudioWorkspace({
     replaceRegionTasks(mapTasksByRegion(studioData.tasks));
   }, [replaceRegionTasks, studioData]);
 
-  const workingFileAssetId = getFileAssetId(studioData?.workingFileAsset);
-  const originalFileAssetId = getFileAssetId(studioData?.originalFileAsset);
+  const shouldLoadPageImages =
+    studioData?.page?.status !== "PROCESSING_FAILED" &&
+    studioData?.page?.status !== "PENDING" &&
+    studioData?.page?.status !== "UPLOADING" &&
+    studioData?.page?.status !== "PROCESSING";
+  const workingFileAssetId = shouldLoadPageImages
+    ? getFileAssetId(studioData?.workingFileAsset)
+    : undefined;
+  const originalFileAssetId = shouldLoadPageImages
+    ? getFileAssetId(studioData?.originalFileAsset)
+    : undefined;
 
-  const { data: workingImageUrl } = useFileObjectUrl(workingFileAssetId);
+  const { data: workingImageUrl, error: workingImageError } = useFileObjectUrl(workingFileAssetId);
   const { data: originalImageUrl } = useFileObjectUrl(originalFileAssetId);
   const frameClass = "h-full min-h-0";
 
@@ -233,6 +242,24 @@ export function PageStudioWorkspace({
         <div className="max-w-sm rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
           <span className="mb-2 block font-bold text-amber-400">Missing working image.</span>
           <span className="text-sm text-amber-400/80">Retry processing or contact admin.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (workingImageError) {
+    const apiError = workingImageError as ApiErrorLike;
+    const message =
+      apiError.response?.data?.message ||
+      "Working image file is missing or unavailable. Re-upload this page asset.";
+    return (
+      <div
+        suppressHydrationWarning
+        className={`flex ${frameClass} w-full items-center justify-center bg-background`}
+      >
+        <div className="max-w-sm rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
+          <span className="mb-2 block font-bold text-amber-400">Working image unavailable.</span>
+          <span className="text-sm text-amber-400/80">{message}</span>
         </div>
       </div>
     );
