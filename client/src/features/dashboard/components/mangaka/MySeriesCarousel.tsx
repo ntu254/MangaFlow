@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { series as mockSeries, type Series as MockSeriesType } from "@/entities";
-import { useMySeriesMemberships } from "@/shared/queries/useSeries";
 import { Progress } from "@/shared/ui/shadcn/progress";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -30,22 +29,8 @@ const getActionColor = (action?: string) => {
 export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  
-  const { data: memberships, isLoading } = useMySeriesMemberships();
-  
-  const mine = memberships?.map((m) => {
-    const s = m.series;
-    const mock = mockSeries.find(ms => ms.id === s.id || ms.title === s.title);
-    return {
-      ...s,
-      cover: mock?.cover || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop",
-      jp: mock?.jp || "",
-      pages: mock?.pages || { uploaded: 0, total: 0 },
-      pendingTasks: mock?.pendingTasks || 0,
-      currentChapter: mock?.currentChapter || "Ch. 1",
-      nextAction: mock?.nextAction || "Upload drafts",
-    };
-  }) || [];
+
+  const mine = mockSeries.filter((s) => !mangakaId || s.mangakaId === mangakaId);
 
   const scrollRight = () => {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: 360, behavior: "smooth" });
@@ -54,7 +39,7 @@ export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: -360, behavior: "smooth" });
   };
 
-  const handleActionClick = (e: React.MouseEvent, s: any) => {
+  const handleActionClick = (e: React.MouseEvent, s: MockSeriesType) => {
     e.preventDefault();
     e.stopPropagation();
     if (s.nextAction?.includes("Review")) navigate({ to: `/app/series/${s.id}/reviews` });
@@ -63,10 +48,6 @@ export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
     else if (s.nextAction?.includes("archives")) navigate({ to: `/app/series/${s.id}/archives` });
     else if (s.nextAction?.includes("Finalize")) navigate({ to: `/app/series/${s.id}/proposal` });
   };
-
-  if (isLoading) {
-    return <div className="h-[180px] flex items-center justify-center"><div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" /></div>;
-  }
 
   if (mine.length === 0) {
     return null;

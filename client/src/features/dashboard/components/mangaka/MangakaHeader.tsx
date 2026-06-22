@@ -1,30 +1,21 @@
 import { useRole } from "@/shared/lib/role";
-import { useMySeriesMemberships } from "@/shared/queries/useSeries";
 import { series as mockSeries } from "@/entities";
 
 export function MangakaHeader() {
   const { user } = useRole();
-  const { data: memberships } = useMySeriesMemberships();
-  
-  let headerImageUrl = "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
-  
-  if (memberships && memberships.length > 0) {
-    const s = memberships[0].series;
-    const mock = mockSeries.find(ms => ms.id === s.id || ms.title === s.title);
-    if (mock?.cover) {
-      headerImageUrl = mock.cover;
-    }
-  }
+  const headerImageUrl =
+    mockSeries[0]?.cover ||
+    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
 
   return (
     <div className="relative mb-8 overflow-hidden rounded-lg bg-[#FAF8F5] dark:bg-foreground/5 px-8 py-10">
       {/* Background Image */}
-      <div 
+      <div
         className="absolute inset-0 z-0 opacity-20 transition-opacity"
         style={{
           backgroundImage: `url(${headerImageUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       />
       {/* Gradient Overlay */}

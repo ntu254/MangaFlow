@@ -14,14 +14,22 @@ import type { ComponentType, ReactNode } from "react";
 import { useBoardMembers, useUsers } from "@/shared/queries/useUsers";
 import { useAuditLogs, useTaskRates } from "@/shared/queries/useAdmin";
 import { fileAssets } from "@/entities/file-asset/model";
+import { useRole } from "@/shared/lib/role";
 
 type Tone = "blue" | "green" | "amber" | "red" | "neutral";
 
 export function AdminDash() {
-  const { data: users = [] } = useUsers();
-  const { data: boardMembers = [] } = useBoardMembers();
-  const { data: taskRates = [] } = useTaskRates();
-  const { data: auditPage } = useAuditLogs({});
+  const { user, loading } = useRole();
+  const canAccessAdmin = user?.role === "ADMIN";
+  const adminQueryOptions = { enabled: !loading && canAccessAdmin };
+  const { data: users = [] } = useUsers(adminQueryOptions);
+  const { data: boardMembers = [] } = useBoardMembers(adminQueryOptions);
+  const { data: taskRates = [] } = useTaskRates(adminQueryOptions);
+  const { data: auditPage } = useAuditLogs({}, adminQueryOptions);
+
+  if (!canAccessAdmin) {
+    return <AdminPermissionState />;
+  }
 
   const activeUsers = users.filter((user) => user.isActive).length;
   const suspendedUsers = users.filter((user) => !user.isActive).length;
@@ -193,6 +201,18 @@ export function AdminDash() {
         </AdminPanel>
       </div>
     </div>
+  );
+}
+
+function AdminPermissionState() {
+  return (
+    <section className="admin-panel">
+      <div className="text-sm font-semibold text-foreground">Admin permission required</div>
+      <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+        This dashboard preview is visible, but live admin metrics require a backend ADMIN account.
+        Sign in as Admin to load users, board members, task rates, and audit logs.
+      </p>
+    </section>
   );
 }
 
