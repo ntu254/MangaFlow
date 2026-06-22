@@ -78,3 +78,25 @@ export function useReplacePage() {
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
 }
+
+export function useChapterReadiness(chapterId: string | undefined) {
+  return useQuery({
+    queryKey: ["chapter-readiness", chapterId],
+    queryFn: () => chaptersApi.getChapterReadiness(chapterId!),
+    enabled: !!chapterId,
+  });
+}
+
+export function useMarkChapterReady() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (chapterId: string) => chaptersApi.markChapterReady(chapterId),
+    onSuccess: (_, chapterId) => {
+      qc.invalidateQueries({ queryKey: ["chapter-readiness", chapterId] });
+      qc.invalidateQueries({ queryKey: ["series"] });
+      qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
+      toast.success("Chapter marked as ready for publication!");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}

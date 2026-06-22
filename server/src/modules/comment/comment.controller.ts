@@ -19,6 +19,7 @@ export async function createComment(req: Request, res: Response): Promise<void> 
     submissionId: req.body.submissionId,
     body: req.body.body,
     isBlocking: req.body.isBlocking,
+    visibility: req.body.visibility,
   })
   res.status(201).json({ success: true, message: "Comment created", data: comment })
 }

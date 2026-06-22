@@ -1,5 +1,11 @@
 import type { Request, Response } from "express"
-import { cancelPublicationService, createPublicationService, patchPublicationService, publishPublicationService, schedulePublicationService } from "./publication.service.js"
+import { cancelPublicationService, createPublicationService, listPublicationsService, patchPublicationService, publishPublicationService, schedulePublicationService } from "./publication.service.js"
+
+export async function listPublications(req: Request, res: Response): Promise<void> {
+  const seriesId = typeof req.query.seriesId === "string" ? req.query.seriesId : undefined
+  const publications = await listPublicationsService({ seriesId }, req.user!)
+  res.json({ success: true, message: "Publications retrieved", data: publications })
+}
 
 export async function createPublication(req: Request, res: Response): Promise<void> {
   const publication = await createPublicationService({

@@ -9,6 +9,9 @@ export const createCommentSchema = z.object({
   submissionId: z.string().min(1).optional(),
   body: z.string().trim().min(1, "Comment body is required").max(2000),
   isBlocking: z.boolean().optional(),
+  visibility: z
+    .enum(["PUBLIC_TO_ASSISTANT", "MANGAKA_EDITOR_ONLY", "EDITOR_INTERNAL"])
+    .optional(),
 })
 
 export const commentIdParamsSchema = z.object({

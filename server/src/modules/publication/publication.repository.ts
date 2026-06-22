@@ -13,6 +13,16 @@ export async function getPublicationByChapter(chapterId: string) {
   return Publication.findOne({ chapterId })
 }
 
+export async function listPublications(filter: { seriesId?: string; userId?: string }) {
+  const query: Record<string, unknown> = {}
+  if (filter.seriesId) query.seriesId = filter.seriesId
+  if (filter.userId) query.createdBy = filter.userId
+  return Publication.find(query)
+    .sort({ createdAt: -1 })
+    .populate("chapterId", "chapterNumber title status")
+    .lean()
+}
+
 export async function createPublicationRecord(input: { chapterId: string; seriesId: string; createdBy: string; scheduledFor?: Date }) {
   return Publication.findOneAndUpdate(
     { chapterId: input.chapterId },

@@ -73,6 +73,10 @@ export const qk = {
   pages: {
     studio: (pageId: string) => ["page", pageId, "studio"] as const,
   },
+  comments: {
+    root: ["comments"] as const,
+    byTask: (taskId: string) => ["comments", "task", taskId] as const,
+  },
 };
 
 export function invalidateSeries(queryClient: QueryClient, seriesId?: string) {

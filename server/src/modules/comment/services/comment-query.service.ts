@@ -5,7 +5,7 @@ import { normalizeCommentScope } from "./comment-scope.service.js"
 import type { CreateCommentServiceInput } from "../comment.service.js"
 
 export async function createCommentService(input: CreateCommentServiceInput) {
-  await assertCommentSeriesMember(input.seriesId, input.actor, ["EDITOR"])
+  await assertCommentSeriesMember(input.seriesId, input.actor, ["EDITOR", "MANGAKA", "ASSISTANT"])
   const scope = await normalizeCommentScope(input)
 
   return createCommentRecord({
@@ -18,6 +18,7 @@ export async function createCommentService(input: CreateCommentServiceInput) {
     authorId: input.actor.userId,
     body: input.body.trim(),
     isBlocking: input.isBlocking,
+    visibility: input.visibility,
   })
 }
 
@@ -28,5 +29,5 @@ export async function hasBlockingUnresolvedCommentsService(filter: { seriesId?: 
 
 export async function listCommentsByTaskService(taskId: string, actor: CommentActor) {
   await getTaskService(taskId, actor)
-  return listCommentsByTask(taskId)
+  return listCommentsByTask(taskId, actor.role)
 }

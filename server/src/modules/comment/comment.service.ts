@@ -13,6 +13,7 @@ export interface CreateCommentServiceInput {
   submissionId?: string
   body: string
   isBlocking?: boolean
+  visibility?: "PUBLIC_TO_ASSISTANT" | "MANGAKA_EDITOR_ONLY" | "EDITOR_INTERNAL"
 }
 
 export async function createCommentService(input: CreateCommentServiceInput) {

@@ -11,3 +11,5 @@ export * from "./files";
 export * from "./pages";
 export * from "./regions";
 export * from "./rankings";
+export * from "./comments";
+
