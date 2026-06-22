@@ -156,23 +156,28 @@ function NewSeriesPage() {
   // ---------- payload mapping ----------
 
   const buildPayload = useCallback(
-    (v: ProposalFormValues): CreateSeriesInput => ({
-      title: v.title,
-      cover: v.cover || undefined,
-      synopsis: v.synopsis || "TBD", // Provide default for draft creation
-      logline: v.logline || undefined,
-      premise: v.premise || undefined,
-      characters: v.mainCharacters || undefined,
-      conflict: v.centralConflict || undefined,
-      targetAudience: v.targetAudience || undefined,
-      requestedPublicationType:
-        v.preferredCadence === "WEEKLY"
-          ? "WEEKLY"
-          : v.preferredCadence === "MONTHLY"
-            ? "MONTHLY"
-            : undefined,
-      genres: v.genres,
-    }),
+    (v: ProposalFormValues) => {
+      const payload: CreateSeriesInput & { cover?: string } = {
+        title: v.title,
+        synopsis: v.synopsis || "TBD", // Provide default for draft creation
+        logline: v.logline || undefined,
+        premise: v.premise || undefined,
+        characters: v.mainCharacters || undefined,
+        conflict: v.centralConflict || undefined,
+        targetAudience: v.targetAudience || undefined,
+        requestedPublicationType:
+          v.preferredCadence === "WEEKLY"
+            ? "WEEKLY"
+            : v.preferredCadence === "MONTHLY"
+              ? "MONTHLY"
+              : undefined,
+        genres: v.genres,
+      };
+      if (v.cover) {
+        payload.cover = v.cover;
+      }
+      return payload;
+    },
     [],
   );
 
@@ -183,7 +188,8 @@ function NewSeriesPage() {
     const v = form.getValues();
     if (!v.title.trim()) return null;
     try {
-      const created = await createMut.mutateAsync(buildPayload(v));
+      const { cover, ...createInput } = buildPayload(v);
+      const created = await createMut.mutateAsync(createInput);
       setSeriesId(created.id);
       return created.id;
     } catch {
@@ -199,7 +205,8 @@ function NewSeriesPage() {
     }
     try {
       if (!seriesId) {
-        const created = await createMut.mutateAsync(buildPayload(v));
+        const { cover, ...createInput } = buildPayload(v);
+        const created = await createMut.mutateAsync(createInput);
         setSeriesId(created.id);
         toast.success("Draft saved");
       } else {

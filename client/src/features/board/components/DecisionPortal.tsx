@@ -1,26 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import {
-  BarChart3,
-  CalendarClock,
-  ClipboardCheck,
-  History,
-  LayoutDashboard,
-  ShieldAlert,
-  Vote,
-} from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 
-const portalNav = [
-  { to: "/app/dashboard", label: "Overview", icon: LayoutDashboard },
-  { to: "/app/board/series-review", label: "Review workspace", icon: ClipboardCheck },
-  { to: "/app/board/voting-sessions", label: "Voting panel", icon: Vote },
-  { to: "/app/rankings", label: "Ranking analytics", icon: BarChart3 },
-  { to: "/app/board/cancellation-review", label: "Cancellation cases", icon: ShieldAlert },
-  { to: "/app/board/decision-history", label: "Decision history", icon: History },
-] as const;
-
 export function DecisionPortalShell({
-  eyebrow = "Decision portal",
+  eyebrow = "Dashboard",
   title,
   description,
   active,
@@ -52,25 +35,6 @@ export function DecisionPortalShell({
           </div>
           {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 py-2">
-          {portalNav.map((item) => {
-            const isActive = active === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-xs font-medium transition active:translate-y-px ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                }`}
-              >
-                <item.icon className="h-3.5 w-3.5" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
       </section>
       {children}
     </div>

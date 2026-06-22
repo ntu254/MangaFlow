@@ -11,9 +11,19 @@ import {
   getOpenBoardReviewSession,
   getOrCreateDecision,
   isBoardChair,
+  listApprovedSeriesForSchedule,
+  listAtRiskDecisionsBySeries,
+  listAtRiskDecisionsForHistory,
+  listAtRiskDecisionsForSeries,
+  listBoardDecisionsForHistory,
   listBoardQueueSeries,
   listBoardVotes,
+  listCancellationCaseSeries,
   listEligibleBoardUsers,
+  listFinalizedRankingsForHistory,
+  listLatestRankingsBySeries,
+  listScheduleDecisions,
+  updateBoardSchedule,
   updateDecision,
   updateLatestManuscriptAfterDecision,
   updateSeriesAfterDecision,
@@ -62,6 +72,16 @@ function plurality(counts: Record<BoardVoteValue, number>): BoardVoteValue | "TI
 
 function userIdOfEligible(record: any): string {
   return String(record.userId ?? record._id ?? record.id)
+}
+
+function refId(value: any): string {
+  if (!value) return ""
+  return String(value._id ?? value.id ?? value)
+}
+
+function actorName(value: any): string | undefined {
+  if (!value || typeof value === "string") return undefined
+  return value.displayName || value.name || value.email
 }
 
 function isDuplicateVoteError(error: unknown): boolean {
@@ -293,11 +313,179 @@ const AT_RISK_TO_SERIES = {
 export async function createAtRiskDecisionService(seriesId: string, userId: string, decision: AtRiskDecision, note?: string) {
   const series = await getBoardSeries(seriesId)
   if (!series) throw new AppError("Series not found", 404)
-  if (series.status !== "AT_RISK") {
-    throw new AppError("At-risk decision requires Series in AT_RISK status", 409)
+  if (series.status !== "AT_RISK" && !series.cancellationRequestedAt) {
+    throw new AppError("At-risk decision requires Series in AT_RISK status or a cancellation request", 409)
   }
 
   const record = await createAtRiskDecision(seriesId, decision, userId, note?.trim() || undefined)
   await updateSeriesAfterDecision(seriesId, AT_RISK_TO_SERIES[decision])
   return record
+}
+
+export async function listPublishingScheduleService() {
+  const seriesList = await listApprovedSeriesForSchedule()
+  const decisions = await listScheduleDecisions(seriesList.map((series) => series._id))
+  const decisionBySeries = new Map(decisions.map((decision) => [refId(decision.seriesId), decision]))
+
+  return seriesList.map((series) => {
+    const decision = decisionBySeries.get(refId(series._id))
+    return {
+      seriesId: refId(series._id),
+      title: series.title,
+      status: series.status,
+      publicationType: decision?.publicationType ?? series.publicationType ?? series.requestedPublicationType,
+      requestedPublicationType: series.requestedPublicationType,
+      publishAt: decision?.publishAt,
+      note: decision?.scheduleNote,
+      approvedAt: series.approvedAt,
+      updatedAt: decision?.updatedAt ?? series.updatedAt,
+      decidedBy: actorName(decision?.decidedBy),
+      scheduleManagedBy: actorName(decision?.scheduleManagedBy),
+    }
+  })
+}
+
+export async function savePublishingScheduleService(seriesId: string, userId: string, input: { publicationType: PublicationType; publishAt: string; note?: string }) {
+  await assertEligibleBoardUser(userId)
+  const series = await getBoardSeries(seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  if (!["ONGOING", "COMPLETED"].includes(series.status)) {
+    throw new AppError("Publishing schedule requires an approved series", 409)
+  }
+
+  const publishAt = new Date(input.publishAt)
+  if (Number.isNaN(publishAt.getTime())) throw new AppError("Valid publishAt datetime is required", 400)
+
+  const decision = await updateBoardSchedule(seriesId, {
+    publicationType: input.publicationType,
+    publishAt,
+    note: input.note?.trim() || undefined,
+    actorId: userId,
+  })
+
+  void recordAuditLog({
+    event: "BOARD_PUBLISHING_SCHEDULED",
+    actorId: userId,
+    entityType: "Series",
+    entityId: seriesId,
+    metadata: { publicationType: input.publicationType, publishAt: publishAt.toISOString() },
+  }).catch(() => undefined)
+
+  return decision
+}
+
+export async function listCancellationCasesService() {
+  const seriesList = await listCancellationCaseSeries()
+  const seriesIds = seriesList.map((series) => series._id)
+  const [rankings, decisions] = await Promise.all([
+    listLatestRankingsBySeries(seriesIds),
+    listAtRiskDecisionsBySeries(seriesIds),
+  ])
+
+  const latestRanking = new Map<string, any>()
+  for (const ranking of rankings) {
+    const key = refId(ranking.seriesId)
+    if (!latestRanking.has(key)) latestRanking.set(key, ranking)
+  }
+
+  const latestDecision = new Map<string, any>()
+  for (const decision of decisions) {
+    const key = refId(decision.seriesId)
+    if (!latestDecision.has(key)) latestDecision.set(key, decision)
+  }
+
+  return seriesList.map((series) => {
+    const ranking = latestRanking.get(refId(series._id))
+    const decision = latestDecision.get(refId(series._id))
+    return {
+      seriesId: refId(series._id),
+      title: series.title,
+      status: series.status,
+      synopsis: series.synopsis,
+      cancellationRequestedAt: series.cancellationRequestedAt,
+      updatedAt: series.updatedAt,
+      latestRanking: ranking ? {
+        id: refId(ranking._id),
+        period: ranking.period,
+        voteCount: ranking.voteCount,
+        readerScore: ranking.readerScore,
+        finalScore: ranking.finalScore,
+        status: ranking.status,
+      } : null,
+      latestDecision: decision ? {
+        id: refId(decision._id),
+        decision: decision.decision,
+        note: decision.note,
+        decidedBy: actorName(decision.decidedBy),
+        createdAt: decision.createdAt,
+      } : null,
+    }
+  })
+}
+
+export async function listAtRiskDecisionHistoryService(seriesId: string) {
+  const records = await listAtRiskDecisionsForSeries(seriesId)
+  return records.map((record) => ({
+    id: refId(record._id),
+    seriesId: refId(record.seriesId),
+    decision: record.decision,
+    note: record.note,
+    decidedBy: actorName(record.decidedBy),
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  }))
+}
+
+export async function listDecisionHistoryService(filter = "all") {
+  const [boardDecisions, atRiskDecisions, rankings] = await Promise.all([
+    listBoardDecisionsForHistory(),
+    listAtRiskDecisionsForHistory(),
+    listFinalizedRankingsForHistory(),
+  ])
+
+  const items = [
+    ...boardDecisions.map((decision) => ({
+      id: refId(decision._id),
+      type: "Series Approval",
+      target: decision.seriesId?.title ?? refId(decision.seriesId),
+      seriesId: refId(decision.seriesId),
+      result: decision.status,
+      detail: decision.note || decision.result || "Board decision finalized",
+      actor: actorName(decision.decidedBy) || "Board",
+      date: decision.finalizedAt ?? decision.updatedAt,
+      metadata: {
+        publicationType: decision.publicationType,
+        publishAt: decision.publishAt,
+      },
+    })),
+    ...atRiskDecisions.map((decision) => ({
+      id: refId(decision._id),
+      type: "Cancellation Review",
+      target: decision.seriesId?.title ?? refId(decision.seriesId),
+      seriesId: refId(decision.seriesId),
+      result: decision.decision,
+      detail: decision.note || "At-risk decision recorded",
+      actor: actorName(decision.decidedBy) || "Board",
+      date: decision.createdAt,
+      metadata: {},
+    })),
+    ...rankings.map((ranking) => ({
+      id: refId(ranking._id),
+      type: "Ranking",
+      target: ranking.seriesId?.title ?? ranking.period,
+      seriesId: refId(ranking.seriesId),
+      result: "Ranking finalized",
+      detail: ranking.period + " locked with score " + ranking.finalScore,
+      actor: "Board",
+      date: ranking.updatedAt,
+      metadata: {
+        period: ranking.period,
+        voteCount: ranking.voteCount,
+        readerScore: ranking.readerScore,
+        finalScore: ranking.finalScore,
+      },
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  return filter === "all" ? items : items.filter((item) => item.type === filter)
 }

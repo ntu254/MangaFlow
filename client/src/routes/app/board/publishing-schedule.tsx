@@ -1,124 +1,156 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Save } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/layouts/AppShell";
-import { seriesApi, type PublicationType } from "@/shared/api/series";
-import { series as fallbackSeries } from "@/entities";
+import type { BoardPublishingScheduleItem } from "@/shared/api/board";
+import type { PublicationType } from "@/shared/api/series";
+import {
+  useBoardPublishingSchedule,
+  useSaveBoardPublishingSchedule,
+} from "@/shared/queries/useBoardReview";
 import {
   boardFlowSteps,
   DecisionPortalShell,
   DecisionTimeline,
   PortalCard,
   PortalLoadingRows,
-  PortalNotice,
+  PortalPill,
 } from "@/features/board/components/DecisionPortal";
 
 export const Route = createFileRoute("/app/board/publishing-schedule")({
   component: PublishingSchedulePage,
 });
 
-type ScheduleType = PublicationType | "SPECIAL";
-
 function PublishingSchedulePage() {
-  const { data: remoteSeries = [], isLoading } = useQuery({
-    queryKey: ["series"],
-    queryFn: seriesApi.list,
-  });
-  const [selected, setSelected] = useState<Record<string, ScheduleType>>({});
-
-  const approvedSeries = useMemo(() => {
-    const remote = remoteSeries.filter((item) => ["ONGOING", "COMPLETED"].includes(item.status));
-    if (remote.length)
-      return remote.map((item) => ({ id: item.id, title: item.title, type: item.publicationType }));
-    return fallbackSeries
-      .filter((item) => ["ongoing", "completed"].includes(item.status))
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        type: item.publicationType === "monthly" ? "MONTHLY" : "WEEKLY",
-      }));
-  }, [remoteSeries]);
-
-  function confirmSchedule(seriesId: string) {
-    const type = selected[seriesId];
-    if (!type) return toast.error("Choose a release type first.");
-    if (type === "SPECIAL") {
-      return toast.error("Special release needs backend enum support before saving.");
-    }
-    toast.success(`Schedule intent confirmed as ${type}`);
-  }
+  const { data: items = [], isLoading, error } = useBoardPublishingSchedule();
+  const scheduledCount = items.filter((item) => item.publishAt).length;
 
   return (
     <DecisionPortalShell
       active="/app/board/publishing-schedule"
       title="Publishing Schedule"
-      description="Review approved series and confirm the release cadence requested by Board."
+      description="Set the real publish time and cadence for Board-approved series."
     >
       <DecisionTimeline steps={boardFlowSteps} activeStep={3} />
 
-      <PortalNotice>
-        Current backend scheduling endpoints are Editor-owned. Board can confirm weekly/monthly
-        intent here; special release is shown as a required API extension.
-      </PortalNotice>
+      <section className="grid gap-3 md:grid-cols-3">
+        <ScheduleMetric label="Approved series" value={items.length} />
+        <ScheduleMetric label="Scheduled" value={scheduledCount} />
+        <ScheduleMetric label="Unscheduled" value={Math.max(0, items.length - scheduledCount)} />
+      </section>
 
       <PortalCard
-        title="Approved series"
-        description="Choose the release cadence that should follow an approved decision."
+        title="Approved series schedule"
+        description="Choose weekly or monthly cadence and save an exact publish datetime."
       >
-        <div className="grid grid-cols-[1.4fr_0.8fr_1.1fr_auto] gap-3 border-b border-border bg-foreground/5 px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-          <span>Approved series</span>
-          <span>Current</span>
-          <span>Release choice</span>
+        <div className="grid grid-cols-[1.25fr_0.7fr_1fr_1.2fr_1fr_auto] gap-3 border-b border-border bg-foreground/5 px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span>Series</span>
+          <span>Status</span>
+          <span>Cadence</span>
+          <span>Publish time</span>
+          <span>Note</span>
           <span />
         </div>
 
         {isLoading ? (
           <PortalLoadingRows count={4} />
-        ) : approvedSeries.length === 0 ? (
+        ) : error ? (
+          <div className="px-4 py-8 text-sm text-destructive">
+            Unable to load Board publishing schedule.
+          </div>
+        ) : items.length === 0 ? (
           <EmptyState
             title="No approved series"
-            hint="Series will appear here after Board approval."
+            hint="Approved series will appear here after Board finalization."
             icon={CalendarClock}
           />
         ) : (
-          approvedSeries.map((item) => (
-            <div
-              key={item.id}
-              className="grid grid-cols-[1.4fr_0.8fr_1.1fr_auto] items-center gap-3 border-b border-border px-4 py-3 text-[13px] last:border-b-0"
-            >
-              <span className="font-semibold">{item.title}</span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {item.type ?? "Unassigned"}
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {(["WEEKLY", "MONTHLY", "SPECIAL"] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setSelected((prev) => ({ ...prev, [item.id]: type }))}
-                    className={`h-7 rounded-md px-2.5 text-xs font-medium transition active:translate-y-px ${
-                      selected[item.id] === type
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border hover:bg-foreground/5"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => confirmSchedule(item.id)}
-                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium transition hover:bg-foreground/5"
-              >
-                Confirm
-              </button>
-            </div>
-          ))
+          items.map((item) => <ScheduleRow key={item.seriesId} item={item} />)
         )}
       </PortalCard>
     </DecisionPortalShell>
   );
+}
+
+function ScheduleMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-border bg-card p-4">
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-2 font-mono text-3xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function ScheduleRow({ item }: { item: BoardPublishingScheduleItem }) {
+  const initialPublishAt = useMemo(() => toDatetimeLocal(item.publishAt), [item.publishAt]);
+  const [publicationType, setPublicationType] = useState<PublicationType>(
+    item.publicationType === "MONTHLY" ? "MONTHLY" : "WEEKLY",
+  );
+  const [publishAt, setPublishAt] = useState(initialPublishAt);
+  const [note, setNote] = useState(item.note ?? "");
+  const mutation = useSaveBoardPublishingSchedule(item.seriesId);
+
+  async function save() {
+    if (!publishAt) return toast.error("Choose a publish datetime.");
+    const iso = new Date(publishAt).toISOString();
+    await mutation.mutateAsync({
+      publicationType,
+      publishAt: iso,
+      note: note.trim() || undefined,
+    });
+  }
+
+  return (
+    <div className="grid grid-cols-[1.25fr_0.7fr_1fr_1.2fr_1fr_auto] items-center gap-3 border-b border-border px-4 py-3 text-[13px] last:border-b-0">
+      <div className="min-w-0">
+        <div className="truncate font-semibold">{item.title}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {item.publishAt
+            ? "Scheduled " + new Date(item.publishAt).toLocaleString()
+            : "No publish time set"}
+        </div>
+      </div>
+      <PortalPill tone="success">{item.status}</PortalPill>
+      <select
+        value={publicationType}
+        onChange={(event) => setPublicationType(event.target.value as PublicationType)}
+        className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none focus:border-primary/60"
+      >
+        <option value="WEEKLY">WEEKLY</option>
+        <option value="MONTHLY">MONTHLY</option>
+      </select>
+      <input
+        type="datetime-local"
+        value={publishAt}
+        onChange={(event) => setPublishAt(event.target.value)}
+        className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none focus:border-primary/60"
+      />
+      <input
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        placeholder="Optional note"
+        className="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none focus:border-primary/60"
+      />
+      <button
+        type="button"
+        onClick={save}
+        disabled={mutation.isPending}
+        className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        <Save className="h-3.5 w-3.5" /> Save
+      </button>
+    </div>
+  );
+}
+
+function toDatetimeLocal(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
 }

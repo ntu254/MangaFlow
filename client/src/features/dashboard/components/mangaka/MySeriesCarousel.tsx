@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { series as mockSeries, type Series as MockSeriesType } from "@/entities";
 import { useSeriesList } from "@/shared/queries/useSeries";
 import { Progress } from "@/shared/ui/shadcn/progress";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 
@@ -28,32 +28,37 @@ const getActionColor = (action?: string) => {
 };
 
 export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
+  void mangakaId;
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  
-  const { data: seriesList, isLoading } = useSeriesList();
-  
-  const mine = seriesList?.map((s) => {
+
+  const { data: seriesList } = useSeriesList();
+  const safeSeriesList = Array.isArray(seriesList) ? seriesList : [];
+
+  const mine = safeSeriesList.map((s) => {
     // Hash based on ID to pick a consistent mock cover
     let mockIndex = 0;
     if (s.id) {
-      const charCodes = s.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const charCodes = s.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
       mockIndex = charCodes % mockSeries.length;
     }
-    const mock = mockSeries.find(ms => ms.id === s.id || ms.title === s.title) || mockSeries[mockIndex];
-    
+    const mock =
+      mockSeries.find((ms) => ms.id === s.id || ms.title === s.title) || mockSeries[mockIndex];
+
     return {
       ...s,
       cover: s.cover
-        ? (s.cover.startsWith("http") ? s.cover : `/api/public/images/${s.cover}`)
-        : (mock?.cover || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop"),
+        ? s.cover.startsWith("http") || s.cover.startsWith("/") || s.cover.startsWith("data:")
+          ? s.cover
+          : `/api/public/images/${s.cover}`
+        : "",
       jp: mock?.jp || "",
       pages: mock?.pages || { uploaded: 0, total: 0 },
       pendingTasks: mock?.pendingTasks || 0,
       currentChapter: mock?.currentChapter || "Ch. 1",
       nextAction: mock?.nextAction || "Upload manuscript",
     };
-  }) || [];
+  });
 
   const scrollRight = () => {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: 360, behavior: "smooth" });
@@ -111,12 +116,16 @@ export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
                   : "border-foreground/10 bg-card hover:border-foreground/20"
               }`}
             >
-              <div className="w-[125px] shrink-0 bg-foreground/5">
-                <img
-                  src={s.cover}
-                  alt={s.title}
-                  className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                />
+              <div className="w-[125px] shrink-0 bg-foreground/5 flex items-center justify-center">
+                {s.cover ? (
+                  <img
+                    src={s.cover}
+                    alt={s.title}
+                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <BookOpen className="w-6 h-6 text-foreground/20" />
+                )}
               </div>
 
               <div className="flex flex-1 flex-col p-4 relative">

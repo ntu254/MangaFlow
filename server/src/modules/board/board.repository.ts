@@ -1,5 +1,6 @@
 import type { ClientSession } from "mongoose"
 import { User } from "../auth/auth.model.js"
+import { Ranking } from "../ranking/ranking.model.js"
 import { Manuscript, Series } from "../series/series.model.js"
 import { AtRiskDecisionRecord, BoardDecision, BoardMember, BoardReviewSession, BoardVote } from "./board.model.js"
 import type { AtRiskDecision, BoardDecisionStatus, BoardVoteValue, PublicationType, SeriesStatus } from "../../shared/workflow/status.js"
@@ -95,4 +96,94 @@ export async function updateLatestManuscriptAfterDecision(seriesId: string, stat
 export async function createAtRiskDecision(seriesId: string, decision: AtRiskDecision, decidedBy: string, note?: string, session?: ClientSession): Promise<any> {
   const [record] = await AtRiskDecisionRecord.create([{ seriesId, decision, decidedBy, note }], { session })
   return record
+}
+
+export async function listApprovedSeriesForSchedule(): Promise<any[]> {
+  return Series.find({ status: { $in: ["ONGOING", "COMPLETED"] } })
+    .sort({ approvedAt: -1, updatedAt: -1 })
+    .lean()
+}
+
+export async function listScheduleDecisions(seriesIds: unknown[]): Promise<any[]> {
+  return BoardDecision.find({ seriesId: { $in: seriesIds } })
+    .populate("decidedBy", "name displayName email")
+    .populate("scheduleManagedBy", "name displayName email")
+    .lean()
+}
+
+export async function updateBoardSchedule(seriesId: string, input: {
+  publicationType: PublicationType
+  publishAt: Date
+  note?: string
+  actorId: string
+}): Promise<any> {
+  return BoardDecision.findOneAndUpdate(
+    { seriesId },
+    {
+      $set: {
+        publicationType: input.publicationType,
+        publishAt: input.publishAt,
+        scheduleNote: input.note,
+        scheduleManagedBy: input.actorId,
+      },
+      $setOnInsert: { status: "APPROVED" },
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  )
+}
+
+export async function listCancellationCaseSeries(): Promise<any[]> {
+  return Series.find({
+    $or: [
+      { status: "AT_RISK" },
+      { cancellationRequestedAt: { $exists: true, $ne: null } },
+    ],
+  })
+    .sort({ cancellationRequestedAt: -1, updatedAt: -1 })
+    .lean()
+}
+
+export async function listLatestRankingsBySeries(seriesIds: unknown[]): Promise<any[]> {
+  return Ranking.find({ seriesId: { $in: seriesIds } })
+    .sort({ period: -1, updatedAt: -1 })
+    .lean()
+}
+
+export async function listAtRiskDecisionsBySeries(seriesIds: unknown[]): Promise<any[]> {
+  return AtRiskDecisionRecord.find({ seriesId: { $in: seriesIds } })
+    .sort({ createdAt: -1 })
+    .populate("decidedBy", "name displayName email")
+    .lean()
+}
+
+export async function listAtRiskDecisionsForSeries(seriesId: string): Promise<any[]> {
+  return AtRiskDecisionRecord.find({ seriesId })
+    .sort({ createdAt: -1 })
+    .populate("decidedBy", "name displayName email")
+    .lean()
+}
+
+export async function listBoardDecisionsForHistory(): Promise<any[]> {
+  return BoardDecision.find({
+    status: { $in: ["APPROVED", "REJECTED", "NEEDS_REVISION", "TIE_BREAK_REQUIRED"] },
+  })
+    .sort({ finalizedAt: -1, updatedAt: -1 })
+    .populate("seriesId", "title slug status")
+    .populate("decidedBy", "name displayName email")
+    .lean()
+}
+
+export async function listAtRiskDecisionsForHistory(): Promise<any[]> {
+  return AtRiskDecisionRecord.find()
+    .sort({ createdAt: -1 })
+    .populate("seriesId", "title slug status")
+    .populate("decidedBy", "name displayName email")
+    .lean()
+}
+
+export async function listFinalizedRankingsForHistory(): Promise<any[]> {
+  return Ranking.find({ status: "FINALIZED" })
+    .sort({ updatedAt: -1 })
+    .populate("seriesId", "title slug status")
+    .lean()
 }

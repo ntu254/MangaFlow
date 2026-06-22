@@ -74,6 +74,36 @@ export interface SeriesMember {
   updatedAt?: string;
 }
 
+export interface SeriesSummaryFile {
+  id: string;
+  originalName?: string;
+  mimeType?: string;
+  assetType?: string;
+  size?: number;
+  status?: string;
+  createdAt?: string;
+}
+
+export interface SeriesSummaryManuscript {
+  id: string;
+  version: number;
+  status: string;
+  reviewNote?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  file?: SeriesSummaryFile | null;
+  uploadedBy?: { id?: string; name?: string; email?: string } | null;
+}
+
+export interface SeriesSummary {
+  series?: Series;
+  owner?: { id?: string; name?: string; email?: string } | null;
+  manuscripts?: SeriesSummaryManuscript[];
+  currentManuscript?: SeriesSummaryManuscript | null;
+  files?: SeriesSummaryFile[];
+  boardReview?: { status?: string; result?: string; voteCount?: number; updatedAt?: string } | null;
+}
+
 export interface AddSeriesMemberInput {
   userId?: string;
   email?: string;
@@ -81,15 +111,24 @@ export interface AddSeriesMemberInput {
   accessScope: "FULL" | "TASK_ONLY";
 }
 
+function normalizeSeriesList(payload: unknown): Series[] {
+  if (Array.isArray(payload)) return payload as Series[];
+  if (!payload || typeof payload !== "object") return [];
+
+  const record = payload as Record<string, unknown>;
+  const candidate = record.items ?? record.series ?? record.data ?? record.results;
+  return Array.isArray(candidate) ? (candidate as Series[]) : [];
+}
+
 export const seriesApi = {
-  list: () => api.get("/series").then(unwrap<Series[]>),
+  list: () => api.get("/series").then((res) => normalizeSeriesList(unwrap<unknown>(res))),
   get: (id: string) => api.get(`/series/${id}`).then(unwrap<Series>),
   create: (body: CreateSeriesInput) => api.post("/series", body).then(unwrap<Series>),
   update: (id: string, body: UpdateSeriesInput) =>
     api.patch(`/series/${id}`, body).then(unwrap<Series>),
   submitForReview: (id: string, editorNote?: string) =>
     api.post(`/series/${id}/submit`, editorNote ? { editorNote } : {}).then(unwrap<Series>),
-  getSummary: (id: string) => api.get(`/series/${id}/summary`).then(unwrap<any>),
+  getSummary: (id: string) => api.get(`/series/${id}/summary`).then(unwrap<SeriesSummary>),
   listMembers: (seriesId: string) =>
     api.get(`/series/${seriesId}/members`).then(unwrap<SeriesMember[]>),
   listMyMemberships: () => api.get(`/series/memberships/my`).then(unwrap<SeriesMember[]>),
@@ -99,8 +138,8 @@ export const seriesApi = {
   withdraw: (id: string) => api.post(`/series/${id}/withdraw`).then(unwrap<void>),
   cancel: (id: string) => api.post(`/series/${id}/cancel`).then(unwrap<void>),
   hardDelete: (id: string) => api.delete(`/series/${id}/hard`).then(unwrap<void>),
-  updateMember: (seriesId: string, memberId: string, payload: any) =>
-    api.patch(`/series/${seriesId}/members/${memberId}`, payload).then(unwrap<any>),
+  updateMember: (seriesId: string, memberId: string, payload: Record<string, unknown>) =>
+    api.patch(`/series/${seriesId}/members/${memberId}`, payload).then(unwrap<SeriesMember>),
   acceptMemberInvite: (seriesId: string, memberId?: string) =>
     api
       .post(
@@ -112,5 +151,7 @@ export const seriesApi = {
   removeMember: (seriesId: string, memberId: string) =>
     api.delete(`/series/${seriesId}/members/${memberId}`).then(unwrap<void>),
   getCoverUploadUrl: (seriesId: string, payload: { originalName: string; contentType: string }) =>
-    api.post(`/series/${seriesId}/cover/upload-url`, payload).then(unwrap<{ uploadUrl: string; r2Key: string; expiresIn: number }>),
+    api
+      .post(`/series/${seriesId}/cover/upload-url`, payload)
+      .then(unwrap<{ uploadUrl: string; r2Key: string; expiresIn: number }>),
 };
