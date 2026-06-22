@@ -95,13 +95,99 @@ export interface SeriesSummaryManuscript {
   uploadedBy?: { id?: string; name?: string; email?: string } | null;
 }
 
+export interface SeriesSummaryChapter {
+  id: string;
+  chapterNumber?: number;
+  title?: string;
+  status?: string;
+  pageCount: number;
+  approvedPages: number;
+  draftSchedule?: string;
+  updatedAt: string;
+}
+
+export interface SeriesSummaryTask {
+  id: string;
+  title: string;
+  status: string;
+  priority?: string;
+  dueDate?: string;
+  createdAt?: string;
+  assignee?: string | null;
+}
+
+export interface SeriesSummarySubmission {
+  id: string;
+  version: number;
+  status: string;
+  submittedBy?: string | null;
+  createdAt?: string;
+}
+
+export interface SeriesSummaryComment {
+  id: string;
+  body: string;
+  status: string;
+  isBlocking?: boolean;
+  author?: string | null;
+  authorRole?: string;
+  updatedAt?: string;
+}
+
 export interface SeriesSummary {
   series?: Series;
   owner?: { id?: string; name?: string; email?: string } | null;
+  members?: SeriesMember[];
   manuscripts?: SeriesSummaryManuscript[];
   currentManuscript?: SeriesSummaryManuscript | null;
   files?: SeriesSummaryFile[];
   boardReview?: { status?: string; result?: string; voteCount?: number; updatedAt?: string } | null;
+  chapters?: SeriesSummaryChapter[];
+  currentChapter?: SeriesSummaryChapter | null;
+  chapterSummary?: {
+    total: number;
+    completed: number;
+    inProduction: number;
+    totalPages: number;
+    approvedPages: number;
+    readinessPercent: number;
+  };
+  taskSummary?: {
+    total: number;
+    pending: number;
+    completed: number;
+    pendingReviews: number;
+  };
+  recentTasks?: SeriesSummaryTask[];
+  recentSubmissions?: SeriesSummarySubmission[];
+  commentSummary?: {
+    open: number;
+    resolved: number;
+    blocking: number;
+  };
+  recentComments?: SeriesSummaryComment[];
+  publicationSummary?: {
+    isReady: boolean;
+    scheduled: number;
+    published: number;
+    blockers: string[];
+  };
+  rankingSummary?: {
+    period?: string;
+    voteCount?: number;
+    readerScore?: number;
+    finalScore?: number;
+    status?: string;
+  } | null;
+  payrollSummary?: {
+    totalEarnings: number;
+    unpaid: number;
+  };
+  allowedActions?: {
+    canEditSeries: boolean;
+    canUploadManuscript: boolean;
+    canOpenWorkspace: boolean;
+  };
 }
 
 export interface AddSeriesMemberInput {

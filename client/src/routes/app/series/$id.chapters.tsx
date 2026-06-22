@@ -8,12 +8,15 @@ import {
   Upload,
   Lock,
   Clock,
+  CheckCircle2,
+  ListChecks,
+  Send,
 } from "lucide-react";
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { useSeriesSummary } from "@/shared/queries/useSeries";
+import { useSeriesSummary, useSubmitSeries } from "@/shared/queries/useSeries";
 import { ChapterRow } from "@/features/chapters/components/ChapterRow";
 import { PageUploadDialog } from "@/features/chapters/components/PageUploadPanel";
-import { useChapterPages } from "@/shared/queries/useChapterPages";
+import { useChapterPages, useChapterReadiness } from "@/shared/queries/useChapterPages";
 import { useCreateChapter, useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
 import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
@@ -118,6 +121,7 @@ function SeriesChapters() {
   const deletePage = useDeletePage();
   const replacePage = useReplacePage();
   const createChapter = useCreateChapter(id);
+  const submitSeries = useSubmitSeries();
 
   const pageSearchQuery = search.q ?? "";
   const selectedFilter = search.filter ?? "All";
@@ -202,8 +206,14 @@ function SeriesChapters() {
   const { data: pages = [], isLoading: pagesLoading } = useChapterPages(
     effectiveChapterId || undefined,
   );
+  const { data: readiness, isLoading: readinessLoading } = useChapterReadiness(
+    effectiveChapterId || undefined,
+  );
 
   const selectedChapter = mappedChapters.find((ch: { id: string }) => ch.id === effectiveChapterId);
+  const seriesStatus = summary.series?.status;
+  const canSubmitToEditor = ["DRAFT", "REVISION_REQUESTED"].includes(seriesStatus ?? "");
+  const readinessBlockers = readiness?.items.filter((item) => !item.passed) ?? [];
 
   const filteredPages = useMemo(() => {
     const normalizedQuery = pageSearchQuery.trim().toLowerCase();
@@ -248,10 +258,11 @@ function SeriesChapters() {
               {["All", "Draft", "In Production", "Ready", "Published"].map((filter, i) => (
                 <button
                   key={filter}
-                  className={`h-7 rounded-md px-2.5 text-[10px] font-extrabold transition-colors ${i === 0
+                  className={`h-7 rounded-md px-2.5 text-[10px] font-extrabold transition-colors ${
+                    i === 0
                       ? "bg-[#061A2B] text-white shadow-sm dark:bg-blue-600"
                       : "border border-foreground/12 bg-foreground/[0.025] text-foreground/60 hover:bg-foreground/7 hover:text-foreground"
-                    }`}
+                  }`}
                 >
                   {filter}
                 </button>
@@ -324,10 +335,11 @@ function SeriesChapters() {
               <button
                 key={page}
                 type="button"
-                className={`h-7 min-w-7 rounded-md px-2 text-[10px] font-black transition-colors ${page === 1
+                className={`h-7 min-w-7 rounded-md px-2 text-[10px] font-black transition-colors ${
+                  page === 1
                     ? "bg-[#061A2B] text-white shadow-sm dark:bg-blue-600"
                     : "border border-foreground/12 bg-card text-foreground/55 shadow-sm hover:bg-foreground/5"
-                  }`}
+                }`}
               >
                 {page}
               </button>
@@ -365,6 +377,71 @@ function SeriesChapters() {
         </header>
 
         <div className="px-4 pb-4">
+          <section className="mt-3 rounded-md border border-foreground/10 bg-foreground/[0.025] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-foreground/55">
+                  <ListChecks className="h-3.5 w-3.5" />
+                  Internal completion
+                </div>
+                <div className="mt-2 text-sm font-bold text-foreground">
+                  {readinessLoading
+                    ? "Checking chapter readiness..."
+                    : readiness?.ready
+                      ? "Internal version is ready for Tantou Editor."
+                      : "Resolve blockers before final handoff."}
+                </div>
+                <div className="mt-1 text-xs text-foreground/55">
+                  This check is for Mangaka handoff only. Editor still owns final
+                  ready-for-publication and publishing actions.
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={!canSubmitToEditor || !readiness?.ready || submitSeries.isPending}
+                onClick={() =>
+                  submitSeries.mutate({
+                    id,
+                    editorNote: selectedChapter
+                      ? `Internal chapter handoff: ${selectedChapter.title}`
+                      : "Internal chapter handoff",
+                  })
+                }
+                className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#061A2B] px-3 text-[11px] font-extrabold text-white hover:bg-[#0B2A43] disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-foreground/40 dark:bg-blue-600"
+              >
+                <Send className="h-3.5 w-3.5" />
+                {submitSeries.isPending ? "Submitting..." : "Send to Editor"}
+              </button>
+            </div>
+
+            {!readinessLoading && readiness && (
+              <div className="mt-3 rounded-md border border-foreground/10 bg-card p-3">
+                {readiness.ready ? (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    All chapter checks passed.
+                  </div>
+                ) : readinessBlockers.length > 0 ? (
+                  <ul className="space-y-1.5 text-xs text-foreground/65">
+                    {readinessBlockers.slice(0, 4).map((blocker) => (
+                      <li key={blocker.key} className="flex gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                        {blocker.reason}
+                      </li>
+                    ))}
+                    {readinessBlockers.length > 4 && (
+                      <li className="text-foreground/45">
+                        + {readinessBlockers.length - 4} more blocker(s)
+                      </li>
+                    )}
+                  </ul>
+                ) : (
+                  <div className="text-xs text-foreground/55">No readiness result available.</div>
+                )}
+              </div>
+            )}
+          </section>
+
           <section className="mt-3 rounded-md border border-foreground/10 bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[12px] font-bold text-foreground/50 tracking-wider uppercase">
@@ -480,7 +557,8 @@ function SeriesChapters() {
                           {/* Status Dot */}
                           <div
                             title={page.status}
-                            className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white shadow-sm z-10 ${isApproved
+                            className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white shadow-sm z-10 ${
+                              isApproved
                                 ? "bg-emerald-500"
                                 : isUnderReview
                                   ? "bg-blue-500"
@@ -491,7 +569,7 @@ function SeriesChapters() {
                                       : isProcessing
                                         ? "bg-sky-400 animate-pulse"
                                         : "bg-white"
-                              }`}
+                            }`}
                           />
 
                           {/* Hover Overlay */}

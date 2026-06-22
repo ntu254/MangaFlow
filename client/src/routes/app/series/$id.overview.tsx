@@ -1,8 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
 import { Progress } from "@/shared/ui/shadcn/progress";
-import { FileCheck, CheckCircle2, AlertCircle, Upload, Calendar, Users } from "lucide-react";
+import { FileCheck, CheckCircle2, AlertCircle, Upload, Calendar, Users, Send } from "lucide-react";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
+import type {
+  SeriesMember,
+  SeriesStatus,
+  SeriesSummaryChapter,
+  SeriesSummarySubmission,
+} from "@/shared/api/series";
 
 export const Route = createFileRoute("/app/series/$id/overview")({
   component: SeriesOverview,
@@ -16,15 +22,47 @@ function SeriesOverview() {
     return <div className="p-8 text-center text-foreground/50 text-sm">Loading overview...</div>;
   }
 
-  const { chapterSummary, taskSummary, recentSubmissions, chapters, members } = summary;
+  const chapterSummary = summary.chapterSummary ?? {
+    total: 0,
+    completed: 0,
+    inProduction: 0,
+    totalPages: 0,
+    approvedPages: 0,
+    readinessPercent: 0,
+  };
+  const taskSummary = summary.taskSummary ?? {
+    total: 0,
+    pending: 0,
+    completed: 0,
+    pendingReviews: 0,
+  };
+  const recentSubmissions = summary.recentSubmissions ?? [];
+  const chapters = summary.chapters ?? [];
+  const members = summary.members ?? [];
+  const series = summary.series;
+  const publicationSummary = summary.publicationSummary;
+  const rankingSummary = summary.rankingSummary;
+  const boardReview = summary.boardReview;
 
   // Calculate some simple display values based on summary
-  const percentReady = chapterSummary.readinessPercent;
+  const percentReady = chapterSummary.readinessPercent ?? 0;
+  const lifecycle = getLifecycle(series?.status, {
+    hasPages: chapterSummary.totalPages > 0,
+    internalReady: percentReady === 100,
+    submitted: Boolean(summary.currentManuscript),
+    editorApproved: series?.status === "BOARD_REVIEW" || series?.status === "ONGOING",
+    scheduled: (publicationSummary?.scheduled ?? 0) > 0,
+    published: (publicationSummary?.published ?? 0) > 0,
+    hasRanking: Boolean(rankingSummary),
+    hasBoardDecision: Boolean(boardReview),
+  });
 
   // Create a schedule list from chapters' draftSchedule
   const schedule = chapters
-    .filter((ch: any) => ch.draftSchedule)
-    .map((ch: any) => ({
+    .filter((ch): ch is SeriesSummaryChapter & { draftSchedule: string } =>
+      Boolean(ch.draftSchedule),
+    )
+    .map((ch) => ({
       time: new Date(ch.draftSchedule).toLocaleDateString(),
       event: `Draft due: ${ch.title}`,
     }))
@@ -76,6 +114,56 @@ function SeriesOverview() {
           </div>
         </div>
 
+        <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-[14px] font-extrabold tracking-tight text-foreground">
+                Mangaka Production Flow
+              </h2>
+              <p className="mt-1 text-[11px] font-medium text-foreground/55">
+                Track the chapter from internal completion through Editor, Board, publication, and
+                reader response.
+              </p>
+            </div>
+            <Link
+              to="/app/series/$id/revisions"
+              params={{ id }}
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-[#061A2B] px-3 text-[11px] font-extrabold text-white hover:bg-[#0B2A43] dark:bg-blue-600"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Submit / revise
+            </Link>
+          </div>
+          <div className="grid gap-2 md:grid-cols-4">
+            {lifecycle.map((step) => (
+              <div
+                key={step.label}
+                className={`rounded-md border px-3 py-2 ${
+                  step.state === "done"
+                    ? "border-emerald-500/20 bg-emerald-500/5"
+                    : step.state === "active"
+                      ? "border-sky-500/25 bg-sky-500/5"
+                      : "border-foreground/10 bg-foreground/[0.02]"
+                }`}
+              >
+                <div
+                  className={`text-[10px] font-black uppercase tracking-wider ${
+                    step.state === "done"
+                      ? "text-emerald-600"
+                      : step.state === "active"
+                        ? "text-sky-600 dark:text-sky-400"
+                        : "text-foreground/40"
+                  }`}
+                >
+                  {step.state === "done" ? "Done" : step.state === "active" ? "Current" : "Next"}
+                </div>
+                <div className="mt-1 text-[12px] font-bold text-foreground">{step.label}</div>
+                <div className="mt-0.5 text-[11px] text-foreground/55">{step.detail}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Recent Chapters */}
         <section className="rounded-xl border border-foreground/10 bg-card overflow-hidden shadow-sm hover:border-foreground/20 transition-all">
           <header className="flex items-center justify-between border-b border-foreground/5 px-5 py-3.5">
@@ -96,7 +184,7 @@ function SeriesOverview() {
             </Link>
           </header>
           <div className="divide-y divide-foreground/5 relative">
-            {chapters.slice(0, 4).map((ch: any, idx: number) => {
+            {chapters.slice(0, 4).map((ch: SeriesSummaryChapter, idx: number) => {
               const chReady =
                 ch.pageCount === 0 ? 0 : Math.round((ch.approvedPages / ch.pageCount) * 100);
               const isActive = idx === 0;
@@ -177,7 +265,7 @@ function SeriesOverview() {
             </Link>
           </header>
           <div className="divide-y divide-foreground/5">
-            {recentSubmissions.map((r: any) => (
+            {recentSubmissions.map((r: SeriesSummarySubmission) => (
               <div
                 key={r.id}
                 className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3 hover:bg-foreground/5 transition cursor-pointer"
@@ -285,7 +373,7 @@ function SeriesOverview() {
             <Calendar className="h-3.5 w-3.5" /> Schedule
           </div>
           <div className="space-y-4">
-            {schedule.map((s: any, i: number) => (
+            {schedule.map((s, i: number) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="w-16 shrink-0 text-[11px] text-foreground/50 pt-0.5 font-bold uppercase tracking-wider">
                   {s.time}
@@ -314,7 +402,7 @@ function SeriesOverview() {
             </Link>
           </div>
           <div className="space-y-4">
-            {members.map((t: any, i: number) => {
+            {members.map((t: SeriesMember, i: number) => {
               const name = t.user?.name || "Unknown";
               const initials = name.substring(0, 2).toUpperCase();
               return (
@@ -340,4 +428,67 @@ function SeriesOverview() {
       </div>
     </div>
   );
+}
+
+function getLifecycle(
+  status: SeriesStatus | undefined,
+  state: {
+    hasPages: boolean;
+    internalReady: boolean;
+    submitted: boolean;
+    editorApproved: boolean;
+    scheduled: boolean;
+    published: boolean;
+    hasRanking: boolean;
+    hasBoardDecision: boolean;
+  },
+) {
+  const raw = status ?? "DRAFT";
+  const submitted = state.submitted || ["EDITOR_REVIEW", "BOARD_REVIEW", "ONGOING"].includes(raw);
+  const needsRevision = raw === "REVISION_REQUESTED";
+  const editorDone = state.editorApproved || raw === "BOARD_REVIEW" || raw === "ONGOING";
+  const steps = [
+    {
+      label: "Page completion",
+      detail: state.hasPages ? "Pages are being prepared." : "Upload chapter pages to start.",
+      done: state.hasPages,
+      active: !state.hasPages,
+    },
+    {
+      label: "Internal complete",
+      detail: state.internalReady
+        ? "Ready to send to Tantou Editor."
+        : "Resolve page/task blockers.",
+      done: state.internalReady,
+      active: state.hasPages && !state.internalReady,
+    },
+    {
+      label: needsRevision ? "Revision required" : "Tantou Editor review",
+      detail: needsRevision
+        ? "Upload a revised version and resubmit."
+        : submitted
+          ? "Editor is reviewing or has reviewed."
+          : "Submit the final internal version.",
+      done: editorDone,
+      active: state.internalReady && !editorDone,
+    },
+    {
+      label: "Board / Publishing",
+      detail: state.published
+        ? "Published."
+        : state.scheduled
+          ? "Publication is scheduled."
+          : state.hasBoardDecision
+            ? "Board decision is available."
+            : "Waiting for downstream decision.",
+      done: state.published || state.hasRanking,
+      active: editorDone && !state.published,
+    },
+  ];
+
+  return steps.map((step) => ({
+    label: step.label,
+    detail: step.detail,
+    state: step.done ? "done" : step.active ? "active" : "idle",
+  }));
 }
