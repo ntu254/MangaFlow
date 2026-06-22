@@ -102,6 +102,34 @@ export async function createSeriesService(input: CreateSeriesServiceInput) {
 }
 
 
+export interface CreateCoverUploadUrlInput {
+  seriesId: string
+  userId: string
+  originalName: string
+  contentType: string
+  expiresIn?: number
+}
+
+export async function createCoverUploadUrlService(input: CreateCoverUploadUrlInput) {
+  const series = await getSeriesById(input.seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+  if (series.ownerId.toString() !== input.userId) {
+    throw new AppError("Only the series owner can upload cover", 403)
+  }
+
+  const { pathBuilder, createPresignedUploadUrl } = await import("../chapter/file.service.js")
+  const ext = input.originalName.split(".").pop()?.toLowerCase() || "bin"
+  const filename = `cover-${Date.now()}.${ext}`
+  const customR2Key = pathBuilder.seriesCover(input.seriesId, 1, filename)
+  const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn, customR2Key)
+
+  return {
+    uploadUrl: signed.uploadUrl,
+    r2Key: signed.r2Key,
+    expiresIn: signed.expiresIn,
+  }
+}
+
 export interface CreateManuscriptUploadServiceInput {
   seriesId: string
   userId: string
@@ -132,13 +160,11 @@ export async function createManuscriptUploadService(input: CreateManuscriptUploa
   const assetType = input.assetType ?? "manuscript"
   const typeKey = assetType.replaceAll("_", "-")
   const ext = input.originalName.split(".").pop()?.toLowerCase() || "bin"
-  
-  const seriesSlug = series.slug
-  const seriesShortId = String(input.seriesId).slice(-6)
-  const versionShortId = String(versionId).slice(-6)
   const fileAssetShortId = String(fileAssetId).slice(-6)
   
-  const customR2Key = `series/${seriesSlug}-${seriesShortId}/manuscripts/v${version}-${versionShortId}/${typeKey}/${fileAssetShortId}.${ext}`
+  const filename = `${fileAssetShortId}.${ext}`
+  
+  const customR2Key = (await import("../chapter/file.service.js")).pathBuilder.seriesManuscript(input.seriesId, version, filename)
 
   const signed = await createPresignedUploadUrl(input.originalName, input.contentType, input.expiresIn, customR2Key)
   let persisted
@@ -415,6 +441,7 @@ export interface UpdateSeriesServiceInput {
     publicationType?: PublicationType
     tags?: string[]
     genres?: string[]
+    cover?: string
   }
 }
 
@@ -430,6 +457,7 @@ export async function updateSeriesService(input: UpdateSeriesServiceInput) {
   if (patch.characters !== undefined) patch.characters = patch.characters.trim()
   if (patch.conflict !== undefined) patch.conflict = patch.conflict.trim()
   if (patch.targetAudience !== undefined) patch.targetAudience = patch.targetAudience.trim()
+  if (patch.cover !== undefined) patch.cover = patch.cover.trim()
   if (patch.publicationType !== undefined && patch.requestedPublicationType === undefined) {
     patch.requestedPublicationType = patch.publicationType
     delete patch.publicationType

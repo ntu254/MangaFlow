@@ -3,7 +3,7 @@ import { useFormContext, Controller } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ChipInput } from "@/components/forms/ChipInput";
-import { FileDropzone } from "@/components/upload/FileDropzone";
+import { CoverUpload } from "@/features/series/components/CoverUpload";
 import type { ManuscriptFile } from "@/shared/api/manuscripts";
 import { useUploadManuscript, useDeleteManuscript } from "@/shared/queries/useManuscripts";
 import { TARGET_AUDIENCES, type ProposalFormValues, type TargetAudience } from "../schema";
@@ -45,6 +45,7 @@ export function BasicInfoStep({ seriesId, ensureDraft, manuscripts, onAdd, onRem
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<ProposalFormValues>();
   const v = watch();
@@ -146,6 +147,16 @@ export function BasicInfoStep({ seriesId, ensureDraft, manuscripts, onAdd, onRem
             className={inputCls(!!errors.title)}
           />
         </Field>
+
+        {seriesId && (
+          <div>
+            <Field label="Cover Image" hint="Required for publishing">
+              <div className="mt-2 w-48">
+                <CoverUpload seriesId={seriesId} currentCover={v.cover} onSuccess={(key) => setValue("cover", key, { shouldDirty: true })} />
+              </div>
+            </Field>
+          </div>
+        )}
 
         <div className="grid gap-6 sm:grid-cols-2">
           {/* Column 1: Logline */}

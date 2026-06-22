@@ -11,6 +11,7 @@ const controllerMocks = vi.hoisted(() => ({
   rejectSubmission: vi.fn(),
   editorApproveSubmission: vi.fn(),
   editorRejectSubmission: vi.fn(),
+  listAllSubmissions: vi.fn(),
 }))
 
 vi.mock("./submission.controller.js", () => controllerMocks)
@@ -50,6 +51,7 @@ describe("submission route async error handling", () => {
     ["rejectSubmission", "post", "/submissions/:submissionId/reject"],
     ["editorApproveSubmission", "post", "/submissions/:submissionId/editor-approve"],
     ["editorRejectSubmission", "post", "/submissions/:submissionId/editor-reject"],
+    ["listAllSubmissions", "get", "/submissions"],
   ] as const)("forwards rejected %s promises to Express error middleware", async (controllerName, method, path) => {
     const error = new AppError("Submission transition failed", 409)
     controllerMocks[controllerName].mockRejectedValue(error)

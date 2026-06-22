@@ -19,6 +19,7 @@ export type WizardStep = (typeof WIZARD_STEPS)[number];
 
 export const basicSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120, "Max 120 characters"),
+  cover: z.string().optional(),
   logline: z.string().trim().min(1, "Logline is required").max(140, "Max 140 characters"),
   targetAudience: z.enum(TARGET_AUDIENCES, {
     errorMap: () => ({ message: "Pick a target audience" }),

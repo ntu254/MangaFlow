@@ -71,6 +71,13 @@ export function useMySeriesMemberships(options: { enabled?: boolean } = {}) {
   });
 }
 
+export function useSeriesList() {
+  return useQuery({
+    queryKey: qk.series.list(),
+    queryFn: seriesApi.list,
+  });
+}
+
 export function useAddSeriesMember(seriesId: string) {
   const qc = useQueryClient();
   return useMutation({

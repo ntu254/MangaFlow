@@ -86,7 +86,7 @@ export function PageUploadPanel({
       const { uploadUrl, fileAssetId, r2Key } = await filesApi.getPresignedUploadUrl(
         item.file.name,
         item.file.type,
-        { chapterId: chapter.id },
+        { chapterId: chapter.id, pageId },
       );
 
       await new Promise<void>((resolve, reject) => {

@@ -158,6 +158,7 @@ function NewSeriesPage() {
   const buildPayload = useCallback(
     (v: ProposalFormValues): CreateSeriesInput => ({
       title: v.title,
+      cover: v.cover || undefined,
       synopsis: v.synopsis || "TBD", // Provide default for draft creation
       logline: v.logline || undefined,
       premise: v.premise || undefined,

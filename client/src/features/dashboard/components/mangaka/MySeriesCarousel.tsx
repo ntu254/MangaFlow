@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { series as mockSeries, type Series as MockSeriesType } from "@/entities";
+import { useSeriesList } from "@/shared/queries/useSeries";
 import { Progress } from "@/shared/ui/shadcn/progress";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -29,8 +30,30 @@ const getActionColor = (action?: string) => {
 export function MySeriesCarousel({ mangakaId }: { mangakaId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  const mine = mockSeries.filter((s) => !mangakaId || s.mangakaId === mangakaId);
+  
+  const { data: seriesList, isLoading } = useSeriesList();
+  
+  const mine = seriesList?.map((s) => {
+    // Hash based on ID to pick a consistent mock cover
+    let mockIndex = 0;
+    if (s.id) {
+      const charCodes = s.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      mockIndex = charCodes % mockSeries.length;
+    }
+    const mock = mockSeries.find(ms => ms.id === s.id || ms.title === s.title) || mockSeries[mockIndex];
+    
+    return {
+      ...s,
+      cover: s.cover
+        ? (s.cover.startsWith("http") ? s.cover : `/api/public/images/${s.cover}`)
+        : (mock?.cover || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop"),
+      jp: mock?.jp || "",
+      pages: mock?.pages || { uploaded: 0, total: 0 },
+      pendingTasks: mock?.pendingTasks || 0,
+      currentChapter: mock?.currentChapter || "Ch. 1",
+      nextAction: mock?.nextAction || "Upload manuscript",
+    };
+  }) || [];
 
   const scrollRight = () => {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: 360, behavior: "smooth" });

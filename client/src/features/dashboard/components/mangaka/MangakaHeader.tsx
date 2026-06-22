@@ -1,11 +1,32 @@
 import { useRole } from "@/shared/lib/role";
+import { useSeriesList } from "@/shared/queries/useSeries";
 import { series as mockSeries } from "@/entities";
 
 export function MangakaHeader() {
   const { user } = useRole();
-  const headerImageUrl =
-    mockSeries[0]?.cover ||
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
+  const { data: seriesList } = useSeriesList();
+  
+  let headerImageUrl = "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
+  
+  if (seriesList && seriesList.length > 0) {
+    const s = seriesList[0];
+    
+    if (s.cover) {
+      headerImageUrl = s.cover.startsWith("http") ? s.cover : `/api/public/images/${s.cover}`;
+    } else {
+      // Hash based on ID to pick a consistent mock cover
+      let mockIndex = 0;
+      if (s.id) {
+        const charCodes = s.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        mockIndex = charCodes % mockSeries.length;
+      }
+      const mock = mockSeries.find(ms => ms.id === s.id || ms.title === s.title) || mockSeries[mockIndex];
+      
+      if (mock?.cover) {
+        headerImageUrl = mock.cover;
+      }
+    }
+  }
 
   return (
     <div className="relative mb-8 overflow-hidden rounded-lg bg-[#FAF8F5] dark:bg-foreground/5 px-8 py-10">

@@ -12,5 +12,6 @@ router.get("/series/:seriesSlug", validate(seriesSlugParamsSchema, "params"), as
 router.get("/chapters/:chapterSlug", validate(chapterSlugParamsSchema, "params"), asyncHandler(controller.getPublicChapter))
 router.get("/chapters/:chapterId/pages", validate(chapterIdParamsSchema, "params"), asyncHandler(controller.getPublicChapterPages))
 router.post("/reader-metrics", validate(readerMetricsBodySchema), asyncHandler(controller.recordReaderMetrics))
+router.get("/images/*", controller.getPublicImage)
 
 export default router

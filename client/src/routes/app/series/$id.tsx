@@ -119,13 +119,17 @@ function SeriesDetailLayout() {
   const { series, chapters, currentChapter } = summary;
   
   // Find mock series to get cover image fallback
-  const mockSeriesData = mockSeries.find((s) => s.id === id || s.title === series.title);
+  let mockIndex = 0;
+  if (id) {
+    const charCodes = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    mockIndex = charCodes % mockSeries.length;
+  }
+  const mockSeriesData = mockSeries.find((s) => s.id === id || s.title === series.title) || mockSeries[mockIndex];
 
   // Safe defaults for properties that might not exist yet
-  series.cover =
-    series.cover ||
-    mockSeriesData?.cover ||
-    "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop";
+  series.cover = series.cover
+    ? (series.cover.startsWith("http") ? series.cover : `/api/public/images/${series.cover}`)
+    : (mockSeriesData?.cover || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop");
   series.jp = series.jp || mockSeriesData?.jp || "";
 
   const displayChapters = chapters && chapters.length > 0 ? chapters : [];
