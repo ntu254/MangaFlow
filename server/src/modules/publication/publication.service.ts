@@ -1,6 +1,7 @@
 import { AppError } from "../../shared/errors/AppError.js"
 import type { UserRole } from "../auth/auth.types.js"
 import { getChapterReadinessService } from "../chapter/chapter.service.js"
+import { Series } from "../series/series.model.js"
 import { findActiveSeriesMember } from "../../shared/policies/seriesMember.policy.js"
 import {
   createPublicationRecord,
@@ -38,6 +39,23 @@ function parseScheduleDate(value: string | Date) {
 }
 
 export async function listPublicationsService(filter: { seriesId?: string }, actor: PublicationActor) {
+  if (actor.role === "MANGAKA") {
+    if (!filter.seriesId) {
+      throw new AppError("Series ID is required for Mangaka publication access", 400)
+    }
+    const series = await Series.findById(filter.seriesId).select("ownerId")
+    if (!series) {
+      throw new AppError("Series not found", 404)
+    }
+    const member = await findActiveSeriesMember(filter.seriesId, actor.userId)
+    const isOwner = String(series.ownerId) === actor.userId
+    const isMangakaMember = member?.role === "MANGAKA"
+    if (!isOwner && !isMangakaMember) {
+      throw new AppError("Publication access denied", 403)
+    }
+    return listPublications({ seriesId: filter.seriesId })
+  }
+
   if (actor.role !== "EDITOR" && actor.role !== "ADMIN") {
     throw new AppError("Publication access denied", 403)
   }

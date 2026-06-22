@@ -1,23 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageHeader } from "@/layouts/AppShell";
-import {
-  proposalBySeries,
-  manuscriptBySeries,
-  versionsByManuscript,
-  reviewsBySeries,
-  votesBySeries,
-  findStaff,
-  currentUserByRole,
-} from "@/entities";
-import { AuditTimeline } from "@/shared/ui/site/AuditTimeline";
-import { useState } from "react";
-import { useRole } from "@/shared/lib/role";
-import { canSubmitProposal } from "@/shared/lib/permissions";
-import { logAudit } from "@/shared/lib/audit";
-import { notify } from "@/shared/lib/notifications";
+import { useQueryClient } from "@tanstack/react-query";
+import { FileUp, Send, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
-import { useSeriesSummary } from "@/shared/queries/useSeries";
+import { PageHeader } from "@/layouts/AppShell";
+import { useUploadManuscript } from "@/shared/queries/useManuscripts";
+import { useSeriesSummary, useSubmitSeries } from "@/shared/queries/useSeries";
+import { qk } from "@/shared/queries/keys";
+import type { SeriesSummaryManuscript } from "@/shared/api/series";
 
 export const Route = createFileRoute("/app/series/$id/revisions")({
   loader: ({ params }) => {
@@ -28,64 +18,67 @@ export const Route = createFileRoute("/app/series/$id/revisions")({
 
 function RevisionsPage() {
   const { id } = Route.useLoaderData();
+  const qc = useQueryClient();
   const { data: summary, isLoading } = useSeriesSummary(id);
-  const { role } = useRole();
-  const me = currentUserByRole[role];
-
-  const manuscript = manuscriptBySeries(id);
-  const [versions, setVersions] = useState(() =>
-    manuscript ? versionsByManuscript(manuscript.id) : [],
-  );
+  const upload = useUploadManuscript();
+  const submit = useSubmitSeries();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [note, setNote] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  if (isLoading)
+  if (isLoading) {
     return <div className="p-8 text-sm text-foreground/55 animate-pulse">Loading revisions...</div>;
-  if (!summary) return <div className="p-8 text-sm text-foreground/55">Series not found.</div>;
-
-  const { series } = summary;
-  const perm = canSubmitProposal(role, series);
-  const proposal = proposalBySeries(series.id);
-  const reviews = reviewsBySeries(series.id);
-  const votes = votesBySeries(series.id);
-
-  function uploadVersion() {
-    if (!manuscript) return toast.error("No manuscript exists.");
-    const next = {
-      id: `mv_${Date.now()}`,
-      manuscriptId: manuscript.id,
-      version: (versions.at(-1)?.version ?? 0) + 1,
-      fileName: `${series.slug}-v${(versions.at(-1)?.version ?? 0) + 1}.pdf`,
-      pageCount: 30,
-      uploadedBy: me.id,
-      uploadedAt: new Date().toLocaleString(),
-      note,
-    };
-    setVersions([...versions, next]);
-    logAudit({
-      type: "MANUSCRIPT_VERSION_UPLOADED",
-      actorId: me.id,
-      entity: "manuscript",
-      entityId: manuscript.id,
-    });
-    logAudit({
-      type: "SERIES_SUBMITTED_TO_EDITOR",
-      actorId: me.id,
-      entity: "series",
-      entityId: series.id,
-    });
-    notify(series.editorId, {
-      type: "SERIES_SUBMITTED_TO_EDITOR",
-      title: `${series.title} resubmitted`,
-      body: `Mangaka uploaded v${next.version}.`,
-      link: `/app/editor/series/${series.id}/review`,
-    });
-    toast.success("New manuscript version uploaded & submitted.");
-    setNote("");
   }
 
+  if (!summary?.series) {
+    return <div className="p-8 text-sm text-foreground/55">Series not found.</div>;
+  }
+
+  const { series } = summary;
+  const manuscripts = [...(summary.manuscripts ?? [])].sort((a, b) => b.version - a.version);
+  const current = summary.currentManuscript ?? manuscripts[0] ?? null;
+  const canUpload = summary.allowedActions?.canUploadManuscript ?? false;
+  const canSubmit = ["DRAFT", "REVISION_REQUESTED"].includes(series.status);
+  const isRevision = series.status === "REVISION_REQUESTED";
+
+  const handleUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadProgress(0);
+    await upload.mutateAsync(
+      {
+        seriesId: series.id,
+        file,
+        onProgress: setUploadProgress,
+        category: "OTHER",
+      },
+      {
+        onSuccess: () => {
+          toast.success("Manuscript version uploaded.");
+          qc.invalidateQueries({ queryKey: qk.series.summary(series.id) });
+          qc.invalidateQueries({ queryKey: qk.series.manuscriptVerify(series.id) });
+          setUploadProgress(0);
+        },
+      },
+    );
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSubmit = () => {
+    submit.mutate(
+      { id: series.id, editorNote: note.trim() || undefined },
+      {
+        onSuccess: () => {
+          toast.success("Submitted to Tantou Editor.");
+          setNote("");
+          qc.invalidateQueries({ queryKey: qk.series.summary(series.id) });
+        },
+      },
+    );
+  };
+
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <div className="lg:col-span-2 space-y-5">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 lg:grid-cols-[1fr_340px]">
+      <div className="space-y-5">
         <PageHeader
           title={`${series.title} · Revisions`}
           jp="改訂履歴"
@@ -100,101 +93,207 @@ function RevisionsPage() {
           }
         />
 
-        <div className="rounded-md border border-foreground/10 bg-card p-5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/55 mb-2">
-            Proposal status
+        <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/55">
+                Submit to Tantou Editor
+              </div>
+              <h2 className="mt-1 text-lg font-extrabold text-foreground">
+                {isRevision ? "Upload revised version and resubmit" : "Finalize internal version"}
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-foreground/60">
+                Mangaka owns the internal version. Tantou Editor will review, annotate, request
+                revision if needed, or approve for the downstream Board and publication flow.
+              </p>
+            </div>
+            <span className="w-fit rounded-md bg-foreground/7 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-foreground/65">
+              {series.status}
+            </span>
           </div>
-          <div className="text-sm font-semibold capitalize">{series.status.replace("-", " ")}</div>
-          <div className="mt-1 text-xs text-foreground/65">
-            {proposal?.synopsis ?? series.synopsis}
-          </div>
-        </div>
 
-        <div className="rounded-md border border-foreground/10 bg-card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-[10px] uppercase tracking-wider text-foreground/55">
-              Manuscript versions
+          {current?.reviewNote && (
+            <div className="mt-4 rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+              <div className="text-[10px] font-black uppercase tracking-wider">Editor note</div>
+              <div className="mt-1">{current.reviewNote}</div>
+            </div>
+          )}
+
+          <div className="mt-5 rounded-md border border-dashed border-foreground/20 bg-foreground/[0.025] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-sky-500/10 text-sky-600">
+                  <FileUp className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-foreground">Upload final manuscript</div>
+                  <div className="mt-0.5 text-xs text-foreground/55">
+                    Upload is available only while the series is Draft or Revision Requested.
+                  </div>
+                  {upload.isPending && (
+                    <div className="mt-2 text-xs font-semibold text-sky-600">
+                      Uploading {uploadProgress}%
+                    </div>
+                  )}
+                </div>
+              </div>
+              <label
+                className={`inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 text-xs font-bold ${
+                  canUpload
+                    ? "bg-[#061A2B] text-white hover:bg-[#0B2A43] dark:bg-blue-600"
+                    : "cursor-not-allowed bg-foreground/10 text-foreground/40"
+                }`}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Choose file
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  disabled={!canUpload || upload.isPending}
+                  accept=".pdf,.zip,.png,.jpg,.jpeg,.webp"
+                  onChange={(event) => void handleUpload(event.target.files?.[0])}
+                />
+              </label>
             </div>
           </div>
-          <div className="divide-y divide-foreground/10">
-            {versions.map((v) => {
-              const uploader = findStaff(v.uploadedBy);
-              return (
-                <div key={v.id} className="flex items-center gap-3 py-2 text-sm">
-                  <div className="font-mono text-xs text-foreground/55">v{v.version}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{v.fileName}</div>
-                    <div className="text-[11px] text-foreground/55">
-                      {uploader?.name} · {v.uploadedAt} · {v.pageCount}p
-                    </div>
-                    {v.note && <div className="text-xs text-foreground/70">{v.note}</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
 
-          {!perm.allowed ? (
-            <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-              {perm.reason}
+          <div className="mt-5 space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-foreground/55">
+              Note for Tantou Editor
+            </label>
+            <textarea
+              rows={3}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Explain what changed in this version..."
+              className="w-full rounded-md border border-foreground/15 bg-background p-3 text-sm outline-none focus:border-foreground/30"
+            />
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSubmit || submit.isPending}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[#061A2B] px-4 text-xs font-extrabold text-white hover:bg-[#0B2A43] disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-foreground/40 dark:bg-blue-600"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {submit.isPending
+                ? "Submitting..."
+                : isRevision
+                  ? "Resubmit to Editor"
+                  : "Submit to Editor"}
+            </button>
+            {!canSubmit && (
+              <p className="text-xs text-foreground/50">
+                This series is already past the Mangaka submit stage. Follow review, Board, and
+                publication status from the monitor pages.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-foreground/10 bg-card shadow-sm">
+          <header className="border-b border-foreground/10 px-5 py-4">
+            <h2 className="text-sm font-extrabold text-foreground">Manuscript versions</h2>
+            <p className="mt-1 text-xs text-foreground/55">
+              Versions are loaded from the series summary API.
+            </p>
+          </header>
+          {manuscripts.length === 0 ? (
+            <div className="p-5 text-sm text-foreground/55">
+              No manuscript version uploaded yet.
             </div>
           ) : (
-            <div className="mt-4 rounded-md border border-dashed border-foreground/20 bg-foreground/5 p-3">
-              <div className="mb-2 text-xs font-semibold">Upload new version</div>
-              <textarea
-                rows={2}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Note for editor…"
-                className="w-full rounded border border-foreground/15 bg-background p-2 text-xs"
-              />
-              <button
-                onClick={uploadVersion}
-                className="mt-2 h-8 rounded-md bg-foreground px-3 text-xs font-bold text-background"
-              >
-                <Upload className="mr-1 inline h-3 w-3" /> Upload v
-                {(versions.at(-1)?.version ?? 0) + 1}
-              </button>
+            <div className="divide-y divide-foreground/10">
+              {manuscripts.map((manuscript) => (
+                <VersionRow key={manuscript.id} manuscript={manuscript} />
+              ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
 
-      <div className="space-y-5">
-        <div className="rounded-md border border-foreground/10 bg-card p-4">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/55 mb-2">
-            Editor feedback
+      <aside className="space-y-5">
+        <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-foreground/55">
+            Current review state
+          </h2>
+          <div className="mt-3 text-sm font-bold text-foreground">{series.status}</div>
+          <p className="mt-2 text-sm text-foreground/55">
+            {series.status === "EDITOR_REVIEW" &&
+              "Tantou Editor is reviewing the submitted version."}
+            {series.status === "REVISION_REQUESTED" &&
+              "Editor requested changes. Upload a revised version and resubmit."}
+            {series.status === "BOARD_REVIEW" &&
+              "Editor approved and forwarded the series to Board review."}
+            {series.status === "ONGOING" && "Approved for production/publication monitoring."}
+            {series.status === "DRAFT" && "Prepare the internal manuscript before submission."}
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-foreground/55">
+            Downstream monitor
+          </h2>
+          <div className="mt-3 space-y-3 text-sm">
+            <Info
+              label="Board"
+              value={summary.boardReview?.result ?? summary.boardReview?.status ?? "Pending"}
+            />
+            <Info
+              label="Publication"
+              value={`${summary.publicationSummary?.scheduled ?? 0} scheduled / ${summary.publicationSummary?.published ?? 0} published`}
+            />
+            <Info label="Ranking" value={summary.rankingSummary?.status ?? "Not available"} />
           </div>
-          {reviews.length === 0 && (
-            <div className="text-xs text-foreground/55">No editor feedback yet.</div>
-          )}
-          <div className="space-y-2">
-            {reviews.map((r) => (
-              <div key={r.id} className="rounded border border-foreground/10 p-2 text-xs">
-                <div className="font-bold uppercase tracking-wide">{r.decision}</div>
-                <div className="mt-0.5">{r.comment}</div>
-                <div className="mt-0.5 text-foreground/55">{r.at}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-md border border-foreground/10 bg-card p-4">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/55 mb-2">
-            Board votes
-          </div>
-          {votes.length === 0 && <div className="text-xs text-foreground/55">No votes yet.</div>}
-          <div className="space-y-2">
-            {votes.map((v) => (
-              <div key={v.id} className="rounded border border-foreground/10 p-2 text-xs">
-                <div className="font-bold uppercase">{v.vote}</div>
-                <div className="text-foreground/65">{v.comment}</div>
-                <div className="text-foreground/55">{v.at}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <AuditTimeline entity="series" entityId={series.id} limit={8} />
-      </div>
+          <Link
+            to="/app/series/$id/publication"
+            params={{ id: series.id }}
+            className="mt-4 inline-flex h-8 items-center rounded-md border border-foreground/15 px-3 text-xs font-bold hover:bg-foreground/5"
+          >
+            Open publication monitor
+          </Link>
+        </section>
+      </aside>
     </div>
   );
+}
+
+function VersionRow({ manuscript }: { manuscript: SeriesSummaryManuscript }) {
+  return (
+    <div className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="text-sm font-bold text-foreground">Version {manuscript.version}</div>
+        <div className="mt-0.5 text-xs text-foreground/55">
+          {manuscript.file?.originalName ?? "Manuscript file"} ·{" "}
+          {manuscript.uploadedBy?.name ?? "Mangaka"} · {formatDate(manuscript.createdAt)}
+        </div>
+        {manuscript.reviewNote && (
+          <div className="mt-1 text-xs text-foreground/65">{manuscript.reviewNote}</div>
+        )}
+      </div>
+      <span className="w-fit rounded-md bg-foreground/7 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-foreground/65">
+        {manuscript.status}
+      </span>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div>
+      <div className="text-[10px] font-black uppercase tracking-wider text-foreground/45">
+        {label}
+      </div>
+      <div className="mt-0.5 font-semibold text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function formatDate(value?: string) {
+  if (!value) return "Unknown date";
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
