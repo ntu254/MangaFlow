@@ -115,6 +115,8 @@ function SeriesChapters() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateChapterOpen, setIsCreateChapterOpen] = useState(false);
   const [isUploadPagesOpen, setIsUploadPagesOpen] = useState(false);
+  const [isPageViewerOpen, setIsPageViewerOpen] = useState(false);
+  const [viewerPageIndex, setViewerPageIndex] = useState(0);
   const [newChapterNumber, setNewChapterNumber] = useState(1);
   const [newChapterTitle, setNewChapterTitle] = useState("");
 
@@ -214,6 +216,26 @@ function SeriesChapters() {
   const seriesStatus = summary.series?.status;
   const canSubmitToEditor = ["DRAFT", "REVISION_REQUESTED"].includes(seriesStatus ?? "");
   const readinessBlockers = readiness?.items.filter((item) => !item.passed) ?? [];
+  const pageStatuses = pages.map((page) => page.status);
+  const hasUploadedManuscript = Boolean(summary.currentManuscript);
+  const hasChapterPages = pages.length > 0;
+  const unfinishedPages = pageStatuses.filter((status) =>
+    ["PENDING", "UPLOADING", "PROCESSING"].includes(status),
+  ).length;
+  const failedPages = pageStatuses.filter((status) =>
+    ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status),
+  ).length;
+  const internalHandoffBlockers = [
+    ...(!canSubmitToEditor
+      ? [`Series is ${seriesStatus ?? "not ready"}; only Draft or Revision Requested can be sent.`]
+      : []),
+    ...(!hasUploadedManuscript ? ["Upload a manuscript/final version before sending."] : []),
+    ...(!selectedChapter ? ["Select a chapter to hand off."] : []),
+    ...(!hasChapterPages ? ["Upload at least one page for this chapter."] : []),
+    ...(unfinishedPages > 0 ? [`${unfinishedPages} page(s) are still processing/uploading.`] : []),
+    ...(failedPages > 0 ? [`${failedPages} page upload(s) failed and need replacement.`] : []),
+  ];
+  const internalHandoffReady = internalHandoffBlockers.length === 0;
 
   const filteredPages = useMemo(() => {
     const normalizedQuery = pageSearchQuery.trim().toLowerCase();
@@ -233,6 +255,33 @@ function SeriesChapters() {
       },
     );
   }, [pageSearchQuery, pages, selectedFilter]);
+
+  const orderedPages = useMemo(
+    () =>
+      [...pages].sort(
+        (a, b) =>
+          (a.pageNumber ?? a.sequenceNumber ?? Number.MAX_SAFE_INTEGER) -
+          (b.pageNumber ?? b.sequenceNumber ?? Number.MAX_SAFE_INTEGER),
+      ),
+    [pages],
+  );
+
+  useEffect(() => {
+    if (orderedPages.length === 0) {
+      setViewerPageIndex(0);
+      return;
+    }
+    setViewerPageIndex((current) => Math.min(current, orderedPages.length - 1));
+  }, [orderedPages.length]);
+
+  const openPageViewer = useCallback(
+    (chapterId: string) => {
+      updateSearch({ chapterId, visible: 9 });
+      setViewerPageIndex(0);
+      setIsPageViewerOpen(true);
+    },
+    [updateSearch],
+  );
 
   if (isLoading || !summary) {
     return <div className="p-8 text-center text-foreground/50 text-sm">Loading chapters...</div>;
@@ -308,6 +357,7 @@ function SeriesChapters() {
                   chapterBadgeLabel={chapterBadgeLabel}
                   isSelected={chapter.id === effectiveChapterId}
                   onClick={() => updateSearch({ chapterId: chapter.id, visible: 9 })}
+                  onViewPages={() => openPageViewer(chapter.id)}
                 />
               ),
             )
@@ -385,9 +435,9 @@ function SeriesChapters() {
                   Internal completion
                 </div>
                 <div className="mt-2 text-sm font-bold text-foreground">
-                  {readinessLoading
-                    ? "Checking chapter readiness..."
-                    : readiness?.ready
+                  {pagesLoading
+                    ? "Checking chapter pages..."
+                    : internalHandoffReady
                       ? "Internal version is ready for Tantou Editor."
                       : "Resolve blockers before final handoff."}
                 </div>
@@ -398,7 +448,7 @@ function SeriesChapters() {
               </div>
               <button
                 type="button"
-                disabled={!canSubmitToEditor || !readiness?.ready || submitSeries.isPending}
+                disabled={!internalHandoffReady || submitSeries.isPending}
                 onClick={() =>
                   submitSeries.mutate({
                     id,
@@ -414,29 +464,33 @@ function SeriesChapters() {
               </button>
             </div>
 
-            {!readinessLoading && readiness && (
+            {!pagesLoading && (
               <div className="mt-3 rounded-md border border-foreground/10 bg-card p-3">
-                {readiness.ready ? (
+                {internalHandoffReady ? (
                   <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
                     <CheckCircle2 className="h-4 w-4" />
-                    All chapter checks passed.
+                    Internal handoff checks passed.
                   </div>
-                ) : readinessBlockers.length > 0 ? (
+                ) : (
                   <ul className="space-y-1.5 text-xs text-foreground/65">
-                    {readinessBlockers.slice(0, 4).map((blocker) => (
-                      <li key={blocker.key} className="flex gap-2">
+                    {internalHandoffBlockers.slice(0, 5).map((blocker) => (
+                      <li key={blocker} className="flex gap-2">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                        {blocker.reason}
+                        {blocker}
                       </li>
                     ))}
-                    {readinessBlockers.length > 4 && (
+                    {internalHandoffBlockers.length > 5 && (
                       <li className="text-foreground/45">
-                        + {readinessBlockers.length - 4} more blocker(s)
+                        + {internalHandoffBlockers.length - 5} more blocker(s)
                       </li>
                     )}
                   </ul>
-                ) : (
-                  <div className="text-xs text-foreground/55">No readiness result available.</div>
+                )}
+                {!readinessLoading && readinessBlockers.length > 0 && (
+                  <div className="mt-3 border-t border-foreground/10 pt-3 text-[11px] text-foreground/45">
+                    Publication readiness still has {readinessBlockers.length} blocker(s). Editor
+                    can resolve those after review.
+                  </div>
                 )}
               </div>
             )}
@@ -721,6 +775,17 @@ function SeriesChapters() {
         />
       )}
 
+      <ChapterPagesViewerDialog
+        open={isPageViewerOpen}
+        onOpenChange={setIsPageViewerOpen}
+        chapterTitle={selectedChapter?.title ?? "Chapter"}
+        pages={orderedPages}
+        isLoading={pagesLoading}
+        activeIndex={viewerPageIndex}
+        onActiveIndexChange={setViewerPageIndex}
+        seriesId={id}
+      />
+
       <AlertDialog
         open={dialogConfig.open}
         onOpenChange={(open) =>
@@ -818,4 +883,230 @@ function SeriesChapters() {
       </Dialog>
     </div>
   );
+}
+
+type ViewerPage = {
+  id: string;
+  status: string;
+  workingFileAssetId?: string;
+  thumbnailFileAssetId?: string;
+  sequenceNumber?: number;
+  pageNumber?: number;
+};
+
+function ChapterPagesViewerDialog({
+  open,
+  onOpenChange,
+  chapterTitle,
+  pages,
+  isLoading,
+  activeIndex,
+  onActiveIndexChange,
+  seriesId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  chapterTitle: string;
+  pages: ViewerPage[];
+  isLoading: boolean;
+  activeIndex: number;
+  onActiveIndexChange: (index: number | ((current: number) => number)) => void;
+  seriesId: string;
+}) {
+  const activePage = pages[activeIndex];
+  const canGoPrevious = activeIndex > 0;
+  const canGoNext = activeIndex < pages.length - 1;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[92vh] w-[94vw] max-w-6xl flex-col overflow-hidden p-0">
+        <DialogHeader className="border-b border-foreground/10 px-5 py-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <DialogTitle>{chapterTitle} pages</DialogTitle>
+              <DialogDescription>
+                Read-only viewer for checking every uploaded page in this chapter.
+              </DialogDescription>
+            </div>
+            {activePage && (
+              <div className="mr-8 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-foreground/55 sm:mr-0">
+                <span>
+                  Page {activePage.pageNumber ?? activePage.sequenceNumber ?? activeIndex + 1} /{" "}
+                  {pages.length}
+                </span>
+                <PageStatusPill status={activePage.status} />
+              </div>
+            )}
+          </div>
+        </DialogHeader>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-[1fr_170px]">
+          <div className="relative flex min-h-[420px] items-center justify-center overflow-hidden bg-foreground/[0.035] p-4">
+            {isLoading ? (
+              <div className="text-sm text-foreground/50">Loading pages...</div>
+            ) : !activePage ? (
+              <div className="text-center">
+                <div className="text-sm font-semibold text-foreground">No pages uploaded yet.</div>
+                <div className="mt-1 text-xs text-foreground/50">
+                  Upload pages from the chapter preview panel first.
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  aria-label="Previous page"
+                  disabled={!canGoPrevious}
+                  onClick={() => onActiveIndexChange((current) => Math.max(0, current - 1))}
+                  className="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-foreground/15 bg-background/90 text-foreground shadow-sm backdrop-blur hover:bg-background disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <PageViewerImage page={activePage} />
+                <button
+                  type="button"
+                  aria-label="Next page"
+                  disabled={!canGoNext}
+                  onClick={() =>
+                    onActiveIndexChange((current) => Math.min(pages.length - 1, current + 1))
+                  }
+                  className="absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-foreground/15 bg-background/90 text-foreground shadow-sm backdrop-blur hover:bg-background disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          <aside className="flex min-h-0 flex-col border-t border-foreground/10 bg-card lg:border-l lg:border-t-0">
+            <div className="border-b border-foreground/10 px-3 py-3">
+              <div className="text-[10px] font-black uppercase tracking-wider text-foreground/50">
+                Page strip
+              </div>
+              {activePage?.workingFileAssetId ? (
+                <Link
+                  to="/app/pages/$id/studio"
+                  params={{ id: activePage.id }}
+                  search={{ seriesId }}
+                  className="mt-2 inline-flex h-8 w-full items-center justify-center rounded-md bg-[#061A2B] px-3 text-[11px] font-extrabold text-white hover:bg-[#0B2A43] dark:bg-blue-600"
+                >
+                  Open Studio
+                </Link>
+              ) : (
+                <div className="mt-2 rounded-md bg-foreground/5 px-2 py-2 text-[11px] text-foreground/50">
+                  Studio opens after a working image is available.
+                </div>
+              )}
+            </div>
+            <div className="grid max-h-[220px] grid-cols-4 gap-2 overflow-y-auto p-3 lg:max-h-none lg:flex-1 lg:grid-cols-1">
+              {isLoading ? (
+                <div className="col-span-full text-xs text-foreground/45">Loading...</div>
+              ) : pages.length === 0 ? (
+                <div className="col-span-full text-xs text-foreground/45">No thumbnails.</div>
+              ) : (
+                pages.map((page, index) => (
+                  <button
+                    key={page.id}
+                    type="button"
+                    onClick={() => onActiveIndexChange(index)}
+                    className={`relative aspect-[3/4] overflow-hidden rounded-md border bg-foreground/5 text-left ${
+                      index === activeIndex
+                        ? "border-sky-500 ring-2 ring-sky-500/30"
+                        : "border-foreground/10"
+                    }`}
+                  >
+                    <PageViewerThumb page={page} />
+                    <span className="absolute left-1 top-1 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-black text-white">
+                      {page.pageNumber ?? page.sequenceNumber ?? index + 1}
+                    </span>
+                    <span
+                      className={`absolute right-1 top-1 h-2.5 w-2.5 rounded-full border border-white ${pageStatusDotClass(page.status)}`}
+                      title={page.status}
+                    />
+                  </button>
+                ))
+              )}
+            </div>
+          </aside>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PageViewerImage({ page }: { page: ViewerPage }) {
+  const fileAssetId = page.workingFileAssetId ?? page.thumbnailFileAssetId;
+  const { data: url, isLoading } = useFileObjectUrl(fileAssetId);
+  const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(page.status);
+  const isFailed = ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(page.status);
+
+  if (isLoading) {
+    return <div className="h-full min-h-[360px] w-full animate-pulse rounded-md bg-foreground/5" />;
+  }
+
+  if (!url) {
+    return (
+      <div className="flex min-h-[360px] w-full max-w-xl flex-col items-center justify-center rounded-md border border-dashed border-foreground/20 bg-background text-center">
+        <div className="text-sm font-bold text-foreground">
+          {isProcessing
+            ? "Page assets are processing"
+            : isFailed
+              ? "Page upload failed"
+              : "No image available"}
+        </div>
+        <div className="mt-1 text-xs text-foreground/50">Status: {page.status}</div>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={`Page ${page.pageNumber ?? page.sequenceNumber ?? ""}`}
+      className="max-h-[68vh] max-w-full rounded-md object-contain shadow-sm"
+    />
+  );
+}
+
+function PageViewerThumb({ page }: { page: ViewerPage }) {
+  const { data: url, isLoading } = useFileObjectUrl(page.thumbnailFileAssetId);
+  if (isLoading) return <div className="absolute inset-0 animate-pulse bg-foreground/5" />;
+  if (!url) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center px-1 text-center text-[9px] font-semibold uppercase text-foreground/40">
+        No image
+      </div>
+    );
+  }
+  return <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />;
+}
+
+function PageStatusPill({ status }: { status: string }) {
+  return (
+    <span
+      className={`rounded px-2 py-1 text-[10px] font-black uppercase ${pageStatusPillClass(status)}`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function pageStatusPillClass(status: string) {
+  if (status === "APPROVED") return "bg-emerald-500/10 text-emerald-600";
+  if (status === "IN_TASK") return "bg-orange-500/10 text-orange-600";
+  if (["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status)) {
+    return "bg-destructive/10 text-destructive";
+  }
+  if (["PENDING", "UPLOADING", "PROCESSING"].includes(status)) {
+    return "bg-sky-500/10 text-sky-600";
+  }
+  return "bg-foreground/10 text-foreground/60";
+}
+
+function pageStatusDotClass(status: string) {
+  if (status === "APPROVED") return "bg-emerald-500";
+  if (status === "IN_TASK") return "bg-orange-500";
+  if (["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status)) return "bg-destructive";
+  if (["PENDING", "UPLOADING", "PROCESSING"].includes(status)) return "bg-sky-400";
+  return "bg-white";
 }

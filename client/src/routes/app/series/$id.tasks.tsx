@@ -1,8 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, ChevronDown, MoreVertical } from "lucide-react";
+import { Ban, ChevronDown, Loader2, MoreVertical, Search } from "lucide-react";
 import { useState } from "react";
-import { useTasksBySeries } from "@/shared/queries/useTasks";
+import { toast } from "sonner";
 import type { Task } from "@/entities/task/model";
+import { extractErrorMessage } from "@/shared/api";
+import { useCancelTaskAssignment, useTasksBySeries } from "@/shared/queries/useTasks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/shadcn/alert-dialog";
 
 export const Route = createFileRoute("/app/series/$id/tasks")({
   component: TasksPage,
@@ -11,7 +23,9 @@ export const Route = createFileRoute("/app/series/$id/tasks")({
 function TasksPage() {
   const { id } = Route.useParams();
   const { data: tasks, isLoading } = useTasksBySeries(id);
+  const cancelTask = useCancelTaskAssignment();
   const [search, setSearch] = useState("");
+  const [taskToCancel, setTaskToCancel] = useState<Task | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -96,6 +110,23 @@ function TasksPage() {
     if (status === "rejected") return "Open";
     if (status === "editor-approved" || status === "mangaka-approved") return "View";
     return "Open";
+  };
+
+  const canCancelAssignment = (task: Task) =>
+    task.status === "todo" || task.status === "in-progress";
+
+  const handleConfirmCancel = () => {
+    if (!taskToCancel) return;
+    cancelTask.mutate(
+      { taskId: taskToCancel.id },
+      {
+        onSuccess: () => {
+          toast.success("Task assignment cancelled.");
+          setTaskToCancel(null);
+        },
+        onError: (err) => toast.error(extractErrorMessage(err)),
+      },
+    );
   };
 
   if (isLoading || !tasks) {
@@ -201,6 +232,20 @@ function TasksPage() {
                         <button className="rounded-md border border-[#E5DFD3] bg-[#F5EFE6] px-4 py-1.5 text-[12px] font-bold text-foreground shadow-sm hover:bg-[#EAE4D8] dark:border-border dark:bg-muted dark:hover:bg-muted/80">
                           {getActionBtn(task.status)}
                         </button>
+                        {canCancelAssignment(task) && (
+                          <button
+                            onClick={() => setTaskToCancel(task)}
+                            disabled={cancelTask.isPending}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 text-[12px] font-bold text-red-600 shadow-sm hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/60 dark:bg-red-950/25 dark:text-red-300 dark:hover:bg-red-950/40"
+                          >
+                            {cancelTask.isPending && taskToCancel?.id === task.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Ban className="h-3.5 w-3.5" />
+                            )}
+                            Cancel assignment
+                          </button>
+                        )}
                         <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-[#EAE4D8] dark:hover:bg-muted">
                           <MoreVertical className="h-4 w-4" />
                         </button>
@@ -244,6 +289,40 @@ function TasksPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog
+        open={!!taskToCancel}
+        onOpenChange={(open) => {
+          if (!open && !cancelTask.isPending) setTaskToCancel(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Task Assignment</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will cancel "{taskToCancel?.title ?? "this task"}" and release its page or region
+              for new work. Submitted or review-owned tasks still need to use the review flow.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelTask.isPending}>Keep task</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={cancelTask.isPending}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {cancelTask.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                "Cancel assignment"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
