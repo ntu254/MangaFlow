@@ -1,7 +1,9 @@
 import mongoose, { Schema, type Document } from "mongoose"
 import {
   COMMENT_STATUSES,
+  COMMENT_VISIBILITIES,
   type CommentStatus,
+  type CommentVisibility,
 } from "../../shared/workflow/status.js"
 
 export interface CommentDocument extends Document {
@@ -14,6 +16,7 @@ export interface CommentDocument extends Document {
   authorId: mongoose.Types.ObjectId
   body: string
   status: CommentStatus
+  visibility: CommentVisibility
   isBlocking: boolean
   fixedBy?: mongoose.Types.ObjectId
   verifiedBy?: mongoose.Types.ObjectId
@@ -38,6 +41,13 @@ const commentSchema = new Schema<CommentDocument>(
       enum: COMMENT_STATUSES,
       required: true,
       default: "OPEN",
+      index: true,
+    },
+    visibility: {
+      type: String,
+      enum: COMMENT_VISIBILITIES,
+      required: true,
+      default: "PUBLIC_TO_ASSISTANT",
       index: true,
     },
     isBlocking: { type: Boolean, default: true, index: true },

@@ -11,6 +11,7 @@ import {
   updateChapterDraftSchedule,
   updateChapterPublicationStatus,
   updatePublicationSchedule,
+  listPublications,
 } from "./publication.repository.js"
 
 interface PublicationActor {
@@ -34,6 +35,13 @@ function parseScheduleDate(value: string | Date) {
     throw new AppError("Valid publication date is required", 400)
   }
   return date
+}
+
+export async function listPublicationsService(filter: { seriesId?: string }, actor: PublicationActor) {
+  if (actor.role !== "EDITOR" && actor.role !== "ADMIN") {
+    throw new AppError("Publication access denied", 403)
+  }
+  return listPublications({ seriesId: filter.seriesId })
 }
 
 export async function createPublicationService(input: { chapterId: string; scheduledFor?: string | Date; actor: PublicationActor }) {

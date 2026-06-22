@@ -17,7 +17,7 @@ async function assertPageCanBeChanged(chapterId: string, pageId: string) {
     Submission.exists({ pageId }),
     Task.exists({ pageId, status: "EDITOR_APPROVED" }),
     // Also check for submissions linked via regions on this page
-    Region.exists({ pageId }).then((regionExists) =>
+    Region.exists({ pageId }).then(async (regionExists) =>
       regionExists
         ? Submission.exists({
             pageId: { $exists: false },

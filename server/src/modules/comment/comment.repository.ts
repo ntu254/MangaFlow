@@ -1,4 +1,4 @@
-import type { CommentStatus } from "../../shared/workflow/status.js"
+import type { CommentStatus, CommentVisibility } from "../../shared/workflow/status.js"
 import { Chapter, Page, Region } from "../chapter/chapter.model.js"
 import { Submission } from "../submission/submission.model.js"
 import { Task } from "../task/task.model.js"
@@ -14,6 +14,7 @@ export interface CreateCommentRecordInput {
   authorId: string
   body: string
   isBlocking?: boolean
+  visibility?: CommentVisibility
 }
 
 export async function getTaskForComment(taskId: string) {
@@ -47,6 +48,7 @@ export async function createCommentRecord(input: CreateCommentRecordInput) {
     authorId: input.authorId,
     body: input.body,
     isBlocking: input.isBlocking ?? true,
+    visibility: input.visibility ?? "PUBLIC_TO_ASSISTANT",
     status: "OPEN",
   })
 }
@@ -55,8 +57,20 @@ export async function getCommentById(commentId: string) {
   return Comment.findById(commentId)
 }
 
-export async function listCommentsByTask(taskId: string) {
-  return Comment.find({ taskId }).sort({ createdAt: -1 }).populate("authorId", "name role").lean()
+export async function listCommentsByTask(taskId: string, actorRole?: string) {
+  const visibilityFilter: Record<string, unknown> = {}
+  if (actorRole === "ASSISTANT") {
+    // Assistants can only see comments intended for them
+    visibilityFilter.visibility = "PUBLIC_TO_ASSISTANT"
+  } else if (actorRole === "MANGAKA") {
+    // Mangaka can see PUBLIC and MANGAKA_EDITOR_ONLY, but NOT EDITOR_INTERNAL
+    visibilityFilter.visibility = { $in: ["PUBLIC_TO_ASSISTANT", "MANGAKA_EDITOR_ONLY"] }
+  }
+  // EDITOR and ADMIN see all comments (no filter)
+  return Comment.find({ taskId, ...visibilityFilter })
+    .sort({ createdAt: -1 })
+    .populate("authorId", "name role")
+    .lean()
 }
 
 export async function updateCommentStatus(

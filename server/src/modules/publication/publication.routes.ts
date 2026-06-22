@@ -7,6 +7,7 @@ import { createPublicationSchema, patchPublicationBodySchema, publicationIdParam
 
 const router = Router()
 
+router.get("/", requireAuth, requireRole("EDITOR", "ADMIN"), controller.listPublications)
 router.post("/", requireAuth, requireRole("EDITOR"), validate(createPublicationSchema), controller.createPublication)
 router.patch("/:publicationId", requireAuth, requireRole("EDITOR"), validate(publicationIdParamsSchema, "params"), validate(patchPublicationBodySchema), controller.patchPublication)
 router.post("/:publicationId/schedule", requireAuth, requireRole("EDITOR"), validate(publicationIdParamsSchema, "params"), validate(schedulePublicationBodySchema), controller.schedulePublication)

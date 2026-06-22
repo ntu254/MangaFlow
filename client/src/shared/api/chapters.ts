@@ -44,6 +44,19 @@ export interface CreateChapterInput {
   title: string;
 }
 
+export interface ChapterReadinessItem {
+  key: string;
+  passed: boolean;
+  reason: string;
+}
+
+export interface ChapterReadinessResult {
+  chapterId: string;
+  chapterStatus: string;
+  ready: boolean;
+  items: ChapterReadinessItem[];
+}
+
 export const chaptersApi = {
   createChapter: async (seriesId: string, data: CreateChapterInput) =>
     api.post(`/series/${seriesId}/chapters`, data).then(unwrap<Chapter>),
@@ -77,4 +90,10 @@ export const chaptersApi = {
     });
     return res.data;
   },
+
+  getChapterReadiness: async (chapterId: string) =>
+    api.get(`/chapters/${chapterId}/readiness`).then(unwrap<ChapterReadinessResult>),
+
+  markChapterReady: async (chapterId: string) =>
+    api.post(`/chapters/${chapterId}/mark-ready`).then(unwrap<Chapter>),
 };

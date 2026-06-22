@@ -87,6 +87,13 @@ export const COMMENT_STATUSES = [
 ] as const
 export type CommentStatus = (typeof COMMENT_STATUSES)[number]
 
+export const COMMENT_VISIBILITIES = [
+  "PUBLIC_TO_ASSISTANT",
+  "MANGAKA_EDITOR_ONLY",
+  "EDITOR_INTERNAL",
+] as const
+export type CommentVisibility = (typeof COMMENT_VISIBILITIES)[number]
+
 export const PUBLICATION_STATUSES = [
   "DRAFT",
   "SCHEDULED",
