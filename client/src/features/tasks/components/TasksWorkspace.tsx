@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/layouts/AppShell";
 import { currentUserByRole } from "@/entities";
 import { useRole } from "@/shared/lib/role";
+import { readStorageString, writeStorageString } from "@/shared/lib/storage";
 import { useMyTasks } from "@/shared/queries/useTasks";
 import { TaskSummaryStrip } from "./TaskSummaryStrip";
 import { TaskToolbar, type ViewMode } from "./TaskToolbar";
@@ -24,14 +25,12 @@ export function TasksWorkspace() {
   const [showApproved, setShowApproved] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(VIEW_KEY);
+    const stored = readStorageString(VIEW_KEY);
     if (stored === "kanban" || stored === "list") setView(stored);
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(VIEW_KEY, view);
+    writeStorageString(VIEW_KEY, view);
   }, [view]);
 
   const { state, setters, options, filtered, hasActiveFilter, clear } = useTaskFilters(mine);

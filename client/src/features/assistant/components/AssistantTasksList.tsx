@@ -12,6 +12,7 @@ import {
 } from "../lib/taskLifecycle";
 import { Inbox, LayoutGrid, List, Search } from "lucide-react";
 import { useTaskFilters } from "@/features/tasks/hooks/useTaskFilters";
+import { readStorageString, writeStorageString } from "@/shared/lib/storage";
 
 type TabKey = AssistantStatus | "all";
 const TABS: { key: TabKey; label: string }[] = [
@@ -33,18 +34,13 @@ export function AssistantTasksList() {
 
   const [tab, setTab] = useState<TabKey>("all");
   const [view, setView] = useState<"kanban" | "list">(() => {
-    if (typeof window === "undefined") return "kanban";
-    const stored = window.localStorage.getItem(VIEW_KEY);
+    const stored = readStorageString(VIEW_KEY);
     return stored === "list" ? "list" : "kanban";
   });
 
   function changeView(v: "kanban" | "list") {
     setView(v);
-    try {
-      window.localStorage.setItem(VIEW_KEY, v);
-    } catch {
-      // View preference persistence is non-critical.
-    }
+    writeStorageString(VIEW_KEY, v);
   }
 
   const scoped = useMemo(

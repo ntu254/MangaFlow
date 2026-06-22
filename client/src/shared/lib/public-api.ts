@@ -1,5 +1,6 @@
-// Mock of /api/public/* — synchronous reads from src/data so we can swap to fetch later.
+// Mock-backed public helpers with API readers for server-backed page images.
 import { series, chapters, findSeries, chaptersBySeries } from "@/entities";
+import { api, unwrap } from "@/shared/api";
 
 export const publicListSeries = () =>
   series.filter((s) => s.status === "ongoing" || s.status === "completed");
@@ -17,12 +18,51 @@ export const publicGetChapter = (slug: string, chapterId: string) => {
   if (!s) return undefined;
   const ch = chapters.find((c) => c.id === chapterId && c.seriesId === s.id);
   if (!ch) return undefined;
-  // mock pages = use the series cover repeated; in phase 1 we don't have real page files
   return {
     chapter: ch,
     series: s,
-    pages: Array.from({ length: ch.pages }, (_, i) => ({ index: i + 1, src: s.cover })),
+    pages: [],
   };
 };
+
+export interface PublicReaderPage {
+  id?: string;
+  index: number;
+  src: string;
+  width?: number;
+  height?: number;
+}
+
+interface PublicChapterPageResponse {
+  id: string;
+  order?: number;
+  pageNumber?: number;
+  width?: number;
+  height?: number;
+  imageUrl: string;
+}
+
+export async function publicGetChapterWithPages(slug: string, chapterId: string) {
+  const fallback = publicGetChapter(slug, chapterId);
+  if (!fallback) return undefined;
+
+  try {
+    const apiPages = await api
+      .get(`/public/chapters/${chapterId}/pages`)
+      .then(unwrap<PublicChapterPageResponse[]>);
+    return {
+      ...fallback,
+      pages: apiPages.map((page, index) => ({
+        id: page.id,
+        index: page.pageNumber ?? page.order ?? index + 1,
+        src: page.imageUrl,
+        width: page.width,
+        height: page.height,
+      })),
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 export { findSeries };

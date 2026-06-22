@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { Upload, Plus } from "lucide-react";
+import { findSeries } from "@/entities";
 
 interface ChapterDetailHeaderProps {
   chapterId: string;
@@ -13,12 +12,13 @@ export function ChapterDetailHeader({ chapterId }: ChapterDetailHeaderProps) {
   const seriesTitle = isGhostFixers ? "Ghost Fixers" : "One Piece";
   const seriesJp = isGhostFixers ? "ゴーストフィクサーズ" : "ワンピース";
   const status = isGhostFixers ? "in-review" : "in-production";
+  const seriesCover = findSeries(isGhostFixers ? "se_ghost" : "se_op")?.cover;
 
   return (
     <div className="border-b border-foreground/10 pb-4 mt-2 mb-4">
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-5">
         <img
-          src="https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop"
+          src={seriesCover}
           alt={seriesTitle}
           className="w-16 h-24 object-cover rounded-md shadow-sm border border-foreground/10"
         />

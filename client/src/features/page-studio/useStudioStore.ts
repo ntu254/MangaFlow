@@ -29,7 +29,11 @@ export interface RegionTask {
   title?: string;
 }
 
+const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, scale: 1 };
+const DEFAULT_CONTAINER_SIZE = { w: 800, h: 600 };
+
 interface StudioStore {
+  workspacePageId: string | null;
   viewport: Viewport;
   selectedRegionId: string | null;
   activeTool: Tool;
@@ -49,6 +53,7 @@ interface StudioStore {
   regionTasks: Record<string, RegionTask>;
 
   // Actions
+  resetForPage: (pageId: string) => void;
   setViewport: (fn: Viewport | ((prev: Viewport) => Viewport)) => void;
   setSelectedRegionId: (id: string | null) => void;
   setActiveTool: (t: Tool) => void;
@@ -68,12 +73,13 @@ interface StudioStore {
 }
 
 export const useStudioStore = create<StudioStore>((set) => ({
-  viewport: { x: 0, y: 0, scale: 1 },
+  workspacePageId: null,
+  viewport: DEFAULT_VIEWPORT,
   selectedRegionId: null,
   activeTool: "select",
   isPanning: false,
   isSpaceDown: false,
-  containerSize: { w: 800, h: 600 },
+  containerSize: DEFAULT_CONTAINER_SIZE,
 
   activeTab: "inspect",
   isInspectorCollapsed: false,
@@ -84,6 +90,20 @@ export const useStudioStore = create<StudioStore>((set) => ({
 
   regionTasks: {},
 
+  resetForPage: (pageId) =>
+    set((s) => {
+      if (s.workspacePageId === pageId) return s;
+      return {
+        workspacePageId: pageId,
+        viewport: DEFAULT_VIEWPORT,
+        selectedRegionId: null,
+        activeTool: "select",
+        isPanning: false,
+        isSpaceDown: false,
+        containerSize: DEFAULT_CONTAINER_SIZE,
+        regionTasks: {},
+      };
+    }),
   setViewport: (fn) =>
     set((s) => ({
       viewport: typeof fn === "function" ? fn(s.viewport) : fn,

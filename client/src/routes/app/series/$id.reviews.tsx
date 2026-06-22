@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   useReviewQueue,
@@ -20,28 +20,55 @@ import {
   Send,
   Eye,
 } from "lucide-react";
+import { PageAssetImage } from "@/shared/ui/PageAssetImage";
+import type { FileAssetRef, PageRef } from "@/shared/api/submissions";
+
+type ReviewViewMode = "split" | "overlay";
+
+type ReviewsSearch = {
+  submissionId?: string;
+  view?: ReviewViewMode;
+};
+
+function isReviewViewMode(value: unknown): value is ReviewViewMode {
+  return value === "split" || value === "overlay";
+}
 
 export const Route = createFileRoute("/app/series/$id/reviews")({
+  validateSearch: (search: Record<string, unknown>): ReviewsSearch => ({
+    submissionId: typeof search.submissionId === "string" ? search.submissionId : undefined,
+    view: isReviewViewMode(search.view) ? search.view : "split",
+  }),
   component: SeriesReviews,
 });
 
 function SeriesReviews() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = useNavigate();
 
   const { data: queueData, isLoading } = useReviewQueue(id);
   const seriesSubmissions = queueData || [];
 
-  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
-
-  const [viewMode, setViewMode] = useState<"split" | "overlay" | "submitted">("split");
+  const [isHoldingOriginal, setIsHoldingOriginal] = useState(false);
   const [commentText, setCommentText] = useState("");
 
-  const selectedSub = seriesSubmissions.find((s) => s.id === selectedSubId) || seriesSubmissions[0];
+  const viewMode = search.view ?? "split";
+  const effectiveViewMode = isHoldingOriginal ? "submitted" : viewMode;
+  const selectedSub =
+    seriesSubmissions.find((s) => s.id === search.submissionId) || seriesSubmissions[0];
   const actualSelectedId = selectedSub?.id || null;
 
   const approveMutation = useApproveSubmission();
   const editorApproveMutation = useEditorApproveSubmission();
   const requestRevisionMutation = useRequestRevision();
+
+  const updateSearch = (patch: Partial<ReviewsSearch>) => {
+    navigate({
+      search: (prev) => ({ ...prev, ...patch }),
+      replace: false,
+    });
+  };
 
   const handleApprove = () => {
     if (!actualSelectedId || !selectedSub) return;
@@ -66,27 +93,8 @@ function SeriesReviews() {
     );
   };
 
-  const submittedFileAssetId = typeof selectedSub?.fileAssetId === "object"
-    ? selectedSub.fileAssetId?.id || selectedSub.fileAssetId?._id
-    : selectedSub?.fileAssetId;
-
-  const { data: submittedImageUrl } = useFileObjectUrl(submittedFileAssetId);
-
-  const { data: pageStudioData } = usePageStudio(selectedSub?.pageId || "");
-
-  const originalFileAssetId = pageStudioData?.page?.originalFileAssetId;
-
-  const { data: originalImageUrl } = useFileObjectUrl(originalFileAssetId);
-
-  const subTaskId = selectedSub?.taskId
-    ? (typeof selectedSub.taskId === "object" ? selectedSub.taskId.id || selectedSub.taskId._id : selectedSub.taskId)
-    : "";
-
-  const { data: submissionsHistory = [] } = useTaskSubmissions(subTaskId || "");
-
-  // Mock Images fallback
-  const originalImage = originalImageUrl || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop";
-  const submittedImage = submittedImageUrl || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop&blur=50"; // Just a mock visual difference
+  const pageAssets = getPageAssetIds(selectedSub?.pageId);
+  const submittedFileAssetId = getFileAssetId(selectedSub?.fileAssetId);
 
   if (isLoading) {
     return (
@@ -122,7 +130,7 @@ function SeriesReviews() {
             return (
               <button
                 key={sm.id}
-                onClick={() => setSelectedSubId(sm.id)}
+                onClick={() => updateSearch({ submissionId: sm.id })}
                 className={`w-full rounded-md px-3 py-2.5 text-left transition-colors ${
                   isSelected
                     ? "bg-primary/10 text-primary"
@@ -155,7 +163,7 @@ function SeriesReviews() {
           </div>
           <div className="flex items-center overflow-hidden rounded-md border border-foreground/15 bg-card">
             <button
-              onClick={() => setViewMode("split")}
+              onClick={() => updateSearch({ view: "split" })}
               className={`px-3 py-1.5 text-[11px] font-medium transition-colors flex items-center gap-1.5 ${
                 viewMode === "split"
                   ? "bg-foreground/10 text-foreground"
@@ -166,7 +174,7 @@ function SeriesReviews() {
               Split
             </button>
             <button
-              onClick={() => setViewMode("overlay")}
+              onClick={() => updateSearch({ view: "overlay" })}
               className={`px-3 py-1.5 text-[11px] font-medium transition-colors flex items-center gap-1.5 border-l border-foreground/15 ${
                 viewMode === "overlay"
                   ? "bg-foreground/10 text-foreground"
@@ -180,15 +188,19 @@ function SeriesReviews() {
         </div>
 
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-          {viewMode === "split" && (
+          {effectiveViewMode === "split" && (
             <div className="flex gap-4 w-full max-w-4xl">
               <div className="flex-1 space-y-2">
                 <div className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider text-center">
                   Original
                 </div>
-                <img
-                  src={originalImage}
-                  className="w-full h-auto rounded shadow-sm border border-foreground/10"
+                <PageAssetImage
+                  originalFileAssetId={pageAssets.originalFileAssetId}
+                  workingFileAssetId={pageAssets.workingFileAssetId}
+                  thumbnailFileAssetId={pageAssets.thumbnailFileAssetId}
+                  mode="original"
+                  className="aspect-[3/4] w-full rounded border border-foreground/10 shadow-sm"
+                  fit="contain"
                   alt="Original"
                 />
               </div>
@@ -196,39 +208,49 @@ function SeriesReviews() {
                 <div className="text-[11px] font-semibold text-primary uppercase tracking-wider text-center">
                   Submitted
                 </div>
-                <img
-                  src={submittedImage}
-                  className="w-full h-auto rounded shadow-sm border border-primary/30"
+                <PageAssetImage
+                  submittedFileAssetId={submittedFileAssetId}
+                  mode="submitted"
+                  className="aspect-[3/4] w-full rounded border border-primary/30 shadow-sm"
+                  fit="contain"
                   alt="Submitted"
                 />
               </div>
             </div>
           )}
-          {viewMode === "overlay" && (
+          {effectiveViewMode === "overlay" && (
             <div
               className="relative w-full max-w-xl group cursor-pointer"
-              onPointerDown={() => setViewMode("submitted")}
-              onPointerUp={() => setViewMode("overlay")}
-              onPointerLeave={() => setViewMode("overlay")}
+              onPointerDown={() => setIsHoldingOriginal(true)}
+              onPointerUp={() => setIsHoldingOriginal(false)}
+              onPointerLeave={() => setIsHoldingOriginal(false)}
             >
               <div className="text-[11px] mb-2 font-semibold text-foreground/50 uppercase tracking-wider text-center">
                 Hold to view Original
               </div>
-              <img
-                src={submittedImage}
-                className="w-full h-auto rounded shadow-sm border border-foreground/10 transition-all duration-200"
+              <PageAssetImage
+                submittedFileAssetId={submittedFileAssetId}
+                mode="submitted"
+                className="aspect-[3/4] w-full rounded border border-foreground/10 shadow-sm"
+                imageClassName="transition-all duration-200"
+                fit="contain"
                 alt="Overlay Viewer"
               />
             </div>
           )}
-          {viewMode === "submitted" && (
+          {effectiveViewMode === "submitted" && (
             <div className="relative w-full max-w-xl">
               <div className="text-[11px] mb-2 font-semibold text-foreground/50 uppercase tracking-wider text-center">
                 Original
               </div>
-              <img
-                src={originalImage}
-                className="w-full h-auto rounded shadow-sm border border-foreground/10 transition-all duration-200"
+              <PageAssetImage
+                originalFileAssetId={pageAssets.originalFileAssetId}
+                workingFileAssetId={pageAssets.workingFileAssetId}
+                thumbnailFileAssetId={pageAssets.thumbnailFileAssetId}
+                mode="original"
+                className="aspect-[3/4] w-full rounded border border-foreground/10 shadow-sm"
+                imageClassName="transition-all duration-200"
+                fit="contain"
                 alt="Original"
               />
             </div>
@@ -326,4 +348,21 @@ function SeriesReviews() {
       )}
     </div>
   );
+}
+
+function getFileAssetId(fileAsset: FileAssetRef | undefined): string | undefined {
+  if (!fileAsset) return undefined;
+  if (typeof fileAsset === "string") return fileAsset;
+  return fileAsset.id ?? fileAsset._id;
+}
+
+function getPageAssetIds(page: PageRef | undefined) {
+  if (!page || typeof page === "string") {
+    return {};
+  }
+  return {
+    originalFileAssetId: getFileAssetId(page.originalFileAssetId),
+    workingFileAssetId: getFileAssetId(page.workingFileAssetId),
+    thumbnailFileAssetId: getFileAssetId(page.thumbnailFileAssetId),
+  };
 }

@@ -8,10 +8,11 @@ import {
   type PageStudioResponse,
 } from "../api/pages";
 import { toast } from "sonner";
+import { invalidatePageStudio, qk } from "./keys";
 
 export function usePageStudio(pageId: string) {
   return useQuery<PageStudioResponse, Error>({
-    queryKey: ["page", pageId, "studio"],
+    queryKey: qk.pages.studio(pageId),
     queryFn: () => getPageStudio(pageId),
     enabled: Boolean(pageId),
   });
@@ -22,7 +23,7 @@ export function useRunAISegmentation(pageId: string) {
   return useMutation({
     mutationFn: () => runAISegmentation(pageId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["page", pageId, "studio"] });
+      invalidatePageStudio(queryClient, pageId);
       toast.success("AI segmentation completed");
     },
     onError: (err: any) => {
@@ -36,7 +37,7 @@ export function useRunAITextWhitening(pageId: string) {
   return useMutation({
     mutationFn: () => runAITextWhitening(pageId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["page", pageId, "studio"] });
+      invalidatePageStudio(queryClient, pageId);
       toast.success("AI text whitening completed");
     },
     onError: (err: any) => {
@@ -56,7 +57,7 @@ export function useAcceptAISuggestion(pageId: string) {
       suggestionIndex: number;
     }) => acceptAISuggestion(aiResultId, suggestionIndex),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["page", pageId, "studio"] });
+      invalidatePageStudio(queryClient, pageId);
       toast.success("AI suggestion accepted");
     },
     onError: (err: any) => {
@@ -76,7 +77,7 @@ export function useRejectAISuggestion(pageId: string) {
       suggestionIndex: number;
     }) => rejectAISuggestion(aiResultId, suggestionIndex),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["page", pageId, "studio"] });
+      invalidatePageStudio(queryClient, pageId);
       toast.success("AI suggestion removed");
     },
     onError: (err: any) => {

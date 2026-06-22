@@ -28,7 +28,7 @@ export function ReviewQueueList({ data }: { data?: any }) {
         {awaitingMe.slice(0, 4).map((sm: any) => {
           const seriesLabel = sm.seriesTitle || "Unknown Series";
           const chapterLabel = sm.chapterNumber || "Unknown Chapter";
-          const taskLabel = sm.taskId || "Unknown Task";
+          const taskLabel = sm.taskTitle || "Unknown Task";
 
           return (
             <div key={sm.id} className="flex gap-3 group">

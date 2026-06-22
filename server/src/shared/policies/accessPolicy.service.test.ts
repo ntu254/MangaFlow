@@ -7,7 +7,7 @@ const fileAssetFindById = vi.fn()
 const seriesMemberFindOne = vi.fn()
 const submissionFindOne = vi.fn()
 const taskFindOne = vi.fn()
-const taskFind = vi.fn()
+const taskFindChain = { select: vi.fn().mockReturnThis(), lean: vi.fn() }
 
 const pageId = "507f1f77bcf86cd799439011"
 const chapterId = "507f1f77bcf86cd799439012"
@@ -29,7 +29,7 @@ vi.mock("../../modules/submission/submission.model.js", () => ({
 }))
 
 vi.mock("../../modules/task/task.model.js", () => ({
-  Task: { findOne: taskFindOne, find: taskFind },
+  Task: { findOne: taskFindOne, find: () => taskFindChain },
 }))
 
 const { assertCanReadFileAsset, canReadPage } = await import("./accessPolicy.service.js")
@@ -44,11 +44,12 @@ describe("AccessPolicyService", () => {
     submissionFindOne.mockResolvedValue(null)
     seriesMemberFindOne.mockResolvedValue(null)
     taskFindOne.mockResolvedValue(null)
+    taskFindChain.lean.mockResolvedValue([])
   })
 
   it("denies Assistant page access from SeriesMember alone", async () => {
     seriesMemberFindOne.mockResolvedValue({ role: "ASSISTANT", isActive: true, accessScope: "TASK_ONLY" })
-    taskFind.mockResolvedValue([])
+    taskFindChain.lean.mockResolvedValue([])
 
     await expect(canReadPage({ userId: "assistant1", role: "ASSISTANT" }, pageId)).resolves.toBe(false)
     expect(taskFindOne).toHaveBeenCalledWith({
