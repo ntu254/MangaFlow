@@ -49,7 +49,7 @@ export function TaskList({
               const s = ch ? findSeries(ch.seriesId) : null;
               const assignee = findStaff(t.assigneeId);
               const tone = deadlineTone(t.deadline);
-              const firstPageId = `pg_${t.chapterId}_1`;
+              const pageId = t.pageId;
 
               return (
                 <tr
@@ -87,14 +87,22 @@ export function TaskList({
                     </td>
                   )}
                   <td className="px-3 py-2 text-right">
-                    <Link
-                      to="/app/pages/$id/studio"
-                      params={{ id: firstPageId }}
-                      search={(prev: any) => ({ seriesId: prev?.seriesId })}
-                      className="flex h-7 items-center justify-center rounded border border-primary/20 bg-primary/10 px-3 text-[11px] font-bold uppercase tracking-wider text-primary hover:bg-primary/20"
-                    >
-                      Open
-                    </Link>
+                    {pageId ? (
+                      <Link
+                        to="/app/pages/$id/studio"
+                        params={{ id: pageId }}
+                        search={(prev: { seriesId?: string }) => ({
+                          seriesId: prev?.seriesId ?? t.seriesId,
+                        })}
+                        className="flex h-7 items-center justify-center rounded border border-primary/20 bg-primary/10 px-3 text-[11px] font-bold uppercase tracking-wider text-primary hover:bg-primary/20"
+                      >
+                        Open
+                      </Link>
+                    ) : (
+                      <span className="inline-flex h-7 items-center justify-center rounded border border-foreground/10 bg-muted px-3 text-[11px] font-bold uppercase tracking-wider text-foreground/40">
+                        No page
+                      </span>
+                    )}
                   </td>
                 </tr>
               );

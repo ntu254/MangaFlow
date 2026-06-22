@@ -19,15 +19,10 @@ export function TaskCard({
   const assignee = findStaff(task.assigneeId);
   const tone = deadlineTone(task.deadline);
   const hint = statusHint(task.status);
-  const firstPageId = `pg_${task.chapterId}_1`;
+  const pageId = task.pageId;
 
-  return (
-    <Link
-      to="/app/pages/$id/studio"
-      params={{ id: firstPageId }}
-      search={(prev: any) => ({ seriesId: prev?.seriesId })}
-      className="group flex flex-col rounded-md border border-foreground/10 bg-card p-3 shadow-sm transition-all hover:border-foreground/20 hover:shadow"
-    >
+  const content = (
+    <>
       <div className="flex items-center justify-between gap-2">
         <StatusBadge status={task.status} />
         <span className={`text-[11px] tabular-nums ${deadlineClass(tone)}`}>
@@ -65,6 +60,31 @@ export function TaskCard({
           {hint}
         </div>
       )}
+    </>
+  );
+
+  const className =
+    "group flex flex-col rounded-md border border-foreground/10 bg-card p-3 shadow-sm transition-all hover:border-foreground/20 hover:shadow";
+
+  if (!pageId) {
+    return (
+      <div className={`${className} cursor-default opacity-80`}>
+        {content}
+        <div className="mt-2 rounded border border-foreground/10 bg-muted px-2 py-1 text-[11px] text-foreground/50">
+          No page is linked to this task yet.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to="/app/pages/$id/studio"
+      params={{ id: pageId }}
+      search={(prev: { seriesId?: string }) => ({ seriesId: prev?.seriesId ?? task.seriesId })}
+      className={className}
+    >
+      {content}
     </Link>
   );
 }

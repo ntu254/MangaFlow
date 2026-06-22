@@ -8,20 +8,17 @@ import {
   useTaskSubmissions,
 } from "@/shared/queries/useSubmissions";
 import { refId, refLabel } from "@/shared/api/submissions";
-import { findTask, findChapter, findSeries, findStaff } from "@/entities";
-import { usePageStudio } from "@/shared/queries/usePageStudio";
-import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
+import { findTask } from "@/entities";
 import {
   CheckCircle2,
   XCircle,
-  MessageSquare,
   Image as ImageIcon,
   SplitSquareHorizontal,
   Send,
   Eye,
 } from "lucide-react";
 import { PageAssetImage } from "@/shared/ui/PageAssetImage";
-import type { FileAssetRef, PageRef } from "@/shared/api/submissions";
+import type { FileAssetRef, PageRef, Submission } from "@/shared/api/submissions";
 
 type ReviewViewMode = "split" | "overlay";
 
@@ -58,6 +55,12 @@ function SeriesReviews() {
   const selectedSub =
     seriesSubmissions.find((s) => s.id === search.submissionId) || seriesSubmissions[0];
   const actualSelectedId = selectedSub?.id || null;
+  const selectedTaskId = refId(selectedSub?.taskId);
+  const {
+    data: submissionsHistory = [],
+    isLoading: isHistoryLoading,
+    isError: isHistoryError,
+  } = useTaskSubmissions(selectedTaskId);
 
   const approveMutation = useApproveSubmission();
   const editorApproveMutation = useEditorApproveSubmission();
@@ -271,13 +274,22 @@ function SeriesReviews() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-            <h5 className="text-[11px] font-bold uppercase tracking-wider text-foreground/50 mb-2">History & Comments</h5>
+            <h5 className="text-[11px] font-bold uppercase tracking-wider text-foreground/50 mb-2">
+              History & Comments
+            </h5>
             <div className="space-y-3">
-              {submissionsHistory.length === 0 ? (
+              {isHistoryLoading ? (
+                <div className="text-[11px] text-foreground/45 italic">Loading history...</div>
+              ) : isHistoryError ? (
+                <div className="text-[11px] text-destructive/80">Could not load history.</div>
+              ) : submissionsHistory.length === 0 ? (
                 <div className="text-[11px] text-foreground/45 italic">No comment history.</div>
               ) : (
-                [...submissionsHistory].reverse().map((h: any) => (
-                  <div key={h.id} className="space-y-2 border-b border-foreground/5 pb-3 last:border-b-0">
+                [...submissionsHistory].reverse().map((h: Submission) => (
+                  <div
+                    key={h.id}
+                    className="space-y-2 border-b border-foreground/5 pb-3 last:border-b-0"
+                  >
                     <div className="flex gap-2">
                       <div className="h-6 w-6 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
                         {h.submittedBy?.name?.[0] || "A"}
@@ -285,7 +297,8 @@ function SeriesReviews() {
                       <div className="rounded-xl rounded-tl-none bg-foreground/5 px-3 py-2 text-[12px] flex-1">
                         <div>{h.resultText || "Submitted version for review."}</div>
                         <div className="mt-1 text-[10px] opacity-50">
-                          {h.submittedBy?.name || "Assistant"} &bull; v{h.version} &bull; {new Date(h.createdAt).toLocaleString()}
+                          {h.submittedBy?.name || "Assistant"} &bull; v{h.version} &bull;{" "}
+                          {new Date(h.createdAt).toLocaleString()}
                         </div>
                       </div>
                     </div>
