@@ -7,11 +7,21 @@ import {
   type AdminTaskRateInput,
 } from "@/shared/api/admin";
 import { extractErrorMessage } from "@/shared/api";
+import { useRole } from "@/shared/lib/role";
 
-export function useTaskRates() {
+type QueryGate = { enabled?: boolean };
+
+function useAdminQueryEnabled(options: QueryGate = {}) {
+  const { user, loading } = useRole();
+  return (options.enabled ?? true) && !loading && user?.role === "ADMIN";
+}
+
+export function useTaskRates(options: QueryGate = {}) {
+  const enabled = useAdminQueryEnabled(options);
   return useQuery({
     queryKey: ["admin", "task-rates"],
     queryFn: taskRatesApi.list,
+    enabled,
   });
 }
 
@@ -53,16 +63,21 @@ export function useUpdateTaskRateStatus() {
   });
 }
 
-export function useAuditLogs(filters: {
-  action?: string;
-  actorId?: string;
-  targetId?: string;
-  page?: number;
-  limit?: number;
-}) {
+export function useAuditLogs(
+  filters: {
+    action?: string;
+    actorId?: string;
+    targetId?: string;
+    page?: number;
+    limit?: number;
+  },
+  options: QueryGate = {},
+) {
+  const enabled = useAdminQueryEnabled(options);
   return useQuery({
     queryKey: ["admin", "audit-logs", filters],
     queryFn: () => auditLogsApi.list(filters),
+    enabled,
   });
 }
 
