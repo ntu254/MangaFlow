@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/shared/api";
 import { chaptersApi, type CreateChapterInput } from "../api/chapters";
+import { invalidateChapterPages, invalidateSeries, qk } from "./keys";
 
 export function useChapterPages(chapterId: string | undefined) {
   return useQuery({
-    queryKey: ["chapter-pages", chapterId],
+    queryKey: qk.chapters.pages(chapterId),
     queryFn: () => chaptersApi.getChapterPages(chapterId!),
     enabled: !!chapterId,
   });
@@ -16,9 +17,7 @@ export function useCreateChapter(seriesId: string) {
   return useMutation({
     mutationFn: (input: CreateChapterInput) => chaptersApi.createChapter(seriesId, input),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["series", seriesId, "summary"] });
-      qc.invalidateQueries({ queryKey: ["series", seriesId] });
-      qc.invalidateQueries({ queryKey: ["series"] });
+      invalidateSeries(qc, seriesId);
       toast.success("Chapter created successfully");
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
@@ -30,8 +29,8 @@ export function useDeleteChapter() {
   return useMutation({
     mutationFn: (chapterId: string) => chaptersApi.deleteChapter(chapterId),
     onSuccess: (_, chapterId) => {
-      qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
-      qc.invalidateQueries({ queryKey: ["series"] });
+      invalidateChapterPages(qc, chapterId);
+      invalidateSeries(qc);
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
@@ -42,8 +41,8 @@ export function useArchiveChapter() {
   return useMutation({
     mutationFn: (chapterId: string) => chaptersApi.archiveChapter(chapterId),
     onSuccess: (_, chapterId) => {
-      qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
-      qc.invalidateQueries({ queryKey: ["series"] });
+      invalidateChapterPages(qc, chapterId);
+      invalidateSeries(qc);
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
@@ -55,7 +54,7 @@ export function useDeletePage() {
     mutationFn: ({ chapterId, pageId }: { chapterId: string; pageId: string }) =>
       chaptersApi.deletePage(chapterId, pageId),
     onSuccess: (_, { chapterId }) => {
-      qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
+      invalidateChapterPages(qc, chapterId);
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
@@ -74,7 +73,7 @@ export function useReplacePage() {
       originalFileAssetId: string;
     }) => chaptersApi.replacePage(chapterId, pageId, originalFileAssetId),
     onSuccess: (_, { chapterId }) => {
-      qc.invalidateQueries({ queryKey: ["chapter-pages", chapterId] });
+      invalidateChapterPages(qc, chapterId);
     },
     onError: (err) => toast.error(extractErrorMessage(err)),
   });

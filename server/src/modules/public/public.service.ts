@@ -1,6 +1,7 @@
 import { AppError } from "../../shared/errors/AppError.js"
 import { getPublicChapterBySlug, getPublicPagesByChapterId, getPublicSeriesBySlug, getPublishedChaptersBySeriesId } from "./public.repository.js"
 import { ReaderMetric } from "./reader-metric.model.js"
+import { createPresignedDownloadUrl } from "../chapter/file.service.js"
 
 export async function getPublicSeriesService(slug: string) {
   const series = await getPublicSeriesBySlug(slug)
@@ -30,7 +31,24 @@ export async function getPublicChapterPagesService(chapterId: string) {
   if (!pages || pages.length === 0) {
     throw new AppError("Pages not found", 404)
   }
-  return pages
+  return Promise.all(
+    pages.map(async (page: any) => {
+      const imageAsset = page.workingFileAssetId ?? page.originalFileAssetId ?? page.thumbnailFileAssetId
+      if (!imageAsset?.r2Key) {
+        throw new AppError("Published page is missing an image asset", 500)
+      }
+      const signed = await createPresignedDownloadUrl(imageAsset.r2Key, 3600)
+      return {
+        id: String(page._id),
+        order: page.pageNumber ?? page.order,
+        pageNumber: page.pageNumber ?? page.order,
+        width: page.width,
+        height: page.height,
+        imageUrl: signed.downloadUrl,
+        expiresIn: signed.expiresIn,
+      }
+    }),
+  )
 }
 
 export async function recordReaderMetricsService(input: { chapterId: string, seriesId: string, viewDurationSeconds?: number, ipAddress?: string }) {

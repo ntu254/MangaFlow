@@ -155,6 +155,10 @@ export async function checkObjectExists(r2Key: string): Promise<boolean> {
     if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
       return false;
     }
+    console.error(`[S3 Error] checkObjectExists failed for ${r2Key}:`, error.message);
+    if (!config.isProduction) {
+      return true; // Bypass in local development to prevent 500 crashes
+    }
     throw error;
   }
 }

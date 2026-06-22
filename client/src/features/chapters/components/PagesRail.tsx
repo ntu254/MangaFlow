@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Upload, MoreVertical } from "lucide-react";
 import type { Page, Task, Chapter } from "@/entities";
-import { findSeries } from "@/entities";
+import { PageAssetImage } from "@/shared/ui/PageAssetImage";
 import { useState } from "react";
 import { chapterHasActiveTask } from "../lib/productionPhase";
 import { isTaskActive, taskCoversPage } from "../lib/taskStatus";
@@ -40,7 +40,6 @@ export function PagesRail({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  const series = findSeries(chapter.seriesId)!;
   const chapterLocked = chapterHasActiveTask(tasks);
 
   const pageHasActive = (p: Page) =>
@@ -89,10 +88,13 @@ export function PagesRail({
                 } bg-foreground/5`}
               >
                 <div className="relative aspect-[3/4]">
-                  <img
-                    src={series.cover}
+                  <PageAssetImage
+                    thumbnailFileAssetId={p.thumbnailFileAssetId}
+                    workingFileAssetId={p.workingFileAssetId}
+                    originalFileAssetId={p.originalFileAssetId}
                     alt={`Page ${p.order}`}
-                    className="h-full w-full object-cover opacity-80"
+                    className="h-full w-full"
+                    imageClassName="opacity-80"
                   />
                   <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[10px] text-white">
                     {p.order}

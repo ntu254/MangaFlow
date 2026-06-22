@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, getAccessToken, setTokens } from "./api";
+import { readStorageString, writeStorageString } from "./storage";
 
 export type Role = "admin" | "mangaka" | "editor" | "assistant" | "board";
 
@@ -39,11 +40,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const setRole = (r: Role) => {
     setRoleState(r);
-    try {
-      localStorage.setItem(KEY, r);
-    } catch {
-      /* ignore */
-    }
+    writeStorageString(KEY, r);
   };
 
   const handleLogout = async () => {
@@ -61,7 +58,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Load preferred role from localStorage (admin demo switcher).
-    const stored = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
+    const stored = readStorageString(KEY);
     if (stored && ROLES.some((r) => r.id === stored)) {
       setRoleState(stored as Role);
     }
@@ -77,11 +74,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
             const apiRole = (u.role || "").toLowerCase() as Role;
             if (ROLES.some((r) => r.id === apiRole)) {
               setRoleState(apiRole);
-              try {
-                localStorage.setItem(KEY, apiRole);
-              } catch {
-                /* ignore */
-              }
+              writeStorageString(KEY, apiRole);
             }
           }
         })

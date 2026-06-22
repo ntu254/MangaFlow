@@ -18,7 +18,7 @@ describe("chapter readiness service", () => {
   it("returns blocked item reasons when readiness fails", async () => {
     getChapterReadinessData.mockResolvedValue({
       chapter: { _id: "chapter-1", status: "IN_PRODUCTION" },
-      pages: [{ status: "UPLOADED" }, { status: "IN_PROGRESS" }],
+      pages: [{ status: "UPLOADED" }, { status: "PENDING" }],
       tasks: [{ status: "EDITOR_APPROVED" }, { status: "SUBMITTED" }],
       submissions: [{ status: "EDITOR_APPROVED" }, { status: "SUBMITTED" }],
       blockingComments: [{ id: "comment-1" }],
@@ -29,6 +29,7 @@ describe("chapter readiness service", () => {
     expect(result.ready).toBe(false)
     expect(result.items).toEqual([
       expect.objectContaining({ key: "allPagesUploaded", passed: false }),
+      expect.objectContaining({ key: "allPagesApproved", passed: false }),
       expect.objectContaining({ key: "allTasksApproved", passed: false }),
       expect.objectContaining({ key: "noPendingMangakaReview", passed: false }),
       expect.objectContaining({ key: "noPendingEditorReview", passed: true }),
@@ -39,7 +40,7 @@ describe("chapter readiness service", () => {
   it("returns ready when all publication checks pass", async () => {
     getChapterReadinessData.mockResolvedValue({
       chapter: { _id: "chapter-2", status: "IN_PRODUCTION" },
-      pages: [{ status: "UPLOADED" }, { status: "APPROVED" }],
+      pages: [{ status: "APPROVED" }, { status: "APPROVED" }],
       tasks: [{ status: "EDITOR_APPROVED" }],
       submissions: [{ status: "EDITOR_APPROVED" }],
       blockingComments: [],

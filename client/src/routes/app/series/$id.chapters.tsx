@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Filter,
   MoreHorizontal,
@@ -9,7 +9,7 @@ import {
   Lock,
   Clock,
 } from "lucide-react";
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
 import { ChapterRow } from "@/features/chapters/components/ChapterRow";
 import { PageUploadDialog } from "@/features/chapters/components/PageUploadPanel";
@@ -38,7 +38,30 @@ import {
   AlertDialogTitle,
 } from "@/shared/ui/shadcn/alert-dialog";
 
+const PAGE_FILTERS = ["All", "Approved", "Under review", "With tasks", "Pending"] as const;
+type PageFilter = (typeof PAGE_FILTERS)[number];
+
+type ChaptersSearch = {
+  chapterId?: string;
+  q?: string;
+  filter?: PageFilter;
+  visible?: number;
+};
+
+function isPageFilter(value: unknown): value is PageFilter {
+  return typeof value === "string" && PAGE_FILTERS.includes(value as PageFilter);
+}
+
 export const Route = createFileRoute("/app/series/$id/chapters")({
+  validateSearch: (search: Record<string, unknown>): ChaptersSearch => ({
+    chapterId: typeof search.chapterId === "string" ? search.chapterId : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+    filter: isPageFilter(search.filter) ? search.filter : "All",
+    visible:
+      typeof search.visible === "number" && Number.isFinite(search.visible) && search.visible > 0
+        ? Math.floor(search.visible)
+        : 9,
+  }),
   component: SeriesChapters,
 });
 
@@ -82,12 +105,11 @@ function PageThumbnail({ page }: { page: { thumbnailFileAssetId?: string; pageNu
 
 function SeriesChapters() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = useNavigate();
   const { data: summary, isLoading } = useSeriesSummary(id);
   const gridRef = useRef<HTMLDivElement>(null);
-  const [pageSearchQuery, setPageSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("All");
-  const [visiblePagesCount, setVisiblePagesCount] = useState(9);
   const [isCreateChapterOpen, setIsCreateChapterOpen] = useState(false);
   const [isUploadPagesOpen, setIsUploadPagesOpen] = useState(false);
   const [newChapterNumber, setNewChapterNumber] = useState(1);
@@ -96,6 +118,20 @@ function SeriesChapters() {
   const deletePage = useDeletePage();
   const replacePage = useReplacePage();
   const createChapter = useCreateChapter(id);
+
+  const pageSearchQuery = search.q ?? "";
+  const selectedFilter = search.filter ?? "All";
+  const visiblePagesCount = search.visible ?? 9;
+
+  const updateSearch = useCallback(
+    (patch: Partial<ChaptersSearch>) => {
+      navigate({
+        search: (prev) => ({ ...prev, ...patch }),
+        replace: false,
+      });
+    },
+    [navigate],
+  );
 
   const [dialogConfig, setDialogConfig] = useState<{
     open: boolean;
@@ -142,7 +178,7 @@ function SeriesChapters() {
       );
   }, [summary?.chapters]);
 
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const selectedChapterId = search.chapterId ?? null;
   const nextChapterNumber = useMemo(() => {
     const chapterNumbers = mappedChapters
       .map((chapter: { chapter: string }) => Number.parseInt(chapter.chapter, 10))
@@ -152,9 +188,9 @@ function SeriesChapters() {
 
   useEffect(() => {
     if (!selectedChapterId && mappedChapters.length > 0) {
-      setSelectedChapterId(mappedChapters[0].id);
+      updateSearch({ chapterId: mappedChapters[0].id });
     }
-  }, [mappedChapters, selectedChapterId]);
+  }, [mappedChapters, selectedChapterId, updateSearch]);
 
   useEffect(() => {
     if (!isCreateChapterOpen) return;
@@ -162,11 +198,31 @@ function SeriesChapters() {
     setNewChapterTitle(`Chapter ${nextChapterNumber}`);
   }, [isCreateChapterOpen, nextChapterNumber]);
 
+  const effectiveChapterId = selectedChapterId ?? mappedChapters[0]?.id ?? null;
   const { data: pages = [], isLoading: pagesLoading } = useChapterPages(
-    selectedChapterId || undefined,
+    effectiveChapterId || undefined,
   );
 
-  const selectedChapter = mappedChapters.find((ch: { id: string }) => ch.id === selectedChapterId);
+  const selectedChapter = mappedChapters.find((ch: { id: string }) => ch.id === effectiveChapterId);
+
+  const filteredPages = useMemo(() => {
+    const normalizedQuery = pageSearchQuery.trim().toLowerCase();
+    return pages.filter(
+      (page: { id: string; status: string; pageNumber?: number; sequenceNumber?: number }) => {
+        const status = page.status.toUpperCase();
+        const pageNumber = String(page.pageNumber ?? page.sequenceNumber ?? "");
+        const matchesQuery = !normalizedQuery || pageNumber.includes(normalizedQuery);
+        const matchesFilter =
+          selectedFilter === "All" ||
+          (selectedFilter === "Approved" && status === "APPROVED") ||
+          (selectedFilter === "Under review" && status === "IN_REVIEW") ||
+          (selectedFilter === "With tasks" && status === "IN_TASK") ||
+          (selectedFilter === "Pending" &&
+            ["PENDING", "UPLOADING", "PROCESSING", "UPLOADED"].includes(status));
+        return matchesQuery && matchesFilter;
+      },
+    );
+  }, [pageSearchQuery, pages, selectedFilter]);
 
   if (isLoading || !summary) {
     return <div className="p-8 text-center text-foreground/50 text-sm">Loading chapters...</div>;
@@ -240,8 +296,8 @@ function SeriesChapters() {
                   seriesId={id}
                   chapterBadgeClass={chapterBadgeClass}
                   chapterBadgeLabel={chapterBadgeLabel}
-                  isSelected={chapter.id === selectedChapterId}
-                  onClick={() => setSelectedChapterId(chapter.id)}
+                  isSelected={chapter.id === effectiveChapterId}
+                  onClick={() => updateSearch({ chapterId: chapter.id, visible: 9 })}
                 />
               ),
             )
@@ -314,7 +370,7 @@ function SeriesChapters() {
           <section className="mt-3 rounded-md border border-foreground/10 bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[12px] font-bold text-foreground/50 tracking-wider uppercase">
-                PAGES ({pages.length})
+                PAGES ({filteredPages.length})
               </h2>
               <div className="flex items-center gap-1">
                 <div className="flex items-center pl-1.5 pr-1 py-0.5 rounded border border-foreground/10 bg-foreground/5 hover:bg-foreground/10 focus-within:bg-foreground/5 focus-within:border-foreground/30 focus-within:w-28 w-20 transition-all duration-300 overflow-hidden">
@@ -324,7 +380,7 @@ function SeriesChapters() {
                     placeholder="Search..."
                     className="w-full min-w-0 text-[11px] bg-transparent border-none focus:ring-0 px-1.5 outline-none text-foreground placeholder:text-foreground/30"
                     value={pageSearchQuery}
-                    onChange={(e) => setPageSearchQuery(e.target.value)}
+                    onChange={(e) => updateSearch({ q: e.target.value, visible: 9 })}
                   />
                 </div>
                 <div className="relative">
@@ -337,39 +393,37 @@ function SeriesChapters() {
                   </button>
                   {isFilterOpen && (
                     <div className="absolute top-full right-0 mt-1 w-36 bg-card border border-foreground/10 shadow-lg rounded-md overflow-hidden z-20 py-1">
-                      {["All", "Approved", "Under review", "With tasks", "Pending"].map(
-                        (filter) => {
-                          const dotClass =
-                            filter === "Approved"
-                              ? "bg-emerald-500"
-                              : filter === "Under review"
-                                ? "bg-blue-500"
-                                : filter === "With tasks"
-                                  ? "bg-orange-500"
-                                  : filter === "Pending"
-                                    ? "border border-foreground/30 bg-white"
-                                    : null;
-                          return (
-                            <button
-                              key={filter}
-                              onClick={() => {
-                                setSelectedFilter(filter);
-                                setIsFilterOpen(false);
-                              }}
-                              className={`flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-left hover:bg-foreground/5 transition-colors ${selectedFilter === filter ? "bg-foreground/5 font-semibold text-foreground" : "text-foreground/70"}`}
-                            >
-                              {dotClass ? (
-                                <div
-                                  className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${dotClass}`}
-                                />
-                              ) : (
-                                <div className="w-2 h-2 shrink-0" />
-                              )}
-                              {filter}
-                            </button>
-                          );
-                        },
-                      )}
+                      {PAGE_FILTERS.map((filter) => {
+                        const dotClass =
+                          filter === "Approved"
+                            ? "bg-emerald-500"
+                            : filter === "Under review"
+                              ? "bg-blue-500"
+                              : filter === "With tasks"
+                                ? "bg-orange-500"
+                                : filter === "Pending"
+                                  ? "border border-foreground/30 bg-white"
+                                  : null;
+                        return (
+                          <button
+                            key={filter}
+                            onClick={() => {
+                              updateSearch({ filter, visible: 9 });
+                              setIsFilterOpen(false);
+                            }}
+                            className={`flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-left hover:bg-foreground/5 transition-colors ${selectedFilter === filter ? "bg-foreground/5 font-semibold text-foreground" : "text-foreground/70"}`}
+                          >
+                            {dotClass ? (
+                              <div
+                                className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${dotClass}`}
+                              />
+                            ) : (
+                              <div className="w-2 h-2 shrink-0" />
+                            )}
+                            {filter}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -384,12 +438,12 @@ function SeriesChapters() {
                 <div className="col-span-3 text-center text-[11px] py-6 text-foreground/40">
                   Loading pages...
                 </div>
-              ) : pages.length === 0 ? (
+              ) : filteredPages.length === 0 ? (
                 <div className="col-span-3 text-center text-[11px] py-6 text-foreground/40">
                   No pages uploaded yet.
                 </div>
               ) : (
-                pages
+                filteredPages
                   .slice(0, visiblePagesCount)
                   .map(
                     (page: {
@@ -466,7 +520,7 @@ function SeriesChapters() {
                                       );
                                       if (newId)
                                         replacePage.mutate({
-                                          chapterId: selectedChapterId!,
+                                          chapterId: effectiveChapterId!,
                                           pageId: page.id,
                                           originalFileAssetId: newId,
                                         });
@@ -521,10 +575,10 @@ function SeriesChapters() {
               )}
             </div>
 
-            {pages.length > visiblePagesCount && (
+            {filteredPages.length > visiblePagesCount && (
               <button
                 onClick={() => {
-                  setVisiblePagesCount((prev) => prev + 9);
+                  updateSearch({ visible: visiblePagesCount + 9 });
                   setTimeout(() => {
                     if (gridRef.current) {
                       gridRef.current.scrollTo({
@@ -609,8 +663,8 @@ function SeriesChapters() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (dialogConfig.pageId && selectedChapterId)
-                  deletePage.mutate({ chapterId: selectedChapterId, pageId: dialogConfig.pageId });
+                if (dialogConfig.pageId && effectiveChapterId)
+                  deletePage.mutate({ chapterId: effectiveChapterId, pageId: dialogConfig.pageId });
               }}
               className="bg-red-600 text-white hover:bg-red-700"
             >
@@ -637,7 +691,7 @@ function SeriesChapters() {
                 { chapterNumber: newChapterNumber, title: newChapterTitle.trim() },
                 {
                   onSuccess: (chapter) => {
-                    setSelectedChapterId(chapter.id);
+                    updateSearch({ chapterId: chapter.id, visible: 9 });
                     setIsCreateChapterOpen(false);
                   },
                 },

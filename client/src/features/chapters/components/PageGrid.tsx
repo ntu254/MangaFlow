@@ -7,6 +7,9 @@ export interface PageItem {
   status: string;
   tasks: number;
   time: string;
+  originalFileAssetId?: string;
+  workingFileAssetId?: string;
+  thumbnailFileAssetId?: string;
 }
 
 interface PageGridProps {
@@ -54,7 +57,7 @@ export function PageGrid({ pages, selectedPage, onSelectPage }: PageGridProps) {
         {pages.map((page) => (
           <PageCard
             key={page.id}
-            page={page as any}
+            page={page}
             variant="detailed"
             isSelected={selectedPage === page.id}
             onClick={onSelectPage}

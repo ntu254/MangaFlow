@@ -16,15 +16,17 @@ async function assertPageCanBeChanged(chapterId: string, pageId: string) {
     Task.findOne({ pageId, status: { $in: ACTIVE_TASK_STATUSES } }),
     Submission.exists({ pageId }),
     Task.exists({ pageId, status: "EDITOR_APPROVED" }),
-    // Also check for submissions linked via regions on this page
-    Region.exists({ pageId }).then((regionExists) =>
-      regionExists
-        ? Submission.exists({
-            pageId: { $exists: false },
-            regionId: { $in: (await Region.find({ pageId }).select("_id").lean()).map((r) => r._id) },
-          })
-        : null,
-    ),
+    (async () => {
+      // Also check for submissions linked via regions on this page
+      const regionExists = await Region.exists({ pageId })
+      if (!regionExists) return null
+      const regions = await Region.find({ pageId }).select("_id").lean()
+      const regionIds = regions.map((r: any) => r._id)
+      return Submission.exists({
+        pageId: { $exists: false },
+        regionId: { $in: regionIds },
+      })
+    })(),
   ])
   if (chapter?.status === "PUBLISHED") {
     throw new AppError("Published chapter pages cannot be changed", 409)
