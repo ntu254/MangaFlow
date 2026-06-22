@@ -103,6 +103,8 @@ export async function submitTaskSubmission({
 }
 
 export const submissionsApi = {
+  listAll: () =>
+    api.get("/submissions").then(unwrap<Submission[]>),
   listByTask: (taskId: string) =>
     api.get(`/tasks/${taskId}/submissions`).then(unwrap<Submission[]>),
   submitTask: submitTaskSubmission,

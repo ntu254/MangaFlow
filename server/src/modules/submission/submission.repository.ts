@@ -86,6 +86,9 @@ export async function listSubmissionsByTask(taskId: string) {
     .sort({ version: -1 })
     .populate("submittedBy", "name role")
     .populate("fileAssetId", "originalName")
+    .populate("seriesId", "title")
+    .populate("taskId", "title")
+    .populate("chapterId", "chapterNumber title")
     .lean()
   return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }
@@ -100,6 +103,7 @@ export async function listReviewQueueSubmissions(seriesIds: string[], status: Su
     .populate("chapterId", "title number")
     .populate("chapterId", "title number")
     .populate("taskId", "title")
+    .populate("chapterId", "chapterNumber title")
     .lean()
   return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }
@@ -117,6 +121,20 @@ export async function listReviewQueueSubmissionsAdmin(statuses: SubmissionStatus
     .populate("seriesId", "title")
     .populate("chapterId", "title number")
     .populate("taskId", "title")
+    .populate("chapterId", "chapterNumber title")
+    .lean()
+  return docs.map((d: any) => ({ ...d, id: String(d._id) }))
+}
+
+export async function listAllSubmissionsRepo(seriesIds: string[] | null) {
+  const query = seriesIds ? { seriesId: { $in: seriesIds } } : {}
+  const docs = await Submission.find(query)
+    .sort({ updatedAt: -1 })
+    .populate("submittedBy", "name role")
+    .populate("fileAssetId", "originalName")
+    .populate("seriesId", "title")
+    .populate("taskId", "title")
+    .populate("chapterId", "chapterNumber title")
     .lean()
   return docs.map((d: any) => ({ ...d, id: String(d._id) }))
 }

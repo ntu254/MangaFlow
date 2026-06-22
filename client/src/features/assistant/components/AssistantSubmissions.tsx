@@ -2,19 +2,12 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/layouts/AppShell";
 import { useRole } from "@/shared/lib/role";
-import {
-  currentUserByRole,
-  findChapter,
-  findSeries,
-  findStaff,
-  findTask,
-  submissions as allSubmissions,
-  type Submission,
-} from "@/entities";
+import { currentUserByRole } from "@/entities";
 import { StatusBadge } from "@/shared/ui/site/StatusBadge";
-import { Inbox, ArrowRight } from "lucide-react";
+import { Inbox, ArrowRight, Loader2 } from "lucide-react";
+import { useAllSubmissions } from "@/shared/queries/useSubmissions";
 
-const STATUS_FILTERS: { key: "all" | Submission["status"]; label: string }[] = [
+const STATUS_FILTERS: { key: "all" | string; label: string }[] = [
   { key: "all", label: "All" },
   { key: "submitted", label: "Waiting review" },
   { key: "revision-requested", label: "Revision" },
@@ -23,20 +16,30 @@ const STATUS_FILTERS: { key: "all" | Submission["status"]; label: string }[] = [
   { key: "rejected", label: "Rejected" },
 ];
 
+const getNormalizedStatus = (status: string) => status.toLowerCase().replace(/_/g, "-");
+
 export function AssistantSubmissions() {
-  const { role } = useRole();
+  const { role, user } = useRole();
   const me = currentUserByRole[role];
-  const [status, setStatus] = useState<(typeof STATUS_FILTERS)[number]["key"]>("all");
+  const currentUserId = user?.id || me.id;
+  const [status, setStatus] = useState<string>("all");
+  const { data: allSubs = [], isLoading } = useAllSubmissions();
 
   const mine = useMemo(
     () =>
-      allSubmissions
-        .filter((s) => s.submittedByUserId === me.id)
-        .sort((a, b) => (a.submittedAt > b.submittedAt ? -1 : 1)),
-    [me.id],
+      allSubs
+        .filter((s: any) => {
+          const userId = typeof s.submittedBy === "object" ? s.submittedBy?.id || s.submittedBy?._id : s.submittedBy;
+          return userId === currentUserId;
+        })
+        .sort((a: any, b: any) => (a.createdAt > b.createdAt ? -1 : 1)),
+    [allSubs, currentUserId],
   );
 
-  const filtered = status === "all" ? mine : mine.filter((s) => s.status === status);
+  const filtered = useMemo(() => {
+    if (status === "all") return mine;
+    return mine.filter((s: any) => getNormalizedStatus(s.status) === status);
+  }, [mine, status]);
 
   return (
     <div className="space-y-5">
@@ -50,7 +53,9 @@ export function AssistantSubmissions() {
         {STATUS_FILTERS.map((f) => {
           const active = status === f.key;
           const count =
-            f.key === "all" ? mine.length : mine.filter((s) => s.status === f.key).length;
+            f.key === "all"
+              ? mine.length
+              : mine.filter((s: any) => getNormalizedStatus(s.status) === f.key).length;
           return (
             <button
               key={f.key}
@@ -77,7 +82,11 @@ export function AssistantSubmissions() {
         })}
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex h-32 items-center justify-center text-foreground/50">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading submissions…
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-foreground/15 bg-card py-16 text-foreground/55">
           <Inbox className="h-5 w-5" />
           <span className="text-[12px]">No submissions in this view.</span>
@@ -90,26 +99,25 @@ export function AssistantSubmissions() {
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Task</th>
                   <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
-                    Chapter / Pages
+                    Chapter
                   </th>
                   <th className="px-3 py-2 text-left font-medium">Version</th>
                   <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
                     Submitted at
                   </th>
-                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">Reviewer</th>
+                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">Feedback / Note</th>
                   <th className="px-3 py-2 text-left font-medium">Status</th>
                   <th className="px-3 py-2 text-right font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s) => {
-                  const task = findTask(s.taskId);
-                  const ch = task ? findChapter(task.chapterId) : null;
-                  const series = ch ? findSeries(ch.seriesId) : null;
-                  const reviewer = s.revisionRequestedBy
-                    ? findStaff(s.revisionRequestedBy.userId)
-                    : null;
-                  const isRev = s.status === "revision-requested";
+                {filtered.map((s: any) => {
+                  const taskTitle = typeof s.taskId === "object" ? s.taskId?.title : s.taskId || "Task";
+                  const seriesTitle = typeof s.seriesId === "object" ? s.seriesId?.title : s.seriesId || "—";
+                  const chapterNum = typeof s.chapterId === "object" ? s.chapterId?.chapterNumber : "—";
+                  const isRev = getNormalizedStatus(s.status) === "revision-requested";
+                  const taskId = typeof s.taskId === "object" ? s.taskId?.id || s.taskId?._id : s.taskId;
+
                   return (
                     <tr
                       key={s.id}
@@ -119,30 +127,30 @@ export function AssistantSubmissions() {
                     >
                       <td className="px-3 py-2">
                         <div className="font-medium text-foreground line-clamp-1">
-                          {task?.title ?? `${task?.type ?? "Task"} pass`}
+                          {taskTitle}
                         </div>
                         <div className="text-[11px] text-foreground/55 line-clamp-1">
-                          {series?.title ?? "—"}
+                          {seriesTitle}
                         </div>
                       </td>
                       <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
-                        {ch?.number ?? "—"} · {task?.pageRange ?? "—"}
+                        Chapter {chapterNum}
                       </td>
                       <td className="px-3 py-2 tabular-nums text-foreground/70">v{s.version}</td>
                       <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
-                        {s.submittedAt}
+                        {new Date(s.createdAt).toLocaleString()}
                       </td>
-                      <td className="hidden px-3 py-2 text-foreground/70 md:table-cell">
-                        {reviewer ? `${reviewer.name} (${s.revisionRequestedBy!.role})` : "—"}
+                      <td className="hidden px-3 py-2 text-foreground/70 md:table-cell max-w-[200px] truncate" title={s.reviewerNote}>
+                        {s.reviewerNote || "—"}
                       </td>
                       <td className="px-3 py-2">
                         <StatusBadge status={s.status} />
                       </td>
                       <td className="px-3 py-2 text-right">
-                        {task && task.status !== "cancelled" ? (
+                        {taskId ? (
                           <Link
                             to="/app/assistant/tasks/$taskId/studio"
-                            params={{ taskId: task.id }}
+                            params={{ taskId }}
                             className="inline-flex h-7 items-center gap-1 rounded-md border border-foreground/15 bg-background px-2.5 text-[11px] font-medium text-foreground hover:bg-muted"
                           >
                             Open <ArrowRight className="h-3 w-3" />
