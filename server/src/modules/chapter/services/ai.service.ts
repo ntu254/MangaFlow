@@ -141,7 +141,22 @@ export async function runAITextWhiteningService(pageId: string, actor: AccessAct
     const mimeType = response.headers.get("content-type")?.split(";")[0] || workingAsset.mimeType
     const resultBuffer = Buffer.from(await response.arrayBuffer())
     const extension = mimeType === "image/webp" ? "webp" : mimeType === "image/png" ? "png" : "jpg"
-    const uploaded = await uploadBuffer(resultBuffer, `whitened-${trimmed}.${extension}`, mimeType)
+    const filename = `whitened-${trimmed}.${extension}`
+
+    const { Chapter } = await import("../chapter.model.js")
+    const chapter = await Chapter.findById(page.chapterId)
+    if (!chapter) throw new AppError("Chapter not found", 404)
+    
+    const { pathBuilder } = await import("../file.service.js")
+    const r2Key = pathBuilder.pageWorking(
+      String(chapter.seriesId),
+      String(page.chapterId),
+      trimmed,
+      1, // default version
+      filename
+    )
+
+    const uploaded = await uploadBuffer(resultBuffer, filename, mimeType, r2Key)
     const fileAsset = await FileAsset.create({
       _id: uploaded.fileAssetId,
       originalName: `whitened-${workingAsset.originalName}`,

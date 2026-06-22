@@ -18,6 +18,7 @@ export interface SeriesDocument extends Document {
   publicationType?: PublicationType
   tags?: string[]
   genres: string[]
+  cover?: string
   ownerId: mongoose.Types.ObjectId
   status: SeriesStatus
   approvedAt?: Date
@@ -47,6 +48,7 @@ const seriesSchema = new Schema<SeriesDocument>(
     publicationType: { type: String, enum: PUBLICATION_TYPES },
     tags: { type: [String], default: [] },
     genres: { type: [String], default: [] },
+    cover: { type: String },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     status: {
       type: String,

@@ -22,6 +22,7 @@ export interface UploadAssetPayload {
 
 export interface PresignedUploadScope {
   chapterId?: string;
+  pageId?: string;
 }
 
 export const filesApi = {

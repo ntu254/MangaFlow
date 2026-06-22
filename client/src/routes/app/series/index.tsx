@@ -5,6 +5,7 @@ import { useState } from "react";
 import { EmptyState } from "@/layouts/AppShell";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/lib/api";
+import { series as mockSeries } from "@/entities";
 import {
   Search,
   ChevronDown,
@@ -67,7 +68,22 @@ function SeriesList() {
     },
   });
 
-  const seriesList: any[] = apiResponse?.data || [];
+  const rawSeriesList: any[] = apiResponse?.data || [];
+  const seriesList = rawSeriesList.map((s) => {
+    let mockIndex = 0;
+    const id = s.id || s._id;
+    if (id) {
+      const charCodes = id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+      mockIndex = charCodes % mockSeries.length;
+    }
+    const mock = mockSeries.find(ms => ms.id === id || ms.title === s.title) || mockSeries[mockIndex];
+    
+    return {
+      ...s,
+      cover: s.cover || mock?.cover || "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=2070&auto=format&fit=crop",
+      jp: s.jp || mock?.jp || "",
+    };
+  });
 
   const counts = {
     all: seriesList.length,
@@ -251,7 +267,7 @@ function SeriesList() {
                     {/* Background Image */}
                     {s.cover && (
                       <img
-                        src={s.cover}
+                        src={s.cover.startsWith("http") ? s.cover : `/api/public/images/${s.cover}`}
                         alt={s.title}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
@@ -327,12 +343,14 @@ function SeriesList() {
                     }`}
                   >
                     <div className="h-full w-[110px] flex-none bg-foreground/5">
-                      {s.cover && (
+                      {s.cover ? (
                         <img
-                          src={s.cover}
+                          src={s.cover.startsWith("http") ? s.cover : `/api/public/images/${s.cover}`}
                           alt={s.title}
-                          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                          className="h-full w-full object-cover"
                         />
+                      ) : (
+                        <div />
                       )}
                     </div>
                     <div className="flex flex-1 flex-col p-4 relative">

@@ -28,6 +28,7 @@ export interface Series {
   publicationType?: PublicationType;
   tags: string[];
   genres: string[];
+  cover?: string;
   ownerId: string;
   status: SeriesStatus;
   createdAt: string;
@@ -47,7 +48,7 @@ export interface CreateSeriesInput {
   genres?: string[];
 }
 
-export type UpdateSeriesInput = Partial<CreateSeriesInput>;
+export type UpdateSeriesInput = Partial<CreateSeriesInput> & { cover?: string };
 
 export interface SeriesMemberUser {
   id?: string;
@@ -110,4 +111,6 @@ export const seriesApi = {
       .then(unwrap<SeriesMember>),
   removeMember: (seriesId: string, memberId: string) =>
     api.delete(`/series/${seriesId}/members/${memberId}`).then(unwrap<void>),
+  getCoverUploadUrl: (seriesId: string, payload: { originalName: string; contentType: string }) =>
+    api.post(`/series/${seriesId}/cover/upload-url`, payload).then(unwrap<{ uploadUrl: string; r2Key: string; expiresIn: number }>),
 };

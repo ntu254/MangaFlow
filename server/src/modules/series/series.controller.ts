@@ -1,6 +1,6 @@
 import { deleteDraftSeriesService, withdrawSeriesProposalService, cancelSeriesService, hardDeleteSeriesService } from "./series.service.js"
-﻿import type { Request, Response } from "express"
-import { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, updateSeriesService, getSeriesSummaryService, deleteManuscriptFileService, downloadManuscriptFileService, verifyManuscriptFilesService } from "./series.service.js"
+import type { Request, Response } from "express"
+import { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, updateSeriesService, getSeriesSummaryService, deleteManuscriptFileService, downloadManuscriptFileService, verifyManuscriptFilesService, createCoverUploadUrlService } from "./series.service.js"
 import { createChapterService } from "../chapter/chapter.service.js"
 
 export async function listSeries(req: Request, res: Response): Promise<void> {
@@ -45,6 +45,18 @@ export async function createManuscriptUpload(req: Request, res: Response): Promi
   })
 
   res.status(201).json({ success: true, message: "Manuscript upload URL created", data: result })
+}
+
+export async function createCoverUpload(req: Request, res: Response): Promise<void> {
+  const result = await createCoverUploadUrlService({
+    seriesId: String(req.params.seriesId),
+    userId: req.user!.userId,
+    originalName: req.body.originalName,
+    contentType: req.body.contentType,
+    expiresIn: req.body.expiresIn,
+  })
+
+  res.status(201).json({ success: true, message: "Cover upload URL created", data: result })
 }
 
 export async function submitSeries(req: Request, res: Response): Promise<void> {
