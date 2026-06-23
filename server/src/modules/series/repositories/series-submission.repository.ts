@@ -1,5 +1,5 @@
 import { getLatestManuscriptBySeries } from "./manuscript.repository.js"
-import { Series } from "../series.model.js"
+import { Series, SeriesMember } from "../series.model.js"
 
 export async function submitSeriesRepository(seriesId: string, userId: string): Promise<any> {
   const series = await Series.findById(seriesId)
@@ -31,6 +31,16 @@ export async function submitSeriesRepository(seriesId: string, userId: string): 
   }
   if (manuscript.status !== "DRAFT") {
     throw new Error("A new draft manuscript version is required before submit")
+  }
+
+  const assignedEditor = await SeriesMember.findOne({
+    seriesId,
+    role: "EDITOR",
+    status: "ACTIVE",
+    isActive: true,
+  })
+  if (!assignedEditor) {
+    throw new Error("Tantou Editor must be assigned before submit")
   }
 
   series.status = "EDITOR_REVIEW"

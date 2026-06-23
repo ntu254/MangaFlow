@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SeriesMember } from "../series/series.model.js"
 import * as readiness from "../chapter/chapter.service.js"
 import * as repository from "./publication.repository.js"
+import * as chapterReview from "../chapter-review/chapter-review.service.js"
 import { createPublicationService, publishPublicationService, schedulePublicationService } from "./publication.service.js"
 
 vi.mock("./publication.repository.js")
@@ -12,6 +13,9 @@ vi.mock("../chapter/chapter.service.js", async () => {
 vi.mock("../series/series.model.js", () => ({
   SeriesMember: { findOne: vi.fn() },
 }))
+vi.mock("../chapter-review/chapter-review.service.js", () => ({
+  assertPublicationVersionCandidate: vi.fn(),
+}))
 
 describe("publication.service", () => {
   const actor = { userId: "editor1", role: "EDITOR" as const }
@@ -21,6 +25,7 @@ describe("publication.service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(SeriesMember.findOne).mockResolvedValue({ isActive: true, role: "EDITOR" } as any)
+    vi.mocked(chapterReview.assertPublicationVersionCandidate).mockResolvedValue({ _id: "version1" } as any)
   })
 
   it("creates a publication and mirrors scheduled date to chapter draft schedule", async () => {
@@ -30,7 +35,7 @@ describe("publication.service", () => {
     await createPublicationService({ chapterId: "chapter1", scheduledFor: "2026-06-10T00:00:00.000Z", actor })
 
     expect(repository.updateChapterDraftSchedule).toHaveBeenCalledWith("chapter1", new Date("2026-06-10T00:00:00.000Z"))
-    expect(repository.createPublicationRecord).toHaveBeenCalledWith(expect.objectContaining({ chapterId: "chapter1", seriesId: "series1", createdBy: "editor1" }))
+    expect(repository.createPublicationRecord).toHaveBeenCalledWith(expect.objectContaining({ chapterId: "chapter1", chapterVersionId: "version1", seriesId: "series1", createdBy: "editor1" }))
   })
 
   it("blocks publication creation before the chapter is ready", async () => {
@@ -38,6 +43,16 @@ describe("publication.service", () => {
 
     await expect(createPublicationService({ chapterId: "chapter1", actor })).rejects.toThrow(
       "only after the chapter is READY_FOR_PUBLICATION",
+    )
+    expect(repository.createPublicationRecord).not.toHaveBeenCalled()
+  })
+
+  it("blocks publication creation when the chapter has no approved locked version", async () => {
+    vi.mocked(repository.getPublicationChapter).mockResolvedValue(chapter as any)
+    vi.mocked(chapterReview.assertPublicationVersionCandidate).mockRejectedValue(new Error("Approved chapter version candidate is missing or unlocked."))
+
+    await expect(createPublicationService({ chapterId: "chapter1", actor })).rejects.toThrow(
+      "Approved chapter version candidate is missing or unlocked.",
     )
     expect(repository.createPublicationRecord).not.toHaveBeenCalled()
   })

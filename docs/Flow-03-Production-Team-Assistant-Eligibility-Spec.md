@@ -4,6 +4,8 @@ Flow 03 mô tả cách quản lý Production Team cho một Series. Assistant ch
 
 Production Team hiển thị trong Production Hub UI, nhưng entity thật dùng để lưu membership là `SeriesMember`.
 
+Tantou Editor assignment is also stored as `SeriesMember(role = EDITOR)`, but it is created by Admin during Flow 01 before proposal submission. Flow 03 covers production team management after approval, mainly Assistant eligibility and production access.
+
 ## 2. Mục tiêu nghiệp vụ
 
 - Quản lý danh sách nhân sự production của Series.

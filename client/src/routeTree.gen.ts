@@ -40,6 +40,7 @@ import { Route as AppEditorPageAnnotationRouteImport } from './routes/app/editor
 import { Route as AppEditorManagedSeriesRouteImport } from './routes/app/editor/managed-series'
 import { Route as AppEditorFinalReviewsRouteImport } from './routes/app/editor/final-reviews'
 import { Route as AppEditorDecisionHistoryRouteImport } from './routes/app/editor/decision-history'
+import { Route as AppEditorChapterReviewsRouteImport } from './routes/app/editor/chapter-reviews'
 import { Route as AppEditorBoardReportsRouteImport } from './routes/app/editor/board-reports'
 import { Route as AppBoardVotingSessionsRouteImport } from './routes/app/board/voting-sessions'
 import { Route as AppBoardSeriesReviewRouteImport } from './routes/app/board/series-review'
@@ -73,6 +74,7 @@ import { Route as AppSeriesIdManuscriptRouteImport } from './routes/app/series/$
 import { Route as AppSeriesIdChaptersRouteImport } from './routes/app/series/$id.chapters'
 import { Route as AppSeriesIdActivityRouteImport } from './routes/app/series/$id.activity'
 import { Route as AppPagesIdStudioRouteImport } from './routes/app/pages/$id.studio'
+import { Route as AppEditorChapterReviewsVersionIdRouteImport } from './routes/app/editor/chapter-reviews/$versionId'
 import { Route as AppEditorTasksIdFinalReviewRouteImport } from './routes/app/editor/tasks/$id.final-review'
 import { Route as AppEditorSeriesIdReviewRouteImport } from './routes/app/editor/series/$id.review'
 import { Route as AppChaptersIdPagesUploadRouteImport } from './routes/app/chapters/$id.pages.upload'
@@ -236,6 +238,11 @@ const AppEditorDecisionHistoryRoute =
     path: '/editor/decision-history',
     getParentRoute: () => AppRoute,
   } as any)
+const AppEditorChapterReviewsRoute = AppEditorChapterReviewsRouteImport.update({
+  id: '/editor/chapter-reviews',
+  path: '/editor/chapter-reviews',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEditorBoardReportsRoute = AppEditorBoardReportsRouteImport.update({
   id: '/editor/board-reports',
   path: '/editor/board-reports',
@@ -404,6 +411,12 @@ const AppPagesIdStudioRoute = AppPagesIdStudioRouteImport.update({
   path: '/pages/$id/studio',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEditorChapterReviewsVersionIdRoute =
+  AppEditorChapterReviewsVersionIdRouteImport.update({
+    id: '/$versionId',
+    path: '/$versionId',
+    getParentRoute: () => AppEditorChapterReviewsRoute,
+  } as any)
 const AppEditorTasksIdFinalReviewRoute =
   AppEditorTasksIdFinalReviewRouteImport.update({
     id: '/editor/tasks/$id/final-review',
@@ -474,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
   '/app/board/voting-sessions': typeof AppBoardVotingSessionsRoute
   '/app/editor/board-reports': typeof AppEditorBoardReportsRoute
+  '/app/editor/chapter-reviews': typeof AppEditorChapterReviewsRouteWithChildren
   '/app/editor/decision-history': typeof AppEditorDecisionHistoryRoute
   '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/managed-series': typeof AppEditorManagedSeriesRoute
@@ -487,6 +501,7 @@ export interface FileRoutesByFullPath {
   '/app/assistant/': typeof AppAssistantIndexRoute
   '/app/board/': typeof AppBoardIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
+  '/app/editor/chapter-reviews/$versionId': typeof AppEditorChapterReviewsVersionIdRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
   '/app/series/$id/chapters': typeof AppSeriesIdChaptersRoute
@@ -541,6 +556,7 @@ export interface FileRoutesByTo {
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
   '/app/board/voting-sessions': typeof AppBoardVotingSessionsRoute
   '/app/editor/board-reports': typeof AppEditorBoardReportsRoute
+  '/app/editor/chapter-reviews': typeof AppEditorChapterReviewsRouteWithChildren
   '/app/editor/decision-history': typeof AppEditorDecisionHistoryRoute
   '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/managed-series': typeof AppEditorManagedSeriesRoute
@@ -553,6 +569,7 @@ export interface FileRoutesByTo {
   '/app/assistant': typeof AppAssistantIndexRoute
   '/app/board': typeof AppBoardIndexRoute
   '/app/series': typeof AppSeriesIndexRoute
+  '/app/editor/chapter-reviews/$versionId': typeof AppEditorChapterReviewsVersionIdRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
   '/app/series/$id/chapters': typeof AppSeriesIdChaptersRoute
@@ -612,6 +629,7 @@ export interface FileRoutesById {
   '/app/board/series-review': typeof AppBoardSeriesReviewRoute
   '/app/board/voting-sessions': typeof AppBoardVotingSessionsRoute
   '/app/editor/board-reports': typeof AppEditorBoardReportsRoute
+  '/app/editor/chapter-reviews': typeof AppEditorChapterReviewsRouteWithChildren
   '/app/editor/decision-history': typeof AppEditorDecisionHistoryRoute
   '/app/editor/final-reviews': typeof AppEditorFinalReviewsRoute
   '/app/editor/managed-series': typeof AppEditorManagedSeriesRoute
@@ -625,6 +643,7 @@ export interface FileRoutesById {
   '/app/assistant/': typeof AppAssistantIndexRoute
   '/app/board/': typeof AppBoardIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
+  '/app/editor/chapter-reviews/$versionId': typeof AppEditorChapterReviewsVersionIdRoute
   '/app/pages/$id/studio': typeof AppPagesIdStudioRoute
   '/app/series/$id/activity': typeof AppSeriesIdActivityRoute
   '/app/series/$id/chapters': typeof AppSeriesIdChaptersRoute
@@ -685,6 +704,7 @@ export interface FileRouteTypes {
     | '/app/board/series-review'
     | '/app/board/voting-sessions'
     | '/app/editor/board-reports'
+    | '/app/editor/chapter-reviews'
     | '/app/editor/decision-history'
     | '/app/editor/final-reviews'
     | '/app/editor/managed-series'
@@ -698,6 +718,7 @@ export interface FileRouteTypes {
     | '/app/assistant/'
     | '/app/board/'
     | '/app/series/'
+    | '/app/editor/chapter-reviews/$versionId'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
     | '/app/series/$id/chapters'
@@ -752,6 +773,7 @@ export interface FileRouteTypes {
     | '/app/board/series-review'
     | '/app/board/voting-sessions'
     | '/app/editor/board-reports'
+    | '/app/editor/chapter-reviews'
     | '/app/editor/decision-history'
     | '/app/editor/final-reviews'
     | '/app/editor/managed-series'
@@ -764,6 +786,7 @@ export interface FileRouteTypes {
     | '/app/assistant'
     | '/app/board'
     | '/app/series'
+    | '/app/editor/chapter-reviews/$versionId'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
     | '/app/series/$id/chapters'
@@ -822,6 +845,7 @@ export interface FileRouteTypes {
     | '/app/board/series-review'
     | '/app/board/voting-sessions'
     | '/app/editor/board-reports'
+    | '/app/editor/chapter-reviews'
     | '/app/editor/decision-history'
     | '/app/editor/final-reviews'
     | '/app/editor/managed-series'
@@ -835,6 +859,7 @@ export interface FileRouteTypes {
     | '/app/assistant/'
     | '/app/board/'
     | '/app/series/'
+    | '/app/editor/chapter-reviews/$versionId'
     | '/app/pages/$id/studio'
     | '/app/series/$id/activity'
     | '/app/series/$id/chapters'
@@ -1079,6 +1104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorDecisionHistoryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/editor/chapter-reviews': {
+      id: '/app/editor/chapter-reviews'
+      path: '/editor/chapter-reviews'
+      fullPath: '/app/editor/chapter-reviews'
+      preLoaderRoute: typeof AppEditorChapterReviewsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/editor/board-reports': {
       id: '/app/editor/board-reports'
       path: '/editor/board-reports'
@@ -1310,6 +1342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPagesIdStudioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/editor/chapter-reviews/$versionId': {
+      id: '/app/editor/chapter-reviews/$versionId'
+      path: '/$versionId'
+      fullPath: '/app/editor/chapter-reviews/$versionId'
+      preLoaderRoute: typeof AppEditorChapterReviewsVersionIdRouteImport
+      parentRoute: typeof AppEditorChapterReviewsRoute
+    }
     '/app/editor/tasks/$id/final-review': {
       id: '/app/editor/tasks/$id/final-review'
       path: '/editor/tasks/$id/final-review'
@@ -1408,6 +1447,21 @@ const AppBoardRouteWithChildren = AppBoardRoute._addFileChildren(
   AppBoardRouteChildren,
 )
 
+interface AppEditorChapterReviewsRouteChildren {
+  AppEditorChapterReviewsVersionIdRoute: typeof AppEditorChapterReviewsVersionIdRoute
+}
+
+const AppEditorChapterReviewsRouteChildren: AppEditorChapterReviewsRouteChildren =
+  {
+    AppEditorChapterReviewsVersionIdRoute:
+      AppEditorChapterReviewsVersionIdRoute,
+  }
+
+const AppEditorChapterReviewsRouteWithChildren =
+  AppEditorChapterReviewsRoute._addFileChildren(
+    AppEditorChapterReviewsRouteChildren,
+  )
+
 interface AppSeriesIdRouteChildren {
   AppSeriesIdActivityRoute: typeof AppSeriesIdActivityRoute
   AppSeriesIdChaptersRoute: typeof AppSeriesIdChaptersRoute
@@ -1461,6 +1515,7 @@ interface AppRouteChildren {
   AppAdminUserManagementRoute: typeof AppAdminUserManagementRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppEditorBoardReportsRoute: typeof AppEditorBoardReportsRoute
+  AppEditorChapterReviewsRoute: typeof AppEditorChapterReviewsRouteWithChildren
   AppEditorDecisionHistoryRoute: typeof AppEditorDecisionHistoryRoute
   AppEditorFinalReviewsRoute: typeof AppEditorFinalReviewsRoute
   AppEditorManagedSeriesRoute: typeof AppEditorManagedSeriesRoute
@@ -1500,6 +1555,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminUserManagementRoute: AppAdminUserManagementRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppEditorBoardReportsRoute: AppEditorBoardReportsRoute,
+  AppEditorChapterReviewsRoute: AppEditorChapterReviewsRouteWithChildren,
   AppEditorDecisionHistoryRoute: AppEditorDecisionHistoryRoute,
   AppEditorFinalReviewsRoute: AppEditorFinalReviewsRoute,
   AppEditorManagedSeriesRoute: AppEditorManagedSeriesRoute,

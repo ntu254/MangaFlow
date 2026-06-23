@@ -1,4 +1,4 @@
-import { deleteDraftSeriesService, withdrawSeriesProposalService, cancelSeriesService, hardDeleteSeriesService } from "./series.service.js"
+import { deleteDraftSeriesService, withdrawSeriesProposalService, cancelSeriesService, hardDeleteSeriesService, assignTantouEditorService } from "./series.service.js"
 import type { Request, Response } from "express"
 import { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, updateSeriesService, getSeriesSummaryService, deleteManuscriptFileService, downloadManuscriptFileService, verifyManuscriptFilesService, createCoverUploadUrlService } from "./series.service.js"
 import { createChapterService } from "../chapter/chapter.service.js"
@@ -62,6 +62,15 @@ export async function createCoverUpload(req: Request, res: Response): Promise<vo
 export async function submitSeries(req: Request, res: Response): Promise<void> {
   const series = await submitSeriesService(String(req.params.seriesId), req.user!.userId)
   res.json({ success: true, message: "Series submitted for editor review", data: series })
+}
+
+export async function assignTantouEditor(req: Request, res: Response): Promise<void> {
+  const member = await assignTantouEditorService({
+    seriesId: String(req.params.seriesId),
+    editorUserId: req.body.editorUserId,
+    actorId: req.user!.userId,
+  })
+  res.json({ success: true, message: "Tantou Editor assigned", data: member })
 }
 
 

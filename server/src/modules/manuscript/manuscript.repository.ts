@@ -1,4 +1,5 @@
 import { Manuscript, Series } from "../series/series.model.js"
+import { SeriesMember } from "../series/series.model.js"
 import type { ManuscriptStatus, SeriesStatus } from "../../shared/workflow/status.js"
 
 export async function getManuscriptById(manuscriptId: string) {
@@ -35,8 +36,33 @@ export async function updateSeriesReviewStatus(seriesId: string, status: SeriesS
   return Series.findByIdAndUpdate(seriesId, { status }, { new: true })
 }
 
-export async function listEditorReviewQueue() {
-  const seriesList = await Series.find({ status: "EDITOR_REVIEW" }).sort({ updatedAt: -1 }).lean()
+export async function listEditorAssignedSeriesIds(editorUserId: string) {
+  const memberships = await SeriesMember.find({
+    userId: editorUserId,
+    role: "EDITOR",
+    status: "ACTIVE",
+    isActive: true,
+  })
+    .select("seriesId")
+    .lean()
+  return memberships.map((membership) => membership.seriesId)
+}
+
+export async function hasActiveEditorAssignment(seriesId: string, editorUserId: string) {
+  return SeriesMember.exists({
+    seriesId,
+    userId: editorUserId,
+    role: "EDITOR",
+    status: "ACTIVE",
+    isActive: true,
+  })
+}
+
+export async function listEditorReviewQueue(editorUserId: string) {
+  const assignedSeriesIds = await listEditorAssignedSeriesIds(editorUserId)
+  if (assignedSeriesIds.length === 0) return []
+
+  const seriesList = await Series.find({ _id: { $in: assignedSeriesIds }, status: "EDITOR_REVIEW" }).sort({ updatedAt: -1 }).lean()
   const seriesIds = seriesList.map((series) => series._id)
   const manuscripts = await Manuscript.find({ seriesId: { $in: seriesIds } }).sort({ version: -1 }).lean()
   const latestBySeries = new Map<string, any>()

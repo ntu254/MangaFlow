@@ -13,6 +13,9 @@ export interface PublicationChapter {
 export interface Publication {
   id: string;
   chapterId: string | PublicationChapter;
+  chapterVersionId?:
+    | string
+    | { id?: string; _id?: string; version?: number; status?: string; isLocked?: boolean };
   seriesId: string;
   status: PublicationStatus;
   scheduledFor?: string;

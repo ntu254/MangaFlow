@@ -5,6 +5,9 @@ import { useState } from "react";
 import { EmptyState } from "@/layouts/AppShell";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/lib/api";
+import { useAssignSeriesEditor } from "@/shared/queries/useSeries";
+import { useUsers } from "@/shared/queries/useUsers";
+import type { AdminUser } from "@/shared/api";
 import { series as mockSeries } from "@/entities";
 import {
   Search,
@@ -60,6 +63,10 @@ function SeriesList() {
   const [q, setQ] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const isAdmin = role === "admin";
+  const { data: users = [] } = useUsers({ enabled: isAdmin });
+  const assignEditor = useAssignSeriesEditor();
+  const editors = users.filter((user) => user.role === "EDITOR" && user.isActive);
 
   const { data: apiResponse, isLoading } = useQuery({
     queryKey: ["series"],
@@ -78,9 +85,14 @@ function SeriesList() {
       mockIndex = charCodes % mockSeries.length;
     }
     const mock = mockSeries.find(ms => ms.id === id || ms.title === s.title) || mockSeries[mockIndex];
+    const statusKey = String(s.status || "")
+      .toLowerCase()
+      .replace(/_/g, "-");
     
     return {
       ...s,
+      id,
+      statusKey,
       cover: s.cover || "",
       jp: s.jp || mock?.jp || "",
     };
@@ -88,15 +100,15 @@ function SeriesList() {
 
   const counts = {
     all: seriesList.length,
-    draft: seriesList.filter((s) => s.status === "draft").length,
+    draft: seriesList.filter((s) => s.statusKey === "draft").length,
     "editor-review": seriesList.filter((s) =>
-      ["editor-review", "board-review", "revision-requested"].includes(s.status),
+      ["editor-review", "board-review", "revision-requested"].includes(s.statusKey),
     ).length,
-    approved: seriesList.filter((s) => s.status === "approved").length,
-    ongoing: seriesList.filter((s) => s.status === "ongoing").length,
-    "at-risk": seriesList.filter((s) => s.status === "at-risk").length,
-    completed: seriesList.filter((s) => s.status === "completed").length,
-    cancelled: seriesList.filter((s) => s.status === "cancelled").length,
+    approved: seriesList.filter((s) => s.statusKey === "approved").length,
+    ongoing: seriesList.filter((s) => s.statusKey === "ongoing").length,
+    "at-risk": seriesList.filter((s) => s.statusKey === "at-risk").length,
+    completed: seriesList.filter((s) => s.statusKey === "completed").length,
+    cancelled: seriesList.filter((s) => s.statusKey === "cancelled").length,
   };
 
   const filtered = seriesList.filter((s) => {
@@ -104,10 +116,10 @@ function SeriesList() {
     if (activeTab !== "all") {
       if (
         activeTab === "editor-review" &&
-        !["editor-review", "board-review", "revision-requested"].includes(s.status)
+        !["editor-review", "board-review", "revision-requested"].includes(s.statusKey)
       )
         return false;
-      if (activeTab !== "editor-review" && s.status !== activeTab) return false;
+      if (activeTab !== "editor-review" && s.statusKey !== activeTab) return false;
     }
     return true;
   });
@@ -252,15 +264,15 @@ function SeriesList() {
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map((s) => {
-                const isAtRisk = s.status === "at-risk";
+                const isAtRisk = s.statusKey === "at-risk";
                 const progress = s.progressPercent || 0;
 
                 return (
                   <Link
                     key={s.id || s._id}
-                    to={s.status === "draft" ? "/app/series/new" : "/app/series/$id"}
-                    search={s.status === "draft" ? { id: s.id || s._id } : undefined}
-                    params={s.status === "draft" ? undefined : { id: s.id || s._id }}
+                    to={s.statusKey === "draft" && !isAdmin ? "/app/series/new" : "/app/series/$id"}
+                    search={s.statusKey === "draft" && !isAdmin ? { id: s.id || s._id } : undefined}
+                    params={s.statusKey === "draft" && !isAdmin ? undefined : { id: s.id || s._id }}
                     className={`group relative flex flex-col justify-end overflow-hidden rounded-xl aspect-[3/4] transition-all hover:-translate-y-1 hover:shadow-xl shadow-sm border ${
                       isAtRisk ? "border-red-500/50" : "border-foreground/10"
                     }`}
@@ -283,13 +295,26 @@ function SeriesList() {
 
                     {/* Top Actions & Badge */}
                     <div className="absolute top-3 left-3 z-10">
-                      <StatusBadge status={s.status} variant="solid" />
+                      <StatusBadge status={s.statusKey} variant="solid" />
                     </div>
                     <div className="absolute top-3 right-3 z-10">
                       <button className="flex h-8 w-8 items-center justify-center rounded-md bg-black/20 text-white backdrop-blur-md transition-colors hover:bg-black/40">
                         <MoreHorizontal className="h-5 w-5" />
                       </button>
                     </div>
+                    {isAdmin && (
+                      <div className="absolute left-3 right-3 top-14 z-20">
+                        <AssignEditorControl
+                          seriesId={s.id || s._id}
+                          editors={editors}
+                          isPending={assignEditor.isPending}
+                          onAssign={(editorUserId) =>
+                            assignEditor.mutate({ id: s.id || s._id, editorUserId })
+                          }
+                          compact
+                        />
+                      </div>
+                    )}
 
                     {/* Content (Overlaid) */}
                     <div className="relative z-10 flex flex-col p-5">
@@ -319,7 +344,7 @@ function SeriesList() {
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${isAtRisk ? "bg-red-400" : s.status === "completed" ? "bg-purple-400" : "bg-white"}`}
+                            className={`h-full rounded-full ${isAtRisk ? "bg-red-400" : s.statusKey === "completed" ? "bg-purple-400" : "bg-white"}`}
                             style={{ width: `${progress}%` }}
                           />
                         </div>
@@ -333,14 +358,14 @@ function SeriesList() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filtered.map((s) => {
                 const isWait = s.nextAction?.toLowerCase().includes("wait");
-                const isAtRisk = s.status === "at-risk";
+                const isAtRisk = s.statusKey === "at-risk";
 
                 return (
                   <Link
                     key={s.id || s._id}
-                    to={s.status === "draft" ? "/app/series/new" : "/app/series/$id"}
-                    search={s.status === "draft" ? { id: s.id || s._id } : undefined}
-                    params={s.status === "draft" ? undefined : { id: s.id || s._id }}
+                    to={s.statusKey === "draft" && !isAdmin ? "/app/series/new" : "/app/series/$id"}
+                    search={s.statusKey === "draft" && !isAdmin ? { id: s.id || s._id } : undefined}
+                    params={s.statusKey === "draft" && !isAdmin ? undefined : { id: s.id || s._id }}
                     className={`group flex h-[160px] overflow-hidden rounded-md border transition-all hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(5,24,38,0.08)] ${
                       isAtRisk
                         ? "border-red-200 bg-card hover:border-red-300"
@@ -368,8 +393,20 @@ function SeriesList() {
                             {s.jp || ""}
                           </div>
                         </div>
-                        <StatusBadge status={s.status} variant="solid" />
+                        <StatusBadge status={s.statusKey} variant="solid" />
                       </div>
+                      {isAdmin && (
+                        <div className="mt-3">
+                          <AssignEditorControl
+                            seriesId={s.id || s._id}
+                            editors={editors}
+                            isPending={assignEditor.isPending}
+                            onAssign={(editorUserId) =>
+                              assignEditor.mutate({ id: s.id || s._id, editorUserId })
+                            }
+                          />
+                        </div>
+                      )}
 
                       <div className="mt-4 flex flex-1 flex-col justify-end gap-2 text-[11px] text-foreground/70">
                         <div className="flex items-center justify-between">
@@ -382,7 +419,7 @@ function SeriesList() {
                           Pages {s.pages?.uploaded || 0}/{s.pages?.total || 0} &middot; Tasks{" "}
                           <span className={getTaskColor(s.pendingTasks)}>
                             {s.pendingTasks || 0}{" "}
-                            {s.status === "board-review" || s.status === "editor-review"
+                            {s.statusKey === "board-review" || s.statusKey === "editor-review"
                               ? "waiting"
                               : "pending"}
                           </span>
@@ -405,6 +442,53 @@ function SeriesList() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AssignEditorControl({
+  seriesId,
+  editors,
+  isPending,
+  onAssign,
+  compact = false,
+}: {
+  seriesId: string;
+  editors: AdminUser[];
+  isPending: boolean;
+  onAssign: (editorUserId: string) => void;
+  compact?: boolean;
+}) {
+  const [editorUserId, setEditorUserId] = useState("");
+
+  return (
+    <div
+      className={`flex gap-1.5 ${compact ? "rounded-md bg-black/25 p-1.5 backdrop-blur-md" : ""}`}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <select
+        value={editorUserId}
+        onChange={(event) => setEditorUserId(event.target.value)}
+        disabled={editors.length === 0 || isPending}
+        className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-background px-2 text-xs text-foreground disabled:opacity-50"
+      >
+        <option value="">{editors.length === 0 ? "No active editors" : "Tantou Editor"}</option>
+        {editors.map((editor) => (
+          <option key={editor.id} value={editor.id}>
+            {editor.displayName || editor.name || editor.email}
+          </option>
+        ))}
+      </select>
+      <button
+        disabled={!editorUserId || isPending}
+        onClick={() => onAssign(editorUserId)}
+        className="h-8 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        Assign
+      </button>
     </div>
   );
 }

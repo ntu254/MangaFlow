@@ -5,11 +5,15 @@ const seriesFindById = vi.fn()
 const seriesFindOne = vi.fn()
 const seriesFind = vi.fn()
 const seriesMemberCreate = vi.fn()
+const seriesMemberFindOne = vi.fn()
+const seriesMemberFind = vi.fn()
+const seriesMemberUpdateMany = vi.fn()
 const manuscriptExists = vi.fn()
 const manuscriptCreate = vi.fn()
 const manuscriptFindOne = vi.fn()
 const fileAssetCreate = vi.fn()
 const createPresignedUploadUrl = vi.fn()
+const userFindById = vi.fn()
 
 vi.mock("./series.model.js", () => ({
   Series: {
@@ -20,11 +24,20 @@ vi.mock("./series.model.js", () => ({
   },
   SeriesMember: {
     create: seriesMemberCreate,
+    findOne: seriesMemberFindOne,
+    find: seriesMemberFind,
+    updateMany: seriesMemberUpdateMany,
   },
   Manuscript: {
     exists: manuscriptExists,
     findOne: manuscriptFindOne,
     create: manuscriptCreate,
+  },
+}))
+
+vi.mock("../auth/auth.model.js", () => ({
+  User: {
+    findById: userFindById,
   },
 }))
 
@@ -47,7 +60,7 @@ vi.mock("../../shared/workflow/events.js", () => ({
   recordAuditLog: vi.fn().mockResolvedValue(null),
 }))
 
-const { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService } = await import("./series.service.js")
+const { createManuscriptUploadService, createSeriesService, getSeriesDetailService, listSeriesService, submitSeriesService, assignTantouEditorService } = await import("./series.service.js")
 
 describe("createSeriesService", () => {
   beforeEach(() => {
@@ -265,6 +278,10 @@ describe("submitSeriesService", () => {
       save,
     }
     seriesFindById.mockResolvedValue(series)
+    seriesMemberFindOne.mockResolvedValue({ _id: "member-editor", userId: "editor-1", role: "EDITOR" })
+    seriesMemberFind.mockReturnValue({
+      select: vi.fn().mockResolvedValue([{ userId: "editor-1" }]),
+    })
     manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(manuscript) })
 
     const result = await submitSeriesService("series-1", "user-1")
@@ -274,6 +291,33 @@ describe("submitSeriesService", () => {
     expect(save).toHaveBeenCalled()
     expect(manuscriptSave).toHaveBeenCalled()
     expect(result).toBe(series)
+  })
+
+  it("blocks submit until Admin assigns a Tantou Editor", async () => {
+    const manuscript = {
+      _id: "manuscript-1",
+      status: "DRAFT",
+      version: 1,
+      save: vi.fn(),
+    }
+    seriesFindById.mockResolvedValue({
+      id: "series-1",
+      ownerId: "user-1",
+      status: "DRAFT",
+      title: "Moon Ink",
+      synopsis: "A studio drama.",
+      targetAudience: "Seinen",
+      genres: ["Drama"],
+      requestedPublicationType: "WEEKLY",
+      save: vi.fn(),
+    })
+    manuscriptFindOne.mockReturnValue({ sort: vi.fn().mockResolvedValue(manuscript) })
+    seriesMemberFindOne.mockResolvedValue(null)
+
+    await expect(submitSeriesService("series-1", "user-1")).rejects.toMatchObject({
+      message: "Admin must assign a Tantou Editor before submit",
+      statusCode: 409,
+    })
   })
 
   it("blocks non-owner from submitting", async () => {
@@ -309,5 +353,36 @@ describe("submitSeriesService", () => {
       message: "Only draft or revision-requested series can be submitted",
       statusCode: 409,
     })
+  })
+})
+
+describe("assignTantouEditorService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("assigns one active Editor member to a draft proposal", async () => {
+    const save = vi.fn()
+    const populate = vi.fn().mockResolvedValue({ _id: "member-editor" })
+    seriesFindById.mockResolvedValue({ id: "series-1", title: "Moon Ink" })
+    userFindById.mockResolvedValue({ _id: "editor-1", role: "EDITOR", isActive: true })
+    seriesMemberFindOne.mockResolvedValue(null)
+    const member: any = {
+      _id: "member-editor",
+      save,
+      populate,
+    }
+    ;(seriesMemberCreate as any).mockImplementation(() => member)
+
+    await assignTantouEditorService({
+      seriesId: "series-1",
+      editorUserId: "editor-1",
+      actorId: "admin-1",
+    })
+
+    expect(seriesMemberUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ seriesId: "series-1", role: "EDITOR" }),
+      { $set: { status: "REMOVED", isActive: false } },
+    )
   })
 })

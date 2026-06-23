@@ -23,6 +23,7 @@ export interface Chapter {
   chapterNumber: number;
   title: string;
   status: ChapterStatus;
+  publishingCandidateVersionId?: string;
   publicationTypeSnapshot?: string;
   createdAt: string;
   updatedAt: string;

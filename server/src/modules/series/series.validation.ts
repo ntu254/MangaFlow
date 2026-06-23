@@ -50,6 +50,10 @@ export const seriesIdParamsSchema = z.object({
   seriesId: objectId,
 })
 
+export const assignTantouEditorSchema = z.object({
+  editorUserId: objectId,
+})
+
 export type CreateSeriesInput = z.infer<typeof createSeriesSchema>
 export type UpdateSeriesInput = z.infer<typeof updateSeriesSchema>
 

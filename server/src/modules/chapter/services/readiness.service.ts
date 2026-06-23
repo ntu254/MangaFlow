@@ -9,7 +9,8 @@ export interface PublicationReadinessItemResult {
     | "allTasksApproved"
     | "noPendingMangakaReview"
     | "noPendingEditorReview"
-    | "allCommentsResolved";
+    | "allCommentsResolved"
+    | "approvedChapterVersionLocked";
   passed: boolean;
   reason: string;
 }
@@ -24,6 +25,7 @@ export async function getChapterReadinessService(chapterId: string) {
   const { chapter, pages, tasks, submissions, blockingComments } = readiness;
   const hasPages = pages.length > 0;
   const hasTasks = tasks.length > 0;
+  const hasApprovedChapterVersion = Boolean(chapter.publishingCandidateVersionId);
   const hasPendingMangakaReview = submissions.some(
     (submission) => submission.status === "SUBMITTED",
   );
@@ -53,9 +55,14 @@ export async function getChapterReadinessService(chapterId: string) {
     },
     {
       key: "allPagesApproved",
-      passed: hasPages && pages.every((page) => page.status === "APPROVED"),
+      passed:
+        hasPages &&
+        (hasApprovedChapterVersion ||
+          pages.every((page) => page.status === "APPROVED")),
       reason: hasPages
-        ? pages.every((page) => page.status === "APPROVED")
+        ? hasApprovedChapterVersion
+          ? "Editor approved and locked the submitted chapter version."
+          : pages.every((page) => page.status === "APPROVED")
           ? "All pages have passed quality control (Editor approval)."
           : "One or more pages have not passed quality control yet."
         : "No pages exist for this chapter.",
@@ -91,6 +98,13 @@ export async function getChapterReadinessService(chapterId: string) {
         blockingComments.length === 0
           ? "All blocking comments are resolved by Editor."
           : `${blockingComments.length} blocking comment(s) still need Editor resolution.`,
+    },
+    {
+      key: "approvedChapterVersionLocked",
+      passed: hasApprovedChapterVersion,
+      reason: hasApprovedChapterVersion
+        ? "Chapter has an approved locked version for publication."
+        : "Chapter needs an approved locked version before publication.",
     },
   ];
 

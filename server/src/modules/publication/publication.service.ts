@@ -14,6 +14,7 @@ import {
   updatePublicationSchedule,
   listPublications,
 } from "./publication.repository.js"
+import { assertPublicationVersionCandidate } from "../chapter-review/chapter-review.service.js"
 
 interface PublicationActor {
   userId: string
@@ -71,6 +72,7 @@ export async function createPublicationService(input: { chapterId: string; sched
   if (chapter.status !== "READY_FOR_PUBLICATION") {
     throw new AppError("Publication can be created only after the chapter is READY_FOR_PUBLICATION", 409)
   }
+  const chapterVersion = await assertPublicationVersionCandidate(input.chapterId)
 
   const scheduledFor = input.scheduledFor ? parseScheduleDate(input.scheduledFor) : undefined
   if (scheduledFor) {
@@ -79,6 +81,7 @@ export async function createPublicationService(input: { chapterId: string; sched
 
   return createPublicationRecord({
     chapterId: input.chapterId,
+    chapterVersionId: String(chapterVersion._id),
     seriesId: String(chapter.seriesId),
     createdBy: input.actor.userId,
     scheduledFor,

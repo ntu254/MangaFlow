@@ -285,3 +285,24 @@ flowchart TD
 10. Notification
 11. AuditLog
 ```
+
+## 21. Current implementation: optional Assistant workflow
+
+Flow 05 is the optional Assistant-assisted branch of production. It applies
+only when Mangaka/Editor decides to delegate Page-level or Region-level work to
+an Assistant.
+
+Creating Tasks is not a prerequisite for submitting a Chapter to Tantou Editor.
+If Mangaka uploads completed/final pages directly, the Chapter can use the
+direct final-page branch from Flow 02 and skip this Task/Submission lifecycle.
+
+Branch A still keeps all existing Task rules:
+
+- Assistant can submit only Tasks assigned to them.
+- Submission versions are never overwritten.
+- Mangaka approval moves the current Submission and Task to `MANGAKA_APPROVED`.
+- Editor final approval moves them to `EDITOR_APPROVED`.
+- Existing active Tasks must be resolved before Chapter readiness/publication.
+
+Branch B has no Assistant Task, no Assistant Submission, and no Assistant
+earning candidate. Uploaded Page assets are the reviewable Chapter package.
