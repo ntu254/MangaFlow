@@ -13,6 +13,7 @@ export type PageStatus =
   | "UPLOADED"
   | "PROCESSING_FAILED"
   | "IN_TASK"
+  | "READY_FOR_EDITOR"
   | "APPROVED"
   | "LOCKED";
 
@@ -35,6 +36,10 @@ export interface ChapterPage {
   originalFileAssetId?: string;
   workingFileAssetId?: string;
   thumbnailFileAssetId?: string;
+  activeTask?: {
+    id: string;
+    status: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +60,13 @@ export interface ChapterReadinessResult {
   chapterStatus: string;
   ready: boolean;
   items: ChapterReadinessItem[];
+}
+
+export interface ChapterHandoffResult {
+  chapter: Chapter;
+  pages: number;
+  tasks: number;
+  pendingEditorReviews: number;
 }
 
 export const chaptersApi = {
@@ -96,4 +108,7 @@ export const chaptersApi = {
 
   markChapterReady: async (chapterId: string) =>
     api.post(`/chapters/${chapterId}/mark-ready`).then(unwrap<Chapter>),
+
+  sendChapterToEditor: async (chapterId: string) =>
+    api.post(`/chapters/${chapterId}/send-to-editor`).then(unwrap<ChapterHandoffResult>),
 };

@@ -100,3 +100,18 @@ export function useMarkChapterReady() {
     onError: (err) => toast.error(extractErrorMessage(err)),
   });
 }
+
+export function useSendChapterToEditor(seriesId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (chapterId: string) => chaptersApi.sendChapterToEditor(chapterId),
+    onSuccess: (_, chapterId) => {
+      invalidateChapterPages(qc, chapterId);
+      if (seriesId) invalidateSeries(qc, seriesId);
+      qc.invalidateQueries({ queryKey: qk.editor.finalReviewQueue(seriesId) });
+      qc.invalidateQueries({ queryKey: qk.editor.managedSeries() });
+      toast.success("Chapter sent to Editor review");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
