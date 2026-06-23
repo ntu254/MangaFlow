@@ -1,20 +1,20 @@
-import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
-import { Router } from "express"
-import { requireAuth } from "../../shared/middleware/requireAuth.js"
-import { requireRole } from "../../shared/middleware/requireRole.js"
-import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js"
-import { requireChapterRole } from "../../shared/middleware/requireChapterRole.js"
-import { validate } from "../../shared/middleware/validate.js"
-import * as controller from "./chapter.controller.js"
+import { asyncHandler } from "../../shared/middleware/asyncHandler.js";
+import { Router } from "express";
+import { requireAuth } from "../../shared/middleware/requireAuth.js";
+import { requireRole } from "../../shared/middleware/requireRole.js";
+import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js";
+import { requireChapterRole } from "../../shared/middleware/requireChapterRole.js";
+import { validate } from "../../shared/middleware/validate.js";
+import * as controller from "./chapter.controller.js";
 import {
   createChapterSchema,
   chapterIdParamsSchema,
   updateChapterStatusSchema,
   createPageSchema,
   listPagesParamsSchema,
-} from "./chapter.validation.js"
+} from "./chapter.validation.js";
 
-const router = Router()
+const router = Router();
 
 // Create needs seriesId in body — requireSeriesRole picks it up from req.body.seriesId.
 router.post(
@@ -23,20 +23,16 @@ router.post(
   validate(createChapterSchema),
   requireSeriesRole("MANGAKA", "EDITOR"),
   controller.createChapter,
-)
+);
 
-router.get(
-  "/series/:seriesId",
-  requireAuth,
-  controller.listChapters,
-)
+router.get("/series/:seriesId", requireAuth, controller.listChapters);
 
 router.get(
   "/:chapterId",
   requireAuth,
   validate(chapterIdParamsSchema, "params"),
   controller.getChapter,
-)
+);
 
 router.get(
   "/:chapterId/readiness",
@@ -44,7 +40,7 @@ router.get(
   requireRole("ADMIN", "MANGAKA", "EDITOR"),
   validate(chapterIdParamsSchema, "params"),
   controller.getChapterReadiness,
-)
+);
 
 router.post(
   "/:chapterId/mark-ready",
@@ -52,7 +48,15 @@ router.post(
   requireChapterRole("EDITOR"),
   validate(chapterIdParamsSchema, "params"),
   controller.markChapterReady,
-)
+);
+
+router.post(
+  "/:chapterId/send-to-editor",
+  requireAuth,
+  requireChapterRole("MANGAKA"),
+  validate(chapterIdParamsSchema, "params"),
+  controller.sendChapterToEditor,
+);
 
 // Chapter-scoped writes must be limited to MANGAKA/EDITOR of the chapter's series, not
 // global roles. requireChapterRole resolves seriesId from chapterId then delegates.
@@ -62,7 +66,7 @@ router.patch(
   validate(updateChapterStatusSchema),
   requireChapterRole("MANGAKA", "EDITOR"),
   controller.updateChapterStatus,
-)
+);
 
 router.post(
   "/:chapterId/pages",
@@ -70,15 +74,14 @@ router.post(
   validate(createPageSchema),
   requireChapterRole("MANGAKA", "EDITOR"),
   controller.createPage,
-)
+);
 
 router.get(
   "/:chapterId/pages",
   requireAuth,
   validate(listPagesParamsSchema, "params"),
   controller.listPages,
-)
-
+);
 
 router.delete(
   "/:chapterId",
@@ -86,7 +89,7 @@ router.delete(
   requireChapterRole("MANGAKA", "EDITOR"),
   validate(chapterIdParamsSchema, "params"),
   asyncHandler(controller.deleteChapter),
-)
+);
 
 router.post(
   "/:chapterId/cancel",
@@ -94,7 +97,7 @@ router.post(
   requireChapterRole("MANGAKA", "EDITOR"),
   validate(chapterIdParamsSchema, "params"),
   asyncHandler(controller.cancelChapter),
-)
+);
 
 router.delete(
   "/:chapterId/pages/:pageId",
@@ -102,13 +105,13 @@ router.delete(
   requireChapterRole("MANGAKA", "EDITOR"),
   // Note: we can add validation for pageId as well
   asyncHandler(controller.deletePage),
-)
+);
 
 router.put(
   "/:chapterId/pages/:pageId/replace",
   requireAuth,
   requireChapterRole("MANGAKA", "EDITOR"),
   asyncHandler(controller.replacePage),
-)
+);
 
-export default router
+export default router;

@@ -7,6 +7,7 @@ export type PageStatus =
   | "uploaded"
   | "processing-failed"
   | "in-task"
+  | "ready-for-editor"
   | "approved"
   | "locked"
   | "PENDING"
@@ -15,6 +16,7 @@ export type PageStatus =
   | "PROCESSING_FAILED"
   | "UPLOADED"
   | "IN_TASK"
+  | "READY_FOR_EDITOR"
   | "APPROVED"
   | "LOCKED";
 

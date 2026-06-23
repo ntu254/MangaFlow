@@ -13,11 +13,16 @@ import {
   Send,
 } from "lucide-react";
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { useSeriesSummary, useSubmitSeries } from "@/shared/queries/useSeries";
+import { useSeriesSummary } from "@/shared/queries/useSeries";
 import { ChapterRow } from "@/features/chapters/components/ChapterRow";
 import { PageUploadDialog } from "@/features/chapters/components/PageUploadPanel";
 import { useChapterPages, useChapterReadiness } from "@/shared/queries/useChapterPages";
-import { useCreateChapter, useDeletePage, useReplacePage } from "@/shared/queries/useChapterPages";
+import {
+  useCreateChapter,
+  useDeletePage,
+  useReplacePage,
+  useSendChapterToEditor,
+} from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
 import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
 import { Input } from "@/shared/ui/shadcn/input";
@@ -53,6 +58,145 @@ type ChaptersSearch = {
 
 function isPageFilter(value: unknown): value is PageFilter {
   return typeof value === "string" && PAGE_FILTERS.includes(value as PageFilter);
+}
+
+type ChapterHandoffAction =
+  | "manuscript"
+  | "upload-pages"
+  | "failed-pages"
+  | "wait"
+  | "review-submissions";
+
+type ChapterHandoffBlocker = {
+  id: string;
+  label: string;
+  actionHint: string;
+  action?: ChapterHandoffAction;
+};
+
+type ChapterHandoffChapter = {
+  id: string;
+  title: string;
+} | null;
+
+type ChapterHandoffPage = {
+  status: string;
+  activeTask?: {
+    status?: string;
+  };
+};
+
+function getChapterHandoffBlockers({
+  seriesStatus,
+  currentManuscript,
+  selectedChapter,
+  pages,
+}: {
+  seriesStatus?: string;
+  currentManuscript: unknown;
+  selectedChapter: ChapterHandoffChapter;
+  pages: ChapterHandoffPage[];
+}): ChapterHandoffBlocker[] {
+  const blockers: ChapterHandoffBlocker[] = [];
+  const canSendChapter = ["ONGOING", "AT_RISK"].includes(seriesStatus ?? "");
+  const pageStatuses = pages.map((page) => page.status.toUpperCase());
+  const taskStatuses = pages
+    .map((page) => page.activeTask?.status?.toUpperCase())
+    .filter((status): status is string => Boolean(status));
+  const unfinishedPages = pageStatuses.filter((status) =>
+    ["PENDING", "UPLOADING", "PROCESSING"].includes(status),
+  ).length;
+  const failedPages = pageStatuses.filter((status) =>
+    ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status),
+  ).length;
+
+  const waitingForAssistant = taskStatuses.filter((status) =>
+    ["TODO", "IN_PROGRESS"].includes(status),
+  ).length;
+  const waitingForMangakaReview = taskStatuses.filter((status) => status === "SUBMITTED").length;
+  const revisionRequested = taskStatuses.filter((status) => status === "REVISION_REQUESTED").length;
+
+  if (!canSendChapter) {
+    blockers.push({
+      id: "series-status",
+      label: `This series cannot be sent from here because its current status is ${seriesStatus ?? "not ready"}.`,
+      actionHint:
+        "Chapter handoff is available after the series is in Ongoing or At Risk production.",
+    });
+  }
+
+  if (!currentManuscript) {
+    blockers.push({
+      id: "missing-manuscript",
+      label: "Upload the manuscript or final draft for this series.",
+      actionHint: "Open the Manuscript tab and attach the latest proposal package.",
+      action: "manuscript",
+    });
+  }
+
+  if (!selectedChapter) {
+    blockers.push({
+      id: "missing-chapter",
+      label: "Select a chapter to send to Editor.",
+      actionHint: "Choose one chapter from the chapter list.",
+    });
+  }
+
+  if (selectedChapter && pages.length === 0) {
+    blockers.push({
+      id: "missing-pages",
+      label: "Upload at least one page in the selected chapter.",
+      actionHint: "Use Upload pages to add the chapter package.",
+      action: "upload-pages",
+    });
+  }
+
+  if (unfinishedPages > 0) {
+    blockers.push({
+      id: "processing-pages",
+      label: "Wait for page processing to finish.",
+      actionHint: `${unfinishedPages} page(s) are still uploading or generating assets.`,
+      action: "wait",
+    });
+  }
+
+  if (failedPages > 0) {
+    blockers.push({
+      id: "failed-pages",
+      label: "Replace failed page uploads.",
+      actionHint: `${failedPages} page upload(s) failed and need replacement before handoff.`,
+      action: "failed-pages",
+    });
+  }
+
+  if (waitingForAssistant > 0) {
+    blockers.push({
+      id: "assistant-work-open",
+      label: "Wait for Assistant work to be submitted.",
+      actionHint: `${waitingForAssistant} task(s) are still assigned or in progress.`,
+      action: "wait",
+    });
+  }
+
+  if (waitingForMangakaReview > 0) {
+    blockers.push({
+      id: "mangaka-review-open",
+      label: "Review submitted Assistant work before Editor handoff.",
+      actionHint: `${waitingForMangakaReview} submission(s) need Mangaka approval first.`,
+      action: "review-submissions",
+    });
+  }
+
+  if (revisionRequested > 0) {
+    blockers.push({
+      id: "revision-requested",
+      label: "Resolve requested Assistant revisions before handoff.",
+      actionHint: `${revisionRequested} task(s) are waiting for revised Assistant work.`,
+      action: "wait",
+    });
+  }
+
+  return blockers;
 }
 
 export const Route = createFileRoute("/app/series/$id/chapters")({
@@ -123,7 +267,7 @@ function SeriesChapters() {
   const deletePage = useDeletePage();
   const replacePage = useReplacePage();
   const createChapter = useCreateChapter(id);
-  const submitSeries = useSubmitSeries();
+  const sendChapterToEditor = useSendChapterToEditor(id);
 
   const pageSearchQuery = search.q ?? "";
   const selectedFilter = search.filter ?? "All";
@@ -214,28 +358,14 @@ function SeriesChapters() {
 
   const selectedChapter = mappedChapters.find((ch: { id: string }) => ch.id === effectiveChapterId);
   const seriesStatus = summary.series?.status;
-  const canSubmitToEditor = ["DRAFT", "REVISION_REQUESTED"].includes(seriesStatus ?? "");
   const readinessBlockers = readiness?.items.filter((item) => !item.passed) ?? [];
-  const pageStatuses = pages.map((page) => page.status);
-  const hasUploadedManuscript = Boolean(summary.currentManuscript);
-  const hasChapterPages = pages.length > 0;
-  const unfinishedPages = pageStatuses.filter((status) =>
-    ["PENDING", "UPLOADING", "PROCESSING"].includes(status),
-  ).length;
-  const failedPages = pageStatuses.filter((status) =>
-    ["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status),
-  ).length;
-  const internalHandoffBlockers = [
-    ...(!canSubmitToEditor
-      ? [`Series is ${seriesStatus ?? "not ready"}; only Draft or Revision Requested can be sent.`]
-      : []),
-    ...(!hasUploadedManuscript ? ["Upload a manuscript/final version before sending."] : []),
-    ...(!selectedChapter ? ["Select a chapter to hand off."] : []),
-    ...(!hasChapterPages ? ["Upload at least one page for this chapter."] : []),
-    ...(unfinishedPages > 0 ? [`${unfinishedPages} page(s) are still processing/uploading.`] : []),
-    ...(failedPages > 0 ? [`${failedPages} page upload(s) failed and need replacement.`] : []),
-  ];
-  const internalHandoffReady = internalHandoffBlockers.length === 0;
+  const chapterHandoffBlockers = getChapterHandoffBlockers({
+    seriesStatus,
+    currentManuscript: summary.currentManuscript,
+    selectedChapter: selectedChapter ?? null,
+    pages,
+  });
+  const chapterHandoffReady = chapterHandoffBlockers.length === 0;
 
   const filteredPages = useMemo(() => {
     const normalizedQuery = pageSearchQuery.trim().toLowerCase();
@@ -247,7 +377,7 @@ function SeriesChapters() {
         const matchesFilter =
           selectedFilter === "All" ||
           (selectedFilter === "Approved" && status === "APPROVED") ||
-          (selectedFilter === "Under review" && status === "IN_REVIEW") ||
+          (selectedFilter === "Under review" && status === "READY_FOR_EDITOR") ||
           (selectedFilter === "With tasks" && status === "IN_TASK") ||
           (selectedFilter === "Pending" &&
             ["PENDING", "UPLOADING", "PROCESSING", "UPLOADED"].includes(status));
@@ -432,64 +562,110 @@ function SeriesChapters() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-foreground/55">
                   <ListChecks className="h-3.5 w-3.5" />
-                  Internal completion
+                  Chapter handoff to Editor
                 </div>
                 <div className="mt-2 text-sm font-bold text-foreground">
                   {pagesLoading
                     ? "Checking chapter pages..."
-                    : internalHandoffReady
-                      ? "Internal version is ready for Tantou Editor."
-                      : "Resolve blockers before final handoff."}
+                    : chapterHandoffReady
+                      ? "Chapter package is ready for Tantou Editor."
+                      : "Complete the required chapter items before sending this chapter to Editor."}
                 </div>
                 <div className="mt-1 text-xs text-foreground/55">
-                  This check is for Mangaka handoff only. Editor still owns final
-                  ready-for-publication and publishing actions.
+                  Mangaka can send final uploaded pages directly, or send Assistant-assisted work
+                  after approving submissions. Editor handles final approval, scheduling, and
+                  publishing later.
                 </div>
               </div>
               <button
                 type="button"
-                disabled={!internalHandoffReady || submitSeries.isPending}
+                disabled={
+                  !chapterHandoffReady || sendChapterToEditor.isPending || !effectiveChapterId
+                }
                 onClick={() =>
-                  submitSeries.mutate({
-                    id,
-                    editorNote: selectedChapter
-                      ? `Internal chapter handoff: ${selectedChapter.title}`
-                      : "Internal chapter handoff",
-                  })
+                  effectiveChapterId ? sendChapterToEditor.mutate(effectiveChapterId) : undefined
                 }
                 className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#061A2B] px-3 text-[11px] font-extrabold text-white hover:bg-[#0B2A43] disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-foreground/40 dark:bg-blue-600"
               >
                 <Send className="h-3.5 w-3.5" />
-                {submitSeries.isPending ? "Submitting..." : "Send to Editor"}
+                {sendChapterToEditor.isPending ? "Sending..." : "Send Chapter to Editor"}
               </button>
             </div>
 
             {!pagesLoading && (
               <div className="mt-3 rounded-md border border-foreground/10 bg-card p-3">
-                {internalHandoffReady ? (
+                {chapterHandoffReady ? (
                   <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
                     <CheckCircle2 className="h-4 w-4" />
-                    Internal handoff checks passed.
+                    Chapter handoff checks passed.
                   </div>
                 ) : (
-                  <ul className="space-y-1.5 text-xs text-foreground/65">
-                    {internalHandoffBlockers.slice(0, 5).map((blocker) => (
-                      <li key={blocker} className="flex gap-2">
+                  <ul className="space-y-2 text-xs text-foreground/65">
+                    {chapterHandoffBlockers.slice(0, 5).map((blocker) => (
+                      <li key={blocker.id} className="flex gap-2">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                        {blocker}
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-foreground/75">{blocker.label}</div>
+                          <div className="mt-0.5 text-[11px] text-foreground/45">
+                            {blocker.actionHint}
+                          </div>
+                          {blocker.action === "manuscript" && (
+                            <Link
+                              to="/app/series/$id/manuscript"
+                              params={{ id }}
+                              className="mt-2 inline-flex h-7 items-center rounded-md border border-foreground/12 px-2.5 text-[10px] font-bold text-foreground/65 hover:bg-foreground/5"
+                            >
+                              Open Manuscript
+                            </Link>
+                          )}
+                          {blocker.action === "upload-pages" && selectedChapter && (
+                            <button
+                              type="button"
+                              onClick={() => setIsUploadPagesOpen(true)}
+                              className="mt-2 inline-flex h-7 items-center rounded-md border border-foreground/12 px-2.5 text-[10px] font-bold text-foreground/65 hover:bg-foreground/5"
+                            >
+                              Upload pages
+                            </button>
+                          )}
+                          {blocker.action === "failed-pages" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                gridRef.current?.scrollIntoView({ behavior: "smooth" })
+                              }
+                              className="mt-2 inline-flex h-7 items-center rounded-md border border-foreground/12 px-2.5 text-[10px] font-bold text-foreground/65 hover:bg-foreground/5"
+                            >
+                              Review failed pages
+                            </button>
+                          )}
+                          {blocker.action === "wait" && (
+                            <span className="mt-2 inline-flex h-7 items-center rounded-md bg-foreground/5 px-2.5 text-[10px] font-bold text-foreground/45">
+                              Wait for processing
+                            </span>
+                          )}
+                          {blocker.action === "review-submissions" && (
+                            <Link
+                              to="/app/series/$id/reviews"
+                              params={{ id }}
+                              className="mt-2 inline-flex h-7 items-center rounded-md border border-foreground/12 px-2.5 text-[10px] font-bold text-foreground/65 hover:bg-foreground/5"
+                            >
+                              Open Reviews
+                            </Link>
+                          )}
+                        </div>
                       </li>
                     ))}
-                    {internalHandoffBlockers.length > 5 && (
+                    {chapterHandoffBlockers.length > 5 && (
                       <li className="text-foreground/45">
-                        + {internalHandoffBlockers.length - 5} more blocker(s)
+                        + {chapterHandoffBlockers.length - 5} more blocker(s)
                       </li>
                     )}
                   </ul>
                 )}
                 {!readinessLoading && readinessBlockers.length > 0 && (
                   <div className="mt-3 border-t border-foreground/10 pt-3 text-[11px] text-foreground/45">
-                    Publication readiness still has {readinessBlockers.length} blocker(s). Editor
-                    can resolve those after review.
+                    Publication readiness still has {readinessBlockers.length} blocker(s). This does
+                    not block Mangaka handoff; Editor can resolve it after review.
                   </div>
                 )}
               </div>
@@ -584,7 +760,7 @@ function SeriesChapters() {
                       pageNumber?: number;
                     }) => {
                       const isApproved = page.status === "APPROVED";
-                      const isUnderReview = page.status === "IN_TASK";
+                      const isUnderReview = page.status === "READY_FOR_EDITOR";
                       const isTaskAssigned = page.status === "IN_TASK";
                       const isProcessing = ["PENDING", "UPLOADING", "PROCESSING"].includes(
                         page.status,
@@ -593,8 +769,9 @@ function SeriesChapters() {
 
                       // Mangaka still needs read/edit visibility after a task is assigned.
                       const canOpenStudio =
-                        ["UPLOADED", "IN_TASK", "APPROVED", "LOCKED"].includes(page.status) &&
-                        Boolean(page.workingFileAssetId);
+                        ["UPLOADED", "IN_TASK", "READY_FOR_EDITOR", "APPROVED", "LOCKED"].includes(
+                          page.status,
+                        ) && Boolean(page.workingFileAssetId);
 
                       return (
                         <div
@@ -1093,6 +1270,7 @@ function PageStatusPill({ status }: { status: string }) {
 
 function pageStatusPillClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-500/10 text-emerald-600";
+  if (status === "READY_FOR_EDITOR") return "bg-blue-500/10 text-blue-600";
   if (status === "IN_TASK") return "bg-orange-500/10 text-orange-600";
   if (["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status)) {
     return "bg-destructive/10 text-destructive";
@@ -1105,6 +1283,7 @@ function pageStatusPillClass(status: string) {
 
 function pageStatusDotClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-500";
+  if (status === "READY_FOR_EDITOR") return "bg-blue-500";
   if (status === "IN_TASK") return "bg-orange-500";
   if (["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status)) return "bg-destructive";
   if (["PENDING", "UPLOADING", "PROCESSING"].includes(status)) return "bg-sky-400";

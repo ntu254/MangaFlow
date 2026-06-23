@@ -25,6 +25,7 @@ const STATUS_MAP: Record<
   approved: { tone: "success", label: "Approved" },
   "in-production": { tone: "teal", label: "In Production" },
   "ready-for-publication": { tone: "purple", label: "Ready for Publication" },
+  "ready-for-editor": { tone: "blue", label: "Ready for Editor" },
   archived: { tone: "slate", label: "Archived" },
   scheduled: { tone: "info", label: "Scheduled" },
   published: { tone: "success", label: "Published" },
