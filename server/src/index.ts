@@ -22,6 +22,7 @@ import fileRoutes from "./modules/chapter/file.routes.js"
 import taskRoutes from "./modules/task/task.routes.js"
 import taskTypeRoutes from "./modules/task/task-type.routes.js"
 import submissionRoutes from "./modules/submission/submission.routes.js"
+import chapterReviewRoutes from "./modules/chapter-review/chapter-review.routes.js"
 import commentRoutes from "./modules/comment/comment.routes.js"
 import payrollRoutes from "./modules/payroll/payroll.routes.js"
 import publicationRoutes from "./modules/publication/publication.routes.js"
@@ -96,6 +97,7 @@ app.use("/api/files", fileRoutes)
 app.use("/api/tasks", taskRoutes)
 app.use("/api/task-types", taskTypeRoutes)
 app.use("/api", submissionRoutes)
+app.use("/api", chapterReviewRoutes)
 app.use("/api/comments", commentRoutes)
 app.use("/api/payroll", payrollRoutes)
 app.use("/api/publications", publicationRoutes)

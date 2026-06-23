@@ -7,7 +7,7 @@ Flow 07 mô tả Editor Final Review sau khi Task được Mangaka approve. Đâ
 - Cho phép Editor review Task đã `MANGAKA_APPROVED`.
 - Cho phép Editor approve cuối, request revision hoặc reject.
 - Phân biệt revision do Mangaka yêu cầu và revision do Editor yêu cầu bằng metadata.
-- Cập nhật Page/Chapter readiness khi các required Task đã hoàn tất.
+- Cập nhật Page/Chapter readiness khi các existing/required Task đã hoàn tất.
 - Tạo điều kiện cho earning sau `EDITOR_APPROVED`.
 
 ## 3. Phạm vi
@@ -141,11 +141,12 @@ Back to Editor final review if Mangaka approves
 ## 12. API đề xuất
 
 ```
-GET  /api/editor/final-reviews
-GET  /api/editor/tasks/:taskId/final-review
-POST /api/editor/submissions/:submissionId/approve
-POST /api/editor/submissions/:submissionId/request-revision
-POST /api/editor/submissions/:submissionId/reject
+GET  /api/submissions/review-queue
+GET  /api/tasks/:taskId
+GET  /api/tasks/:taskId/submissions
+POST /api/submissions/:submissionId/editor-approve
+POST /api/submissions/:submissionId/request-revision
+POST /api/submissions/:submissionId/editor-reject
 GET  /api/pages/:pageId/readiness
 ```
 
@@ -185,7 +186,7 @@ PAGE_APPROVED
 - `EDITOR_APPROVED` là điều kiện để Flow 11 tạo earning.
 - Editor có thể request revision sau Mangaka approval.
 - Revision dùng chung status `REVISION_REQUESTED` nhưng phải lưu metadata `revisionRequestedByRole`, `revisionRequestedByUserId`, `revisionRequestedAt`.
-- Page chỉ approved khi tất cả required Task của Page đã `EDITOR_APPROVED`.
+- Page chỉ approved khi tất cả existing/required Task của Page đã `EDITOR_APPROVED`.
 - Board không tham gia approve Task/Page trong MVP.
 
 ## 17. Edge cases
@@ -220,7 +221,7 @@ flowchart TD
 - Editor approve chuyển Task/Submission sang `EDITOR_APPROVED`.
 - Editor request revision lưu được feedback và metadata revision source.
 - Task `EDITOR_APPROVED` đủ điều kiện tạo earning ở Flow 11.
-- Page approved khi tất cả required Task đã Editor approved.
+- Page approved khi tất cả existing/required Task đã Editor approved.
 - Board không có action trong flow này.
 
 ## 20. MVP implementation priority
@@ -236,3 +237,50 @@ flowchart TD
 8. Notification
 9. AuditLog
 ```
+
+## 21. Current implementation: Task final review only
+
+Flow 07 covers Editor final review for Assistant Task submissions only. A Task
+enters this queue when both the Task and current Submission are
+`MANGAKA_APPROVED`.
+
+The current implementation backs the Editor final review queue with:
+
+```
+GET /api/submissions/review-queue
+```
+
+For role `EDITOR`, this queue returns submissions with
+`Submission.status = MANGAKA_APPROVED` on series where the user is an active
+Editor member.
+
+Directly uploaded final pages do not create Assistant Submissions and do not
+enter this queue. For those Chapters, Editor review/readiness starts from the
+Chapter handoff path:
+
+```
+POST /api/chapters/:chapterId/send-to-editor
+POST /api/chapters/:chapterId/mark-ready
+```
+
+Therefore, `Submission.status = MANGAKA_APPROVED` is required only for Branch A
+Assistant-assisted Task review. It is not required for Branch B direct
+final-page upload.
+
+## 22. Current implementation: Chapter version review is separate
+
+Mangaka chapter package review is not backed by `Submission.status =
+MANGAKA_APPROVED`. It uses chapter-level APIs:
+
+```
+GET  /api/editor/chapter-review-queue
+GET  /api/chapter-review-versions/:versionId
+POST /api/editor/chapter-review-versions/:versionId/approve
+POST /api/editor/chapter-review-versions/:versionId/request-revision
+GET  /api/chapter-review-versions/:versionId/annotations
+POST /api/chapter-review-versions/:versionId/annotations
+PATCH /api/chapter-review-annotations/:annotationId
+```
+
+Editor annotations for this flow attach to `ChapterVersion`, not Assistant
+`Submission`. Approved versions are locked and become publication candidates.

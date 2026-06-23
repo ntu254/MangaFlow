@@ -32,6 +32,7 @@ describe("manuscript review service", () => {
     vi.clearAllMocks()
     vi.mocked(repository.getManuscriptById).mockResolvedValue(manuscript as any)
     vi.mocked(repository.getSeriesForManuscript).mockResolvedValue(series as any)
+    vi.mocked(repository.hasActiveEditorAssignment).mockResolvedValue({ _id: "member1" } as any)
   })
 
   it("requests revision and returns Series to REVISION_REQUESTED", async () => {
@@ -154,5 +155,19 @@ describe("manuscript review service", () => {
         suggestedPublicationType: "WEEKLY",
       }),
     ).rejects.toThrow("Manuscript must be SUBMITTED")
+  })
+
+  it("blocks review when Editor is not assigned as Tantou for the series", async () => {
+    vi.mocked(repository.hasActiveEditorAssignment).mockResolvedValue(null as any)
+
+    await expect(
+      forwardManuscriptToBoardService({
+        manuscriptId: "manuscript1",
+        actor: { userId: "other-editor", role: "EDITOR" },
+        editorRecommendation: "Strong proposal",
+        feasibilityNote: "Feasible",
+        suggestedPublicationType: "WEEKLY",
+      }),
+    ).rejects.toThrow("Only the assigned Tantou Editor")
   })
 })

@@ -33,6 +33,31 @@ Out of scope: Chapter creation, page upload, production team, task assignment, a
 | Board Chair     | Finalize decision nếu cần tie-break                           |
 | System          | Validate, update status, notify, audit                        |
 
+## 4.1 Tantou Editor assignment
+
+The current proposal flow requires a Tantou Editor to be assigned by Admin before a proposal can be submitted into Editor review.
+
+Canonical order:
+
+```text
+Mangaka creates series proposal
+-> Admin assigns Tantou Editor
+-> Mangaka uploads manuscript and submits proposal
+-> Assigned Tantou Editor reviews proposal
+-> Editor forwards to Board
+-> Board reviews/votes
+```
+
+Implementation rules:
+
+- Tantou assignment is represented by `SeriesMember(role = EDITOR, status = ACTIVE, accessScope = FULL)`.
+- Admin can assign or replace the Tantou Editor while the series is still a proposal.
+- Only one active Tantou Editor should own the series at a time in MVP; replacing the Editor removes the previous active Editor membership.
+- Mangaka cannot submit a proposal to Editor review until Admin has assigned a Tantou Editor.
+- The Editor proposal review queue is scoped to the assigned Tantou Editor, not all users with role `EDITOR`.
+- The same assigned Editor follows the series from proposal review through production dashboards, chapter review, final review, publication readiness, ranking/risk, and decision history.
+- Board does not assign the Tantou Editor and does not approve individual chapters in MVP.
+
 ## 5. Điều kiện bắt đầu / kết thúc
 
 Bắt đầu khi Mangaka active tạo Series Proposal mới.
@@ -100,13 +125,15 @@ Mangaka creates Series Proposal
 ↓
 Mangaka fills title, synopsis, genre, target audience, requestedPublicationType
 ↓
+Admin assigns Tantou Editor
+↓
 Mangaka uploads Manuscript draft
 ↓
 Mangaka submits to Editor
 ↓
 Series.status = EDITOR_REVIEW
 ↓
-Tantou Editor reviews proposal/manuscript
+Assigned Tantou Editor reviews proposal/manuscript
 ↓
 Editor decides: Request Revision / Reject / Forward to Board
 ↓
@@ -174,6 +201,7 @@ POST   /api/series
 PATCH  /api/series/:seriesId
 GET    /api/series/:seriesId
 POST   /api/series/:seriesId/manuscripts
+POST   /api/series/:seriesId/assign-editor
 POST   /api/series/:seriesId/submit-to-editor
 GET    /api/editor/series-review-queue
 POST   /api/editor/series/:seriesId/request-revision
@@ -257,7 +285,9 @@ SERIES_REJECTED
 ```mermaid
 flowchart TD
     A["Mangaka creates proposal"] --> B["Upload manuscript"]
-    B --> C["Submit to Editor"]
+    A --> AA["Admin assigns Tantou Editor"]
+    AA --> B
+    B --> C["Submit to assigned Editor"]
     C --> D["Series.status = EDITOR_REVIEW"]
     D --> E["Editor reviews"]
     E --> F{"Editor decision"}
@@ -276,8 +306,11 @@ flowchart TD
 ## 19. Acceptance Criteria
 
 - Mangaka tạo được proposal draft.
+- Admin assign được Tantou Editor cho proposal trước khi submit.
+- Không submit được proposal nếu chưa có Tantou Editor active.
 - Không submit được nếu thiếu manuscript.
-- Editor request revision/reject/forward được.
+- Chỉ assigned Tantou Editor thấy proposal trong Editor review queue.
+- Chỉ assigned Tantou Editor request revision/reject/forward được.
 - Board vote được khi Series ở `BOARD_REVIEW`.
 - Board approve bắt buộc chọn `WEEKLY` hoặc `MONTHLY`.
 - Approved Series có publicationType mới mở khóa Chapter Creation.

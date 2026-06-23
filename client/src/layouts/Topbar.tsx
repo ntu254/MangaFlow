@@ -50,6 +50,7 @@ const LABELS: Record<string, string> = {
   proposal: "Proposal",
   "final-reviews": "Final Reviews",
   "final-review": "Final Review",
+  "chapter-reviews": "Chapter Reviews",
 };
 
 export function Topbar() {

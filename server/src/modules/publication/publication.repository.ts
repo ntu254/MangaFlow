@@ -20,14 +20,16 @@ export async function listPublications(filter: { seriesId?: string; userId?: str
   return Publication.find(query)
     .sort({ createdAt: -1 })
     .populate("chapterId", "chapterNumber title status")
+    .populate("chapterVersionId", "version status isLocked lockedAt")
     .lean()
 }
 
-export async function createPublicationRecord(input: { chapterId: string; seriesId: string; createdBy: string; scheduledFor?: Date }) {
+export async function createPublicationRecord(input: { chapterId: string; chapterVersionId?: string; seriesId: string; createdBy: string; scheduledFor?: Date }) {
   return Publication.findOneAndUpdate(
     { chapterId: input.chapterId },
     {
       chapterId: input.chapterId,
+      chapterVersionId: input.chapterVersionId,
       seriesId: input.seriesId,
       createdBy: input.createdBy,
       status: input.scheduledFor ? "SCHEDULED" : "DRAFT",

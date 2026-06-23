@@ -34,12 +34,13 @@ describe("chapter readiness service", () => {
       expect.objectContaining({ key: "noPendingMangakaReview", passed: false }),
       expect.objectContaining({ key: "noPendingEditorReview", passed: true }),
       expect.objectContaining({ key: "allCommentsResolved", passed: false }),
+      expect.objectContaining({ key: "approvedChapterVersionLocked", passed: false }),
     ])
   })
 
   it("returns ready when all publication checks pass", async () => {
     getChapterReadinessData.mockResolvedValue({
-      chapter: { _id: "chapter-2", status: "IN_PRODUCTION" },
+      chapter: { _id: "chapter-2", status: "IN_PRODUCTION", publishingCandidateVersionId: "version-1" },
       pages: [{ status: "APPROVED" }, { status: "APPROVED" }],
       tasks: [{ status: "EDITOR_APPROVED" }],
       submissions: [{ status: "EDITOR_APPROVED" }],
@@ -50,5 +51,24 @@ describe("chapter readiness service", () => {
 
     expect(result.ready).toBe(true)
     expect(result.items.every((item: { passed: boolean }) => item.passed)).toBe(true)
+  })
+
+  it("treats an approved chapter version as page approval for direct final-page flow", async () => {
+    getChapterReadinessData.mockResolvedValue({
+      chapter: { _id: "chapter-3", status: "READY_FOR_PUBLICATION", publishingCandidateVersionId: "version-2" },
+      pages: [{ status: "UPLOADED" }, { status: "READY_FOR_EDITOR" }],
+      tasks: [],
+      submissions: [],
+      blockingComments: [],
+    })
+
+    const result = await getChapterReadinessService("chapter-3")
+
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "allPagesApproved", passed: true }),
+        expect.objectContaining({ key: "approvedChapterVersionLocked", passed: true }),
+      ]),
+    )
   })
 })

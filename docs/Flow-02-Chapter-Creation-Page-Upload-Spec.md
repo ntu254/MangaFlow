@@ -313,3 +313,63 @@ flowchart TD
 12. Editor read-only progress
 13. AuditLog + Notification
 ```
+
+## 21. Current implementation: submit chapter branches
+
+This flow supports two production branches after Board approval and page upload.
+Assistant work is optional production support, not a mandatory Chapter gate.
+
+Branch A: Assistant-assisted production
+
+```
+Mangaka/Editor creates Page-level or Region-level Tasks
+Assistant submits Task work
+Mangaka approves the Submission
+Editor final-approves the Submission
+Existing/required Tasks are resolved before readiness/publication
+```
+
+Branch B: Direct final-page upload
+
+```
+Mangaka uploads completed/final pages produced outside the system
+No Assistant Task is required
+Mangaka sends the Chapter to Tantou Editor review
+Uploaded Page assets become the reviewable Chapter package
+```
+
+`POST /api/chapters/:chapterId/send-to-editor` is a Chapter handoff/readiness
+validation endpoint. It does not create Assistant submissions and does not
+require `Submission.status = MANGAKA_APPROVED` for Branch B.
+
+Current route references:
+
+```
+POST /api/chapters/:chapterId/send-to-editor
+POST /api/chapters/:chapterId/mark-ready
+```
+
+Additional acceptance criteria:
+
+- A Chapter with final uploaded pages can be sent to Editor without creating Assistant Tasks.
+- Assistant cannot see uploaded pages unless assigned through a Task.
+- If Tasks exist, they must be resolved through the Task/Submission lifecycle before publication readiness.
+
+## 22. Current implementation: versioned Chapter submit
+
+Direct final-page upload now has a versioned review package after page upload:
+
+```
+POST /api/chapters/:chapterId/review-versions
+GET  /api/chapters/:chapterId/review-versions
+```
+
+Each submit creates a new immutable `ChapterVersion` (`v1`, `v2`, `vN`) with
+page snapshots. Older versions are not overwritten. `send-to-editor` remains a
+handoff/readiness validation endpoint and does not create `ChapterVersion`.
+
+Acceptance criteria:
+
+- No Assistant Task is required when pages are already final.
+- Every Mangaka submit creates a new version.
+- Version snapshots are the package Editor reviews.

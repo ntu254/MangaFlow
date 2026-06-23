@@ -6,7 +6,7 @@ import { requireSeriesRole } from "../../shared/middleware/requireSeriesRole.js"
 import { validate } from "../../shared/middleware/validate.js"
 import { asyncHandler } from "../../shared/middleware/asyncHandler.js"
 import * as controller from "./series.controller.js"
-import { createManuscriptUploadSchema, createSeriesSchema, manuscriptFileParamsSchema, seriesIdParamsSchema, updateSeriesSchema } from "./series.validation.js"
+import { assignTantouEditorSchema, createManuscriptUploadSchema, createSeriesSchema, manuscriptFileParamsSchema, seriesIdParamsSchema, updateSeriesSchema } from "./series.validation.js"
 import { acceptOwnSeriesInviteSchema, acceptSeriesMemberSchema, addSeriesMemberSchema, updateSeriesMemberSchema } from "./series-member.validation.js"
 import {
   acceptSeriesMemberInvite,
@@ -115,6 +115,15 @@ router.post(
   requireRole("MANGAKA"),
   validate(seriesIdParamsSchema, "params"),
   asyncHandler(controller.submitSeries),
+)
+
+router.post(
+  "/:seriesId/assign-editor",
+  requireAuth,
+  requireRole("ADMIN"),
+  validate(seriesIdParamsSchema, "params"),
+  validate(assignTantouEditorSchema),
+  asyncHandler(controller.assignTantouEditor),
 )
 
 router.post(

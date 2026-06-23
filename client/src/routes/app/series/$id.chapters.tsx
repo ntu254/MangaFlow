@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ListChecks,
   Send,
+  FileStack,
 } from "lucide-react";
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useSeriesSummary } from "@/shared/queries/useSeries";
@@ -25,6 +26,7 @@ import {
 } from "@/shared/queries/useChapterPages";
 import { Trash2, RefreshCw } from "lucide-react";
 import { useFileObjectUrl } from "@/shared/queries/useFileObjectUrl";
+import { useChapterVersions, useSubmitChapterVersion } from "@/shared/queries/useChapterReviews";
 import { Input } from "@/shared/ui/shadcn/input";
 import { Label } from "@/shared/ui/shadcn/label";
 import {
@@ -268,6 +270,7 @@ function SeriesChapters() {
   const replacePage = useReplacePage();
   const createChapter = useCreateChapter(id);
   const sendChapterToEditor = useSendChapterToEditor(id);
+  const submitChapterVersion = useSubmitChapterVersion(id);
 
   const pageSearchQuery = search.q ?? "";
   const selectedFilter = search.filter ?? "All";
@@ -355,6 +358,9 @@ function SeriesChapters() {
   const { data: readiness, isLoading: readinessLoading } = useChapterReadiness(
     effectiveChapterId || undefined,
   );
+  const { data: chapterVersions = [], isLoading: versionsLoading } = useChapterVersions(
+    effectiveChapterId || undefined,
+  );
 
   const selectedChapter = mappedChapters.find((ch: { id: string }) => ch.id === effectiveChapterId);
   const seriesStatus = summary.series?.status;
@@ -366,6 +372,10 @@ function SeriesChapters() {
     pages,
   });
   const chapterHandoffReady = chapterHandoffBlockers.length === 0;
+  const submittedChapterVersion = chapterVersions.find((version) => version.status === "SUBMITTED");
+  const latestChapterVersion = chapterVersions[0];
+  const canSubmitChapterVersion =
+    Boolean(effectiveChapterId) && chapterHandoffReady && !submittedChapterVersion;
 
   const filteredPages = useMemo(() => {
     const normalizedQuery = pageSearchQuery.trim().toLowerCase();
@@ -670,6 +680,94 @@ function SeriesChapters() {
                 )}
               </div>
             )}
+          </section>
+
+          <section className="mt-3 rounded-md border border-foreground/10 bg-card p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-foreground/55">
+                  <FileStack className="h-3.5 w-3.5" />
+                  Chapter review versions
+                </div>
+                <div className="mt-2 text-sm font-bold text-foreground">
+                  {versionsLoading
+                    ? "Loading version history..."
+                    : latestChapterVersion
+                      ? `Latest submitted package is v${latestChapterVersion.version}.`
+                      : "No chapter package has been submitted yet."}
+                </div>
+                <div className="mt-1 text-xs text-foreground/55">
+                  Submit creates a new immutable version for Editor review. Revision requests do not
+                  overwrite older versions.
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={!canSubmitChapterVersion || submitChapterVersion.isPending}
+                onClick={() =>
+                  effectiveChapterId ? submitChapterVersion.mutate(effectiveChapterId) : undefined
+                }
+                className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md bg-sky-600 px-3 text-[11px] font-extrabold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-foreground/40"
+              >
+                <Send className="h-3.5 w-3.5" />
+                {submitChapterVersion.isPending
+                  ? "Submitting..."
+                  : latestChapterVersion
+                    ? `Submit v${latestChapterVersion.version + 1}`
+                    : "Submit v1"}
+              </button>
+            </div>
+
+            <div className="mt-3 rounded-md border border-foreground/10 bg-foreground/[0.02] p-3">
+              {versionsLoading ? (
+                <div className="h-16 animate-pulse rounded-md bg-foreground/5" />
+              ) : chapterVersions.length === 0 ? (
+                <div className="text-xs text-foreground/50">
+                  Version history will appear here after the first Mangaka submit.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {chapterVersions.slice(0, 4).map((version) => (
+                    <div
+                      key={version.id}
+                      className="rounded-md border border-foreground/10 bg-card px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs font-bold text-foreground">
+                          v{version.version} · {version.pageSnapshots.length} page(s)
+                        </div>
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-black uppercase ${chapterVersionStatusClass(version.status)}`}
+                        >
+                          {version.status}
+                        </span>
+                      </div>
+                      {version.reviewerNote && (
+                        <div className="mt-1 text-[11px] text-foreground/60">
+                          {version.reviewerNote}
+                        </div>
+                      )}
+                      {version.isLocked && (
+                        <div className="mt-1 text-[11px] font-semibold text-emerald-600">
+                          Locked publishing candidate.
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!versionsLoading && submittedChapterVersion && (
+                <div className="mt-3 border-t border-foreground/10 pt-3 text-[11px] text-foreground/45">
+                  v{submittedChapterVersion.version} is waiting for Editor review. A new version can
+                  be submitted after Editor requests revision.
+                </div>
+              )}
+              {!versionsLoading && !chapterHandoffReady && (
+                <div className="mt-3 border-t border-foreground/10 pt-3 text-[11px] text-foreground/45">
+                  Resolve handoff blockers before creating a review version.
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="mt-3 rounded-md border border-foreground/10 bg-card p-4 shadow-sm">
@@ -1288,4 +1386,10 @@ function pageStatusDotClass(status: string) {
   if (["PROCESSING_FAILED", "UPLOAD_FAILED"].includes(status)) return "bg-destructive";
   if (["PENDING", "UPLOADING", "PROCESSING"].includes(status)) return "bg-sky-400";
   return "bg-white";
+}
+
+function chapterVersionStatusClass(status: string) {
+  if (status === "APPROVED") return "bg-emerald-500/10 text-emerald-600";
+  if (status === "REVISION_REQUESTED") return "bg-amber-500/10 text-amber-600";
+  return "bg-sky-500/10 text-sky-600";
 }

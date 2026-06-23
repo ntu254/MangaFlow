@@ -73,6 +73,7 @@ export interface ChapterDocument extends Document {
   chapterNumber: number
   title: string
   status: ChapterStatus
+  publishingCandidateVersionId?: mongoose.Types.ObjectId
   publicationTypeSnapshot?: string
   draftSchedule?: Date
   deletedAt?: Date
@@ -95,6 +96,7 @@ const chapterSchema = new Schema<ChapterDocument>(
       default: "DRAFT",
       index: true,
     },
+    publishingCandidateVersionId: { type: Schema.Types.ObjectId, ref: "ChapterVersion" },
     publicationTypeSnapshot: { type: String, trim: true },
     draftSchedule: { type: Date },
     deletedAt: { type: Date },

@@ -214,6 +214,8 @@ export const seriesApi = {
     api.patch(`/series/${id}`, body).then(unwrap<Series>),
   submitForReview: (id: string, editorNote?: string) =>
     api.post(`/series/${id}/submit`, editorNote ? { editorNote } : {}).then(unwrap<Series>),
+  assignEditor: (id: string, editorUserId: string) =>
+    api.post(`/series/${id}/assign-editor`, { editorUserId }).then(unwrap<SeriesMember>),
   getSummary: (id: string) => api.get(`/series/${id}/summary`).then(unwrap<SeriesSummary>),
   listMembers: (seriesId: string) =>
     api.get(`/series/${seriesId}/members`).then(unwrap<SeriesMember[]>),

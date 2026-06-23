@@ -7,6 +7,7 @@ import {
   getLatestManuscriptForSeries,
   getManuscriptById,
   getSeriesForManuscript,
+  hasActiveEditorAssignment,
   listEditorReviewQueue,
   updateManuscriptReviewStatus,
   updateSeriesReviewStatus,
@@ -37,6 +38,14 @@ async function assertEditor(actor: ManuscriptReviewActor) {
   }
 }
 
+async function assertAssignedTantouEditor(seriesId: string, actor: ManuscriptReviewActor) {
+  await assertEditor(actor)
+  const assigned = await hasActiveEditorAssignment(seriesId, actor.userId)
+  if (!assigned) {
+    throw new AppError("Only the assigned Tantou Editor can review this series", 403)
+  }
+}
+
 async function getReviewContext(input: Pick<ReviewInput, "manuscriptId" | "seriesId">) {
   const manuscript = input.manuscriptId
     ? await getManuscriptById(input.manuscriptId)
@@ -59,6 +68,8 @@ async function getReviewContext(input: Pick<ReviewInput, "manuscriptId" | "serie
   if (manuscript.status !== "SUBMITTED") {
     throw new AppError("Manuscript must be SUBMITTED for this action", 409)
   }
+
+  await assertAssignedTantouEditor(String(series._id), input.actor)
 
   return { manuscript, series }
 }
@@ -128,7 +139,7 @@ async function applyReviewDecision(
 
 export async function listEditorReviewQueueService(actor: ManuscriptReviewActor) {
   await assertEditor(actor)
-  return listEditorReviewQueue()
+  return listEditorReviewQueue(actor.userId)
 }
 
 export async function getEditorSeriesReviewService(seriesId: string, actor: ManuscriptReviewActor) {

@@ -14,7 +14,7 @@ Chapter không dùng status `SCHEDULED` trong MVP. Schedule thuộc về `Public
 ## 2. Mục tiêu nghiệp vụ
 
 - Kiểm tra Chapter đã đủ điều kiện publish chưa.
-- Đảm bảo tất cả required Task đã `EDITOR_APPROVED`.
+- Đảm bảo tất cả existing/required Task đã `EDITOR_APPROVED` khi Chapter có Assistant Task; nếu không có Task, dùng page readiness và blocker để quyết định.
 - Cho phép Editor/Admin tạo lịch publication.
 - Tách rõ Chapter readiness và Publication scheduling.
 - Không kéo Board vào duyệt từng Chapter trong MVP.
@@ -45,7 +45,7 @@ Preconditions:
 Chapter.status = IN_PRODUCTION
 Series.status in [APPROVED, ONGOING, AT_RISK]
 Series.publicationType in [WEEKLY, MONTHLY]
-All required Tasks are EDITOR_APPROVED
+All existing/required Tasks are EDITOR_APPROVED when Tasks exist
 No blocking Page/Task remains
 ```
 
@@ -100,9 +100,9 @@ Không dùng `SCHEDULED` cho Chapter trong MVP.
 ```
 Editor opens Chapter readiness screen
 ↓
-System checks Pages and required Tasks
+System checks Pages, existing/required Tasks, and blockers
 ↓
-If all required Tasks are EDITOR_APPROVED
+If all existing/required Tasks are EDITOR_APPROVED, or no Assistant Tasks exist
 ↓
 Editor marks Chapter ready
 ↓
@@ -187,7 +187,7 @@ CHAPTER_PUBLISHED
 
 ## 16. Business rules
 
-- Chapter chỉ ready khi tất cả required Task đã `EDITOR_APPROVED`.
+- Chapter chỉ ready khi tất cả existing/required Task đã `EDITOR_APPROVED`; Chapter không có Assistant Task không bị block chỉ vì thiếu Task.
 - `MANGAKA_APPROVED` chưa đủ để publish.
 - Chapter không dùng status `SCHEDULED` trong MVP.
 - Schedule thuộc về `Publication.status = SCHEDULED`.
@@ -210,7 +210,7 @@ CHAPTER_PUBLISHED
 
 ```mermaid
 flowchart TD
-    A["Editor runs readiness check"] --> B{"All required tasks EDITOR_APPROVED?"}
+    A["Editor runs readiness check"] --> B{"Existing/required tasks resolved, or no Assistant tasks?"}
     B -->|No| C["Show blockers"]
     B -->|Yes| D["Mark Chapter READY_FOR_PUBLICATION"]
     D --> E["Create Publication"]
@@ -223,7 +223,7 @@ flowchart TD
 ## 19. Acceptance Criteria
 
 - Readiness check hiển thị đúng blockers.
-- Chapter chỉ chuyển `READY_FOR_PUBLICATION` khi required Task đã `EDITOR_APPROVED`.
+- Chapter chỉ chuyển `READY_FOR_PUBLICATION` khi existing/required Task đã `EDITOR_APPROVED`, hoặc khi no-task Chapter đã pass page readiness/blocker checks.
 - Publication schedule tạo được với `Publication.status = SCHEDULED`.
 - Chapter không có `SCHEDULED` status.
 - Publish thành công chuyển `Publication.status = PUBLISHED` và `Chapter.status = PUBLISHED`.
@@ -242,3 +242,56 @@ flowchart TD
 8. Notification
 9. AuditLog
 ```
+
+## 21. Current implementation: no-task Chapter readiness
+
+Assistant Tasks are optional production support. Chapter readiness must not
+require Tasks when Mangaka uploaded completed/final pages directly.
+
+Readiness logic should be interpreted as:
+
+- If Assistant Tasks exist, all existing/required Tasks must be resolved and `EDITOR_APPROVED` before publication readiness.
+- If no Assistant Tasks exist, uploaded Page assets are the reviewable Chapter package.
+- In the no-task branch, page readiness and blocking comments/issues determine whether the Chapter can move forward.
+- `MANGAKA_APPROVED` is only relevant to Assistant Task submissions, not direct final-page upload.
+- Board does not approve individual Chapters in MVP.
+
+Current route references:
+
+```
+POST /api/chapters/:chapterId/send-to-editor
+POST /api/chapters/:chapterId/mark-ready
+```
+
+Additional edge cases:
+
+| Case | Expected behavior |
+| --- | --- |
+| Chapter has no Assistant Tasks but pages are final and no blockers remain | Allow Editor/readiness path |
+| Chapter has active Tasks | Resolve Task/Submission lifecycle before publication readiness |
+| Direct final-page Chapter has no `MANGAKA_APPROVED` Submission | Do not block only because Submission is absent |
+
+Additional acceptance criteria:
+
+- Chapter without Assistant Tasks can reach Editor/readiness path when uploaded pages are the final review package.
+- Chapter with existing Tasks still requires those Tasks to be resolved before publication readiness.
+- Publication scheduling remains unchanged after `READY_FOR_PUBLICATION`.
+
+## 22. Current implementation: publishing candidate version
+
+Publication creation now resolves the immutable approved chapter package:
+
+```
+Chapter.publishingCandidateVersionId -> ChapterVersion(status=APPROVED, isLocked=true)
+Publication.chapterVersionId -> same approved locked ChapterVersion
+```
+
+Rules:
+
+- A no-task Chapter can move forward through direct final-page upload, but it
+  still needs an approved locked `ChapterVersion` before publication.
+- Existing Assistant Tasks, if present, must be `EDITOR_APPROVED` before
+  Mangaka can submit a chapter review version.
+- Editor approval of `ChapterVersion` sets Chapter to
+  `READY_FOR_PUBLICATION` and makes that version the publication source.
+- Publication scheduling and publish behavior remain under `Publication.status`.

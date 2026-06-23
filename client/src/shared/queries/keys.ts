@@ -33,6 +33,10 @@ export const qk = {
     detail: (id: string) => ["chapter", id] as const,
     pages: (chapterId: string | undefined) => ["chapter-pages", chapterId] as const,
   },
+  chapterReviews: {
+    byChapter: (chapterId: string | undefined) => ["chapter-review-versions", chapterId] as const,
+    detail: (versionId: string | undefined) => ["chapter-review-version", versionId] as const,
+  },
   tasks: {
     root: ["tasks"] as const,
     mine: () => ["tasks", "my"] as const,
@@ -52,6 +56,7 @@ export const qk = {
     seriesReview: (seriesId: string) => ["editor", "series-review", seriesId] as const,
     finalReviewQueue: (seriesId?: string) =>
       ["editor", "final-review-queue", seriesId ?? "all"] as const,
+    chapterReviewQueue: () => ["editor", "chapter-review-queue"] as const,
     task: (taskId: string) => ["editor", "task", taskId] as const,
     managedSeries: () => ["editor", "managed-series"] as const,
     productionProgress: () => ["editor", "production-progress"] as const,

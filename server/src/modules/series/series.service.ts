@@ -1,5 +1,6 @@
 import { Series } from "./series.model.js"
-import { Manuscript } from "./series.model.js"
+import { Manuscript, SeriesMember } from "./series.model.js"
+import { User } from "../auth/auth.model.js"
 import { Chapter, FileAsset } from "../chapter/chapter.model.js"
 import { Task } from "../task/task.model.js"
 import { Submission } from "../submission/submission.model.js"
@@ -21,7 +22,7 @@ import {
 import { createPresignedUploadUrl, deleteFileAsset, checkObjectExists, createPresignedDownloadUrl } from "../chapter/file.service.js"
 import { Types } from "mongoose"
 import type { PublicationType } from "../../shared/workflow/status.js"
-import { notifyRole, recordAuditLog } from "../../shared/workflow/events.js"
+import { notifyRole, notifyUsers, recordAuditLog } from "../../shared/workflow/events.js"
 
 function assertIsSeriesOwner(series: any, userId: string, role: string) {
   if (role === "ADMIN") return;
@@ -231,10 +232,21 @@ export async function submitSeriesService(seriesId: string, userId: string) {
 
   try {
     const series = await submitSeriesRepository(trimmed, userId)
+    const assignedEditors = await SeriesMember.find({
+      seriesId: trimmed,
+      role: "EDITOR",
+      status: "ACTIVE",
+      isActive: true,
+    }).select("userId")
     void Promise.all([
-      notifyRole("EDITOR", {
+      assignedEditors.length > 0 ? notifyUsers(assignedEditors.map((member) => String(member.userId)), {
         event: "SERIES_SUBMITTED_TO_EDITOR",
-        title: "New series proposal submitted",
+        title: "Assigned series proposal submitted",
+        message: `${series.title} is ready for editor review.`,
+        link: `/app/editor/series/${series.id}/review`,
+      }) : notifyRole("EDITOR", {
+        event: "SERIES_SUBMITTED_TO_EDITOR",
+        title: "Unassigned series proposal submitted",
         message: `${series.title} is ready for editor review.`,
         link: `/app/editor/series/${series.id}/review`,
       }),
@@ -247,10 +259,74 @@ export async function submitSeriesService(seriesId: string, userId: string) {
     if (message.includes("Only draft or revision-requested series")) throw new AppError("Only draft or revision-requested series can be submitted", 409)
     if (message.includes("Initial manuscript")) throw new AppError("Initial manuscript is required before submit", 400)
     if (message.includes("new draft manuscript")) throw new AppError("Upload a new draft manuscript version before submit", 400)
+    if (message.includes("Tantou Editor")) throw new AppError("Admin must assign a Tantou Editor before submit", 409)
     if (message.includes("Required series fields")) throw new AppError("Required series fields must be completed before submit", 400)
     if (message.includes("Series not found")) throw new AppError("Series not found", 404)
     throw new AppError("Unable to submit series", 400)
   }
+}
+
+export async function assignTantouEditorService(input: {
+  seriesId: string
+  editorUserId: string
+  actorId: string
+}) {
+  const series = await Series.findById(input.seriesId)
+  if (!series) throw new AppError("Series not found", 404)
+
+  const editor = await User.findById(input.editorUserId)
+  if (!editor) throw new AppError("Editor user not found", 404)
+  if (!editor.isActive) throw new AppError("Editor user is not active", 400)
+  if (editor.role !== "EDITOR") throw new AppError("Assigned user must have EDITOR role", 400)
+
+  await SeriesMember.updateMany(
+    {
+      seriesId: input.seriesId,
+      role: "EDITOR",
+      userId: { $ne: editor._id },
+      status: { $ne: "REMOVED" },
+    },
+    { $set: { status: "REMOVED", isActive: false } },
+  )
+
+  const existingMember = await SeriesMember.findOne({
+    seriesId: input.seriesId,
+    userId: editor._id,
+  })
+
+  const member = existingMember ?? await SeriesMember.create({
+    seriesId: input.seriesId,
+    userId: editor._id,
+    role: "EDITOR",
+    status: "ACTIVE",
+    isActive: true,
+    accessScope: "FULL",
+  })
+  if (existingMember) {
+    member.role = "EDITOR"
+    member.status = "ACTIVE"
+    member.isActive = true
+    member.accessScope = "FULL"
+    await member.save()
+  }
+
+  void Promise.all([
+    notifyUsers([String(editor._id)], {
+      event: "TANTOU_EDITOR_ASSIGNED",
+      title: "You were assigned as Tantou Editor",
+      message: `${series.title} is now assigned to you from proposal review through production.`,
+      link: `/app/editor/series/${series.id}/review`,
+    }),
+    recordAuditLog({
+      event: "TANTOU_EDITOR_ASSIGNED",
+      actorId: input.actorId,
+      entityType: "SeriesMember",
+      entityId: String(member._id),
+      metadata: { seriesId: input.seriesId, editorUserId: String(editor._id) },
+    }),
+  ]).catch(() => undefined)
+
+  return member.populate("userId", "name displayName email role")
 }
 
 export async function getSeriesSummaryService(seriesId: string, userId: string, role: UserRole) {

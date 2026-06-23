@@ -11,6 +11,7 @@ import {
   ListChecks,
   CheckCircle2,
   FileCheck2,
+  FileStack,
   CalendarClock,
   Wallet,
   Trophy,
@@ -117,6 +118,12 @@ const EDITOR_NAV: NavItem[] = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["editor"] },
   { to: "/app/editor/managed-series", label: "Managed Series", icon: BookOpen, roles: ["editor"] },
   { to: "/app/editor/series-review", label: "Manuscript Review", icon: Inbox, roles: ["editor"] },
+  {
+    to: "/app/editor/chapter-reviews",
+    label: "Chapter Reviews",
+    icon: FileStack,
+    roles: ["editor"],
+  },
   { to: "/app/editor/final-reviews", label: "Final Reviews", icon: FileCheck2, roles: ["editor"] },
   {
     to: "/app/editor/page-annotation",
@@ -148,6 +155,7 @@ const EDITOR_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { to: "/app/admin/user-management", label: "Users", icon: UsersIcon, roles: ["admin"] },
+  { to: "/app/series", label: "Series Assignment", icon: BookOpen, roles: ["admin"] },
   { to: "/app/admin/board-members", label: "Board Members", icon: Shield, roles: ["admin"] },
   { to: "/app/admin/task-rates", label: "Task Rates", icon: SlidersHorizontal, roles: ["admin"] },
   { to: "/app/admin/payroll", label: "Payroll", icon: Wallet, roles: ["admin"] },

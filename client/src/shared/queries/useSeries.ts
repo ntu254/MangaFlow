@@ -45,6 +45,22 @@ export function useSubmitSeries() {
   });
 }
 
+export function useAssignSeriesEditor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, editorUserId }: { id: string; editorUserId: string }) =>
+      seriesApi.assignEditor(id, editorUserId),
+    onSuccess: (_, variables) => {
+      invalidateSeries(qc, variables.id);
+      invalidateSeriesMembers(qc, variables.id);
+      qc.invalidateQueries({ queryKey: qk.editor.seriesReviewQueue() });
+      qc.invalidateQueries({ queryKey: qk.editor.managedSeries() });
+      toast.success("Tantou Editor assigned");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
 export function useSeriesSummary(id: string) {
   return useQuery({
     queryKey: qk.series.summary(id),

@@ -3,6 +3,7 @@ import { PUBLICATION_STATUSES, type PublicationStatus } from "../../shared/workf
 
 export interface PublicationDocument extends Document {
   chapterId: mongoose.Types.ObjectId
+  chapterVersionId?: mongoose.Types.ObjectId
   seriesId: mongoose.Types.ObjectId
   status: PublicationStatus
   scheduledFor?: Date
@@ -17,6 +18,7 @@ export interface PublicationDocument extends Document {
 const publicationSchema = new Schema<PublicationDocument>(
   {
     chapterId: { type: Schema.Types.ObjectId, ref: "Chapter", required: true, unique: true, index: true },
+    chapterVersionId: { type: Schema.Types.ObjectId, ref: "ChapterVersion", index: true },
     seriesId: { type: Schema.Types.ObjectId, ref: "Series", required: true, index: true },
     status: { type: String, enum: PUBLICATION_STATUSES, default: "DRAFT" },
     scheduledFor: { type: Date, index: true },
