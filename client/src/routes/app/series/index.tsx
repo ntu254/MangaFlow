@@ -5,9 +5,7 @@ import { useState } from "react";
 import { EmptyState } from "@/layouts/AppShell";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/lib/api";
-import { useAssignSeriesEditor } from "@/shared/queries/useSeries";
-import { useUsers } from "@/shared/queries/useUsers";
-import type { AdminUser } from "@/shared/api";
+
 import { series as mockSeries } from "@/entities";
 import {
   Search,
@@ -64,9 +62,6 @@ function SeriesList() {
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const isAdmin = role === "admin";
-  const { data: users = [] } = useUsers({ enabled: isAdmin });
-  const assignEditor = useAssignSeriesEditor();
-  const editors = users.filter((user) => user.role === "EDITOR" && user.isActive);
 
   const { data: apiResponse, isLoading } = useQuery({
     queryKey: ["series"],
@@ -302,19 +297,7 @@ function SeriesList() {
                         <MoreHorizontal className="h-5 w-5" />
                       </button>
                     </div>
-                    {isAdmin && (
-                      <div className="absolute left-3 right-3 top-14 z-20">
-                        <AssignEditorControl
-                          seriesId={s.id || s._id}
-                          editors={editors}
-                          isPending={assignEditor.isPending}
-                          onAssign={(editorUserId) =>
-                            assignEditor.mutate({ id: s.id || s._id, editorUserId })
-                          }
-                          compact
-                        />
-                      </div>
-                    )}
+
 
                     {/* Content (Overlaid) */}
                     <div className="relative z-10 flex flex-col p-5">
@@ -395,18 +378,7 @@ function SeriesList() {
                         </div>
                         <StatusBadge status={s.statusKey} variant="solid" />
                       </div>
-                      {isAdmin && (
-                        <div className="mt-3">
-                          <AssignEditorControl
-                            seriesId={s.id || s._id}
-                            editors={editors}
-                            isPending={assignEditor.isPending}
-                            onAssign={(editorUserId) =>
-                              assignEditor.mutate({ id: s.id || s._id, editorUserId })
-                            }
-                          />
-                        </div>
-                      )}
+
 
                       <div className="mt-4 flex flex-1 flex-col justify-end gap-2 text-[11px] text-foreground/70">
                         <div className="flex items-center justify-between">
@@ -442,53 +414,6 @@ function SeriesList() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function AssignEditorControl({
-  seriesId,
-  editors,
-  isPending,
-  onAssign,
-  compact = false,
-}: {
-  seriesId: string;
-  editors: AdminUser[];
-  isPending: boolean;
-  onAssign: (editorUserId: string) => void;
-  compact?: boolean;
-}) {
-  const [editorUserId, setEditorUserId] = useState("");
-
-  return (
-    <div
-      className={`flex gap-1.5 ${compact ? "rounded-md bg-black/25 p-1.5 backdrop-blur-md" : ""}`}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-    >
-      <select
-        value={editorUserId}
-        onChange={(event) => setEditorUserId(event.target.value)}
-        disabled={editors.length === 0 || isPending}
-        className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-background px-2 text-xs text-foreground disabled:opacity-50"
-      >
-        <option value="">{editors.length === 0 ? "No active editors" : "Tantou Editor"}</option>
-        {editors.map((editor) => (
-          <option key={editor.id} value={editor.id}>
-            {editor.displayName || editor.name || editor.email}
-          </option>
-        ))}
-      </select>
-      <button
-        disabled={!editorUserId || isPending}
-        onClick={() => onAssign(editorUserId)}
-        className="h-8 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-      >
-        Assign
-      </button>
     </div>
   );
 }

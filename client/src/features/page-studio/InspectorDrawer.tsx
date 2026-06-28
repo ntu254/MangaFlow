@@ -20,13 +20,25 @@ import {
 import type { Region, AIResult, Task } from "@/entities";
 import { useStudioStore } from "./useStudioStore";
 import { staff, findStaff } from "@/entities";
+import { toast } from "sonner";
+import { useRole } from "@/shared/lib/role";
 import {
   useAcceptAISuggestion,
   useRejectAISuggestion,
   useRunAISegmentation,
   useRunAITextWhitening,
+  usePageStudio,
 } from "@/shared/queries/usePageStudio";
 import { useDeleteRegion } from "@/shared/queries/useRegions";
+import {
+  useTaskComments,
+  useCreateComment,
+  useMarkCommentFixed,
+  useVerifyCommentFixed,
+  useResolveComment,
+  useReopenComment,
+} from "@/shared/queries/useComments";
+import type { CommentVisibility } from "@/shared/api/comments";
 import { AssistantTaskWorkPanel } from "./AssistantTaskWorkPanel";
 
 interface Props {
@@ -130,39 +142,58 @@ export function InspectorDrawer({
     });
   };
 
-  // Mock comments state
-  const [comments, setComments] = useState([
-    {
-      id: "1",
-      author: "Kei Urana",
-      role: "Mangaka",
-      content: "Can you adjust the tone work in the first panel?",
-      time: "3h ago",
-    },
-    {
-      id: "2",
-      author: "Otsu Yoshioka",
-      role: "Editor",
-      content: "Reviewing this now. Looks mostly correct.",
-      time: "1h ago",
-    },
-  ]);
+  const { data: studioData } = usePageStudio(pageId);
+  const pageTasks = studioData?.tasks ?? [];
+  const seriesId = studioData?.chapter?.seriesId;
+  const chapterId = studioData?.chapter?.id ?? studioData?.page?.chapterId;
+
+  const { role } = useRole();
+  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [isBlocking, setIsBlocking] = useState(true);
+  const [visibility, setVisibility] = useState<CommentVisibility>("PUBLIC_TO_ASSISTANT");
   const [newComment, setNewComment] = useState("");
+
+  const selectedRegionTask = selectedRegion ? regionTasks[selectedRegion.id] : undefined;
+  const activeTaskId = selectedTaskId || assistantTask?.id || selectedRegionTask?.taskId || pageTasks[0]?.id || "";
+
+  useEffect(() => {
+    if (assistantTask?.id) {
+      setSelectedTaskId(assistantTask.id);
+    } else if (selectedRegionTask?.taskId) {
+      setSelectedTaskId(selectedRegionTask.taskId);
+    }
+  }, [assistantTask?.id, selectedRegionTask?.taskId]);
+
+  const { data: dbComments = [], isLoading: isCommentsLoading } = useTaskComments(activeTaskId);
+
+  const createComment = useCreateComment({ taskId: activeTaskId });
+  const markFixed = useMarkCommentFixed(activeTaskId);
+  const verifyFixed = useVerifyCommentFixed(activeTaskId);
+  const resolve = useResolveComment(activeTaskId);
+  const reopen = useReopenComment(activeTaskId);
 
   const handlePostComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
-    setComments([
-      ...comments,
+    if (!newComment.trim() || !activeTaskId || !seriesId) return;
+
+    createComment.mutate(
       {
-        id: String(Date.now()),
-        author: "Otsu Yoshioka",
-        role: "Editor",
-        content: newComment.trim(),
-        time: "Just now",
+        seriesId,
+        chapterId,
+        pageId,
+        regionId: selectedRegion?.id || undefined,
+        taskId: activeTaskId,
+        body: newComment.trim(),
+        isBlocking,
+        visibility,
       },
-    ]);
-    setNewComment("");
+      {
+        onSuccess: () => {
+          toast.success("Comment posted.");
+          setNewComment("");
+        },
+      }
+    );
   };
 
   const handleTabClick = (tab: typeof activeTab) => {
@@ -556,46 +587,185 @@ export function InspectorDrawer({
           {/* ── TAB: COMMENTS ── */}
           {activeTab === "comments" && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Comments List */}
-              <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
-                {comments.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3 text-[11px] text-foreground/70"
-                  >
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="font-bold text-foreground/80">
-                        {c.author}
-                        <span className="ml-1 text-[8px] font-normal text-foreground/30 uppercase bg-foreground/5 border border-border rounded px-1">
-                          {c.role}
-                        </span>
-                      </span>
-                      <span className="text-foreground/25">{c.time}</span>
+              {pageTasks.length > 0 ? (
+                <>
+                  {pageTasks.length > 1 && (
+                    <div className="px-4 pt-3 shrink-0 flex flex-col gap-1">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-foreground/45">
+                        Select Task Thread
+                      </label>
+                      <select
+                        value={activeTaskId}
+                        onChange={(e) => {
+                          setSelectedTaskId(e.target.value);
+                          setVisibility("PUBLIC_TO_ASSISTANT");
+                        }}
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-[10px] focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                      >
+                        {pageTasks.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title || `${t.type}`}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <p className="mt-1 leading-relaxed text-foreground/60">{c.content}</p>
-                  </div>
-                ))}
-              </div>
+                  )}
 
-              {/* Input box */}
-              <form
-                onSubmit={handlePostComment}
-                className="p-3 border-t border-border bg-card flex gap-2 shrink-0"
-              >
-                <input
-                  type="text"
-                  placeholder="Add comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/20 font-medium"
-                />
-                <button
-                  type="submit"
-                  className="h-7 w-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm shrink-0 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </form>
+                  {/* Comments List */}
+                  <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
+                    {isCommentsLoading ? (
+                      <div className="flex h-32 items-center justify-center text-foreground/40 text-[10px]">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> Loading comments...
+                      </div>
+                    ) : dbComments.length === 0 ? (
+                      <div className="py-8 text-center text-[10px] text-foreground/30 italic">
+                        No comments on this task yet.
+                      </div>
+                    ) : (
+                      dbComments.map((comment) => {
+                        const author = typeof comment.authorId === "object" ? comment.authorId : null;
+                        const authorName = author?.name || "User";
+                        const authorRole = author?.role || "Team";
+                        const dateStr = new Date(comment.createdAt).toLocaleString();
+                        const isUnresolvedBlocking = comment.isBlocking && comment.status !== "RESOLVED";
+
+                        return (
+                          <div
+                            key={comment.id}
+                            className={`flex flex-col gap-1 rounded-xl border p-3 text-[11px] text-foreground/70 ${
+                              isUnresolvedBlocking
+                                ? "border-amber-500/30 bg-amber-500/[0.02]"
+                                : "border-border bg-card"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="font-bold text-foreground/80">
+                                {authorName}
+                                <span className="ml-1.5 rounded bg-foreground/5 border border-border px-1 py-0.5 text-[8px] uppercase font-black text-foreground/50">
+                                  {authorRole}
+                                </span>
+                              </span>
+                              <span className="text-foreground/25">{dateStr}</span>
+                            </div>
+                            <p className="mt-1 leading-relaxed text-foreground/60 break-words">{comment.body}</p>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-1.5 mt-1.5">
+                              <div className="flex items-center gap-1 text-[9px] font-bold text-foreground/50">
+                                {comment.isBlocking && (
+                                  <span className="inline-flex items-center gap-0.5 text-amber-600 bg-amber-500/10 px-1 rounded uppercase tracking-wider text-[8px]">
+                                    <AlertCircle className="h-2 w-2" /> Blocking
+                                  </span>
+                                )}
+                                <span className="uppercase text-[8px] bg-foreground/10 px-1 rounded">
+                                  {comment.status}
+                                </span>
+                              </div>
+
+                              <div className="flex gap-1">
+                                {comment.status === "OPEN" && role === "assistant" && (
+                                  <button
+                                    onClick={() => markFixed.mutate(comment.id)}
+                                    disabled={markFixed.isPending}
+                                    className="rounded bg-sky-500/10 hover:bg-sky-500/20 px-1.5 py-0.5 text-[9px] font-bold text-sky-600 dark:text-sky-400"
+                                  >
+                                    Mark Fixed
+                                  </button>
+                                )}
+                                {comment.status === "FIXED" && role === "mangaka" && (
+                                  <button
+                                    onClick={() => verifyFixed.mutate(comment.id)}
+                                    disabled={verifyFixed.isPending}
+                                    className="rounded bg-blue-500/10 hover:bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold text-blue-600 dark:text-blue-400"
+                                  >
+                                    Verify Fix
+                                  </button>
+                                )}
+                                {["OPEN", "FIXED", "VERIFIED", "REOPENED"].includes(comment.status) &&
+                                  (role === "editor" || role === "admin") && (
+                                    <button
+                                      onClick={() => resolve.mutate(comment.id)}
+                                      disabled={resolve.isPending}
+                                      className="rounded bg-emerald-500/10 hover:bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400"
+                                    >
+                                      Resolve
+                                    </button>
+                                  )}
+                                {comment.status === "RESOLVED" &&
+                                  (role === "mangaka" || role === "editor" || role === "admin") && (
+                                    <button
+                                      onClick={() => reopen.mutate(comment.id)}
+                                      disabled={reopen.isPending}
+                                      className="rounded bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400"
+                                    >
+                                      Reopen
+                                    </button>
+                                  )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Input form */}
+                  <form
+                    onSubmit={handlePostComment}
+                    className="p-3 border-t border-border bg-card flex flex-col gap-2 shrink-0"
+                  >
+                    <div className="flex items-center justify-between text-[9px] text-foreground/55">
+                      <label className="flex items-center gap-1 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isBlocking}
+                          onChange={(e) => setIsBlocking(e.target.checked)}
+                          className="rounded border-border text-blue-600 focus:ring-0"
+                        />
+                        Blocking Comment
+                      </label>
+
+                      {(role === "editor" || role === "admin" || role === "mangaka") && (
+                        <select
+                          value={visibility}
+                          onChange={(e) => setVisibility(e.target.value as CommentVisibility)}
+                          className="border-0 bg-transparent py-0 pr-6 pl-0 text-[9px] text-foreground/60 focus:ring-0 focus:outline-none"
+                        >
+                          <option value="PUBLIC_TO_ASSISTANT">Visible to Assistant</option>
+                          <option value="MANGAKA_EDITOR_ONLY">Mangaka & Editor Only</option>
+                          {role !== "mangaka" && (
+                            <option value="EDITOR_INTERNAL">Editor Internal</option>
+                          )}
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/20 font-medium"
+                      />
+                      <button
+                        type="submit"
+                        disabled={createComment.isPending}
+                        className="h-7 w-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm shrink-0 transition-colors disabled:opacity-50"
+                      >
+                        {createComment.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center p-6 text-center text-[10px] text-foreground/45">
+                  No tasks created yet for this page. Create tasks first to discuss.
+                </div>
+              )}
             </div>
           )}
         </div>
