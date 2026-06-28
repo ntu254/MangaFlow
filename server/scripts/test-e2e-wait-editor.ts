@@ -78,6 +78,11 @@ async function runE2E() {
     const manuscriptId = uploadRes.data.data.manuscriptId;
     console.log(`-> Manuscript uploaded: ${manuscriptId}`);
 
+    console.log("-> Admin Assigning Editor to Series...");
+    await adminClient.post(`/series/${seriesId}/assign-editor`, {
+      editorUserId: editorId,
+    });
+
     await mangakaClient.post(`/series/${seriesId}/submit`);
     console.log("-> Series Submitted to Editor.");
 
@@ -116,13 +121,21 @@ async function runE2E() {
     });
     console.log("-> Assistant added to Production Team.");
 
-    console.log("-> Adding Editor to SeriesMember...");
-    await mangakaClient.post(`/series/${seriesId}/members`, {
-      userId: editorId,
-      role: "EDITOR",
-      accessScope: "FULL",
-    });
-    console.log("-> Editor added to Production Team.");
+    try {
+      console.log("-> Adding Editor to SeriesMember...");
+      await mangakaClient.post(`/series/${seriesId}/members`, {
+        userId: editorId,
+        role: "EDITOR",
+        accessScope: "FULL",
+      });
+      console.log("-> Editor added to Production Team.");
+    } catch (err: any) {
+      if (err.response?.status === 409 || err.message?.includes("already an active member")) {
+        console.log("-> Editor is already a member of the series.");
+      } else {
+        throw err;
+      }
+    }
 
     console.log("-> Creating Chapter...");
     const chapterRes = await mangakaClient.post("/chapters", {

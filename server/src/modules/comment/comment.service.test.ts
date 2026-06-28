@@ -30,7 +30,7 @@ describe("comment resolution service", () => {
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   it("lets an Editor create an OPEN blocking comment", async () => {
