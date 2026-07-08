@@ -1,4 +1,4 @@
--- HI-OS schema - migration 002
+-- Harness v0 schema - migration 002
 -- Story-level mechanical verification.
 
 ALTER TABLE story ADD COLUMN verify_command TEXT;

@@ -1,119 +1,239 @@
-import { apiConfig } from "./config";
-import { mockHandlers } from "./handlers";
-import type { ApiRequestOptions } from "./types";
+export type ApiRole = "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR" | "BOARD";
+export type WebRole = "admin" | "mangaka" | "assistant" | "editor" | "board";
 
-export class ApiError extends Error {
-  status?: number;
-  path?: string;
+export type ApiUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: ApiRole;
+  isChair?: boolean;
+};
 
-  constructor(message: string, options?: { status?: number; path?: string }) {
+export type WebUser = Omit<ApiUser, "role"> & { role: WebRole };
+
+export type ApiEnvelope<T> = {
+  success: boolean;
+  data: T;
+  message?: string;
+  code?: string;
+  requestId?: string;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+};
+
+export type ApiTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+type RequestOptions = {
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  body?: unknown;
+  auth?: boolean;
+  headers?: HeadersInit;
+};
+
+const TOKEN_KEY = "beachread-api-tokens";
+
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly code?: string;
+  readonly requestId?: string;
+
+  constructor({
+    status,
+    message,
+    code,
+    requestId,
+  }: {
+    status: number;
+    message: string;
+    code?: string;
+    requestId?: string;
+  }) {
     super(message);
-    this.name = "ApiError";
-    this.status = options?.status;
-    this.path = options?.path;
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
   }
 }
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const normalizePath = (path: string) =>
-  path.startsWith("/") ? path : `/${path}`;
-
-const resolveBaseUrl = () => {
-  if (apiConfig.baseUrl) return apiConfig.baseUrl.replace(/\/$/, "");
-
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return window.location.origin;
-  }
-
-  return "http://localhost:5173";
+export const API_ROLE_TO_WEB: Record<ApiRole, WebRole> = {
+  ADMIN: "admin",
+  MANGAKA: "mangaka",
+  ASSISTANT: "assistant",
+  EDITOR: "editor",
+  BOARD: "board",
 };
 
-const serializeBody = (options: ApiRequestOptions) => {
-  if (options.json === undefined) return options.body;
-  return JSON.stringify(options.json);
+export const WEB_ROLE_TO_API: Record<WebRole, ApiRole> = {
+  admin: "ADMIN",
+  mangaka: "MANGAKA",
+  assistant: "ASSISTANT",
+  editor: "EDITOR",
+  board: "BOARD",
 };
 
-const handleMockRequest = async <T>(
-  path: string,
-  options: ApiRequestOptions,
-) => {
-  if (apiConfig.mockDelayMs > 0) {
-    await delay(apiConfig.mockDelayMs);
+export function apiBaseUrl() {
+  return import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001/api";
+}
+
+export function mapApiUser(user: ApiUser): WebUser {
+  return {
+    ...user,
+    role: API_ROLE_TO_WEB[user.role],
+  };
+}
+
+export function getApiTokens(): ApiTokens | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(TOKEN_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ApiTokens>;
+    if (parsed.accessToken && parsed.refreshToken) return parsed as ApiTokens;
+  } catch {
+    clearApiTokens();
   }
+  return null;
+}
 
-  let handler = mockHandlers[path];
+export function hasApiTokens() {
+  return getApiTokens() !== null;
+}
 
-  if (!handler) {
-    const prefix = Object.keys(mockHandlers).find(
-      (k) => path.startsWith(k) && k.endsWith("/"),
-    );
-    if (prefix) {
-      handler = mockHandlers[prefix];
-      options = { ...options, path };
-    }
+export function isUnauthorizedApiError(error: unknown) {
+  return error instanceof ApiRequestError && (error.status === 401 || error.status === 403);
+}
+
+export function setApiTokens(tokens: ApiTokens) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+}
+
+export function clearApiTokens() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(TOKEN_KEY);
+}
+
+let _onUnauthorized: (() => void) | null = null;
+export function registerUnauthorizedHandler(fn: () => void) {
+  _onUnauthorized = fn;
+}
+
+// --- Refresh dedup guard ---
+let _refreshPromise: Promise<boolean> | null = null;
+
+async function doRefreshTokens(refreshToken: string): Promise<boolean> {
+  try {
+    const data = await apiRequest<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
+      method: "POST",
+      auth: false,
+      body: { refreshToken },
+    });
+    setApiTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+    return true;
+  } catch {
+    clearApiTokens();
+    if (_onUnauthorized) _onUnauthorized();
+    return false;
   }
+}
 
-  if (!handler) {
-    throw new ApiError(`No mock handler registered for ${path}`, {
-      path,
-      status: 501,
+function refreshTokens(refreshToken: string): Promise<boolean> {
+  if (!_refreshPromise) {
+    _refreshPromise = doRefreshTokens(refreshToken).finally(() => {
+      _refreshPromise = null;
     });
   }
+  return _refreshPromise;
+}
 
-  return (await handler(options)) as T;
-};
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const tokens = getApiTokens();
+  const headers: HeadersInit = {
+    Accept: "application/json",
+    ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+    ...(options.auth !== false && tokens?.accessToken
+      ? { Authorization: `Bearer ${tokens.accessToken}` }
+      : {}),
+    ...(options.headers ?? {}),
+  };
 
-const request = async <T>(path: string, options: ApiRequestOptions = {}) => {
-  const normalizedPath = normalizePath(path);
-
-  if (apiConfig.useMockApi) {
-    return handleMockRequest<T>(normalizedPath, options);
-  }
-
-  const url = new URL(normalizedPath, resolveBaseUrl()).toString();
-  const headers = new Headers(options.headers);
-
-  if (options.json !== undefined && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const response = await fetch(url, {
-    ...options,
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
+    method: options.method ?? "GET",
     headers,
-    body: serializeBody(options),
+    body:
+      options.body instanceof FormData
+        ? options.body
+        : options.body === undefined
+          ? undefined
+          : JSON.stringify(options.body),
   });
 
-  if (!response.ok) {
-    throw new ApiError(`Request failed for ${normalizedPath}`, {
-      path: normalizedPath,
-      status: response.status,
+  // Handle 401: attempt refresh exactly once, then give up
+  if (response.status === 401 && options.auth !== false && path !== "/auth/refresh") {
+    if (tokens?.refreshToken) {
+      const refreshed = await refreshTokens(tokens.refreshToken);
+      if (refreshed) {
+        // Retry original request once with new tokens
+        const newTokens = getApiTokens();
+        const retryHeaders: HeadersInit = {
+          Accept: "application/json",
+          ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+          ...(newTokens?.accessToken ? { Authorization: `Bearer ${newTokens.accessToken}` } : {}),
+          ...(options.headers ?? {}),
+        };
+        const retryResponse = await fetch(`${apiBaseUrl()}${path}`, {
+          method: options.method ?? "GET",
+          headers: retryHeaders,
+          body:
+            options.body instanceof FormData
+              ? options.body
+              : options.body === undefined
+                ? undefined
+                : JSON.stringify(options.body),
+        });
+        const retryEnvelope = (await retryResponse
+          .json()
+          .catch(() => null)) as ApiEnvelope<T> | null;
+        if (!retryResponse.ok || !retryEnvelope?.success) {
+          throw new ApiRequestError({
+            status: retryResponse.status,
+            message: retryEnvelope?.message ?? `API request failed with ${retryResponse.status}`,
+            code: retryEnvelope?.code,
+            requestId: retryEnvelope?.requestId,
+          });
+        }
+        return retryEnvelope.data;
+      }
+      // Refresh failed — tokens cleared inside doRefreshTokens
+      throw new ApiRequestError({
+        status: 401,
+        message: "Session expired. Please log in again.",
+      });
+    }
+    // No refresh token — force logout
+    if (_onUnauthorized) _onUnauthorized();
+    throw new ApiRequestError({
+      status: 401,
+      message: "Unauthorized",
     });
   }
 
-  if (response.status === 204) {
-    return undefined as T;
+  const envelope = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+  if (!response.ok || !envelope?.success) {
+    throw new ApiRequestError({
+      status: response.status,
+      message: envelope?.message ?? `API request failed with ${response.status}`,
+      code: envelope?.code,
+      requestId: envelope?.requestId,
+    });
   }
 
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (contentType.includes("application/json")) {
-    return (await response.json()) as T;
-  }
-
-  return (await response.text()) as T;
-};
-
-export const apiClient = {
-  request,
-  get: <T>(path: string, options: ApiRequestOptions = {}) =>
-    request<T>(path, { ...options, method: "GET" }),
-  post: <T>(path: string, options: ApiRequestOptions = {}) =>
-    request<T>(path, { ...options, method: "POST" }),
-  put: <T>(path: string, options: ApiRequestOptions = {}) =>
-    request<T>(path, { ...options, method: "PUT" }),
-  patch: <T>(path: string, options: ApiRequestOptions = {}) =>
-    request<T>(path, { ...options, method: "PATCH" }),
-  delete: <T>(path: string, options: ApiRequestOptions = {}) =>
-    request<T>(path, { ...options, method: "DELETE" }),
-};
+  return envelope.data;
+}

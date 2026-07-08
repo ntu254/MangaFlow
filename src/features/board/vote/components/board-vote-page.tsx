@@ -1,0 +1,381 @@
+﻿import { Link, useNavigate } from "@tanstack/react-router";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ProposalStatusPill, VoteTally } from "@/entities/proposal";
+import {
+  AUDIENCE_LABEL,
+  EIC_TIEBREAK_WEIGHT,
+  type ProposalStatus,
+  type VoteDecision,
+} from "@/entities/proposal/model/proposal-types";
+import {
+  useBoardVotesQuery,
+  useCastBoardVoteMutation,
+  useFinalizeDecisionMutation,
+  useTieBreakMutation,
+  useVotingSessionsQuery,
+} from "../../api/board-queries";
+import { useProposalQuery } from "@/features/proposals";
+import { isEditorInChief, useAuth } from "@/shared/auth";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { Panel, ResolvedImage } from "@/shared/ui";
+
+const OPTIONS: { value: VoteDecision; label: string; tone: string }[] = [
+  { value: "APPROVE", label: "Approve", tone: "bg-emerald-700 hover:bg-emerald-800" },
+  { value: "REJECT", label: "Reject", tone: "bg-rose-700 hover:bg-rose-800" },
+  { value: "ABSTAIN", label: "Abstain", tone: "bg-zinc-700 hover:bg-zinc-800" },
+];
+
+interface BoardVotePageProps {
+  id: string;
+}
+
+export function BoardVotePage({ id }: BoardVotePageProps) {
+  const user = useAuth((s) => s.user);
+  const navigate = useNavigate();
+  const [decision, setDecision] = useState<VoteDecision | null>(null);
+  const [comment, setComment] = useState("");
+  const [finalizeNote, setFinalizeNote] = useState("");
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY" | undefined>();
+
+  const { data: proposal } = useProposalQuery(id);
+  const { data: voteData, isLoading: votesLoading } = useBoardVotesQuery(id);
+  const castVote = useCastBoardVoteMutation();
+  const tieBreak = useTieBreakMutation();
+  const finalize = useFinalizeDecisionMutation();
+  const { data: sessions = [] } = useVotingSessionsQuery();
+
+  if (!user) return null;
+
+  if (votesLoading) {
+    return (
+      <div className="mx-auto max-w-5xl py-12 text-center text-sm text-muted-foreground">
+        Đang tải dữ liệu vote...
+      </div>
+    );
+  }
+
+  if (!voteData) {
+    return (
+      <EmptyState
+        title="Proposal không tồn tại"
+        description="Quay lại hàng đợi Board."
+        action={
+          <Link to="/app/board" className="text-xs underline">
+            Board queue
+          </Link>
+        }
+      />
+    );
+  }
+
+  const { votes, tally, status } = voteData;
+  const proposalStatus = status as ProposalStatus;
+  const alreadyVoted = votes.find((v) => v.memberId === user.id);
+  const eic = user.role === "editor" && isEditorInChief(user);
+  const inTieBreak = status === "TIE_BREAK";
+
+  const activeSessions = sessions.filter(
+    (vs) => vs.status === "OPEN" && vs.proposalIds?.includes(id),
+  );
+
+  const submitVote = () => {
+    if (!decision) {
+      toast.error("Chọn 1 trong 3 lựa chọn.");
+      return;
+    }
+
+    if (inTieBreak && eic) {
+      tieBreak.mutate(
+        { seriesId: id, body: { voteDecision: decision, comment: comment.trim() || undefined } },
+        {
+          onSuccess: () => {
+            toast.success("Đã ghi nhận phiếu phá tie.");
+            navigate({ to: "/app/board" });
+          },
+          onError: (e) => {
+            toast.error(e instanceof Error ? e.message : "Lỗi tie-break.");
+          },
+        },
+      );
+      return;
+    }
+
+    castVote.mutate(
+      { seriesId: id, body: { voteDecision: decision, comment: comment.trim() || undefined } },
+      {
+        onSuccess: () => {
+          toast.success("Đã ghi nhận vote.");
+          navigate({ to: "/app/board" });
+        },
+        onError: (e) => {
+          toast.error(e instanceof Error ? e.message : "Lỗi vote.");
+        },
+      },
+    );
+  };
+
+  const handleFinalize = (dec: "APPROVED" | "REJECTED") => {
+    finalize.mutate(
+      {
+        seriesId: id,
+        body: {
+          decision: dec,
+          note: finalizeNote.trim() || undefined,
+          publicationType: dec === "APPROVED" ? publicationType : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Đã quyết định đóng proposal là: ${dec}.`);
+          navigate({ to: "/app/board" });
+        },
+        onError: (e) => {
+          toast.error(e instanceof Error ? e.message : "Lỗi finalize.");
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <Link
+        to="/app/board"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" /> Board queue
+      </Link>
+
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <aside className="space-y-3">
+          {proposal?.coverUrl || proposal?.coverFileKey ? (
+            <ResolvedImage
+              fileKey={proposal.coverFileKey}
+              fallbackUrl={proposal.coverUrl}
+              alt=""
+              className="aspect-[2/3] w-full rounded-md border border-border object-cover"
+              fallback={
+                <div className="flex aspect-[2/3] w-full items-center justify-center rounded-md border border-border bg-muted text-xs text-muted-foreground">
+                  No cover
+                </div>
+              }
+            />
+          ) : (
+            <div className="flex aspect-[2/3] w-full items-center justify-center rounded-md border border-border bg-muted text-xs text-muted-foreground">
+              Không có ảnh
+            </div>
+          )}
+          <div className="rounded border border-border bg-card/40 p-3 text-xs">
+            <p>
+              <span className="text-muted-foreground">Tác giả:</span> {proposal?.authorName ?? "—"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Editor:</span>{" "}
+              {proposal?.assignedEditorName ?? "—"}
+            </p>
+            {proposal?.targetAudience && (
+              <p>
+                <span className="text-muted-foreground">Audience:</span>{" "}
+                {AUDIENCE_LABEL[proposal.targetAudience]}
+              </p>
+            )}
+            {proposal?.chaptersPlanned && (
+              <p>
+                <span className="text-muted-foreground">Chapters:</span> {proposal.chaptersPlanned}
+              </p>
+            )}
+          </div>
+        </aside>
+
+        <div className="space-y-6">
+          <header>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="font-serif text-3xl">{proposal?.title ?? voteData.seriesId}</h1>
+                {eic ? (
+                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-fuchsia-700">
+                    Bạn là Editor-in-chief{" "}
+                    {inTieBreak ? `· phiếu phá tie weight ${EIC_TIEBREAK_WEIGHT}` : ""}
+                  </p>
+                ) : null}
+              </div>
+              <ProposalStatusPill status={proposalStatus} size="lg" />
+            </div>
+            {proposal?.synopsis && (
+              <p className="mt-3 text-sm leading-relaxed">{proposal.synopsis}</p>
+            )}
+          </header>
+
+          {activeSessions.length > 0 ? (
+            <div className="rounded border border-indigo-300 bg-indigo-50 p-3 text-xs text-indigo-950">
+              <p className="text-[10px] font-bold uppercase tracking-widest">Phiên vote đang mở</p>
+              <ul className="mt-1 space-y-0.5">
+                {activeSessions.map((vs) => (
+                  <li key={vs.id}>
+                    <Link
+                      to="/app/board/sessions/$sid"
+                      params={{ sid: vs.id }}
+                      className="underline"
+                    >
+                      {vs.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <VoteTally votes={votes} status={proposalStatus} />
+
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 shrink-0 animate-pulse text-amber-600" />
+            <div>
+              <p className="font-bold">Board Finalization Advisory Notice</p>
+              <p className="mt-0.5 leading-tight">
+                Board voting is a crucial step but does not constitute a final decision. Decisions
+                must still undergo administrative finalization and validation check processes.
+              </p>
+            </div>
+          </div>
+
+          {inTieBreak ? (
+            <div className="rounded-lg border border-fuchsia-300 bg-fuchsia-50 p-4 text-xs text-fuchsia-950">
+              Proposal đang ở trạng thái <strong>TIE_BREAK</strong>. Chỉ{" "}
+              <strong>Editor-in-chief</strong> có thể bỏ phiếu phá tie; phiếu có weight{" "}
+              {EIC_TIEBREAK_WEIGHT} để xác định kết quả.
+            </div>
+          ) : null}
+
+          {(user.role === "board" || user.role === "admin") &&
+            (status === "PENDING_BOARD" || status === "TIE_BREAK") &&
+            tally.status !== null && (
+              <Panel
+                title="Quyết định của Hội đồng (Finalize)"
+                description={`Hội đồng đã hoàn thành bỏ phiếu. Kết quả sơ bộ: ${tally.status}. Hội đồng/Admin có thể chính thức đóng quyết định của đề xuất này để lưu trạng thái vào cơ sở dữ liệu.`}
+              >
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="finalize-note"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
+                    Ghi chú quyết định (tùy chọn)
+                  </Label>
+                  <Textarea
+                    id="finalize-note"
+                    rows={3}
+                    value={finalizeNote}
+                    onChange={(e) => setFinalizeNote(e.target.value)}
+                    placeholder="Ghi chú kết quả phiên họp hoặc quyết định chính thức..."
+                  />
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Publication type (bắt buộc khi Chấp thuận)
+                  </Label>
+                  <div className="grid max-w-xs grid-cols-2 gap-1.5">
+                    {(["WEEKLY", "MONTHLY"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setPublicationType(type)}
+                        className={`rounded px-2 py-1.5 text-xs font-semibold transition ${
+                          publicationType === type
+                            ? "bg-foreground text-background"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {type === "WEEKLY" ? "Weekly" : "Monthly"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleFinalize("APPROVED")}
+                    disabled={finalize.isPending || finalize.isSuccess || !publicationType}
+                    className="rounded bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-40"
+                  >
+                    {finalize.isPending ? "Đang xử lý..." : "Chấp thuận (APPROVED)"}
+                  </button>
+                  <button
+                    onClick={() => handleFinalize("REJECTED")}
+                    disabled={finalize.isPending || finalize.isSuccess}
+                    className="rounded bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:opacity-40"
+                  >
+                    {finalize.isPending ? "Đang xử lý..." : "Từ chối (REJECTED)"}
+                  </button>
+                </div>
+              </Panel>
+            )}
+
+          <section className="rounded-lg border border-border bg-card/40 p-5">
+            <h2 className="font-serif text-xl">Vote của bạn</h2>
+            {alreadyVoted ? (
+              <p className="mt-3 rounded bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                Bạn đã vote <strong>{alreadyVoted.decision}</strong> lúc{" "}
+                {new Date(alreadyVoted.createdAt).toLocaleString("vi-VN")}.
+              </p>
+            ) : tally.status !== null ? (
+              <p className="mt-3 rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
+                Voting đã kết thúc. Status: {tally.status}.
+              </p>
+            ) : (
+              <>
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  {OPTIONS.map((o) => (
+                    <button
+                      key={o.value}
+                      onClick={() => setDecision(o.value)}
+                      disabled={castVote.isPending}
+                      className={`rounded px-3 py-3 text-sm font-bold text-white transition ${o.tone} ${
+                        decision === o.value
+                          ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                          : ""
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 space-y-1.5">
+                  <Label
+                    htmlFor="vote-comment"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
+                    Comment (tùy chọn)
+                  </Label>
+                  <Textarea
+                    id="vote-comment"
+                    rows={3}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Lý do, ghi chú cho hội đồng…"
+                  />
+                </div>
+                <button
+                  onClick={submitVote}
+                  disabled={castVote.isPending}
+                  className="mt-4 rounded bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-40"
+                >
+                  {castVote.isPending ? "Đang gửi..." : "Submit vote"}
+                </button>
+              </>
+            )}
+          </section>
+
+          <div className="rounded border border-dashed border-border bg-card/30 p-4 text-xs">
+            <p className="font-semibold text-foreground">Tư liệu & Lịch sử</p>
+            <p className="mt-1 text-muted-foreground">
+              Material annotation gating đang chờ backend hỗ trợ.
+              {/* Follow-up: wire MaterialsViewer when backend material-annotations endpoint exists */}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -7,17 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-.codegraph
-.venv
 node_modules
 dist
 dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
 *.local
-.env
-.env.*
-!.env.example
-agent_fashion_support
-OpenHarness
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
 
 # Editor directories and files
 .vscode/*
@@ -29,12 +30,19 @@ OpenHarness
 *.njsproj
 *.sln
 *.sw?
-.vercel
 
 # Harness durable layer
+.harness-backup/
 harness.db
 harness.db-wal
 harness.db-shm
-.harness/
 scripts/bin/harness-cli
 scripts/bin/harness-cli.exe
+
+# Environment files (never commit real secrets)
+.env
+.env.*
+!.env.example
+nul/
+
+nul

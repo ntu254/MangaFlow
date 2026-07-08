@@ -1,0 +1,207 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { SeparationOfDutiesWarning } from "@/entities/access";
+import { ActionButton, OverrideDialog, PageHeader, StateBlock } from "@/shared/ui";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import {
+  mapAdminError,
+  useAdminOverrideMutation,
+  useDemoDataMutation,
+} from "../../api/admin-queries";
+import { PageShell, SettingRow, SettingsGroup } from "@/shared/layout/page-layout";
+import { StatusPill } from "@/shared/ui/status-pill";
+import { useAdminAccess, AccessDenied } from "../../_shared";
+import { Database, FlaskConical, KeyRound, ServerCog, Shield } from "lucide-react";
+
+const settings = [
+  {
+    label: "Live backend API",
+    value: "http://localhost:3001/api",
+    status: "ready",
+    icon: ServerCog,
+  },
+  {
+    label: "AI service bridge",
+    value: "Express-only client boundary",
+    status: "ready",
+    icon: FlaskConical,
+  },
+  { label: "JWT refresh", value: "Access plus refresh tokens", status: "ready", icon: KeyRound },
+  {
+    label: "R2 signed URLs",
+    value: "Metadata placeholder until upload slice",
+    status: "submitted",
+    icon: Shield,
+  },
+];
+
+export function AdminSettingsPage() {
+  const { denial } = useAdminAccess();
+  const overrideMutation = useAdminOverrideMutation();
+  const demoMutation = useDemoDataMutation();
+  const [demoMode, setDemoMode] = useState<null | "reset" | "clear">(null);
+
+  const runDemo = (mode: "reset" | "clear") => {
+    demoMutation.mutate(mode, {
+      onSuccess: () => {
+        toast.success(
+          mode === "reset"
+            ? "Đã reset dữ liệu demo (giữ tài khoản người dùng)."
+            : "Đã xoá dữ liệu demo (giữ tài khoản người dùng).",
+        );
+        setDemoMode(null);
+      },
+      onError: (err) => toast.error(mapAdminError(err)),
+    });
+  };
+
+  if (denial) {
+    return (
+      <AccessDenied
+        title="Settings"
+        description="You do not have permission to access the admin settings page."
+        denial={denial}
+      />
+    );
+  }
+
+  return (
+    <PageShell maxWidth="6xl">
+      <PageHeader
+        title="Settings"
+        description="Operational switches and integration boundaries. Environment secrets stay outside the repository and are never displayed."
+      />
+
+      <SeparationOfDutiesWarning>
+        Settings here are non-secret previews. Credential rotation or third-party mutation requires
+        explicit external approval.
+      </SeparationOfDutiesWarning>
+
+      <SettingsGroup title="Runtime boundaries">
+        {settings.map((item) => (
+          <SettingRow
+            key={item.label}
+            title={item.label}
+            description={item.value}
+            icon={<item.icon className="size-4 text-[var(--admin-faint)]" />}
+            status={<StatusPill status={item.status} />}
+          />
+        ))}
+      </SettingsGroup>
+
+      <SettingsGroup title="Feature flags">
+        <StateBlock
+          tone="warning"
+          title="Read-only preview"
+          description="Feature flag persistence is pending a backend model. These values show the current product contract and cannot be changed here."
+        />
+        <div className="space-y-3">
+          {[
+            "Use live backend for web login",
+            "Route AI calls through Express",
+            "Keep mobile /api compatibility aliases",
+            "Require admin override reason",
+          ].map((label) => (
+            <div
+              key={label}
+              className="flex items-center justify-between rounded border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2"
+            >
+              <span className="text-sm font-medium">{label}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--admin-faint)]">
+                  Preview
+                </span>
+                <Switch checked disabled aria-label={`${label} is enabled in preview mode`} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-[var(--admin-faint)]">
+          Backend feature flag management is intentionally disabled until persistence, audit, and
+          rollback semantics are implemented.
+        </p>
+      </SettingsGroup>
+
+      <SettingsGroup title="Sensitive operations">
+        {overrideMutation.isSuccess ? (
+          <div className="mb-4">
+            <StateBlock
+              tone="success"
+              title="Rotation request recorded"
+              description="A preview admin override entry was sent to the backend audit stream."
+            />
+          </div>
+        ) : null}
+        {overrideMutation.error ? (
+          <div className="mb-4">
+            <StateBlock
+              tone="danger"
+              title="Could not record rotation request"
+              description={mapAdminError(overrideMutation.error)}
+            />
+          </div>
+        ) : null}
+        <OverrideDialog
+          actionLabel="Record Rotation Request"
+          trigger={
+            <ActionButton tone="danger" disabled={overrideMutation.isPending}>
+              Record key rotation request
+            </ActionButton>
+          }
+          targetLabel="Key rotation request preview"
+          auditImpact="Creates an admin override preview audit event only. It does not rotate credentials or mutate third-party services."
+          onConfirm={(reason) => {
+            overrideMutation.mutate({
+              action: "KEY_ROTATION_REQUEST_PREVIEW",
+              targetId: "key-rotation",
+              reason,
+            });
+          }}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="Demo data">
+        <StateBlock
+          tone="warning"
+          title="Reset / clear toàn bộ dữ liệu demo"
+          description="Xoá proposal, series, chapter, task, submission, comment, notification, ranking, earning… nhưng GIỮ NGUYÊN tài khoản người dùng để vẫn đăng nhập được. Reset sẽ tạo lại bộ series mẫu cho các luồng; Clear chỉ xoá."
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <ActionButton
+            disabled={demoMutation.isPending}
+            onClick={() => setDemoMode("reset")}
+            className="inline-flex items-center gap-1.5"
+          >
+            <Database className="size-4" /> Reset về dữ liệu demo
+          </ActionButton>
+          <ActionButton
+            tone="danger"
+            disabled={demoMutation.isPending}
+            onClick={() => setDemoMode("clear")}
+          >
+            Clear toàn bộ dữ liệu
+          </ActionButton>
+        </div>
+
+        <ConfirmDialog
+          open={demoMode !== null}
+          onOpenChange={(open) => (!open ? setDemoMode(null) : undefined)}
+          variant="danger"
+          title={demoMode === "clear" ? "Xoá toàn bộ dữ liệu demo?" : "Reset về dữ liệu demo?"}
+          description={
+            demoMode === "clear"
+              ? "Toàn bộ dữ liệu nghiệp vụ sẽ bị xoá. Tài khoản người dùng được giữ lại."
+              : "Dữ liệu nghiệp vụ hiện tại sẽ bị xoá và tạo lại bộ series mẫu. Tài khoản người dùng được giữ lại."
+          }
+          impactExplanation="Hành động này không thể hoàn tác và áp dụng cho toàn bộ database demo."
+          confirmLabel={demoMode === "clear" ? "Xoá dữ liệu" : "Reset dữ liệu"}
+          isLoading={demoMutation.isPending}
+          onConfirm={() => {
+            if (demoMode) runDemo(demoMode);
+          }}
+        />
+      </SettingsGroup>
+    </PageShell>
+  );
+}
