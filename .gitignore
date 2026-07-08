@@ -2,32 +2,39 @@
 logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Dependencies
-node_modules/
-.pnp
-.pnp.js
-
-# Build
+.codegraph
+.venv
+node_modules
 dist
 dist-ssr
-
-# Environment
+*.local
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+agent_fashion_support
+OpenHarness
 
-# Editor
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vercel
 
-# Expo
-.expo/
-mobile/.expo/
-
-# Shadcn wrong dir
-@/
-
-oh-my-openagent/
+# Harness durable layer
+harness.db
+harness.db-wal
+harness.db-shm
+.harness/
+scripts/bin/harness-cli
+scripts/bin/harness-cli.exe

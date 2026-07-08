@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Extension Bảo Mật Bằng Supabase",
+  "version": "1.0",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage"]
+}

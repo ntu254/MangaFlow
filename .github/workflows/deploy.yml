@@ -1,0 +1,49 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      migration_count: ${{ steps.migrations.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: migrations
+        run: |
+          count=$(ls supabase/migrations/*.sql 2>/dev/null | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -eq 0 ]; then
+            echo "No migration files found in supabase/migrations/" >&2
+            exit 1
+          fi
+          ls supabase/migrations/*.sql
+
+  ci:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
+      - name: Deploy to Vercel (Production)
+        if: github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != ''
+        run: npx vercel --prod
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Deploy to Vercel (Preview)
+        if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != ''
+        run: npx vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

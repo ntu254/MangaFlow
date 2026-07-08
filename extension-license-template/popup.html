@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { width: 320px; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hidden { display: none; }
+        input { width: 100%; padding: 12px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px; margin-top: 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+        .error { color: #dc3545; font-size: 13px; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <!-- Màn hình nhập Key -->
+    <div id="login-screen">
+        <h3 style="margin-top: 0; text-align: center;">Kích Hoạt Bản Quyền</h3>
+        <p style="font-size: 13px; color: #666; text-align: center;">Vui lòng nhập License Key để tiếp tục</p>
+        <input type="text" id="license-key" placeholder="Nhập mã kích hoạt của bạn..." />
+        <button id="btn-activate">Kích hoạt Extension</button>
+        <p id="msg-error" class="error"></p>
+    </div>
+
+    <!-- Màn hình khi đã kích hoạt -->
+    <div id="main-screen" class="hidden" style="text-align: center;">
+        <h3 style="color: #28a745; margin-top: 0;">✅ Đã kích hoạt!</h3>
+        <p style="font-size: 14px;">Bạn có thể bắt đầu sử dụng phần mềm.</p>
+        <!-- THÊM GIAO DIỆN CHÍNH CỦA BẠN VÀO ĐÂY -->
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
