@@ -8,7 +8,7 @@ import {
 } from "../model/board-adapters";
 import { proposalKeys } from "@/features/proposals";
 import { seriesKeys } from "@/entities/series";
-import { apiRequest } from "@/shared/api/client";
+import { ApiRequestError, apiRequest } from "@/shared/api/client";
 import { useAuth } from "@/shared/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -227,6 +227,12 @@ export function useLatestAtRiskReportQuery(seriesId: string) {
       try {
         return await apiRequest<AtRiskReport>(`/series/${seriesId}/at-risk-reports/latest`);
       } catch (error) {
+        if (
+          error instanceof ApiRequestError &&
+          (error.status === 404 || error.code === "AT_RISK_REPORT_NOT_FOUND")
+        ) {
+          return null;
+        }
         if (error instanceof Error && error.message.includes("AT_RISK_REPORT_NOT_FOUND")) {
           return null;
         }
