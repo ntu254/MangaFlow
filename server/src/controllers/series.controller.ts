@@ -458,8 +458,6 @@ export const patchChapter = asyncRoute(async (req: AuthedRequest, res) => {
     "summary",
     "draftDueAt",
     "reviewDueAt",
-    "scheduledAt",
-    "publishedAt",
     "metadata",
   ];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields);

@@ -105,6 +105,17 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
   describe("Pages CRUD & Presigned URLs", () => {
     it("handles page CRUD lifecycle on chapters", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
+
+      await request(createApp())
+        .post("/api/chapters/ch-s-berserk-prod-4/pages")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({
+          id: "pg-editor-create-blocked",
+          pageNumber: 98,
+          imageUrl: "https://mock-s3-bucket.r2.cloudflarestorage.com/editor-page.png",
+        })
+        .expect(403);
 
       // 1. POST new page to chapter
       const createRes = await request(createApp())
@@ -128,7 +139,6 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(200);
       expect(getRes.body.data.some((p: any) => p.id === "pg-test-999")).toBe(true);
 
-      const editor = await loginAs("tanaka@beachread.jp");
       await request(createApp())
         .patch("/api/pages/pg-test-999")
         .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -434,6 +444,12 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .send({ scheduledAt: "2026-07-01T00:00:00.000Z" })
         .expect(400);
 
+      await request(createApp())
+        .patch("/api/chapters/ch-s-berserk-prod-4")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ publishedAt: "2026-07-02T00:00:00.000Z" })
+        .expect(400);
+
       const response = await request(createApp())
         .patch("/api/chapters/ch-s-berserk-prod-4")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -441,6 +457,134 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(200);
 
       expect(response.body.data.title).toBe("Chapter planning update");
+    });
+  });
+
+  describe("Studio Region and Task owner guards", () => {
+    it("allows only the owning Mangaka to create, patch, and delete production Regions", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
+      const otherMangaka = await createAndLoginOtherMangaka();
+      const body = {
+        seriesId: "s-berserk-prod",
+        chapterId: "ch-s-berserk-prod-4",
+        pageId: "pg-001",
+        type: "BUBBLE",
+        x: 10,
+        y: 20,
+        width: 120,
+        height: 64,
+        label: "Bubble 1",
+      };
+
+      await request(createApp())
+        .post("/api/studio/regions")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send(body)
+        .expect(403);
+
+      await request(createApp())
+        .post("/api/studio/regions")
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .send(body)
+        .expect(403);
+
+      const createRes = await request(createApp())
+        .post("/api/studio/regions")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send(body)
+        .expect(201);
+
+      const regionId = createRes.body.data.id;
+
+      await request(createApp())
+        .patch(`/api/studio/regions/${regionId}`)
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({ label: "Editor should not patch" })
+        .expect(403);
+
+      await request(createApp())
+        .patch(`/api/studio/regions/${regionId}`)
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .send({ label: "Other Mangaka should not patch" })
+        .expect(403);
+
+      const patchRes = await request(createApp())
+        .patch(`/api/studio/regions/${regionId}`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ label: "Owner updated region" })
+        .expect(200);
+      expect(patchRes.body.data.label).toBe("Owner updated region");
+
+      await request(createApp())
+        .delete(`/api/studio/regions/${regionId}`)
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .expect(403);
+
+      await request(createApp())
+        .delete(`/api/studio/regions/${regionId}`)
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .expect(403);
+
+      await request(createApp())
+        .delete(`/api/studio/regions/${regionId}`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+    });
+
+    it("allows only the owning Mangaka to create and patch production Tasks", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
+      const otherMangaka = await createAndLoginOtherMangaka();
+      const body = {
+        seriesId: "s-berserk-prod",
+        chapterId: "ch-s-berserk-prod-4",
+        pageId: "pg-001",
+        assigneeId: "u-assist",
+        title: "Owner-created task",
+        description: "Clean up the bubble linework.",
+        type: "lineart",
+        priority: "normal",
+      };
+
+      await request(createApp())
+        .post("/api/studio/tasks")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send(body)
+        .expect(403);
+
+      await request(createApp())
+        .post("/api/studio/tasks")
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .send(body)
+        .expect(403);
+
+      const createRes = await request(createApp())
+        .post("/api/studio/tasks")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send(body)
+        .expect(201);
+
+      const taskId = createRes.body.data.id;
+
+      await request(createApp())
+        .patch(`/api/studio/tasks/${taskId}`)
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({ title: "Editor should not patch" })
+        .expect(403);
+
+      await request(createApp())
+        .patch(`/api/studio/tasks/${taskId}`)
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .send({ title: "Other Mangaka should not patch" })
+        .expect(403);
+
+      const patchRes = await request(createApp())
+        .patch(`/api/studio/tasks/${taskId}`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ title: "Owner updated task" })
+        .expect(200);
+      expect(patchRes.body.data.title).toBe("Owner updated task");
     });
   });
 

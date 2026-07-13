@@ -84,7 +84,7 @@ router.get("/chapters/:chapterId/pages", getChapterPages);
 router.get("/chapters/:chapterId/readiness", getChapterReadiness);
 router.post(
   "/chapters/:chapterId/pages",
-  requireRole("EDITOR", "MANGAKA") as any,
+  requireRole("MANGAKA") as any,
   createChapterPage,
 );
 

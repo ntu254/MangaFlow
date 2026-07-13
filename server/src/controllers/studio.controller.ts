@@ -67,13 +67,16 @@ async function assertCanManageStudio(req: AuthedRequest, input: {
   pageId?: string;
 }) {
   const actor = requireActor(req);
-  if (actor.role === "ADMIN") return;
   const series = await resolveStudioSeries(input);
   if (!series) throw new AppError(404, "Series not found for this Studio record.", "SERIES_NOT_FOUND");
-  const allowed =
-    (actor.role === "MANGAKA" && (series as any).authorId === actor.id) ||
-    (actor.role === "EDITOR" && (series as any).editorId === actor.id);
-  if (!allowed) throw new AppError(403, "Only the series Mangaka or Tantou Editor can manage this record.", "FORBIDDEN");
+  const allowed = actor.role === "MANGAKA" && (series as any).authorId === actor.id;
+  if (!allowed) {
+    throw new AppError(
+      403,
+      "Only the owning Mangaka can manage production regions and tasks.",
+      "MANGAKA_OWNER_REQUIRED",
+    );
+  }
 }
 
 async function assertTaskAssignee(series: any, assigneeId: string | undefined) {
