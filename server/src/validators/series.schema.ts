@@ -29,11 +29,7 @@ export const patchSeriesSchema = z
     genres: z.array(z.string()).optional(),
     coverUrl: z.string().optional(),
     coverFileKey: z.string().optional(),
-    cadence: z.string().optional(),
     startDate: z.string().optional(),
     targetChapters: z.number().int().min(1).max(500).optional(),
-    editorId: z.string().optional(),
-    editorName: z.string().optional(),
-    assistantIds: z.array(z.string()).optional(),
   })
   .strict();

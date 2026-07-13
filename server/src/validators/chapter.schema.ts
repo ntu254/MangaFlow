@@ -18,7 +18,6 @@ export const patchChapterSchema = z.object({
   number: z.number().int().min(1).max(9999).optional(),
   draftDueAt: z.string().optional(),
   reviewDueAt: z.string().optional(),
-  scheduledAt: z.string().optional(),
   reviewNotes: z.array(z.any()).optional()
 }).strict();
 
@@ -38,7 +37,6 @@ export const createPageSchema = z.object({
 
 export const patchPageSchema = z.object({
   pageNumber: z.number().int().min(1).max(9999).optional(),
-  status: pageStatusSchema.optional(),
   imageUrl: z.string().min(1).optional(),
   fileKey: z.string().optional(),
   fileName: z.string().optional(),

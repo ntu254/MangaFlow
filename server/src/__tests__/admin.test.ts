@@ -95,6 +95,37 @@ describe("Admin RBAC and mutations", () => {
     });
   });
 
+  describe("MVP excludes manual workflow/payment mutation endpoints", () => {
+    it("does not expose admin override", async () => {
+      const admin = await loginAs("admin@beachread.jp");
+      await request(createApp())
+        .post("/api/admin/override")
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .send({ action: "force_status", targetId: "series-001", reason: "MVP should block this" })
+        .expect(404);
+    });
+
+    it("does not expose admin payroll confirmation/payment/void actions", async () => {
+      const admin = await loginAs("admin@beachread.jp");
+
+      await request(createApp())
+        .post("/api/admin/payroll/earn-001/confirm")
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .post("/api/admin/payroll/earn-002/mark-paid")
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .post("/api/admin/payroll/earn-001/void")
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .send({ reason: "MVP should block this" })
+        .expect(404);
+    });
+  });
+
   describe("PATCH /api/admin/users/:userId - RBAC", () => {
     it("returns 403 for non-admin user", async () => {
       const editor = await loginAs("tanaka@beachread.jp");
@@ -144,109 +175,4 @@ describe("Admin RBAC and mutations", () => {
     });
   });
 
-  describe("POST /api/admin/payroll/:earningId/confirm - RBAC", () => {
-    it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/confirm")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(403);
-    });
-
-    it("admin can confirm pending earning", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      const response = await request(createApp())
-        .post("/api/admin/payroll/earn-001/confirm")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(200);
-      expect(response.body.data.status).toBe("CONFIRMED");
-    });
-
-    it("cannot confirm already paid earning", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-003/confirm")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(409);
-    });
-
-    it("returns 404 for non-existent earning", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-nonexistent/confirm")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(404);
-    });
-  });
-
-  describe("POST /api/admin/payroll/:earningId/mark-paid - RBAC", () => {
-    it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-002/mark-paid")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(403);
-    });
-
-    it("admin can mark confirmed earning as paid", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      const response = await request(createApp())
-        .post("/api/admin/payroll/earn-002/mark-paid")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(200);
-      expect(response.body.data.status).toBe("PAID");
-    });
-
-    it("cannot mark pending earning as paid", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/mark-paid")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(409);
-    });
-  });
-
-  describe("POST /api/admin/payroll/:earningId/void - RBAC", () => {
-    it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/void")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .send({ reason: "Test void" })
-        .expect(403);
-    });
-
-    it("admin can void earning with reason", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      const response = await request(createApp())
-        .post("/api/admin/payroll/earn-001/void")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .send({ reason: "Duplicate entry" })
-        .expect(200);
-      expect(response.body.data.status).toBe("VOIDED");
-    });
-
-    it("void without reason returns 400", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/void")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .send({})
-        .expect(400);
-    });
-
-    it("cannot void already voided earning", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/void")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .send({ reason: "First void" })
-        .expect(200);
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/void")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .send({ reason: "Second void" })
-        .expect(409);
-    });
-  });
 });

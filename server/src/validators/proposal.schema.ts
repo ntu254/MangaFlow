@@ -104,8 +104,6 @@ export const createProposalSchema = z
   .object({
     title: z.string().min(1).max(200).optional(),
     slug: z.string().max(100).optional(),
-    authorId: z.string().optional(),
-    authorName: z.string().optional(),
     synopsis: z.string().max(5000).optional(),
     logline: z.string().max(500).optional(),
     genres: z.array(z.string()).optional(),

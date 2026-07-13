@@ -37,6 +37,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
 
   it("rejects PATCH /series/:id with protected fields", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -45,23 +46,18 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
 
     const patchRes = await request(createApp())
       .patch("/api/series/s-berserk-prod")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ authorId: "hacked", createdAt: "2020-01-01" })
       .expect(400);
     expect(patchRes.body.code).toBe("VALIDATION_ERROR");
   });
 
   it("rejects PATCH /series/:id with invalid field type", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
-    await request(createApp())
-      .post("/api/series")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send({ title: "MF-022 type test" })
-      .expect(403);
+    const mangaka = await loginAs("inoue@beachread.jp");
 
     await request(createApp())
       .patch("/api/series/s-berserk-prod")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ title: 12345 })
       .expect(400);
   });
@@ -213,6 +209,32 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     expect(first.body.data.slug).toMatch(/^duplicate-proposal-title-/);
     expect(second.body.data.slug).toMatch(/^duplicate-proposal-title-/);
     expect(first.body.data.slug).not.toBe(second.body.data.slug);
+  });
+
+  it("POST /api/proposals is Mangaka-owned and never accepts author spoofing", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
+
+    await request(createApp())
+      .post("/api/proposals")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ title: "Editor-created proposal should be blocked" })
+      .expect(403);
+
+    await request(createApp())
+      .post("/api/proposals")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ title: "Spoofed author", authorId: "u-editor", authorName: "Tanaka Akira" })
+      .expect(400);
+
+    const created = await request(createApp())
+      .post("/api/proposals")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ title: "Actor-owned proposal" })
+      .expect(201);
+
+    expect(created.body.data.authorId).toBe(mangaka.user.id);
+    expect(created.body.data.authorName).toBe("Inoue Takehiko");
   });
 
   it("RESUBMIT persists the revised proposal, real files, and resolved checklist", async () => {

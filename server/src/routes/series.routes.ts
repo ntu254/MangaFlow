@@ -36,7 +36,7 @@ const router = Router();
 router.get("/series", listSeries);
 router.post("/series", requireRole("EDITOR", "MANGAKA") as any, createSeries);
 router.get("/series/:id", getSeries);
-router.patch("/series/:id", requireRole("EDITOR", "MANGAKA") as any, patchSeries);
+router.patch("/series/:id", requireRole("MANGAKA") as any, patchSeries);
 router.post(
   "/series/:id/actions/:action",
   requireRole("ADMIN", "EDITOR", "MANGAKA") as any,
@@ -44,26 +44,26 @@ router.post(
 );
 router.delete("/series/:id", requireRole("ADMIN", "MANGAKA") as any, deleteSeries);
 router.get("/series/:id/chapters", listSeriesChapters);
-router.post("/series/:id/chapters", requireRole("EDITOR", "MANGAKA") as any, createSeriesChapter);
+router.post("/series/:id/chapters", requireRole("MANGAKA") as any, createSeriesChapter);
 router.get("/series/:seriesId/summary", getSeriesSummary);
 router.get("/series/:seriesId/activity", getSeriesActivity);
 
 // Members
 router.get("/series/:seriesId/members", listMembers);
-router.post("/series/:seriesId/members", requireRole("EDITOR", "MANGAKA") as any, addMember);
+router.post("/series/:seriesId/members", requireRole("MANGAKA") as any, addMember);
 router.patch(
   "/series/:seriesId/members/:memberId",
-  requireRole("EDITOR", "MANGAKA") as any,
+  requireRole("MANGAKA") as any,
   updateMember,
 );
 router.delete(
   "/series/:seriesId/members/:memberId",
-  requireRole("EDITOR", "MANGAKA") as any,
+  requireRole("MANGAKA") as any,
   removeMember,
 );
 router.post(
   "/series/:seriesId/invites",
-  requireRole("ADMIN", "EDITOR", "MANGAKA") as any,
+  requireRole("MANGAKA") as any,
   inviteAssistant,
 );
 
@@ -74,7 +74,7 @@ router.get(
   listChapters,
 );
 router.get("/chapters/:chapterId", getChapter);
-router.patch("/chapters/:chapterId", requireRole("EDITOR", "MANGAKA") as any, patchChapter);
+router.patch("/chapters/:chapterId", requireRole("MANGAKA") as any, patchChapter);
 router.post(
   "/chapters/:chapterId/actions/:action",
   requireRole("EDITOR", "MANGAKA", "ASSISTANT") as any,
@@ -89,8 +89,8 @@ router.post(
 );
 
 // Pages
-router.patch("/pages/:pageId", requireRole("EDITOR", "MANGAKA") as any, updatePage);
-router.delete("/pages/:pageId", requireRole("EDITOR", "MANGAKA") as any, deletePage);
+router.patch("/pages/:pageId", requireRole("MANGAKA") as any, updatePage);
+router.delete("/pages/:pageId", requireRole("MANGAKA") as any, deletePage);
 
 // Files
 router.post(

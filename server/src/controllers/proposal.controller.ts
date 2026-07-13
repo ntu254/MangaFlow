@@ -64,8 +64,8 @@ export const createProposal = asyncRoute(async (req: AuthedRequest, res) => {
     // surfacing as Mongo duplicate-key 500 responses.
     slug: `${slugBase}-${proposalId.slice(2)}`,
     title: body.title ?? "Untitled proposal",
-    authorId: body.authorId ?? actor.id,
-    authorName: body.authorName ?? actor.name,
+    authorId: actor.id,
+    authorName: actor.name,
     synopsis: body.synopsis ?? "",
     logline: body.logline,
     genres: Array.isArray(body.genres) ? body.genres : [],

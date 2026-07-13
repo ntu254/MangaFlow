@@ -340,11 +340,19 @@ describe("MangaFlow backend live contract", () => {
 
   it("rejects invalid body with 400 and validation error", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
+
+    // POST /proposals is Mangaka-owned; Editor cannot create a Proposal.
+    await request(createApp())
+      .post("/api/proposals")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ title: "Editor should not create proposals" })
+      .expect(403);
 
     // POST /proposals with invalid title type
     await request(createApp())
       .post("/api/proposals")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ title: 12345 })
       .expect(400);
 
@@ -372,17 +380,26 @@ describe("MangaFlow backend live contract", () => {
       .send({ title: "Validation test series" })
       .expect(403);
 
-    // PATCH with protected field should be rejected
+    const mangaka = await loginAs("inoue@beachread.jp");
+
+    // PATCH with protected field should be rejected for the owning Mangaka.
     await request(createApp())
       .patch("/api/series/s-berserk-prod")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ authorId: "hacked", createdAt: "2020-01-01" })
       .expect(400);
 
-    // PATCH with allowed fields should succeed
+    // Editor cannot patch Series directly; Tantou changes use review/schedule/publish flows.
     await request(createApp())
       .patch("/api/series/s-berserk-prod")
       .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ title: "Editor should not update" })
+      .expect(403);
+
+    // PATCH with allowed fields should succeed for the owning Mangaka.
+    await request(createApp())
+      .patch("/api/series/s-berserk-prod")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ title: "Updated title" })
       .expect(200);
   });
