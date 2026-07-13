@@ -123,10 +123,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
   const next = chapters.find(
     (c) => c.status === "SCHEDULED" || c.status === "READY_FOR_PUBLICATION",
   );
-  const canCreate =
-    user.role === "admin" ||
-    user.role === "editor" ||
-    (user.role === "mangaka" && user.id === series.authorId);
+  const canCreate = user.role === "mangaka" && user.id === series.authorId;
   const published = chapters.filter((c) => c.status === "PUBLISHED");
   const studioPermissions = getStudioPermissions(user, series);
   const canEnterStudio = studioPermissions.canEnterStudio && !isLocked;
@@ -208,7 +205,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
             <PenTool className="h-4 w-4" />
             Open Studio
           </button>
-          {!isLocked && <SeriesHeaderActions series={series} chapters={chapters} setTab={goTab} />}
+          {!isLocked && <SeriesHeaderActions series={series} setTab={goTab} />}
         </div>
       </header>
 

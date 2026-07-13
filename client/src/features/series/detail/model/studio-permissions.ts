@@ -42,7 +42,6 @@ export type StudioPermissionSet = {
   canUploadManuscript: boolean;
   canUploadReferences: boolean;
   canUploadCharacterSheets: boolean;
-  canUseAdminOverride: boolean;
   allowedTools: StudioTool[];
   visibleLayerKinds: Array<"region" | "task" | "comment">;
 };
@@ -91,7 +90,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canUploadManuscript: ownsSeries,
       canUploadReferences: ownsSeries,
       canUploadCharacterSheets: ownsSeries,
-      canUseAdminOverride: false,
       allowedTools: ["select", "pan", "draw-region", "comment"],
       visibleLayerKinds: ["region", "task", "comment"],
     };
@@ -133,7 +131,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canUploadManuscript: false,
       canUploadReferences: assignedToSeries, // Can upload references
       canUploadCharacterSheets: false,
-      canUseAdminOverride: false,
       allowedTools: ["select", "pan", "comment"],
       visibleLayerKinds: ["region", "task", "comment"],
     };
@@ -175,7 +172,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canUploadManuscript: false,
       canUploadReferences: false,
       canUploadCharacterSheets: false,
-      canUseAdminOverride: false,
       allowedTools: ["select", "pan", "comment"],
       visibleLayerKinds: ["region", "task", "comment"],
     };
@@ -215,7 +211,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canUploadManuscript: false,
       canUploadReferences: false,
       canUploadCharacterSheets: false,
-      canUseAdminOverride: false,
       allowedTools: VIEWER_TOOLS,
       visibleLayerKinds: ["comment"],
     };
@@ -224,7 +219,7 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
   return {
     mode: "admin",
     title: "Admin inspection mode",
-    summary: "Governance view only. Repairs require Danger Zone override with audit reason.",
+    summary: "Governance view only. Workflow repairs require the proper role action.",
     leftPanelTitle: "Workspace Inspection",
     taskPanelTitle: "Audit / Workflow Inspection",
     canEnterStudio: true,
@@ -254,7 +249,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
     canUploadManuscript: false,
     canUploadReferences: false,
     canUploadCharacterSheets: false,
-    canUseAdminOverride: true,
     allowedTools: ["select", "pan", "comment"],
     visibleLayerKinds: ["region", "task", "comment"],
   };

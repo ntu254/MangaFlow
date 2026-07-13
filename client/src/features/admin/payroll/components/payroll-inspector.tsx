@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AvatarInitials, StatusPill } from "@/shared/ui";
-import { CheckCircle2, XCircle } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Earning } from "../../_shared";
 import { formatDateTime, formatJpy } from "../../_shared";
 
@@ -10,38 +9,20 @@ export function PayrollInspector({
   earning,
   open,
   onOpenChange,
-  isMutating,
-  onConfirm,
-  onMarkPaid,
-  onVoid,
 }: {
   earning?: Earning;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isMutating: boolean;
-  onConfirm: (earningId: string) => void;
-  onMarkPaid: (earningId: string, reason: string) => void;
-  onVoid: (earningId: string, reason: string) => void;
 }) {
-  const [voidOpen, setVoidOpen] = useState(false);
-  const [voidReason, setVoidReason] = useState("");
-
-  const [paidOpen, setPaidOpen] = useState(false);
-  const [paidReason, setPaidReason] = useState("");
-
   if (!earning) return null;
 
-  const isPending = earning.status === "PENDING";
-  const isConfirmed = earning.status === "CONFIRMED";
-
   return (
-    <>
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          onOpenChange(next);
-        }}
-      >
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange(next);
+      }}
+    >
         <DialogContent className="max-w-xl gap-0 overflow-hidden border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
           <div className="relative px-6 pb-5 pt-6">
             <div className="absolute inset-0 bg-[var(--admin-hover)] opacity-60" />
@@ -154,134 +135,12 @@ export function PayrollInspector({
           </div>
 
           <div className="flex items-center justify-end gap-2 border-t border-[var(--admin-border)] bg-[var(--admin-hover)]/30 px-6 py-3.5">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isMutating}>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
               Close
             </Button>
-            {isPending && (
-              <>
-                <Button
-                  variant="destructive"
-                  onClick={() => setVoidOpen(true)}
-                  disabled={isMutating}
-                >
-                  <XCircle className="mr-2 size-4" />
-                  Void
-                </Button>
-                <Button onClick={() => onConfirm(earning.id)} disabled={isMutating}>
-                  <CheckCircle2 className="mr-2 size-4" />
-                  Confirm Payroll
-                </Button>
-              </>
-            )}
-            {isConfirmed && (
-              <>
-                <Button
-                  variant="destructive"
-                  onClick={() => setVoidOpen(true)}
-                  disabled={isMutating}
-                >
-                  <XCircle className="mr-2 size-4" />
-                  Void
-                </Button>
-                <Button onClick={() => setPaidOpen(true)} disabled={isMutating}>
-                  <CheckCircle2 className="mr-2 size-4" />
-                  Mark as Paid
-                </Button>
-              </>
-            )}
           </div>
         </DialogContent>
-      </Dialog>
-
-      <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
-        <DialogContent className="max-w-sm gap-0 border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
-          <DialogHeader className="border-b border-[var(--admin-border)] px-6 py-4">
-            <DialogTitle className="text-[14px] font-semibold text-[var(--admin-ink)]">
-              Void Payroll
-            </DialogTitle>
-          </DialogHeader>
-          <div className="px-6 py-4">
-            <p className="text-[12px] text-[var(--admin-muted)] mb-4">
-              Voiding this payroll will invalidate it. You must provide a reason.
-            </p>
-            <textarea
-              className="w-full rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[13px] placeholder-[var(--admin-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-navy)]"
-              placeholder="Reason for voiding..."
-              rows={3}
-              value={voidReason}
-              onChange={(e) => setVoidReason(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-[var(--admin-border)] px-6 py-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setVoidOpen(false);
-                setVoidReason("");
-              }}
-              disabled={isMutating}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={voidReason.trim().length === 0 || isMutating}
-              onClick={() => {
-                onVoid(earning.id, voidReason);
-                setVoidOpen(false);
-                setVoidReason("");
-              }}
-            >
-              Confirm Void
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={paidOpen} onOpenChange={setPaidOpen}>
-        <DialogContent className="max-w-sm gap-0 border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
-          <DialogHeader className="border-b border-[var(--admin-border)] px-6 py-4">
-            <DialogTitle className="text-[14px] font-semibold text-[var(--admin-ink)]">
-              Mark as Paid
-            </DialogTitle>
-          </DialogHeader>
-          <div className="px-6 py-4">
-            <p className="text-[12px] text-[var(--admin-muted)] mb-4">
-              Enter an optional reference or reason for marking this payroll as paid.
-            </p>
-            <textarea
-              className="w-full rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[13px] placeholder-[var(--admin-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-navy)]"
-              placeholder="Transaction ref..."
-              rows={3}
-              value={paidReason}
-              onChange={(e) => setPaidReason(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-[var(--admin-border)] px-6 py-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPaidOpen(false);
-                setPaidReason("");
-              }}
-              disabled={isMutating}
-            >
-              Cancel
-            </Button>
-            <Button
-              disabled={isMutating}
-              onClick={() => {
-                onMarkPaid(earning.id, paidReason);
-                setPaidOpen(false);
-                setPaidReason("");
-              }}
-            >
-              Confirm Paid
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    </Dialog>
   );
 }
 

@@ -1,18 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import { toast } from "sonner";
 import {
   Pencil,
   Share2,
-  MoreHorizontal,
-  Archive,
   Upload,
   ListPlus,
   PencilRuler,
   ClipboardCheck,
   Send,
-  Trash2,
-  EyeOff,
   FileText,
   Calendar as CalendarIcon,
   CheckCircle2,
@@ -23,15 +18,12 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { ResolvedImage } from "@/shared/ui";
 import {
   useChapterReadinessQuery,
   useSendChapterToEditorReviewMutation,
   useCommentsQuery,
-  useDeleteSeriesMutation,
   useSeriesActivityQuery,
-  useSeriesLifecycleMutation,
   useStudioTasksQuery,
   type SeriesActivityEntry,
 } from "../../api/series-queries";
@@ -112,140 +104,25 @@ export function SeriesOverview({
 
 export function SeriesHeaderActions({
   series,
-  chapters,
   setTab,
 }: {
   series: ProductionSeries;
-  chapters: Chapter[];
   setTab: (t: Tab) => void;
 }) {
   const user = useAuth((s) => s.user);
-  const navigate = useNavigate();
-  const lifecycle = useSeriesLifecycleMutation(series.id);
-  const deleteSeries = useDeleteSeriesMutation(series.id);
-  const isPublic = ["ONGOING", "COMPLETED", "PUBLISHED", "PUBLIC"].includes(series.status);
-  const hasPublishedChapters = chapters.some((chapter) => chapter.status === "PUBLISHED");
-  const canArchive =
-    !!user && (user.role === "admin" || user.role === "editor") && series.status !== "ARCHIVED";
-  const canUnpublish = canArchive && isPublic;
-  const canDelete =
-    !!user &&
-    !isPublic &&
-    (user.role === "admin" || (user.role === "mangaka" && user.id === series.authorId));
-  const busy = lifecycle.isPending || deleteSeries.isPending;
-
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
-
-  const handleLifecycle = (action: "archive" | "unpublish") => {
-    const label = action === "archive" ? "archive" : "unpublish";
-    lifecycle.mutate(action, {
-      onSuccess: () => {
-        toast.success(`Series ${label} request completed.`);
-        setArchiveDialogOpen(false);
-        setUnpublishDialogOpen(false);
-      },
-      onError: (err) => toast.error(err instanceof Error ? err.message : `Cannot ${label} series.`),
-    });
-  };
-
-  const handleDelete = () => {
-    deleteSeries.mutate(undefined, {
-      onSuccess: () => {
-        toast.success("Series deleted.");
-        setDeleteDialogOpen(false);
-        navigate({ to: "/app/series" });
-      },
-      onError: (err) => toast.error(err instanceof Error ? err.message : "Cannot delete series."),
-    });
-  };
+  const canUploadChapter = !!user && user.role === "mangaka" && user.id === series.authorId;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {canUnpublish ? (
+      {canUploadChapter ? (
         <button
           type="button"
-          disabled={busy}
-          onClick={() => setUnpublishDialogOpen(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+          onClick={() => setTab("chapters")}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-semibold text-background"
         >
-          <EyeOff className="h-3.5 w-3.5" /> Unpublish
+          <Upload className="h-3.5 w-3.5" /> Upload new chapter
         </button>
       ) : null}
-      {canArchive ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setArchiveDialogOpen(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
-        >
-          <Archive className="h-3.5 w-3.5" /> Archive
-        </button>
-      ) : null}
-      {canDelete ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setDeleteDialogOpen(true)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40"
-          aria-label="Delete series"
-          title="Delete draft series"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      ) : null}
-      <button
-        type="button"
-        disabled
-        className="hidden h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground"
-        aria-label="More actions"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setTab("chapters")}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-semibold text-background"
-      >
-        <Upload className="h-3.5 w-3.5" /> Upload new chapter
-      </button>
-
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Delete Series"
-        description="This draft series will be soft-deleted. It can be restored by an administrator."
-        impactExplanation="The series will be hidden from all views. All data will be preserved and can be recovered."
-        confirmLabel="Soft Delete"
-        variant="danger"
-        onConfirm={handleDelete}
-        isLoading={deleteSeries.isPending}
-      />
-
-      <ConfirmDialog
-        open={archiveDialogOpen}
-        onOpenChange={setArchiveDialogOpen}
-        title="Archive Series"
-        description="This series will be moved to archive status. It will no longer appear in active series lists."
-        impactExplanation="Published chapters and submissions will be preserved but the series will be hidden from production views."
-        confirmLabel="Archive Series"
-        variant="danger"
-        onConfirm={() => handleLifecycle("archive")}
-        isLoading={lifecycle.isPending}
-      />
-
-      <ConfirmDialog
-        open={unpublishDialogOpen}
-        onOpenChange={setUnpublishDialogOpen}
-        title="Unpublish Series"
-        description="This series will be set to hiatus status. It will be removed from public view."
-        impactExplanation="Published chapters will remain accessible to users who have direct links, but the series will be hidden from discovery."
-        confirmLabel="Unpublish Series"
-        variant="danger"
-        onConfirm={() => handleLifecycle("unpublish")}
-        isLoading={lifecycle.isPending}
-      />
     </div>
   );
 }

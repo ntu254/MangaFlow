@@ -109,6 +109,7 @@ function SeriesCardWrapper({
 export function SeriesListPage() {
   const user = useAuth((s) => s.user);
   const navigate = useNavigate();
+  const canCreateProposal = user?.role === "mangaka";
 
   const {
     data: proposals = [],
@@ -355,10 +356,12 @@ export function SeriesListPage() {
         title="Production Series"
         description="Manage series proposals and production projects."
       >
-        <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
-          <Plus className="size-4" />
-          Create series proposal
-        </ActionButton>
+        {canCreateProposal ? (
+          <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
+            <Plus className="size-4" />
+            Create series proposal
+          </ActionButton>
+        ) : null}
         <Link
           to="/app/submissions"
           className="inline-flex h-10 items-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] font-semibold text-[var(--admin-ink)] shadow-sm hover:bg-[var(--admin-hover)]"
@@ -443,10 +446,12 @@ export function SeriesListPage() {
           title="You do not have any series proposals yet."
           description="Create your first proposal and upload a manuscript/sample for Editor review."
           action={
-            <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
-              <Plus className="size-4" />
-              Create series proposal
-            </ActionButton>
+            canCreateProposal ? (
+              <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
+                <Plus className="size-4" />
+                Create series proposal
+              </ActionButton>
+            ) : undefined
           }
         />
       ) : (

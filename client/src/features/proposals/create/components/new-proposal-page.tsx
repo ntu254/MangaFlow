@@ -15,13 +15,13 @@ export function NewProposalPage() {
     );
   }
 
-  if (user.role !== "mangaka" && user.role !== "admin") {
+  if (user.role !== "mangaka") {
     return (
       <div className="mx-auto max-w-md py-24 text-center">
         <ShieldAlert className="mx-auto mb-4 size-10 text-muted-foreground" />
         <h2 className="font-serif text-2xl">Access restricted</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Only Mangaka and Admin accounts can create new series proposals.
+          Only Mangaka accounts can create new series proposals.
         </p>
         <Link
           to="/app/submissions"

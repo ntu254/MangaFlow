@@ -64,7 +64,6 @@ type Props = {
     action: "approve" | "reject" | "request-revision" | "editor-approve",
     note?: string,
   ) => void;
-  onAdminOverride?: (action: string, targetId: string | undefined, reason: string) => void;
 };
 export function StudioInspector(props: Props) {
   return (
@@ -347,13 +346,9 @@ function InspectorBody({
   userId,
   onTaskAction,
   onReviewSubmission,
-  onAdminOverride,
 }: Props) {
   const [blockReason, setBlockReason] = useState("");
   const [isBlockExpanded, setIsBlockExpanded] = useState(false);
-  const [overrideReason, setOverrideReason] = useState("");
-  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
-  const [overrideAction, setOverrideAction] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
   const [isRevisionNoteExpanded, setIsRevisionNoteExpanded] = useState(false);
 
@@ -539,87 +534,6 @@ function InspectorBody({
             <span>This region already has an active task.</span>
           </div>
         ) : null}
-
-        {permissions.canUseAdminOverride && (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50/50 p-3 dark:border-red-900/50 dark:bg-red-950/20">
-            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
-              <AlertTriangle className="h-3.5 w-3.5" /> Danger Zone (Admin Override)
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Select Override Action
-                </Label>
-                <select
-                  value={overrideAction}
-                  onChange={(e) => setOverrideAction(e.target.value)}
-                  className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
-                >
-                  <option value="">Select Action...</option>
-                  <option value="force_delete_region">Force Delete Region</option>
-                  <option value="bypass_approval_checks">Bypass Approval Checks</option>
-                </select>
-              </div>
-              <div>
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Override Reason
-                </Label>
-                <Input
-                  type="text"
-                  placeholder="E.g., System misalignment repair"
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                  className="mt-1 h-7 text-xs text-foreground"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="confirm-override-region"
-                  checked={overrideConfirmed}
-                  onChange={(e) => setOverrideConfirmed(e.target.checked)}
-                  className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                />
-                <label
-                  htmlFor="confirm-override-region"
-                  className="text-[10px] text-muted-foreground select-none"
-                >
-                  I confirm this override will be logged in the audit trail.
-                </label>
-              </div>
-              {overrideAction && overrideReason && (
-                <div className="rounded border border-red-100 bg-red-100/50 p-2 text-[10px] dark:border-red-950 dark:bg-red-950/40 text-foreground">
-                  <p className="font-bold text-red-800 dark:text-red-300">Audit Trail Preview:</p>
-                  <p className="mt-1">
-                    <span className="font-semibold">Action:</span> admin.override.{overrideAction}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Target:</span> {region.id}
-                  </p>
-                  <p className="break-all">
-                    <span className="font-semibold">Reason:</span> {overrideReason}
-                  </p>
-                </div>
-              )}
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full h-8 text-xs font-bold"
-                disabled={!overrideAction || !overrideReason || !overrideConfirmed}
-                onClick={() => {
-                  if (onAdminOverride) {
-                    onAdminOverride(overrideAction, region.id, overrideReason);
-                    setOverrideAction("");
-                    setOverrideReason("");
-                    setOverrideConfirmed(false);
-                  }
-                }}
-              >
-                Execute Override
-              </Button>
-            </div>
-          </div>
-        )}
 
         {permissions.canDeleteRegion ? (
           <button
@@ -951,88 +865,6 @@ function InspectorBody({
           </div>
         )}
 
-        {/* Danger Zone for Admin (Task context) */}
-        {permissions.canUseAdminOverride && (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50/50 p-3 dark:border-red-900/50 dark:bg-red-950/20">
-            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
-              <AlertTriangle className="h-3.5 w-3.5" /> Danger Zone (Admin Override)
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Select Override Action
-                </Label>
-                <select
-                  value={overrideAction}
-                  onChange={(e) => setOverrideAction(e.target.value)}
-                  className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
-                >
-                  <option value="">Select Action...</option>
-                  <option value="reassign_locked_task">Reassign Locked Task</option>
-                  <option value="reset_chapter_state">Reset Chapter State</option>
-                  <option value="bypass_approval_checks">Bypass Approval Checks</option>
-                </select>
-              </div>
-              <div>
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Override Reason
-                </Label>
-                <Input
-                  type="text"
-                  placeholder="E.g., System misalignment repair"
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                  className="mt-1 h-7 text-xs text-foreground"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="confirm-override-task"
-                  checked={overrideConfirmed}
-                  onChange={(e) => setOverrideConfirmed(e.target.checked)}
-                  className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                />
-                <label
-                  htmlFor="confirm-override-task"
-                  className="text-[10px] text-muted-foreground select-none"
-                >
-                  I confirm this override will be logged in the audit trail.
-                </label>
-              </div>
-              {overrideAction && overrideReason && (
-                <div className="rounded border border-red-100 bg-red-100/50 p-2 text-[10px] dark:border-red-950 dark:bg-red-950/40 text-foreground">
-                  <p className="font-bold text-red-800 dark:text-red-300">Audit Trail Preview:</p>
-                  <p className="mt-1">
-                    <span className="font-semibold">Action:</span> admin.override.{overrideAction}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Target:</span> {task.id}
-                  </p>
-                  <p className="break-all">
-                    <span className="font-semibold">Reason:</span> {overrideReason}
-                  </p>
-                </div>
-              )}
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full h-8 text-xs font-bold"
-                disabled={!overrideAction || !overrideReason || !overrideConfirmed}
-                onClick={() => {
-                  if (onAdminOverride) {
-                    onAdminOverride(overrideAction, task.id, overrideReason);
-                    setOverrideAction("");
-                    setOverrideReason("");
-                    setOverrideConfirmed(false);
-                  }
-                }}
-              >
-                Execute Override
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     );
   }

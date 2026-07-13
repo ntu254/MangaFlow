@@ -1,10 +1,4 @@
-import type {
-  Chapter,
-  ChapterPage,
-  MaterialItem,
-  ProductionSeries,
-  SeriesRanking,
-} from "@/entities/series/model/series-types";
+import type { Chapter, ChapterPage, MaterialItem, SeriesRanking } from "@/entities/series/model/series-types";
 import {
   seriesKeys,
   chapterKeys,
@@ -187,30 +181,6 @@ export function useSeriesActivityQuery(seriesId: string) {
   });
 }
 
-export function useSeriesLifecycleMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<ProductionSeries, Error, "archive" | "unpublish">({
-    mutationFn: (action) => seriesApi.action(seriesId, action) as Promise<ProductionSeries>,
-    onSuccess: (series) => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.mine() });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(series.id) });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.activity(series.id) });
-    },
-  });
-}
-
-export function useDeleteSeriesMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<ProductionSeries | { id: string; deleted: true }, Error, void>({
-    mutationFn: () =>
-      seriesApi.delete(seriesId) as Promise<ProductionSeries | { id: string; deleted: true }>,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.mine() });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(seriesId) });
-    },
-  });
-}
-
 export function useRankingsQuery(seriesId: string) {
   return useQuery<SeriesRanking[]>({
     queryKey: seriesKeys.rankings(seriesId),
@@ -332,30 +302,6 @@ export function useRemoveMemberMutation(seriesId: string, memberId: string) {
     mutationFn: () =>
       apiRequest<{ id: string }>(`/series/${seriesId}/members/${memberId}`, { method: "DELETE" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.members(seriesId) });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(seriesId) });
-    },
-  });
-}
-
-export function useAssignEditorMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<TantouEditor, Error, { editorId: string; editorName: string }>({
-    mutationFn: (body) => seriesApi.assignEditor(seriesId, body) as Promise<TantouEditor>,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.editor(seriesId) });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.members(seriesId) });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(seriesId) });
-    },
-  });
-}
-
-export function useRemoveEditorMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<{ id: string }, Error, void>({
-    mutationFn: () => seriesApi.removeEditor(seriesId) as Promise<{ id: string }>,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.editor(seriesId) });
       queryClient.invalidateQueries({ queryKey: seriesKeys.members(seriesId) });
       queryClient.invalidateQueries({ queryKey: seriesKeys.detail(seriesId) });
     },
@@ -684,20 +630,6 @@ export function useDeleteStudioRegionMutation() {
         });
       }
     },
-  });
-}
-
-export function useAdminOverrideMutation() {
-  return useMutation<
-    { success: boolean; action: string; targetId?: string; reason: string },
-    Error,
-    { action: string; targetId?: string; reason: string }
-  >({
-    mutationFn: (body) =>
-      apiRequest<{ success: boolean; action: string; targetId?: string; reason: string }>(
-        "/admin/override",
-        { method: "POST", body },
-      ),
   });
 }
 

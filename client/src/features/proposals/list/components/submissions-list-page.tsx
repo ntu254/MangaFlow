@@ -89,7 +89,7 @@ export function SubmissionsListPage() {
         title="Submissions"
         description="Mangaka proposals series — Editor review — Board vote."
       >
-        {(user.role === "mangaka" || user.role === "admin") && (
+        {user.role === "mangaka" && (
           <Link
             to="/app/submissions/new"
             className="inline-flex items-center gap-1.5 rounded bg-foreground px-3 py-2 text-xs font-semibold text-background hover:bg-foreground/90"

@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { useAuth } from "@/shared/auth";
 import type { Chapter } from "@/entities/series/model/series-types";
 import { useUploadPageMutation, mapApiError } from "../../api/series-queries";
 import { uploadFileToR2 } from "@/shared/lib/r2-upload";
@@ -12,19 +11,20 @@ const EXPANDED_COUNT = 24;
 
 export function ChapterPagesPreview({
   chapter,
+  canUpload,
   expanded = false,
   compact = false,
 }: {
   chapter: Chapter;
+  canUpload: boolean;
   expanded?: boolean;
   compact?: boolean;
 }) {
-  const user = useAuth((s) => s.user);
   const uploadPageMutation = useUploadPageMutation(chapter.id, chapter.seriesId);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handle = async (files: FileList | null) => {
-    if (!files || !user) return;
+    if (!files || !canUpload) return;
     const valid = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (valid.length === 0) {
       toast.error("Choose an image file.");
@@ -52,9 +52,6 @@ export function ChapterPagesPreview({
       toast.error(mapApiError(e));
     }
   };
-
-  const canUpload =
-    chapter.status === "DRAFTING" || chapter.status === "REVISION" || chapter.status === "PLANNED";
 
   const limit = expanded ? EXPANDED_COUNT : PREVIEW_COUNT;
   const pages = chapter.pages.slice(0, limit);
