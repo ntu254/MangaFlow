@@ -179,7 +179,7 @@ describe("MangaFlow backend live contract", () => {
       .post("/api/files/display-url")
       .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
       .send({ key: uploaded.key, fileName: "pg-display-test.png" });
-    expect(forbidden.status).toBe(403);
+    expect(forbidden.status).toBe(404);
 
     await request(createApp())
       .post("/api/files/display-url")

@@ -68,7 +68,7 @@ function isAssignedAssistant(actor: RequestActor, task: any) {
 
 function assertTaskReadable(actor: RequestActor, task: any) {
   if (actor.role === "ASSISTANT" && task.assigneeId !== actor.id) {
-    throw new AppError(403, "Task is not assigned to the current assistant.", "TASK_NOT_ASSIGNED");
+    throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   }
 }
 
@@ -2454,7 +2454,10 @@ export async function taskDetail(req: AuthedRequest, taskId: string) {
   const task = await StudioTaskModel.findOne({ id: taskId }).lean();
   if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   assertTaskReadable(actor, task);
-  if (actor.role !== "ASSISTANT" && actor.role !== "ADMIN") {
+  if (actor.role === "ADMIN" || actor.role === "BOARD") {
+    throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
+  }
+  if (actor.role !== "ASSISTANT") {
     const taskChapter = (task as any).chapterId
       ? await ChapterModel.findOne({ id: (task as any).chapterId }).select({ seriesId: 1 }).lean()
       : undefined;
@@ -2464,7 +2467,7 @@ export async function taskDetail(req: AuthedRequest, taskId: string) {
     const allowed =
       (actor.role === "MANGAKA" && series?.authorId === actor.id) ||
       (actor.role === "EDITOR" && series?.editorId === actor.id);
-    if (!allowed) throw new AppError(403, "You do not have access to this task.", "FORBIDDEN");
+    if (!allowed) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   }
   return task;
 }

@@ -16,7 +16,6 @@ export type ResolvedStudioPage = {
 };
 
 function hasSeriesScope(actor: RequestActor, series: any) {
-  if (actor.role === "ADMIN" || actor.role === "BOARD") return true;
   if (actor.role === "MANGAKA") return series.authorId === actor.id;
   if (actor.role === "EDITOR") return series.editorId === actor.id;
   if (actor.role === "ASSISTANT") {
@@ -47,11 +46,11 @@ export async function assertCanReadStudioPage(actor: RequestActor, pageId: strin
     }).lean();
     if (task) return resolved;
     if (hasSeriesScope(actor, resolved.series)) return resolved;
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   if (!hasSeriesScope(actor, resolved.series)) {
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   return resolved;
@@ -60,13 +59,12 @@ export async function assertCanReadStudioPage(actor: RequestActor, pageId: strin
 export async function assertCanRunPageAi(actor: RequestActor, pageId: string) {
   const resolved = await resolveStudioPage(pageId);
   const canRun =
-    actor.role === "ADMIN" ||
     (actor.role === "MANGAKA" && (resolved.series as any).authorId === actor.id);
   if (!canRun) {
     throw new AppError(
-      403,
-      "Only the production owner can run Studio AI for this page.",
-      "FORBIDDEN",
+      404,
+      "Page not found.",
+      "PAGE_NOT_FOUND",
     );
   }
   return resolved;
@@ -83,12 +81,11 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
       "REJECTED",
     ]);
     const canRead =
-      actor.role === "ADMIN" ||
       (actor.role === "BOARD" && boardVisibleStatuses.has(String((proposal as any).status))) ||
       actor.role === "EDITOR" ||
       (actor.role === "MANGAKA" && (proposal as any).authorId === actor.id);
     if (canRead) return { chapter: null, page: null, series: null };
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   const coverSeries = await SeriesModel.findOne({ coverFileKey: key }).lean();
@@ -96,7 +93,7 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
     if (hasSeriesScope(actor, coverSeries)) {
       return { chapter: null, page: null, series: coverSeries };
     }
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   const chapter = await ChapterModel.findOne({
@@ -121,7 +118,7 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
 
   const submission = (await SubmissionModel.findOne({ fileKey: key }).lean()) as any;
   if (submission?.pageId) return assertCanReadStudioPage(actor, String(submission.pageId));
-  if (submission?.assistantId === actor.id || actor.role === "ADMIN" || actor.role === "EDITOR") {
+  if (submission?.assistantId === actor.id) {
     return { chapter: null, page: null, series: null };
   }
 
