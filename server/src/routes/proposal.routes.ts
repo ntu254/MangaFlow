@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 router.get("/proposals", listProposals);
-router.post("/proposals", requireRole("MANGAKA", "EDITOR") as any, createProposal);
+router.post("/proposals", requireRole("MANGAKA") as any, createProposal);
 router.get("/proposals/:id", getProposal);
 router.patch("/proposals/:id", patchProposal);
 router.delete("/proposals/:id", requireRole("MANGAKA", "EDITOR") as any, deleteProposal);

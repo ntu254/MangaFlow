@@ -45,7 +45,6 @@ import {
 import type { AuthedRequest, ChapterAction } from "../types.js";
 import { CHAPTER_ACTIONS } from "../types.js";
 
-const PUBLIC_SERIES_STATUSES = new Set(["ONGOING", "COMPLETED", "PUBLISHED", "PUBLIC"]);
 const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
   "application/pdf",
   "application/zip",
@@ -62,14 +61,32 @@ function seriesSlug(input: string, fallback: string) {
   return slugify(input) || fallback;
 }
 
-async function seriesHasRelatedData(seriesId: string) {
-  const [publishedChapters, submissions, tasks, audits] = await Promise.all([
-    ChapterModel.countDocuments({ seriesId, status: "PUBLISHED" }),
-    SubmissionModel.countDocuments({ seriesId }),
-    StudioTaskModel.countDocuments({ seriesId }),
-    AuditEntryModel.countDocuments({ entityId: seriesId }),
-  ]);
-  return publishedChapters > 0 || submissions > 0 || tasks > 0 || audits > 0;
+async function assertMangakaOwnsSeries(req: AuthedRequest, seriesId: string) {
+  const actor = requireActor(req);
+  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  if (actor.role !== "MANGAKA" || series.authorId !== actor.id) {
+    throw new AppError(
+      403,
+      "Only the owning Mangaka can modify this Series production data.",
+      "MANGAKA_OWNER_REQUIRED",
+    );
+  }
+  return series;
+}
+
+async function assertMangakaOwnsChapter(req: AuthedRequest, chapterId: string) {
+  const chapter = (await ChapterModel.findOne({ id: chapterId }).lean()) as any;
+  if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  await assertMangakaOwnsSeries(req, String(chapter.seriesId));
+  return chapter;
+}
+
+async function assertMangakaOwnsPage(req: AuthedRequest, pageId: string) {
+  const chapter = (await ChapterModel.findOne({ "pages.id": pageId }).lean()) as any;
+  if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
+  await assertMangakaOwnsSeries(req, String(chapter.seriesId));
+  return chapter;
 }
 
 export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
@@ -144,6 +161,7 @@ export const getSeries = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const patchSeries = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertMangakaOwnsSeries(req, String(req.params.id));
   const body = parseBody(patchSeriesSchema, req);
   const allowedFields = [
     "title",
@@ -152,12 +170,8 @@ export const patchSeries = asyncRoute(async (req: AuthedRequest, res) => {
     "genres",
     "coverUrl",
     "coverFileKey",
-    "cadence",
     "startDate",
     "targetChapters",
-    "editorId",
-    "editorName",
-    "assistantIds",
   ];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields);
   const series = await SeriesModel.findOneAndUpdate(
@@ -171,88 +185,25 @@ export const patchSeries = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
   const seriesId = String(req.params.id);
-  const action = String(req.params.action).toUpperCase();
   const series = await SeriesModel.findOne({ id: seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-
-  if (actor.role === "MANGAKA" && PUBLIC_SERIES_STATUSES.has(String((series as any).status))) {
-    throw new AppError(403, "Mangaka cannot archive or unpublish public series.", "FORBIDDEN");
-  }
-  if (!["ADMIN", "EDITOR"].includes(actor.role)) {
-    throw new AppError(403, "Editor or Admin permission is required.", "FORBIDDEN");
-  }
-
-  const status = action === "UNPUBLISH" ? "HIATUS" : action === "ARCHIVE" ? "ARCHIVED" : null;
-  if (!status) throw new AppError(400, "Unknown series lifecycle action.", "INVALID_ACTION");
-  const patch: Record<string, unknown> = { status, updatedAt: nowIso() };
-  if (action === "ARCHIVE") patch.archivedAt = nowIso();
-  if (action === "UNPUBLISH") patch.unpublishedAt = nowIso();
-
-  const updated = await SeriesModel.findOneAndUpdate(
-    { id: seriesId },
-    { $set: patch },
-    { returnDocument: "after" },
-  ).lean();
-  await audit(req, `series.${action.toLowerCase()}`, "series", seriesId, {
-    previousStatus: (series as any).status,
-    nextStatus: status,
-  });
-  ok(res, updated);
+  throw new AppError(
+    403,
+    "Series lifecycle changes are handled by Board at-risk decisions after a submitted Tantou report.",
+    "BOARD_AT_RISK_DECISION_REQUIRED",
+  );
 });
 
 export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
   const seriesId = String(req.params.id);
   const series = await SeriesModel.findOne({ id: seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-
-  const isPublic = PUBLIC_SERIES_STATUSES.has(String((series as any).status));
-  if (actor.role !== "ADMIN" && (isPublic || actor.role !== "MANGAKA")) {
-    throw new AppError(403, "You do not have permission to delete this series.", "FORBIDDEN");
-  }
-  if (actor.role === "MANGAKA" && (series as any).authorId !== actor.id) {
-    throw new AppError(403, "Only the owning Mangaka can delete a safe draft series.", "FORBIDDEN");
-  }
-
-  const hasRelatedData = await seriesHasRelatedData(seriesId);
-
-  if (isPublic || hasRelatedData) {
-    const archived = await SeriesModel.findOneAndUpdate(
-      { id: seriesId },
-      {
-        $set: {
-          status: "ARCHIVED",
-          archivedAt: nowIso(),
-          deletedAt: nowIso(),
-          updatedAt: nowIso(),
-        },
-      },
-      { returnDocument: "after" },
-    ).lean();
-    await audit(req, "series.archive", "series", seriesId, {
-      previousStatus: (series as any).status,
-      hasRelatedData,
-    });
-    ok(res, archived);
-    return;
-  }
-
-  const softDeleted = await SeriesModel.findOneAndUpdate(
-    { id: seriesId },
-    {
-      $set: {
-        deletedAt: nowIso(),
-        updatedAt: nowIso(),
-      },
-    },
-    { returnDocument: "after" },
-  ).lean();
-  await audit(req, "series.soft_delete", "series", seriesId, {
-    previousStatus: (series as any).status,
-  });
-  ok(res, softDeleted);
+  throw new AppError(
+    403,
+    "Series deletion/cancellation is handled by Board at-risk decisions after a submitted Tantou report.",
+    "BOARD_AT_RISK_DECISION_REQUIRED",
+  );
 });
 
 export const listSeriesChapters = asyncRoute(async (req: AuthedRequest, res) => {
@@ -370,7 +321,11 @@ export const listMembers = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const addMember = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
+  await assertMangakaOwnsSeries(req, seriesId);
   const body = parseBody(addMemberSchema, req);
+  if (String(body.role) !== "assistant") {
+    throw new AppError(400, "Only Assistant members can be managed in the MVP.", "INVALID_MEMBER_ROLE");
+  }
   const allowedFields = [
     "userId",
     "role",
@@ -402,6 +357,7 @@ export const addMember = asyncRoute(async (req: AuthedRequest, res) => {
 export const updateMember = asyncRoute(async (req: AuthedRequest, res) => {
   const memberId = String(req.params.memberId);
   const seriesId = String(req.params.seriesId);
+  await assertMangakaOwnsSeries(req, seriesId);
   const body = parseBody(updateMemberSchema, req);
   const allowedFields = [
     "role",
@@ -425,6 +381,7 @@ export const updateMember = asyncRoute(async (req: AuthedRequest, res) => {
 export const removeMember = asyncRoute(async (req: AuthedRequest, res) => {
   const memberId = String(req.params.memberId);
   const seriesId = String(req.params.seriesId);
+  await assertMangakaOwnsSeries(req, seriesId);
   const deleted = await SeriesMemberModel.findOneAndDelete({ id: memberId, seriesId }).lean();
   if (!deleted) throw new AppError(404, "Member not found.", "MEMBER_NOT_FOUND");
   if (String((deleted as any).role) === "assistant") {
@@ -438,23 +395,10 @@ export const removeMember = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const inviteAssistant = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
   const seriesId = String(req.params.seriesId);
   const body = parseBody(inviteAssistantSchema, req);
 
-  const series = await SeriesModel.findOne({ id: seriesId }).lean();
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-
-  const isAdmin = actor.role === "ADMIN";
-  const isEditor = actor.role === "EDITOR";
-  const isOwner = actor.role === "MANGAKA" && (series as any).authorId === actor.id;
-  if (!isAdmin && !isEditor && !isOwner) {
-    throw new AppError(
-      403,
-      "Only the series owner can invite assistants.",
-      "MANGAKA_OWNER_REQUIRED",
-    );
-  }
+  await assertMangakaOwnsSeries(req, seriesId);
 
   const user = await UserModel.findOne({ email: body.email }).lean();
   if (!user) {
@@ -506,6 +450,7 @@ export const getChapter = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const patchChapter = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertMangakaOwnsChapter(req, String(req.params.chapterId));
   const body = parseBody(patchChapterSchema, req);
   const allowedFields = [
     "title",
@@ -636,8 +581,7 @@ export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const updatePage = asyncRoute(async (req: AuthedRequest, res) => {
   const pageId = String(req.params.pageId);
-  const chapter = await ChapterModel.findOne({ "pages.id": pageId });
-  if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
+  const chapter = await assertMangakaOwnsPage(req, pageId);
 
   const body = parseBody(patchPageSchema, req);
   const pages = (chapter as any).pages.map((p: any) => {
@@ -654,8 +598,7 @@ export const updatePage = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const deletePage = asyncRoute(async (req: AuthedRequest, res) => {
   const pageId = String(req.params.pageId);
-  const chapter = await ChapterModel.findOne({ "pages.id": pageId });
-  if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
+  const chapter = await assertMangakaOwnsPage(req, pageId);
 
   await ChapterModel.updateOne(
     { id: chapter.id },
