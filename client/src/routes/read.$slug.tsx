@@ -22,20 +22,20 @@ export const Route = createFileRoute("/read/$slug")({
   component: SeriesDetail,
   notFoundComponent: () => (
     <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-      <h1 className="font-serif text-4xl">Series không tồn tại</h1>
+      <h1 className="font-serif text-4xl">Series not found</h1>
       <Link to="/read" className="mt-4 inline-block text-sm text-accent underline">
-        Quay lại catalog
+        Back to catalog
       </Link>
     </main>
   ),
   errorComponent: ({ reset }) => (
     <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-      <h1 className="font-serif text-3xl">Không tải được series.</h1>
+      <h1 className="font-serif text-3xl">Could not load the series.</h1>
       <button
         onClick={reset}
         className="mt-4 rounded bg-foreground px-4 py-2 text-xs text-background"
       >
-        Thử lại
+        Try again
       </button>
     </main>
   ),

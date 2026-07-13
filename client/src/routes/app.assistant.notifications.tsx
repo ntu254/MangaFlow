@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/assistant/notifications")({
   head: () => ({
     meta: [
       { title: "Notifications — beachRead Studio" },
-      { name: "description", content: "Thông báo dành cho Assistant." },
+      { name: "description", content: "Assistant notifications." },
     ],
   }),
   component: AssistantNotificationsPage,

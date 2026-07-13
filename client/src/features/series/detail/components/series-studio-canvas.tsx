@@ -39,7 +39,7 @@ export function SeriesStudioCanvas({
       <div className="grid min-h-[420px] place-items-center rounded-md border border-border bg-card/60">
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
           <RefreshCw className="size-3.5 animate-spin" />
-          Đang tải Studio canvas...
+          Loading Studio canvas...
         </div>
       </div>
     );
@@ -48,8 +48,8 @@ export function SeriesStudioCanvas({
   if (!series) {
     return (
       <EmptyState
-        title="Không tìm thấy series"
-        description="Series không tồn tại hoặc bạn không có quyền truy cập."
+        title="Series not found"
+        description="Series not found or you do not have access."
         action={backLink}
       />
     );

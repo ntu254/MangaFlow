@@ -18,7 +18,7 @@ export function EditorNotificationsPage() {
   if (isLoading)
     return (
       <div className="mx-auto max-w-3xl space-y-4 p-6 text-sm text-muted-foreground">
-        Đang tải...
+        Loading...
       </div>
     );
 
@@ -27,10 +27,10 @@ export function EditorNotificationsPage() {
       <PageHeader
         eyebrow="Editor"
         title="Notifications"
-        description="Thông báo về submission, review và quy trình."
+        description="Notifications about submissions, reviews, and workflow."
       />
       {visible.length === 0 ? (
-        <EmptyState title="Không có thông báo mới" />
+        <EmptyState title="No new notifications" />
       ) : (
         <ul className="space-y-1.5">
           {visible.map((n) => (

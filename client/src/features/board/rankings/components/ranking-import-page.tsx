@@ -81,7 +81,7 @@ export function RankingImportPanel() {
 
   const handleSubmit = async () => {
     if (!periodId || importRows.length === 0) {
-      toast.error("CSV cần có period và ít nhất một dòng dữ liệu.");
+      toast.error("CSV must include a period and at least one data row.");
       return;
     }
     try {
@@ -108,7 +108,7 @@ export function RankingImportPanel() {
       setCsvText("");
       setFileName(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể import ranking.");
+      toast.error(error instanceof Error ? error.message : "Unable to import ranking.");
     }
   };
 

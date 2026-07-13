@@ -108,8 +108,8 @@ export function AtRiskReviewsPage() {
     >
       <div className="space-y-4">
         <Notice icon={<ShieldAlert className="size-5" />} title="Governance notice">
-          Bảng xếp hạng chỉ tạo tín hiệu rủi ro làm cơ sở đánh giá và không tự động huỷ tác phẩm.
-          Mọi thay đổi trạng thái phải được ban quản trị thực hiện thủ công.
+          Rankings only create risk signals for review and never cancel a work automatically. All
+          status changes must be performed manually by governance.
         </Notice>
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <QueueTable
@@ -122,7 +122,7 @@ export function AtRiskReviewsPage() {
             onRowClick={(review) => setSelectedId(review.id)}
             isRowSelected={(review) => review.id === selected?.id}
             minWidth={560}
-            empty="Không có series cần review. Các tín hiệu at-risk mới sẽ xuất hiện tại đây."
+            empty="No series need review. New at-risk signals will appear here."
           />
           {selected ? (
             <div className="space-y-4">

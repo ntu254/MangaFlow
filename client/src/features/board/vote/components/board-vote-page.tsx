@@ -54,7 +54,7 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
   if (votesLoading) {
     return (
       <div className="mx-auto max-w-5xl py-12 text-center text-sm text-muted-foreground">
-        Đang tải dữ liệu vote...
+        Loading vote data...
       </div>
     );
   }
@@ -62,8 +62,8 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
   if (!voteData) {
     return (
       <EmptyState
-        title="Proposal không tồn tại"
-        description="Quay lại hàng đợi Board."
+        title="Proposal not found"
+        description="Back to the Board queue."
         action={
           <Link to="/app/board" className="text-xs underline">
             Board queue
@@ -85,7 +85,7 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
 
   const submitVote = () => {
     if (!decision) {
-      toast.error("Chọn 1 trong 3 lựa chọn.");
+      toast.error("Choose one of the three options.");
       return;
     }
 
@@ -94,11 +94,11 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
         { seriesId: id, body: { voteDecision: decision, comment: comment.trim() || undefined } },
         {
           onSuccess: () => {
-            toast.success("Đã ghi nhận phiếu phá tie.");
+            toast.success("Tie-break vote recorded.");
             navigate({ to: "/app/board" });
           },
           onError: (e) => {
-            toast.error(e instanceof Error ? e.message : "Lỗi tie-break.");
+            toast.error(e instanceof Error ? e.message : "Tie-break error.");
           },
         },
       );
@@ -109,11 +109,11 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
       { seriesId: id, body: { voteDecision: decision, comment: comment.trim() || undefined } },
       {
         onSuccess: () => {
-          toast.success("Đã ghi nhận vote.");
+          toast.success("Vote recorded.");
           navigate({ to: "/app/board" });
         },
         onError: (e) => {
-          toast.error(e instanceof Error ? e.message : "Lỗi vote.");
+          toast.error(e instanceof Error ? e.message : "Vote error.");
         },
       },
     );
@@ -131,11 +131,11 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
       },
       {
         onSuccess: () => {
-          toast.success(`Đã quyết định đóng proposal là: ${dec}.`);
+          toast.success(`Final proposal decision: ${dec}.`);
           navigate({ to: "/app/board" });
         },
         onError: (e) => {
-          toast.error(e instanceof Error ? e.message : "Lỗi finalize.");
+          toast.error(e instanceof Error ? e.message : "Finalize error.");
         },
       },
     );
@@ -166,12 +166,12 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
             />
           ) : (
             <div className="flex aspect-[2/3] w-full items-center justify-center rounded-md border border-border bg-muted text-xs text-muted-foreground">
-              Không có ảnh
+              No images
             </div>
           )}
           <div className="rounded border border-border bg-card/40 p-3 text-xs">
             <p>
-              <span className="text-muted-foreground">Tác giả:</span> {proposal?.authorName ?? "—"}
+              <span className="text-muted-foreground">Author:</span> {proposal?.authorName ?? "—"}
             </p>
             <p>
               <span className="text-muted-foreground">Editor:</span>{" "}
@@ -198,8 +198,8 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
                 <h1 className="font-serif text-3xl">{proposal?.title ?? voteData.seriesId}</h1>
                 {eic ? (
                   <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-fuchsia-700">
-                    Bạn là Editor-in-chief{" "}
-                    {inTieBreak ? `· phiếu phá tie weight ${EIC_TIEBREAK_WEIGHT}` : ""}
+                    You are the Editor-in-chief{" "}
+                    {inTieBreak ? `· tie-break vote weight ${EIC_TIEBREAK_WEIGHT}` : ""}
                   </p>
                 ) : null}
               </div>
@@ -212,7 +212,9 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
 
           {activeSessions.length > 0 ? (
             <div className="rounded border border-indigo-300 bg-indigo-50 p-3 text-xs text-indigo-950">
-              <p className="text-[10px] font-bold uppercase tracking-widest">Phiên vote đang mở</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest">
+                Voting session is open
+              </p>
               <ul className="mt-1 space-y-0.5">
                 {activeSessions.map((vs) => (
                   <li key={vs.id}>
@@ -244,9 +246,9 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
 
           {inTieBreak ? (
             <div className="rounded-lg border border-fuchsia-300 bg-fuchsia-50 p-4 text-xs text-fuchsia-950">
-              Proposal đang ở trạng thái <strong>TIE_BREAK</strong>. Chỉ{" "}
-              <strong>Editor-in-chief</strong> có thể bỏ phiếu phá tie; phiếu có weight{" "}
-              {EIC_TIEBREAK_WEIGHT} để xác định kết quả.
+              Proposal is currently in <strong>TIE_BREAK</strong>. Only{" "}
+              <strong>Editor-in-chief</strong> can cast the tie-break vote; the vote has weight{" "}
+              {EIC_TIEBREAK_WEIGHT} to determine the result.
             </div>
           ) : null}
 
@@ -254,27 +256,27 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
             (status === "PENDING_BOARD" || status === "TIE_BREAK") &&
             tally.status !== null && (
               <Panel
-                title="Quyết định của Hội đồng (Finalize)"
-                description={`Hội đồng đã hoàn thành bỏ phiếu. Kết quả sơ bộ: ${tally.status}. Hội đồng/Admin có thể chính thức đóng quyết định của đề xuất này để lưu trạng thái vào cơ sở dữ liệu.`}
+                title="Board Decision (Finalize)"
+                description={`The Board has completed voting. Preliminary result: ${tally.status}. Board/Admin can officially finalize this proposal decision and persist the status to the database.`}
               >
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="finalize-note"
                     className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Ghi chú quyết định (tùy chọn)
+                    Decision note (optional)
                   </Label>
                   <Textarea
                     id="finalize-note"
                     rows={3}
                     value={finalizeNote}
                     onChange={(e) => setFinalizeNote(e.target.value)}
-                    placeholder="Ghi chú kết quả phiên họp hoặc quyết định chính thức..."
+                    placeholder="Note the meeting outcome or official decision..."
                   />
                 </div>
                 <div className="mt-3 space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Publication type (bắt buộc khi Chấp thuận)
+                    Publication type (required when approving)
                   </Label>
                   <div className="grid max-w-xs grid-cols-2 gap-1.5">
                     {(["WEEKLY", "MONTHLY"] as const).map((type) => (
@@ -299,29 +301,29 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
                     disabled={finalize.isPending || finalize.isSuccess || !publicationType}
                     className="rounded bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-40"
                   >
-                    {finalize.isPending ? "Đang xử lý..." : "Chấp thuận (APPROVED)"}
+                    {finalize.isPending ? "Processing..." : "Approve (APPROVED)"}
                   </button>
                   <button
                     onClick={() => handleFinalize("REJECTED")}
                     disabled={finalize.isPending || finalize.isSuccess}
                     className="rounded bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:opacity-40"
                   >
-                    {finalize.isPending ? "Đang xử lý..." : "Từ chối (REJECTED)"}
+                    {finalize.isPending ? "Processing..." : "Reject (REJECTED)"}
                   </button>
                 </div>
               </Panel>
             )}
 
           <section className="rounded-lg border border-border bg-card/40 p-5">
-            <h2 className="font-serif text-xl">Vote của bạn</h2>
+            <h2 className="font-serif text-xl">Your vote</h2>
             {alreadyVoted ? (
               <p className="mt-3 rounded bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                Bạn đã vote <strong>{alreadyVoted.decision}</strong> lúc{" "}
+                You voted <strong>{alreadyVoted.decision}</strong> at{" "}
                 {new Date(alreadyVoted.createdAt).toLocaleString("vi-VN")}.
               </p>
             ) : tally.status !== null ? (
               <p className="mt-3 rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
-                Voting đã kết thúc. Status: {tally.status}.
+                Voting has ended. Status: {tally.status}.
               </p>
             ) : (
               <>
@@ -346,14 +348,14 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
                     htmlFor="vote-comment"
                     className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Comment (tùy chọn)
+                    Comment (optional)
                   </Label>
                   <Textarea
                     id="vote-comment"
                     rows={3}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Lý do, ghi chú cho hội đồng…"
+                    placeholder="Reason or note for the Board..."
                   />
                 </div>
                 <button
@@ -361,16 +363,16 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
                   disabled={castVote.isPending}
                   className="mt-4 rounded bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-40"
                 >
-                  {castVote.isPending ? "Đang gửi..." : "Submit vote"}
+                  {castVote.isPending ? "Sending..." : "Submit vote"}
                 </button>
               </>
             )}
           </section>
 
           <div className="rounded border border-dashed border-border bg-card/30 p-4 text-xs">
-            <p className="font-semibold text-foreground">Tư liệu & Lịch sử</p>
+            <p className="font-semibold text-foreground">Materials & History</p>
             <p className="mt-1 text-muted-foreground">
-              Material annotation gating đang chờ backend hỗ trợ.
+              Material annotation gating is waiting for backend support.
               {/* Follow-up: wire MaterialsViewer when backend material-annotations endpoint exists */}
             </p>
           </div>

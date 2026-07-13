@@ -59,7 +59,7 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
 
   const upload = async () => {
     if (!file || !title.trim()) {
-      toast.error("Cần tiêu đề và file.");
+      toast.error("Title and file are required.");
       return;
     }
     try {
@@ -74,11 +74,11 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
         mimeType: uploaded.mimeType,
         size: file.size,
       });
-      toast.success("Đã thêm tư liệu.");
+      toast.success("Material added.");
       setTitle("");
       setFile(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Không thể thêm tư liệu.");
+      toast.error(err instanceof Error ? err.message : "Unable to add material.");
     }
   };
 
@@ -86,9 +86,9 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
     try {
       await deleteMaterial.mutateAsync(materialId);
       if (selectedId === materialId) setSelectedId(null);
-      toast.success("Đã xoá tư liệu.");
+      toast.success("Material deleted.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Không thể xoá.");
+      toast.error(err instanceof Error ? err.message : "Unable to delete.");
     }
   };
 
@@ -105,22 +105,22 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
         {canUpload ? (
           <div className="space-y-2 rounded border border-dashed border-border bg-card/40 p-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Thêm tư liệu cho chapter {chapter.number}
+              Add material for chapter {chapter.number}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="ch-mat-title" className="text-[10px]">
-                Tiêu đề
+                Title
               </Label>
               <Input
                 id="ch-mat-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="vd: Ref pose chính"
+                placeholder="e.g. Main pose reference"
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ch-mat-kind" className="text-[10px]">
-                Kiểu
+                Type
               </Label>
               <select
                 id="ch-mat-kind"
@@ -163,11 +163,11 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
         <ul className="space-y-1">
           {isLoading ? (
             <li className="rounded border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
-              Đang tải...
+              Loading...
             </li>
           ) : items.length === 0 ? (
             <li className="rounded border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
-              Chưa có tư liệu.
+              No materials yet.
             </li>
           ) : (
             items.map((m) => {
@@ -213,7 +213,7 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted"
               >
-                <ExternalLink className="size-3" /> Mở file
+                <ExternalLink className="size-3" /> Open file
               </a>
             </div>
             <div className="aspect-[4/3] w-full bg-muted/30">
@@ -228,14 +228,14 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
                 <iframe src={selectedUrl} title={selected.title} className="h-full w-full" />
               ) : (
                 <div className="grid h-full place-items-center text-xs text-muted-foreground">
-                  Preview không khả dụng — dùng nút "Mở file" để xem trong tab mới.
+                  Preview is unavailable - use "Open file" to view it in a new tab.
                 </div>
               )}
             </div>
           </>
         ) : (
           <div className="grid h-full place-items-center p-12 text-xs text-muted-foreground">
-            Chọn tư liệu để xem.
+            Select a material to preview.
           </div>
         )}
       </section>
@@ -243,10 +243,10 @@ export function ChapterMaterials({ chapter }: { chapter: Chapter }) {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Xoá tư liệu"
-        description="Bạn có chắc muốn xoá tư liệu này? Hành động này không thể hoàn tác."
-        confirmLabel="Xoá"
-        cancelLabel="Huỷ"
+        title="Delete material"
+        description="Are you sure you want to delete this material? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         variant="danger"
         onConfirm={handleDeleteConfirm}
       />

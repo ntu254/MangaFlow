@@ -17,22 +17,22 @@ export type AdvancedDetailsValues = {
 const FIELDS: { key: keyof AdvancedDetailsValues; label: string; placeholder: string }[] = [
   {
     key: "worldSetting",
-    label: "Bối cảnh / world setting",
-    placeholder: "Thế giới, thời đại, luật lệ đặc biệt…",
+    label: "Setting / worldbuilding",
+    placeholder: "World, era, special rules…",
   },
   {
     key: "seriesDirection",
-    label: "Hướng phát triển series",
-    placeholder: "Arc dự kiến, tone, độ dài…",
+    label: "Series development direction",
+    placeholder: "Planned arcs, tone, length…",
   },
   {
     key: "productionPlan",
-    label: "Kế hoạch sản xuất",
-    placeholder: "Cadence, số chapter mỗi tháng…",
+    label: "Production plan",
+    placeholder: "Cadence, chapters per month…",
   },
   {
     key: "assistantNeeds",
-    label: "Cần assistant gì",
+    label: "Assistant needs",
     placeholder: "Background, tone, ink, screentone…",
   },
   {
@@ -42,8 +42,8 @@ const FIELDS: { key: keyof AdvancedDetailsValues; label: string; placeholder: st
   },
   {
     key: "aiDisclosure",
-    label: "AI / công cụ sử dụng",
-    placeholder: "Có dùng AI/tool gì để hỗ trợ? (nếu có)",
+    label: "AI / tools used",
+    placeholder: "Any AI/tools used for support? (if any)",
   },
 ];
 
@@ -64,7 +64,7 @@ export function AdvancedDetails({
       className="rounded-lg border border-dashed border-border bg-card/30"
     >
       <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground">
-        <span>Chi tiết nâng cao (tuỳ chọn)</span>
+        <span>Advanced details (optional)</span>
         <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 px-4 pb-4">

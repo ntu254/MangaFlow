@@ -95,7 +95,7 @@ export const series: Series[] = [
     romaji: "MONSTER",
     author: "Urasawa Naoki",
     cover: monster,
-    genres: ["Seinen", "Psychological"],
+    genres: ["Seinen", "Psyforlogical"],
     chapters: 162,
     reads: 717293,
     status: "completed",

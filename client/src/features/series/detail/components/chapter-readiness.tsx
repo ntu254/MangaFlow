@@ -7,20 +7,20 @@ type Check = { ok: boolean; label: string; hint?: string };
 
 const BE_LABELS: Record<string, { ok: string; fail: string }> = {
   allTasksApproved: {
-    ok: "Tất cả task Studio đã Mangaka-approve",
-    fail: "Còn task Studio chưa được Mangaka-approve",
+    ok: "All task Studio has Mangaka-approve",
+    fail: "Some Studio tasks have not been approved by the Mangaka",
   },
   allSubmissionsApproved: {
-    ok: "Tất cả submission đã Mangaka-approve",
-    fail: "Còn submission chưa được Mangaka-approve",
+    ok: "All submission has Mangaka-approve",
+    fail: "Some submissions have not been approved by the Mangaka",
   },
   allCommentsResolved: {
-    ok: "Không còn blocking comment trên page/region/task/submission",
-    fail: "Còn blocking comment chưa resolve (page/region/task/submission)",
+    ok: "No remaining blocking comments on pages, regions, tasks, or submissions",
+    fail: "Some blocking comments are unresolved (page/region/task/submission)",
   },
   reviewMaterialActive: {
-    ok: "Review materials đã ACTIVE",
-    fail: "Review materials chưa ACTIVE",
+    ok: "Review materials has ACTIVE",
+    fail: "Review materials are not ACTIVE",
   },
 };
 
@@ -51,21 +51,21 @@ export function ChapterReadiness({
     {
       ok: hasPages,
       label: hasPages
-        ? `Pages đã upload (${chapter.pages.length})`
-        : "Chưa có page nào được upload",
+        ? `Pages has upload (${chapter.pages.length})`
+        : "No pages have been uploaded yet",
     },
     {
       ok: unresolved === 0,
       label:
-        unresolved === 0 ? "Không còn blocking notes" : `${unresolved} blocking note chưa xử lý`,
+        unresolved === 0 ? "No remaining blocking notes" : `${unresolved} unresolved blocking note`,
     },
     {
       ok: hasAssignee,
-      label: hasAssignee ? `Assignee: ${chapter.assigneeName}` : "Chưa có assignee",
+      label: hasAssignee ? `Assignee: ${chapter.assigneeName}` : "No assignee",
     },
     {
       ok: hasDeadline,
-      label: hasDeadline ? "Đã đặt deadline" : "Chưa có deadline draft/review",
+      label: hasDeadline ? "Deadline set" : "No draft/review deadline",
     },
   ];
 
@@ -163,7 +163,7 @@ export function ChapterReadiness({
             <Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           )}
           <span className={`font-semibold ${ready ? "text-emerald-700" : "text-muted-foreground"}`}>
-            {ready ? "Sẵn sàng gửi Editor Review" : "Chưa sẵn sàng gửi Editor Review"}
+            {ready ? "Ready for Editor Review" : "Not ready for Editor Review"}
           </span>
         </li>
       </ul>

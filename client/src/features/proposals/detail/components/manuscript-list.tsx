@@ -11,7 +11,7 @@ export function ManuscriptList({
   if (manuscripts.length === 0)
     return (
       <p className="rounded border border-dashed border-border bg-card/40 p-4 text-xs text-muted-foreground">
-        Chưa có bản thảo nào.
+        No manuscripts yet.
       </p>
     );
   const sorted = [...manuscripts].sort((a, b) => b.version - a.version);
@@ -51,7 +51,7 @@ export function ManuscriptList({
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[10px] font-semibold hover:bg-muted"
               >
-                <Download className="size-3" /> Mở file
+                <Download className="size-3" /> Open file
               </a>
             </div>
           </div>

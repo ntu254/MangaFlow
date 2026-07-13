@@ -5,9 +5,9 @@ export const Route = createFileRoute("/read/")({
   head: () => ({
     meta: [
       { title: "Catalog — beachRead" },
-      { name: "description", content: "Toàn bộ catalog manga đang xuất bản trên beachRead." },
+      { name: "description", content: "The full manga catalog currently publishing on beachRead." },
       { property: "og:title", content: "Catalog — beachRead" },
-      { property: "og:description", content: "Khám phá toàn bộ catalog manga trên beachRead." },
+      { property: "og:description", content: "Explore the full manga catalog on beachRead." },
     ],
   }),
   component: CatalogPage,
@@ -21,7 +21,7 @@ function CatalogPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-accent">Catalog</p>
           <h1 className="mt-1 font-serif text-5xl">All Series</h1>
         </div>
-        <p className="text-xs text-muted-foreground">{series.length} series đang được phát hành</p>
+        <p className="text-xs text-muted-foreground">{series.length} series currently publishing</p>
       </header>
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {series.map((s) => (

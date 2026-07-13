@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Đọc manga trending, theo dõi ranking, cập nhật chapter mới mỗi ngày trên beachRead.",
+          "Read trending manga, follow rankings, and get new chapter updates every day on beachRead.",
       },
       { property: "og:title", content: "beachRead — Trending manga & latest chapters" },
       { property: "og:description", content: "Bringing the best of manga to readers worldwide." },

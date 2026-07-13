@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — beachRead Studio" },
-      { name: "description", content: "Workspace dashboard cá nhân hóa theo role." },
+      { name: "description", content: "Personalized workspace dashboard by role." },
       { property: "og:title", content: "Dashboard — beachRead Studio" },
       { property: "og:description", content: "Workspace dashboard." },
     ],

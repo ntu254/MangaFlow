@@ -56,14 +56,14 @@ export function DecisionActions({ actions }: { actions: Action[] }) {
       {open ? (
         <div className="rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-page)]/50 p-3">
           <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--admin-faint)]">
-            Lý do / Feedback
+            Reason / Feedback
           </label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             className="mt-1 w-full rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 text-xs text-[var(--admin-ink)] outline-none focus:border-[var(--admin-ink)]"
-            placeholder="Nhập feedback chi tiết..."
+            placeholder="Enter detailed feedback..."
           />
           <div className="mt-2 flex justify-end gap-2">
             <button
@@ -71,7 +71,7 @@ export function DecisionActions({ actions }: { actions: Action[] }) {
               onClick={() => setOpen(null)}
               className="rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-1 text-xs text-[var(--admin-ink)]"
             >
-              Huỷ
+              Cancel
             </button>
             <button
               type="button"
@@ -83,7 +83,7 @@ export function DecisionActions({ actions }: { actions: Action[] }) {
               }}
               className="rounded-[6px] bg-[var(--admin-navy)] px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
             >
-              Xác nhận
+              Confirm
             </button>
           </div>
         </div>

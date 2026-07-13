@@ -56,13 +56,13 @@ import { MaterialUploadDialog } from "./material-upload-dialog";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 
 const KIND_CHIPS: Array<{ value: SeriesMaterialKind | "ALL"; label: string }> = [
-  { value: "ALL", label: "Tất cả" },
+  { value: "ALL", label: "All" },
   { value: "storyboard", label: "Storyboard / Name" },
   { value: "manuscript", label: "Manuscript" },
   { value: "character", label: "Character Sheets" },
   { value: "reference", label: "References" },
   { value: "moodboard", label: "Moodboard" },
-  { value: "other", label: "Khác" },
+  { value: "other", label: "Other" },
 ];
 
 const STATUS_TONE: Record<SeriesMaterialStatus, string> = {
@@ -156,7 +156,7 @@ export function SeriesMaterialsLibrary({
     if (deleteTarget) {
       removeMaterial(deleteTarget.id);
       if (selectedId === deleteTarget.id) setSelectedId(null);
-      toast.success("Đã xoá tư liệu.");
+      toast.success("Material deleted.");
       setDeleteTarget(null);
     }
   };
@@ -237,24 +237,24 @@ export function SeriesMaterialsLibrary({
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-serif text-2xl">Kho tư liệu</h2>
+          <h2 className="font-serif text-2xl">Materials library</h2>
           <p className="text-xs text-muted-foreground">
-            Quản lý và chia sẻ toàn bộ tư liệu sản xuất của series
+            Manage and share all production materials for the series
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => toast.info("Tính năng tạo thư mục đang được chuẩn bị.")}
+            onClick={() => toast.info("Folder creation is being prepared.")}
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-muted"
           >
-            <FolderPlus className="size-3.5" /> Tạo thư mục
+            <FolderPlus className="size-3.5" /> Create folder
           </button>
           {canEdit ? (
             <button
               onClick={openCreate}
               className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-bold uppercase tracking-widest text-background hover:opacity-90"
             >
-              <Upload className="size-3.5" /> Tải tư liệu lên
+              <Upload className="size-3.5" /> Upload material
             </button>
           ) : null}
         </div>
@@ -265,9 +265,9 @@ export function SeriesMaterialsLibrary({
         <StatCard
           icon={<Files className="size-4" />}
           tone="blue"
-          label="Tổng tư liệu"
+          label="Total materials"
           value={kpis.total}
-          hint={`${kpis.recent} mới 7 ngày`}
+          hint={`${kpis.recent} new in 7 days`}
         />
         <StatCard
           icon={<Layers className="size-4" />}
@@ -293,9 +293,9 @@ export function SeriesMaterialsLibrary({
         <StatCard
           icon={<Clock className="size-4" />}
           tone="orange"
-          label="Cập nhật gần đây"
+          label="Recent updates"
           value={kpis.recent}
-          hint="7 ngày qua"
+          hint="Last 7 days"
         />
       </div>
 
@@ -306,7 +306,7 @@ export function SeriesMaterialsLibrary({
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm kiếm tư liệu, tag, người tải..."
+            placeholder="Search materials, tags, uploader..."
             className="h-9 pl-8"
           />
         </div>
@@ -330,14 +330,14 @@ export function SeriesMaterialsLibrary({
         </div>
         <div className="ml-auto flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            Sắp xếp:
+            Sort:
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
               className="h-8 rounded-md border border-border bg-background px-2 text-xs font-semibold"
             >
-              <option value="newest">Mới nhất</option>
-              <option value="oldest">Cũ nhất</option>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
               <option value="alpha">A → Z</option>
               <option value="version">Version cao</option>
             </select>
@@ -366,11 +366,11 @@ export function SeriesMaterialsLibrary({
         <div>
           {isLoading ? (
             <div className="rounded-md border border-dashed border-border bg-card/40 p-10 text-center text-xs text-muted-foreground">
-              Đang tải tư liệu…
+              Loading materials…
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-md border border-dashed border-border bg-card/40 p-10 text-center text-xs text-muted-foreground">
-              Chưa có tư liệu phù hợp.
+              No matching materials yet.
             </div>
           ) : view === "grid" ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -428,19 +428,19 @@ export function SeriesMaterialsLibrary({
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Xoá tư liệu"
+        title="Delete material"
         description={
           deleteTarget ? (
             <span>
-              Bạn có chắc muốn xoá <strong>"{deleteTarget.title}"</strong>? Hành động này không thể
-              hoàn tác.
+              Are you sure you want to delete <strong>"{deleteTarget.title}"</strong>? This action
+              cannot be undone.
             </span>
           ) : (
             ""
           )
         }
-        confirmLabel="Xoá"
-        cancelLabel="Huỷ"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         variant="danger"
         onConfirm={handleDeleteConfirm}
       />
@@ -532,7 +532,7 @@ function MaterialCard({
             <DropdownMenuTrigger asChild>
               <button
                 className="inline-flex h-7 items-center justify-center rounded border border-border bg-background px-2 text-[11px] font-semibold hover:bg-muted"
-                aria-label="Khác"
+                aria-label="Other"
               >
                 <MoreHorizontal className="size-3" />
               </button>
@@ -540,11 +540,11 @@ function MaterialCard({
             <DropdownMenuContent align="end" className="text-xs">
               {canEdit ? (
                 <DropdownMenuItem onClick={onReplace}>
-                  <Replace className="mr-2 size-3.5" /> Tải phiên bản mới
+                  <Replace className="mr-2 size-3.5" /> Upload new version
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem onClick={onSelect}>
-                <Eye className="mr-2 size-3.5" /> Mở chi tiết
+                <Eye className="mr-2 size-3.5" /> Open details
               </DropdownMenuItem>
               {canEdit ? (
                 <>
@@ -553,7 +553,7 @@ function MaterialCard({
                     onClick={onDelete}
                     className="text-rose-600 focus:text-rose-700"
                   >
-                    <Trash2 className="mr-2 size-3.5" /> Xoá
+                    <Trash2 className="mr-2 size-3.5" /> Delete
                   </DropdownMenuItem>
                 </>
               ) : null}
@@ -587,12 +587,12 @@ function MaterialTable({
       <table className="w-full text-xs">
         <thead className="bg-muted/40 text-[10px] uppercase tracking-widest text-muted-foreground">
           <tr>
-            <th className="px-3 py-2 text-left">Tên</th>
-            <th className="px-3 py-2 text-left">Loại</th>
+            <th className="px-3 py-2 text-left">Name</th>
+            <th className="px-3 py-2 text-left">Type</th>
             <th className="px-3 py-2 text-left">v</th>
             <th className="px-3 py-2 text-left">Chapter</th>
-            <th className="px-3 py-2 text-left">Người tải</th>
-            <th className="px-3 py-2 text-left">Ngày</th>
+            <th className="px-3 py-2 text-left">Uploader</th>
+            <th className="px-3 py-2 text-left">Date</th>
             <th className="px-3 py-2 text-left">Status</th>
             <th className="px-3 py-2"></th>
           </tr>
@@ -632,7 +632,7 @@ function MaterialTable({
                     <DropdownMenuTrigger asChild>
                       <button
                         className="inline-flex h-7 items-center justify-center rounded border border-border bg-background px-2 hover:bg-muted"
-                        aria-label="Khác"
+                        aria-label="Other"
                       >
                         <MoreHorizontal className="size-3" />
                       </button>
@@ -644,14 +644,14 @@ function MaterialTable({
                       {canEdit ? (
                         <>
                           <DropdownMenuItem onClick={() => onReplace(m)}>
-                            <Replace className="mr-2 size-3.5" /> Tải phiên bản mới
+                            <Replace className="mr-2 size-3.5" /> Upload new version
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => onDelete(m)}
                             className="text-rose-600 focus:text-rose-700"
                           >
-                            <Trash2 className="mr-2 size-3.5" /> Xoá
+                            <Trash2 className="mr-2 size-3.5" /> Delete
                           </DropdownMenuItem>
                         </>
                       ) : null}
@@ -710,7 +710,7 @@ function MaterialDetail({
         <button
           onClick={onClose}
           className="text-muted-foreground hover:text-foreground"
-          aria-label="Đóng"
+          aria-label="Close"
         >
           <X className="size-4" />
         </button>
@@ -732,15 +732,15 @@ function MaterialDetail({
       </div>
 
       <dl className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1.5 text-[11px]">
-        <dt className="text-muted-foreground">Loại file</dt>
+        <dt className="text-muted-foreground">Type file</dt>
         <dd>{cur?.fileType || "—"}</dd>
-        <dt className="text-muted-foreground">Phiên bản hiện tại</dt>
+        <dt className="text-muted-foreground">Current version</dt>
         <dd>
           <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold">
             v{material.currentVersion}
           </span>
         </dd>
-        <dt className="text-muted-foreground">Trạng thái</dt>
+        <dt className="text-muted-foreground">Status</dt>
         <dd>
           <select
             value={material.status}
@@ -755,13 +755,13 @@ function MaterialDetail({
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">Kích thước</dt>
+        <dt className="text-muted-foreground">Size</dt>
         <dd>{cur ? fmtSize(cur.sizeKB) : "—"}</dd>
-        <dt className="text-muted-foreground">Đã tải lên</dt>
+        <dt className="text-muted-foreground">Uploaded at</dt>
         <dd>{cur ? formatDate(cur.uploadedAt) : "—"}</dd>
-        <dt className="text-muted-foreground">Người tải lên</dt>
+        <dt className="text-muted-foreground">Uploaded by</dt>
         <dd>{cur?.uploadedByName}</dd>
-        <dt className="text-muted-foreground">Liên kết chapter</dt>
+        <dt className="text-muted-foreground">Linked chapter</dt>
         <dd>
           <select
             value={material.chapterId ?? ""}
@@ -769,7 +769,7 @@ function MaterialDetail({
             onChange={(e) => onPatch({ chapterId: e.target.value || null })}
             className="h-6 rounded border border-border bg-background px-1.5 text-[11px]"
           >
-            <option value="">— Không gắn —</option>
+            <option value="">— Not attached —</option>
             {chapters.map((c) => (
               <option key={c.id} value={c.id}>
                 Ch. {c.number} — {c.title}
@@ -790,7 +790,7 @@ function MaterialDetail({
                   <button
                     type="button"
                     onClick={() => onPatch({ tags: material.tags.filter((x) => x !== t) })}
-                    aria-label={`Xoá tag ${t}`}
+                    aria-label={`Delete tag ${t}`}
                   >
                     <X className="size-2.5" />
                   </button>
@@ -817,7 +817,7 @@ function MaterialDetail({
 
       <div className="space-y-1">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Ghi chú
+          Notes
         </p>
         <textarea
           value={note}
@@ -828,7 +828,7 @@ function MaterialDetail({
           disabled={!canEdit}
           rows={2}
           className="w-full rounded border border-border bg-background p-2 text-[11px]"
-          placeholder="Ghi chú cho team..."
+          placeholder="Notes for team..."
         />
       </div>
 
@@ -854,7 +854,7 @@ function MaterialDetail({
 
       <div>
         <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Lịch sử phiên bản
+          Version history
         </p>
         <ul className="space-y-1.5">
           {material.versions.map((v, idx) => (

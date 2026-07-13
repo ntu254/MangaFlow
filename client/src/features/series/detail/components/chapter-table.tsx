@@ -30,7 +30,7 @@ export function ChapterTable({
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Danh sách chapters
+            Chapter list
           </p>
           <p className="text-sm">
             {chapters.length} chapter — target {series.targetChapters}
@@ -41,16 +41,16 @@ export function ChapterTable({
             onClick={() => setOpen(true)}
             className="inline-flex items-center gap-1.5 rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:bg-foreground/90"
           >
-            <Plus className="size-3.5" /> Tạo chapter
+            <Plus className="size-3.5" /> Create chapter
           </button>
         ) : null}
       </div>
       {chapters.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
           <div>
-            <p className="text-sm font-semibold text-foreground">Chưa có chapter.</p>
+            <p className="text-sm font-semibold text-foreground">No chapters yet.</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Tạo chapter đầu tiên để bắt đầu production workspace.
+              Create the first chapter to start the production workspace.
             </p>
           </div>
           {canCreate ? (
@@ -60,11 +60,11 @@ export function ChapterTable({
               className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:bg-foreground/90"
             >
               <Plus className="size-3.5" />
-              Tạo chapter đầu tiên
+              Create first chapter
             </button>
           ) : (
             <p className="text-[11px] text-muted-foreground">
-              Bạn không có quyền tạo chapter cho series này.
+              You do not have permission to create chapters for this series.
             </p>
           )}
         </div>
@@ -76,7 +76,7 @@ export function ChapterTable({
                 <tr>
                   <th className="px-3 py-2 text-left">Chapter</th>
                   <th className="px-3 py-2 text-left">Title</th>
-                  <th className="px-3 py-2 text-left">Trạng thái</th>
+                  <th className="px-3 py-2 text-left">Status</th>
                   <th className="px-3 py-2 text-left">Pages</th>
                   <th className="px-3 py-2 text-left">Tasks</th>
                   <th className="px-3 py-2 text-left">Pending Assistant Reviews</th>
@@ -178,7 +178,7 @@ export function ChapterTable({
                             onSelect(c.id);
                           }}
                           className="inline-flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                          aria-label="Mở chapter"
+                          aria-label="Open chapter"
                         >
                           <MoreVertical className="size-3.5" />
                         </button>
@@ -190,7 +190,7 @@ export function ChapterTable({
             </table>
           </div>
           <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
-            Hiển thị {chapters.length} / {series.targetChapters} chapters
+            Showing {chapters.length} / {series.targetChapters} chapters
           </p>
         </>
       )}

@@ -69,11 +69,11 @@ export function BoardDashboard() {
           }
         >
           {isLoading ? (
-            <p className="text-xs text-muted-foreground">Đang tải...</p>
+            <p className="text-xs text-muted-foreground">Loading...</p>
           ) : pending.length === 0 ? (
             <EmptyState
-              title="Không có proposal chờ vote"
-              description="Board queue hiện đang trống."
+              title="No proposals waiting for votes"
+              description="The board queue is currently empty."
             />
           ) : (
             <div className="space-y-3">
@@ -117,7 +117,7 @@ export function BoardDashboard() {
           >
             <div className="space-y-2">
               {atRiskItems.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Không có series nào đang at-risk.</p>
+                <p className="text-xs text-muted-foreground">No series are currently at risk.</p>
               ) : (
                 atRiskItems.slice(0, 3).map((item) => (
                   <Link
@@ -138,7 +138,7 @@ export function BoardDashboard() {
           <Panel title="Recent sessions" description="Latest board voting sessions.">
             <div className="mt-3 space-y-2 text-xs">
               {sessions.length === 0 ? (
-                <p className="text-muted-foreground">Chưa có phiên vote nào.</p>
+                <p className="text-muted-foreground">No voting sessions yet.</p>
               ) : (
                 sessions.slice(0, 3).map((session) => (
                   <Link

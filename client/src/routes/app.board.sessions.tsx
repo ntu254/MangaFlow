@@ -4,7 +4,7 @@ export const Route = createFileRoute("/app/board/sessions")({
   head: () => ({
     meta: [
       { title: "Voting sessions — beachRead Studio" },
-      { name: "description", content: "Phiên vote Board: ad-hoc & scheduled." },
+      { name: "description", content: "Board voting sessions: ad-hoc and scheduled." },
     ],
   }),
   component: () => <Outlet />,

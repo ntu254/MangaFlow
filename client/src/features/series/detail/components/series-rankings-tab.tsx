@@ -13,7 +13,7 @@ export function SeriesRankingsTab({ series }: { series: ProductionSeries }) {
     return (
       <div className="rounded-md border border-rose-200 bg-rose-50/20 p-6 text-center space-y-2">
         <AlertCircle className="mx-auto size-8 text-rose-500" />
-        <h3 className="font-semibold text-rose-900">Không thể tải dữ liệu xếp hạng</h3>
+        <h3 className="font-semibold text-rose-900">Could not load ranking data</h3>
         <p className="text-xs text-rose-700">{mapApiError(error)}</p>
       </div>
     );
@@ -22,7 +22,7 @@ export function SeriesRankingsTab({ series }: { series: ProductionSeries }) {
   if (rankings.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
-        Chưa có dữ liệu xếp hạng tuần cho tác phẩm "{series.title}".
+        No weekly ranking data yet for "{series.title}".
       </div>
     );
   }
@@ -32,42 +32,40 @@ export function SeriesRankingsTab({ series }: { series: ProductionSeries }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-md border border-border bg-card p-4">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Điểm Final Score</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Final score</span>
             <TrendingUp className="size-4" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums">
             {rankings[0]?.finalScore?.toFixed(1) || "—"}
           </p>
-          <p className="mt-1 text-[10px] text-muted-foreground">Điểm số tổng hợp mới nhất</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">Latest aggregated score</p>
         </div>
 
         <div className="rounded-md border border-border bg-card p-4">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Độc giả đánh giá</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Reader rating</span>
             <Award className="size-4" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums">
             {rankings[0]?.readerScore?.toFixed(1) || "—"}/10
           </p>
-          <p className="mt-1 text-[10px] text-muted-foreground">Điểm bình chọn trung bình</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">Average reader score</p>
         </div>
 
         <div className="rounded-md border border-border bg-card p-4">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Tổng lượt Vote</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Total votes</span>
             <Vote className="size-4" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums">
             {rankings[0]?.voteCount?.toLocaleString("vi-VN") || "—"}
           </p>
-          <p className="mt-1 text-[10px] text-muted-foreground">Phiếu bầu trong tuần hiện tại</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">Votes in the current week</p>
         </div>
 
         <div className="rounded-md border border-border bg-card p-4">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Tình trạng rủi ro
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Risk status</span>
             <ShieldAlert className="size-4" />
           </div>
           <div className="mt-2 flex items-center gap-2">
@@ -78,13 +76,13 @@ export function SeriesRankingsTab({ series }: { series: ProductionSeries }) {
                   : "bg-emerald-100 text-emerald-800 border border-emerald-200"
               }`}
             >
-              {rankings[0]?.atRisk ? "AT RISK" : "AN TOÀN"}
+              {rankings[0]?.atRisk ? "AT RISK" : "SAFE"}
             </span>
           </div>
           <p className="mt-1.5 text-[10px] text-muted-foreground">
             {rankings[0]?.atRisk
-              ? "Tác phẩm có nguy cơ bị huỷ do lượng vote giảm."
-              : "Chỉ số tương tác ổn định."}
+              ? "This work is at risk of cancellation due to declining votes."
+              : "Engagement is stable."}
           </p>
         </div>
       </div>
@@ -92,18 +90,18 @@ export function SeriesRankingsTab({ series }: { series: ProductionSeries }) {
       <div className="rounded-md border border-border bg-card">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Lịch sử xếp hạng qua các tuần
+            Weekly ranking history
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-4 py-2 text-left font-semibold">Tuần (Period)</th>
-                <th className="px-3 py-2 text-right font-semibold">Lượt bầu chọn</th>
+                <th className="px-4 py-2 text-left font-semibold">Week (Period)</th>
+                <th className="px-3 py-2 text-right font-semibold">Votes</th>
                 <th className="px-3 py-2 text-right font-semibold">Reader Score</th>
                 <th className="px-3 py-2 text-right font-semibold">Final Score</th>
-                <th className="px-3 py-2 text-left font-semibold">Trạng thái</th>
+                <th className="px-3 py-2 text-left font-semibold">Status</th>
               </tr>
             </thead>
             <tbody>

@@ -23,18 +23,19 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-card/40 p-4">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Luật quyết định
+          Decision rules
         </p>
         <ul className="space-y-1 text-xs text-foreground/85">
           <li>
-            Quorum: {BOARD_QUORUM}/{BOARD_TOTAL} phiếu cùng loại {"->"} APPROVED hoặc REJECTED ngay
-            lập tức.
+            Quorum: {BOARD_QUORUM}/{BOARD_TOTAL} matching votes {"->"} APPROVED or REJECTED
+            immediately.
           </li>
           <li>
-            Đủ {BOARD_TOTAL} phiếu, không bên nào đạt {BOARD_QUORUM}: bên đa số thắng.
+            When all {BOARD_TOTAL} votes are cast and neither side reaches {BOARD_QUORUM}, the
+            majority wins.
           </li>
           <li>
-            Hòa tuyệt đối {"->"} status TIE_BREAK. Editor-in-chief có phiếu quyết định với weight{" "}
+            Exact tie {"->"} status TIE_BREAK. Editor-in-chief has a tie-breaking vote with weight{" "}
             {EIC_TIEBREAK_WEIGHT}.
           </li>
         </ul>
@@ -42,10 +43,10 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
 
       <div className="rounded-lg border border-border bg-card/40 p-4">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Phiếu cuối cùng
+          Final votes
         </p>
         {proposal.votes.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Chưa có phiếu nào.</p>
+          <p className="text-xs text-muted-foreground">No votes yet.</p>
         ) : (
           <ul className="space-y-1 text-xs">
             {proposal.votes.map((v) => (
@@ -78,10 +79,10 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
 
       <div>
         <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Mốc quyết định
+          Decision milestones
         </p>
         {events.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Chưa có quyết định nào.</p>
+          <p className="text-xs text-muted-foreground">No decisions yet.</p>
         ) : (
           <ol className="relative space-y-3 border-l border-border pl-5">
             {events.map((e) => (

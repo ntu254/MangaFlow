@@ -94,7 +94,7 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
   if (items.length === 0) {
     return (
       <div className="rounded border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground">
-        Proposal chưa đính kèm tư liệu nào.
+        No materials have been attached to this proposal.
       </div>
     );
   }
@@ -154,7 +154,7 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted"
                 >
-                  <ExternalLink className="size-3" /> Mở file
+                  <ExternalLink className="size-3" /> Open file
                 </a>
               </div>
               <div className="aspect-[4/3] w-full bg-muted/30">
@@ -168,7 +168,7 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
                   <iframe src={selected.url} title={selected.title} className="h-full w-full" />
                 ) : (
                   <div className="grid h-full place-items-center text-xs text-muted-foreground">
-                    Preview không khả dụng — dùng nút "Mở file" để xem trong tab mới.
+                    Preview is unavailable - use "Open file" to view it in a new tab.
                   </div>
                 )}
               </div>
@@ -176,11 +176,11 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
 
             <div className="rounded border border-border bg-card/40 p-3">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Chú thích Board ({itemAnnotations.length})
+                Board annotations ({itemAnnotations.length})
               </p>
               {itemAnnotations.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  Chưa có chú thích nào cho tài liệu này.
+                  No annotations for this material yet.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -214,14 +214,14 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
                     rows={2}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    placeholder="Thêm chú thích để cùng Board thảo luận…"
+                    placeholder="Add an annotation for Board discussion..."
                   />
                   <button
                     onClick={submitAnnotation}
                     disabled={!text.trim()}
                     className="self-end rounded bg-foreground px-3 py-1 text-xs font-semibold text-background disabled:opacity-40"
                   >
-                    Gửi chú thích
+                    Send annotation
                   </button>
                 </div>
               ) : null}

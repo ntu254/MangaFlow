@@ -27,14 +27,14 @@ export function daysUntil(iso: string): number {
 
 export function deadlineRisk(iso: string): { label: string; tone: "rose" | "amber" | "emerald" } {
   const d = daysUntil(iso);
-  if (d < 0) return { label: `Trễ ${-d}d`, tone: "rose" };
+  if (d < 0) return { label: `Overdue ${-d}d`, tone: "rose" };
   if (d <= 2) return { label: `${d}d`, tone: "rose" };
   if (d <= 5) return { label: `${d}d`, tone: "amber" };
   return { label: `${d}d`, tone: "emerald" };
 }
 
 export function priorityLabel(p: StudioTask["priority"]): string {
-  return p === "high" ? "Cao" : p === "low" ? "Thấp" : "Bình thường";
+  return p === "high" ? "High" : p === "low" ? "Low" : "Normal";
 }
 
 export function priorityBadge(p: StudioTask["priority"]): string {

@@ -84,11 +84,11 @@ export const submissionKeys = {
 export function mapApiError(err: unknown): string {
   if (err instanceof Error) {
     const code = err instanceof ApiRequestError ? err.code : undefined;
-    if (code === "SELF_APPROVAL_BLOCKED") return "Không thể tự duyệt bài của chính mình.";
+    if (code === "SELF_APPROVAL_BLOCKED") return "You cannot approve your own submission.";
     if (code === "CONFLICT")
-      return "Item này vừa được Editor khác nhận review. Vui lòng refresh hàng chờ.";
-    if (code === "FORBIDDEN") return "Bạn không có quyền review proposal này.";
-    if (code === "INVALID_TRANSITION") return "Trạng thái hiện tại không cho phép thao tác này.";
+      return "Another editor has just claimed this item. Please refresh the queue.";
+    if (code === "FORBIDDEN") return "You do not have permission to review this proposal.";
+    if (code === "INVALID_TRANSITION") return "The current status does not allow this action.";
     if (code === "MANGAKA_OWNER_REQUIRED")
       return "Only the Mangaka owner can send this chapter to editor review.";
     if (code === "SERIES_NOT_IN_PRODUCTION" || code === "PROPOSAL_NOT_APPROVED")
@@ -101,18 +101,17 @@ export function mapApiError(err: unknown): string {
       return "Blocking comments must be resolved before editor review.";
     if (code === "REVIEW_MATERIAL_NOT_ACTIVE")
       return "Review materials must be ACTIVE before editor review.";
-    if (code === "NOT_FOUND" || code === "PROPOSAL_NOT_FOUND") return "Không tìm thấy proposal.";
+    if (code === "NOT_FOUND" || code === "PROPOSAL_NOT_FOUND") return "Proposal not found.";
     const msg = err.message;
-    if (msg.includes("SELF_APPROVAL_BLOCKED")) return "Không thể tự duyệt bài của chính mình.";
+    if (msg.includes("SELF_APPROVAL_BLOCKED")) return "You cannot approve your own submission.";
     if (msg.includes("CONFLICT"))
-      return "Item này vừa được Editor khác nhận review. Vui lòng refresh hàng chờ.";
-    if (msg.includes("FORBIDDEN")) return "Bạn không có quyền review proposal này.";
-    if (msg.includes("INVALID_TRANSITION"))
-      return "Trạng thái hiện tại không cho phép thao tác này.";
-    if (msg.includes("NOT_FOUND")) return "Không tìm thấy proposal.";
+      return "Another editor has just claimed this item. Please refresh the queue.";
+    if (msg.includes("FORBIDDEN")) return "You do not have permission to review this proposal.";
+    if (msg.includes("INVALID_TRANSITION")) return "The current status does not allow this action.";
+    if (msg.includes("NOT_FOUND")) return "Proposal not found.";
     return msg;
   }
-  return "Đã xảy ra lỗi không xác định.";
+  return "An unknown error occurred.";
 }
 
 // Queries

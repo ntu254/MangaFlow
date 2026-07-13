@@ -17,7 +17,7 @@ export function SeriesMonitorTable({
   if (series.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-card/40 p-10 text-center text-sm text-muted-foreground">
-        Bạn chưa được phân công series nào
+        You have not been assigned any series yet
       </div>
     );
   }

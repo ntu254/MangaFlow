@@ -50,13 +50,13 @@ export type VotingSession = {
 
 export const SESSION_MODE_LABEL: Record<VotingSessionMode, string> = {
   AD_HOC: "Ad-hoc",
-  SCHEDULED: "Lịch họp",
+  SCHEDULED: "Scheduled meeting",
 };
 
 export const SESSION_STATUS_LABEL: Record<VotingSessionStatus, string> = {
-  OPEN: "Đang mở",
-  CLOSED: "Đã đóng",
-  CANCELED: "Đã hủy",
+  OPEN: "Open",
+  CLOSED: "Closed",
+  CANCELED: "Canceled",
 };
 
 export const OUTCOME_LABEL: Record<SessionOutcomeDecision, string> = {
@@ -64,8 +64,8 @@ export const OUTCOME_LABEL: Record<SessionOutcomeDecision, string> = {
   REJECTED: "Rejected",
   TIE_BROKEN_APPROVED: "Tie-break → Approved",
   TIE_BROKEN_REJECTED: "Tie-break → Rejected",
-  NO_QUORUM: "Chưa đủ phiếu",
-  PENDING: "Đang chờ",
+  NO_QUORUM: "Not enough votes",
+  PENDING: "Pending",
 };
 
 export const EIC_TIEBREAK_WEIGHT = 2;

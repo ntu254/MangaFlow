@@ -120,10 +120,10 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
         onSuccess: () => {
           const label =
             action === "approve"
-              ? "Đã approve submission."
+              ? "Submission approved."
               : action === "request-revision"
-                ? "Đã yêu cầu chỉnh sửa."
-                : "Đã từ chối submission.";
+                ? "Requested changes."
+                : "Submission rejected.";
           toast.success(label);
           navigate({ to: "/app/review" });
         },

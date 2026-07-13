@@ -135,7 +135,7 @@ export function ChapterReviewViewer({
                 className="block w-full"
                 fallback={
                   <div className="flex aspect-[3/4] items-center justify-center text-[13px] text-[var(--admin-faint)]">
-                    Chưa có ảnh cho page này
+                    No image for this page
                   </div>
                 }
               />
@@ -155,7 +155,7 @@ export function ChapterReviewViewer({
           </div>
         ) : (
           <div className="flex h-full items-center justify-center text-[13px] text-[var(--admin-faint)]">
-            Chưa có page nào
+            No pages yet
           </div>
         )}
       </div>

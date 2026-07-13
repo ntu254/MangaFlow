@@ -47,8 +47,8 @@ export function AdminSettingsPage() {
       onSuccess: () => {
         toast.success(
           mode === "reset"
-            ? "Đã reset dữ liệu demo (giữ tài khoản người dùng)."
-            : "Đã xoá dữ liệu demo (giữ tài khoản người dùng).",
+            ? "Demo data reset successfully (user accounts were kept)."
+            : "Demo data cleared successfully (user accounts were kept).",
         );
         setDemoMode(null);
       },
@@ -164,8 +164,8 @@ export function AdminSettingsPage() {
       <SettingsGroup title="Demo data">
         <StateBlock
           tone="warning"
-          title="Reset / clear toàn bộ dữ liệu demo"
-          description="Xoá proposal, series, chapter, task, submission, comment, notification, ranking, earning… nhưng GIỮ NGUYÊN tài khoản người dùng để vẫn đăng nhập được. Reset sẽ tạo lại bộ series mẫu cho các luồng; Clear chỉ xoá."
+          title="Reset / clear all demo data"
+          description="Delete proposals, series, chapters, tasks, submissions, comments, notifications, rankings, and earnings while keeping user accounts so login still works. Reset recreates sample series for the flows; Clear only deletes data."
         />
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <ActionButton
@@ -173,14 +173,14 @@ export function AdminSettingsPage() {
             onClick={() => setDemoMode("reset")}
             className="inline-flex items-center gap-1.5"
           >
-            <Database className="size-4" /> Reset về dữ liệu demo
+            <Database className="size-4" /> Reset demo data
           </ActionButton>
           <ActionButton
             tone="danger"
             disabled={demoMutation.isPending}
             onClick={() => setDemoMode("clear")}
           >
-            Clear toàn bộ dữ liệu
+            Clear all data
           </ActionButton>
         </div>
 
@@ -188,14 +188,14 @@ export function AdminSettingsPage() {
           open={demoMode !== null}
           onOpenChange={(open) => (!open ? setDemoMode(null) : undefined)}
           variant="danger"
-          title={demoMode === "clear" ? "Xoá toàn bộ dữ liệu demo?" : "Reset về dữ liệu demo?"}
+          title={demoMode === "clear" ? "Delete all demo data?" : "Reset demo data?"}
           description={
             demoMode === "clear"
-              ? "Toàn bộ dữ liệu nghiệp vụ sẽ bị xoá. Tài khoản người dùng được giữ lại."
-              : "Dữ liệu nghiệp vụ hiện tại sẽ bị xoá và tạo lại bộ series mẫu. Tài khoản người dùng được giữ lại."
+              ? "All business data will be deleted. User accounts will be kept."
+              : "Current business data will be deleted and sample series will be recreated. User accounts will be kept."
           }
-          impactExplanation="Hành động này không thể hoàn tác và áp dụng cho toàn bộ database demo."
-          confirmLabel={demoMode === "clear" ? "Xoá dữ liệu" : "Reset dữ liệu"}
+          impactExplanation="This action cannot be undone and applies to the entire demo database."
+          confirmLabel={demoMode === "clear" ? "Delete data" : "Reset data"}
           isLoading={demoMutation.isPending}
           onConfirm={() => {
             if (demoMode) runDemo(demoMode);

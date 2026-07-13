@@ -18,12 +18,12 @@ import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
 import type { User } from "@/shared/auth";
 
 const schema = z.object({
-  title: z.string().min(2, "Title cần ít nhất 2 ký tự."),
-  type: z.string().min(1, "Chọn Type."),
-  assigneeId: z.string().min(1, "Chọn Assignee."),
-  dueAt: z.string().min(1, "Chọn Due date."),
-  instructions: z.string().min(5, "Instructions cần ít nhất 5 ký tự."),
-  pageId: z.string().min(1, "Chưa chọn page."),
+  title: z.string().min(2, "Title must be at least 2 characters."),
+  type: z.string().min(1, "Select a type."),
+  assigneeId: z.string().min(1, "Select an assignee."),
+  dueAt: z.string().min(1, "Select a due date."),
+  instructions: z.string().min(5, "Instructions must be at least 5 characters."),
+  pageId: z.string().min(1, "No page selected."),
 });
 
 const FIELD_LABEL: Record<string, string> = {
@@ -85,7 +85,7 @@ export function CreateTaskDialog({
 
   const submit = async () => {
     if (!page) {
-      toast.error("Chưa chọn page.");
+      toast.error("No page selected.");
       return;
     }
     const parsed = schema.safeParse({
@@ -99,11 +99,13 @@ export function CreateTaskDialog({
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       const field = issue?.path[0] ? FIELD_LABEL[String(issue.path[0])] : null;
-      toast.error(field ? `${field}: ${issue?.message}` : (issue?.message ?? "Thiếu thông tin"));
+      toast.error(
+        field ? `${field}: ${issue?.message}` : (issue?.message ?? "Missing information"),
+      );
       return;
     }
     if (hasActiveTaskOnRegion) {
-      toast.error("Region này đang có task active.");
+      toast.error("This region already has an active task.");
       return;
     }
     const assignee = members.find((m) => m.id === assigneeId);
@@ -129,14 +131,14 @@ export function CreateTaskDialog({
           <DialogDescription>
             {chapter
               ? `Chapter ${chapter.number} · Page ${page?.index ?? "—"}${region ? ` · ${region.label ?? "Region"}` : ""}`
-              : "Tạo task mới cho assistant"}
+              : "Create a new task for an assistant"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 space-y-3">
           {hasActiveTaskOnRegion ? (
             <div className="rounded border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900">
-              Region này đang có task active.
+              This region already has an active task.
             </div>
           ) : null}
 
@@ -204,14 +206,14 @@ export function CreateTaskDialog({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Hủy
+              Cancel
             </Button>
             <Button
               size="sm"
               onClick={submit}
               disabled={hasActiveTaskOnRegion || members.length === 0}
             >
-              Tạo task
+              Create task
             </Button>
           </div>
         </div>

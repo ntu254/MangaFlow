@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/review/$submissionId")({
   head: () => ({
     meta: [
       { title: "Review Submission — beachRead Studio" },
-      { name: "description", content: "Chi tiết submission chờ Mangaka review." },
+      { name: "description", content: "Submission detail awaiting Mangaka review." },
     ],
   }),
   component: RouteComponent,

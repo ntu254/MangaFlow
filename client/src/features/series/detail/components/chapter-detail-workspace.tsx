@@ -41,7 +41,7 @@ import { uploadFileToR2 } from "@/shared/lib/r2-upload";
 import { allowedChapterActions, checkChapterAction } from "../model/chapter-machine";
 import { CHAPTER_ACTION_LABEL } from "@/entities/series/model/series-types";
 
-const UNSUPPORTED = "Chưa hỗ trợ trong MVP";
+const UNSUPPORTED = "Not supported in the MVP";
 
 function computeNextAction(
   chapter: Chapter,
@@ -139,12 +139,12 @@ export function ChapterDetailWorkspace({
 
   const submitReview = async () => {
     if (!canSubmit) {
-      toast.error(submitDisabledReason ?? "Chapter chưa đủ điều kiện gửi Editor Review.");
+      toast.error(submitDisabledReason ?? "Chapter is not ready for Editor Review.");
       return;
     }
     try {
       await sendEditorReviewMutation.mutateAsync();
-      toast.success("Đã gửi Editor Review.");
+      toast.success("Sent to Editor Review.");
     } catch (e) {
       toast.error(mapApiError(e));
     }
@@ -154,7 +154,7 @@ export function ChapterDetailWorkspace({
     if (!files || !user) return;
     const valid = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (valid.length === 0) {
-      toast.error("Chọn file ảnh.");
+      toast.error("Choose an image file.");
       return;
     }
     try {
@@ -173,7 +173,7 @@ export function ChapterDetailWorkspace({
           mimeType: uploaded.mimeType,
         });
       }
-      toast.success(`Upload ${valid.length} page(s) thành công.`);
+      toast.success(`Upload ${valid.length} page(s) completed.`);
     } catch (e) {
       toast.error(mapApiError(e));
     }
@@ -183,7 +183,7 @@ export function ChapterDetailWorkspace({
     try {
       await chapterActionMutation.mutateAsync({ action: action as never });
       toast.success(
-        `${CHAPTER_ACTION_LABEL[action as keyof typeof CHAPTER_ACTION_LABEL] ?? action} thành công.`,
+        `${CHAPTER_ACTION_LABEL[action as keyof typeof CHAPTER_ACTION_LABEL] ?? action} completed.`,
       );
     } catch (e) {
       toast.error(mapApiError(e));
@@ -243,7 +243,7 @@ export function ChapterDetailWorkspace({
             <button
               onClick={() => canEnterStudio && onOpenStudio?.()}
               disabled={!canEnterStudio || !onOpenStudio}
-              title={canEnterStudio ? "Open Studio canvas" : "Bạn không có quyền vào Studio."}
+              title={canEnterStudio ? "Open Studio canvas" : "You do not have access to Studio."}
               className="inline-flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1.5 text-[11px] font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <PenTool className="size-3" /> Studio
@@ -370,7 +370,7 @@ export function ChapterDetailWorkspace({
               )}
             </div>
             {activeTasks.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">Không có task pending.</p>
+              <p className="text-[11px] text-muted-foreground">None task pending.</p>
             ) : (
               <ul className="space-y-1.5">
                 {activeTasks.map((n) => (
@@ -400,11 +400,11 @@ export function ChapterDetailWorkspace({
                 Recent activity
               </p>
               {recentAudit.length > 0 && (
-                <span className="text-[10px] text-muted-foreground">{recentAudit.length} mới</span>
+                <span className="text-[10px] text-muted-foreground">{recentAudit.length} new</span>
               )}
             </div>
             {recentAudit.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">Không có hoạt động gần đây.</p>
+              <p className="text-[11px] text-muted-foreground">No recent activity.</p>
             ) : (
               <ul className="space-y-1.5">
                 {recentAudit.map((a) => (
@@ -436,7 +436,7 @@ export function ChapterDetailWorkspace({
               Review notes
             </p>
             {chapter.reviewNotes.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">Chưa có ghi chú nào.</p>
+              <p className="text-[11px] text-muted-foreground">No notes yet.</p>
             ) : (
               <ul className="space-y-1.5">
                 {chapter.reviewNotes.map((n) => (
@@ -451,9 +451,7 @@ export function ChapterDetailWorkspace({
                       <span>{formatDateTime(n.createdAt)}</span>
                     </div>
                     <p className="whitespace-pre-line">{n.text}</p>
-                    {n.resolved && (
-                      <p className="mt-0.5 text-[10px] text-emerald-700">Đã giải quyết</p>
-                    )}
+                    {n.resolved && <p className="mt-0.5 text-[10px] text-emerald-700">Resolved</p>}
                   </li>
                 ))}
               </ul>

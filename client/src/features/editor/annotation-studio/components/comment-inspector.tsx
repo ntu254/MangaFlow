@@ -11,7 +11,7 @@ export function CommentInspector({ annotation }: { annotation?: EditorAnnotation
   if (!annotation) {
     return (
       <div className="rounded-md border border-border bg-card p-4 text-xs text-muted-foreground">
-        Chọn pin để xem chi tiết
+        Select a pin to view details
       </div>
     );
   }

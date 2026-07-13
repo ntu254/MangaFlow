@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 function timeAgo(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (d < 60) return "vừa xong";
+  if (d < 60) return "just now";
   if (d < 3600) return `${Math.floor(d / 60)}m`;
   if (d < 86400) return `${Math.floor(d / 3600)}h`;
   return `${Math.floor(d / 86400)}d`;
@@ -55,12 +55,12 @@ export function NotificationsPage() {
     try {
       const result = await markAllReadMutation.mutateAsync({ notificationIds: unreadIds });
       if (result.errorCount > 0) {
-        toast.error(`${result.errorCount} thông báo không đánh dấu được.`);
+        toast.error(`${result.errorCount} notifications could not be marked.`);
       } else {
-        toast.success("Đã đánh dấu tất cả đã đọc.");
+        toast.success("All notifications were marked as read.");
       }
     } catch {
-      toast.error("Đã xảy ra lỗi khi đánh dấu tất cả đã đọc.");
+      toast.error("An error occurred while marking all as read.");
     }
   };
 
@@ -69,12 +69,12 @@ export function NotificationsPage() {
     try {
       const result = await archiveAllMutation.mutateAsync({ notificationIds: readUnarchivedIds });
       if (result.errorCount > 0) {
-        toast.error(`${result.errorCount} thông báo không lưu trữ được.`);
+        toast.error(`${result.errorCount} notifications could not be archived.`);
       } else {
-        toast.success("Đã lưu trữ tất cả.");
+        toast.success("All notifications were archived.");
       }
     } catch {
-      toast.error("Đã xảy ra lỗi khi lưu trữ tất cả.");
+      toast.error("An error occurred while archiving all.");
     }
   };
 
@@ -88,7 +88,7 @@ export function NotificationsPage() {
       <PageHeader
         eyebrow="Workflow"
         title="Notifications"
-        description="Cập nhật từ proposal, review và board decision."
+        description="Updates from proposals, reviews, and board decisions."
       >
         <button
           onClick={handleMarkAllRead}
@@ -129,7 +129,7 @@ export function NotificationsPage() {
           onChange={(e) => setKindFilter(e.target.value)}
           className="h-8 rounded border border-border bg-background px-2 text-xs"
         >
-          <option value="ALL">Tất cả kind</option>
+          <option value="ALL">All kind</option>
           {kinds.map((k) => (
             <option key={k} value={k}>
               {k}
@@ -139,7 +139,7 @@ export function NotificationsPage() {
         {selected.length > 0 ? (
           <div className="ml-auto flex gap-1.5">
             <span className="self-center text-[10px] text-muted-foreground">
-              {selected.length} đã chọn
+              {selected.length} selected
             </span>
             <button
               onClick={async () => {
@@ -147,8 +147,8 @@ export function NotificationsPage() {
                   selected.map((id) => markRead.mutateAsync(id)),
                 );
                 const failed = results.filter((r) => r.status === "rejected");
-                if (failed.length > 0) toast.error(`${failed.length} thất bại.`);
-                else toast.success("Đã đánh dấu đã đọc.");
+                if (failed.length > 0) toast.error(`${failed.length} failed.`);
+                else toast.success("Marked as read.");
                 setSelected([]);
               }}
               className="rounded border border-border bg-card px-2 py-1 text-[11px]"
@@ -161,8 +161,8 @@ export function NotificationsPage() {
                   selected.map((id) => archive.mutateAsync(id)),
                 );
                 const failed = results.filter((r) => r.status === "rejected");
-                if (failed.length > 0) toast.error(`${failed.length} thất bại.`);
-                else toast.success("Đã lưu trữ.");
+                if (failed.length > 0) toast.error(`${failed.length} failed.`);
+                else toast.success("Archived.");
                 setSelected([]);
               }}
               className="rounded border border-border bg-card px-2 py-1 text-[11px]"
@@ -174,11 +174,13 @@ export function NotificationsPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Đang tải thông báo...</div>
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          Loading notifications...
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title="Không có thông báo"
-          description="Notification sẽ xuất hiện khi có transition ảnh hưởng tới bạn."
+          title="No notifications"
+          description="Notifications will appear when a transition affects you."
         />
       ) : (
         <div className="overflow-hidden rounded-lg border border-border bg-card/40">
@@ -188,7 +190,7 @@ export function NotificationsPage() {
               checked={selected.length === filtered.length}
               onChange={toggleAll}
             />
-            <span>Chọn tất cả</span>
+            <span>Select all</span>
           </div>
           <ul className="divide-y divide-border">
             {filtered.map((n) => (

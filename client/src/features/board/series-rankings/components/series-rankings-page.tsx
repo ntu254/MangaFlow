@@ -62,14 +62,14 @@ export function SeriesRankingsPage() {
         description="Reader score, votes, views, completion, trend, and risk signals."
       />
       <Notice icon={<ShieldAlert className="size-5" />} title="Governance notice">
-        Bảng xếp hạng chỉ tạo tín hiệu rủi ro và không tự động huỷ tác phẩm. Mọi quyết định thay đổi
-        trạng thái phải được ban quản trị thực hiện thủ công.
+        Rankings only create risk signals and do not automatically cancel works. All status changes
+        must be handled manually by the admin team.
       </Notice>
 
       <QueueTabs
         tabs={
           [
-            { key: "rankings", label: "Bảng xếp hạng" },
+            { key: "rankings", label: "Rankings" },
             { key: "import", label: "Import CSV" },
           ] satisfies QueueTab[]
         }
@@ -81,7 +81,7 @@ export function SeriesRankingsPage() {
         <>
           <Select value={selectedPeriod} onValueChange={setSelected}>
             <SelectTrigger className="h-10 w-64 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]">
-              <SelectValue placeholder="Chọn kỳ xếp hạng" />
+              <SelectValue placeholder="Select ranking period" />
             </SelectTrigger>
             <SelectContent>
               {periods.map((period) => (

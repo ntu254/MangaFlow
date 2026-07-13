@@ -7,7 +7,7 @@ export function RankingImportPreview({ jobs }: { jobs: RankingImportJob[] }) {
         Import Preview
       </p>
       {jobs.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">Chưa có import job.</p>
+        <p className="mt-3 text-sm text-muted-foreground">No import job yet.</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {jobs.map((job) => (

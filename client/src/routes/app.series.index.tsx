@@ -4,10 +4,10 @@ import { SeriesListPage } from "@/features/series/list";
 export const Route = createFileRoute("/app/series/")({
   head: () => ({
     meta: [
-      { title: "Series sản xuất — beachRead Studio" },
+      { title: "Production Series — beachRead Studio" },
       {
         name: "description",
-        content: "Production control center — quản lý series, chapter, task và review.",
+        content: "Production control center - manage series, chapters, tasks, and reviews.",
       },
     ],
   }),

@@ -21,7 +21,7 @@ export function TaskRegionPreview({
   if (!page) {
     return (
       <div className="grid h-full place-items-center rounded-md border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
-        Không có page để hiển thị.
+        No page to display.
       </div>
     );
   }

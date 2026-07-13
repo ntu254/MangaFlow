@@ -3,30 +3,30 @@ import { RoleBadge } from "@/entities/user";
 
 function timeAgo(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (d < 60) return "vừa xong";
+  if (d < 60) return "just now";
   if (d < 3600) return `${Math.floor(d / 60)}m`;
   if (d < 86400) return `${Math.floor(d / 3600)}h`;
   return `${Math.floor(d / 86400)}d`;
 }
 
 const TYPE_LABEL: Record<ProposalEvent["type"], string> = {
-  CREATE: "tạo proposal",
-  SUBMIT: "submit lên editor",
-  RESUBMIT: "resubmit sau chỉnh sửa",
-  REQUEST_CHANGES: "yêu cầu chỉnh sửa",
-  FORWARD: "chuyển Board review",
-  RECALL: "recall khỏi Board",
+  CREATE: "created proposal",
+  SUBMIT: "submitted to editor",
+  RESUBMIT: "resubmitted after edits",
+  REQUEST_CHANGES: "requested changes",
+  FORWARD: "sent to Board review",
+  RECALL: "recalled from Board",
   REJECT: "reject proposal",
   VOTE: "vote",
-  DECIDE: "ra quyết định",
-  WITHDRAW: "rút lại proposal",
+  DECIDE: "made a decision",
+  WITHDRAW: "withdrew proposal",
   CLAIM: "claim review",
-  RELEASE_CLAIM: "bỏ claim",
-  REASSIGN_CLAIM: "chuyển claim",
-  EDIT: "cập nhật",
-  TIE_BREAK: "chuyển sang tie-break",
+  RELEASE_CLAIM: "released claim",
+  REASSIGN_CLAIM: "reassigned claim",
+  EDIT: "updated",
+  TIE_BREAK: "moved to tie-break",
   MANUSCRIPT_UPLOAD: "upload manuscript",
-  FORCE_STATUS: "force trạng thái",
+  FORCE_STATUS: "forced status",
 };
 
 export function Timeline({ events }: { events: ProposalEvent[] }) {

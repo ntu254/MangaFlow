@@ -1,1 +1,1 @@
-export const UNSUPPORTED_MVP = "Chưa hỗ trợ trong MVP";
+export const UNSUPPORTED_MVP = "Not supported in the MVP";

@@ -47,7 +47,7 @@ export function evaluateBoardTally(votes: BoardVote[]): TallyResult {
         abstain,
         total,
         status: "APPROVED",
-        reason: `Đủ ${BOARD_TOTAL} phiếu: APPROVE > REJECT.`,
+        reason: `All ${BOARD_TOTAL} votes: APPROVE > REJECT.`,
       };
     if (reject > approve)
       return {
@@ -56,7 +56,7 @@ export function evaluateBoardTally(votes: BoardVote[]): TallyResult {
         abstain,
         total,
         status: "REJECTED",
-        reason: `Đủ ${BOARD_TOTAL} phiếu: REJECT > APPROVE.`,
+        reason: `All ${BOARD_TOTAL} votes: REJECT > APPROVE.`,
       };
     return {
       approve,
@@ -64,7 +64,7 @@ export function evaluateBoardTally(votes: BoardVote[]): TallyResult {
       abstain,
       total,
       status: "TIE_BREAK",
-      reason: `Hoà ${approve}-${reject}. Chờ phiếu phá tie của Editor-in-chief (weight ${EIC_TIEBREAK_WEIGHT}).`,
+      reason: `Tied ${approve}-${reject}. Waiting for the Editor-in-chief tie-break vote (weight ${EIC_TIEBREAK_WEIGHT}).`,
     };
   }
 
@@ -74,6 +74,6 @@ export function evaluateBoardTally(votes: BoardVote[]): TallyResult {
     abstain,
     total,
     status: null,
-    reason: `Đang chờ thêm phiếu (${total}/${BOARD_TOTAL}).`,
+    reason: `Waiting for more votes (${total}/${BOARD_TOTAL}).`,
   };
 }

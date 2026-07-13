@@ -42,17 +42,17 @@ export function SessionCard({ session }: { session: VotingSession }) {
           <dd>{session.proposalIds.length}</dd>
         </div>
         <div>
-          <dt className="font-semibold text-foreground">Đã quyết định</dt>
+          <dt className="font-semibold text-foreground">Decided</dt>
           <dd>{decided}</dd>
         </div>
         {tieCount > 0 ? (
           <div className="col-span-2 mt-1 rounded bg-fuchsia-100 px-2 py-1 text-fuchsia-900">
-            {tieCount} proposal chờ tie-break Editor-in-chief
+            {tieCount} proposals awaiting Editor-in-chief tie-break
           </div>
         ) : null}
         {session.scheduledFor ? (
           <div className="col-span-2">
-            <dt className="font-semibold text-foreground">Lịch họp</dt>
+            <dt className="font-semibold text-foreground">Scheduled meeting</dt>
             <dd>{new Date(session.scheduledFor).toLocaleString("vi-VN")}</dd>
           </div>
         ) : null}

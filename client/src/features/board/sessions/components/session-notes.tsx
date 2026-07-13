@@ -11,23 +11,23 @@ export function SessionNotes({ session, user: _user }: { session: VotingSession;
 
   const submit = async () => {
     if (!text.trim()) {
-      toast.error("Ghi chú trống.");
+      toast.error("Note is empty.");
       return;
     }
     try {
       await addNoteMutation.mutateAsync({ text: text.trim() });
       setText("");
-      toast.success("Đã thêm ghi chú.");
+      toast.success("Note added.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể thêm ghi chú.");
+      toast.error(error instanceof Error ? error.message : "Could not add note.");
     }
   };
 
   return (
     <section className="rounded-lg border border-border bg-card/40 p-4">
-      <h2 className="mb-3 font-serif text-xl">Ghi chú phiên ({session.notes.length})</h2>
+      <h2 className="mb-3 font-serif text-xl">Session notes ({session.notes.length})</h2>
       {session.notes.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Chưa có ghi chú.</p>
+        <p className="text-xs text-muted-foreground">No notes yet.</p>
       ) : (
         <ul className="space-y-2">
           {session.notes.map((n) => (
@@ -47,14 +47,14 @@ export function SessionNotes({ session, user: _user }: { session: VotingSession;
             rows={2}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Thêm ghi chú cho phiên..."
+            placeholder="Add a note for the session..."
           />
           <button
             onClick={submit}
             disabled={addNoteMutation.isPending}
             className="self-end rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-40"
           >
-            Gửi
+            Send
           </button>
         </div>
       ) : null}

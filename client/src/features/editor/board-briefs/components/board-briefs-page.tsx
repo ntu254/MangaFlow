@@ -50,11 +50,11 @@ export function BoardBriefsPage() {
       <PageHeader
         eyebrow="Editor"
         title="Board Briefs"
-        description="Chuẩn bị recommendation editorial trước khi đưa lên Board. Editor không vote thay Board."
+        description="Prepare editorial recommendations before sending items to the Board. Editors do not vote on behalf of the Board."
       />
 
       {mySeries.length === 0 ? (
-        <EmptyState title="Bạn chưa được phân công series nào" />
+        <EmptyState title="You have not been assigned any series yet" />
       ) : (
         <section className="space-y-3 rounded-md border border-border bg-card p-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -115,7 +115,7 @@ export function BoardBriefsPage() {
           Past briefs
         </p>
         {briefs.length === 0 ? (
-          <EmptyState title="Chưa có hồ sơ Board nào" />
+          <EmptyState title="No Board briefs yet" />
         ) : (
           <ul className="space-y-2">
             {briefs.map((b) => {

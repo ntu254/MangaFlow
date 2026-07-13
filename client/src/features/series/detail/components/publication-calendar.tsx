@@ -56,7 +56,7 @@ export function PublicationCalendar({
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Lịch xuất bản
+            Publication Calendar
           </p>
           <p className="font-serif text-lg capitalize">{monthLabel}</p>
         </div>
@@ -78,7 +78,7 @@ export function PublicationCalendar({
             }
             className="rounded border border-border px-3 text-xs hover:bg-muted"
           >
-            Hôm nay
+            Today
           </button>
           <button
             onClick={() =>
@@ -147,7 +147,7 @@ export function PublicationCalendar({
       </div>
       <div className="border-t border-border px-4 py-3">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          30 ngày tới
+          Next 30 days
         </p>
         <ul className="mt-2 space-y-1 text-xs">
           {filtered
@@ -186,7 +186,7 @@ export function PublicationCalendar({
             const d = new Date(t).getTime();
             return d >= Date.now() && d <= Date.now() + 30 * 86400000;
           }).length === 0 ? (
-            <li className="text-muted-foreground">Không có sự kiện trong 30 ngày tới.</li>
+            <li className="text-muted-foreground">No events in the next 30 days.</li>
           ) : null}
         </ul>
       </div>

@@ -113,14 +113,15 @@ export function mapAdminError(err: unknown): string {
     if (apiError.status === 403) return "You do not have permission for this action.";
 
     const msg = err.message;
-    if (msg.includes("FORBIDDEN")) return "Bạn không có quyền thực hiện thao tác này.";
-    if (msg.includes("NOT_FOUND")) return "Bản ghi không tồn tại.";
-    if (msg.includes("INVALID_STATUS")) return "Trạng thái hiện tại không cho phép thao tác này.";
-    if (msg.includes("PROTECTED_FIELD")) return "Trường này không thể chỉnh sửa.";
-    if (msg.includes("VOID_REASON_REQUIRED")) return "Cần nhập lý do khi void earning.";
+    if (msg.includes("FORBIDDEN")) return "You do not have permission to perform this action.";
+    if (msg.includes("NOT_FOUND")) return "Record not found.";
+    if (msg.includes("INVALID_STATUS")) return "The current status does not allow this action.";
+    if (msg.includes("PROTECTED_FIELD")) return "This field cannot be edited.";
+    if (msg.includes("VOID_REASON_REQUIRED"))
+      return "A reason is required when voiding an earning.";
     return msg;
   }
-  return "Đã xảy ra lỗi không xác định.";
+  return "An unknown error occurred.";
 }
 
 export interface WorkflowIssue {

@@ -40,7 +40,7 @@ export function EditorAnnotationStudio() {
   if (isLoading) {
     return (
       <div className="p-10">
-        <EmptyState title="Đang tải chapter" />
+        <EmptyState title="Loading chapter" />
       </div>
     );
   }
@@ -48,7 +48,7 @@ export function EditorAnnotationStudio() {
   if (!chapter || !series) {
     return (
       <div className="p-10">
-        <EmptyState title="Không tìm thấy chapter" />
+        <EmptyState title="Chapter not found" />
       </div>
     );
   }
@@ -68,7 +68,7 @@ export function EditorAnnotationStudio() {
       type: tool === "blocking" ? "blocking" : tool === "text" ? "note" : "panel",
       severity: tool === "blocking" ? "high" : "medium",
       blocking: tool === "blocking",
-      text: "Thêm comment...",
+      text: "Add comment...",
       status: "OPEN",
       authorId: user.id,
       authorName: user.name,
@@ -108,7 +108,7 @@ export function EditorAnnotationStudio() {
             Pages
           </p>
           {pages.length === 0 ? (
-            <p className="px-1 text-xs text-muted-foreground">Chưa có page</p>
+            <p className="px-1 text-xs text-muted-foreground">No pages yet</p>
           ) : (
             pages.map((p) => {
               const cnt = allAnnotations.filter((a) => a.pageId === p.id).length;

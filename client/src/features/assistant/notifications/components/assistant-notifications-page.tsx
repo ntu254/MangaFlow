@@ -30,12 +30,12 @@ export function AssistantNotificationsPage() {
     if (unreadIds.length === 0) return;
     const results = await Promise.allSettled(unreadIds.map((id) => markRead.mutateAsync(id)));
     const failed = results.filter((r) => r.status === "rejected");
-    if (failed.length > 0) toast.error(`${failed.length} thông báo không đánh dấu được.`);
-    else toast.success("Đã đánh dấu tất cả đã đọc.");
+    if (failed.length > 0) toast.error(`${failed.length} notifications could not be marked.`);
+    else toast.success("All notifications were marked as read.");
   };
 
   if (isLoading)
-    return <div className="space-y-4 p-6 text-sm text-muted-foreground">Đang tải...</div>;
+    return <div className="space-y-4 p-6 text-sm text-muted-foreground">Loading...</div>;
 
   return (
     <div className="space-y-4">
@@ -46,7 +46,7 @@ export function AssistantNotificationsPage() {
           </p>
           <h1 className="font-serif text-3xl">Notifications</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {unreadCount} chưa đọc / {visible.length} tổng
+            {unreadCount} unread / {visible.length} total
           </p>
         </div>
         <button
@@ -54,17 +54,17 @@ export function AssistantNotificationsPage() {
           disabled={unreadCount === 0 || markRead.isPending}
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-40"
         >
-          <Check className="size-3.5" /> Đánh dấu tất cả đã đọc
+          <Check className="size-3.5" /> Mark all as read
         </button>
       </header>
 
       {visible.length === 0 ? (
-        <EmptyState title="Không có thông báo mới" />
+        <EmptyState title="No new notifications" />
       ) : (
         <>
           {today.length > 0 ? (
             <Group
-              title="Hôm nay"
+              title="Today"
               items={today}
               onMarkRead={(id) =>
                 markRead.mutate(id, { onError: (e) => toast.error(mapNotificationError(e)) })
@@ -73,7 +73,7 @@ export function AssistantNotificationsPage() {
           ) : null}
           {earlier.length > 0 ? (
             <Group
-              title="Trước đó"
+              title="Earlier"
               items={earlier}
               onMarkRead={(id) =>
                 markRead.mutate(id, { onError: (e) => toast.error(mapNotificationError(e)) })
@@ -120,7 +120,7 @@ function Group({
                 onClick={() => onMarkRead(n.id)}
                 className="rounded border border-border bg-background px-2 py-1 text-[10px] font-semibold hover:bg-muted"
               >
-                Đã đọc
+                Read
               </button>
             ) : null}
           </li>

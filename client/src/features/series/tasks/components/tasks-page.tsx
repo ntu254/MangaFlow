@@ -22,10 +22,10 @@ export function TasksPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Production
           </p>
-          <h1 className="font-serif text-4xl">Task của bạn</h1>
+          <h1 className="font-serif text-4xl">Your Tasks</h1>
         </header>
         <div className="rounded-md border border-border bg-card/40 p-12 text-center text-sm text-muted-foreground">
-          Đang tải task...
+          Loading task...
         </div>
       </div>
     );
@@ -38,10 +38,10 @@ export function TasksPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Production
           </p>
-          <h1 className="font-serif text-4xl">Task của bạn</h1>
+          <h1 className="font-serif text-4xl">Your Tasks</h1>
         </header>
         <div className="rounded-md border border-destructive/30 bg-destructive/5 p-12 text-center text-sm text-destructive">
-          Không thể tải danh sách task. Bạn có thể không có quyền truy cập hoặc đã xảy ra lỗi.
+          Could not load the task list. You may not have access, or an error occurred.
         </div>
       </div>
     );
@@ -66,14 +66,14 @@ export function TasksPage() {
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           Production
         </p>
-        <h1 className="font-serif text-4xl">Task của bạn</h1>
+        <h1 className="font-serif text-4xl">Your Tasks</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mine.length} chapter đang chờ action ({user.role}).
+          {mine.length} chapters awaiting action ({user.role}).
         </p>
       </header>
       {mine.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-card/40 p-12 text-center text-sm text-muted-foreground">
-          Không có task nào dành cho bạn.
+          There are no tasks assigned to you.
         </div>
       ) : (
         <ul className="space-y-2">
@@ -93,7 +93,7 @@ export function TasksPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                    <span>Hạn {formatDate(c.draftDueAt ?? c.reviewDueAt ?? c.scheduledAt)}</span>
+                    <span>Due {formatDate(c.draftDueAt ?? c.reviewDueAt ?? c.scheduledAt)}</span>
                     <ChapterStatusPill status={c.status} />
                   </div>
                 </Link>

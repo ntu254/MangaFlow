@@ -4,7 +4,7 @@ export const Route = createFileRoute("/app/board")({
   head: () => ({
     meta: [
       { title: "Board Vote — beachRead Studio" },
-      { name: "description", content: "Hội đồng vote proposal." },
+      { name: "description", content: "Board proposal voting." },
     ],
   }),
   beforeLoad: () => {
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/app/board")({
     } catch (e) {
       if (isRedirect(e)) throw e;
     }
-    // Cho phép admin (vẫn dùng /app/board/sessions) và board.
+    // Allow admin (still using /app/board/sessions) and board.
     if (role && role !== "board" && role !== "admin") {
       throw redirect({ to: "/app/dashboard" });
     }

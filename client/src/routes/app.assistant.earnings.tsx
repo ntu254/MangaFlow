@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/assistant/earnings")({
   head: () => ({
     meta: [
       { title: "Earnings — beachRead Studio" },
-      { name: "description", content: "Earnings của Assistant (read-only)." },
+      { name: "description", content: "Assistant earnings (read-only)." },
     ],
   }),
   component: EarningsPage,

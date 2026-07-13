@@ -35,7 +35,7 @@ export function AdminWorkflowMonitorPage() {
       <PageShell maxWidth="7xl">
         <PageHeader
           title="Workflow monitor"
-          description="Cross-role queue for stuck transitions, missing callbacks, and governance handoffs."
+          description="Cross-role queue for stuck transitions, missing callbacks, and governance hintoffs."
         />
         <section className="grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -54,7 +54,7 @@ export function AdminWorkflowMonitorPage() {
       <PageShell maxWidth="7xl">
         <PageHeader
           title="Workflow monitor"
-          description="Cross-role queue for stuck transitions, missing callbacks, and governance handoffs."
+          description="Cross-role queue for stuck transitions, missing callbacks, and governance hintoffs."
         />
         <StateBlock
           tone="danger"
@@ -72,7 +72,7 @@ export function AdminWorkflowMonitorPage() {
     <PageShell maxWidth="7xl">
       <PageHeader
         title="Workflow monitor"
-        description="Cross-role queue for stuck transitions, missing callbacks, and governance handoffs."
+        description="Cross-role queue for stuck transitions, missing callbacks, and governance hintoffs."
       />
 
       <section className="grid gap-4 sm:grid-cols-3">

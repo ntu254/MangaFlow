@@ -27,8 +27,9 @@ export function checkChapterAction(
   switch (action) {
     case "START_DRAFT":
       if (!isMangakaOwner(user, chapter, series))
-        return { ok: false, reason: "Chỉ assignee hoặc admin." };
-      if (chapter.status !== "PLANNED") return { ok: false, reason: "Chỉ start khi PLANNED." };
+        return { ok: false, reason: "Only the assignee or an admin can do this." };
+      if (chapter.status !== "PLANNED")
+        return { ok: false, reason: "Can only start from PLANNED." };
       return { ok: true };
     case "SUBMIT_REVIEW":
       if (series.status !== "ONGOING" && series.status !== "COMPLETED")
@@ -47,33 +48,39 @@ export function checkChapterAction(
         return { ok: false, reason: "Page image is required before Editor Review." };
       return { ok: true };
     case "RESUBMIT":
-      if (!isMangakaOwner(user, chapter, series)) return { ok: false, reason: "Chỉ assignee." };
-      if (chapter.status !== "REVISION") return { ok: false, reason: "Chỉ resubmit khi REVISION." };
+      if (!isMangakaOwner(user, chapter, series))
+        return { ok: false, reason: "Only the assignee can do this." };
+      if (chapter.status !== "REVISION")
+        return { ok: false, reason: "Can only resubmit in REVISION." };
       return { ok: true };
     case "REQUEST_REVISION":
-      if (!isEditor(user, series)) return { ok: false, reason: "Chỉ editor." };
+      if (!isEditor(user, series)) return { ok: false, reason: "Only an editor can do this." };
       if (chapter.status !== "EDITOR_REVIEW")
-        return { ok: false, reason: "Chỉ khi EDITOR_REVIEW." };
+        return { ok: false, reason: "Only in EDITOR_REVIEW." };
       return { ok: true };
     case "EDITOR_APPROVE":
-      if (!isEditor(user, series)) return { ok: false, reason: "Chỉ editor." };
+      if (!isEditor(user, series)) return { ok: false, reason: "Only an editor can do this." };
       if (chapter.status !== "EDITOR_REVIEW")
-        return { ok: false, reason: "Chỉ approve từ EDITOR_REVIEW." };
+        return { ok: false, reason: "Can only approve from EDITOR_REVIEW." };
       return { ok: true };
     case "SCHEDULE":
-      if (!isEditor(user, series)) return { ok: false, reason: "Chỉ editor." };
+      if (!isEditor(user, series)) return { ok: false, reason: "Only an editor can do this." };
       if (chapter.status !== "READY_FOR_PUBLICATION" && chapter.status !== "SCHEDULED")
-        return { ok: false, reason: "Chỉ schedule từ APPROVED hoặc reschedule khi SCHEDULED." };
+        return {
+          ok: false,
+          reason: "Can only schedule from APPROVED or reschedule while SCHEDULED.",
+        };
       return { ok: true };
     case "PUBLISH":
-      if (!isEditor(user, series)) return { ok: false, reason: "Chỉ editor." };
+      if (!isEditor(user, series)) return { ok: false, reason: "Only an editor can do this." };
       if (chapter.status !== "SCHEDULED" && chapter.status !== "READY_FOR_PUBLICATION")
-        return { ok: false, reason: "Chỉ publish từ APPROVED/SCHEDULED." };
+        return { ok: false, reason: "Can only publish from APPROVED/SCHEDULED." };
       return { ok: true };
     case "REASSIGN":
       if (user.role !== "admin" && user.role !== "editor")
-        return { ok: false, reason: "Chỉ editor/admin." };
-      if (chapter.status === "PUBLISHED") return { ok: false, reason: "Chapter đã publish." };
+        return { ok: false, reason: "Only editor/admin can do this." };
+      if (chapter.status === "PUBLISHED")
+        return { ok: false, reason: "Chapter has already been published." };
       return { ok: true };
     default:
       return { ok: false, reason: "Unknown action." };
@@ -124,7 +131,7 @@ export function applyChapterTransition(
   payload: ChapterTransitionPayload = {},
 ): ChapterTransitionResult {
   const check = checkChapterAction(action, user, chapter, series);
-  if (!check.ok) throw new Error(check.reason ?? "Action không hợp lệ.");
+  if (!check.ok) throw new Error(check.reason ?? "Invalid action.");
 
   const now = new Date().toISOString();
   const base = {
@@ -162,7 +169,7 @@ export function applyChapterTransition(
       notify.push({
         userId: editorTarget,
         kind: "chapter.started",
-        message: `Chapter ${chapter.number} (${series.title}) đã bắt đầu drafting.`,
+        message: `Chapter ${chapter.number} (${series.title}) started drafting.`,
       });
       break;
     case "SUBMIT_REVIEW":
@@ -170,7 +177,7 @@ export function applyChapterTransition(
       notify.push({
         userId: editorTarget,
         kind: "chapter.submitted",
-        message: `Chapter ${chapter.number} của ${series.title} đã submit review.`,
+        message: `Chapter ${chapter.number} of ${series.title} was submitted for review.`,
       });
       break;
     case "RESUBMIT": {
@@ -179,12 +186,12 @@ export function applyChapterTransition(
       notify.push({
         userId: editorTarget,
         kind: "chapter.resubmitted",
-        message: `Chapter ${chapter.number} (${series.title}) đã resubmit (vòng ${next.revisionRound}).`,
+        message: `Chapter ${chapter.number} (${series.title}) was resubmitted (round ${next.revisionRound}).`,
       });
       break;
     }
     case "REQUEST_REVISION": {
-      if (!payload.reviewNote) throw new Error("Cần ghi rõ ghi chú revision.");
+      if (!payload.reviewNote) throw new Error("A revision note is required.");
       next.reviewNotes = [
         ...next.reviewNotes,
         {
@@ -201,12 +208,12 @@ export function applyChapterTransition(
       notify.push({
         userId: chapter.assigneeId,
         kind: "chapter.revision",
-        message: `Editor yêu cầu chỉnh sửa chapter ${chapter.number} (${series.title}).`,
+        message: `Editor requested changes chapter ${chapter.number} (${series.title}).`,
       });
       notify.push({
         userId: authorTarget,
         kind: "chapter.revision",
-        message: `Chapter ${chapter.number} (${series.title}) cần chỉnh sửa.`,
+        message: `Chapter ${chapter.number} (${series.title}) needs changes.`,
       });
       break;
     }
@@ -215,27 +222,27 @@ export function applyChapterTransition(
       notify.push({
         userId: chapter.assigneeId,
         kind: "chapter.approved",
-        message: `Chapter ${chapter.number} (${series.title}) đã được approve.`,
+        message: `Chapter ${chapter.number} (${series.title}) was approved.`,
       });
       notify.push({
         userId: authorTarget,
         kind: "chapter.approved",
-        message: `Chapter ${chapter.number} đã approve.`,
+        message: `Chapter ${chapter.number} was approved.`,
       });
       break;
     case "SCHEDULE": {
-      if (!payload.scheduledAt) throw new Error("Cần ngày schedule.");
+      if (!payload.scheduledAt) throw new Error("A scheduled date is required.");
       next.scheduledAt = payload.scheduledAt;
       transit("SCHEDULED", "SCHEDULE");
       notify.push({
         userId: chapter.assigneeId,
         kind: "chapter.scheduled",
-        message: `Chapter ${chapter.number} đã được schedule.`,
+        message: `Chapter ${chapter.number} was scheduled.`,
       });
       notify.push({
         userId: authorTarget,
         kind: "chapter.scheduled",
-        message: `Chapter ${chapter.number} (${series.title}) đã schedule.`,
+        message: `Chapter ${chapter.number} (${series.title}) was scheduled.`,
       });
       break;
     }
@@ -246,35 +253,35 @@ export function applyChapterTransition(
       notify.push({
         userId: chapter.assigneeId,
         kind: "chapter.published",
-        message: `Chapter ${chapter.number} (${series.title}) đã publish.`,
+        message: `Chapter ${chapter.number} (${series.title}) was published.`,
       });
       notify.push({
         userId: authorTarget,
         kind: "chapter.published",
-        message: `Chapter ${chapter.number} (${series.title}) đã publish.`,
+        message: `Chapter ${chapter.number} (${series.title}) was published.`,
       });
       notify.push({
         userId: "u-admin",
         kind: "chapter.published",
-        message: `Chapter ${chapter.number} (${series.title}) đã publish.`,
+        message: `Chapter ${chapter.number} (${series.title}) was published.`,
       });
       break;
     }
     case "REASSIGN": {
       if (!payload.newAssigneeId || !payload.newAssigneeName)
-        throw new Error("Thiếu assignee mới.");
+        throw new Error("Missing new assignee.");
       next.assigneeId = payload.newAssigneeId;
       next.assigneeName = payload.newAssigneeName;
       events.push({
         ...base,
         id: uid("ce"),
         type: "REASSIGN",
-        comment: `Đổi assignee → ${payload.newAssigneeName}.`,
+        comment: `Changed assignee -> ${payload.newAssigneeName}.`,
       });
       notify.push({
         userId: payload.newAssigneeId,
         kind: "chapter.assigned",
-        message: `Bạn được giao Chapter ${chapter.number} (${series.title}).`,
+        message: `You were assigned Chapter ${chapter.number} (${series.title}).`,
       });
       break;
     }
@@ -285,11 +292,11 @@ export function applyChapterTransition(
 }
 
 export function chapterReadinessForPublish(chapter: Chapter): { ready: boolean; reason?: string } {
-  if (chapter.status === "PUBLISHED") return { ready: false, reason: "Đã publish." };
+  if (chapter.status === "PUBLISHED") return { ready: false, reason: "Published." };
   if (chapter.status === "SCHEDULED" && chapter.scheduledAt) {
     const due = new Date(chapter.scheduledAt).getTime();
     if (due > Date.now())
-      return { ready: false, reason: `Chờ tới ${new Date(due).toLocaleString("vi-VN")}.` };
+      return { ready: false, reason: `Wait until ${new Date(due).toLocaleString("vi-VN")}.` };
   }
   return {
     ready:
