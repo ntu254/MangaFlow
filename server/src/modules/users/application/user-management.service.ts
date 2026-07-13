@@ -4,6 +4,14 @@ import { id } from "../../../domain/ids.js";
 import type { AuthedRequest } from "../../../types.js";
 import { audit } from "../../../services/audit.service.js";
 import {
+  combineMongoFilters,
+  listFiltersToMongo,
+  listSearchToMongo,
+  listSortToMongo,
+  type ListQuery,
+} from "../../../shared/contracts/list-contract.js";
+import {
+  countUserRecords,
   createUserRecord,
   findUserRecordByEmail,
   findUserRecordById,
@@ -28,9 +36,52 @@ export type UpdateUserInput = Partial<Omit<CreateUserInput, "password">> & {
   reason?: string;
 };
 
-export async function listUsers() {
-  const users = await listUserRecords();
-  return users.map(toAdminUserView);
+export async function listUsers(query?: ListQuery) {
+  if (!query) {
+    const users = await listUserRecords();
+    return {
+      data: users.map(toAdminUserView),
+      total: users.length,
+      summary: summarizeUsers(users),
+    };
+  }
+
+  const filter = combineMongoFilters(
+    listSearchToMongo(query.q, ["name", "email"]),
+    listFiltersToMongo(query.filters),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { role: 1 as const, name: 1 as const };
+
+  const [users, total, allUsers] = await Promise.all([
+    listUserRecords({
+      filter,
+      sort,
+      skip: (query.page - 1) * query.pageSize,
+      limit: query.pageSize,
+    }),
+    countUserRecords(filter),
+    listUserRecords(),
+  ]);
+
+  return {
+    data: users.map(toAdminUserView),
+    total,
+    summary: summarizeUsers(allUsers),
+  };
+}
+
+function summarizeUsers(users: any[]) {
+  const locked = users.filter((user) => user.active === false).length;
+  const active = users.length - locked;
+  const adminCount = users.filter((user) => String(user.role).toUpperCase() === "ADMIN").length;
+  return {
+    total: users.length,
+    active,
+    locked,
+    adminCount,
+  };
 }
 
 export async function getUser(userId: string) {

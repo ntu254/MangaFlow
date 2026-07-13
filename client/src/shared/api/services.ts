@@ -1,4 +1,5 @@
-import { apiRequest } from "./client";
+import { apiListRequest, apiRequest, type ApiListEnvelope } from "./client";
+import type { TableState } from "@/shared/table";
 
 export interface CreateProposalRequest {
   title: string;
@@ -204,6 +205,35 @@ export interface OverrideRequest {
   reason: string;
 }
 
+export type AdminUsersListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    active: number;
+    locked: number;
+    adminCount: number;
+  };
+};
+
+function tableStateQuery(state?: TableState) {
+  if (!state) return "";
+  const params = new URLSearchParams();
+  params.set("page", String(state.page));
+  params.set("pageSize", String(state.pageSize));
+  if (state.q.trim()) params.set("q", state.q.trim());
+  if (state.sortBy) {
+    params.set("sortBy", state.sortBy);
+    params.set("sortDir", state.sortDir);
+  }
+  if (Object.keys(state.filters).length > 0) {
+    params.set("filters", JSON.stringify(state.filters));
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 export const bootstrapApi = {
   me: () => apiRequest("/me/bootstrap"),
   dashboard: (role: string) => apiRequest(`/dashboard/${role}/summary`),
@@ -334,7 +364,12 @@ export const boardApi = {
 };
 
 export const adminApi = {
-  users: () => apiRequest("/admin/users"),
+  usersList: (state?: TableState) =>
+    apiListRequest<unknown, AdminUsersListMeta>(`/admin/users${tableStateQuery(state)}`),
+  users: async () => {
+    const list = await adminApi.usersList();
+    return list.data;
+  },
   createUser: (body: CreateUserRequest) => apiRequest("/admin/users", { method: "POST", body }),
   getUser: (userId: string) => apiRequest(`/admin/users/${userId}`),
   updateUser: (userId: string, body: UpdateUserRequest) =>

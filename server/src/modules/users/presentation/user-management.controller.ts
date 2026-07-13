@@ -1,4 +1,8 @@
 import { asyncRoute, created, ok } from "../../../lib/http.js";
+import {
+  buildPagination,
+  parseListQuery,
+} from "../../../shared/contracts/list-contract.js";
 import type { AuthedRequest } from "../../../types.js";
 import {
   createUser as createUserCommand,
@@ -10,8 +14,35 @@ import {
 } from "../application/user-management.service.js";
 import { createUserSchema, updateUserSchema } from "./user-management.schemas.js";
 
-export const listUsers = asyncRoute(async (_req: AuthedRequest, res) => {
-  ok(res, await listUsersQuery());
+const USER_LIST_CONFIG = {
+  searchable: ["name", "email"] as const,
+  sortable: ["name", "email", "role", "active", "createdAt", "updatedAt"] as const,
+  filterable: {
+    name: "text",
+    email: "text",
+    role: "select",
+    active: "boolean",
+    isChair: "boolean",
+    isEditorInChief: "boolean",
+  } as const,
+  defaultSort: { field: "createdAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+export const listUsers = asyncRoute(async (req: AuthedRequest, res) => {
+  const query = parseListQuery(req, USER_LIST_CONFIG);
+  const result = await listUsersQuery(query);
+  return res.json({
+    success: true,
+    data: result.data,
+    pagination: buildPagination(query, result.total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: result.summary,
+    },
+  });
 });
 
 export const getUser = asyncRoute(async (req: AuthedRequest, res) => {
