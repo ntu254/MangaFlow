@@ -1,12 +1,6 @@
 import { Router } from "express";
 import { requireRole } from "../middleware/auth.js";
 import {
-  listUsers,
-  getUser,
-  createUser,
-  updateUser,
-  deactivateUser,
-  deleteUser,
   listAudit,
   listManagedNotifications,
   createManagedNotification,
@@ -19,6 +13,14 @@ import {
   resetDemoData,
   clearDemoData,
 } from "../controllers/admin.controller.js";
+import {
+  createUser,
+  deactivateUser,
+  deleteUser,
+  getUser,
+  listUsers,
+  updateUser,
+} from "../modules/users/presentation/user-management.controller.js";
 
 const router = Router();
 
