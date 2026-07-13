@@ -1,10 +1,10 @@
 import { asyncRoute, ok, AppError } from "../lib/http.js";
 import { ProposalModel } from "../db/models.js";
-import { audit, notify } from "../services/audit.service.js";
 import {
   editorReviewQueue,
   boardQueue,
   applyProposalAction,
+  atRiskSeriesDecision,
   evaluateBoardTally,
   normalizeBoardVote
 } from "../services/workflow.service.js";
@@ -30,9 +30,12 @@ export const castVote = asyncRoute(async (req: AuthedRequest, res) => ok(res, aw
 export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "FORCE_STATUS", { forceStatus: req.body?.decision === "REJECTED" ? "REJECTED" : "APPROVED", comment: req.body?.note, publicationType: req.body?.publicationType })));
 export const tieBreakDecision = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "VOTE", req.body)));
 
-export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) => {
-  const seriesId = String(req.params.seriesId);
-  await audit(req, "ranking.at_risk_decision", "series", seriesId, { decision: req.body?.decision, note: req.body?.note });
-  await notify("u-editor", "ranking.at_risk_decision", `Board recorded ${req.body?.decision ?? "decision"} for ${seriesId}.`);
-  ok(res, { seriesId, decision: req.body?.decision ?? "CONTINUE" });
-});
+export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(
+    res,
+    await atRiskSeriesDecision(req, String(req.params.seriesId), req.body?.decision, {
+      publicationType: req.body?.publicationType,
+      note: req.body?.note,
+    }),
+  ),
+);
