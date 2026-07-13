@@ -7,12 +7,6 @@ import {
   patchRegion,
   deleteRegion,
   listTasks,
-  createTask,
-  patchTasks,
-  patchTask,
-  getTaskDetail,
-  getTaskDetailAlias,
-  taskAction,
   sendEditorReview,
   listComments,
   createComment,
@@ -21,6 +15,14 @@ import {
   reopenComment,
   listTaskComments,
 } from "../controllers/studio.controller.js";
+import {
+  createTask,
+  getTaskDetail,
+  getTaskDetailAlias,
+  patchTask,
+  patchTasks,
+  taskAction,
+} from "../modules/studio/presentation/task-production.controller.js";
 
 const router = Router();
 
