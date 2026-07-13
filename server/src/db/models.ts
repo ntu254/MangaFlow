@@ -1169,6 +1169,7 @@ export type EarningRecord = {
 const earningSchema = looseSchema({
   assistantId: { type: String, required: true, index: true },
   period: { type: String, required: true, index: true },
+  tasksCount: { type: Number, default: 0 },
   subtotal: { type: Number, default: 0 },
   bonus: { type: Number, default: 0 },
   penalty: { type: Number, default: 0 },
@@ -1223,6 +1224,7 @@ const earningItemSchema = looseSchema({
   seriesId: { type: String, index: true },
   chapterId: { type: String, index: true },
   taskType: { type: String },
+  period: { type: String, index: true },
   rate: { type: Number },
   amount: { type: Number, required: true, default: 0 },
   currency: { type: String, default: "VND" },
@@ -1242,6 +1244,8 @@ const earningItemSchema = looseSchema({
 
 // One earning item per task (a task can only be paid once)
 earningItemSchema.index({ taskId: 1 }, { unique: true, sparse: true });
+// Monthly rollup lookups by assistant + period.
+earningItemSchema.index({ assistantId: 1, period: 1 });
 
 /* ------------------------------------------------------------------ */
 /*  AiProcessing                                                        */
