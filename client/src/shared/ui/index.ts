@@ -16,6 +16,8 @@ export { OverrideDialog } from "./override-dialog";
 export { PageGuard } from "./page-guard";
 export { MetricGrid } from "./metric-grid";
 export { DataTable } from "./data-table";
+export { ServerDataTable } from "./server-data-table";
+export type { ServerDataTablePagination, ServerDataTableProps } from "./server-data-table";
 export { TableSkeleton } from "./table-skeleton";
 export { SearchToolbar } from "./search-toolbar";
 export { EmptyState } from "./empty-state";
