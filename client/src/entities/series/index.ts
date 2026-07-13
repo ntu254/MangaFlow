@@ -9,6 +9,7 @@ export {
 export { useCommentsQuery, useCreateCommentMutation } from "./model/comment-queries";
 export {
   useMyChaptersQuery,
+  useMyChaptersListQuery,
   useSeriesDetailQuery,
   useChaptersForSeriesQuery,
   useChapterQuery,

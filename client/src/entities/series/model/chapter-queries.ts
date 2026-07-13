@@ -1,7 +1,9 @@
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
 import { chapterKeys, seriesKeys } from "@/entities/series/model/series-types";
-import { apiRequest, hasApiTokens } from "@/shared/api/client";
+import { apiRequest, hasApiTokens, type ApiListEnvelope } from "@/shared/api/client";
+import { seriesApi, type ChaptersListMeta } from "@/shared/api/services";
 import { useAuth } from "@/shared/auth";
+import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -23,7 +25,24 @@ export function useMyChaptersQuery() {
 
   return useQuery<Chapter[]>({
     queryKey: chapterKeys.all,
-    queryFn: () => apiRequest<Chapter[]>("/chapters?mine=true"),
+    queryFn: () => apiRequest<Chapter[]>("/chapters?mine=true&pageSize=100"),
+    enabled: !!user && hasApiTokens() && canLoadMyChapters,
+    staleTime: 60000,
+  });
+}
+
+export function useMyChaptersListQuery(tableState: TableState) {
+  const user = useAuth((s) => s.user);
+  const canLoadMyChapters =
+    user?.role === "admin" ||
+    user?.role === "editor" ||
+    user?.role === "mangaka" ||
+    user?.role === "assistant";
+
+  return useQuery<ApiListEnvelope<Chapter, ChaptersListMeta>>({
+    queryKey: [...chapterKeys.all, "list", tableState],
+    queryFn: () =>
+      seriesApi.myChaptersList(tableState) as Promise<ApiListEnvelope<Chapter, ChaptersListMeta>>,
     enabled: !!user && hasApiTokens() && canLoadMyChapters,
     staleTime: 60000,
   });
@@ -44,7 +63,7 @@ export function useChaptersForSeriesQuery(seriesIds: string[]) {
     queryKey: seriesKeys.chaptersBundle(sortedIds),
     queryFn: async () => {
       const groups = await Promise.all(
-        sortedIds.map((seriesId) => apiRequest<Chapter[]>(`/series/${seriesId}/chapters`)),
+        sortedIds.map((seriesId) => apiRequest<Chapter[]>(`/series/${seriesId}/chapters?pageSize=100`)),
       );
       return groups.flat();
     },
