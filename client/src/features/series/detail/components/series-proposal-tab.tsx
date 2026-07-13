@@ -45,11 +45,11 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   if (!series.proposalId) {
     return (
       <EmptyState
-        title="Series chưa liên kết với proposal"
-        description="Series này chưa liên kết với proposal. Proposal có thể được tạo hoặc liên kết trong một workflow riêng."
+        title="Series is not linked to a proposal"
+        description="This series is not linked to a proposal yet. A proposal can be created or linked in a separate workflow."
         action={
           <span className="text-xs text-muted-foreground">
-            Tạo hoặc liên kết proposal sẽ được hoàn thiện trong story tiếp theo.
+            Creating or linking a proposal will be completed in the next story.
           </span>
         }
       />
@@ -79,14 +79,12 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
     const is403 = error instanceof Error && error.message.includes("FORBIDDEN");
     return (
       <EmptyState
-        title={
-          is404 ? "Proposal không tồn tại" : is403 ? "Không có quyền truy cập" : "Lỗi tải proposal"
-        }
+        title={is404 ? "Proposal not found" : is403 ? "Access denied" : "Failed to load proposal"}
         description={msg}
         action={
           is403 || is404 ? (
             <Link to="/app/submissions" className="text-xs underline">
-              Xem danh sách proposals
+              View proposal list
             </Link>
           ) : null
         }
@@ -97,11 +95,11 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   if (!proposal) {
     return (
       <EmptyState
-        title="Series chưa liên kết với proposal"
-        description="Series này chưa liên kết với proposal. Proposal có thể được tạo hoặc liên kết trong một workflow riêng."
+        title="Series is not linked to a proposal"
+        description="This series is not linked to a proposal yet. A proposal can be created or linked in a separate workflow."
         action={
           <span className="text-xs text-muted-foreground">
-            Tạo hoặc liên kết proposal sẽ được hoàn thiện trong story tiếp theo.
+            Creating or linking a proposal will be completed in the next story.
           </span>
         }
       />
@@ -212,13 +210,15 @@ function StatusCard({
 
   return (
     <Card>
-      <SectionHeader index={1} title="Trạng thái hồ sơ đề xuất" />
+      <SectionHeader index={1} title="Proposal file status" />
       <div className="space-y-4">
         <ProposalStatusPill status={status} size="lg" />
         <dl className="space-y-2 text-xs">
-          <Row label="Phiên bản hiện tại">v{latestVersion || 1}</Row>
-          <Row label="Ngày nộp">{lastSubmit ? formatDate(lastSubmit.createdAt) : "Chưa gửi"}</Row>
-          <Row label="Người đánh giá">
+          <Row label="Current version">v{latestVersion || 1}</Row>
+          <Row label="Submitted date">
+            {lastSubmit ? formatDate(lastSubmit.createdAt) : "Not submitted"}
+          </Row>
+          <Row label="Reviewer">
             {(tantouEditor?.userName ?? proposal.assignedEditorName) ? (
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold uppercase">
@@ -230,7 +230,7 @@ function StatusCard({
               "—"
             )}
           </Row>
-          <Row label="Cập nhật lần cuối">{formatDateTime(proposal.updatedAt)}</Row>
+          <Row label="Last updated">{formatDateTime(proposal.updatedAt)}</Row>
         </dl>
 
         {alertMsg ? (
@@ -247,7 +247,7 @@ function StatusCard({
               params={{ id: proposal.id }}
               className="inline-flex items-center gap-1.5 rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:bg-foreground/90"
             >
-              <Pencil className="size-3.5" /> Chỉnh sửa proposal
+              <Pencil className="size-3.5" /> Edit proposal
             </Link>
           ) : null}
           {canResubmit ? (
@@ -256,7 +256,7 @@ function StatusCard({
               onClick={onResubmit}
               className="inline-flex items-center gap-1.5 rounded border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
             >
-              <Upload className="size-3.5" /> Nộp lại
+              <Upload className="size-3.5" /> Resubmit
             </button>
           ) : null}
           <Link
@@ -264,7 +264,7 @@ function StatusCard({
             params={{ id: proposal.id }}
             className="inline-flex items-center gap-1.5 rounded border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
           >
-            <Eye className="size-3.5" /> Xem chi tiết
+            <Eye className="size-3.5" /> View details
           </Link>
         </div>
       </div>
@@ -273,10 +273,10 @@ function StatusCard({
 }
 
 const STATUS_ALERT: Partial<Record<ProposalStatus, string>> = {
-  CHANGES_REQUESTED: "Cần cập nhật storyboard và nộp lại.",
-  REJECTED: "Proposal đã bị từ chối. Xem feedback để biết lý do.",
-  TIE_BREAK: "Đang chờ Editor-in-chief phá tie.",
-  DRAFT: "Hoàn thiện và submit cho Editor.",
+  CHANGES_REQUESTED: "Storyboard updates are required before resubmission.",
+  REJECTED: "Proposal was rejected. See feedback for details.",
+  TIE_BREAK: "Pending Editor-in-chief breaks ties.",
+  DRAFT: "Complete and submit to Editor.",
 };
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -304,7 +304,7 @@ function SummaryCard({ proposal }: { proposal: SeriesProposal }) {
   const adv = proposal.advanced ?? {};
   const advEntries = [
     ["World setting", adv.worldSetting],
-    ["Hướng phát triển", adv.seriesDirection],
+    ["Development direction", adv.seriesDirection],
     ["Production plan", adv.productionPlan],
     ["Assistant needs", adv.assistantNeeds],
     ["Comparable titles", adv.comparableTitles],
@@ -313,7 +313,7 @@ function SummaryCard({ proposal }: { proposal: SeriesProposal }) {
 
   return (
     <Card>
-      <SectionHeader index={2} title="Tóm tắt proposal" />
+      <SectionHeader index={2} title="Proposal summary" />
       <dl className="space-y-2.5 text-xs">
         <SummaryRow label="Title">{proposal.title}</SummaryRow>
         <SummaryRow label="Genre">{proposal.genres.join(", ") || "—"}</SummaryRow>
@@ -376,7 +376,7 @@ function buildFeedbackEntries(proposal: SeriesProposal): FeedbackEntry[] {
         .map((it) => it.text)
         .filter(Boolean)
         .join(" · ") ||
-      "Editor yêu cầu chỉnh sửa.",
+      "Editor requested changes.",
   }));
   const fromBoard = proposal.votes
     .filter((v) => v.comment && v.comment.trim())
@@ -406,7 +406,7 @@ function RecentFeedbackCard({
     <Card>
       <SectionHeader
         index={3}
-        title="Feedback gần đây"
+        title="Recent feedback"
         action={
           entries.length > 0 ? (
             <button
@@ -414,13 +414,13 @@ function RecentFeedbackCard({
               onClick={onShowAll}
               className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
             >
-              {showAll ? "Ẩn bớt" : "Xem tất cả"} <ArrowRight className="size-3" />
+              {showAll ? "Show less" : "View all"} <ArrowRight className="size-3" />
             </button>
           ) : null
         }
       />
       {recent.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Chưa có feedback từ Editor hoặc Board.</p>
+        <p className="text-xs text-muted-foreground">No feedback from Editor or Board yet.</p>
       ) : (
         <ul className="space-y-3">
           {recent.map((e) => (
@@ -450,7 +450,7 @@ function RecentFeedbackCard({
                 params={{ id: proposal.id }}
                 className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
               >
-                Xem chi tiết <ArrowRight className="size-3" />
+                View details <ArrowRight className="size-3" />
               </Link>
             </li>
           ))}
@@ -464,9 +464,9 @@ function FullFeedbackPanel({ proposal }: { proposal: SeriesProposal }) {
   const entries = buildFeedbackEntries(proposal);
   return (
     <Card>
-      <SectionHeader index={3} title="Tất cả feedback" />
+      <SectionHeader index={3} title="All feedback" />
       {entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Chưa có feedback.</p>
+        <p className="text-xs text-muted-foreground">No feedback yet.</p>
       ) : (
         <ul className="space-y-3">
           {entries.map((e) => (
@@ -546,11 +546,11 @@ function CreativeMaterialsTable({ proposal }: { proposal: SeriesProposal }) {
         <table className="w-full text-xs">
           <thead className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <tr className="border-b border-border">
-              <th className="px-2 py-2">Loại</th>
+              <th className="px-2 py-2">Type</th>
               <th className="px-2 py-2">Filename</th>
-              <th className="px-2 py-2">Phiên bản</th>
-              <th className="px-2 py-2">Ngày upload</th>
-              <th className="px-2 py-2 text-right">Hành động</th>
+              <th className="px-2 py-2">Version</th>
+              <th className="px-2 py-2">Upload date</th>
+              <th className="px-2 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -585,7 +585,7 @@ function CreativeMaterialsTable({ proposal }: { proposal: SeriesProposal }) {
                       <MaterialLabel label={def.label} required={def.required} />
                     </td>
                     <td className="px-2 py-2.5 text-muted-foreground" colSpan={3}>
-                      Chưa upload
+                      Not uploaded
                     </td>
                     <td className="px-2 py-2.5 text-right text-muted-foreground">—</td>
                   </tr>
@@ -634,13 +634,13 @@ function CreativeMaterialsTable({ proposal }: { proposal: SeriesProposal }) {
                         download
                         className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[11px] hover:bg-muted"
                       >
-                        <Download className="size-3" /> Tải
+                        <Download className="size-3" /> Download
                       </a>
                       <button
                         type="button"
                         disabled
                         className="inline-flex cursor-not-allowed items-center rounded p-1 text-muted-foreground opacity-50"
-                        title="Tuỳ chọn khác (sắp có)"
+                        title="Other options (coming soon)"
                       >
                         <MoreVertical className="size-3.5" />
                       </button>
@@ -660,7 +660,7 @@ function MaterialLabel({ label, required }: { label: string; required?: boolean 
   return (
     <div>
       <p className="font-semibold text-foreground">{label}</p>
-      {required ? <p className="text-[10px] font-semibold text-rose-600">(Bắt buộc)</p> : null}
+      {required ? <p className="text-[10px] font-semibold text-rose-600">(Required)</p> : null}
     </div>
   );
 }
@@ -674,9 +674,9 @@ function VersionHistoryTable({ proposal }: { proposal: SeriesProposal }) {
 
   return (
     <Card>
-      <SectionHeader index={5} title="Lịch sử phiên bản" />
+      <SectionHeader index={5} title="Version history" />
       {versions.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Chưa có version nào.</p>
+        <p className="text-xs text-muted-foreground">No versions yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -779,38 +779,38 @@ function QuickActionsGrid({
 
   return (
     <Card>
-      <SectionHeader index={6} title="Hành động nhanh" />
+      <SectionHeader index={6} title="Quick actions" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <QuickAction
           icon={<Pencil className="size-4" />}
-          title="Chỉnh sửa proposal"
-          description="Mở proposal để cập nhật nội dung."
+          title="Edit proposal"
+          description="Open the proposal to update the content."
           to={{ to: "/app/submissions/$id", params: { id: proposal.id } }}
           disabled={!canEdit}
-          disabledReason="Proposal hiện không cho chỉnh sửa."
+          disabledReason="Proposal cannot be edited right now."
         />
         <QuickAction
           icon={<Upload className="size-4" />}
-          title="Upload bản sửa đổi"
-          description="Tải lên file storyboard hoặc manuscript mới."
+          title="Upload revision"
+          description="Upload a new storyboard or manuscript file."
           onClick={onResubmit}
           disabled={!canResubmit}
-          disabledReason="Chỉ khả dụng khi Editor yêu cầu chỉnh sửa."
+          disabledReason="Only available when the Editor requested changes."
         />
         <QuickAction
           icon={<GitCompare className="size-4" />}
-          title="So sánh phiên bản"
-          description="Xem thay đổi giữa các phiên bản."
+          title="Compare versions"
+          description="View changes between versions."
           disabled={versions < 2}
-          disabledReason="Cần ít nhất 2 phiên bản để so sánh."
+          disabledReason="At least 2 versions are required for comparison."
         />
         <QuickAction
           icon={<Send className="size-4" />}
-          title="Nộp lại proposal"
-          description="Gửi ý để editor xem xét."
+          title="Resubmit proposal"
+          description="Send it for editor review."
           onClick={onResubmit}
           disabled={!canResubmit}
-          disabledReason="Chỉ khả dụng khi Editor yêu cầu chỉnh sửa."
+          disabledReason="Only available when the Editor requested changes."
         />
       </div>
     </Card>

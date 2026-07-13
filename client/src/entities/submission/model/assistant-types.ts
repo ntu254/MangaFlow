@@ -149,12 +149,12 @@ export type NotificationKind =
   | "EARNING_PAID";
 
 export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, string> = {
-  TASK_ASSIGNED: "Task mới",
-  TASK_DUE_SOON: "Sắp đến hạn",
-  REVISION_REQUESTED: "Yêu cầu chỉnh sửa",
-  SUBMISSION_APPROVED: "Đã duyệt",
-  SUBMISSION_REJECTED: "Bị từ chối",
-  COMMENT_REPLIED: "Phản hồi mới",
-  EARNING_CONFIRMED: "Earning xác nhận",
-  EARNING_PAID: "Đã thanh toán",
+  TASK_ASSIGNED: "New task",
+  TASK_DUE_SOON: "Due soon",
+  REVISION_REQUESTED: "Changes requested",
+  SUBMISSION_APPROVED: "Approved",
+  SUBMISSION_REJECTED: "Rejected",
+  COMMENT_REPLIED: "New reply",
+  EARNING_CONFIRMED: "Earning confirmed",
+  EARNING_PAID: "Paid",
 };

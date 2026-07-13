@@ -14,12 +14,12 @@ function NewSessionPage() {
   if (user.role !== "editor" && user.role !== "admin" && user.role !== "board") {
     return (
       <div className="mx-auto max-w-2xl space-y-3 text-center">
-        <h1 className="font-serif text-3xl">Không có quyền</h1>
+        <h1 className="font-serif text-3xl">Access denied</h1>
         <p className="text-sm text-muted-foreground">
-          Chỉ Editor, Board hoặc Admin có thể tạo session.
+          Only Editor, Board, or Admin can create sessions.
         </p>
         <Link to="/app/board/sessions" className="text-xs underline">
-          Quay lại danh sách
+          Back to list
         </Link>
       </div>
     );
@@ -31,9 +31,9 @@ function NewSessionPage() {
         <Link to="/app/board/sessions" className="text-[11px] text-muted-foreground underline">
           ← Voting sessions
         </Link>
-        <h1 className="mt-2 font-serif text-3xl">Tạo session mới</h1>
+        <h1 className="mt-2 font-serif text-3xl">Create new session</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ad-hoc dung cho 1 proposal can vote ngay. Lich hop dinh kem nhieu proposal theo lich
+          Ad-hoc dung for 1 proposal can vote ngay. Lich hop dinh kem nhieu proposal theo lich
           Board.
         </p>
       </header>

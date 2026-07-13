@@ -13,7 +13,7 @@ export function RestrictedActionTooltip({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent>{RESTRICTION_LABEL[reason] ?? "Chưa hỗ trợ trong MVP"}</TooltipContent>
+        <TooltipContent>{RESTRICTION_LABEL[reason] ?? "Not supported in the MVP"}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

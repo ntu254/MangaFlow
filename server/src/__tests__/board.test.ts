@@ -414,15 +414,43 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.code).toBe("FORBIDDEN");
   });
 
-  it("POST /api/board/series/:id/at-risk-decisions is audit-only", async () => {
+  it("POST /api/board/series/:id/at-risk-decisions transitions the series (HIATUS)", async () => {
     const admin = await loginAs("admin@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/series-001/at-risk-decisions")
+      .post("/api/board/series/s-berserk-prod/at-risk-decisions")
       .set("Authorization", `Bearer ${admin.accessToken}`)
-      .send({ decision: "WARNING", note: "Test at-risk decision" })
+      .send({ decision: "HIATUS", note: "Rankings dropped" })
       .expect(200);
 
-    expect(res.body.data.seriesId).toBe("series-001");
-    expect(res.body.data.decision).toBe("WARNING");
+    expect(res.body.data.status).toBe("HIATUS");
+  });
+
+  it("POST /api/board/series/:id/at-risk-decisions can cancel the series", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    const res = await request(createApp())
+      .post("/api/board/series/s-berserk-prod/at-risk-decisions")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ decision: "CANCELLED", note: "Discontinued" })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("CANCELLED");
+  });
+
+  it("POST /api/board/series/:id/at-risk-decisions rejects an invalid decision", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    await request(createApp())
+      .post("/api/board/series/s-berserk-prod/at-risk-decisions")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ decision: "WARNING" })
+      .expect(400);
+  });
+
+  it("POST /api/board/series/:id/at-risk-decisions returns 404 for unknown series", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    await request(createApp())
+      .post("/api/board/series/series-001/at-risk-decisions")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ decision: "CONTINUE" })
+      .expect(404);
   });
 });

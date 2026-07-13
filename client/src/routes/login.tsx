@@ -15,9 +15,9 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — beachRead" },
-      { name: "description", content: "Đăng nhập vào beachRead Studio bằng demo role." },
+      { name: "description", content: "Sign in to beachRead Studio with a demo role." },
       { property: "og:title", content: "Sign in — beachRead" },
-      { property: "og:description", content: "Đăng nhập demo role để khám phá workspace." },
+      { property: "og:description", content: "Sign in with a demo role to explore the workspace." },
     ],
   }),
   component: LoginPage,
@@ -65,13 +65,13 @@ function LoginPage() {
           Demo workspace
         </p>
         <h1 className="mt-2 font-serif text-5xl leading-tight">
-          Bước vào studio.
+          Enter the studio.
           <br />
-          Chọn vai trò để bắt đầu.
+          Choose a role to get started.
         </h1>
         <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-          Live backend đang dùng seeded account từ Express API. Mỗi role vẫn mở một dashboard và bộ
-          menu riêng.
+          The live backend is using seeded accounts from the Express API. Each role still opens its
+          own dashboard and menu set.
         </p>
         {error ? (
           <div className="mt-5 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -100,10 +100,10 @@ function LoginPage() {
 
         <div className="mt-10 rounded-lg border border-border bg-card/40 p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Chọn nhanh thành viên Board (5 người)
+            Quick select a Board member (5 people)
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Dùng để demo quorum 3/5, tie-break và phiếu phá tie của Chủ tịch.
+            Use this to demo 3/5 quorum, tie-breaks, and the Chair's tie-breaking vote.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {BOARD_MEMBERS.map((m, i) => (
@@ -117,7 +117,7 @@ function LoginPage() {
                   <span className="font-semibold">{m.name}</span>
                   {m.isChair ? (
                     <span className="ml-2 rounded bg-fuchsia-100 px-1.5 text-[10px] font-bold text-fuchsia-900">
-                      Chủ tịch
+                      Chair
                     </span>
                   ) : null}
                 </span>

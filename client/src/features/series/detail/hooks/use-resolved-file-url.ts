@@ -42,7 +42,7 @@ export function useResolvedFileUrl(
         .catch((err: unknown) => {
           if (!cancelled) {
             setUrl(fallbackUrl ?? undefined);
-            setError(err instanceof Error ? err.message : "Không tải được liên kết file.");
+            setError(err instanceof Error ? err.message : "Could not load the file link.");
           }
         })
         .finally(() => {

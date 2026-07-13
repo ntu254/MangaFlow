@@ -33,13 +33,13 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
-  overview: "Tổng quan",
+  overview: "Overview",
   proposal: "Proposal",
   chapters: "Chapters",
-  materials: "Tư liệu",
-  rankings: "Xếp hạng",
-  calendar: "Lịch",
-  team: "Đội ngũ",
+  materials: "Materials",
+  rankings: "Rankings",
+  calendar: "Calendar",
+  team: "Team",
 };
 
 export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
@@ -99,11 +99,11 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
       <div className="mx-auto max-w-3xl py-16 text-center">
         <h1 className="font-serif text-3xl">
           {seriesError
-            ? "Lỗi tải series từ máy chủ"
-            : "Series không tồn tại hoặc bạn không có quyền xem"}
+            ? "Failed to load series from the server"
+            : "Series not found or you do not have access"}
         </h1>
         <Link to="/app/series" className="mt-4 inline-block text-xs text-accent underline">
-          Quay về danh sách
+          Back to list
         </Link>
       </div>
     );
@@ -139,10 +139,12 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
         <div className="rounded-md border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-3">
           <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <div>
-            <p className="font-semibold text-sm">Sản xuất đang tạm khoá / Workspace Locked</p>
+            <p className="font-semibold text-sm">
+              Production temporarily locked / Workspace locked
+            </p>
             <p className="mt-0.5 opacity-90">
-              Series này đang trong quá trình xét duyệt proposal. Chapters, Studio, Đội ngũ và các
-              tính năng sản xuất khác sẽ mở sau khi proposal được phê duyệt.
+              This series is still in proposal review. Chapters, Studio, Team, and other production
+              features will unlock after the proposal is approved.
             </p>
           </div>
         </div>
@@ -171,21 +173,21 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
               <span className="font-semibold text-foreground">Editor:</span> {series.editorName}
             </span>
             <span>
-              <span className="font-semibold text-foreground">Thể loại:</span>{" "}
+              <span className="font-semibold text-foreground">Genres:</span>{" "}
               {series.genres.join(", ")}
             </span>
             <span>
-              <span className="font-semibold text-foreground">Trạng thái:</span>{" "}
+              <span className="font-semibold text-foreground">Status:</span>{" "}
               <span className="ml-1 inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
                 {SERIES_STATUS_LABEL[series.status]}
               </span>
             </span>
             <span>
-              <span className="font-semibold text-foreground">Kế tiếp:</span>{" "}
+              <span className="font-semibold text-foreground">Next:</span>{" "}
               {next ? `Ch.${next.number}` : "—"}
             </span>
             <span>
-              <span className="font-semibold text-foreground">Tiến độ:</span> {published.length}/
+              <span className="font-semibold text-foreground">Progress:</span> {published.length}/
               {series.targetChapters}
             </span>
           </div>
@@ -196,7 +198,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
             disabled={!canEnterStudio}
             title={
               isLocked
-                ? "Sản xuất đang khóa cho đến khi proposal được duyệt"
+                ? "Production is locked until the proposal is approved"
                 : canEnterStudio
                   ? studioPermissions.title
                   : studioPermissions.summary
@@ -237,7 +239,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
         <div className="space-y-4">
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Quản lý chapters
+              Manage chapters
             </p>
             <ChapterKpiStrip series={series} chapters={chapters} current={selected} />
           </div>

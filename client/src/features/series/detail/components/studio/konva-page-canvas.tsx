@@ -432,7 +432,7 @@ export default function KonvaPageCanvas({
           ) : (
             <>
               <Text
-                text={page ? `Page ${String(page.index).padStart(2, "0")}` : "Chưa chọn page"}
+                text={page ? `Page ${String(page.index).padStart(2, "0")}` : "No page selected"}
                 x={0}
                 y={naturalHeight / 2 - 36}
                 width={naturalWidth}
@@ -443,7 +443,7 @@ export default function KonvaPageCanvas({
                 listening={false}
               />
               <Text
-                text={page ? "Image preview chưa có. Upload page để xem nội dung." : ""}
+                text={page ? "No image preview yet. Upload a page to view the content." : ""}
                 x={0}
                 y={naturalHeight / 2 + 28}
                 width={naturalWidth}

@@ -53,7 +53,7 @@ export function SeriesMonitorPage() {
       <PageHeader
         eyebrow="Editor"
         title="Series Monitor"
-        description="Series bạn phụ trách: tiến độ, deadline risk, mục cần review."
+        description="Series you manage: progress, deadline risk, and items needing review."
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -90,7 +90,8 @@ export function SeriesMonitorPage() {
       />
 
       <div className="flex items-center gap-2 rounded border border-dashed border-border bg-card/40 p-3 text-[11px] text-muted-foreground">
-        <CalendarClock className="size-3.5" /> Tip: Click "Review" để mở Chapter Review chi tiết.
+        <CalendarClock className="size-3.5" /> Tip: Click "Review" to open the detailed Chapter
+        Review.
       </div>
     </div>
   );

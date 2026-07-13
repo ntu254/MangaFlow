@@ -147,11 +147,11 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const ROLE_DESCRIPTION: Record<Role, string> = {
-  admin: "Toàn quyền hệ thống, payroll, audit log",
-  mangaka: "Tác giả: đề xuất series, dẫn dắt production",
-  assistant: "Trợ lý: nhận task, submit work, theo dõi earning",
-  editor: "Biên tập: review proposal, final review chapter, publication",
-  board: "Hội đồng: vote proposal, governance, ranking analytics",
+  admin: "Full system access, payroll, and audit logs",
+  mangaka: "Author: submit series proposals and lead production",
+  assistant: "Assistant: receive tasks, submit work, and track earnings",
+  editor: "Editor: review proposals, final chapter review, and publication",
+  board: "Board: vote on proposals, governance, and ranking analytics",
 };
 
 registerUnauthorizedHandler(() => {

@@ -173,8 +173,8 @@ export function AssistantDashboard() {
       <PageShell>
         <PageHeader
           eyebrow="Assistant workspace"
-          title={`Hôm nay, ${user.name.split(" ")[0]}`}
-          description="Đang tải dữ liệu..."
+          title={`Today, ${user.name.split(" ")[0]}`}
+          description="Loading data..."
         />
         <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
           <PageSection title="Today focus">
@@ -192,8 +192,8 @@ export function AssistantDashboard() {
     <PageShell>
       <PageHeader
         eyebrow="Assistant workspace"
-        title={`Hôm nay, ${user.name.split(" ")[0]}`}
-        description={`${mine.length} task, ${revisions.length} revision request, ${myNotifs.filter((n) => !n.readAt).length} thông báo mới.`}
+        title={`Today, ${user.name.split(" ")[0]}`}
+        description={`${mine.length} task, ${revisions.length} revision request, ${myNotifs.filter((n) => !n.readAt).length} new notifications.`}
         actions={
           <>
             {myUnreadNotifs.length > 0 ? (
@@ -202,7 +202,7 @@ export function AssistantDashboard() {
                 disabled={myUnreadNotifs.length === 0 || markAllReadMutation.isPending}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-40"
               >
-                <Check className="size-3.5" /> Đánh dấu tất cả đã đọc
+                <Check className="size-3.5" /> Mark all as read
               </button>
             ) : null}
             <Link
@@ -210,7 +210,7 @@ export function AssistantDashboard() {
               aria-label="Open My Tasks"
               className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
             >
-              Mở My Tasks <ArrowRight className="size-3.5" />
+              Open My Tasks <ArrowRight className="size-3.5" />
             </Link>
           </>
         }
@@ -221,7 +221,7 @@ export function AssistantDashboard() {
       <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         <PageSection title="Today focus">
           {today.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Không có việc gấp hôm nay.</p>
+            <p className="text-xs text-muted-foreground">No urgent work today.</p>
           ) : (
             <ul className="space-y-2">
               {today.map((t) => {
@@ -266,7 +266,7 @@ export function AssistantDashboard() {
 
         <PageSection title="Revision requests">
           {revisions.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Không có revision request.</p>
+            <p className="text-xs text-muted-foreground">None revision request.</p>
           ) : (
             <ul className="space-y-2">
               {revisions.map((t) => {
@@ -297,7 +297,7 @@ export function AssistantDashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <PageSection title="Upcoming deadlines">
           {upcoming.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Không có deadline tới.</p>
+            <p className="text-xs text-muted-foreground">No upcoming deadlines.</p>
           ) : (
             <ul className="divide-y divide-border">
               {upcoming.map((t) => {
@@ -332,7 +332,7 @@ export function AssistantDashboard() {
 
         <PageSection title="Recent submissions">
           {recentSubs.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Bạn chưa nộp submission nào.</p>
+            <p className="text-xs text-muted-foreground">You have not submitted anything yet.</p>
           ) : (
             <ul className="space-y-1.5">
               {recentSubs.map((s) => {
@@ -359,7 +359,7 @@ export function AssistantDashboard() {
 
         <PageSection title="Earning summary">
           {myEarnings.length === 0 ? (
-            <EmptyState title="Chưa có dữ liệu thu nhập" />
+            <EmptyState title="No earnings data yet" />
           ) : (
             <div className="grid grid-cols-3 gap-2">
               <StatCard
@@ -377,7 +377,7 @@ export function AssistantDashboard() {
               <StatCard
                 tone="emerald"
                 icon={<Coins className="size-4" />}
-                label="Paid (tháng)"
+                label="Paid (month)"
                 value={formatYen(earningSummary.paidMonth)}
               />
             </div>
@@ -387,7 +387,7 @@ export function AssistantDashboard() {
 
       <PageSection title="Notifications">
         {myNotifs.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Không có thông báo mới</p>
+          <p className="text-xs text-muted-foreground">No new notifications</p>
         ) : (
           <ul className="divide-y divide-border">
             {myNotifs.slice(0, 5).map((n) => (

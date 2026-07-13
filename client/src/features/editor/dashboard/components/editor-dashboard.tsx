@@ -110,18 +110,19 @@ export function EditorDashboard() {
             Editor workspace
           </p>
           <h1 className="mt-1 font-serif text-3xl">
-            Hôm nay, <span className="italic">{user.name.split(" ")[1] ?? user.name}</span>
+            Today, <span className="italic">{user.name.split(" ")[1] ?? user.name}</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {allItems.length} mục cần review ({counts.submission} submissions live) ·{" "}
-            {counts.deadlineRisk} series có deadline risk · {counts.ready} chapter sẵn sàng xuất bản
+            {allItems.length} items need review ({counts.submission} submissions live) ·{" "}
+            {counts.deadlineRisk} series have deadline risk · {counts.ready} chapters ready for
+            publication
           </p>
         </div>
         <Link
           to="/app/editor/review"
           className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
         >
-          Mở Review Queue <ArrowRight className="size-3.5" />
+          Open Review Queue <ArrowRight className="size-3.5" />
         </Link>
       </header>
 
@@ -132,7 +133,7 @@ export function EditorDashboard() {
             disabled={myUnreadNotifs.length === 0 || markAllReadMutation.isPending}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-40"
           >
-            <Check className="size-3.5" /> Đánh dấu tất cả đã đọc
+            <Check className="size-3.5" /> Mark all as read
           </button>
         </div>
       ) : null}
@@ -182,7 +183,7 @@ export function EditorDashboard() {
         description="Items requiring your editorial attention today."
       >
         {focus.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Không có mục nào cần duyệt</p>
+          <p className="text-xs text-muted-foreground">No items need review</p>
         ) : (
           <ul className="space-y-2">
             {focus.map((it) => (
@@ -214,7 +215,7 @@ export function EditorDashboard() {
         description="Chapters approaching or past their review deadline."
       >
         {deadlineRows.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Bạn chưa được phân công series nào</p>
+          <p className="text-xs text-muted-foreground">You have not been assigned any series yet</p>
         ) : (
           <ul className="divide-y divide-border">
             {deadlineRows.map((c) => {
@@ -240,7 +241,7 @@ export function EditorDashboard() {
 
       <Panel title="Recent activity" description="Latest editorial notifications and updates.">
         {myNotifs.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Không có thông báo mới</p>
+          <p className="text-xs text-muted-foreground">No new notifications</p>
         ) : (
           <ul className="divide-y divide-border">
             {myNotifs.map((n) => (

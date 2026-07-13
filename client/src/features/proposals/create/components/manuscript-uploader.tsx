@@ -42,13 +42,13 @@ const SAMPLE: DraftManuscript = {
   fileType: "application/pdf",
   sizeKB: 1280,
   pageCount: 28,
-  note: "File mẫu để thử nhanh demo.",
+  note: "Sample file for quick demo testing.",
 };
 
 export function ManuscriptUploader({
   value,
   onChange,
-  label = "Manuscript bản đầu (bắt buộc)",
+  label = "Initial manuscript (required)",
   required = true,
 }: {
   value: DraftManuscript | null;
@@ -61,7 +61,7 @@ export function ManuscriptUploader({
   const handle = async (file: File) => {
     const kb = Math.round(file.size / 1024);
     if (kb > MAX_KB) {
-      toast.error(`File ${kb}KB vượt ${MAX_KB / 1024}MB.`);
+      toast.error(`File ${kb}KB exceeds ${MAX_KB / 1024}MB.`);
       return;
     }
     try {
@@ -82,14 +82,14 @@ export function ManuscriptUploader({
           onClick={() => inputRef.current?.click()}
           className="inline-flex items-center gap-1.5 rounded border border-dashed border-border bg-card px-3 py-2 text-xs font-semibold hover:bg-muted"
         >
-          <Upload className="size-3.5" /> Chọn file
+          <Upload className="size-3.5" /> Choose file
         </button>
         <button
           type="button"
           onClick={() => onChange(SAMPLE)}
           className="rounded border border-border bg-card px-3 py-2 text-xs text-muted-foreground hover:bg-muted"
         >
-          Dùng file mẫu
+          Use sample file
         </button>
         {value ? (
           <button
@@ -97,7 +97,7 @@ export function ManuscriptUploader({
             onClick={() => onChange(null)}
             className="rounded px-2 py-1 text-xs text-rose-700 hover:underline"
           >
-            Bỏ chọn
+            Clear selection
           </button>
         ) : null}
         <input
@@ -124,11 +124,11 @@ export function ManuscriptUploader({
           </div>
         </div>
       ) : required ? (
-        <p className="text-[10px] text-rose-700">Chưa có manuscript — bắt buộc trước khi submit.</p>
+        <p className="text-[10px] text-rose-700">No manuscript yet - required before submit.</p>
       ) : null}
       <Textarea
         rows={2}
-        placeholder="Ghi chú bản thảo (tuỳ chọn)…"
+        placeholder="Manuscript note (optional)..."
         value={value?.note ?? ""}
         onChange={(e) => value && onChange({ ...value, note: e.target.value })}
         disabled={!value}
@@ -160,16 +160,16 @@ export function MaterialsUploader({
 
   const add = async (file: File) => {
     if (maxFiles != null && items.length >= maxFiles) {
-      toast.error(`Tối đa ${maxFiles} file.`);
+      toast.error(`Maximum ${maxFiles} file.`);
       return;
     }
     if (!title.trim()) {
-      toast.error("Đặt tên ngắn cho tài liệu trước.");
+      toast.error("Enter a short material name first.");
       return;
     }
     const kb = Math.round(file.size / 1024);
     if (kb > MAX_KB) {
-      toast.error(`File ${kb}KB vượt ${MAX_KB / 1024}MB.`);
+      toast.error(`File ${kb}KB exceeds ${MAX_KB / 1024}MB.`);
       return;
     }
     try {
@@ -194,7 +194,7 @@ export function MaterialsUploader({
   return (
     <div className="space-y-2">
       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        {label ?? "Tài liệu hỗ trợ (tuỳ chọn)"}
+        {label ?? "Supporting materials (optional)"}
       </Label>
       <div className="flex flex-wrap items-end gap-2 rounded border border-border bg-card/40 p-3">
         <select
@@ -209,7 +209,7 @@ export function MaterialsUploader({
           ))}
         </select>
         <Input
-          placeholder="Tên tài liệu"
+          placeholder="Material name"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="h-9 flex-1 min-w-[200px]"
@@ -234,7 +234,7 @@ export function MaterialsUploader({
         />
       </div>
       {required && items.length === 0 ? (
-        <p className="text-[10px] text-rose-700">Bắt buộc trước khi submit.</p>
+        <p className="text-[10px] text-rose-700">Required before submit.</p>
       ) : null}
       {items.length > 0 ? (
         <ul className="divide-y divide-border rounded border border-border bg-background">
@@ -252,7 +252,7 @@ export function MaterialsUploader({
                 onClick={() => onChange(items.filter((_, j) => j !== i))}
                 className="ml-auto text-rose-700 hover:underline"
               >
-                Xoá
+                Delete
               </button>
             </li>
           ))}

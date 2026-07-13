@@ -62,7 +62,7 @@ export const seedSeries: ProductionSeries[] = [
     id: "s-berserk-prod",
     slug: "berserk-prod",
     title: "Berserk: Lost Chapters",
-    synopsis: "Phần ngoại truyện về Guts trong giai đoạn Black Swordsman.",
+    synopsis: "A side story about Guts during the Black Swordsman arc.",
     genres: ["Seinen", "Dark Fantasy"],
     coverUrl: berserk,
     status: "ONGOING",
@@ -81,7 +81,7 @@ export const seedSeries: ProductionSeries[] = [
     id: "s-vinland-prod",
     slug: "vinland-arc",
     title: "Vinland: New Horizon",
-    synopsis: "Tiếp nối hành trình của Thorfinn ở vùng đất mới.",
+    synopsis: "Continuing Thorfinn's journey in a new land.",
     genres: ["Seinen", "Historical"],
     coverUrl: vinland,
     status: "PLANNING",
@@ -100,8 +100,8 @@ export const seedSeries: ProductionSeries[] = [
     id: "s-monster-prod",
     slug: "monster-epilogue",
     title: "Monster: Epilogue",
-    synopsis: "Vài chương kết tổng kết hành trình Tenma.",
-    genres: ["Seinen", "Psychological"],
+    synopsis: "A short concluding arc for Tenma's journey.",
+    genres: ["Seinen", "Psyforlogical"],
     coverUrl: monster,
     status: "COMPLETED",
     cadence: "weekly",
@@ -119,22 +119,22 @@ export const seedSeries: ProductionSeries[] = [
 
 export const seedChapters: Chapter[] = [
   // Berserk Lost Chapters — mix of statuses
-  makeChapter("s-berserk-prod", 1, "Bóng đêm khởi đầu", "PUBLISHED", {
+  makeChapter("s-berserk-prod", 1, "The Opening Darkness", "PUBLISHED", {
     publishedAt: iso(-60),
     scheduledAt: iso(-60),
   }),
-  makeChapter("s-berserk-prod", 2, "Lưỡi gươm vô danh", "PUBLISHED", {
+  makeChapter("s-berserk-prod", 2, "The Nameless Sword", "PUBLISHED", {
     publishedAt: iso(-46),
     scheduledAt: iso(-46),
   }),
-  makeChapter("s-berserk-prod", 3, "Vết thương cũ", "PUBLISHED", {
+  makeChapter("s-berserk-prod", 3, "Old Wound", "PUBLISHED", {
     publishedAt: iso(-32),
     scheduledAt: iso(-32),
   }),
-  makeChapter("s-berserk-prod", 4, "Tiếng vọng", "SCHEDULED", {
+  makeChapter("s-berserk-prod", 4, "Efores", "SCHEDULED", {
     scheduledAt: iso(3),
   }),
-  makeChapter("s-berserk-prod", 5, "Ánh trăng cuối", "IN_REVIEW", {
+  makeChapter("s-berserk-prod", 5, "Last Moonlight", "IN_REVIEW", {
     reviewDueAt: iso(2),
     reviewNotes: [
       {
@@ -142,22 +142,22 @@ export const seedChapters: Chapter[] = [
         authorId: "u-editor",
         authorName: "Tanaka Akira",
         authorRole: "editor",
-        text: "Panel 3 trang 12: bố cục mất nhịp, cần xem lại khoảng trống giữa speech bubble.",
+        text: "Panel 3 on page 12 loses rhythm; review the spacing around the speech bubble.",
         resolved: false,
         createdAt: iso(-1),
       },
       {
         id: "ch-s-berserk-prod-5-n2",
         authorId: "u-board",
-        authorName: "Hội đồng biên tập",
+        authorName: "Editorial Board",
         authorRole: "board",
-        text: "Tone màu phần kết quá tối, cân nhắc highlight thêm.",
+        text: "The ending tone is too dark; consider adding more highlights.",
         resolved: true,
         createdAt: iso(-3),
       },
     ],
   }),
-  makeChapter("s-berserk-prod", 6, "Khúc bi tráng", "DRAFTING", {
+  makeChapter("s-berserk-prod", 6, "Elegy", "DRAFTING", {
     draftDueAt: iso(5),
     pages: Array.from({ length: 8 }, (_, i) => ({
       id: `ch-s-berserk-prod-6-p${i + 1}`,
@@ -168,11 +168,11 @@ export const seedChapters: Chapter[] = [
       uploadedAt: iso(-1),
     })),
   }),
-  makeChapter("s-berserk-prod", 7, "Chương 7 (draft note)", "PLANNED", {
+  makeChapter("s-berserk-prod", 7, "Chapter 7 (draft note)", "PLANNED", {
     draftDueAt: iso(12),
   }),
   // Vinland: New Horizon — full status coverage
-  makeChapter("s-vinland-prod", 1, "Bến cảng mới", "PUBLISHED", {
+  makeChapter("s-vinland-prod", 1, "New Harbor", "PUBLISHED", {
     publishedAt: iso(-30),
     scheduledAt: iso(-30),
     pages: Array.from({ length: 20 }, (_, i) => ({
@@ -184,7 +184,7 @@ export const seedChapters: Chapter[] = [
       uploadedAt: iso(-32),
     })),
   }),
-  makeChapter("s-vinland-prod", 2, "Lời thề trên cát", "PUBLISHED", {
+  makeChapter("s-vinland-prod", 2, "Oath on the Sand", "PUBLISHED", {
     publishedAt: iso(-14),
     scheduledAt: iso(-14),
     pages: Array.from({ length: 20 }, (_, i) => ({
@@ -196,7 +196,7 @@ export const seedChapters: Chapter[] = [
       uploadedAt: iso(-16),
     })),
   }),
-  makeChapter("s-vinland-prod", 3, "Mặt trời lạnh", "SCHEDULED", {
+  makeChapter("s-vinland-prod", 3, "Cold Sun", "SCHEDULED", {
     scheduledAt: iso(5),
     pages: Array.from({ length: 22 }, (_, i) => ({
       id: `ch-s-vinland-prod-3-p${i + 1}`,
@@ -207,7 +207,7 @@ export const seedChapters: Chapter[] = [
       uploadedAt: iso(-2),
     })),
   }),
-  makeChapter("s-vinland-prod", 4, "Người lạ trong rừng", "APPROVED", {
+  makeChapter("s-vinland-prod", 4, "Stranger in the Forest", "APPROVED", {
     pages: Array.from({ length: 24 }, (_, i) => ({
       id: `ch-s-vinland-prod-4-p${i + 1}`,
       index: i + 1,
@@ -222,13 +222,13 @@ export const seedChapters: Chapter[] = [
         authorId: "u-editor",
         authorName: "Tanaka Akira",
         authorRole: "editor",
-        text: "Đã chỉnh lại lettering trang 14 theo yêu cầu.",
+        text: "Adjusted page 14 lettering as requested.",
         resolved: true,
         createdAt: iso(-5),
       },
     ],
   }),
-  makeChapter("s-vinland-prod", 5, "Đêm trắng", "IN_REVIEW", {
+  makeChapter("s-vinland-prod", 5, "White Night", "IN_REVIEW", {
     reviewDueAt: iso(3),
     pages: Array.from({ length: 22 }, (_, i) => ({
       id: `ch-s-vinland-prod-5-p${i + 1}`,
@@ -244,7 +244,7 @@ export const seedChapters: Chapter[] = [
         authorId: "u-editor",
         authorName: "Tanaka Akira",
         authorRole: "editor",
-        text: "Trang 08–09: hành động không liền mạch, cần insert thêm panel reaction.",
+        text: "Pages 08-09: the action flow is not continuous; add a reaction panel.",
         resolved: false,
         createdAt: iso(-1),
       },
@@ -253,13 +253,13 @@ export const seedChapters: Chapter[] = [
         authorId: "u-assist",
         authorName: "Mai Letterer",
         authorRole: "assistant",
-        text: "Đã sửa font cho SFX 'crash' ở trang 15.",
+        text: "Updated the SFX 'crash' font on page 15.",
         resolved: true,
         createdAt: iso(-2),
       },
     ],
   }),
-  makeChapter("s-vinland-prod", 6, "Vết sẹo cũ", "REVISION", {
+  makeChapter("s-vinland-prod", 6, "Old Scar", "REVISION", {
     draftDueAt: iso(6),
     revisionRound: 1,
     pages: Array.from({ length: 18 }, (_, i) => ({
@@ -276,13 +276,13 @@ export const seedChapters: Chapter[] = [
         authorId: "u-editor",
         authorName: "Tanaka Akira",
         authorRole: "editor",
-        text: "Bối cảnh chiến trận trang 04 cần thêm tầng layer xa để tăng chiều sâu.",
+        text: "The battle background on page 04 needs more distant layers for depth.",
         resolved: false,
         createdAt: iso(-2),
       },
     ],
   }),
-  makeChapter("s-vinland-prod", 7, "Tiếng gọi gió Bắc", "DRAFTING", {
+  makeChapter("s-vinland-prod", 7, "Call of the North Wind", "DRAFTING", {
     draftDueAt: iso(4),
     pages: Array.from({ length: 9 }, (_, i) => ({
       id: `ch-s-vinland-prod-7-p${i + 1}`,
@@ -293,12 +293,12 @@ export const seedChapters: Chapter[] = [
       uploadedAt: iso(0),
     })),
   }),
-  makeChapter("s-vinland-prod", 8, "Chân trời chưa đặt tên", "PLANNED", {
+  makeChapter("s-vinland-prod", 8, "Unnamed Horizon", "PLANNED", {
     draftDueAt: iso(20),
   }),
   // Monster Epilogue
-  makeChapter("s-monster-prod", 1, "Lời mở", "PUBLISHED", { publishedAt: iso(-200) }),
-  makeChapter("s-monster-prod", 2, "Gương mặt", "PUBLISHED", { publishedAt: iso(-180) }),
-  makeChapter("s-monster-prod", 3, "Bóng ma", "PUBLISHED", { publishedAt: iso(-160) }),
-  makeChapter("s-monster-prod", 4, "Hồi kết", "PUBLISHED", { publishedAt: iso(-140) }),
+  makeChapter("s-monster-prod", 1, "Opening Words", "PUBLISHED", { publishedAt: iso(-200) }),
+  makeChapter("s-monster-prod", 2, "The Face", "PUBLISHED", { publishedAt: iso(-180) }),
+  makeChapter("s-monster-prod", 3, "The Ghost", "PUBLISHED", { publishedAt: iso(-160) }),
+  makeChapter("s-monster-prod", 4, "Finale", "PUBLISHED", { publishedAt: iso(-140) }),
 ];

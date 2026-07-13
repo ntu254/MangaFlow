@@ -199,7 +199,7 @@ export function SeriesHeaderActions({
         type="button"
         disabled
         className="hidden h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground"
-        aria-label="Thao tác khác"
+        aria-label="More actions"
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
@@ -208,7 +208,7 @@ export function SeriesHeaderActions({
         onClick={() => setTab("chapters")}
         className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-semibold text-background"
       >
-        <Upload className="h-3.5 w-3.5" /> Tải chapter mới
+        <Upload className="h-3.5 w-3.5" /> Upload new chapter
       </button>
 
       <ConfirmDialog
@@ -254,9 +254,9 @@ export function EditTitleButton() {
   return (
     <button
       type="button"
-      onClick={() => toast("Đổi tên series sẽ được mở khi có quyền.")}
+      onClick={() => toast("Rename series will be available when permissions allow it.")}
       className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-      aria-label="Đổi tên"
+      aria-label="Rename"
     >
       <Pencil className="h-3.5 w-3.5" />
     </button>
@@ -297,9 +297,9 @@ function CurrentProductionCard({
 }) {
   if (!chapter) {
     return (
-      <Card title="Sản xuất hiện tại" dot>
+      <Card title="Current production" dot>
         <p className="py-12 text-center text-xs text-muted-foreground">
-          Chưa có chapter nào đang trong sản xuất.
+          No chapters are currently in production.
         </p>
       </Card>
     );
@@ -319,7 +319,7 @@ function CurrentProductionCard({
   const pct = Math.min(100, Math.round((chapter.pages.length / TARGET_PAGES) * 100));
 
   return (
-    <Card title="Sản xuất hiện tại" dot>
+    <Card title="Current production" dot>
       <div className="flex gap-4">
         <ResolvedImage
           fileKey={series.coverFileKey}
@@ -338,7 +338,7 @@ function CurrentProductionCard({
 
           <div className="mt-3">
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Tiến độ tổng thể</span>
+              <span>Overall progress</span>
               <span className="font-semibold text-foreground">{pct}%</span>
             </div>
             <ProgressBar value={pct} tone="dark" />
@@ -359,17 +359,17 @@ function CurrentProductionCard({
                 deadlineDays == null
                   ? "—"
                   : deadlineDays < 0
-                    ? `Trễ ${-deadlineDays}d`
+                    ? `Overdue ${-deadlineDays}d`
                     : deadlineDays === 0
-                      ? "Hôm nay"
-                      : `${deadlineDays} ngày nữa`
+                      ? "Today"
+                      : `${deadlineDays} days left`
               }
               sub={deadlineIso ? formatDate(deadlineIso) : undefined}
             />
           </div>
         </div>
       </div>
-      <p className="mt-2 text-[10px] text-muted-foreground">Series tổng thể: {overallPct}%</p>
+      <p className="mt-2 text-[10px] text-muted-foreground">Overall series: {overallPct}%</p>
     </Card>
   );
 }
@@ -422,27 +422,25 @@ function SeriesProgressCard({
 
   return (
     <Card
-      title="Tiến độ series"
+      title="Series progress"
       action={
         <button
           onClick={() => setTab("chapters")}
           className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:underline"
         >
-          Xem chi tiết <ArrowRight className="h-3 w-3" />
+          View details <ArrowRight className="h-3 w-3" />
         </button>
       }
     >
       <div className="space-y-3">
-        <Bar label="Kịch bản / Storyboard" value={storyboard} tone="emerald" />
+        <Bar label="Script / Storyboard" value={storyboard} tone="emerald" />
         <Bar label="Manuscript" value={manuscript} tone="emerald" />
         <Bar
-          label={
-            chapter ? `Chapter ${String(chapter.number).padStart(3, "0")}` : "Chapter hiện tại"
-          }
+          label={chapter ? `Chapter ${String(chapter.number).padStart(3, "0")}` : "Current chapter"}
           value={chapterPct}
           tone="dark"
         />
-        <Bar label="Tổng thể" value={overallPct} tone="indigo" />
+        <Bar label="Overall" value={overallPct} tone="indigo" />
       </div>
     </Card>
   );
@@ -510,18 +508,18 @@ function RecentFeedbackCard({
 
   return (
     <Card
-      title="Feedback gần đây"
+      title="Recent feedback"
       action={
         <button
           onClick={() => setTab("chapters")}
           className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:underline"
         >
-          Xem tất cả <ArrowRight className="h-3 w-3" />
+          View all <ArrowRight className="h-3 w-3" />
         </button>
       }
     >
       {notes.length === 0 ? (
-        <EmptyMini icon={<MessageSquare className="h-4 w-4" />}>Chưa có feedback nào.</EmptyMini>
+        <EmptyMini icon={<MessageSquare className="h-4 w-4" />}>No feedback yet.</EmptyMini>
       ) : (
         <ul className="space-y-3">
           {notes.map((n) => (
@@ -582,13 +580,13 @@ function QuickActionsCard({
   const actions = [
     {
       icon: <PencilRuler className="h-5 w-5" />,
-      label: "Mở Studio",
-      onClick: () => toast("Studio sẽ mở ở phiên bản kế tiếp."),
+      label: "Open Studio",
+      onClick: () => toast("Studio will open in the next version."),
       disabled: false,
     },
     {
       icon: <ListPlus className="h-5 w-5" />,
-      label: "Tạo Task",
+      label: "Create task",
       onClick: () => navigate({ to: "/app/tasks" }),
       disabled: false,
     },
@@ -600,7 +598,7 @@ function QuickActionsCard({
     },
     {
       icon: <Upload className="h-5 w-5" />,
-      label: "Tải page lên",
+      label: "Upload page",
       onClick: () => setTab("chapters"),
       disabled: !chapter,
     },
@@ -610,8 +608,8 @@ function QuickActionsCard({
       onClick: () => {
         if (!chapter || !user) return;
         sendEditorReviewMutation.mutate(undefined, {
-          onSuccess: () => toast.success("Đã gửi chapter cho Editor Review."),
-          onError: (err) => toast.error(err instanceof Error ? err.message : "Không thể submit."),
+          onSuccess: () => toast.success("Chapter sent for Editor Review."),
+          onError: (err) => toast.error(err instanceof Error ? err.message : "Unable to submit."),
         });
       },
       disabled: !canSubmit || sendEditorReviewMutation.isPending,
@@ -620,7 +618,7 @@ function QuickActionsCard({
   ];
 
   return (
-    <Card title="Hành động nhanh">
+    <Card title="Quick actions">
       <div className="grid grid-cols-5 gap-2">
         {actions.map((a) => (
           <button
@@ -664,24 +662,24 @@ function ChecklistCard({
     liveItems ??
     (chapter
       ? [
-          { label: "Tất cả page đã được upload", ok: chapter.pages.length >= TARGET_PAGES },
+          { label: "All pages have been uploaded", ok: chapter.pages.length >= TARGET_PAGES },
           {
-            label: "Tất cả tasks đã được hoàn thành",
+            label: "All tasks have been completed",
             ok: chapter.reviewNotes.every((n) => n.resolved),
           },
           {
-            label: "Không còn blocking comments",
+            label: "No remaining blocking comments",
             ok: chapter.reviewNotes.every((n) => n.resolved),
             warn: chapter.reviewNotes.some((n) => !n.resolved),
           },
           {
-            label: "Editor review lần cuối",
+            label: "Final editor review",
             ok: ["EDITOR_APPROVED", "READY_FOR_PUBLICATION", "SCHEDULED", "PUBLISHED"].includes(
               chapter.status,
             ),
           },
-          { label: "Sẵn sàng xuất bản", ok: ["SCHEDULED", "PUBLISHED"].includes(chapter.status) },
-          { label: "Có lịch publish", ok: !!chapter.scheduledAt },
+          { label: "Ready to publish", ok: ["SCHEDULED", "PUBLISHED"].includes(chapter.status) },
+          { label: "Publish date scheduled", ok: !!chapter.scheduledAt },
         ]
       : []);
 
@@ -689,7 +687,7 @@ function ChecklistCard({
 
   return (
     <Card
-      title="Checklist hoàn thành chapter"
+      title="Chapter completion checklist"
       action={
         <span className="text-[11px] font-semibold text-muted-foreground">
           {done} / {items.length || 0}
@@ -712,9 +710,7 @@ function ChecklistCard({
           ))}
         </ul>
       ) : (
-        <EmptyMini icon={<ClipboardCheck className="h-4 w-4" />}>
-          Chưa có chapter để kiểm tra.
-        </EmptyMini>
+        <EmptyMini icon={<ClipboardCheck className="h-4 w-4" />}>No chapter to check.</EmptyMini>
       )}
     </Card>
   );
@@ -739,25 +735,25 @@ function ChaptersMiniList({ chapters, setTab }: { chapters: Chapter[]; setTab: (
 
   return (
     <Card
-      title="Danh sách chapters"
+      title="Chapter list"
       action={
         <button
           onClick={() => setTab("chapters")}
           className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:underline"
         >
-          Xem tất cả <ArrowRight className="h-3 w-3" />
+          View all <ArrowRight className="h-3 w-3" />
         </button>
       }
     >
       {rows.length === 0 ? (
-        <EmptyMini icon={<FileText className="h-4 w-4" />}>Chưa có chapter.</EmptyMini>
+        <EmptyMini icon={<FileText className="h-4 w-4" />}>No chapters yet.</EmptyMini>
       ) : (
         <table className="w-full text-xs">
           <thead>
             <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
               <th className="pb-2 font-semibold">Chapter</th>
-              <th className="pb-2 font-semibold">Trạng thái</th>
-              <th className="pb-2 font-semibold">Tiến độ</th>
+              <th className="pb-2 font-semibold">Status</th>
+              <th className="pb-2 font-semibold">Progress</th>
               <th className="pb-2 text-right font-semibold">Deadline</th>
             </tr>
           </thead>
@@ -815,18 +811,18 @@ function TasksMiniList({ tasks, setTab }: { tasks: StudioTask[]; setTab: (t: Tab
 
   return (
     <Card
-      title="Tasks cần xử lý"
+      title="Tasks to handle"
       action={
         <button
           onClick={() => setTab("chapters")}
           className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:underline"
         >
-          Xem tất cả <ArrowRight className="h-3 w-3" />
+          View all <ArrowRight className="h-3 w-3" />
         </button>
       }
     >
       {rows.length === 0 ? (
-        <EmptyMini icon={<ClipboardCheck className="h-4 w-4" />}>Không có task đang chờ.</EmptyMini>
+        <EmptyMini icon={<ClipboardCheck className="h-4 w-4" />}>No pending tasks.</EmptyMini>
       ) : (
         <ul className="divide-y divide-border/60">
           {rows.map((t) => (
@@ -852,13 +848,13 @@ function TasksMiniList({ tasks, setTab }: { tasks: StudioTask[]; setTab: (t: Tab
 function labelForTask(c: Chapter): string {
   switch (c.status) {
     case "PLANNED":
-      return `Bắt đầu vẽ Ch.${c.number}`;
+      return `Start drawing Ch.${c.number}`;
     case "DRAFTING":
-      return `Hoàn tất draft Ch.${c.number}`;
+      return `Complete draft Ch.${c.number}`;
     case "EDITOR_REVIEW":
       return `Editor review Ch.${c.number}`;
     case "REVISION":
-      return `Chỉnh sửa Ch.${c.number}`;
+      return `Edit Ch.${c.number}`;
     default:
       return `Ch.${c.number} — ${c.title}`;
   }
@@ -870,9 +866,9 @@ function ActivityMiniList({ activity }: { activity: SeriesActivityEntry[] }) {
   const items = activity.slice(0, 5);
 
   return (
-    <Card title="Hoạt động gần đây">
+    <Card title="Recent activity">
       {items.length === 0 ? (
-        <EmptyMini icon={<Clock className="h-4 w-4" />}>Chưa có hoạt động.</EmptyMini>
+        <EmptyMini icon={<Clock className="h-4 w-4" />}>No activity yet.</EmptyMini>
       ) : (
         <ul className="space-y-2.5">
           {items.map((a) => (
@@ -898,20 +894,20 @@ function ActivityMiniList({ activity }: { activity: SeriesActivityEntry[] }) {
 
 function actionPhrase(action: string): string {
   const map: Record<string, string> = {
-    CREATE: "đã tạo",
-    EDIT: "đã cập nhật",
-    UPLOAD: "đã upload",
-    SUBMIT_REVIEW: "đã submit review",
-    APPROVE: "đã approve",
-    REQUEST_REVISION: "yêu cầu chỉnh sửa",
-    RESUBMIT: "đã resubmit",
-    SCHEDULE: "đã schedule",
-    PUBLISH: "đã publish",
-    REASSIGN: "đã đổi assignee",
-    ADD_MATERIAL: "đã thêm tư liệu",
-    REMOVE_MATERIAL: "đã gỡ tư liệu",
-    ADD_ASSISTANT: "đã thêm assistant",
-    REMOVE_ASSISTANT: "đã gỡ assistant",
+    CREATE: "created",
+    EDIT: "has updated",
+    UPLOAD: "has upload",
+    SUBMIT_REVIEW: "has submit review",
+    APPROVE: "has approve",
+    REQUEST_REVISION: "requested changes",
+    RESUBMIT: "was resubmitted",
+    SCHEDULE: "has schedule",
+    PUBLISH: "has publish",
+    REASSIGN: "changed assignee",
+    ADD_MATERIAL: "added material",
+    REMOVE_MATERIAL: "removed material",
+    ADD_ASSISTANT: "added assistant",
+    REMOVE_ASSISTANT: "removed assistant",
   };
   return map[action] ?? action.toLowerCase();
 }
@@ -955,9 +951,9 @@ function EmptyMini({ icon, children }: { icon: React.ReactNode; children: React.
 function relativeDay(iso: string): string {
   const d = daysFromNow(iso);
   if (d == null) return "";
-  if (d === 0) return "hôm nay";
-  if (d < 0) return `${-d} ngày trước`;
-  return `${d} ngày nữa`;
+  if (d === 0) return "today";
+  if (d < 0) return `${-d} days ago`;
+  return `${d} days left`;
 }
 
 // Re-export Link so consumers can keep tree-shaking happy.

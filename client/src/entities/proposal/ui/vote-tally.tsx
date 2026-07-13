@@ -24,7 +24,7 @@ export function VoteTally({
       </p>
       {status === "TIE_BREAK" ? (
         <div className="mb-3 rounded border border-fuchsia-300 bg-fuchsia-50 p-2 text-[11px] text-fuchsia-900">
-          Hoà phiếu — chờ phiếu phá tie của Editor-in-chief (weight {EIC_TIEBREAK_WEIGHT}).
+          Tied vote - waiting for the Editor-in-chief tie-break vote (weight {EIC_TIEBREAK_WEIGHT}).
         </div>
       ) : null}
       <div className="grid grid-cols-3 gap-2 text-center">
@@ -59,7 +59,7 @@ export function VoteTally({
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-xs text-muted-foreground">Chưa có vote nào.</p>
+        <p className="mt-3 text-xs text-muted-foreground">No votes yet.</p>
       )}
       <p className="mt-3 text-[10px] text-muted-foreground">{tally.reason}</p>
     </div>

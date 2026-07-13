@@ -127,14 +127,14 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
   if (!task) {
     return (
       <EmptyState
-        title="Không tìm thấy task"
-        description="Task có thể đã bị xoá hoặc đường dẫn không hợp lệ."
+        title="Task not found"
+        description="The task may have been deleted or the route is invalid."
         action={
           <Link
             to="/app/assistant/tasks"
             className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
           >
-            ← Về My Tasks
+            Back to My Tasks
           </Link>
         }
       />
@@ -144,14 +144,14 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
   if (!canAssistantAccessTask(task, user.id)) {
     return (
       <EmptyState
-        title="Bạn không có quyền xem task này"
-        description="Task này không được giao cho bạn."
+        title="You do not have permission to view this task"
+        description="This task is not assigned to you."
         action={
           <Link
             to="/app/assistant/tasks"
             className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
           >
-            ← Về My Tasks
+            Back to My Tasks
           </Link>
         }
       />
@@ -176,8 +176,8 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
     taskActionMutation.mutate(
       { action: "start", chapterId: task.chapterId, pageId: task.pageId },
       {
-        onSuccess: () => toast.success("Bắt đầu làm task."),
-        onError: () => toast.error("Lỗi khi cập nhật task."),
+        onSuccess: () => toast.success("Started working on task."),
+        onError: () => toast.error("Error updating task."),
       },
     );
   }
@@ -187,8 +187,8 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
     taskActionMutation.mutate(
       { action: "submit", chapterId: task.chapterId, pageId: task.pageId },
       {
-        onSuccess: () => toast.success("Đã chuyển task sang SUBMITTED."),
-        onError: () => toast.error("Lỗi khi cập nhật task."),
+        onSuccess: () => toast.success("Task moved to SUBMITTED."),
+        onError: () => toast.error("Error updating task."),
       },
     );
   }
@@ -336,20 +336,20 @@ function BottomActions({
 }) {
   const visualStatus = getVisualTaskStatus(task);
   const isBlocked = visualStatus === "BLOCKED";
-  const blockedReason = getTaskBlockedReason(task) ?? "Nhiệm vụ đang bị khoá";
+  const blockedReason = getTaskBlockedReason(task) ?? "Task is locked";
 
   if (visualStatus === "CANCELLED") {
-    return <span className="text-xs text-rose-600 font-semibold">View only — task đã bị huỷ.</span>;
+    return (
+      <span className="text-xs text-rose-600 font-semibold">View only - task was canceled.</span>
+    );
   }
   if (visualStatus === "REASSIGNED") {
     return (
-      <span className="text-xs text-amber-600 font-semibold">
-        View only — task đã được chuyển giao.
-      </span>
+      <span className="text-xs text-amber-600 font-semibold">View only - task was handed off.</span>
     );
   }
   if (readOnly) {
-    return <span className="text-xs text-muted-foreground">View only — task đã đóng.</span>;
+    return <span className="text-xs text-muted-foreground">View only - task is closed.</span>;
   }
   if (task.status === "TODO") {
     const btn = (
@@ -397,7 +397,7 @@ function BottomActions({
 
     return (
       <>
-        <DisabledAction label="Save Draft (dùng tab Submit)" />
+        <DisabledAction label="Save Draft (use the Submit tab)" />
         {isBlocked ? (
           <TooltipProvider>
             <Tooltip>
@@ -430,7 +430,7 @@ function BottomActions({
 
     return (
       <>
-        <DisabledAction label="Mark Feedback Fixed (dùng tab Feedback)" />
+        <DisabledAction label="Mark Feedback Fixed (use the Feedback tab)" />
         {isBlocked ? (
           <TooltipProvider>
             <Tooltip>
@@ -449,13 +449,13 @@ function BottomActions({
   if (task.status === "SUBMITTED") {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-        <CheckCircle2 className="size-3.5 text-emerald-600" /> Đang chờ Mangaka review.
+        <CheckCircle2 className="size-3.5 text-emerald-600" /> Pending Mangaka review.
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-      <Ban className="size-3.5" /> Không có action khả dụng.
+      <Ban className="size-3.5" /> No actions available.
     </span>
   );
 }

@@ -32,7 +32,7 @@ export async function getTantouEditor(seriesId: string) {
 
 /**
  * Assign a tantou editor to a series.
- * - Only owner Mangaka can assign
+ * - Only the Board (or Admin) can assign (flowchart node K)
  * - Only one active editor per series
  * - Updates Series.editorId and Series.editorName
  */
@@ -45,9 +45,9 @@ export async function assignTantouEditor(
   const series = await SeriesModel.findOne({ id: seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
 
-  // Only Mangaka owner can assign
-  if (req.actor?.role !== "MANGAKA" || (series as any).authorId !== req.actor?.id) {
-    throw new AppError(403, "Only the Mangaka owner can assign a Tantou Editor.", "FORBIDDEN");
+  // The Editorial Board (or Admin) assigns the Tantou Editor (flowchart node K).
+  if (req.actor?.role !== "ADMIN" && req.actor?.role !== "BOARD") {
+    throw new AppError(403, "Only the Board can assign a Tantou Editor.", "FORBIDDEN");
   }
 
   // Verify editor user exists and has EDITOR role
@@ -97,16 +97,16 @@ export async function assignTantouEditor(
 
 /**
  * Remove (deactivate) the tantou editor from a series.
- * - Only owner Mangaka can remove
+ * - Only the Board (or Admin) can remove (flowchart node K)
  * - Updates Series.editorId and Series.editorName
  */
 export async function removeTantouEditor(req: AuthedRequest, seriesId: string) {
   const series = await SeriesModel.findOne({ id: seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
 
-  // Only Mangaka owner can remove
-  if (req.actor?.role !== "MANGAKA" || (series as any).authorId !== req.actor?.id) {
-    throw new AppError(403, "Only the Mangaka owner can remove a Tantou Editor.", "FORBIDDEN");
+  // The Editorial Board (or Admin) manages the Tantou Editor (flowchart node K).
+  if (req.actor?.role !== "ADMIN" && req.actor?.role !== "BOARD") {
+    throw new AppError(403, "Only the Board can remove a Tantou Editor.", "FORBIDDEN");
   }
 
   const member = await SeriesMemberModel.findOne({

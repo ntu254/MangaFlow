@@ -69,7 +69,7 @@ export function StudioTopBar({
             <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground">
               {chapter
                 ? `Chapter ${String(chapter.number).padStart(3, "0")} · ${chapter.title}`
-                : "Chưa chọn chapter"}
+                : "No chapter selected"}
             </p>
             <p className="mt-0.5 truncate text-[10px] font-semibold text-foreground/70">
               {permissions.title}

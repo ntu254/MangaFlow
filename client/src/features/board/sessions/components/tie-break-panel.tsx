@@ -7,8 +7,8 @@ import type { VotingSession } from "@/entities/board/model/voting-types";
 import { Textarea } from "@/components/ui/textarea";
 
 const OPTIONS: { value: VoteDecision; label: string; tone: string }[] = [
-  { value: "APPROVE", label: "Phá tie → Approve", tone: "bg-emerald-700 hover:bg-emerald-800" },
-  { value: "REJECT", label: "Phá tie → Reject", tone: "bg-rose-700 hover:bg-rose-800" },
+  { value: "APPROVE", label: "Break tie -> Approve", tone: "bg-emerald-700 hover:bg-emerald-800" },
+  { value: "REJECT", label: "Break tie -> Reject", tone: "bg-rose-700 hover:bg-rose-800" },
 ];
 
 export function TieBreakPanel({
@@ -26,7 +26,7 @@ export function TieBreakPanel({
 
   const submit = () => {
     if (!decision) {
-      toast.error("Chọn 1 lựa chọn.");
+      toast.error("Choose one option.");
       return;
     }
     tieBreak.mutate(
@@ -38,8 +38,8 @@ export function TieBreakPanel({
         },
       },
       {
-        onSuccess: () => toast.success("Đã phá tie."),
-        onError: (e) => toast.error(e instanceof Error ? e.message : "Lỗi."),
+        onSuccess: () => toast.success("Tie broken."),
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Error."),
       },
     );
   };
@@ -73,13 +73,13 @@ export function TieBreakPanel({
         rows={2}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Lý do quyết định (tuỳ chọn)…"
+        placeholder="Decision reason (optional)..."
       />
       <button
         onClick={submit}
         className="mt-2 rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
       >
-        Chốt phá tie
+        Finalize tie-break
       </button>
     </div>
   );

@@ -62,7 +62,7 @@ export function ChapterActionPanel({
     if (a === "REASSIGN") return setReassignOpen(true);
     try {
       await chapterActionMutation.mutateAsync({ action: a });
-      toast.success(`${CHAPTER_ACTION_LABEL[a]} thành công.`);
+      toast.success(`${CHAPTER_ACTION_LABEL[a]} completed.`);
     } catch (e) {
       toast.error(mapApiError(e));
     }
@@ -78,7 +78,7 @@ export function ChapterActionPanel({
         Chapter actions
       </p>
       {actions.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Không có action khả dụng.</p>
+        <p className="text-xs text-muted-foreground">No actions available.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {actions.map((a) => {
@@ -91,12 +91,12 @@ export function ChapterActionPanel({
                 onClick={() => run(a)}
                 title={
                   disabledBySeparation
-                    ? "Bạn không thể duyệt submission do chính mình nộp."
+                    ? "You cannot approve a submission you submitted yourself."
                     : c.reason
                 }
                 className={`rounded px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${TONES[a] ?? "bg-card text-foreground border border-border hover:bg-muted"}`}
               >
-                {chapterActionMutation.isPending ? "Đang xử lý..." : CHAPTER_ACTION_LABEL[a]}
+                {chapterActionMutation.isPending ? "Processing..." : CHAPTER_ACTION_LABEL[a]}
               </button>
             );
           })}
@@ -111,17 +111,17 @@ export function ChapterActionPanel({
       <Dialog open={revisionOpen} onOpenChange={(v) => !v && setRevisionOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Yêu cầu chỉnh sửa chapter {chapter.number}</DialogTitle>
+            <DialogTitle>Changes requested chapter {chapter.number}</DialogTitle>
           </DialogHeader>
           <DialogDescription className="sr-only">Dialog description</DialogDescription>
           <div className="space-y-2">
-            <Label htmlFor="rev-note">Ghi chú revision (bắt buộc)</Label>
+            <Label htmlFor="rev-note">Revision note (required)</Label>
             <Textarea
               id="rev-note"
               rows={5}
               value={reviewNote}
               onChange={(e) => setReviewNote(e.target.value)}
-              placeholder="Ghi rõ điểm cần chỉnh…"
+              placeholder="Describe the items that need changes…"
             />
           </div>
           <DialogFooter>
@@ -129,13 +129,13 @@ export function ChapterActionPanel({
               onClick={() => setRevisionOpen(false)}
               className="rounded border border-border px-3 py-1.5 text-xs"
             >
-              Huỷ
+              Cancel
             </button>
             <button
               disabled={chapterActionMutation.isPending}
               onClick={async () => {
                 if (reviewNote.trim().length < 8) {
-                  toast.error("Ghi chú quá ngắn.");
+                  toast.error("The note is too short.");
                   return;
                 }
                 try {
@@ -143,7 +143,7 @@ export function ChapterActionPanel({
                     action: "REQUEST_REVISION",
                     payload: { reviewNote: reviewNote.trim() },
                   });
-                  toast.success("Đã yêu cầu chỉnh sửa.");
+                  toast.success("Requested changes.");
                   setRevisionOpen(false);
                   setReviewNote("");
                 } catch (e) {
@@ -152,7 +152,7 @@ export function ChapterActionPanel({
               }}
               className="rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-55"
             >
-              {chapterActionMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+              {chapterActionMutation.isPending ? "Sending..." : "Send request"}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -165,7 +165,7 @@ export function ChapterActionPanel({
           </DialogHeader>
           <DialogDescription className="sr-only">Dialog description</DialogDescription>
           <div className="space-y-2">
-            <Label htmlFor="sched">Ngày publish</Label>
+            <Label htmlFor="sched">Publish date</Label>
             <Input
               id="sched"
               type="date"
@@ -178,7 +178,7 @@ export function ChapterActionPanel({
               onClick={() => setScheduleOpen(false)}
               className="rounded border border-border px-3 py-1.5 text-xs"
             >
-              Huỷ
+              Cancel
             </button>
             <button
               disabled={chapterActionMutation.isPending}
@@ -188,7 +188,7 @@ export function ChapterActionPanel({
                     action: "SCHEDULE",
                     payload: { scheduledAt: fromDateInputValue(scheduledAt) },
                   });
-                  toast.success("Đã schedule.");
+                  toast.success("Chapter scheduled.");
                   setScheduleOpen(false);
                 } catch (e) {
                   toast.error(mapApiError(e));
@@ -196,7 +196,7 @@ export function ChapterActionPanel({
               }}
               className="rounded bg-indigo-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-55"
             >
-              {chapterActionMutation.isPending ? "Đang xử lý..." : "Schedule"}
+              {chapterActionMutation.isPending ? "Processing..." : "Schedule"}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -205,11 +205,11 @@ export function ChapterActionPanel({
       <Dialog open={reassignOpen} onOpenChange={(v) => !v && setReassignOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Đổi assignee — chapter {chapter.number}</DialogTitle>
+            <DialogTitle>Change assignee — chapter {chapter.number}</DialogTitle>
           </DialogHeader>
           <DialogDescription className="sr-only">Dialog description</DialogDescription>
           <div className="space-y-2">
-            <Label htmlFor="re-as">Assignee mới</Label>
+            <Label htmlFor="re-as">New assignee</Label>
             <select
               id="re-as"
               value={assigneeId}
@@ -228,7 +228,7 @@ export function ChapterActionPanel({
               onClick={() => setReassignOpen(false)}
               className="rounded border border-border px-3 py-1.5 text-xs"
             >
-              Huỷ
+              Cancel
             </button>
             <button
               disabled={chapterActionMutation.isPending}
@@ -240,7 +240,7 @@ export function ChapterActionPanel({
                     action: "REASSIGN",
                     payload: { newAssigneeId: next.id, newAssigneeName: next.name },
                   });
-                  toast.success("Đã đổi assignee.");
+                  toast.success("Assignee updated.");
                   setReassignOpen(false);
                 } catch (e) {
                   toast.error(mapApiError(e));
@@ -248,7 +248,7 @@ export function ChapterActionPanel({
               }}
               className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-55"
             >
-              {chapterActionMutation.isPending ? "Đang lưu..." : "Lưu"}
+              {chapterActionMutation.isPending ? "Saving..." : "Save"}
             </button>
           </DialogFooter>
         </DialogContent>

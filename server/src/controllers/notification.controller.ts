@@ -2,7 +2,7 @@ import { asyncRoute, ok, created, AppError } from "../lib/http.js";
 import { NotificationModel, SeriesModel, RankingModel, RankingImportModel } from "../db/models.js";
 import { paginated, patchById, requireActor } from "./helpers.js";
 import { id, nowIso } from "../domain/ids.js";
-import { audit } from "../services/audit.service.js";
+import { audit, notifyMany } from "../services/audit.service.js";
 import { parseBody, rejectProtectedFields } from "../validators/common.js";
 import { z } from "zod";
 import type { AuthedRequest } from "../types.js";
@@ -149,6 +149,8 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
 
   const imported = [];
   const errors: string[] = [];
+  // Collect "series became at-risk" alerts for the Mangaka + Tantou editor.
+  const atRiskNotifications: { userId: string; kind: string; title: string; message: string }[] = [];
 
   for (const [index, row] of body.rows.entries()) {
     if (!row.seriesId && !row.seriesTitle) {
@@ -168,6 +170,13 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
     const status = row.status ?? (atRisk ? "AT_RISK" : "ACTIVE");
     const seriesId = row.seriesId ?? id("series-ext");
     const seriesTitle = series?.title ?? row.seriesTitle ?? seriesId;
+
+    // Detect the transition into at-risk so we only alert on the change, not on
+    // every re-import of the same period.
+    const previous = await RankingModel.findOne({ seriesId, period: body.period })
+      .select({ atRisk: 1 })
+      .lean();
+    const becameAtRisk = atRisk && !(previous as any)?.atRisk;
 
     // Upsert ranking with importBatchId (Strategy A: upsert on period+seriesId)
     const ranking = await RankingModel.findOneAndUpdate(
@@ -197,6 +206,25 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
       { returnDocument: "after", upsert: true },
     ).lean();
     imported.push(ranking);
+
+    // Flowchart: Ranking updated → Series At Risk → notify Mangaka + Tantou.
+    // Only for known series (external rows have no owner to notify).
+    if (becameAtRisk && series) {
+      for (const userId of [(series as any).authorId, (series as any).editorId]) {
+        if (userId) {
+          atRiskNotifications.push({
+            userId: String(userId),
+            kind: "series.at_risk",
+            title: "Series at risk",
+            message: `${seriesTitle} có nguy cơ bị huỷ do ranking thấp. Board sẽ xem xét.`,
+          });
+        }
+      }
+    }
+  }
+
+  if (atRiskNotifications.length > 0) {
+    await notifyMany(atRiskNotifications);
   }
 
   // Update batch record

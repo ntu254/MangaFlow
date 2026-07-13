@@ -51,8 +51,8 @@ export function RankingsPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Analytics"
-          title="Bảng xếp hạng & Đánh giá"
-          description="Đang tải danh sách tác phẩm và dữ liệu xếp hạng."
+          title="Rankings & Reviews"
+          description="Loading works and ranking data."
         />
         <DataTable isLoading skeletonRows={6} skeletonColumns={5} />
       </div>
@@ -64,12 +64,12 @@ export function RankingsPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Analytics"
-          title="Bảng xếp hạng & Đánh giá"
-          description="Theo dõi hiệu suất và phản hồi độc giả theo tuần."
+          title="Rankings & Reviews"
+          description="Track weekly performance and reader feedback."
         />
         <StateBlock
           tone="danger"
-          title="Không thể tải danh sách tác phẩm"
+          title="Could not load works"
           description={mapApiError(seriesError)}
         />
       </div>
@@ -81,19 +81,19 @@ export function RankingsPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Analytics"
-          title="Bảng xếp hạng & Đánh giá"
-          description="Theo dõi hiệu suất và phản hồi độc giả theo tuần."
+          title="Rankings & Reviews"
+          description="Track weekly performance and reader feedback."
         />
         <EmptyState
           icon={<BookOpen className="size-5" />}
-          title="Chưa có tác phẩm"
-          description="Bạn chưa sở hữu tác phẩm đang sản xuất để xem dữ liệu xếp hạng."
+          title="No works yet"
+          description="You do not own any production works with ranking data yet."
           action={
             <Link
               to="/app/series"
               className="inline-flex h-10 items-center rounded-[6px] border border-[var(--admin-navy)] bg-[var(--admin-navy)] px-4 text-[13px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
             >
-              Quay lại Series
+              Back to Series
             </Link>
           }
         />
@@ -105,8 +105,8 @@ export function RankingsPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
         eyebrow="Analytics"
-        title="Bảng xếp hạng & Đánh giá"
-        description="Theo dõi phản hồi độc giả, điểm số trung bình và cảnh báo sức khỏe của tác phẩm."
+        title="Rankings & Reviews"
+        description="Track reader feedback, average scores, and work health alerts."
         actions={
           seriesList.length > 1 ? (
             <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ export function RankingsPage() {
                 htmlFor="series-select"
                 className="text-[12px] font-semibold text-[var(--admin-muted)]"
               >
-                Tác phẩm
+                Work
               </label>
               <Select value={activeSeriesId} onValueChange={setSelectedSeriesId}>
                 <SelectTrigger
@@ -139,7 +139,7 @@ export function RankingsPage() {
       {isRankingsError ? (
         <StateBlock
           tone="danger"
-          title="Không thể tải dữ liệu xếp hạng"
+          title="Could not load ranking data"
           description={mapApiError(rankingsError)}
         />
       ) : null}
@@ -150,28 +150,28 @@ export function RankingsPage() {
             icon={<TrendingUp className="size-5" />}
             label="Final Score"
             value={latest?.finalScore?.toFixed(1) ?? "-"}
-            hint="Điểm tổng hợp mới nhất"
+            hint="Latest composite score"
           />
           <MetricCard
             icon={<Award className="size-5" />}
             label="Reader Score"
             value={`${latest?.readerScore?.toFixed(1) ?? "-"}/10`}
-            hint="Điểm bình chọn trung bình"
+            hint="Average reader score"
           />
           <MetricCard
             icon={<Vote className="size-5" />}
-            label="Tổng lượt vote"
+            label="Total votes"
             value={latest?.voteCount?.toLocaleString("vi-VN") ?? "-"}
-            hint="Phiếu bầu trong tuần hiện tại"
+            hint="Votes in the current week"
           />
           <MetricCard
             icon={<ShieldAlert className="size-5" />}
-            label="Tình trạng rủi ro"
+            label="Risk status"
             value={latest?.atRisk ? "At risk" : "Stable"}
             hint={
               latest?.atRisk
-                ? "Lượng vote đang giảm và cần được theo dõi."
-                : "Chỉ số tương tác đang ổn định."
+                ? "Vote volume is dropping and needs monitoring."
+                : "Engagement indicators are stable."
             }
             tone={latest?.atRisk ? "danger" : "success"}
           />
@@ -183,25 +183,25 @@ export function RankingsPage() {
       ) : isRankingsError ? null : rankings.length === 0 ? (
         <DataTable
           isEmpty
-          emptyTitle="Chưa có dữ liệu xếp hạng"
-          emptyDescription={`Chưa có dữ liệu theo tuần cho tác phẩm "${activeSeries?.title ?? ""}".`}
+          emptyTitle="No ranking data yet"
+          emptyDescription={`No weekly data yet for "${activeSeries?.title ?? ""}".`}
         />
       ) : (
         <DataTable>
           <div className="border-b border-[var(--admin-border)] px-5 py-4">
             <h2 className="font-serif text-[18px] font-semibold text-[var(--admin-ink)]">
-              Lịch sử xếp hạng theo tuần
+              Weekly ranking history
             </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-[var(--admin-border)] text-left font-serif text-[14px] text-[var(--admin-ink)]">
-                  <th className="px-5 py-3 font-semibold">Tuần</th>
-                  <th className="px-3 py-3 text-right font-semibold">Lượt bình chọn</th>
+                  <th className="px-5 py-3 font-semibold">Week</th>
+                  <th className="px-3 py-3 text-right font-semibold">Votes</th>
                   <th className="px-3 py-3 text-right font-semibold">Reader Score</th>
                   <th className="px-3 py-3 text-right font-semibold">Final Score</th>
-                  <th className="px-5 py-3 font-semibold">Trạng thái</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>

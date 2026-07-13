@@ -81,7 +81,7 @@ export function ChapterReviewPage() {
   if (isLoading) {
     return (
       <div className="p-10">
-        <EmptyState title="Đang tải chapter" />
+        <EmptyState title="Loading chapter" />
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function ChapterReviewPage() {
   if (!chapter || !series) {
     return (
       <div className="p-10">
-        <EmptyState title="Không tìm thấy chapter" />
+        <EmptyState title="Chapter not found" />
       </div>
     );
   }
@@ -105,10 +105,8 @@ export function ChapterReviewPage() {
       { action, payload },
       {
         onSuccess: () =>
-          toast.success(
-            action === "EDITOR_APPROVE" ? "Đã approve chapter." : "Đã yêu cầu chỉnh sửa.",
-          ),
-        onError: () => toast.error("Lỗi khi cập nhật chapter."),
+          toast.success(action === "EDITOR_APPROVE" ? "Chapter approved." : "Requested changes."),
+        onError: () => toast.error("Failed to update chapter."),
       },
     );
   }

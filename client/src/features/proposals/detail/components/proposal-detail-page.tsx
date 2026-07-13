@@ -21,11 +21,11 @@ import { ResolvedImage } from "@/shared/ui";
 type Tab = "overview" | "manuscripts" | "materials" | "revision" | "decision";
 
 const TABS: { id: Tab; label: string; badge?: number }[] = [
-  { id: "overview", label: "Tổng quan" },
-  { id: "manuscripts", label: "Bản thảo" },
-  { id: "materials", label: "Tư liệu" },
+  { id: "overview", label: "Overview" },
+  { id: "manuscripts", label: "Manuscripts" },
+  { id: "materials", label: "Materials" },
   { id: "revision", label: "Revision" },
-  { id: "decision", label: "Lịch sử quyết định" },
+  { id: "decision", label: "Decision history" },
 ];
 
 export function ProposalDetailPage({
@@ -54,11 +54,11 @@ export function ProposalDetailPage({
   if (!proposal) {
     return (
       <EmptyState
-        title="Proposal không tồn tại"
-        description="Có thể proposal đã bị xoá hoặc id sai."
+        title="Proposal not found"
+        description="The proposal may have been deleted or the id is invalid."
         action={
           <Link to="/app/submissions" className="text-xs underline">
-            Quay lại danh sách
+            Back to list
           </Link>
         }
       />
@@ -78,12 +78,12 @@ export function ProposalDetailPage({
           }}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5" /> Huỷ chỉnh sửa
+          <ArrowLeft className="size-3.5" /> Cancel editing
         </button>
         <header className="border-b border-border pb-4">
-          <h1 className="font-serif text-3xl">Chỉnh sửa proposal</h1>
+          <h1 className="font-serif text-3xl">Edit proposal</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Trạng thái hiện tại: <ProposalStatusPill status={proposal.status} />
+            Current status: <ProposalStatusPill status={proposal.status} />
           </p>
         </header>
         <ProposalWizard
@@ -96,10 +96,10 @@ export function ProposalDetailPage({
           onSave={async (payload) => {
             try {
               await updateProposalMutation.mutateAsync(payload);
-              toast.success("Đã lưu thay đổi.");
+              toast.success("Changes saved.");
               navigate({ to: "/app/submissions/$id", params: { id: proposalId }, search: {} });
             } catch (error) {
-              toast.error(error instanceof Error ? error.message : "Lỗi khi lưu thay đổi.");
+              toast.error(error instanceof Error ? error.message : "Error saving changes.");
               throw error;
             }
           }}
@@ -119,7 +119,7 @@ export function ProposalDetailPage({
 
       {editing && !canEdit ? (
         <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Proposal này không thể chỉnh sửa với tài khoản hoặc trạng thái hiện tại.
+          This proposal cannot be edited with the current account or status.
         </div>
       ) : null}
 
@@ -134,12 +134,12 @@ export function ProposalDetailPage({
             />
           </div>
           <div className="space-y-2 text-xs">
-            <Meta label="Tác giả" value={proposal.authorName} />
+            <Meta label="Author" value={proposal.authorName} />
             <Meta label="Audience" value={AUDIENCE_LABEL[proposal.targetAudience]} />
             <Meta label="Chapters" value={String(proposal.chaptersPlanned)} />
             <Meta label="Genres" value={proposal.genres.join(", ")} />
-            <Meta label="Editor" value={proposal.assignedEditorName ?? "Chưa assign"} />
-            <Meta label="Vòng revision" value={String(proposal.revisionRound ?? 0)} />
+            <Meta label="Editor" value={proposal.assignedEditorName ?? "Unassigned"} />
+            <Meta label="Revision round" value={String(proposal.revisionRound ?? 0)} />
             <Meta
               label="Sample"
               value={
@@ -149,7 +149,7 @@ export function ProposalDetailPage({
                   rel="noreferrer"
                   className="underline"
                 >
-                  Mở chapter mẫu
+                  Open sample chapter
                 </a>
               }
             />

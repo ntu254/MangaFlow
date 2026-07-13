@@ -201,15 +201,16 @@ export { useCreateVotingSessionMutation } from "../sessions/api/sessions.queries
 export function mapBoardApiError(err: unknown): string {
   if (err instanceof Error) {
     const msg = err.message;
-    if (msg.includes("DUPLICATE_VOTE")) return "Bạn đã bỏ phiếu cho proposal này rồi.";
-    if (msg.includes("INVALID_TRANSITION")) return "Trạng thái hiện tại không cho phép bỏ phiếu.";
-    if (msg.includes("NOT_FOUND")) return "Proposal không tồn tại.";
-    if (msg.includes("EIC_REQUIRED")) return "Chỉ Editor-in-chief mới có thể phá tie.";
-    if (msg.includes("BOARD_CHAIR_REQUIRED")) return "Chỉ Chủ tịch Hội đồng mới có thể thực hiện.";
-    if (msg.includes("FORBIDDEN")) return "Bạn không có quyền thực hiện thao tác này.";
+    if (msg.includes("DUPLICATE_VOTE")) return "You have already voted on this proposal.";
+    if (msg.includes("INVALID_TRANSITION")) return "The current status does not allow voting.";
+    if (msg.includes("NOT_FOUND")) return "Proposal not found.";
+    if (msg.includes("EIC_REQUIRED")) return "Only the Editor-in-chief can break ties.";
+    if (msg.includes("BOARD_CHAIR_REQUIRED"))
+      return "Only the Board Chair can perform this action.";
+    if (msg.includes("FORBIDDEN")) return "You do not have permission to perform this action.";
     return msg;
   }
-  return "Đã xảy ra lỗi không xác định.";
+  return "An unknown error occurred.";
 }
 
 export { useAddVotingSessionNoteMutation } from "../sessions/api/sessions.queries";

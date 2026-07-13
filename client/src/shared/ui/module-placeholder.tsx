@@ -19,8 +19,8 @@ export function ModulePlaceholder({
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
       </header>
       <EmptyState
-        title={`${title} sẽ được build trong Phase ${phase}`}
-        description="Phase 1 hoàn thành design system, public reader và role-aware app shell. Module này sẽ wire backend + UI khi đến phase tương ứng."
+        title={`${title} will be built in Phase ${phase}`}
+        description="Phase 1 completed the design system, public reader, and role-aware app shell. This module will wire backend and UI in its corresponding phase."
       />
     </div>
   );

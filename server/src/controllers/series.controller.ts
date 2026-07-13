@@ -316,11 +316,24 @@ async function attachPublications(chapters: any[]) {
 
 export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) => {
   const now = nowIso();
+  const seriesId = String(req.params.id);
   const body = parseBody(createChapterSchema, req);
   rejectProtectedFields(body as Record<string, unknown>);
+
+  // A cancelled or paused Series cannot accept new chapters (flowchart AS/AT).
+  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  if (["CANCELLED", "HIATUS", "COMPLETED"].includes(String(series.status))) {
+    throw new AppError(
+      409,
+      `Cannot create a chapter for a ${String(series.status).toLowerCase()} series.`,
+      "SERIES_NOT_PRODUCIBLE",
+    );
+  }
+
   const chapter = await ChapterModel.create({
     id: id("ch"),
-    seriesId: String(req.params.id),
+    seriesId,
     number: Number(body.number ?? 1),
     title: body.title ?? "Untitled chapter",
     status: "PLANNED",

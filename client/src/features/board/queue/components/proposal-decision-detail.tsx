@@ -51,8 +51,8 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
           <ArrowLeft className="size-3.5" /> Board queue
         </Link>
         <EmptyState
-          title="Proposal không tồn tại"
-          description="Đã xảy ra lỗi khi tải proposal từ server."
+          title="Proposal not found"
+          description="An error occurred while loading the proposal from the server."
         />
       </div>
     );

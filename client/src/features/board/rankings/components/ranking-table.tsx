@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import type { RankingRow } from "@/entities/board/model/board-types";
 import { useMySeriesQuery } from "@/entities/series";
@@ -34,8 +34,8 @@ export function RankingTable({ rows }: { rows: RankingRow[] }) {
     return (
       <DataTable
         isEmpty
-        emptyTitle="Không có dữ liệu xếp hạng"
-        emptyDescription="Chọn kỳ xếp hạng khác hoặc import dữ liệu mới."
+        emptyTitle="No ranking data"
+        emptyDescription="Select another ranking period or import new data."
       />
     );
   }
@@ -142,8 +142,8 @@ export function RankingTable({ rows }: { rows: RankingRow[] }) {
               <div className="flex-1 space-y-5 p-4">
                 {/* Warning Business Copy */}
                 <Notice icon={<ShieldAlert className="size-4" />} title="Governance notice">
-                  Bảng xếp hạng chỉ tạo tín hiệu rủi ro và không tự động huỷ tác phẩm. Mọi quyết
-                  định thay đổi trạng thái phải được thực hiện thủ công.
+                  Rankings only create risk signals and do not automatically cancel works. All
+                  status changes must be handled manually.
                 </Notice>
 
                 <div>
@@ -151,14 +151,14 @@ export function RankingTable({ rows }: { rows: RankingRow[] }) {
                     Performance Snapshot
                   </h4>
                   <p className="text-xs leading-relaxed text-foreground bg-muted/40 rounded p-2.5 border border-border/50">
-                    {selectedRow.performanceSnapshot ?? "Không có mô tả hiệu suất."}
+                    {selectedRow.performanceSnapshot ?? "No performance description."}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                      Nguồn Xếp Hạng
+                      Ranking source
                     </h4>
                     <span
                       className={`inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getRankingSourceTone(selectedRow.source)}`}
@@ -168,7 +168,7 @@ export function RankingTable({ rows }: { rows: RankingRow[] }) {
                   </div>
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                      Mức Độ Rủi Ro
+                      Risk level
                     </h4>
                     <span
                       className={`inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${RISK_CLASS[selectedRow.risk]}`}
@@ -198,16 +198,16 @@ export function RankingTable({ rows }: { rows: RankingRow[] }) {
 
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
-                    Ghi Chú Biên Tập Viên
+                    Editor note
                   </h4>
                   <p className="text-xs italic text-muted-foreground border-l-2 border-border pl-2.5 py-0.5">
-                    {selectedRow.editorNote ?? "Không có ghi chú biên tập viên."}
+                    {selectedRow.editorNote ?? "No editor note."}
                   </p>
                 </div>
 
                 <div className="border-t border-border pt-4 space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                    Thao Tác An Toàn
+                    Safe actions
                   </h4>
                   <Link
                     to="/app/series/$slug/$tab"
@@ -218,11 +218,11 @@ export function RankingTable({ rows }: { rows: RankingRow[] }) {
                     className="inline-flex w-full items-center justify-center gap-1.5 rounded bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90"
                     onClick={() => setSelectedRow(null)}
                   >
-                    <ExternalLink className="size-3.5" /> Xem Chi Tiết Series
+                    <ExternalLink className="size-3.5" /> View series details
                   </Link>
                   <p className="text-[10px] text-center text-muted-foreground mt-2">
-                    Yêu cầu thảo luận/huỷ bỏ tác phẩm phải được thực hiện thông qua trang At-risk
-                    Reviews để ghi nhật ký audit đầy đủ.
+                    Requests to discuss or cancel a work must go through the At-risk Reviews page so
+                    the full audit trail is recorded.
                   </p>
                 </div>
               </div>

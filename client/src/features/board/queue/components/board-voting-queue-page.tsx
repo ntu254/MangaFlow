@@ -21,7 +21,7 @@ export function BoardVotingQueuePage() {
       <PageHeader
         eyebrow="Governance"
         title="Board voting queue"
-        description={`Quorum ${BOARD_QUORUM}/${BOARD_TOTAL} → APPROVED. ${BOARD_QUORUM} reject → REJECTED. Hoà → Editor-in-chief phá tie.`}
+        description={`Quorum ${BOARD_QUORUM}/${BOARD_TOTAL} → APPROVED. ${BOARD_QUORUM} reject → REJECTED. Tied → Editor-in-chief breaks ties.`}
       >
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
           <Link
@@ -34,11 +34,11 @@ export function BoardVotingQueuePage() {
       </PageHeader>
 
       {isLoading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Đang tải hàng đợi...</div>
+        <div className="py-12 text-center text-sm text-muted-foreground">Loading queue...</div>
       ) : proposalItems.length === 0 ? (
         <EmptyState
-          title="Hàng đợi trống"
-          description="Hiện không có proposal nào chờ board vote."
+          title="Queue is empty"
+          description="There are no proposals waiting for Board votes."
         />
       ) : (
         <ul className="grid gap-4 md:grid-cols-2">

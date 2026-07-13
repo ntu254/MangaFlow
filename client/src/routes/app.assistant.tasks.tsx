@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/assistant/tasks")({
   head: () => ({
     meta: [
       { title: "My Tasks — beachRead Studio" },
-      { name: "description", content: "Danh sách task được giao cho Assistant." },
+      { name: "description", content: "Assigned Assistant tasks." },
     ],
   }),
   component: AssistantTasksRoute,

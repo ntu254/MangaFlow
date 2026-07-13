@@ -158,7 +158,7 @@ export function ReviewSummaryPanel({
       >
         {pageComments.length === 0 ? (
           <p className="px-4 py-3 text-[12px] text-[var(--admin-faint)]">
-            Page này chưa có comment.
+            This page has no comments yet.
           </p>
         ) : (
           <ul className="divide-y divide-[var(--admin-border)]">

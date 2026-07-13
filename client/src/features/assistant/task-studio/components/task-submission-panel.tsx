@@ -42,7 +42,7 @@ export function TaskSubmissionPanel({
 
   async function save(status: "DRAFT" | "SUBMITTED") {
     if (status === "SUBMITTED" && !file) {
-      toast.error("Hay chon file de submit.");
+      toast.error("Hay forn file de submit.");
       return;
     }
 
@@ -88,7 +88,7 @@ export function TaskSubmissionPanel({
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-foreground">{title}</p>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          Upload file đã chỉnh sửa cho task này để Mangaka review.
+          Upload the edited file for Mangaka review.
         </p>
       </div>
       <div>
@@ -116,7 +116,7 @@ export function TaskSubmissionPanel({
         <Textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Ghi chu gui Mangaka (tuy chon)..."
+          placeholder="Ghi chu gui Mangaka (tuy forn)..."
           className="text-xs"
           rows={4}
         />

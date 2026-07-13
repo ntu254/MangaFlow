@@ -4,7 +4,7 @@ export function RevisionChecklist({ proposal }: { proposal: SeriesProposal }) {
   if (proposal.requestedChanges.length === 0) {
     return (
       <p className="rounded border border-dashed border-border bg-card/40 p-4 text-xs text-muted-foreground">
-        Chưa có vòng revision nào.
+        No revision rounds yet.
       </p>
     );
   }
@@ -20,19 +20,19 @@ export function RevisionChecklist({ proposal }: { proposal: SeriesProposal }) {
           <li key={rc.id} className="rounded-lg border border-border bg-card/40 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-semibold">
-                Vòng {rounds.length - idx} · {rc.editorName}
+                Round {rounds.length - idx} · {rc.editorName}
                 {open ? (
                   <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
-                    Đang mở
+                    Open
                   </span>
                 ) : (
                   <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-900">
-                    Đã resolve trong v{rc.resolvedInVersion}
+                    Resolved in v{rc.resolvedInVersion}
                   </span>
                 )}
               </p>
               <span className="text-[10px] font-mono text-muted-foreground">
-                {done}/{rc.items.length} điểm
+                {done}/{rc.items.length} items
               </span>
             </div>
             {rc.comment ? <p className="mt-1 text-xs text-foreground/80">{rc.comment}</p> : null}

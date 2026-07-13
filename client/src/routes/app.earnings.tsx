@@ -14,7 +14,7 @@ export const Route = createFileRoute("/app/earnings")({
     <ModulePlaceholder
       phase={7}
       title="Assistant Earnings"
-      description="Tính earning từ EDITOR_APPROVED task, rate snapshot, status pending/confirmed/paid/void. MVP không tích hợp payment gateway."
+      description="Calculate earnings from EDITOR_APPROVED tasks, rate snapshots, and pending/confirmed/paid/void statuses. The MVP does not integrate a payment gateway."
     />
   ),
 });

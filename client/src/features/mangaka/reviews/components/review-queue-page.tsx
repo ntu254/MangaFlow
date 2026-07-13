@@ -156,7 +156,7 @@ export function ReviewQueuePage() {
     <QueuePage
       eyebrow="Mangaka"
       title="Review Queue"
-      description="Bài nộp từ assistant đang chờ bạn duyệt."
+      description="Assistant submissions awaiting your review."
       actions={
         <QueueActionButton
           icon={<RefreshCw className="size-4" />}
@@ -178,21 +178,21 @@ export function ReviewQueuePage() {
             icon={<FileCheck2 className="size-4" />}
             label="With File"
             value={counts.WITH_FILE}
-            hint="Có file đính kèm"
+            hint="Has attachment"
           />
           <StatCard
             tone="amber"
             icon={<FileWarning className="size-4" />}
             label="Needs File"
             value={counts.NEEDS_FILE}
-            hint="Thiếu file"
+            hint="Missing file"
           />
           <StatCard
             tone="blue"
             icon={<Users className="size-4" />}
             label="Assistants"
             value={counts.assistants}
-            hint="Người nộp"
+            hint="Submitter"
           />
         </>
       }
@@ -222,7 +222,7 @@ export function ReviewQueuePage() {
         getRowKey={(row) => row.sub.id}
         getRowAccent={(row): QueueAccent => (!hasFile(row.sub) ? "amber" : null)}
         minWidth={820}
-        empty={isLoading ? "Đang tải submissions…" : "Chưa có submission nào cần duyệt."}
+        empty={isLoading ? "Loading submissions…" : "No submissions need review."}
       />
     </QueuePage>
   );

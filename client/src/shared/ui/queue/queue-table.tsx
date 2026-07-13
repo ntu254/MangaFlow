@@ -51,7 +51,7 @@ export function QueueTable<T>({
     <div className="overflow-hidden rounded-[8px] border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[0_20px_70px_rgba(31,24,12,0.04)]">
       {rows.length === 0 ? (
         <div className="p-10 text-center text-[13px] text-[var(--admin-faint)]">
-          {empty ?? "Không có mục nào."}
+          {empty ?? "No items."}
         </div>
       ) : (
         <div className={fixed ? "overflow-hidden" : "overflow-x-auto"}>

@@ -58,7 +58,7 @@ export function MaterialDownloadLink({
       onClick={(e) => {
         if (disabled) {
           e.preventDefault();
-          toast.info("File chưa có dữ liệu thực để tải.");
+          toast.info("This file has no downloadable data yet.");
         }
       }}
       style={disabled ? { opacity: 0.4, pointerEvents: "none" } : undefined}

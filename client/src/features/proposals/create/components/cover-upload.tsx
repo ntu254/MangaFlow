@@ -23,10 +23,10 @@ export function CoverUpload({ value, fileKey, onChange, disabled }: CoverUploadP
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      return "Chỉ chấp nhận file JPG, PNG, hoặc WebP.";
+      return "Only JPG, PNG, or WebP files are accepted.";
     }
     if (file.size > MAX_SIZE_BYTES) {
-      return `File tối đa ${MAX_SIZE_MB}MB.`;
+      return `Maximum file size is ${MAX_SIZE_MB}MB.`;
     }
     return null;
   }, []);

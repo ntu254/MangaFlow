@@ -59,28 +59,28 @@ export function ChapterKpiStrip({
   const items: Kpi[] = [
     {
       icon: BookOpen,
-      label: "Tổng số chapters",
+      label: "Total chapters",
       value: chapters.length,
-      hint: `${stats.published} đã hoàn thành`,
+      hint: `${stats.published} completed`,
       tone: "blue",
     },
     {
       icon: CheckCircle2,
-      label: "Chapter hiện tại",
+      label: "Current chapter",
       value: current ? String(current.number).padStart(3, "0") : "—",
       hint: current ? (
         <div className="flex items-center gap-1.5">
           <ChapterStatusPill status={current.status} />
-          <span>Tiến độ: {progressPct}%</span>
+          <span>Progress: {progressPct}%</span>
         </div>
       ) : (
-        "Chọn chapter"
+        "Select chapter"
       ),
       tone: "emerald",
     },
     {
       icon: Images,
-      label: "Pages đã upload",
+      label: "Pages has upload",
       value: (
         <span>
           {stats.totalPages}
@@ -102,16 +102,16 @@ export function ChapterKpiStrip({
     },
     {
       icon: Eye,
-      label: "Chờ review nội bộ",
+      label: "Pending internal review",
       value: stats.inReview.length,
-      hint: stats.inReview.length ? `${stats.inReview.length} chapter` : "Không có",
+      hint: stats.inReview.length ? `${stats.inReview.length} chapter` : "None",
       tone: stats.inReview.length ? "amber" : "neutral",
     },
     {
       icon: AlertTriangle,
-      label: "Deadline có rủi ro",
+      label: "At-risk deadlines",
       value: stats.atRisk,
-      hint: "Trong 7 ngày tới",
+      hint: "In the next 7 days",
       tone: stats.atRisk ? "amber" : "neutral",
     },
   ];

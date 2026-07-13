@@ -7,7 +7,7 @@ import { formatDateTime } from "@/shared/lib/format-date";
 
 export function SubmissionHistory({ submissions }: { submissions: AssistantSubmission[] }) {
   if (submissions.length === 0) {
-    return <div className="p-3 text-xs text-muted-foreground">Chưa có submission nào.</div>;
+    return <div className="p-3 text-xs text-muted-foreground">No submissions yet.</div>;
   }
   return (
     <div className="overflow-x-auto p-2">

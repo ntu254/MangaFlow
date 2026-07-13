@@ -44,12 +44,12 @@ export function ChapterFormDialog({
   const submit = () => {
     if (!user) return;
     if (!title.trim()) {
-      toast.error("Cần nhập tiêu đề.");
+      toast.error("Title is required.");
       return;
     }
     const assignee = findUserById(assigneeId);
     if (!assignee) {
-      toast.error("Chưa chọn assignee.");
+      toast.error("No assignee selected.");
       return;
     }
 
@@ -65,13 +65,13 @@ export function ChapterFormDialog({
       },
       {
         onSuccess: () => {
-          toast.success(`Đã tạo chapter ${number}.`);
+          toast.success(`Created chapter ${number}.`);
           setTitle("");
           setNumber(number + 1);
           onClose();
         },
         onError: (err) => {
-          toast.error(`Lỗi: ${mapApiError(err)}`);
+          toast.error(`Error: ${mapApiError(err)}`);
         },
       },
     );
@@ -81,9 +81,9 @@ export function ChapterFormDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tạo chapter mới — {series.title}</DialogTitle>
+          <DialogTitle>Create new chapter — {series.title}</DialogTitle>
           <DialogDescription>
-            Thiết lập chapter, người phụ trách và deadline ban đầu cho production workspace.
+            Set up the chapter, owner, and initial deadline for the production workspace.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -115,17 +115,17 @@ export function ChapterFormDialog({
             </div>
           </div>
           <div>
-            <Label htmlFor="ch-title">Tiêu đề</Label>
+            <Label htmlFor="ch-title">Title</Label>
             <Input
               id="ch-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Tên chương…"
+              placeholder="Chapter name…"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="ch-draft">Hạn draft</Label>
+              <Label htmlFor="ch-draft">Due draft</Label>
               <Input
                 id="ch-draft"
                 type="date"
@@ -134,7 +134,7 @@ export function ChapterFormDialog({
               />
             </div>
             <div>
-              <Label htmlFor="ch-review">Hạn review</Label>
+              <Label htmlFor="ch-review">Due review</Label>
               <Input
                 id="ch-review"
                 type="date"
@@ -146,13 +146,13 @@ export function ChapterFormDialog({
         </div>
         <DialogFooter>
           <button onClick={onClose} className="rounded border border-border px-3 py-1.5 text-xs">
-            Huỷ
+            Cancel
           </button>
           <button
             onClick={submit}
             className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
           >
-            Tạo
+            Create
           </button>
         </DialogFooter>
       </DialogContent>

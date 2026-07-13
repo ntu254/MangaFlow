@@ -143,8 +143,8 @@ export function BoardQueuePage() {
     return (
       <div className="mx-auto max-w-7xl p-6">
         <EmptyState
-          title="Không thể tải hàng đợi"
-          description="Đã xảy ra lỗi khi tải dữ liệu từ server."
+          title="Unable to load queue"
+          description="An error occurred while loading data from the server."
         />
       </div>
     );
@@ -222,7 +222,7 @@ export function BoardQueuePage() {
           getStatus(item) === "TIE_BREAK" ? "amber" : needsFinalize(item) ? "emerald" : null
         }
         minWidth={820}
-        empty={isLoading ? "Đang tải hàng đợi…" : "Không có proposal nào trong filter hiện tại."}
+        empty={isLoading ? "Loading queue…" : "No proposals match the current filter."}
       />
     </QueuePage>
   );

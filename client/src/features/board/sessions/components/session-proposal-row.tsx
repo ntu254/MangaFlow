@@ -60,13 +60,13 @@ export function SessionProposalRow({
             params={{ id: proposal.id }}
             className="ml-auto rounded border border-border bg-background px-2 py-0.5 text-[10px] font-semibold hover:bg-muted"
           >
-            Mở vote
+            Open vote
           </Link>
         </div>
         <p className="text-[11px] text-muted-foreground">{outcome.reason}</p>
         {outcome.tieBreakByName ? (
           <p className="text-[11px] text-fuchsia-900">
-            Phá tie bởi {outcome.tieBreakByName} → {outcome.tieBreakDecision}
+            Tie broken by {outcome.tieBreakByName} → {outcome.tieBreakDecision}
             {outcome.decidedAt ? ` · ${new Date(outcome.decidedAt).toLocaleString("vi-VN")}` : ""}
           </p>
         ) : null}

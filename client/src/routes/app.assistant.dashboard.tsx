@@ -7,7 +7,7 @@ export const Route = createFileRoute("/app/assistant/dashboard")({
       { title: "Assistant Dashboard — beachRead Studio" },
       {
         name: "description",
-        content: "Tổng quan task, deadline, revision và earning của Assistant.",
+        content: "Overview of Assistant tasks, deadlines, revisions, and earnings.",
       },
     ],
   }),

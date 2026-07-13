@@ -63,8 +63,8 @@ export function MangakaDashboard() {
       <PageShell>
         <PageHeader
           eyebrow="Mangaka workspace"
-          title={`Hôm nay, ${user.name.split(" ")[0]}`}
-          description="Đang tải dữ liệu..."
+          title={`Today, ${user.name.split(" ")[0]}`}
+          description="Loading data..."
         />
         <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
           <PageSection title="Review Queue">
@@ -82,8 +82,8 @@ export function MangakaDashboard() {
     <PageShell>
       <PageHeader
         eyebrow="Mangaka workspace"
-        title={`Hôm nay, ${user.name.split(" ")[0]}`}
-        description={`${mangakaQueue.length} submission cần review, ${inProgressTasks.length} task đang chạy.`}
+        title={`Today, ${user.name.split(" ")[0]}`}
+        description={`${mangakaQueue.length} submissions need review, ${inProgressTasks.length} tasks in progress.`}
         actions={
           <Link
             to="/app/dashboard"
@@ -99,42 +99,46 @@ export function MangakaDashboard() {
         <StatCard
           tone="neutral"
           icon={<BookOpen className="size-4" />}
-          label="Series đang vẽ"
+          label="Series being drawn"
           value={String(activeSeriesCount)}
         />
         <StatCard
           tone="blue"
           icon={<Layers className="size-4" />}
-          label="Chương in production"
+          label="Chapters in production"
           value={String(
             chapters.filter((c) =>
-              ["DRAFTING", "ASSISTANT_WORKING", "MANGAKA_REVIEW", "EDITOR_REVIEW", "REVISION"].includes(
-                c.status,
-              ),
+              [
+                "DRAFTING",
+                "ASSISTANT_WORKING",
+                "MANGAKA_REVIEW",
+                "EDITOR_REVIEW",
+                "REVISION",
+              ].includes(c.status),
             ).length,
           )}
         />
         <StatCard
           tone="emerald"
           icon={<Users className="size-4" />}
-          label="Task đang làm"
+          label="Tasks in progress"
           value={String(inProgressTasks.length)}
         />
         <StatCard
           tone="amber"
           icon={<ClipboardList className="size-4" />}
-          label="Cần Review"
+          label="Needs Review"
           value={String(mangakaQueue.length)}
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-4 flex flex-col min-h-0">
-          <PageSection title="Submissions cần Review" className="flex-1">
+          <PageSection title="Submissions needing review" className="flex-1">
             {mangakaQueue.length === 0 ? (
               <EmptyState
-                title="Bạn đã review hết các submission"
-                description="Chưa có bản vẽ nào mới từ Assistant."
+                title="You have reviewed all submissions"
+                description="There are no new drawings from Assistants."
               />
             ) : (
               <ul className="space-y-2">
@@ -177,7 +181,7 @@ export function MangakaDashboard() {
 
           <PageSection title="Production Status (In Progress)" className="flex-1">
             {inProgressTasks.length === 0 ? (
-              <EmptyState title="Không có task nào đang chạy" />
+              <EmptyState title="No tasks in progress" />
             ) : (
               <ul className="space-y-2">
                 {inProgressTasks.slice(0, 5).map((t) => {
@@ -212,7 +216,7 @@ export function MangakaDashboard() {
         <div className="space-y-4 flex flex-col min-h-0">
           <PageSection title="Upcoming Deadlines" className="flex-1">
             {upcomingDeadlines.length === 0 ? (
-              <EmptyState title="Không có deadline sắp tới" />
+              <EmptyState title="No upcoming deadlines" />
             ) : (
               <ul className="divide-y divide-border">
                 {upcomingDeadlines.map((t) => {
