@@ -6,6 +6,7 @@ import {
   QueuePage,
   QueueTable,
   StatCard,
+  StateBlock,
   StatusPill,
   type QueueAccent,
   type QueueColumn,
@@ -34,8 +35,16 @@ function isAtRiskQueueItem(item: unknown): item is AtRiskQueueItem {
 }
 
 export function AtRiskReviewsPage() {
-  const { data: queue = [] } = useBoardQueueQuery();
-  const { data: rankings = [] } = useRankingsListQuery();
+  const {
+    data: queue = [],
+    isLoading: queueLoading,
+    error: queueError,
+  } = useBoardQueueQuery();
+  const {
+    data: rankings = [],
+    isLoading: rankingsLoading,
+    error: rankingsError,
+  } = useRankingsListQuery();
   const atRiskItems = queue.filter(isAtRiskQueueItem);
   const rows = useMemo<BoardAtRiskRow[]>(
     () =>
@@ -54,7 +63,13 @@ export function AtRiskReviewsPage() {
   );
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
-  const { data: latestReport } = useLatestAtRiskReportQuery(selected?.seriesId ?? "");
+  const {
+    data: latestReport,
+    isLoading: reportLoading,
+    error: reportError,
+  } = useLatestAtRiskReportQuery(selected?.seriesId ?? "");
+  const isLoading = queueLoading || rankingsLoading;
+  const loadError = queueError ?? rankingsError;
 
   const stats = useMemo(
     () => ({
@@ -150,18 +165,27 @@ export function AtRiskReviewsPage() {
         <Notice icon={<AlertTriangle className="size-5" />} title="Governance notice">
           The Board decision is blocked until the assigned Tantou Editor submits a report.
         </Notice>
-        <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-          <QueueTable
-            columns={columns}
-            rows={rows}
-            getRowKey={(review) => review.id}
-            getRowAccent={(review): QueueAccent => (review.finalScore < 5 ? "rose" : "amber")}
-            onRowClick={(review) => setSelectedId(review.id)}
-            isRowSelected={(review) => review.id === selected?.id}
-            minWidth={560}
-            empty="No series need review. New at-risk signals will appear here."
+        {isLoading ? (
+          <StateBlock title="Loading at-risk decisions" description="Fetching ranking signals and Board queue." />
+        ) : loadError ? (
+          <StateBlock
+            tone="danger"
+            title="Could not load at-risk decisions"
+            description={loadError instanceof Error ? loadError.message : "Please try again."}
           />
-          {selected ? (
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+            <QueueTable
+              columns={columns}
+              rows={rows}
+              getRowKey={(review) => review.id}
+              getRowAccent={(review): QueueAccent => (review.finalScore < 5 ? "rose" : "amber")}
+              onRowClick={(review) => setSelectedId(review.id)}
+              isRowSelected={(review) => review.id === selected?.id}
+              minWidth={560}
+              empty="No series need review. New at-risk signals will appear here."
+            />
+            {selected ? (
             <div className="space-y-4">
               <section className="rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-xs">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--admin-muted)]">
@@ -174,7 +198,17 @@ export function AtRiskReviewsPage() {
                   <Metric label="Votes" value={selected.voteCount.toLocaleString()} />
                 </dl>
                 <div className="mt-4 border-t border-[var(--admin-border)] pt-3">
-                  {latestReport ? (
+                  {reportLoading ? (
+                    <p className="text-[var(--admin-muted)]">Loading latest report...</p>
+                  ) : reportError ? (
+                    <StateBlock
+                      tone="danger"
+                      title="Could not load report"
+                      description={
+                        reportError instanceof Error ? reportError.message : "Please try again."
+                      }
+                    />
+                  ) : latestReport ? (
                     <>
                       <p className="font-semibold text-[var(--admin-ink)]">
                         {latestReport.editorName ?? latestReport.editorId}
@@ -196,8 +230,9 @@ export function AtRiskReviewsPage() {
               </section>
               <AtRiskDecisionPanel seriesId={selected.seriesId} report={latestReport} />
             </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </QueuePage>
   );
