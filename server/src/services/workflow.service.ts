@@ -18,6 +18,13 @@ import { id, nowIso } from "../domain/ids.js";
 import { apiToWebRole, canMutate } from "../domain/roles.js";
 import { AppError } from "../lib/http.js";
 import { audit, notifyMany } from "./audit.service.js";
+import {
+  EARNING_CURRENCY,
+  earningIdFor,
+  earningPeriodOf,
+  recomputeAssistantEarning,
+  resolveTaskRate,
+} from "./earning.service.js";
 import type {
   AuthedRequest,
   ChapterAction,
@@ -222,15 +229,11 @@ async function releaseRegionLock(regionId: string | undefined, taskId: string) {
 // Earning helpers
 // ---------------------------------------------------------------------------
 
-/** Resolve the rate for a given task type. Currently returns 0 (no config yet). */
-function resolveTaskRate(taskType: string): number {
-  // TODO: plug in a rate table / config when available
-  return 0;
-}
-
 /**
- * Create an EarningItem after a task reaches EDITOR_APPROVED.
- * Uses upsert on taskId (unique sparse index) for idempotency.
+ * Create an EarningItem after a task reaches EDITOR_APPROVED, priced from the
+ * task-type rate table, then roll the assistant's monthly Earning up so their
+ * income total reflects the new item. Uses upsert on taskId (unique sparse
+ * index) for idempotency, so re-approving a task never double-pays.
  */
 async function createEarningItemIfMissing(
   req: AuthedRequest,
@@ -244,23 +247,25 @@ async function createEarningItemIfMissing(
   },
 ) {
   const now = new Date();
-  const rate = resolveTaskRate(opts.taskType ?? "default");
+  const period = earningPeriodOf(now);
+  const rate = resolveTaskRate(opts.taskType);
 
   const result = await EarningItemModel.findOneAndUpdate(
     { taskId: opts.taskId },
     {
       $setOnInsert: {
         id: id("eitem"),
-        earningId: `earn-${opts.assistantId}`,
+        earningId: earningIdFor(opts.assistantId, period),
         assistantId: opts.assistantId,
         taskId: opts.taskId,
         submissionId: opts.submissionId,
         seriesId: opts.seriesId,
         chapterId: opts.chapterId,
         taskType: opts.taskType,
+        period,
         rate,
-        amount: 0,
-        currency: "VND",
+        amount: rate,
+        currency: EARNING_CURRENCY,
         status: "PENDING",
         createdAt: now,
       },
@@ -268,16 +273,20 @@ async function createEarningItemIfMissing(
     { upsert: true, returnDocument: "after", includeResultMetadata: true },
   );
 
-  // Only audit on actual insert (not on match of existing doc)
+  // Only recompute + audit on an actual insert (not on match of existing doc),
+  // so idempotent re-approval doesn't inflate the monthly total.
   if (result.lastErrorObject?.updatedExisting === false) {
+    await recomputeAssistantEarning(opts.assistantId, period);
     await audit(req, "EARNING_ITEM_CREATED", "earning_item", result.value?.id ?? opts.taskId, {
       assistantId: opts.assistantId,
       taskId: opts.taskId,
       submissionId: opts.submissionId,
       seriesId: opts.seriesId,
       chapterId: opts.chapterId,
-      amount: 0,
-      currency: "VND",
+      period,
+      rate,
+      amount: rate,
+      currency: EARNING_CURRENCY,
     });
   }
 }
