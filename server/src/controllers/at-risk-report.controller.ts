@@ -2,6 +2,7 @@ import { AtRiskReportModel, SeriesModel } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { AppError, asyncRoute, created, ok } from "../lib/http.js";
 import { audit } from "../services/audit.service.js";
+import { assertCanReadSeries } from "../services/mvp-access.service.js";
 import { requireActor } from "./helpers.js";
 import type { AuthedRequest } from "../types.js";
 
@@ -35,7 +36,9 @@ export const createAtRiskReport = asyncRoute(async (req: AuthedRequest, res) => 
 });
 
 export const getLatestAtRiskReport = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
   const seriesId = String(req.params.seriesId);
+  await assertCanReadSeries(actor, seriesId, { allowBoardGovernance: true });
   const report = await AtRiskReportModel.findOne({ seriesId, status: "SUBMITTED" })
     .sort({ createdAt: -1 })
     .lean();

@@ -15,6 +15,11 @@ import {
   taskDetail,
 } from "../services/workflow.service.js";
 import {
+  assertCanReadSeries,
+  scopedChapterIdsForActor,
+  scopedSeriesFilterForActor,
+} from "../services/mvp-access.service.js";
+import {
   requireActor,
   filterFromQuery,
   createLoose,
@@ -33,6 +38,10 @@ import {
 } from "../validators/studio.schema.js";
 import { TASK_ACTIONS } from "../types.js";
 import type { AuthedRequest } from "../types.js";
+
+function combineFilters(clientFilter: Record<string, unknown>, scopeFilter: Record<string, unknown>) {
+  return { $and: [clientFilter, scopeFilter] };
+}
 
 function rejectWorkflowStatusPatch(body: unknown) {
   if (body && typeof body === "object" && ("status" in body || "state" in body)) {
@@ -89,9 +98,79 @@ async function assertTaskAssignee(series: any, assigneeId: string | undefined) {
   return assistant as any;
 }
 
+async function scopedStudioFilter(req: AuthedRequest) {
+  const actor = requireActor(req);
+  const clientFilter = filterFromQuery(req);
+  const requestedSeriesId =
+    typeof req.query.seriesId === "string" ? String(req.query.seriesId) : undefined;
+  const { seriesIds } = await scopedSeriesFilterForActor(actor, requestedSeriesId);
+  const chapterIds = await scopedChapterIdsForActor(actor, requestedSeriesId);
+
+  if (actor.role === "ASSISTANT") {
+    const assignedTasks = await StudioTaskModel.find({
+      assigneeId: actor.id,
+      status: { $ne: "CANCELLED" },
+    })
+      .select({ id: 1, pageId: 1, regionId: 1 })
+      .lean();
+    const taskIds = assignedTasks.map((task: any) => String(task.id));
+    const pageIds = assignedTasks.map((task: any) => task.pageId).filter(Boolean).map(String);
+    const regionIds = assignedTasks.map((task: any) => task.regionId).filter(Boolean).map(String);
+
+    return combineFilters(clientFilter, {
+      $or: [
+        { seriesId: { $in: seriesIds } },
+        { chapterId: { $in: chapterIds } },
+        { taskId: { $in: taskIds } },
+        { pageId: { $in: pageIds } },
+        { id: { $in: regionIds } },
+      ],
+    });
+  }
+
+  return combineFilters(clientFilter, {
+    $or: [{ seriesId: { $in: seriesIds } }, { chapterId: { $in: chapterIds } }],
+  });
+}
+
+async function resolveCommentSeriesId(comment: any) {
+  if (comment.seriesId) return String(comment.seriesId);
+  if (comment.taskId) {
+    const task = await StudioTaskModel.findOne({ id: String(comment.taskId) })
+      .select({ seriesId: 1, chapterId: 1 })
+      .lean();
+    if ((task as any)?.seriesId) return String((task as any).seriesId);
+    if ((task as any)?.chapterId) {
+      const chapter = await ChapterModel.findOne({ id: String((task as any).chapterId) })
+        .select({ seriesId: 1 })
+        .lean();
+      if ((chapter as any)?.seriesId) return String((chapter as any).seriesId);
+    }
+  }
+  if (comment.chapterId) {
+    const chapter = await ChapterModel.findOne({ id: String(comment.chapterId) })
+      .select({ seriesId: 1 })
+      .lean();
+    if ((chapter as any)?.seriesId) return String((chapter as any).seriesId);
+  }
+  if (comment.pageId) {
+    const chapter = await ChapterModel.findOne({ "pages.id": String(comment.pageId) })
+      .select({ seriesId: 1 })
+      .lean();
+    if ((chapter as any)?.seriesId) return String((chapter as any).seriesId);
+  }
+  return undefined;
+}
+
+async function assertCanReadComment(req: AuthedRequest, comment: any) {
+  const seriesId = await resolveCommentSeriesId(comment);
+  if (!seriesId) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+  await assertCanReadSeries(requireActor(req), seriesId);
+}
+
 // Regions
 export const listRegions = asyncRoute(async (req: AuthedRequest, res) =>
-  paginated(req, res, StudioRegionModel, filterFromQuery(req), { updatedAt: -1 }),
+  paginated(req, res, StudioRegionModel, await scopedStudioFilter(req), { updatedAt: -1 }),
 );
 export const createRegion = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(createRegionSchema, req);
@@ -145,10 +224,20 @@ export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
 
 // Tasks
 export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
-  const filter = filterFromQuery(req);
-  if (req.actor?.role === "ASSISTANT") {
-    filter.assigneeId = req.actor.id;
+  const actor = requireActor(req);
+  const clientFilter = filterFromQuery(req);
+  const requestedSeriesId =
+    typeof req.query.seriesId === "string" ? String(req.query.seriesId) : undefined;
+  const { seriesIds } = await scopedSeriesFilterForActor(actor, requestedSeriesId);
+  const chapterIds = await scopedChapterIdsForActor(actor, requestedSeriesId);
+  const scope =
+    actor.role === "ASSISTANT"
+      ? { assigneeId: actor.id }
+      : { $or: [{ seriesId: { $in: seriesIds } }, { chapterId: { $in: chapterIds } }] };
+  if (actor.role === "ASSISTANT") {
+    delete clientFilter.assigneeId;
   }
+  const filter = combineFilters(clientFilter, scope);
   await paginated(req, res, StudioTaskModel, filter, { updatedAt: -1 });
 });
 export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
@@ -227,11 +316,15 @@ export const sendEditorReview = asyncRoute(async (req: AuthedRequest, res) =>
 
 // Comments
 export const listComments = asyncRoute(async (req: AuthedRequest, res) =>
-  paginated(req, res, StudioCommentModel, filterFromQuery(req), { createdAt: -1 }),
+  paginated(req, res, StudioCommentModel, await scopedStudioFilter(req), { createdAt: -1 }),
 );
 export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const body = parseBody(createCommentSchema, req);
+  const series = await resolveStudioSeries(body);
+  if (!series || !(await assertCanReadSeries(actor, String((series as any).id)))) {
+    throw new AppError(404, "Resource not found.", "NOT_FOUND");
+  }
   const comment = await StudioCommentModel.create({
     id: id("cmt"),
     ...body,
@@ -247,6 +340,9 @@ export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const patchComment = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(patchCommentSchema, req);
+  const comment = await StudioCommentModel.findOne({ id: String(req.params.commentId) }).lean();
+  if (!comment) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+  await assertCanReadComment(req, comment);
   const allowedFields = ["text", "body", "type", "severity", "isBlocking", "metadata"];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields, {
     rejectStatus: false,
@@ -257,26 +353,43 @@ export const patchComment = asyncRoute(async (req: AuthedRequest, res) => {
   );
 });
 export const resolveComment = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(
-    res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.resolved", {
-      status: "RESOLVED",
-    }),
-  ),
+  {
+    const comment = await StudioCommentModel.findOne({ id: String(req.params.commentId) }).lean();
+    if (!comment) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+    await assertCanReadComment(req, comment);
+    ok(
+      res,
+      await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.resolved", {
+        status: "RESOLVED",
+      }),
+    );
+  },
 );
 export const reopenComment = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(
-    res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.reopened", {
-      status: "REOPENED",
-    }),
-  ),
+  {
+    const comment = await StudioCommentModel.findOne({ id: String(req.params.commentId) }).lean();
+    if (!comment) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+    await assertCanReadComment(req, comment);
+    ok(
+      res,
+      await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.reopened", {
+        status: "REOPENED",
+      }),
+    );
+  },
 );
 export const listTaskComments = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(
-    res,
-    await StudioCommentModel.find({ taskId: String(req.params.taskId) })
-      .sort({ createdAt: -1 })
-      .lean(),
-  ),
+  {
+    const task = await StudioTaskModel.findOne({ id: String(req.params.taskId) }).lean();
+    if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
+    const series = await resolveStudioSeries(task as any);
+    if (!series) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
+    await assertCanReadSeries(requireActor(req), String((series as any).id));
+    ok(
+      res,
+      await StudioCommentModel.find({ taskId: String(req.params.taskId) })
+        .sort({ createdAt: -1 })
+        .lean(),
+    );
+  },
 );

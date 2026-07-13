@@ -12,7 +12,7 @@ export { AvatarInitials } from "./avatar-initials";
 export { Divider } from "./divider";
 export { InspectorSection } from "./inspector-section";
 export { InfoRow } from "./info-row";
-export { OverrideDialog } from "./override-dialog";
+export { ConfirmationDialog } from "./confirmation-dialog";
 export { PageGuard } from "./page-guard";
 export { MetricGrid } from "./metric-grid";
 export { DataTable } from "./data-table";

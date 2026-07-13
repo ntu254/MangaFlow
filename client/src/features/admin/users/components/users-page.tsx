@@ -10,9 +10,9 @@ import { SeparationOfDutiesWarning } from "@/entities/access";
 import { ROLE_LABEL, type Role } from "@/shared/auth";
 import {
   ActionButton,
+  ConfirmationDialog,
   MetricCard,
   MetricGrid,
-  OverrideDialog,
   PageFrame,
   PageHeader,
   SearchToolbar,
@@ -289,7 +289,7 @@ export function AdminUsersPage() {
         }}
       />
 
-      <OverrideDialog
+      <ConfirmationDialog
         trigger={<span />}
         open={!!deactivateTarget}
         onOpenChange={(next) => !next && setDeactivateTarget(null)}
@@ -309,7 +309,7 @@ export function AdminUsersPage() {
         }}
       />
 
-      <OverrideDialog
+      <ConfirmationDialog
         trigger={<span />}
         open={!!deleteTarget}
         onOpenChange={(next) => !next && setDeleteTarget(null)}

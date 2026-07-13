@@ -6,6 +6,7 @@ import {
   SubmissionModel,
 } from "../db/models.js";
 import { AppError } from "../lib/http.js";
+import { assertCanReadSeries, canReadSeries } from "./mvp-access.service.js";
 import type { RequestActor } from "../types.js";
 
 export type ResolvedStudioPage = {
@@ -13,16 +14,6 @@ export type ResolvedStudioPage = {
   page: any;
   series: any;
 };
-
-function hasSeriesScope(actor: RequestActor, series: any) {
-  if (actor.role === "ADMIN" || actor.role === "BOARD") return true;
-  if (actor.role === "MANGAKA") return series.authorId === actor.id;
-  if (actor.role === "EDITOR") return series.editorId === actor.id;
-  if (actor.role === "ASSISTANT") {
-    return Array.isArray(series.assistantIds) && series.assistantIds.includes(actor.id);
-  }
-  return false;
-}
 
 export async function resolveStudioPage(pageId: string): Promise<ResolvedStudioPage> {
   const chapter = await ChapterModel.findOne({ "pages.id": pageId }).lean();
@@ -45,12 +36,12 @@ export async function assertCanReadStudioPage(actor: RequestActor, pageId: strin
       status: { $ne: "CANCELLED" },
     }).lean();
     if (task) return resolved;
-    if (hasSeriesScope(actor, resolved.series)) return resolved;
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    if (await canReadSeries(actor, resolved.series)) return resolved;
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
-  if (!hasSeriesScope(actor, resolved.series)) {
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+  if (!(await canReadSeries(actor, resolved.series))) {
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   return resolved;
@@ -80,20 +71,19 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
       "REJECTED",
     ]);
     const canRead =
-      actor.role === "ADMIN" ||
       (actor.role === "BOARD" && boardVisibleStatuses.has(String((proposal as any).status))) ||
       actor.role === "EDITOR" ||
       (actor.role === "MANGAKA" && (proposal as any).authorId === actor.id);
     if (canRead) return { chapter: null, page: null, series: null };
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   const coverSeries = await SeriesModel.findOne({ coverFileKey: key }).lean();
   if (coverSeries) {
-    if (hasSeriesScope(actor, coverSeries)) {
+    if (await canReadSeries(actor, coverSeries)) {
       return { chapter: null, page: null, series: coverSeries };
     }
-    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+    throw new AppError(404, "File not found.", "FILE_NOT_FOUND");
   }
 
   const chapter = await ChapterModel.findOne({
@@ -109,8 +99,21 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
 
   const submission = (await SubmissionModel.findOne({ fileKey: key }).lean()) as any;
   if (submission?.pageId) return assertCanReadStudioPage(actor, String(submission.pageId));
-  if (submission?.assistantId === actor.id || actor.role === "ADMIN" || actor.role === "EDITOR") {
+  if (submission?.assistantId === actor.id) {
     return { chapter: null, page: null, series: null };
+  }
+  if (submission?.seriesId) {
+    await assertCanReadSeries(actor, String(submission.seriesId));
+    return { chapter: null, page: null, series: null };
+  }
+  if (submission?.chapterId) {
+    const submissionChapter = await ChapterModel.findOne({ id: String(submission.chapterId) })
+      .select({ seriesId: 1 })
+      .lean();
+    if ((submissionChapter as any)?.seriesId) {
+      await assertCanReadSeries(actor, String((submissionChapter as any).seriesId));
+      return { chapter: submissionChapter, page: null, series: null };
+    }
   }
 
   throw new AppError(404, "File not found.", "FILE_NOT_FOUND");

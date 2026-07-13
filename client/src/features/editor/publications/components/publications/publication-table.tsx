@@ -14,7 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const CADENCE_INTERVAL_LABEL: Record<ChapterCadence, string> = {
   weekly: "+1 week",
-  biweekly: "+2 weeks",
   monthly: "+1 month",
 };
 

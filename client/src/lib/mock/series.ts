@@ -66,7 +66,7 @@ export const seedSeries: ProductionSeries[] = [
     genres: ["Seinen", "Dark Fantasy"],
     coverUrl: berserk,
     status: "ONGOING",
-    cadence: "biweekly",
+    cadence: "weekly",
     startDate: iso(-90),
     targetChapters: 24,
     authorId: "u-mangaka",
