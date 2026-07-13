@@ -384,13 +384,6 @@ describe("MangaFlow backend live contract", () => {
       .send({ title: 12345 })
       .expect(403);
 
-    // POST /materials with missing required fields should still create (no strict required)
-    const matRes = await request(createApp())
-      .post("/api/materials")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send({})
-      .expect(201);
-    expect(matRes.body.data.id).toBeDefined();
   });
 
   it("blocks protected fields on PATCH /series/:id", async () => {

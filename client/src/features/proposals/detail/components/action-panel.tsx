@@ -17,11 +17,6 @@ import { Label } from "@/components/ui/label";
 import { RequestChangesDialog } from "./request-changes-dialog";
 import { ResubmitDialog } from "./resubmit-dialog";
 import { useMySeriesQuery } from "@/entities/series";
-import {
-  useCreateVotingSessionMutation,
-  useUpdateVotingSessionMutation,
-  useVotingSessionsQuery,
-} from "@/features/board";
 
 const LABELS: Record<ProposalAction, string> = {
   EDIT: "Edit",
@@ -62,21 +57,8 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   const [comment, setComment] = useState("");
   const [changesOpen, setChangesOpen] = useState(false);
   const [resubmitOpen, setResubmitOpen] = useState(false);
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [attachTarget, setAttachTarget] = useState<string>("__new");
   const { data: seriesList = [] } = useMySeriesQuery();
-  const canAccessVotingSessions = user.role === "editor" || user.role === "board";
-  const { data: sessions = [] } = useVotingSessionsQuery(canAccessVotingSessions);
-  const createSessionMutation = useCreateVotingSessionMutation();
-  const updateSessionMutation = useUpdateVotingSessionMutation();
   const existingSeries = seriesList.find((x) => x.proposalId === proposal.id);
-  const canAttach =
-    user.role === "editor" &&
-    (proposal.status === "PENDING_BOARD" || proposal.status === "TIE_BREAK") &&
-    !sessions.some((vs) => vs.status === "OPEN" && vs.proposalIds.includes(proposal.id));
-  const openScheduledSessions = sessions.filter(
-    (vs) => vs.status === "OPEN" && vs.mode === "SCHEDULED",
-  );
 
   const actions = allowedActions(user, proposal);
   // Admin sees all, others see only allowed.
@@ -191,17 +173,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
         </div>
       ) : null}
 
-      {canAttach ? (
-        <div className="mt-3 border-t border-border pt-3">
-          <button
-            onClick={() => setAttachOpen(true)}
-            className="rounded bg-indigo-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800"
-          >
-            Attach to voting session
-          </button>
-        </div>
-      ) : null}
-
       <Dialog open={open !== null} onOpenChange={(v) => !v && setOpen(null)}>
         <DialogContent>
           <DialogHeader>
@@ -262,79 +233,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
           });
         }}
       />
-      <Dialog open={attachOpen} onOpenChange={(v) => !v && setAttachOpen(false)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Attach proposal to a voting session</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="att-target">Session</Label>
-              <select
-                id="att-target"
-                value={attachTarget}
-                onChange={(e) => setAttachTarget(e.target.value)}
-                className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-              >
-                <option value="__new">+ Create new session (open creation page)</option>
-                <option value="__adhoc">+ Tao nhanh phien ad-hoc for proposal nay</option>
-                {openScheduledSessions.map((vs) => (
-                  <option key={vs.id} value={vs.id}>
-                    {vs.title} ({vs.proposalIds.length} proposals)
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <button
-              onClick={() => setAttachOpen(false)}
-              className="rounded border border-border px-3 py-1.5 text-xs"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  if (attachTarget === "__new") {
-                    setAttachOpen(false);
-                    navigate({ to: "/app/board/sessions/new" });
-                    return;
-                  }
-                  if (attachTarget === "__adhoc") {
-                    const s = await createSessionMutation.mutateAsync({
-                      title: `Ad-hoc - ${proposal.title}`,
-                      mode: "AD_HOC",
-                      proposalIds: [proposal.id],
-                    });
-                    toast.success("Ad-hoc session created.");
-                    setAttachOpen(false);
-                    navigate({ to: "/app/board/sessions/$sid", params: { sid: s.id } });
-                    return;
-                  }
-                  const session = sessions.find((item) => item.id === attachTarget);
-                  await updateSessionMutation.mutateAsync({
-                    sessionId: attachTarget,
-                    body: {
-                      proposalIds: Array.from(
-                        new Set([...(session?.proposalIds ?? []), proposal.id]),
-                      ),
-                    },
-                  });
-                  toast.success("Attached to session.");
-                  setAttachOpen(false);
-                  navigate({ to: "/app/board/sessions/$sid", params: { sid: attachTarget } });
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Error.");
-                }
-              }}
-              className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
-            >
-              Confirm
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

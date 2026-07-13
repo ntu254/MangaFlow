@@ -3,6 +3,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
+import { AuditEntryModel } from "../db/models.js";
 
 let mongo: MongoMemoryServer;
 
@@ -57,44 +58,6 @@ describe("Admin RBAC and mutations", () => {
     });
   });
 
-  describe("GET /api/admin/audit - RBAC", () => {
-    it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .get("/api/admin/audit")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(403);
-    });
-
-    it("returns 200 for admin", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      await request(createApp())
-        .get("/api/admin/audit")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(200);
-    });
-  });
-
-  describe("GET /api/admin/payroll - RBAC", () => {
-    it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .get("/api/admin/payroll")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(403);
-    });
-
-    it("returns 200 for admin", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      const response = await request(createApp())
-        .get("/api/admin/payroll")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(200);
-      expect(response.body.data).toEqual(expect.any(Array));
-      expect(response.body.data.length).toBeGreaterThan(0);
-    });
-  });
-
   describe("MVP excludes manual workflow/payment mutation endpoints", () => {
     it("does not expose admin override", async () => {
       const admin = await loginAs("admin@beachread.jp");
@@ -105,25 +68,6 @@ describe("Admin RBAC and mutations", () => {
         .expect(404);
     });
 
-    it("does not expose admin payroll confirmation/payment/void actions", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/confirm")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(404);
-
-      await request(createApp())
-        .post("/api/admin/payroll/earn-002/mark-paid")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(404);
-
-      await request(createApp())
-        .post("/api/admin/payroll/earn-001/void")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .send({ reason: "MVP should block this" })
-        .expect(404);
-    });
   });
 
   describe("PATCH /api/admin/users/:userId - RBAC", () => {
@@ -155,7 +99,7 @@ describe("Admin RBAC and mutations", () => {
         .expect(400);
     });
 
-    it("admin can change user role and creates audit entry", async () => {
+    it("admin can change user role and records an internal audit entry", async () => {
       const admin = await loginAs("admin@beachread.jp");
       const response = await request(createApp())
         .patch("/api/admin/users/u-assist")
@@ -164,13 +108,10 @@ describe("Admin RBAC and mutations", () => {
         .expect(200);
       expect(response.body.data.role).toBe("EDITOR");
 
-      const auditRes = await request(createApp())
-        .get("/api/admin/audit")
-        .set("Authorization", `Bearer ${admin.accessToken}`)
-        .expect(200);
-      const auditEntry = auditRes.body.data.find(
-        (entry: any) => entry.action === "user.update" && entry.entityId === "u-assist"
-      );
+      const auditEntry = await AuditEntryModel.findOne({
+        action: "user.update",
+        entityId: "u-assist",
+      }).lean();
       expect(auditEntry).toBeDefined();
     });
   });

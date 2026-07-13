@@ -17,7 +17,6 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   admin: [
     { to: "/app/admin/dashboard", label: "Dashboard", group: "Admin" },
     { to: "/app/admin/users", label: "Users", group: "Admin" },
-    { to: "/app/admin/notifications", label: "Notifications", group: "Admin" },
   ],
   mangaka: [
     ...SHARED,

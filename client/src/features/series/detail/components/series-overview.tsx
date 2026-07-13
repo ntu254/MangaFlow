@@ -42,7 +42,7 @@ type ChapterReadiness = {
   items: Array<{ key: string; passed: boolean; reason: string }>;
 };
 
-type Tab = "overview" | "chapters" | "materials" | "calendar" | "team";
+type Tab = "overview" | "chapters" | "calendar" | "team";
 
 export function SeriesOverview({
   series,

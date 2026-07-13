@@ -3,11 +3,9 @@ import { requireAuth } from "../middleware/auth.js";
 import authRoutes from "./auth.routes.js";
 import bootstrapRoutes from "./bootstrap.routes.js";
 import proposalRoutes from "./proposal.routes.js";
-import votingRoutes from "./voting.routes.js";
 import seriesRoutes from "./series.routes.js";
 import studioRoutes from "./studio.routes.js";
 import submissionRoutes from "./submission.routes.js";
-import materialRoutes from "./material.routes.js";
 import adminRoutes from "./admin.routes.js";
 import tantouRoutes from "./tantou.routes.js";
 import notificationRoutes from "./notification.routes.js";
@@ -33,11 +31,9 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   // Protected feature routes
   router.use(bootstrapRoutes);
   router.use(proposalRoutes);
-  router.use(votingRoutes);
   router.use(seriesRoutes);
   router.use(studioRoutes);
   router.use(submissionRoutes);
-  router.use(materialRoutes);
   router.use(adminRoutes);
   router.use(tantouRoutes);
   router.use(atRiskReportRoutes);

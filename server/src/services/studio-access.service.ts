@@ -1,6 +1,5 @@
 import {
   ChapterModel,
-  MaterialModel,
   ProposalModel,
   SeriesModel,
   StudioTaskModel,
@@ -106,15 +105,6 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
       (item) => item.fileKey === key || item.metadata?.aiWhitened?.fileKey === key,
     );
     if (page) return assertCanReadStudioPage(actor, page.id);
-  }
-
-  const material = (await MaterialModel.findOne({
-    $or: [{ fileKey: key }, { "versions.fileKey": key }],
-  }).lean()) as any;
-  if (material?.pageId) return assertCanReadStudioPage(actor, String(material.pageId));
-  if (material?.seriesId) {
-    const series = await SeriesModel.findOne({ id: String(material.seriesId) }).lean();
-    if (series && hasSeriesScope(actor, series)) return { chapter: null, page: null, series };
   }
 
   const submission = (await SubmissionModel.findOne({ fileKey: key }).lean()) as any;

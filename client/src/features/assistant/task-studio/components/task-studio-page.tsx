@@ -1,7 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { mapApiMaterialToSeriesMaterial } from "@/entities/proposal/model/map-material";
-import type { SeriesMaterial } from "@/entities/series/model/series-types";
 import { REGION_TYPE_LABEL, UNSUPPORTED_MVP } from "@/entities/series/model/studio-types";
 import {
   buildTaskContext,
@@ -16,7 +14,6 @@ import {
 import {
   useChapterDetailQuery,
   useSeriesDetailQuery,
-  useSeriesMaterialsQuery,
   useStudioRegionsQuery,
   useStudioTaskActionMutation,
   useStudioTaskDetailQuery,
@@ -60,8 +57,6 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
   );
   const { data: comments = [] } = useTaskCommentsQuery(task?.id ?? "");
   const taskActionMutation = useStudioTaskActionMutation(taskId);
-  const { data: rawMaterials = [] } = useSeriesMaterialsQuery(seriesId);
-  const materials = useMemo(() => rawMaterials.map(mapApiMaterialToSeriesMaterial), [rawMaterials]);
   const { data: submissions = [] } = useTaskSubmissionsQuery(task?.id ?? "");
   const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
   const page = ctx?.chapter?.pages.find((p) => p.id === task?.pageId);
@@ -79,20 +74,7 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
       ),
     [submissions],
   );
-  const references = useMemo(
-    () =>
-      materials
-        .filter((m) => m.seriesId === ctx?.series?.id)
-        .filter(
-          (m) =>
-            m.kind === "reference" ||
-            m.kind === "moodboard" ||
-            m.kind === "character" ||
-            m.kind === "background",
-        )
-        .slice(0, 12) as SeriesMaterial[],
-    [materials, ctx],
-  );
+  const references = task?.referenceFiles ?? [];
 
   if (!user) return null;
 

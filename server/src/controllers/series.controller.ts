@@ -8,7 +8,6 @@ import {
   SubmissionModel,
   SeriesMemberModel,
   AuditEntryModel,
-  MaterialModel,
   UserModel,
 } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
@@ -526,21 +525,12 @@ export const getChapterReadiness = asyncRoute(async (req: AuthedRequest, res) =>
   const chapterId = String(req.params.chapterId);
   const chapter = await ChapterModel.findOne({ id: chapterId }).lean();
   if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
-  const pageIds = ((chapter as any).pages ?? []).map((page: any) => page.id);
-  const [tasks, submissions, materials] = await Promise.all([
+  const [tasks, submissions] = await Promise.all([
     StudioTaskModel.find({ chapterId }).lean(),
     SubmissionModel.find({ chapterId }).lean(),
-    MaterialModel.find({
-      $and: [
-        { $or: [{ chapterId }, { pageId: { $in: pageIds } }] },
-        {
-          $or: [{ fileKey: { $exists: true, $ne: "" } }, { url: { $exists: true, $ne: "" } }],
-        },
-      ],
-    }).lean(),
   ]);
   const comments = await findChapterBlockingComments(chapter, tasks, submissions);
-  ok(res, chapterReadiness(chapter, comments, tasks, submissions, materials));
+  ok(res, chapterReadiness(chapter, comments, tasks, submissions));
 });
 
 export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {

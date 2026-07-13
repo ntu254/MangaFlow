@@ -118,6 +118,14 @@ export type StudioTask = {
   dueAt: string;
   priority: "low" | "normal" | "high";
   instructions: string;
+  referenceFiles?: Array<{
+    id?: string;
+    title?: string;
+    fileName?: string;
+    fileKey?: string;
+    fileUrl?: string;
+    kind?: string;
+  }>;
   status: StudioTaskStatus;
   createdAt: string;
   hidden?: boolean;

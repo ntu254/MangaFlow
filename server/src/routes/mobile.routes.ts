@@ -3,6 +3,7 @@ import { requireRole, requireBoardChair } from "../middleware/auth.js";
 import {
   editorReviewQueueHandler,
   boardQueueHandler,
+  boardDecisionHistory,
   getBoardVotes,
   startReview,
   requestRevision,
@@ -25,6 +26,7 @@ router.post("/editor/series/:seriesId/forward-to-board", requireRole("EDITOR") a
 
 // Board mobile aliases
 router.get("/board/queue", boardQueueHandler);
+router.get("/board/decisions/history", requireRole("BOARD", "ADMIN") as any, boardDecisionHistory);
 router.get("/board/series/:seriesId/votes", getBoardVotes);
 router.post("/board/series/:seriesId/votes", requireRole("BOARD") as any, castVote);
 router.post("/board/series/:seriesId/decisions/finalize", requireRole("BOARD") as any, finalizeDecision);

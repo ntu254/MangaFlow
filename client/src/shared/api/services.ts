@@ -87,40 +87,6 @@ export interface CreateSubmissionRequest {
   [key: string]: unknown;
 }
 
-export interface CreateMaterialRequest {
-  name: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface UpdateMaterialRequest {
-  name?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface CreateMaterialVersionRequest {
-  fileKey: string;
-  fileName?: string;
-  [key: string]: unknown;
-}
-
-export interface CreateVotingSessionRequest {
-  title: string;
-  mode: "AD_HOC" | "SCHEDULED";
-  scheduledFor?: string;
-  proposalIds: string[];
-  [key: string]: unknown;
-}
-
-export interface UpdateVotingSessionRequest {
-  title?: string;
-  mode?: "AD_HOC" | "SCHEDULED";
-  scheduledFor?: string;
-  proposalIds?: string[];
-  [key: string]: unknown;
-}
-
 export interface CastVoteRequest {
   decision: "APPROVE" | "REJECT" | "ABSTAIN";
   reason?: string;
@@ -173,28 +139,6 @@ export interface UpdateUserRequest {
   email?: string;
   name?: string;
   role?: string;
-  [key: string]: unknown;
-}
-
-export interface CreateNotificationRequest {
-  title: string;
-  message: string;
-  audienceType?: string;
-  audienceRole?: string;
-  userId?: string;
-  priority?: string;
-  kind?: string;
-  targetRole?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface UpdateNotificationRequest {
-  targetRole?: string;
-  type?: string;
-  title?: string;
-  message?: string;
-  status?: string;
   [key: string]: unknown;
 }
 
@@ -259,15 +203,6 @@ export const assistantApi = {
     apiRequest(`/submissions/${id}/editor-approve`, { method: "POST", body: { reviewerNote } }),
 };
 
-export const materialsApi = {
-  list: () => apiRequest("/materials"),
-  create: (body: CreateMaterialRequest) => apiRequest("/materials", { method: "POST", body }),
-  patch: (id: string, body: UpdateMaterialRequest) =>
-    apiRequest(`/materials/${id}`, { method: "PATCH", body }),
-  addVersion: (id: string, body: CreateMaterialVersionRequest) =>
-    apiRequest(`/materials/${id}/versions`, { method: "POST", body }),
-};
-
 export type PresignedUpload = {
   key: string;
   uploadUrl: string;
@@ -298,22 +233,6 @@ export const filesApi = {
 };
 
 export const boardApi = {
-  sessions: () => apiRequest("/voting-sessions"),
-  session: (id: string) => apiRequest(`/voting-sessions/${id}`),
-  createSession: (body: CreateVotingSessionRequest) =>
-    apiRequest("/voting-sessions", { method: "POST", body }),
-  updateSession: (id: string, body: UpdateVotingSessionRequest) =>
-    apiRequest(`/voting-sessions/${id}`, { method: "PATCH", body }),
-  closeSession: (id: string) =>
-    apiRequest(`/voting-sessions/${id}/close`, { method: "POST", body: {} }),
-  cancelSession: (id: string) =>
-    apiRequest(`/voting-sessions/${id}/cancel`, { method: "POST", body: {} }),
-  addSessionNote: (id: string, body: { text: string }) =>
-    apiRequest(`/voting-sessions/${id}/notes`, { method: "POST", body }),
-  updateSessionNote: (id: string, noteId: string, body: { text: string }) =>
-    apiRequest(`/voting-sessions/${id}/notes/${noteId}`, { method: "PATCH", body }),
-  deleteSessionNote: (id: string, noteId: string) =>
-    apiRequest(`/voting-sessions/${id}/notes/${noteId}`, { method: "DELETE" }),
   queue: () => apiRequest("/board/queue"),
   getVotes: (seriesId: string) => apiRequest(`/board/series/${seriesId}/votes`),
   castVote: (seriesId: string, body: CastVoteRequest) =>
@@ -343,38 +262,6 @@ export const adminApi = {
     apiRequest(`/admin/users/${userId}/deactivate`, { method: "POST", body: {} }),
   deleteUser: (userId: string, reason?: string) =>
     apiRequest(`/admin/users/${userId}`, { method: "DELETE", body: reason ? { reason } : {} }),
-  audit: (filters?: { action?: string; actorId?: string }) => {
-    const params = new URLSearchParams();
-    if (filters?.action) params.set("action", filters.action);
-    if (filters?.actorId) params.set("actorId", filters.actorId);
-    const qs = params.toString();
-    return apiRequest(`/admin/audit${qs ? `?${qs}` : ""}`);
-  },
-  notifications: (filters?: { targetRole?: string; status?: string; type?: string }) => {
-    const params = new URLSearchParams();
-    if (filters?.targetRole) params.set("targetRole", filters.targetRole);
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.type) params.set("type", filters.type);
-    const qs = params.toString();
-    return apiRequest(`/admin/notifications${qs ? `?${qs}` : ""}`);
-  },
-  createNotification: (body: CreateNotificationRequest) =>
-    apiRequest("/admin/notifications", { method: "POST", body }),
-  updateNotification: (notificationId: string, body: UpdateNotificationRequest) =>
-    apiRequest(`/admin/notifications/${notificationId}`, { method: "PATCH", body }),
-  deleteNotification: (notificationId: string) =>
-    apiRequest(`/admin/notifications/${notificationId}`, { method: "DELETE" }),
-  payroll: () => apiRequest("/admin/payroll"),
-  workflowSummary: () => apiRequest("/admin/workflow-summary"),
-  storageSummary: () => apiRequest("/admin/storage-summary"),
-  materials: () => apiRequest("/admin/materials"),
-  uploadMaterial: (body: FormData) => apiRequest("/admin/materials", { method: "POST", body }),
-  replaceMaterial: (id: string, body: FormData) =>
-    apiRequest(`/admin/materials/${id}/replace`, { method: "POST", body }),
-  archiveMaterial: (id: string, reason?: string) =>
-    apiRequest(`/admin/materials/${id}/archive`, { method: "POST", body: { reason } }),
-  restoreMaterial: (id: string, reason?: string) =>
-    apiRequest(`/admin/materials/${id}/restore`, { method: "POST", body: { reason } }),
   resetDemo: () => apiRequest("/admin/demo/reset", { method: "POST", body: {} }),
   clearDemo: () => apiRequest("/admin/demo/clear", { method: "POST", body: {} }),
 };

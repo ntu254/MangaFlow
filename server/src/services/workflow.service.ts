@@ -1,7 +1,6 @@
 import {
   ChapterModel,
   EarningItemModel,
-  MaterialModel,
   ProposalModel,
   ProposalVoteModel,
   PublicationModel,
@@ -10,7 +9,6 @@ import {
   StudioRegionModel,
   StudioTaskModel,
   SubmissionModel,
-  VotingSessionModel,
   RankingModel,
   AtRiskReportModel,
   UserModel,
@@ -1124,30 +1122,10 @@ export async function sendChapterToEditorReview(req: AuthedRequest, chapterId: s
     );
   }
 
-  const pageIds = chapter.pages.map((page: any) => page.id);
-  const [tasks, submissions, reviewMaterials] = await Promise.all([
+  const [tasks, submissions] = await Promise.all([
     StudioTaskModel.find({ chapterId }).lean(),
     SubmissionModel.find({ chapterId }).lean(),
-    MaterialModel.find({
-      $and: [
-        { $or: [{ chapterId }, { pageId: { $in: pageIds } }] },
-        {
-          $or: [{ fileKey: { $exists: true, $ne: "" } }, { url: { $exists: true, $ne: "" } }],
-        },
-      ],
-    }).lean(),
   ]);
-  if (
-    reviewMaterials.some(
-      (material: any) => !["ACTIVE", "APPROVED"].includes(String(material.status)),
-    )
-  ) {
-    throw new AppError(
-      409,
-      "Review materials must be ACTIVE before sending to editor review.",
-      "REVIEW_MATERIAL_NOT_ACTIVE",
-    );
-  }
   const relevantTasks = tasks.filter((task: any) => task.status !== "CANCELLED");
   if (relevantTasks.some((task: any) => !APPROVED_TASK_STATUSES.includes(String(task.status)))) {
     throw new AppError(
@@ -1886,16 +1864,8 @@ export function chapterReadiness(
   comments: any[] = [],
   tasks: any[] = [],
   submissions: any[] = [],
-  materials: any[] = [],
 ) {
   const items = [
-    {
-      key: "reviewMaterialActive",
-      passed: materials.every((material: any) =>
-        ["ACTIVE", "APPROVED"].includes(String(material.status)),
-      ),
-      reason: "Review materials must be ACTIVE before sending to editor review.",
-    },
     {
       key: "allPagesUploaded",
       passed:
@@ -2115,36 +2085,6 @@ export async function seriesProposalSummary(seriesId: string) {
         }
       : undefined,
   };
-}
-
-export async function closeVotingSession(req: AuthedRequest, sessionId: string) {
-  const actor = ensureActor(req);
-  requireMutationRole(actor, ["EDITOR", "BOARD"]);
-  const session = await VotingSessionModel.findOne({ id: sessionId });
-  if (!session) throw new AppError(404, "Voting session not found.", "SESSION_NOT_FOUND");
-  if (!["OPEN", "BOARD_VOTING"].includes((session as any).status))
-    throw new AppError(409, "Voting session is not open.", "INVALID_TRANSITION");
-  (session as any).status = "CLOSED";
-  (session as any).closedAt = new Date();
-  (session as any).finalizedById = actor.id;
-  (session as any).finalizedAt = new Date();
-  await session.save();
-  await audit(req, "BOARD_SESSION_FINALIZED", "voting_session", sessionId, {
-    closedById: actor.id,
-  });
-  return toObject(session);
-}
-
-export async function cancelVotingSession(req: AuthedRequest, sessionId: string) {
-  const actor = ensureActor(req);
-  requireMutationRole(actor, ["EDITOR", "BOARD"]);
-  const session = await VotingSessionModel.findOne({ id: sessionId });
-  if (!session) throw new AppError(404, "Voting session not found.", "SESSION_NOT_FOUND");
-  (session as any).status = "CANCELLED";
-  (session as any).cancelledAt = new Date();
-  await session.save();
-  await audit(req, "voting_session.cancel", "voting_session", sessionId);
-  return toObject(session);
 }
 
 export async function submissionDecision(

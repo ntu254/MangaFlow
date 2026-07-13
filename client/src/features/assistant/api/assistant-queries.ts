@@ -37,9 +37,6 @@ type SubmissionFilters = {
   status?: string;
 };
 
-export type { MaterialItem, MaterialVersionItem } from "@/entities/series/model/series-types";
-import type { MaterialItem } from "@/entities/series/model/series-types";
-
 export type NotificationRecord = {
   id: string;
   userId: string;
@@ -81,10 +78,6 @@ const submissionKeys = {
   all: ["submissions"] as const,
   list: (filters?: SubmissionFilters) => ["submissions", "list", filters ?? {}] as const,
   task: (taskId: string) => ["submissions", "task", taskId] as const,
-};
-
-const materialKeys = {
-  series: (seriesId: string) => ["materials", "series", seriesId] as const,
 };
 
 const notificationKeys = {
@@ -305,16 +298,6 @@ export function useUpdateCommentMutation() {
         });
       }
     },
-  });
-}
-
-export function useSeriesMaterialsQuery(seriesId: string) {
-  return useQuery<MaterialItem[]>({
-    queryKey: materialKeys.series(seriesId),
-    queryFn: () =>
-      apiRequest<MaterialItem[]>(`/materials?seriesId=${encodeURIComponent(seriesId)}`),
-    enabled: !!seriesId,
-    staleTime: 30000,
   });
 }
 

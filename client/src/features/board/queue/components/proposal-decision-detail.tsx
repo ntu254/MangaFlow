@@ -4,8 +4,6 @@ import { CreativeMaterialsReadonly } from "./creative-materials-readonly";
 import { EditorRecommendationCard } from "./editor-recommendation-card";
 import { ProposalSummaryCard } from "./proposal-summary-card";
 import { RiskAssessmentCard } from "./risk-assessment-card";
-import { VotingPanel } from "../../sessions/components/voting-panel";
-import { VoteProgress } from "../../sessions/components/vote-progress";
 import { DecisionHistory } from "@/entities/proposal";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { VoteTally } from "@/entities/proposal";
@@ -72,7 +70,7 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
       >
         <ArrowLeft className="size-3.5" /> Board queue
       </Link>
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6">
         <main className="space-y-4">
           <ProposalSummaryCard proposal={mergedProposal} />
           <CreativeMaterialsReadonly proposal={mergedProposal} user={user} />
@@ -90,15 +88,9 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
               </p>
             </div>
           </section>
-          <section className="rounded-md border border-border bg-card p-4">
-            <VoteProgress proposal={mergedProposal} />
-          </section>
           <VoteTally votes={votes} status={proposalRaw.status} />
           <DecisionHistory proposal={mergedProposal} />
         </main>
-        <aside>
-          <VotingPanel proposal={mergedProposal} />
-        </aside>
       </div>
     </div>
   );

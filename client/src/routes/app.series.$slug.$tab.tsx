@@ -5,7 +5,6 @@ const seriesTabSchema = [
   "overview",
   "proposal",
   "chapters",
-  "materials",
   "rankings",
   "calendar",
   "team",

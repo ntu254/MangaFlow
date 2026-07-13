@@ -5,7 +5,6 @@ import bcrypt from "bcryptjs";
 import { createApp } from "../app.js";
 import {
   ChapterModel,
-  MaterialModel,
   NotificationModel,
   ProposalModel,
   RankingModel,
@@ -986,25 +985,6 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .expect(409);
       expect(response.body.code).toBe("BLOCKING_COMMENTS_UNRESOLVED");
-    });
-
-    it("blocks review materials that are not ACTIVE", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
-      await MaterialModel.create({
-        id: `mat-${fixture.chapterId}`,
-        seriesId: fixture.seriesId,
-        chapterId: fixture.chapterId,
-        title: "Draft review material",
-        status: "DRAFT",
-        fileKey: `materials/${fixture.chapterId}.png`,
-      });
-
-      const response = await request(createApp())
-        .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
-        .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .expect(409);
-      expect(response.body.code).toBe("REVIEW_MATERIAL_NOT_ACTIVE");
     });
 
     it("rejects a Mangaka who does not own the series", async () => {

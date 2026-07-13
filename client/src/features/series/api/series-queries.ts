@@ -1,8 +1,7 @@
-import type { Chapter, ChapterPage, MaterialItem, SeriesRanking } from "@/entities/series/model/series-types";
+import type { Chapter, ChapterPage, SeriesRanking } from "@/entities/series/model/series-types";
 import {
   seriesKeys,
   chapterKeys,
-  materialKeys,
   studioKeys,
   taskKeys,
 } from "@/entities/series/model/series-types";
@@ -37,7 +36,6 @@ export {
 export { seriesKeys } from "@/entities/series/model/series-types";
 export {
   chapterKeys,
-  materialKeys,
   studioKeys,
   taskKeys,
 } from "@/entities/series/model/series-types";
@@ -369,176 +367,7 @@ export function useSubmissionReviewMutation() {
 }
 
 // Material hooks (MF-013 / MF-032)
-export type { MaterialItem, MaterialVersionItem } from "@/entities/series/model/series-types";
-
-export function useMaterialsQuery(chapterId: string) {
-  return useQuery<MaterialItem[]>({
-    queryKey: materialKeys.list(chapterId),
-    queryFn: () =>
-      apiRequest<MaterialItem[]>(`/materials?chapterId=${encodeURIComponent(chapterId)}`),
-    enabled: !!chapterId,
-    staleTime: 30000,
-  });
-}
-
-export function useSeriesMaterialsQuery(seriesId: string) {
-  return useQuery<MaterialItem[]>({
-    queryKey: materialKeys.series(seriesId),
-    queryFn: () =>
-      apiRequest<MaterialItem[]>(`/materials?seriesId=${encodeURIComponent(seriesId)}`),
-    enabled: !!seriesId,
-    staleTime: 30000,
-  });
-}
-
-export function useCreateMaterialMutation(chapterId: string, seriesId?: string) {
-  const queryClient = useQueryClient();
-  return useMutation<
-    MaterialItem,
-    Error,
-    {
-      title: string;
-      kind?: string;
-      fileKey?: string;
-      url?: string;
-      mimeType?: string;
-      size?: number;
-      tags?: string[];
-    }
-  >({
-    mutationFn: (body) =>
-      apiRequest<MaterialItem>("/materials", {
-        method: "POST",
-        body: { ...body, chapterId, seriesId },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.list(chapterId) });
-      if (seriesId) {
-        queryClient.invalidateQueries({ queryKey: materialKeys.series(seriesId) });
-        queryClient.invalidateQueries({ queryKey: seriesKeys.chapters(seriesId) });
-      }
-    },
-  });
-}
-
 // MF-032 — Series Materials Library create/version/update/delete against backend.
-
-export interface CreateSeriesMaterialInput {
-  title: string;
-  kind?: string;
-  chapterId?: string;
-  tags?: string[];
-  fileKey?: string;
-  url?: string;
-  mimeType?: string;
-  size?: number;
-  /** Display-only fields persisted in metadata (backend lacks first-class columns). */
-  metadata?: Record<string, unknown>;
-}
-
-export function useCreateSeriesMaterialMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<MaterialItem, Error, CreateSeriesMaterialInput>({
-    mutationFn: (body) =>
-      apiRequest<MaterialItem>("/materials", {
-        method: "POST",
-        body: { ...body, seriesId },
-      }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.series(seriesId) });
-      if (variables.chapterId) {
-        queryClient.invalidateQueries({ queryKey: materialKeys.list(variables.chapterId) });
-      }
-    },
-  });
-}
-
-export interface AddSeriesMaterialVersionInput {
-  materialId: string;
-  fileKey: string;
-  url: string;
-  mimeType?: string;
-  size?: number;
-  note?: string;
-  /** Display-only fields persisted in metadata (backend lacks first-class columns). */
-  metadata?: Record<string, unknown>;
-}
-
-export function useAddSeriesMaterialVersionMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<MaterialItem, Error, AddSeriesMaterialVersionInput>({
-    mutationFn: ({ materialId, ...body }) =>
-      apiRequest<MaterialItem>(`/materials/${materialId}/versions`, {
-        method: "POST",
-        body,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.series(seriesId) });
-    },
-  });
-}
-
-export interface UpdateSeriesMaterialInput {
-  materialId: string;
-  title?: string;
-  tags?: string[];
-  chapterId?: string | null;
-  metadata?: Record<string, unknown>;
-}
-
-export function useUpdateSeriesMaterialMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<MaterialItem, Error, UpdateSeriesMaterialInput>({
-    mutationFn: ({ materialId, ...patch }) =>
-      apiRequest<MaterialItem>(`/materials/${materialId}`, {
-        method: "PATCH",
-        body: patch,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.series(seriesId) });
-    },
-  });
-}
-
-export function useDeleteSeriesMaterialMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<{ id: string }, Error, string>({
-    mutationFn: (materialId) =>
-      apiRequest<{ id: string }>(`/materials/${materialId}`, { method: "DELETE" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.series(seriesId) });
-    },
-  });
-}
-
-export function useDeleteMaterialMutation(chapterId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<{ id: string }, Error, string>({
-    mutationFn: (materialId) =>
-      apiRequest<{ id: string }>(`/materials/${materialId}`, { method: "DELETE" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.list(chapterId) });
-    },
-  });
-}
-
-export function useAddMaterialVersionMutation(materialId: string, chapterId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<
-    MaterialItem,
-    Error,
-    { fileKey: string; url: string; mimeType?: string; size?: number; note?: string }
-  >({
-    mutationFn: (body) =>
-      apiRequest<MaterialItem>(`/materials/${materialId}/versions`, {
-        method: "POST",
-        body,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: materialKeys.list(chapterId) });
-    },
-  });
-}
 
 // Studio hooks (MF-014)
 export function useStudioRegionsQuery(filters: {

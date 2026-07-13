@@ -909,153 +909,6 @@ submissionSchema.index({ taskId: 1, status: 1 });
 submissionSchema.index({ assistantId: 1, submittedAt: -1 });
 
 /* ------------------------------------------------------------------ */
-/*  Material                                                            */
-/* ------------------------------------------------------------------ */
-
-export type MaterialVersion = {
-  id: string;
-  version: number;
-  fileKey: string;
-  url: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  size?: number;
-  note?: string;
-  metadata?: Record<string, unknown>;
-  uploadedById: string;
-  uploadedByName: string;
-  uploadedAt: Date;
-};
-
-export type MaterialRecord = {
-  id: string;
-  seriesId?: string;
-  chapterId?: string;
-  pageId?: string;
-  proposalId?: string;
-  /** Structured scope of ownership */
-  scope?: "PROPOSAL" | "SERIES" | "CHAPTER" | "PAGE";
-  ownerType?: string;
-  ownerId?: string;
-  title: string;
-  /** Source of truth for material kind */
-  kind?: string;
-  /** @deprecated use kind */
-  type?: string;
-  category?: string;
-  description?: string;
-  status?: string;
-  tags?: string[];
-  fileKey?: string;
-  url?: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  metadata?: Record<string, unknown>;
-  currentVersion?: number;
-  versions: MaterialVersion[];
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const materialSchema = looseSchema({
-  seriesId: { type: String, index: true },
-  chapterId: { type: String, index: true },
-  pageId: { type: String },
-  proposalId: { type: String, index: true },
-  scope: { type: String, enum: ["PROPOSAL", "SERIES", "CHAPTER", "PAGE"] },
-  ownerType: { type: String },
-  ownerId: { type: String },
-  title: { type: String },
-  /** Source of truth */
-  kind: { type: String },
-  /** @deprecated use kind */
-  type: { type: String },
-  category: { type: String },
-  description: { type: String },
-  status: {
-    type: String,
-    enum: ["DRAFT", "ACTIVE", "IN_REVIEW", "APPROVED", "ARCHIVED"],
-    default: "DRAFT",
-  },
-  tags: [{ type: String }],
-  fileKey: { type: String },
-  url: { type: String },
-  thumbnailUrl: { type: String },
-  mimeType: { type: String },
-  metadata: { type: Schema.Types.Mixed },
-  currentVersion: { type: Number, default: 1 },
-  versions: [Schema.Types.Mixed],
-});
-
-/* ------------------------------------------------------------------ */
-/*  VotingSession                                                       */
-/* ------------------------------------------------------------------ */
-
-export type VotingSessionRecord = {
-  id: string;
-  title: string;
-  mode?: string;
-  status: string;
-  proposalIds: string[];
-  eligibleVoterIds?: string[];
-  quorum?: number;
-  chairId?: string;
-  tieBreakerId?: string;
-  finalizedById?: string;
-  finalizedAt?: Date;
-  rules?: {
-    approveThreshold?: number;
-    rejectThreshold?: number;
-    allowAbstain?: boolean;
-  };
-  createdById: string;
-  createdByName: string;
-  openedAt?: Date;
-  scheduledFor?: Date;
-  closesAt?: Date;
-  closedAt?: Date;
-  cancelledAt?: Date;
-  outcomes?: {
-    proposalId: string;
-    decision?: string;
-    approveCount?: number;
-    rejectCount?: number;
-    abstainCount?: number;
-    finalReason?: string;
-  }[];
-  notes?: Record<string, unknown>[];
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const votingSessionSchema = looseSchema({
-  title: { type: String, required: true },
-  mode: { type: String },
-  status: { type: String, default: "DRAFT", index: true },
-  proposalIds: [{ type: String }],
-  eligibleVoterIds: [{ type: String }],
-  quorum: { type: Number },
-  chairId: { type: String },
-  tieBreakerId: { type: String },
-  finalizedById: { type: String },
-  finalizedAt: { type: Date },
-  rules: {
-    approveThreshold: { type: Number },
-    rejectThreshold: { type: Number },
-    allowAbstain: { type: Boolean, default: true },
-  },
-  createdById: { type: String, required: true, index: true },
-  createdByName: { type: String },
-  openedAt: { type: Date },
-  scheduledFor: { type: Date },
-  closesAt: { type: Date },
-  closedAt: { type: Date },
-  cancelledAt: { type: Date },
-  outcomes: [Schema.Types.Mixed],
-  notes: [Schema.Types.Mixed],
-});
-
-/* ------------------------------------------------------------------ */
 /*  Ranking                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -1336,8 +1189,6 @@ export const StudioRegionModel = mongoose.model<any>("StudioRegion", studioRegio
 export const StudioTaskModel = mongoose.model<any>("StudioTask", studioTaskSchema);
 export const StudioCommentModel = mongoose.model<any>("StudioComment", studioCommentSchema);
 export const SubmissionModel = mongoose.model<any>("Submission", submissionSchema);
-export const MaterialModel = mongoose.model<any>("Material", materialSchema);
-export const VotingSessionModel = mongoose.model<any>("VotingSession", votingSessionSchema);
 export const NotificationModel = mongoose.model<any>("Notification", notificationSchema);
 export const AuditEntryModel = mongoose.model<any>("AuditEntry", auditSchema);
 export const RankingModel = mongoose.model<any>("Ranking", rankingSchema);
@@ -1360,8 +1211,6 @@ export const allMutableModels = [
   StudioTaskModel,
   StudioCommentModel,
   SubmissionModel,
-  MaterialModel,
-  VotingSessionModel,
   NotificationModel,
   AuditEntryModel,
   RankingModel,

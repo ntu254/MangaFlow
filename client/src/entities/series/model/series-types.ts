@@ -204,107 +204,6 @@ export const CHAPTER_STATUS_FLOW: ChapterStatus[] = [
   "PUBLISHED",
 ];
 
-// ===================== Series Material Library =====================
-
-export type SeriesMaterialKind =
-  | "storyboard"
-  | "manuscript"
-  | "character"
-  | "background"
-  | "moodboard"
-  | "reference"
-  | "sfx"
-  | "style_guide"
-  | "brush"
-  | "other";
-
-export type SeriesMaterialStatus = "DRAFT" | "IN_REVIEW" | "APPROVED" | "ARCHIVED";
-
-export type SeriesMaterialVersion = {
-  id: string;
-  version: number;
-  fileName: string;
-  fileUrl: string;
-  fileType: string;
-  sizeKB: number;
-  uploadedById: string;
-  uploadedByName: string;
-  uploadedAt: string;
-  note?: string;
-  /** R2 storage key for presigned download resolution (MF-032). */
-  fileKey?: string;
-};
-
-export type SeriesMaterial = {
-  id: string;
-  seriesId: string;
-  title: string;
-  kind: SeriesMaterialKind;
-  status: SeriesMaterialStatus;
-  chapterId?: string;
-  tags: string[];
-  note?: string;
-  currentVersion: number;
-  versions: SeriesMaterialVersion[];
-  createdAt: string;
-  updatedAt: string;
-};
-
-export const SERIES_MATERIAL_KIND_LABEL: Record<SeriesMaterialKind, string> = {
-  storyboard: "Storyboard / Name",
-  manuscript: "Manuscript",
-  character: "Character Sheets",
-  background: "Background",
-  moodboard: "Moodboard",
-  reference: "References",
-  sfx: "SFX / Lettering",
-  style_guide: "Style Guide",
-  brush: "Brush / Tone",
-  other: "Other",
-};
-
-export const SERIES_MATERIAL_STATUS_LABEL: Record<SeriesMaterialStatus, string> = {
-  DRAFT: "Draft",
-  IN_REVIEW: "In review",
-  APPROVED: "Approved",
-  ARCHIVED: "Archived",
-};
-
-export interface MaterialVersionItem {
-  id: string;
-  version: number;
-  fileKey: string;
-  url: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  size?: number;
-  note?: string;
-  metadata?: Record<string, unknown>;
-  uploadedById: string;
-  uploadedByName: string;
-  uploadedAt: string;
-}
-
-export interface MaterialItem {
-  id: string;
-  seriesId?: string;
-  chapterId?: string;
-  title: string;
-  kind?: string;
-  status?: string;
-  description?: string;
-  tags?: string[];
-  fileKey?: string;
-  url?: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  metadata?: Record<string, unknown>;
-  currentVersion?: number;
-  versions: MaterialVersionItem[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface SeriesRanking {
   id: string;
   seriesId: string;
@@ -337,12 +236,6 @@ export const chapterKeys = {
   detail: (chapterId: string) => [...chapterKeys.all, "detail", chapterId] as const,
   pages: (chapterId: string) => [...chapterKeys.detail(chapterId), "pages"] as const,
   readiness: (chapterId: string) => [...chapterKeys.detail(chapterId), "readiness"] as const,
-};
-
-export const materialKeys = {
-  all: ["materials"] as const,
-  list: (chapterId: string) => [...materialKeys.all, "chapter", chapterId] as const,
-  series: (seriesId: string) => [...materialKeys.all, "series", seriesId] as const,
 };
 
 export const studioKeys = {

@@ -1,9 +1,4 @@
-import type {
-  Chapter,
-  ProductionSeries,
-  SeriesMaterial,
-} from "@/entities/series/model/series-types";
-import { SERIES_MATERIAL_KIND_LABEL } from "@/entities/series/model/series-types";
+import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
 import type { StudioTask } from "@/entities/series/model/studio-types";
 import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
 import { FileText, Layers, Paperclip } from "lucide-react";
@@ -17,7 +12,7 @@ export function TaskBriefPanel({
   task: StudioTask;
   chapter?: Chapter;
   series?: ProductionSeries;
-  references: SeriesMaterial[];
+  references: NonNullable<StudioTask["referenceFiles"]>;
 }) {
   const accepted = ["PSD", "CLIP", "PNG ≥ 300 DPI"];
   const checklist = [
@@ -70,9 +65,9 @@ export function TaskBriefPanel({
               className="flex items-start gap-2 rounded border border-border bg-background/60 p-2 text-[11px]"
             >
               <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                {SERIES_MATERIAL_KIND_LABEL[m.kind]}
+                {m.kind ?? "reference"}
               </span>
-              <span className="truncate font-semibold">{m.title}</span>
+              <span className="truncate font-semibold">{m.title ?? m.fileName ?? m.fileKey}</span>
             </li>
           ))}
         </ul>

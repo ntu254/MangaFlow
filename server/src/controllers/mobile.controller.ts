@@ -1,5 +1,5 @@
 import { asyncRoute, ok, AppError } from "../lib/http.js";
-import { ProposalModel } from "../db/models.js";
+import { ProposalModel, RankingModel } from "../db/models.js";
 import {
   editorReviewQueue,
   boardQueue,
@@ -14,6 +14,38 @@ import type { AuthedRequest } from "../types.js";
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) => ok(res, await editorReviewQueue()));
 export const boardQueueHandler = asyncRoute(async (_req: AuthedRequest, res) => ok(res, await boardQueue()));
+
+export const boardDecisionHistory = asyncRoute(async (_req: AuthedRequest, res) => {
+  const [proposals, atRiskRankings] = await Promise.all([
+    ProposalModel.find({ status: { $in: ["APPROVED", "REJECTED"] } })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean(),
+    RankingModel.find({ $or: [{ atRisk: true }, { status: "AT_RISK" }] })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean(),
+  ]);
+
+  ok(res, [
+    ...proposals.map((proposal: any) => ({
+      id: proposal.id,
+      type: "Proposal",
+      title: proposal.title,
+      status: proposal.status,
+      date: proposal.updatedAt,
+      href: `/app/board/proposals/${proposal.id}`,
+    })),
+    ...atRiskRankings.map((ranking: any) => ({
+      id: ranking.id,
+      type: "At-risk",
+      title: ranking.seriesTitle ?? ranking.seriesId,
+      status: ranking.status,
+      date: ranking.updatedAt,
+      href: "/app/board/at-risk",
+    })),
+  ].sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()));
+});
 
 export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
   const proposal = await ProposalModel.findOne({ id: String(req.params.seriesId) }).lean();

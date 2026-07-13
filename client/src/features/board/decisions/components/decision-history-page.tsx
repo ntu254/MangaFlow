@@ -12,7 +12,7 @@ import { StatusPill } from "@/shared/ui/status-pill";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-const FILTERS = ["All", "Proposal", "At-risk", "Session"] as const;
+const FILTERS = ["All", "Proposal", "At-risk"] as const;
 
 export function DecisionHistoryPage() {
   const { data: history = [], isLoading, isError, error } = useBoardDecisionHistoryQuery();
@@ -27,7 +27,7 @@ export function DecisionHistoryPage() {
       <PageHeader
         eyebrow="Governance"
         title="Decision history"
-        description="Proposal decisions, at-risk outcomes, and voting session outcomes."
+        description="Proposal decisions and at-risk outcomes."
       />
       <DataManagementTableCard>
         <TableToolbar>
@@ -62,7 +62,7 @@ export function DecisionHistoryPage() {
             <thead className="bg-muted/50 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               <tr>
                 <th className="py-2 pl-3">Type</th>
-                <th className="py-2">Series / Session</th>
+                <th className="py-2">Series / Proposal</th>
                 <th className="py-2">Decision</th>
                 <th className="py-2">Date</th>
                 <th className="py-2 pr-3">Detail</th>

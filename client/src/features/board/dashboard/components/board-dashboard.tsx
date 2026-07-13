@@ -1,5 +1,5 @@
 import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
-import { useBoardQueueQuery, useVotingSessionsQuery } from "../../api/board-queries";
+import { useBoardQueueQuery } from "../../api/board-queries";
 import type { AtRiskQueueItem, BoardQueueItem } from "../../model/board-adapters";
 import { PageHeader } from "@/shared/ui";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -10,7 +10,6 @@ import { Panel } from "@/shared/ui";
 
 export function BoardDashboard() {
   const { data: queueItems = [], isLoading } = useBoardQueueQuery();
-  const { data: sessions = [] } = useVotingSessionsQuery();
 
   const proposalItems = queueItems.filter(
     (item): item is BoardQueueItem => item.seriesStatus !== "AT_RISK",
@@ -129,25 +128,6 @@ export function BoardDashboard() {
                     <span className="font-mono text-[10px] text-muted-foreground">
                       {item.decisionStatus}
                     </span>
-                  </Link>
-                ))
-              )}
-            </div>
-          </Panel>
-
-          <Panel title="Recent sessions" description="Latest board voting sessions.">
-            <div className="mt-3 space-y-2 text-xs">
-              {sessions.length === 0 ? (
-                <p className="text-muted-foreground">No voting sessions yet.</p>
-              ) : (
-                sessions.slice(0, 3).map((session) => (
-                  <Link
-                    key={session.id}
-                    to="/app/board/sessions/$sid"
-                    params={{ sid: session.id }}
-                    className="block rounded border border-border bg-background px-3 py-2 hover:bg-muted"
-                  >
-                    {session.title}
                   </Link>
                 ))
               )}

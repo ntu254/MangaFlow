@@ -62,23 +62,6 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       .expect(400);
   });
 
-  it("rejects POST /materials with unknown fields when strict schema is applied", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
-      .post("/api/materials")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send({})
-      .expect(201);
-
-    const materialId = res.body.data.id;
-    const patchRes = await request(createApp())
-      .patch(`/api/materials/${materialId}`)
-      .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send({ authorId: "hacked", status: "APPROVED" })
-      .expect(400);
-    expect(patchRes.body.code).toBe("VALIDATION_ERROR");
-  });
-
   it("rejects PATCH /regions with workflow status fields", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
 
@@ -88,16 +71,6 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       .send({ status: "APPROVED" })
       .expect(400);
     expect(patchRes.body.code).toBe("VALIDATION_ERROR");
-  });
-
-  it("rejects voting session creation with unknown fields", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
-      .post("/api/voting-sessions")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send({ seriesId: "s-demo-1", unknownField: "bad" })
-      .expect(400);
-    expect(res.body.code).toBe("VALIDATION_ERROR");
   });
 
   it("rejects review actions with unknown fields via strict schema", async () => {
@@ -131,15 +104,6 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .expect(403);
     expect(approveRes.body.code).toBe("FORBIDDEN");
-  });
-
-  it("blocks non-editor/non-mangaka from material creation (RBAC)", async () => {
-    const assistant = await loginAs("sato@beachread.jp");
-    await request(createApp())
-      .post("/api/materials")
-      .set("Authorization", `Bearer ${assistant.accessToken}`)
-      .send({ title: "Should fail" })
-      .expect(403);
   });
 
   it("blocks non-editor/non-mangaka from studio region creation (RBAC)", async () => {
