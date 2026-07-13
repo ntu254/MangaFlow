@@ -39,6 +39,26 @@ export async function notify(
   });
 }
 
+/**
+ * Notify every active user holding a given role. Replaces the previous
+ * practice of hardcoding seed ids (e.g. "u-editor", "u-board-2") as
+ * notification targets, which never reached the real editors/board members.
+ */
+export async function notifyRole(role: string, kind: string, message: string, title?: string) {
+  const users = await UserModel.find({ role: role.toUpperCase(), active: true }).select("id").lean();
+  if (users.length === 0) return;
+  await NotificationModel.insertMany(
+    users.map((user: any) => ({
+      id: id("ntf"),
+      userId: String(user.id),
+      kind,
+      title: title ?? kind.replace(/\./g, " "),
+      message,
+      createdAt: new Date()
+    }))
+  );
+}
+
 export async function notifyMany(items: { userId: string; kind: string; message: string; title?: string }[]) {
   if (items.length === 0) return;
   await NotificationModel.insertMany(
