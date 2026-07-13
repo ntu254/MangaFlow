@@ -2,7 +2,6 @@ export {
   adminKeys,
   mapAdminError,
   useAdminWorkflowSummaryQuery,
-  useAdminOverrideMutation,
   useDemoDataMutation,
   type AdminUser,
   type AuditEntry,
@@ -22,10 +21,6 @@ export { useAdminAuditQuery } from "../audit/api/audit.queries";
 
 export {
   useAdminPayrollQuery,
-  useConfirmPayrollMutation,
-  useGeneratePayrollMutation,
-  useMarkPaidPayrollMutation,
-  useVoidPayrollMutation,
 } from "../payroll/api/payroll.queries";
 
 export { useAdminStorageSummaryQuery } from "../materials/api/materials.queries";

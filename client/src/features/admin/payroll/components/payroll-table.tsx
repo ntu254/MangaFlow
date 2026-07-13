@@ -20,25 +20,15 @@ import type { Earning } from "../../_shared";
 import { formatDateTime, formatJpy } from "../../_shared";
 
 export function PayrollTable({
-  earnings,
   rows,
   selectedId,
   isLoading,
-  updateSucceeded,
   onSelect,
-  onConfirm,
-  onMarkPaid,
-  onVoid,
 }: {
-  earnings: Earning[];
   rows: Earning[];
   selectedId: string | null;
   isLoading: boolean;
-  updateSucceeded: boolean;
   onSelect: (earning: Earning) => void;
-  onConfirm: (earningId: string) => void;
-  onMarkPaid: (earningId: string) => void;
-  onVoid: (earningId: string) => void;
 }) {
   return (
     <DataTable className="mt-5" isLoading={isLoading} skeletonRows={5} skeletonColumns={8}>
@@ -84,9 +74,6 @@ export function PayrollTable({
           </TableHeader>
           <TableBody>
             {rows.map((row) => {
-              const isPending = row.status === "PENDING";
-              const isConfirmed = row.status === "CONFIRMED";
-
               return (
                 <TableRow
                   key={row.id}
@@ -162,24 +149,6 @@ export function PayrollTable({
                         <DropdownMenuItem onSelect={() => onSelect(row)}>
                           View details
                         </DropdownMenuItem>
-                        {isPending && (
-                          <DropdownMenuItem onSelect={() => onConfirm(row.id)}>
-                            Confirm Payroll
-                          </DropdownMenuItem>
-                        )}
-                        {isConfirmed && (
-                          <DropdownMenuItem onSelect={() => onMarkPaid(row.id)}>
-                            Mark as Paid
-                          </DropdownMenuItem>
-                        )}
-                        {(isPending || isConfirmed) && (
-                          <DropdownMenuItem
-                            className="text-rose-600 focus:text-rose-700"
-                            onSelect={() => onVoid(row.id)}
-                          >
-                            Void
-                          </DropdownMenuItem>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

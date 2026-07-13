@@ -224,19 +224,12 @@ export const seriesApi = {
   get: (id: string) => apiRequest(`/series/${id}`),
   patch: (id: string, body: UpdateSeriesRequest) =>
     apiRequest(`/series/${id}`, { method: "PATCH", body }),
-  action: (id: string, action: "archive" | "unpublish") =>
-    apiRequest(`/series/${id}/actions/${action}`, { method: "POST", body: {} }),
-  delete: (id: string) => apiRequest(`/series/${id}`, { method: "DELETE" }),
   chapters: (id: string) => apiRequest(`/series/${id}/chapters`),
   chapterAction: (chapterId: string, action: string, body?: unknown) =>
     apiRequest(`/chapters/${chapterId}/actions/${action}`, { method: "POST", body: body ?? {} }),
   readiness: (chapterId: string) => apiRequest(`/chapters/${chapterId}/readiness`),
   // Tantou Editor
   getEditor: (seriesId: string) => apiRequest(`/series/${seriesId}/editor`),
-  assignEditor: (seriesId: string, body: { editorId: string; editorName: string }) =>
-    apiRequest(`/series/${seriesId}/editor`, { method: "POST", body }),
-  removeEditor: (seriesId: string) =>
-    apiRequest(`/series/${seriesId}/editor`, { method: "DELETE" }),
 };
 
 export const studioApi = {
@@ -382,22 +375,8 @@ export const adminApi = {
     apiRequest(`/admin/materials/${id}/archive`, { method: "POST", body: { reason } }),
   restoreMaterial: (id: string, reason?: string) =>
     apiRequest(`/admin/materials/${id}/restore`, { method: "POST", body: { reason } }),
-  confirmPayroll: (earningId: string) =>
-    apiRequest(`/admin/payroll/${earningId}/confirm`, { method: "POST" }),
-  markPaidPayroll: (earningId: string, reason?: string) =>
-    apiRequest(`/admin/payroll/${earningId}/mark-paid`, { method: "POST", body: { reason } }),
-  voidPayroll: (earningId: string, reason: string) =>
-    apiRequest(`/admin/payroll/${earningId}/void`, { method: "POST", body: { reason } }),
-  override: (body: { action: string; targetId?: string; reason: string }) =>
-    apiRequest("/admin/override", { method: "POST", body }),
   resetDemo: () => apiRequest("/admin/demo/reset", { method: "POST", body: {} }),
   clearDemo: () => apiRequest("/admin/demo/clear", { method: "POST", body: {} }),
-  generatePayroll: (body: {
-    period: string;
-    assistants: string[];
-    onlyEditorApproved: boolean;
-    excludeLinked: boolean;
-  }) => apiRequest("/admin/payroll/generate", { method: "POST", body }),
 };
 
 export const assistantEarningsApi = {

@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/select";
 import { SeparationOfDutiesWarning } from "@/entities/access";
 import {
-  ActionButton,
   MetricCard,
   MetricGrid,
   PageFrame,
@@ -20,28 +19,17 @@ import {
 } from "@/shared/ui";
 import {
   Download,
-  Plus,
   RotateCcw,
-  AlertCircle,
   Banknote,
-  Calendar,
   CheckCircle2,
   FileText,
   CheckCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { toast } from "sonner";
 import { AccessDenied, mapAdminError, useAdminAccess } from "../../_shared";
-import {
-  useAdminPayrollQuery,
-  useConfirmPayrollMutation,
-  useMarkPaidPayrollMutation,
-  useVoidPayrollMutation,
-  useGeneratePayrollMutation,
-} from "../../api/admin-queries";
+import { useAdminPayrollQuery } from "../../api/admin-queries";
 import { formatJpy } from "../../_shared";
 import { PayrollInspector } from "./payroll-inspector";
-import { GeneratePayrollDialog } from "./generate-payroll-dialog";
 import { PayrollTable } from "./payroll-table";
 
 type StatusFilter = "ALL" | "PENDING" | "CONFIRMED" | "PAID" | "VOIDED";
@@ -54,10 +42,6 @@ export function AdminPayrollPage() {
     isLoading,
     error,
   } = useAdminPayrollQuery({ enabled: canQueryAdmin });
-  const confirmMutation = useConfirmPayrollMutation();
-  const markPaidMutation = useMarkPaidPayrollMutation();
-  const voidMutation = useVoidPayrollMutation();
-  const generateMutation = useGeneratePayrollMutation();
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -66,7 +50,6 @@ export function AdminPayrollPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [generateOpen, setGenerateOpen] = useState(false);
 
   const pendingAmount = earnings
     .filter((e) => e.status === "PENDING")
@@ -106,7 +89,7 @@ export function AdminPayrollPage() {
     return (
       <AccessDenied
         title="Payroll"
-        description="Calculated assistant earnings are reviewed here. Payment mutation remains override-gated and audit-backed."
+        description="Calculated assistant earnings are reviewed here. Payment operations are outside the MVP client scope."
         denial={denial}
       />
     );
@@ -163,32 +146,23 @@ export function AdminPayrollPage() {
     URL.revokeObjectURL(url);
   };
 
-  const isMutating =
-    confirmMutation.isPending || markPaidMutation.isPending || voidMutation.isPending;
-
   return (
     <PageFrame className="p-0 bg-[#FBFBFB]">
       <section className="min-h-[calc(100vh-4rem)] px-5 py-6 lg:px-8 max-w-[1400px] mx-auto">
         <PageHeader
           title="Payroll"
-          description="Review assistant earnings, approved task payouts, payment status, and audit-safe adjustments."
+          description="Read-only view of assistant earnings created after Editor-approved tasks."
         >
           <TextButton onClick={exportCsv}>
             <Download className="size-4" />
             Export CSV
           </TextButton>
-          <TextButton>Rate Settings</TextButton>
-          <ActionButton tone="primary" onClick={() => setGenerateOpen(true)}>
-            <Plus className="size-4" />
-            Generate Payroll
-          </ActionButton>
         </PageHeader>
 
         <div className="mt-6">
           <SeparationOfDutiesWarning>
-            The person who approves drawing quality (Mangaka/Editor) cannot issue payouts
-            themselves. Payroll confirmation, voiding, and payment actions remain override-gated and
-            audit-backed.
+            MVP keeps payroll read-only: earnings are generated from approved assistant tasks, while
+            payment confirmation and voiding are handled outside this workflow.
           </SeparationOfDutiesWarning>
         </div>
 
@@ -282,26 +256,13 @@ export function AdminPayrollPage() {
         </div>
 
         <PayrollTable
-          earnings={earnings}
           rows={visibleRows}
           selectedId={selectedId}
           isLoading={isLoading}
-          updateSucceeded={false}
           onSelect={(earning) => {
             setSelectedId(earning.id);
             setInspectorOpen(true);
           }}
-          onConfirm={(id) => confirmMutation.mutate(id, { onError: (e) => toast.error(e.message) })}
-          onMarkPaid={(id) => {
-            setSelectedId(id);
-            setInspectorOpen(true);
-          }}
-          onVoid={(id) =>
-            voidMutation.mutate(
-              { earningId: id, reason: "Voided from table action" },
-              { onError: (e) => toast.error(e.message) },
-            )
-          }
         />
 
         <DataPagination
@@ -317,46 +278,6 @@ export function AdminPayrollPage() {
         earning={selected}
         open={inspectorOpen}
         onOpenChange={setInspectorOpen}
-        isMutating={isMutating}
-        onConfirm={(id) => {
-          confirmMutation.mutate(id, {
-            onSuccess: () => setInspectorOpen(false),
-            onError: (err) => toast.error(err.message),
-          });
-        }}
-        onMarkPaid={(id, reason) => {
-          markPaidMutation.mutate(
-            { earningId: id, reason },
-            {
-              onSuccess: () => setInspectorOpen(false),
-              onError: (err) => toast.error(err.message),
-            },
-          );
-        }}
-        onVoid={(id, reason) => {
-          voidMutation.mutate(
-            { earningId: id, reason },
-            {
-              onSuccess: () => setInspectorOpen(false),
-              onError: (err) => toast.error(err.message),
-            },
-          );
-        }}
-      />
-
-      <GeneratePayrollDialog
-        open={generateOpen}
-        onOpenChange={setGenerateOpen}
-        isGenerating={generateMutation.isPending}
-        onGenerate={(data) => {
-          generateMutation.mutate(data, {
-            onSuccess: () => {
-              setGenerateOpen(false);
-              toast.success("Payroll generated successfully.");
-            },
-            onError: (err) => toast.error(err.message),
-          });
-        }}
       />
     </PageFrame>
   );

@@ -52,7 +52,6 @@ export { AccessDenied as AdminAccessDenied } from "./components/admin-access";
 // Re-export shared utilities
 export { mapAdminError } from "./api/admin-queries";
 export { adminKeys } from "./api/admin-queries";
-export { useAdminOverrideMutation } from "./api/admin-queries";
 export { useAdminWorkflowSummaryQuery } from "./api/admin-queries";
 export { useDemoDataMutation } from "./api/admin-queries";
 export type {
@@ -60,7 +59,6 @@ export type {
   AuditEntry,
   Earning,
   EarningItem,
-  AdminOverrideResult,
 } from "./api/admin-queries";
 
 // Model exports

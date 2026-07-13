@@ -6,29 +6,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SERIES_STATUS_LABEL } from "@/entities/series/model/series-types";
 import { RoleBadge } from "@/entities/user";
-import { MetricCard, OverrideDialog, PageHeader, Panel, StateBlock, TextButton } from "@/shared/ui";
-import { useAdminOverrideMutation } from "../../api/admin-queries";
+import { MetricCard, PageHeader, Panel, StateBlock } from "@/shared/ui";
 import {
   useChaptersForSeriesQuery,
   useMySeriesQuery,
   useRankingsListQuery,
 } from "@/entities/series";
-import { useAuth } from "@/shared/auth";
 import { StatusPill } from "@/shared/ui/status-pill";
 import { useAdminAccess, AccessDenied } from "../../_shared";
 import { PageShell } from "@/shared/layout/page-layout";
-import { BookOpen, LockKeyhole, Users } from "lucide-react";
+import { BookOpen, Users } from "lucide-react";
 
 export function AdminSeriesManagementPage() {
   const { denial } = useAdminAccess();
-  const user = useAuth((state) => state.user);
   const { data: series = [], isLoading: seriesLoading } = useMySeriesQuery();
   const seriesIds = series.map((item) => item.id);
   const { data: chapters = [], isLoading: chaptersLoading } = useChaptersForSeriesQuery(seriesIds);
   const { data: rankings = [], isLoading: rankingsLoading } = useRankingsListQuery();
-  const overrideMutation = useAdminOverrideMutation();
   const isLoading = seriesLoading || chaptersLoading || rankingsLoading;
 
   if (denial) {
@@ -119,7 +114,7 @@ export function AdminSeriesManagementPage() {
               <TableHead>Status</TableHead>
               <TableHead>Production</TableHead>
               <TableHead>Risk</TableHead>
-              <TableHead className="text-right">Admin action</TableHead>
+              <TableHead className="text-right">Governance</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,23 +156,9 @@ export function AdminSeriesManagementPage() {
                     <StatusPill status={risk ? "at_risk" : "ready"} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <OverrideDialog
-                      actionLabel="Record Series Override"
-                      trigger={
-                        <TextButton className="border-amber-200 text-amber-900">
-                          <LockKeyhole className="size-3.5" />
-                          Hold
-                        </TextButton>
-                      }
-                      onConfirm={(reason) => {
-                        if (!user) return;
-                        overrideMutation.mutate({
-                          action: "ADMIN_SERIES_HOLD_PREVIEW",
-                          targetId: item.id,
-                          reason: `${SERIES_STATUS_LABEL[item.status]} - ${reason}`,
-                        });
-                      }}
-                    />
+                    <span className="text-xs font-medium text-[var(--admin-faint)]">
+                      Board decision required
+                    </span>
                   </TableCell>
                 </TableRow>
               );

@@ -20,7 +20,6 @@ import {
   useUploadPageMutation,
   useDeleteStudioRegionMutation,
   useSubmissionReviewMutation,
-  useAdminOverrideMutation,
   chapterKeys,
   seriesKeys,
   studioKeys,
@@ -216,7 +215,6 @@ export function StudioTab({
   const queryClient = useQueryClient();
   const deleteRegionMutation = useDeleteStudioRegionMutation();
   const reviewSubmissionMutation = useSubmissionReviewMutation();
-  const adminOverrideMutation = useAdminOverrideMutation();
   const detectPageBubblesMutation = useMutation({
     mutationFn: (targetPageId: string) => assistantAiApi.detectPageBubbles(targetPageId),
     onSuccess: (data) => {
@@ -293,22 +291,6 @@ export function StudioTab({
       {
         onSuccess: () => {
           toast.success("Submission review recorded.");
-        },
-        onError: (e) => toast.error(mapApiError(e)),
-      },
-    );
-  };
-
-  const handleAdminOverride = (action: string, targetId: string | undefined, reason: string) => {
-    adminOverrideMutation.mutate(
-      {
-        action,
-        targetId,
-        reason,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Admin override executed and audited.");
         },
         onError: (e) => toast.error(mapApiError(e)),
       },
@@ -746,7 +728,6 @@ export function StudioTab({
           userId={user.id}
           onTaskAction={handleTaskAction}
           onReviewSubmission={handleReviewSubmission}
-          onAdminOverride={handleAdminOverride}
         />
       </div>
 

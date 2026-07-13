@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Mail,
   ShieldCheck,
-  Ban,
   Eye,
 } from "lucide-react";
 import { useAuth, ASSISTANTS, findUserById, type User as AppUser } from "@/shared/auth";
@@ -25,8 +24,6 @@ import {
   useRemoveMemberMutation,
   useUpdateMemberMutation,
   useTantouEditorQuery,
-  useAssignEditorMutation,
-  useRemoveEditorMutation,
   mapApiError,
   type DbMember,
   type TantouEditor,
@@ -226,14 +223,13 @@ function roleForMember(kind: MemberKind): Role {
 
 export function TeamPanel({ series, chapters }: { series: ProductionSeries; chapters: Chapter[] }) {
   const user = useAuth((s) => s.user);
-  const canEdit = !!user && (user.role === "admin" || user.role === "editor");
   const isMangakaOwner = !!user && user.role === "mangaka" && user.id === series.authorId;
+  const canEdit = isMangakaOwner;
   const [picker, setPicker] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [scopeDraft, setScopeDraft] = useState<string>("");
-  const [assignEditorOpen, setAssignEditorOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteScope, setInviteScope] = useState<"Full chapter" | "Task only" | "Read only">(
@@ -242,8 +238,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
 
   const { data: dbMembers = [], isLoading: isMembersLoading } = useSeriesMembersQuery(series.id);
   const { data: tantouEditor } = useTantouEditorQuery(series.id);
-  const assignEditor = useAssignEditorMutation(series.id);
-  const removeEditor = useRemoveEditorMutation(series.id);
 
   const addMember = useAddMemberMutation(series.id);
   const inviteAssistant = useInviteAssistantMutation(series.id);
@@ -359,7 +353,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             Team management
           </p>
           <div className="flex items-center gap-2">
-            {canEdit || isMangakaOwner ? (
+            {canEdit ? (
               <button
                 onClick={() => setInviteOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
@@ -415,18 +409,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             label="Editor"
             value={tantouEditor ? 1 : 0}
             hint={tantouEditor?.userName ?? "Unassigned"}
-            trailing={
-              isMangakaOwner ? (
-                <button
-                  onClick={() => setAssignEditorOpen(true)}
-                  className="text-[10px] font-semibold text-accent hover:underline"
-                >
-                  {tantouEditor ? "Change" : "Assign"}
-                </button>
-              ) : (
-                <ScopePill scope="FULL SERIES" />
-              )
-            }
+            trailing={<ScopePill scope="FULL SERIES" />}
           />
           <StatCard
             icon={<Users className="size-4" />}
@@ -698,86 +681,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
           </div>
         </div>
       )}
-
-      {/* Assign Editor Dialog */}
-      {assignEditorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-80 rounded-md border border-border bg-card p-4 shadow-lg">
-            <h3 className="mb-3 text-sm font-semibold">
-              {tantouEditor ? "Change Tantou Editor" : "Assign Tantou Editor"}
-            </h3>
-            {tantouEditor ? (
-              <div className="mb-3 rounded border border-border bg-background p-3">
-                <p className="text-xs text-muted-foreground">Current editor:</p>
-                <p className="mt-1 text-sm font-semibold">{tantouEditor.userName}</p>
-                <p className="text-xs text-muted-foreground">{tantouEditor.userEmail}</p>
-                <button
-                  onClick={async () => {
-                    try {
-                      await removeEditor.mutateAsync();
-                      toast.success("Tantou Editor removed.");
-                      setAssignEditorOpen(false);
-                    } catch (err) {
-                      toast.error(mapApiError(err));
-                    }
-                  }}
-                  disabled={removeEditor.isPending}
-                  className="mt-2 inline-flex items-center gap-1 rounded border border-rose-300 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                >
-                  <Ban className="size-3" /> Remove editor
-                </button>
-              </div>
-            ) : (
-              <p className="mb-3 text-xs text-muted-foreground">
-                No Tantou Editor yet. Select an editor from the list below.
-              </p>
-            )}
-            <div className="mb-3">
-              <p className="mb-1 text-xs font-semibold">Select editor:</p>
-              <select
-                id="assign-editor-select"
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-              >
-                <option value="">-- Select editor --</option>
-                <option value="u-editor">Tanaka Akira</option>
-                <option value="u-mobile-editor">Mobile Editor</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setAssignEditorOpen(false)}
-                className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  const select = document.getElementById(
-                    "assign-editor-select",
-                  ) as HTMLSelectElement;
-                  const editorId = select?.value;
-                  if (!editorId) {
-                    toast.error("Please select an editor.");
-                    return;
-                  }
-                  const editorName = editorId === "u-editor" ? "Tanaka Akira" : "Mobile Editor";
-                  try {
-                    await assignEditor.mutateAsync({ editorId, editorName });
-                    toast.success("Tantou Editor assigned.");
-                    setAssignEditorOpen(false);
-                  } catch (err) {
-                    toast.error(mapApiError(err));
-                  }
-                }}
-                disabled={assignEditor.isPending}
-                className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-50"
-              >
-                {assignEditor.isPending ? "Saving..." : "Assign"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -977,7 +880,7 @@ function MemberDetail({
             onClick={onRemove}
             className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md border border-rose-300 bg-background px-2 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50"
           >
-            <Ban className="size-3" /> Disable
+            <X className="size-3" /> Remove assistant
           </button>
         ) : null}
       </div>

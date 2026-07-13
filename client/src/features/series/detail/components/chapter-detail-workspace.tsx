@@ -111,8 +111,10 @@ export function ChapterDetailWorkspace({
   const noBlocking = chapter.reviewNotes.every((n) => n.resolved);
   const ready = hasPages && hasAssignee && hasDeadline && noBlocking;
 
+  const isMangakaOwner = user.role === "mangaka" && user.id === series.authorId;
   const canUpload =
-    chapter.status === "DRAFTING" || chapter.status === "REVISION" || chapter.status === "PLANNED";
+    isMangakaOwner &&
+    (chapter.status === "DRAFTING" || chapter.status === "REVISION" || chapter.status === "PLANNED");
   const submitCheck = checkChapterAction("SUBMIT_REVIEW", user, chapter, series);
   const submissionReadinessKeys = new Set([
     "allPagesUploaded",
@@ -316,7 +318,7 @@ export function ChapterDetailWorkspace({
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         {/* Left: Pages Grid */}
         <div id="chapter-pages" className="rounded-md border border-border bg-card p-4">
-          <ChapterPagesPreview chapter={chapter} expanded compact />
+          <ChapterPagesPreview chapter={chapter} canUpload={canUpload} expanded compact />
         </div>
 
         {/* Right: Sticky Inspector */}

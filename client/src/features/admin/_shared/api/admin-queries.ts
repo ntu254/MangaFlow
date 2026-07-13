@@ -149,25 +149,6 @@ export function useAdminWorkflowSummaryQuery(options: { enabled?: boolean } = {}
   });
 }
 
-export interface AdminOverrideResult {
-  success: boolean;
-  message?: string;
-}
-
-export function useAdminOverrideMutation() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    AdminOverrideResult,
-    Error,
-    { action: string; targetId?: string; reason: string }
-  >({
-    mutationFn: (body) => adminApi.override(body) as Promise<AdminOverrideResult>,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.all });
-    },
-  });
-}
-
 /** Demo tooling: reset (reseed) or clear all transactional data, keeping users. */
 export function useDemoDataMutation() {
   const queryClient = useQueryClient();

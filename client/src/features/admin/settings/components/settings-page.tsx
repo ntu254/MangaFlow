@@ -2,13 +2,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { SeparationOfDutiesWarning } from "@/entities/access";
-import { ActionButton, OverrideDialog, PageHeader, StateBlock } from "@/shared/ui";
+import { ActionButton, PageHeader, StateBlock } from "@/shared/ui";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import {
-  mapAdminError,
-  useAdminOverrideMutation,
-  useDemoDataMutation,
-} from "../../api/admin-queries";
+import { mapAdminError, useDemoDataMutation } from "../../api/admin-queries";
 import { PageShell, SettingRow, SettingsGroup } from "@/shared/layout/page-layout";
 import { StatusPill } from "@/shared/ui/status-pill";
 import { useAdminAccess, AccessDenied } from "../../_shared";
@@ -38,7 +34,6 @@ const settings = [
 
 export function AdminSettingsPage() {
   const { denial } = useAdminAccess();
-  const overrideMutation = useAdminOverrideMutation();
   const demoMutation = useDemoDataMutation();
   const [demoMode, setDemoMode] = useState<null | "reset" | "clear">(null);
 
@@ -101,7 +96,6 @@ export function AdminSettingsPage() {
             "Use live backend for web login",
             "Route AI calls through Express",
             "Keep mobile /api compatibility aliases",
-            "Require admin override reason",
           ].map((label) => (
             <div
               key={label}
@@ -121,44 +115,6 @@ export function AdminSettingsPage() {
           Backend feature flag management is intentionally disabled until persistence, audit, and
           rollback semantics are implemented.
         </p>
-      </SettingsGroup>
-
-      <SettingsGroup title="Sensitive operations">
-        {overrideMutation.isSuccess ? (
-          <div className="mb-4">
-            <StateBlock
-              tone="success"
-              title="Rotation request recorded"
-              description="A preview admin override entry was sent to the backend audit stream."
-            />
-          </div>
-        ) : null}
-        {overrideMutation.error ? (
-          <div className="mb-4">
-            <StateBlock
-              tone="danger"
-              title="Could not record rotation request"
-              description={mapAdminError(overrideMutation.error)}
-            />
-          </div>
-        ) : null}
-        <OverrideDialog
-          actionLabel="Record Rotation Request"
-          trigger={
-            <ActionButton tone="danger" disabled={overrideMutation.isPending}>
-              Record key rotation request
-            </ActionButton>
-          }
-          targetLabel="Key rotation request preview"
-          auditImpact="Creates an admin override preview audit event only. It does not rotate credentials or mutate third-party services."
-          onConfirm={(reason) => {
-            overrideMutation.mutate({
-              action: "KEY_ROTATION_REQUEST_PREVIEW",
-              targetId: "key-rotation",
-              reason,
-            });
-          }}
-        />
       </SettingsGroup>
 
       <SettingsGroup title="Demo data">
