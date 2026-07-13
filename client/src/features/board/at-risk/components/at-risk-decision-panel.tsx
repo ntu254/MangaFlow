@@ -1,18 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { ActionButton, Panel, StateBlock } from "@/shared/ui";
+import {
+  AT_RISK_DECISIONS,
+  AT_RISK_DECISION_EFFECT,
+  AT_RISK_DECISION_LABEL,
+  requiresAtRiskDecisionReason,
+  type AtRiskDecisionKind,
+} from "@/entities/board/model/board-types";
 import type { AtRiskReport } from "../../api/board-queries";
 import { useAtRiskDecisionMutation } from "../../api/board-queries";
-
-const DECISIONS = [
-  { value: "CONTINUE", label: "Continue" },
-  { value: "RESCHEDULE", label: "Reschedule" },
-  { value: "HIATUS", label: "Hiatus" },
-  { value: "CANCELLED", label: "Cancelled" },
-] as const;
-
-type Decision = (typeof DECISIONS)[number]["value"];
 
 export function AtRiskDecisionPanel({
   seriesId,
@@ -22,11 +20,18 @@ export function AtRiskDecisionPanel({
   report?: AtRiskReport | null;
 }) {
   const decideMutation = useAtRiskDecisionMutation();
-  const [decision, setDecision] = useState<Decision>("CONTINUE");
+  const [decision, setDecision] = useState<AtRiskDecisionKind>("CONTINUE");
   const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
   const [note, setNote] = useState("");
   const hasReport = Boolean(report);
-  const canSubmit = hasReport && (!["HIATUS", "CANCELLED"].includes(decision) || note.trim());
+  const reasonRequired = requiresAtRiskDecisionReason(decision);
+  const canSubmit = hasReport && (!reasonRequired || note.trim().length > 0);
+
+  useEffect(() => {
+    setDecision("CONTINUE");
+    setPublicationType("MONTHLY");
+    setNote("");
+  }, [seriesId, report?.id]);
 
   return (
     <Panel
@@ -47,19 +52,20 @@ export function AtRiskDecisionPanel({
       )}
 
       <div className="grid grid-cols-2 gap-2">
-        {DECISIONS.map((item) => (
+        {AT_RISK_DECISIONS.map((item) => (
           <button
-            key={item.value}
+            key={item}
             type="button"
             disabled={!hasReport}
-            onClick={() => setDecision(item.value)}
+            onClick={() => setDecision(item)}
             className={`h-10 rounded-[5px] border px-3 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-              decision === item.value
+              decision === item
                 ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)]"
                 : "border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-ink)] hover:bg-[var(--admin-hover)]"
             }`}
+            title={AT_RISK_DECISION_EFFECT[item]}
           >
-            {item.label}
+            {AT_RISK_DECISION_LABEL[item]}
           </button>
         ))}
       </div>
@@ -90,7 +96,7 @@ export function AtRiskDecisionPanel({
 
       <div>
         <label className="mb-1 block text-[11px] font-semibold text-[var(--admin-muted)]">
-          Decision note {["HIATUS", "CANCELLED"].includes(decision) ? "*" : ""}
+          Decision note {reasonRequired ? "*" : ""}
         </label>
         <Textarea
           rows={4}

@@ -35,11 +35,7 @@ function isAtRiskQueueItem(item: unknown): item is AtRiskQueueItem {
 }
 
 export function AtRiskReviewsPage() {
-  const {
-    data: queue = [],
-    isLoading: queueLoading,
-    error: queueError,
-  } = useBoardQueueQuery();
+  const { data: queue = [], isLoading: queueLoading, error: queueError } = useBoardQueueQuery();
   const {
     data: rankings = [],
     isLoading: rankingsLoading,
@@ -166,7 +162,10 @@ export function AtRiskReviewsPage() {
           The Board decision is blocked until the assigned Tantou Editor submits a report.
         </Notice>
         {isLoading ? (
-          <StateBlock title="Loading at-risk decisions" description="Fetching ranking signals and Board queue." />
+          <StateBlock
+            title="Loading at-risk decisions"
+            description="Fetching ranking signals and Board queue."
+          />
         ) : loadError ? (
           <StateBlock
             tone="danger"
@@ -186,50 +185,50 @@ export function AtRiskReviewsPage() {
               empty="No series need review. New at-risk signals will appear here."
             />
             {selected ? (
-            <div className="space-y-4">
-              <section className="rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-xs">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--admin-muted)]">
-                  Ranking + report
-                </p>
-                <dl className="mt-3 grid grid-cols-2 gap-3">
-                  <Metric label="Period" value={selected.period} />
-                  <Metric label="Final score" value={selected.finalScore.toFixed(1)} />
-                  <Metric label="Reader score" value={selected.readerScore.toFixed(1)} />
-                  <Metric label="Votes" value={selected.voteCount.toLocaleString()} />
-                </dl>
-                <div className="mt-4 border-t border-[var(--admin-border)] pt-3">
-                  {reportLoading ? (
-                    <p className="text-[var(--admin-muted)]">Loading latest report...</p>
-                  ) : reportError ? (
-                    <StateBlock
-                      tone="danger"
-                      title="Could not load report"
-                      description={
-                        reportError instanceof Error ? reportError.message : "Please try again."
-                      }
-                    />
-                  ) : latestReport ? (
-                    <>
-                      <p className="font-semibold text-[var(--admin-ink)]">
-                        {latestReport.editorName ?? latestReport.editorId}
-                      </p>
-                      <p className="mt-1 text-[var(--admin-muted)]">
-                        Recommendation: {latestReport.recommendation}
-                      </p>
-                      <p className="mt-2 text-[var(--admin-ink)]">
-                        {latestReport.rankingSummary}
-                      </p>
-                      {latestReport.notes ? (
-                        <p className="mt-2 text-[var(--admin-muted)]">{latestReport.notes}</p>
-                      ) : null}
-                    </>
-                  ) : (
-                    <p className="text-[var(--admin-muted)]">No submitted report yet.</p>
-                  )}
-                </div>
-              </section>
-              <AtRiskDecisionPanel seriesId={selected.seriesId} report={latestReport} />
-            </div>
+              <div className="space-y-4">
+                <section className="rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-xs">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--admin-muted)]">
+                    Ranking + report
+                  </p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3">
+                    <Metric label="Period" value={selected.period} />
+                    <Metric label="Final score" value={selected.finalScore.toFixed(1)} />
+                    <Metric label="Reader score" value={selected.readerScore.toFixed(1)} />
+                    <Metric label="Votes" value={selected.voteCount.toLocaleString()} />
+                  </dl>
+                  <div className="mt-4 border-t border-[var(--admin-border)] pt-3">
+                    {reportLoading ? (
+                      <p className="text-[var(--admin-muted)]">Loading latest report...</p>
+                    ) : reportError ? (
+                      <StateBlock
+                        tone="danger"
+                        title="Could not load report"
+                        description={
+                          reportError instanceof Error ? reportError.message : "Please try again."
+                        }
+                      />
+                    ) : latestReport ? (
+                      <>
+                        <p className="font-semibold text-[var(--admin-ink)]">
+                          {latestReport.editorName ?? latestReport.editorId}
+                        </p>
+                        <p className="mt-1 text-[var(--admin-muted)]">
+                          Recommendation: {latestReport.recommendation}
+                        </p>
+                        <p className="mt-2 text-[var(--admin-ink)]">
+                          {latestReport.rankingSummary}
+                        </p>
+                        {latestReport.notes ? (
+                          <p className="mt-2 text-[var(--admin-muted)]">{latestReport.notes}</p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="text-[var(--admin-muted)]">No submitted report yet.</p>
+                    )}
+                  </div>
+                </section>
+                <AtRiskDecisionPanel seriesId={selected.seriesId} report={latestReport} />
+              </div>
             ) : null}
           </div>
         )}

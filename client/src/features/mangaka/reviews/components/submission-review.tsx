@@ -24,7 +24,7 @@ import {
   useTaskSubmissionsQuery,
 } from "@/features/series";
 import { useAuth } from "@/shared/auth";
-import { ImageCompare } from "@/shared/ui";
+import { ImageCompare, StateBlock } from "@/shared/ui";
 
 export function SubmissionReview({ submissionId }: { submissionId: string }) {
   const user = useAuth((state) => state.user);
@@ -97,6 +97,19 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
 
   if (!user) return null;
 
+  if (user.role !== "mangaka") {
+    return (
+      <div className="mx-auto max-w-5xl space-y-4 p-6">
+        {backLink}
+        <StateBlock
+          tone="danger"
+          title="Mangaka access required"
+          description="Only the Mangaka owner of a series can review assistant submissions here."
+        />
+      </div>
+    );
+  }
+
   if (subLoading) {
     return <SubmissionReviewLoading backLink={backLink} />;
   }
@@ -106,6 +119,22 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
   }
 
   const isPending = submission.status === "PENDING" || submission.status === "SUBMITTED";
+  const isMangakaOwner = ctx?.series?.authorId === user.id;
+
+  if (ctx?.series && !isMangakaOwner) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-4 p-6">
+        {backLink}
+        <StateBlock
+          tone="danger"
+          title="This submission is outside your series"
+          description="Only the Mangaka owner of the series can approve, request revision, or reject this assistant submission."
+        />
+      </div>
+    );
+  }
+
+  const canReview = isPending && isMangakaOwner && submission.assistantId !== user.id;
 
   function handleReview(action: "approve" | "reject" | "request-revision", reason?: string) {
     reviewMutation.mutate(
@@ -137,7 +166,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
       key: "approve",
       label: "Approve",
       variant: "primary",
-      supported: isPending && submission.assistantId !== user.id,
+      supported: canReview,
       onAct: (reason) => handleReview("approve", reason),
     },
     {
@@ -145,7 +174,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
       label: "Request Revision",
       variant: "warn",
       requiresReason: true,
-      supported: isPending,
+      supported: canReview,
       onAct: (reason) => handleReview("request-revision", reason),
     },
     {
@@ -153,7 +182,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
       label: "Reject",
       variant: "danger",
       requiresReason: true,
-      supported: isPending,
+      supported: canReview,
       onAct: (reason) => handleReview("reject", reason),
     },
   ];

@@ -167,8 +167,8 @@ export function AdminUsersPage() {
 
         <div className="mt-6">
           <SeparationOfDutiesWarning>
-            User role, activation, and deletion changes require a separate admin override reason and
-            are recorded in the audit trail.
+            User role, activation, and deletion changes require a separate admin confirmation reason
+            and are recorded in the audit trail.
           </SeparationOfDutiesWarning>
         </div>
 
