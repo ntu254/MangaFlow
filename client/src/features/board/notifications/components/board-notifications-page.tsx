@@ -39,11 +39,11 @@ export function BoardNotificationsPage() {
         description="Proposal, vote, tie-break, ranking, and at-risk signals only."
       />
       {isLoading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">Đang tải...</div>
+        <div className="py-12 text-center text-sm text-muted-foreground">Loading...</div>
       ) : items.length === 0 ? (
         <EmptyState
-          title="Không có thông báo mới"
-          description="Governance notification queue đang trống."
+          title="No new notifications"
+          description="The governance notification queue is empty."
         />
       ) : (
         <div className="space-y-2">

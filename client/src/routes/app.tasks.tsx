@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/tasks")({
   head: () => ({
     meta: [
       { title: "Tasks — beachRead Studio" },
-      { name: "description", content: "Các chapter đang chờ action của bạn." },
+      { name: "description", content: "Your chapters awaiting action." },
     ],
   }),
   component: TasksPage,

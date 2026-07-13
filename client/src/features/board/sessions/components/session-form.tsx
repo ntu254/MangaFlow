@@ -21,7 +21,7 @@ export function SessionForm({
   });
   const createSessionMutation = useCreateVotingSessionMutation();
   const [mode, setMode] = useState<VotingSessionMode>("SCHEDULED");
-  const [title, setTitle] = useState("Phiên họp Board");
+  const [title, setTitle] = useState("Board meeting");
   const [scheduledFor, setScheduledFor] = useState(
     toDateInputValue(new Date(Date.now() + 48 * 3600_000).toISOString()),
   );
@@ -44,16 +44,16 @@ export function SessionForm({
   const submit = async () => {
     try {
       const session = await createSessionMutation.mutateAsync({
-        title: title.trim() || (mode === "AD_HOC" ? "Phiên ad-hoc" : "Phiên họp Board"),
+        title: title.trim() || (mode === "AD_HOC" ? "Ad-hoc session" : "Board meeting"),
         mode,
         proposalIds: selected,
         scheduledFor: mode === "SCHEDULED" ? fromDateInputValue(scheduledFor) : undefined,
         closesAt: closesAt ? fromDateInputValue(closesAt) : undefined,
       });
-      toast.success("Đã tạo session.");
+      toast.success("Session created.");
       onCreated(session);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Lỗi.");
+      toast.error(e instanceof Error ? e.message : "Error.");
     }
   };
 
@@ -86,7 +86,7 @@ export function SessionForm({
             htmlFor="title"
             className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
           >
-            Tiêu đề
+            Title
           </Label>
           <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
@@ -96,7 +96,7 @@ export function SessionForm({
               htmlFor="sched"
               className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
             >
-              Lịch họp
+              Scheduled meeting
             </Label>
             <Input
               id="sched"
@@ -111,7 +111,7 @@ export function SessionForm({
             htmlFor="closes"
             className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
           >
-            Đóng dự kiến (tuỳ chọn)
+            Expected close (optional)
           </Label>
           <Input
             id="closes"
@@ -124,16 +124,16 @@ export function SessionForm({
 
       <div>
         <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Chọn proposal ({selected.length}
+          Select proposals ({selected.length}
           {mode === "AD_HOC" ? "/1" : ""})
         </p>
         {isLoadingProposals ? (
           <p className="rounded border border-dashed border-border p-4 text-xs text-muted-foreground">
-            Đang tải proposals...
+            Loading proposals...
           </p>
         ) : eligible.length === 0 ? (
           <p className="rounded border border-dashed border-border p-4 text-xs text-muted-foreground">
-            Hien khong co proposal nao dang cho Board review hoac can tie-break.
+            Hien khong co proposal nao dang for Board review hoac can tie-break.
           </p>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -177,7 +177,7 @@ export function SessionForm({
           disabled={selected.length === 0 || createSessionMutation.isPending}
           className="rounded bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-40"
         >
-          Tạo session
+          Create session
         </button>
       </div>
     </div>
@@ -187,7 +187,7 @@ export function SessionForm({
 function formatProposalStatus(status: string) {
   switch (status) {
     case "PENDING_BOARD":
-      return "Dang cho Board review";
+      return "Dang for Board review";
     case "TIE_BREAK":
       return "Can tie-break";
     default:

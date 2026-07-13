@@ -17,7 +17,7 @@ export function SeparationOfDutiesWarning({
           {children ??
             (reason
               ? RESTRICTION_LABEL[reason]
-              : "Thao tác này cần kiểm soát trách nhiệm tách biệt.")}
+              : "This action requires separation-of-duties control.")}
         </p>
       </div>
     </div>

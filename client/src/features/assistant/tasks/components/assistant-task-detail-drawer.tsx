@@ -78,10 +78,10 @@ export function AssistantTaskDetailDrawer({
         ) : null}
       </div>
 
-      <DrawerSection title="Mô tả nhiệm vụ">
+      <DrawerSection title="Task description">
         <p className="text-xs leading-relaxed text-muted-foreground">{task.instructions}</p>
       </DrawerSection>
-      <DrawerSection title="Vị trí">
+      <DrawerSection title="Location">
         <dl className="grid grid-cols-2 gap-2 text-[11px]">
           <Item k="Series" v={ctx.series?.title ?? "—"} />
           <Item k="Chapter" v={`Ch. ${String(ctx.chapter?.number ?? 0).padStart(3, "0")}`} />
@@ -91,7 +91,7 @@ export function AssistantTaskDetailDrawer({
       </DrawerSection>
       <DrawerSection title={`Feedback (${taskComments.length})`}>
         {taskComments.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground">Chưa có feedback.</p>
+          <p className="text-[11px] text-muted-foreground">No feedback yet.</p>
         ) : (
           <ul className="space-y-2">
             {taskComments.map((c) => (

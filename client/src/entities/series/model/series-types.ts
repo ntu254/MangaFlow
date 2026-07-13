@@ -169,26 +169,26 @@ export const CHAPTER_STATUS_LABEL: Record<ChapterStatus, string> = {
 };
 
 export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
-  START_DRAFT: "Bắt đầu viết",
-  START_ASSISTANT_WORK: "Bắt đầu sản xuất",
+  START_DRAFT: "Start drafting",
+  START_ASSISTANT_WORK: "Start production",
   SUBMIT_REVIEW: "Submit review",
-  REQUEST_REVISION: "Yêu cầu chỉnh sửa",
+  REQUEST_REVISION: "Changes requested",
   REJECT: "Reject",
   RESUBMIT: "Resubmit",
   EDITOR_APPROVE: "Editor approve",
   APPROVE: "Approve",
   MARK_READY: "Mark ready",
   SCHEDULE: "Schedule",
-  POSTPONE: "Tạm hoãn",
-  PUBLISH: "Publish ngạy",
-  REASSIGN: "Đổi assignee",
+  POSTPONE: "Postpone",
+  PUBLISH: "Publish now",
+  REASSIGN: "Change assignee",
   ARCHIVE: "Archive",
 };
 
 export const CADENCE_LABEL: Record<ChapterCadence, string> = {
-  weekly: "Hàng tuần",
-  biweekly: "2 tuần/lần",
-  monthly: "Hàng tháng",
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
 };
 
 export const CHAPTER_STATUS_FLOW: ChapterStatus[] = [
@@ -260,7 +260,7 @@ export const SERIES_MATERIAL_KIND_LABEL: Record<SeriesMaterialKind, string> = {
   sfx: "SFX / Lettering",
   style_guide: "Style Guide",
   brush: "Brush / Tone",
-  other: "Kh├íc",
+  other: "Other",
 };
 
 export const SERIES_MATERIAL_STATUS_LABEL: Record<SeriesMaterialStatus, string> = {

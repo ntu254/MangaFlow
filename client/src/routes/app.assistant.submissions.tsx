@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/assistant/submissions")({
   head: () => ({
     meta: [
       { title: "Submissions — beachRead Studio" },
-      { name: "description", content: "Theo dõi submission đã nộp." },
+      { name: "description", content: "Track submitted work." },
     ],
   }),
   component: SubmissionsPage,

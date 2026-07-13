@@ -35,11 +35,13 @@ export function StatusFlow({ status }: { status: ProposalStatus }) {
       </ol>
       {terminal ? (
         <p className="mt-3 text-xs text-muted-foreground">
-          Trạng thái cuối:{" "}
+          Final status:{" "}
           <span className="font-semibold text-foreground">{STATUS_LABEL[status]}</span>
         </p>
       ) : status === "CHANGES_REQUESTED" ? (
-        <p className="mt-3 text-xs text-amber-900">Đang chờ tác giả chỉnh sửa và resubmit.</p>
+        <p className="mt-3 text-xs text-amber-900">
+          Waiting for the author to revise and resubmit.
+        </p>
       ) : null}
     </div>
   );

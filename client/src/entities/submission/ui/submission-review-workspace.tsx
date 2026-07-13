@@ -66,8 +66,8 @@ export function SubmissionReviewMissing({ backLink }: { backLink: ReactNode }) {
       <section className="mx-auto max-w-7xl space-y-5">
         {backLink}
         <EmptyState
-          title="Không tìm thấy submission"
-          description="Submission có thể đã bị xoá hoặc đường dẫn không hợp lệ."
+          title="Submission not found"
+          description="The submission may have been deleted or the URL is invalid."
         />
       </section>
     </PageFrame>
@@ -86,7 +86,7 @@ export function SubmissionReviewWorkspace({
   currentUserId,
   history,
   comparison,
-  processedMessage = "Submission đã được xử lý. Không thể thao tác thêm.",
+  processedMessage = "This submission has already been processed. No further action is available.",
 }: SubmissionReviewWorkspaceProps) {
   const selfApprovalBlocked = currentUserId ? submission.assistantId === currentUserId : false;
   const feedbackMeta =

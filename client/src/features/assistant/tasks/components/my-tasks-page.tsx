@@ -26,7 +26,7 @@ import { getVisualTaskStatus, type VisualTaskStatus } from "@/entities/task";
 type TabKey = "ALL" | VisualTaskStatus;
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "ALL", label: "Tất cả" },
+  { key: "ALL", label: "All" },
   { key: "TODO", label: "To do" },
   { key: "IN_PROGRESS", label: "In progress" },
   { key: "SUBMITTED", label: "Submitted" },
@@ -120,7 +120,7 @@ export function MyTasksPage() {
       <PageHeader
         eyebrow="Production"
         title="My tasks"
-        description={`${mine.length} task được giao, bao gồm deadline, feedback và trạng thái xử lý.`}
+        description={`${mine.length} assigned tasks, including deadlines, feedback, and processing status.`}
       />
 
       <TaskStatusSummary tasks={mine} />
@@ -129,7 +129,7 @@ export function MyTasksPage() {
         <SearchToolbar
           query={query}
           onQueryChange={setQuery}
-          placeholder="Tìm task..."
+          placeholder="Search tasks..."
           filters={
             <>
               <Select value={seriesFilter} onValueChange={setSeriesFilter}>
@@ -140,7 +140,7 @@ export function MyTasksPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả series</SelectItem>
+                  <SelectItem value="ALL">All series</SelectItem>
                   {seriesList.map((series) => (
                     <SelectItem key={series.id} value={series.id}>
                       {series.title}
@@ -156,10 +156,10 @@ export function MyTasksPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả priority</SelectItem>
-                  <SelectItem value="high">Cao</SelectItem>
-                  <SelectItem value="normal">Bình thường</SelectItem>
-                  <SelectItem value="low">Thấp</SelectItem>
+                  <SelectItem value="ALL">All priority</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
               <TextButton
@@ -215,12 +215,12 @@ export function MyTasksPage() {
           <DataTable
             isEmpty
             emptyTitle={
-              mine.length === 0 ? "Bạn chưa có task nào được giao" : "Không có task khớp filter"
+              mine.length === 0 ? "You have no assigned tasks yet" : "No tasks match the filters"
             }
             emptyDescription={
               mine.length === 0
-                ? "Khi Mangaka tạo task mới và assign cho bạn, task sẽ hiển thị tại đây."
-                : "Thử thay đổi trạng thái hoặc bộ lọc tìm kiếm."
+                ? "When a Mangaka creates and assigns a new task to you, it will appear here."
+                : "Try changing the status or search filters."
             }
           />
         ) : (

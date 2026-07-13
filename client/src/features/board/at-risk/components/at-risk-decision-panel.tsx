@@ -29,7 +29,7 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
   return (
     <Panel
       title="At-risk decision"
-      description="Các quyết định thay đổi trạng thái tác phẩm"
+      description="Decisions that change a work's status"
       contentClassName="space-y-4"
     >
       <div className="grid grid-cols-2 gap-2">
@@ -58,7 +58,7 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
                   <TooltipTrigger asChild>
                     <span className="block w-full cursor-not-allowed">{button}</span>
                   </TooltipTrigger>
-                  <TooltipContent>Chưa hỗ trợ trong MVP</TooltipContent>
+                  <TooltipContent>Not supported in the MVP</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             );
@@ -69,12 +69,12 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
       </div>
 
       {decision && (
-        <StateBlock title="Hiệu ứng dự kiến" description={getAtRiskDecisionEffect(decision)} />
+        <StateBlock title="Expected impact" description={getAtRiskDecisionEffect(decision)} />
       )}
 
       <div>
         <label className="mb-1 block text-[11px] font-semibold text-[var(--admin-muted)]">
-          Lý do thực hiện {reasonRequired && <span className="text-rose-500">*</span>}
+          Reason {reasonRequired && <span className="text-rose-500">*</span>}
         </label>
         <Textarea
           rows={4}
@@ -82,8 +82,8 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
           onChange={(event) => setReason(event.target.value)}
           placeholder={
             reasonRequired
-              ? "Bắt buộc điền lý do cho các quyết định cảnh báo hoặc huỷ bỏ..."
-              : "Ghi chú quyết định..."
+              ? "A reason is required for warning or cancellation decisions..."
+              : "Decision note..."
           }
         />
       </div>
@@ -102,14 +102,14 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
               },
             },
             {
-              onSuccess: () => toast.success("Đã ghi nhận at-risk decision."),
-              onError: (e) => toast.error(e instanceof Error ? e.message : "Lỗi."),
+              onSuccess: () => toast.success("At-risk decision recorded."),
+              onError: (e) => toast.error(e instanceof Error ? e.message : "Error."),
             },
           );
         }}
         className="w-full"
       >
-        {decideMutation.isPending ? "Đang xử lý..." : "Record decision"}
+        {decideMutation.isPending ? "Processing..." : "Record decision"}
       </ActionButton>
     </Panel>
   );

@@ -21,13 +21,13 @@ export function TaskBriefPanel({
 }) {
   const accepted = ["PSD", "CLIP", "PNG ≥ 300 DPI"];
   const checklist = [
-    "Bám sát vùng region đã đánh dấu",
-    "Giữ tỉ lệ và phong cách của chapter trước",
-    "Đảm bảo file đầu ra đúng định dạng",
+    "Stay within the marked region",
+    "Keep the proportions and style of the previous chapter",
+    "Ensure the output file uses the correct format",
   ];
   return (
     <aside className="flex h-full flex-col gap-4 overflow-y-auto p-3">
-      <Header icon={<FileText className="size-3.5" />} title="Loại task" />
+      <Header icon={<FileText className="size-3.5" />} title="Task type" />
       <p className="-mt-2 text-xs">
         <span className="rounded bg-muted px-1.5 py-0.5 font-semibold">
           {REGION_TYPE_LABEL[task.type]}
@@ -39,7 +39,7 @@ export function TaskBriefPanel({
         {task.instructions}
       </p>
 
-      <Header icon={<Layers className="size-3.5" />} title="Vùng region" />
+      <Header icon={<Layers className="size-3.5" />} title="Region" />
       <ul className="-mt-2 space-y-1 text-[11px] text-muted-foreground">
         <li>
           Series: <span className="font-semibold text-foreground">{series?.title ?? "—"}</span>
@@ -61,7 +61,7 @@ export function TaskBriefPanel({
         title={`References (${references.length})`}
       />
       {references.length === 0 ? (
-        <p className="-mt-2 text-[11px] text-muted-foreground">Không có reference đính kèm.</p>
+        <p className="-mt-2 text-[11px] text-muted-foreground">No references attached.</p>
       ) : (
         <ul className="-mt-2 space-y-1.5">
           {references.slice(0, 6).map((m) => (

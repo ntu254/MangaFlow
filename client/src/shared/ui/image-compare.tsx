@@ -39,8 +39,8 @@ export function ImageCompare({
   beforeUrl,
   afterFileKey,
   afterUrl,
-  beforeLabel = "Gốc",
-  afterLabel = "Đã chỉnh sửa",
+  beforeLabel = "Original",
+  afterLabel = "Edited",
   className,
 }: ImageCompareProps) {
   const before: ImageSource = { fileKey: beforeFileKey, url: beforeUrl };
@@ -152,7 +152,7 @@ export function ImageCompare({
           max={100}
           value={position}
           onChange={(event) => setPosition(clampPosition(Number(event.target.value)))}
-          aria-label={`So sánh ${beforeLabel} và ${afterLabel}`}
+          aria-label={`Compare ${beforeLabel} and ${afterLabel}`}
           className="absolute inset-x-0 bottom-0 z-20 w-full cursor-ew-resize opacity-0"
         />
       </div>

@@ -8,17 +8,14 @@ import type {
   SeriesPublicationType,
 } from "@/entities/series/model/series-types";
 import { useChapterActionMutation } from "@/entities/series";
-import {
-  formatDate,
-  isOverdue,
-} from "@/shared/lib/format-date";
+import { formatDate, isOverdue } from "@/shared/lib/format-date";
 import { ReviewStatusPill } from "@/entities/submission";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const CADENCE_INTERVAL_LABEL: Record<ChapterCadence, string> = {
-  weekly: "+1 tuần",
-  biweekly: "+2 tuần",
-  monthly: "+1 tháng",
+  weekly: "+1 week",
+  biweekly: "+2 weeks",
+  monthly: "+1 month",
 };
 
 const TODAY = toDateTimeInputValue(new Date().toISOString());
@@ -68,10 +65,10 @@ function SchedulePopover({
       { action: "SCHEDULE", payload: { scheduledAt: fromScheduleInputValue(value) } },
       {
         onSuccess: () => {
-          toast.success("Đã đặt lịch xuất bản.");
+          toast.success("Publication scheduled.");
           setOpen(false);
         },
-        onError: () => toast.error("Không đặt được lịch."),
+        onError: () => toast.error("Could not schedule publication."),
       },
     );
   };
@@ -87,7 +84,7 @@ function SchedulePopover({
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 space-y-2 p-3">
-        <p className="text-[11px] font-semibold text-foreground">Chọn ngày xuất bản</p>
+        <p className="text-[11px] font-semibold text-foreground">Select publication date</p>
         <input
           type="datetime-local"
           min={TODAY}
@@ -101,7 +98,7 @@ function SchedulePopover({
           onClick={submit}
           className="w-full rounded bg-foreground px-2 py-1.5 text-[11px] font-semibold text-background hover:opacity-90 disabled:opacity-40"
         >
-          {action.isPending ? "Đang lưu..." : "Xác nhận"}
+          {action.isPending ? "Saving..." : "Confirm"}
         </button>
       </PopoverContent>
     </Popover>
@@ -125,19 +122,19 @@ function PublicationActions({
       { action: act },
       {
         onSuccess: () => toast.success(successMsg),
-        onError: () => toast.error("Thao tác thất bại."),
+        onError: () => toast.error("Action failed."),
       },
     );
 
   if (chapter.status === "PUBLISHED") {
-    return <span className="text-[10px] font-semibold text-emerald-700">Đã publish</span>;
+    return <span className="text-[10px] font-semibold text-emerald-700">Published</span>;
   }
 
   const publishBtn = (
     <button
       type="button"
       disabled={action.isPending}
-      onClick={() => run("PUBLISH", "Đã publish chapter.")}
+      onClick={() => run("PUBLISH", "Chapter published.")}
       className="rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background hover:opacity-90 disabled:opacity-40"
     >
       Publish
@@ -153,10 +150,10 @@ function PublicationActions({
           <button
             type="button"
             disabled={action.isPending}
-            onClick={() => run("POSTPONE", "Đã tạm hoãn lịch xuất bản.")}
+            onClick={() => run("POSTPONE", "Publication schedule postponed.")}
             className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-40"
           >
-            Tạm hoãn ({CADENCE_INTERVAL_LABEL[cadence]})
+            Postpone ({CADENCE_INTERVAL_LABEL[cadence]})
           </button>
         ) : (
           <SchedulePopover
@@ -164,7 +161,7 @@ function PublicationActions({
             seriesId={chapter.seriesId}
             current={scheduledAt}
             suggested={suggested}
-            label="Đổi lịch"
+            label="Reschedule"
           />
         )}
         {publishBtn}
@@ -179,7 +176,7 @@ function PublicationActions({
       seriesId={chapter.seriesId}
       current={chapter.publication?.scheduledAt ?? chapter.scheduledAt}
       suggested={suggested}
-      label="Đặt lịch"
+      label="Schedule"
     />
   );
 }
@@ -234,7 +231,7 @@ export function PublicationTable({
                   className={`px-3 py-2 ${overdue ? "font-semibold text-rose-600" : "text-muted-foreground"}`}
                 >
                   {scheduledAt ? formatDate(scheduledAt) : "—"}
-                  {overdue ? " · trễ" : ""}
+                  {overdue ? " · overdue" : ""}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <PublicationActions

@@ -19,7 +19,7 @@ export function TaskFeedbackPanel({
   const taskComments = comments.filter((c) => c.taskId === task.id || c.pageId === task.pageId);
 
   if (taskComments.length === 0) {
-    return <div className="p-3 text-xs text-muted-foreground">Chưa có feedback cho task này.</div>;
+    return <div className="p-3 text-xs text-muted-foreground">No feedback for this task yet.</div>;
   }
 
   return (
@@ -27,7 +27,9 @@ export function TaskFeedbackPanel({
       {highlight ? (
         <div className="flex items-start gap-2 rounded border border-orange-300 bg-orange-100 p-2 text-[11px] text-orange-900">
           <MessageSquare className="mt-0.5 size-3.5" />
-          <span>Mangaka đã yêu cầu chỉnh sửa. Xem feedback bên dưới và đánh dấu khi đã sửa.</span>
+          <span>
+            Mangaka requested changes. Review the feedback below and mark it fixed when done.
+          </span>
         </div>
       ) : null}
       <ul className="space-y-2">
@@ -62,8 +64,8 @@ export function TaskFeedbackPanel({
                       pageId: task.pageId,
                     },
                     {
-                      onSuccess: () => toast.success("Đã đánh dấu Fixed."),
-                      onError: () => toast.error("Lỗi khi cập nhật comment."),
+                      onSuccess: () => toast.success("Marked as fixed."),
+                      onError: () => toast.error("Failed to update comment."),
                     },
                   );
                 }}

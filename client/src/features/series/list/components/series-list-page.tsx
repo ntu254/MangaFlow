@@ -41,7 +41,7 @@ type WorkflowFilter = "REVIEW_NEEDED" | "OVERDUE" | "BLOCKED" | "WAITING_EDITOR"
 const STATUSES: StatusFilter[] = ["ALL", "PLANNING", "ONGOING", "HIATUS", "COMPLETED", "ARCHIVED"];
 
 const STATUS_LABEL: Record<StatusFilter, string> = {
-  ALL: "Tất cả",
+  ALL: "All",
   PLANNING: "Planning",
   ONGOING: "Ongoing",
   HIATUS: "Hiatus",
@@ -50,10 +50,10 @@ const STATUS_LABEL: Record<StatusFilter, string> = {
 };
 
 const WORKFLOW_FILTERS: { key: WorkflowFilter; label: string }[] = [
-  { key: "REVIEW_NEEDED", label: "Cần review" },
-  { key: "OVERDUE", label: "Trễ deadline" },
-  { key: "BLOCKED", label: "Bị block" },
-  { key: "WAITING_EDITOR", label: "Chờ editor" },
+  { key: "REVIEW_NEEDED", label: "Needs review" },
+  { key: "OVERDUE", label: "Overdue" },
+  { key: "BLOCKED", label: "Blocked" },
+  { key: "WAITING_EDITOR", label: "Waiting for editor" },
 ];
 
 function useProposalStatusQuery(proposalId: string | undefined) {
@@ -314,8 +314,8 @@ export function SeriesListPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Production"
-          title="Series sản xuất"
-          description="Tải dữ liệu series và proposal..."
+          title="Production Series"
+          description="Loading series and proposal data..."
         />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -337,10 +337,10 @@ export function SeriesListPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Production"
-          title="Series sản xuất"
-          description="Quản lý các đề xuất và series đang sản xuất."
+          title="Production Series"
+          description="Manage proposals and active production series."
         />
-        <StateBlock tone="danger" title="Không thể tải dữ liệu series" description={errorMsg} />
+        <StateBlock tone="danger" title="Could not load series data" description={errorMsg} />
       </div>
     );
   }
@@ -352,18 +352,18 @@ export function SeriesListPage() {
     <div className="mx-auto max-w-6xl space-y-8">
       <PageHeader
         eyebrow="Production"
-        title="Series sản xuất"
-        description="Quản lý các đề xuất series và các dự án series đang sản xuất."
+        title="Production Series"
+        description="Manage series proposals and production projects."
       >
         <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
           <Plus className="size-4" />
-          Tạo đề xuất series
+          Create series proposal
         </ActionButton>
         <Link
           to="/app/submissions"
           className="inline-flex h-10 items-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] font-semibold text-[var(--admin-ink)] shadow-sm hover:bg-[var(--admin-hover)]"
         >
-          Đề xuất chờ duyệt
+          Pending proposals
         </Link>
         <TextButton onClick={() => refetch()}>
           <RefreshCw className="size-4" />
@@ -384,28 +384,28 @@ export function SeriesListPage() {
           tone={kpis.pendingReviewCount ? "amber" : "neutral"}
           label="Pending review"
           value={kpis.pendingReviewCount || "—"}
-          hint={kpis.pendingReviewCount ? `${kpis.pendingReviewCount} items` : "Không có"}
+          hint={kpis.pendingReviewCount ? `${kpis.pendingReviewCount} items` : "None"}
         />
         <StatCard
           icon={<AlertTriangle className="size-4" />}
           tone={kpis.overdueCount ? "rose" : "neutral"}
           label="Overdue tasks"
           value={kpis.overdueCount || "—"}
-          hint={kpis.overdueCount ? `${kpis.overdueCount} tasks` : "Không có"}
+          hint={kpis.overdueCount ? `${kpis.overdueCount} tasks` : "None"}
         />
         <StatCard
           icon={<CalendarClock className="size-4" />}
           tone="emerald"
           label="Next deadline"
           value={kpis.nextDeadline ?? "—"}
-          hint={kpis.nextDeadline ? "Sắp tới" : "Không có deadline"}
+          hint={kpis.nextDeadline ? "Upcoming" : "No deadline"}
         />
       </section>
 
       <SearchToolbar
         query={q}
         onQueryChange={setQ}
-        placeholder="Tìm kiếm series hoặc đề xuất..."
+        placeholder="Search series or proposals..."
         filters={
           <div className="flex flex-wrap items-center gap-1.5">
             {STATUSES.map((status) => (
@@ -432,7 +432,7 @@ export function SeriesListPage() {
         actions={
           isFiltered ? (
             <TextButton onClick={clearFilters} className="h-9 px-3">
-              Xóa bộ lọc
+              Clear filters
             </TextButton>
           ) : null
         }
@@ -440,12 +440,12 @@ export function SeriesListPage() {
 
       {hasNoItemsAtAll ? (
         <EmptyState
-          title="Bạn chưa có đề xuất series nào."
-          description="Hãy tạo đề xuất đầu tiên và tải manuscript/sample để gửi Editor duyệt."
+          title="You do not have any series proposals yet."
+          description="Create your first proposal and upload a manuscript/sample for Editor review."
           action={
             <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
               <Plus className="size-4" />
-              Tạo đề xuất series
+              Create series proposal
             </ActionButton>
           }
         />
@@ -454,13 +454,13 @@ export function SeriesListPage() {
           {/* Section 1: My Proposals */}
           <div className="space-y-4">
             <SectionHeading
-              title="Đề xuất của tôi"
+              title="My Proposals"
               icon={<FileText className="size-5" />}
-              meta={`${filteredProposals.length} đề xuất`}
+              meta={`${filteredProposals.length} proposals`}
             />
             {filteredProposals.length === 0 ? (
               <p className="text-xs text-muted-foreground italic py-2">
-                {isFiltered ? "Không tìm thấy đề xuất nào phù hợp." : "Chưa có đề xuất nào."}
+                {isFiltered ? "No matching proposals found." : "No proposals yet."}
               </p>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
@@ -474,29 +474,29 @@ export function SeriesListPage() {
           {/* Section 2: My Production Series */}
           <div className="space-y-4">
             <SectionHeading
-              title="Series đang sản xuất"
+              title="Series in Production"
               icon={<Layers className="size-5" />}
               meta={`${items.length} series`}
             />
             {items.length === 0 ? (
               isFiltered ? (
                 <EmptyState
-                  title="Không có series nào khớp với bộ lọc hiện tại."
-                  description="Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm."
+                  title="No series match the current filters."
+                  description="Try changing the filters or search keyword."
                   action={
                     <ActionButton tone="primary" onClick={clearFilters}>
-                      Xóa bộ lọc
+                      Clear filters
                     </ActionButton>
                   }
                 />
               ) : pendingProposals.length > 0 ? (
                 <StateBlock
-                  title="Đề xuất đang chờ duyệt"
-                  description="Series production workspace sẽ mở sau khi proposal được duyệt."
+                  title="Pending proposals"
+                  description="The series production workspace will open after the proposal is approved."
                 />
               ) : (
                 <p className="text-xs text-muted-foreground italic py-2">
-                  Chưa có series đang sản xuất nào.
+                  No series are in production yet.
                 </p>
               )
             ) : (

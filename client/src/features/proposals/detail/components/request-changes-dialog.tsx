@@ -36,19 +36,19 @@ export function RequestChangesDialog({
   const submit = async () => {
     const clean = items.map((s) => s.trim()).filter(Boolean);
     if (clean.length === 0) {
-      toast.error("Cần ít nhất 1 điểm yêu cầu chỉnh sửa.");
+      toast.error("At least one requested change is required.");
       return;
     }
     const text = (summary.trim() ? `${summary.trim()}\n` : "") + clean.join("\n");
     setSubmitting(true);
     try {
       await onRequestChanges?.({ comment: text });
-      toast.success(`Đã gửi ${clean.length} điểm cần chỉnh sửa.`);
+      toast.success(`Sent ${clean.length} requested changes.`);
       onClose();
       setItems([""]);
       setSummary("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Lỗi.");
+      toast.error(e instanceof Error ? e.message : "Error.");
     } finally {
       setSubmitting(false);
     }
@@ -58,22 +58,22 @@ export function RequestChangesDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Yêu cầu chỉnh sửa proposal</DialogTitle>
+          <DialogTitle>Request proposal changes</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Tóm tắt chung (tuỳ chọn)
+              General summary (optional)
             </Label>
             <Input
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder="Nhận xét chung cho tác giả…"
+              placeholder="General notes for the author..."
             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Checklist các điểm cần chỉnh sửa
+              Requested change checklist
             </Label>
             <div className="space-y-2">
               {items.map((it, i) => (
@@ -82,20 +82,20 @@ export function RequestChangesDialog({
                   <Input
                     value={it}
                     onChange={(e) => setItem(i, e.target.value)}
-                    placeholder="Vd: Mở rộng đoạn giới thiệu nhân vật chính ở trang 3."
+                    placeholder="Vd: Expand the main character introduction on page 3."
                   />
                   {items.length > 1 ? (
                     <button
                       onClick={() => remove(i)}
                       className="rounded px-2 text-xs text-rose-700 hover:underline"
                     >
-                      Xoá
+                      Delete
                     </button>
                   ) : null}
                 </div>
               ))}
               <button onClick={add} className="text-xs text-foreground/70 hover:underline">
-                + Thêm điểm
+                + Add item
               </button>
             </div>
           </div>
@@ -106,14 +106,14 @@ export function RequestChangesDialog({
             disabled={submitting}
             className="rounded border border-border px-3 py-1.5 text-xs disabled:opacity-50"
           >
-            Huỷ
+            Cancel
           </button>
           <button
             onClick={submit}
             disabled={submitting}
             className="rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
           >
-            {submitting ? "Đang gửi..." : "Gửi yêu cầu chỉnh sửa"}
+            {submitting ? "Sending..." : "Send change request"}
           </button>
         </DialogFooter>
       </DialogContent>

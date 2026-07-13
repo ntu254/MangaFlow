@@ -60,7 +60,7 @@ export function applyTransition(
   payload: TransitionPayload = {},
 ): TransitionResult {
   const check = checkAction(action, user, p);
-  if (!check.ok) throw new Error(check.reason ?? "Action không hợp lệ.");
+  if (!check.ok) throw new Error(check.reason ?? "Invalid action.");
 
   const baseEvent = {
     id: uid("e"),
@@ -94,29 +94,30 @@ export function applyTransition(
         notify.push({
           userId: next.assignedEditorId,
           kind: "proposal.submitted",
-          message: `${p.title} đã submit cho bạn review.`,
+          message: `${p.title} was submitted for your review.`,
         });
       else
         notify.push({
           userId: "u-editor",
           kind: "proposal.submitted",
-          message: `Proposal mới chờ editor: ${p.title}.`,
+          message: `New proposal awaiting editor: ${p.title}.`,
         });
       notify.push({
         userId: "u-admin",
         kind: "proposal.submitted",
-        message: `Proposal "${p.title}" vừa submit.`,
+        message: `Proposal "${p.title}" was just submitted.`,
       });
       break;
     }
     case "RESUBMIT": {
-      if (!payload.manuscript) throw new Error("Phải upload manuscript mới khi resubmit.");
+      if (!payload.manuscript)
+        throw new Error("You must upload a new manuscript when resubmitting.");
       const openChange = [...next.requestedChanges].reverse().find((rc) => !rc.resolvedAt);
-      if (!openChange) throw new Error("Không tìm thấy yêu cầu chỉnh sửa đang mở.");
+      if (!openChange) throw new Error("No open requested changes found.");
       const resolvedMap = payload.resolvedItems ?? {};
       const unresolved = openChange.items.filter((it) => !resolvedMap[it.id]?.resolved);
       if (unresolved.length > 0)
-        throw new Error(`Còn ${unresolved.length} điểm chưa đánh dấu giải quyết.`);
+        throw new Error(`Still ${unresolved.length} items are not marked resolved.`);
 
       const lastVersion = next.manuscripts.reduce((m, mv) => Math.max(m, mv.version), 0);
       const newVersion: ManuscriptVersion = {
@@ -160,13 +161,13 @@ export function applyTransition(
         type: "RESUBMIT",
         fromStatus: from,
         toStatus: "PENDING_EDITOR",
-        comment: `Vòng revision ${next.revisionRound} — phản hồi ${openChange.items.length}/${openChange.items.length} điểm.${payload.comment ? ` ${payload.comment}` : ""}`,
+        comment: `Revision round ${next.revisionRound} — feedback ${openChange.items.length}/${openChange.items.length} items.${payload.comment ? ` ${payload.comment}` : ""}`,
       });
       if (next.assignedEditorId)
         notify.push({
           userId: next.assignedEditorId,
           kind: "proposal.resubmitted",
-          message: `${p.title} đã resubmit v${newVersion.version} cho bạn review.`,
+          message: `${p.title} resubmitted v${newVersion.version} for your review.`,
         });
       notify.push({
         userId: "u-admin",
@@ -189,12 +190,12 @@ export function applyTransition(
         notify.push({
           userId: next.assignedEditorId,
           kind: "proposal.withdrawn",
-          message: `${p.title} đã được rút lại.`,
+          message: `${p.title} was withdrawn.`,
         });
       notify.push({
         userId: "u-admin",
         kind: "proposal.withdrawn",
-        message: `Proposal "${p.title}" đã withdraw.`,
+        message: `Proposal "${p.title}" was withdrawn.`,
       });
       break;
     }
@@ -204,23 +205,23 @@ export function applyTransition(
       events.push({
         ...baseEvent,
         type: "CLAIM",
-        comment: `Editor ${user.name} đã claim proposal.`,
+        comment: `Editor ${user.name} claimed the proposal.`,
       });
       notify.push({
         userId: next.authorId,
         kind: "proposal.claimed",
-        message: `${user.name} đã nhận review proposal "${p.title}".`,
+        message: `${user.name} claimed proposal review "${p.title}".`,
       });
       break;
     }
     case "REQUEST_CHANGES": {
-      if (!payload.comment) throw new Error("Cần ghi rõ điểm cần chỉnh sửa.");
+      if (!payload.comment) throw new Error("Requested changes are required.");
       const items = payload.comment
         .split(/\n+/)
         .map((s) => s.replace(/^[-*\d.)\s]+/, "").trim())
         .filter((s) => s.length > 0)
         .map((text) => ({ id: uid("ci"), text, resolved: false }));
-      if (items.length === 0) throw new Error("Cần ít nhất 1 điểm yêu cầu chỉnh sửa.");
+      if (items.length === 0) throw new Error("At least one requested change is required.");
       const rc: RequestedChange = {
         id: uid("rc"),
         editorId: user.id,
@@ -238,12 +239,12 @@ export function applyTransition(
         type: "REQUEST_CHANGES",
         fromStatus: "PENDING_EDITOR",
         toStatus: "CHANGES_REQUESTED",
-        comment: `${items.length} điểm cần chỉnh sửa: ${items.map((i) => i.text).join("; ")}`,
+        comment: `${items.length} items need changes: ${items.map((i) => i.text).join("; ")}`,
       });
       notify.push({
         userId: next.authorId,
         kind: "proposal.changes",
-        message: `Editor yêu cầu chỉnh sửa proposal "${p.title}" (${items.length} điểm).`,
+        message: `Editor requested changes proposal "${p.title}" (${items.length} items).`,
       });
       break;
     }
@@ -258,21 +259,21 @@ export function applyTransition(
         toStatus: "PENDING_BOARD",
         comment: payload.comment,
       });
-      fanOutBoard("proposal.board", `Proposal mới cho Board vote: "${p.title}".`);
+      fanOutBoard("proposal.board", `New proposal for Board vote: "${p.title}".`);
       notify.push({
         userId: next.authorId,
         kind: "proposal.forwarded",
-        message: `Proposal "${p.title}" đã được editor chuyển Board.`,
+        message: `Proposal "${p.title}" was forwarded to Board by the editor.`,
       });
       notify.push({
         userId: "u-admin",
         kind: "proposal.forwarded",
-        message: `Proposal "${p.title}" đã chuyển Board.`,
+        message: `Proposal "${p.title}" was sent to Board.`,
       });
       break;
     }
     case "REJECT": {
-      if (!payload.comment) throw new Error("Cần ghi rõ lý do reject.");
+      if (!payload.comment) throw new Error("A rejection reason is required.");
       next.status = "REJECTED";
       events.push({
         ...baseEvent,
@@ -284,12 +285,12 @@ export function applyTransition(
       notify.push({
         userId: next.authorId,
         kind: "proposal.rejected",
-        message: `Proposal "${p.title}" bị từ chối ở vòng editor.`,
+        message: `Proposal "${p.title}" was rejected during editor review.`,
       });
       notify.push({
         userId: "u-admin",
         kind: "proposal.rejected",
-        message: `Proposal "${p.title}" bị editor reject.`,
+        message: `Proposal "${p.title}" was rejected by the editor.`,
       });
       break;
     }
@@ -304,16 +305,16 @@ export function applyTransition(
         toStatus: "PENDING_EDITOR",
         comment: payload.comment ?? "Editor recall.",
       });
-      fanOutBoard("proposal.recalled", `Editor đã recall proposal "${p.title}" khỏi Board.`);
+      fanOutBoard("proposal.recalled", `Editor recalled proposal "${p.title}" from Board.`);
       notify.push({
         userId: next.authorId,
         kind: "proposal.recalled",
-        message: `Proposal "${p.title}" đã recall về vòng editor.`,
+        message: `Proposal "${p.title}" was recalled to editor review.`,
       });
       break;
     }
     case "VOTE": {
-      if (!payload.voteDecision) throw new Error("Thiếu vote decision.");
+      if (!payload.voteDecision) throw new Error("Missing vote decision.");
       const inTieBreak = next.status === "TIE_BREAK";
       const chair = isBoardChair(user.id);
       const eic = user.role === "editor" && isEditorInChief(user);
@@ -333,18 +334,18 @@ export function applyTransition(
       events.push({
         ...baseEvent,
         type: "VOTE",
-        comment: `${payload.voteDecision}${eic ? ` · Editor-in-chief${weight > 1 ? ` (tie-break weight ${weight})` : ""}` : chair ? ` · Chủ tịch Board` : ""}${payload.comment ? ` — ${payload.comment}` : ""}`,
+        comment: `${payload.voteDecision}${eic ? ` · Editor-in-chief${weight > 1 ? ` (tie-break weight ${weight})` : ""}` : chair ? ` · Chair Board` : ""}${payload.comment ? ` — ${payload.comment}` : ""}`,
       });
       notify.push({
         userId: next.authorId,
         kind: "proposal.vote",
-        message: `${user.name} đã ${payload.voteDecision === "APPROVE" ? "approve" : payload.voteDecision === "REJECT" ? "reject" : "abstain"} proposal "${p.title}".`,
+        message: `${user.name} has ${payload.voteDecision === "APPROVE" ? "approve" : payload.voteDecision === "REJECT" ? "reject" : "abstain"} proposal "${p.title}".`,
       });
       if (next.assignedEditorId)
         notify.push({
           userId: next.assignedEditorId,
           kind: "proposal.vote",
-          message: `${user.name} đã vote ${payload.voteDecision} cho "${p.title}".`,
+          message: `${user.name} has vote ${payload.voteDecision} for "${p.title}".`,
         });
 
       const tally = evaluateBoardTally(next.votes);
@@ -365,12 +366,12 @@ export function applyTransition(
         });
         fanOutBoard(
           "proposal.decided",
-          `Proposal "${p.title}" đã được Board ${tally.status === "APPROVED" ? "phê duyệt" : "từ chối"}.`,
+          `Proposal "${p.title}" was Board ${tally.status === "APPROVED" ? "approved" : "rejected"}.`,
         );
         notify.push({
           userId: next.authorId,
           kind: "proposal.decided",
-          message: `Proposal "${p.title}" đã được Board ${tally.status === "APPROVED" ? "phê duyệt" : "từ chối"}.`,
+          message: `Proposal "${p.title}" was Board ${tally.status === "APPROVED" ? "approved" : "rejected"}.`,
         });
         notify.push({
           userId: "u-admin",
@@ -396,18 +397,18 @@ export function applyTransition(
           notify.push({
             userId: eicUser.id,
             kind: "proposal.tiebreak",
-            message: `Cần phiếu phá tie của Editor-in-chief cho "${p.title}".`,
+            message: `Tie-break vote required of Editor-in-chief for "${p.title}".`,
           });
         notify.push({
           userId: next.authorId,
           kind: "proposal.tiebreak",
-          message: `Proposal "${p.title}" đang chờ phiếu phá tie của Editor-in-chief.`,
+          message: `Proposal "${p.title}" is waiting for a tie-break vote of Editor-in-chief.`,
         });
       }
       break;
     }
     case "FORCE_STATUS": {
-      if (!payload.forceStatus) throw new Error("Thiếu forceStatus.");
+      if (!payload.forceStatus) throw new Error("Missing forceStatus.");
       const from = next.status;
       next.status = payload.forceStatus;
       events.push({
@@ -420,7 +421,7 @@ export function applyTransition(
       break;
     }
     case "EDIT":
-      events.push({ ...baseEvent, type: "EDIT", comment: payload.comment ?? "Cập nhật nội dung." });
+      events.push({ ...baseEvent, type: "EDIT", comment: payload.comment ?? "Content updated." });
       break;
     case "RELEASE_CLAIM": {
       next.claimedByEditorId = null;
@@ -437,7 +438,7 @@ export function applyTransition(
       notify.push({
         userId: next.authorId,
         kind: "proposal.claim_released",
-        message: `Claim cho "${p.title}" đã được giải phóng.`,
+        message: `Claim for "${p.title}" was released.`,
       });
       break;
     }

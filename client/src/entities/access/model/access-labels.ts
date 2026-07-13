@@ -43,14 +43,14 @@ export type RestrictionCode =
   | "ONLY_BOARD_MEMBERS_CAN_VOTE";
 
 export const RESTRICTION_LABEL: Record<RestrictionCode, string> = {
-  TASK_ONLY_SCOPE: "Bạn chỉ có quyền xem task được giao.",
-  NOT_ASSIGNED_EDITOR: "Bạn không phải Editor phụ trách series này.",
-  BOARD_REVIEW_ONLY: "Board chỉ xem gói quyết định và tài liệu read-only.",
-  SELF_APPROVAL_BLOCKED: "Bạn không thể duyệt submission do chính mình nộp.",
-  LAST_ADMIN_BLOCKED: "Không thể gỡ quyền Admin cuối cùng của hệ thống.",
-  CALLBACK_MISSING: "Thao tác này chưa được backend hỗ trợ trong MVP.",
-  ADMIN_OVERRIDE_REQUIRED: "Thao tác này yêu cầu Admin Override.",
-  ROLE_FORBIDDEN: "Không có quyền thực hiện thao tác này.",
+  TASK_ONLY_SCOPE: "You can only view assigned tasks.",
+  NOT_ASSIGNED_EDITOR: "You are not the editor assigned to this series.",
+  BOARD_REVIEW_ONLY: "Board can only view the decision package and read-only materials.",
+  SELF_APPROVAL_BLOCKED: "You cannot approve a submission you submitted yourself.",
+  LAST_ADMIN_BLOCKED: "The last system Admin cannot be removed.",
+  CALLBACK_MISSING: "This action is not supported by the backend in the MVP.",
+  ADMIN_OVERRIDE_REQUIRED: "This action requires Admin Override.",
+  ROLE_FORBIDDEN: "You do not have permission to perform this action.",
   ONLY_BOARD_MEMBERS_CAN_VOTE: "Chi thanh vien Board moi duoc vote trong phien dang mo.",
 };
 

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/read/$slug/$chapter")({
           { title: `Chapter ${loaderData.chapter} — ${loaderData.series.title}` },
           {
             name: "description",
-            content: `Đọc chương ${loaderData.chapter} của ${loaderData.series.title} trên beachRead.`,
+            content: `Read chapter ${loaderData.chapter} of ${loaderData.series.title} on beachRead.`,
           },
           {
             property: "og:title",
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/read/$slug/$chapter")({
           },
           {
             property: "og:description",
-            content: `Đọc chương ${loaderData.chapter} của ${loaderData.series.title}.`,
+            content: `Read chapter ${loaderData.chapter} of ${loaderData.series.title}.`,
           },
           { property: "og:image", content: loaderData.series.cover },
         ]
@@ -33,20 +33,20 @@ export const Route = createFileRoute("/read/$slug/$chapter")({
   component: ChapterPage,
   notFoundComponent: () => (
     <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-      <h1 className="font-serif text-4xl">Chapter không tồn tại</h1>
+      <h1 className="font-serif text-4xl">Chapter not found</h1>
       <Link to="/read" className="mt-4 inline-block text-sm text-accent underline">
-        Quay lại catalog
+        Back to catalog
       </Link>
     </main>
   ),
   errorComponent: ({ reset }) => (
     <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-      <h1 className="font-serif text-3xl">Không tải được chapter.</h1>
+      <h1 className="font-serif text-3xl">Could not load the chapter.</h1>
       <button
         onClick={reset}
         className="mt-4 rounded bg-foreground px-4 py-2 text-xs text-background"
       >
-        Thử lại
+        Try again
       </button>
     </main>
   ),
@@ -77,7 +77,8 @@ function ChapterPage() {
             <div className="text-center">
               <p className="font-serif text-2xl">Page {i + 1}</p>
               <p className="mt-1 text-[11px]">
-                Reader page placeholder — phase sau sẽ wire ảnh thật từ Lovable Cloud storage.
+                Reader page placeholder - a later phase will wire real images from Lovable Cloud
+                storage.
               </p>
             </div>
           </div>

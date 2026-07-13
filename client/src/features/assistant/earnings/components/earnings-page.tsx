@@ -43,13 +43,13 @@ export function EarningsPage() {
       <PageHeader
         eyebrow="Account"
         title="Earnings"
-        description="Read-only. Admin sẽ confirm và mark paid."
+        description="Read-only. Admin will confirm and mark paid."
       />
 
       {mine.length === 0 ? (
         <EmptyState
-          title="Chưa có dữ liệu thu nhập"
-          description="Khi task của bạn được duyệt, earning sẽ hiển thị tại đây."
+          title="No earnings data yet"
+          description="When your task is approved, earnings will appear here."
         />
       ) : (
         <>
@@ -81,7 +81,7 @@ export function EarningsPage() {
             <StatCard
               tone="violet"
               icon={<Coins className="size-4" />}
-              label="Tháng này"
+              label="This month"
               value={formatYen(totalMonth)}
             />
           </div>
@@ -90,7 +90,7 @@ export function EarningsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-semibold">Tháng</th>
+                  <th className="px-3 py-2 text-left font-semibold">Month</th>
                   <th className="px-3 py-2 text-left font-semibold">Task</th>
                   <th className="px-3 py-2 text-left font-semibold">Series</th>
                   <th className="px-3 py-2 text-left font-semibold">Ch / Page</th>

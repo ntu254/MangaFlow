@@ -194,7 +194,7 @@ export type SeriesProposal = {
   revisionRound: number;
   createdAt: string;
   updatedAt: string;
-  // MVP wizard additions ΓÇö all optional, backward compatible
+  // MVP wizard additions — all optional, backward compatible
   logline?: string;
   hook?: string;
   mainCharacters?: string;
@@ -271,5 +271,5 @@ export const GENRE_OPTIONS = [
   "Sports",
   "Supernatural",
   "Historical",
-  "Psychological",
+  "Psyforlogical",
 ] as const;

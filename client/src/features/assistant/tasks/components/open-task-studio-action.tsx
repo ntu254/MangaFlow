@@ -36,13 +36,13 @@ export function OpenTaskStudioAction({ task, className, onClick, children }: Pro
       { action: "start", chapterId: task.chapterId, pageId: task.pageId },
       {
         onSuccess: () => {
-          toast.success("Đã bắt đầu task.");
+          toast.success("Task started.");
           navigate({
             to: "/app/assistant/tasks/$taskId/studio",
             params: { taskId: task.id },
           });
         },
-        onError: () => toast.error("Không thể bắt đầu task."),
+        onError: () => toast.error("Could not start task."),
       },
     );
   };
@@ -54,7 +54,7 @@ export function OpenTaskStudioAction({ task, className, onClick, children }: Pro
       disabled={mutation.isPending}
       className={className}
     >
-      {mutation.isPending ? "Đang bắt đầu..." : children}
+      {mutation.isPending ? "Starting..." : children}
     </button>
   );
 }

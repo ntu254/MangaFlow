@@ -114,15 +114,15 @@ export function MaterialUploadDialog({
 
   const submit = async () => {
     if (!file) {
-      toast.error("Chọn file.");
+      toast.error("Choose file.");
       return;
     }
     if (file.size > MAX_SIZE_BYTES) {
-      toast.error("File vượt quá giới hạn 100MB.");
+      toast.error("File exceeds the 100MB limit.");
       return;
     }
     if (!replaceTarget && !title.trim()) {
-      toast.error("Cần tiêu đề.");
+      toast.error("Title is required.");
       return;
     }
 
@@ -147,7 +147,7 @@ export function MaterialUploadDialog({
             note: note.trim() || undefined,
           },
         });
-        toast.success(`Đã tải phiên bản v${replaceTarget.currentVersion + 1}.`);
+        toast.success(`Uploaded version v${replaceTarget.currentVersion + 1}.`);
       } else {
         await createMaterial.mutateAsync({
           title: title.trim(),
@@ -165,11 +165,11 @@ export function MaterialUploadDialog({
             note: undefined,
           },
         });
-        toast.success("Đã thêm tư liệu.");
+        toast.success("Material added.");
       }
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Không tải lên được.");
+      toast.error(e instanceof Error ? e.message : "Unable to upload.");
     } finally {
       setBusy(false);
     }
@@ -188,12 +188,12 @@ export function MaterialUploadDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {replaceTarget ? `Tải phiên bản mới — ${replaceTarget.title}` : "Tải tư liệu lên"}
+            {replaceTarget ? `Upload new version — ${replaceTarget.title}` : "Upload material"}
           </DialogTitle>
           <DialogDescription>
             {replaceTarget
-              ? `Phiên bản hiện tại: v${replaceTarget.currentVersion}. File mới sẽ trở thành v${replaceTarget.currentVersion + 1}.`
-              : "Tài nguyên dùng xuyên suốt sản xuất series."}
+              ? `Current version: v${replaceTarget.currentVersion}. The new file will become v${replaceTarget.currentVersion + 1}.`
+              : "Assets used throughout series production."}
           </DialogDescription>
         </DialogHeader>
 
@@ -202,7 +202,7 @@ export function MaterialUploadDialog({
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="mat-title" className="text-[10px] uppercase tracking-widest">
-                  Tiêu đề
+                  Title
                 </Label>
                 <Input
                   id="mat-title"
@@ -214,7 +214,7 @@ export function MaterialUploadDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="mat-kind" className="text-[10px] uppercase tracking-widest">
-                    Loại
+                    Type
                   </Label>
                   <select
                     id="mat-kind"
@@ -239,7 +239,7 @@ export function MaterialUploadDialog({
                     onChange={(e) => setChapterId(e.target.value)}
                     className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
                   >
-                    <option value="">— Không gắn —</option>
+                    <option value="">— Not attached —</option>
                     {chapters.map((c) => (
                       <option key={c.id} value={c.id}>
                         Ch. {c.number} — {c.title}
@@ -260,7 +260,7 @@ export function MaterialUploadDialog({
                       <button
                         type="button"
                         onClick={() => setTags(tags.filter((x) => x !== t))}
-                        aria-label={`Xoá tag ${t}`}
+                        aria-label={`Delete tag ${t}`}
                       >
                         <X className="size-3" />
                       </button>
@@ -275,7 +275,7 @@ export function MaterialUploadDialog({
                         addTag();
                       }
                     }}
-                    placeholder="Nhập tag rồi Enter"
+                    placeholder="Enter a tag and press Enter"
                     className="min-w-[120px] flex-1 bg-transparent px-1 text-xs outline-none"
                   />
                 </div>
@@ -303,21 +303,21 @@ export function MaterialUploadDialog({
             ) : null}
             {uploading ? (
               <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                <Loader2 className="size-3 animate-spin" /> Đang tải lên R2…
+                <Loader2 className="size-3 animate-spin" /> Uploading to R2…
               </p>
             ) : null}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="mat-note" className="text-[10px] uppercase tracking-widest">
-              Ghi chú phiên bản
+              Version notes
             </Label>
             <Textarea
               id="mat-note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
-              placeholder="Tuỳ chọn"
+              placeholder="Optional"
             />
           </div>
         </div>
@@ -328,7 +328,7 @@ export function MaterialUploadDialog({
             disabled={uploading}
             className="rounded border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-40"
           >
-            Huỷ
+            Cancel
           </button>
           <button
             onClick={submit}
@@ -340,7 +340,7 @@ export function MaterialUploadDialog({
             ) : (
               <Upload className="size-3.5" />
             )}{" "}
-            {replaceTarget ? "Tải phiên bản mới" : "Tải lên"}
+            {replaceTarget ? "Upload new version" : "Upload"}
           </button>
         </DialogFooter>
       </DialogContent>

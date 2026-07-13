@@ -8,7 +8,7 @@ export function ReviewNotes({ chapter }: { chapter: Chapter }) {
         Review notes
       </p>
       {chapter.reviewNotes.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Chưa có ghi chú nào.</p>
+        <p className="text-xs text-muted-foreground">No notes yet.</p>
       ) : (
         <ul className="space-y-2">
           {chapter.reviewNotes.map((n) => (
@@ -20,7 +20,7 @@ export function ReviewNotes({ chapter }: { chapter: Chapter }) {
                 <span>{formatDateTime(n.createdAt)}</span>
               </div>
               <p className="whitespace-pre-line">{n.text}</p>
-              {n.resolved ? <p className="mt-1 text-emerald-700">Đã giải quyết</p> : null}
+              {n.resolved ? <p className="mt-1 text-emerald-700">Resolved</p> : null}
             </li>
           ))}
         </ul>

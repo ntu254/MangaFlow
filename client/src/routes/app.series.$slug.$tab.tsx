@@ -22,20 +22,20 @@ export const Route = createFileRoute("/app/series/$slug/$tab")({
   },
   notFoundComponent: () => (
     <div className="mx-auto max-w-3xl py-16 text-center">
-      <h1 className="font-serif text-3xl">Trang không tồn tại</h1>
+      <h1 className="font-serif text-3xl">Page not found</h1>
       <Link to="/app/series" className="mt-4 inline-block text-xs text-accent underline">
-        Quay về danh sách
+        Back to list
       </Link>
     </div>
   ),
   errorComponent: ({ reset }) => (
     <div className="mx-auto max-w-3xl py-16 text-center">
-      <h1 className="font-serif text-3xl">Lỗi tải trang</h1>
+      <h1 className="font-serif text-3xl">Page load error</h1>
       <button
         onClick={reset}
         className="mt-4 rounded bg-foreground px-3 py-1.5 text-xs text-background"
       >
-        Thử lại
+        Try again
       </button>
     </div>
   ),

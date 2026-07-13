@@ -61,7 +61,7 @@ export function SubmissionsPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Submissions"
-        description={`${mine.length} submission của bạn.`}
+        description={`${mine.length} of your submissions.`}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -97,7 +97,7 @@ export function SubmissionsPage() {
           onChange={(e) => setStatus(e.target.value as typeof status)}
           className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
         >
-          <option value="ALL">Tất cả status</option>
+          <option value="ALL">All status</option>
           {(Object.keys(SUBMISSION_STATUS_LABEL) as SubmissionStatus[]).map((s) => (
             <option key={s} value={s}>
               {SUBMISSION_STATUS_LABEL[s]}
@@ -109,7 +109,7 @@ export function SubmissionsPage() {
           onChange={(e) => setSeriesFilter(e.target.value)}
           className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
         >
-          <option value="ALL">Tất cả series</option>
+          <option value="ALL">All series</option>
           {seriesList.map((s) => (
             <option key={s.id} value={s.id}>
               {s.title}
@@ -120,8 +120,8 @@ export function SubmissionsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="Bạn chưa nộp submission nào"
-          description="Submit work từ Task Studio để theo dõi tại đây."
+          title="You have not submitted anything yet"
+          description="Submit work from Task Studio to track it here."
         />
       ) : (
         <div className="overflow-x-auto rounded-md border border-border bg-card">
@@ -232,7 +232,7 @@ function SubmissionDetailDrawer({
         <div className="space-y-3 p-4 text-xs">
           <Row k="File" v={submission.fileName ?? "—"} />
           <Row
-            k="Kích thước"
+            k="Size"
             v={submission.fileSizeKB ? `${submission.fileSizeKB.toLocaleString()} KB` : "—"}
           />
           <Row k="Submitted" v={formatDateTime(submission.submittedAt)} />

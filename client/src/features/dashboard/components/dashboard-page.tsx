@@ -15,15 +15,15 @@ import { useMemo } from "react";
 
 const STATS: Record<string, { label: string; value: string; hint: string }[]> = {
   admin: [
-    { label: "Active users", value: "248", hint: "+12 tuần này" },
-    { label: "Pending payroll", value: "32", hint: "Chờ confirm" },
-    { label: "Storage", value: "412 GB", hint: "Đang dùng" },
-    { label: "Audit entries", value: "1.2k", hint: "30 ngày qua" },
+    { label: "Active users", value: "248", hint: "+12 this week" },
+    { label: "Pending payroll", value: "32", hint: "Awaiting confirmation" },
+    { label: "Storage", value: "412 GB", hint: "In use" },
+    { label: "Audit entries", value: "1.2k", hint: "last 30 days" },
   ],
   assistant: [
     { label: "Active tasks", value: "5", hint: "" },
     { label: "Pending submission", value: "2", hint: "" },
-    { label: "Earnings (calc.)", value: "¥184,000", hint: "Chờ confirm" },
+    { label: "Earnings (calc.)", value: "¥184,000", hint: "Awaiting confirmation" },
     { label: "Paid this month", value: "¥220,000", hint: "" },
   ],
   editor: [
@@ -41,23 +41,23 @@ const STATS: Record<string, { label: string; value: string; hint: string }[]> = 
 };
 
 const QUEUE_TITLE: Record<string, string> = {
-  admin: "Audit log gần đây",
-  assistant: "Task của bạn",
+  admin: "Recent audit log",
+  assistant: "Your Tasks",
   editor: "Review queue",
-  board: "Proposals chờ vote",
+  board: "Proposals awaiting vote",
 };
 
 const QUEUE: Record<string, { id: string; title: string; meta: string; status: string }[]> = {
   admin: [
     {
       id: "a1",
-      title: "Earning EAR-2031 đã được confirm",
+      title: "Earning EAR-2031 was confirmed",
       meta: "by Tanaka Akira • 2h ago",
       status: "approved",
     },
     {
       id: "a2",
-      title: "User suzuki@... bị suspended",
+      title: "User suzuki@... was suspended",
       meta: "by system • 5h ago",
       status: "cancelled",
     },
@@ -124,7 +124,7 @@ const UPCOMING: Record<string, string[]> = {
   admin: [
     "Payroll cycle close — thg 6/30",
     "Quarterly audit review — thg 7/05",
-    "Storage reconcile job — chủ nhật",
+    "Storage reconcile job — Sunday",
   ],
   assistant: [
     "Berserk Ch.378 submission — thg 6/26",
@@ -158,8 +158,8 @@ export function DashboardPage() {
             おかえり, <span className="italic">{user.name.split(" ")[0]}</span>.
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Đây là dashboard demo cho role <b>{ROLE_LABEL[user.role]}</b>. Các module sẽ được wire
-            dần trong các phase sau.
+            This is the demo dashboard for the <b>{ROLE_LABEL[user.role]}</b>. Modules will be wired
+            progressively in later phases.
           </p>
         </div>
         <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
@@ -207,8 +207,8 @@ export function DashboardPage() {
       </section>
 
       <Panel title="Phase 1 scope" contentClassName="text-sm text-[var(--admin-muted)]">
-        Public reader + design system + role-aware shell với mock data. Phase 2 trở đi sẽ build
-        Series Proposal flow, Page Studio, Task assignment, Review hai vòng, Publication, Ranking,
+        Public reader + design system + role-aware shell with mock data. Phase 2 onward will build
+        Series Proposal flow, Page Studio, Task assignment, two-step review, Publication, Ranking,
         Payroll.
       </Panel>
     </div>

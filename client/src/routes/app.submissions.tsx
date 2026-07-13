@@ -4,9 +4,9 @@ export const Route = createFileRoute("/app/submissions")({
   head: () => ({
     meta: [
       { title: "Series Proposals — beachRead Studio" },
-      { name: "description", content: "Quản lý đề xuất series: Mangaka → Editor → Board." },
+      { name: "description", content: "Manage series proposals: Mangaka -> Editor -> Board." },
       { property: "og:title", content: "Series Proposals — beachRead Studio" },
-      { property: "og:description", content: "Mangaka đề xuất, Editor review, Board vote." },
+      { property: "og:description", content: "Mangaka submits, Editor reviews, Board votes." },
     ],
   }),
   component: () => <Outlet />,

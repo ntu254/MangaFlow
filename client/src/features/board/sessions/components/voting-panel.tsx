@@ -69,7 +69,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
       },
       {
         onSuccess: () => {
-          toast.success("Đã ghi nhận vote.");
+          toast.success("Vote recorded.");
           setDecision(undefined);
           setComment("");
         },
@@ -92,7 +92,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
       },
       {
         onSuccess: () => {
-          toast.success(`Đã finalize: ${finalDecision}`);
+          toast.success(`Finalized: ${finalDecision}`);
           setComment("");
           setPublicationType(undefined);
         },
@@ -118,14 +118,14 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
 
       <div className="mb-2">
         <SeparationOfDutiesWarning>
-          Cảnh báo phân tách nhiệm vụ (Vote vs Finalize): Thành viên hội đồng thực hiện bỏ phiếu
-          (voting) nhưng việc chốt quyết định cuối cùng (finalize) phải do Board/Admin thực hiện.
+          Separation-of-duties warning (Vote vs Finalize): Board members cast votes (voting), but
+          final decisions (finalize) must be completed by Board/Admin.
         </SeparationOfDutiesWarning>
       </div>
 
       {existing ? (
         <div className="rounded border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-950">
-          Bạn đã vote: <strong>{existing.decision}</strong>
+          You voted: <strong>{existing.decision}</strong>
         </div>
       ) : null}
       <div className="grid gap-2">
@@ -145,13 +145,13 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
         rows={4}
         value={comment}
         onChange={(event) => setComment(event.target.value)}
-        placeholder={requiresComment ? "Bắt buộc nhập lý do..." : "Ghi chú tùy chọn..."}
+        placeholder={requiresComment ? "Reason is required..." : "Optional note..."}
       />
       <DecisionEffectPreview proposal={proposal} decision={decision} />
       {disabledReason ? (
         <RestrictedActionTooltip reason={disabledReason}>
           <button className="w-full rounded bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">
-            Chưa thể vote
+            Cannot vote yet
           </button>
         </RestrictedActionTooltip>
       ) : (
@@ -161,7 +161,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
           onClick={handleVote}
           className="w-full rounded bg-foreground px-3 py-2 text-xs font-semibold text-background hover:bg-foreground/90 disabled:opacity-40"
         >
-          {castVote.isPending ? "Đang gửi..." : "Submit vote"}
+          {castVote.isPending ? "Sending..." : "Submit vote"}
         </button>
       )}
 
@@ -174,13 +174,13 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
 
           {isDecided ? (
             <div className="rounded border border-border bg-muted/40 p-3 text-xs font-semibold text-foreground">
-              Đã finalize: {proposal.status}. Không thể thay đổi quyết định.
+              Finalized: {proposal.status}. The decision cannot be changed.
             </div>
           ) : (
             <>
               <div className="space-y-1.5">
                 <p className="text-[10px] font-semibold text-foreground">
-                  Publication type (bắt buộc khi Approve)
+                  Publication type (required khi Approve)
                 </p>
                 <div className="grid gap-1 rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
                   <span>

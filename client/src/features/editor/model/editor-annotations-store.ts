@@ -39,12 +39,12 @@ export type ChecklistKey =
   | "serializePotential";
 
 export const CHECKLIST_LABEL: Record<ChecklistKey, string> = {
-  hook: "Hook rõ ràng",
-  characterMotivation: "Nhân vật chính có động lực rõ",
-  audienceFit: "Target audience phù hợp",
-  storyboardFlow: "Storyboard/name đủ đọc flow",
-  manuscriptQuality: "Sample manuscript đạt mức tối thiểu",
-  serializePotential: "Có tiềm năng serialize",
+  hook: "Clear hook",
+  characterMotivation: "The main character has clear motivation",
+  audienceFit: "Good target-audience fit",
+  storyboardFlow: "Storyboard/name is readable enough",
+  manuscriptQuality: "Sample manuscript meets the minimum bar",
+  serializePotential: "Has serialization potential",
 };
 
 type State = {

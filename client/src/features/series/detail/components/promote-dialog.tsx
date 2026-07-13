@@ -52,10 +52,10 @@ export function PromoteDialog({
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Đã sản xuất</DialogTitle>
+            <DialogTitle>In production</DialogTitle>
           </DialogHeader>
           <p className="text-sm">
-            Proposal này đã được khởi tạo thành series{" "}
+            This proposal has been promoted to a series{" "}
             <span className="font-semibold">{existingSeries.title}</span>.
           </p>
           <DialogFooter>
@@ -69,7 +69,7 @@ export function PromoteDialog({
               }}
               className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
             >
-              Mở series
+              Open series
             </button>
           </DialogFooter>
         </DialogContent>
@@ -80,7 +80,7 @@ export function PromoteDialog({
   const submit = async () => {
     if (!user) return;
     if (!slug.trim()) {
-      toast.error("Cần slug.");
+      toast.error("Slug is required.");
       return;
     }
     try {
@@ -102,11 +102,11 @@ export function PromoteDialog({
         proposalId: proposal.id,
         status: "PLANNING",
       });
-      toast.success("Đã khởi tạo sản xuất.");
+      toast.success("Production initialized.");
       onClose();
       navigate({ to: "/app/series/$slug/$tab", params: { slug: series.slug, tab: "overview" } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Lỗi.");
+      toast.error(e instanceof Error ? e.message : "Error.");
     }
   };
 
@@ -114,7 +114,7 @@ export function PromoteDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Khởi tạo sản xuất — {proposal.title}</DialogTitle>
+          <DialogTitle>Start production — {proposal.title}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
           <div>
@@ -138,7 +138,7 @@ export function PromoteDialog({
               </select>
             </div>
             <div>
-              <Label htmlFor="pr-start">Ngày khởi động</Label>
+              <Label htmlFor="pr-start">Start date</Label>
               <Input
                 id="pr-start"
                 type="date"
@@ -182,7 +182,7 @@ export function PromoteDialog({
         </div>
         <DialogFooter>
           <button onClick={onClose} className="rounded border border-border px-3 py-1.5 text-xs">
-            Huỷ
+            Cancel
           </button>
           <button
             onClick={submit}

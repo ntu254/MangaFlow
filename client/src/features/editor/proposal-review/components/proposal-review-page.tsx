@@ -55,7 +55,7 @@ export function ProposalReviewPage() {
   if (!proposal) {
     return (
       <div className="mx-auto max-w-4xl p-10">
-        <EmptyState title="Không tìm thấy proposal" description="Proposal có thể đã bị xoá." />
+        <EmptyState title="Proposal not found" description="The proposal may have been deleted." />
       </div>
     );
   }
@@ -69,7 +69,7 @@ export function ProposalReviewPage() {
           to="/app/editor/review"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="size-3" /> Hàng chờ biên tập
+          <ArrowLeft className="size-3" /> Editorial queue
         </Link>
       </div>
 
@@ -113,7 +113,7 @@ export function ProposalReviewPage() {
             {proposal.materials.length === 0 &&
             proposal.manuscripts.length === 0 &&
             !proposal.sampleChapterUrl ? (
-              <p className="text-xs text-muted-foreground">Chưa có tư liệu</p>
+              <p className="text-xs text-muted-foreground">No materials yet</p>
             ) : (
               <ul className="min-w-0 space-y-1.5">
                 {proposal.manuscripts.map((m) => (
@@ -188,13 +188,13 @@ export function ProposalReviewPage() {
             )}
             {isUnclaimed && !isSelf && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Bạn cần nhận review (Start Review) trước khi thực hiện quyết định.
+                You need to claim the review (Start Review) before making a decision.
               </p>
             )}
             {isClaimedByOther && !isEicOrAdmin && (
               <p className="mt-2 text-xs text-muted-foreground">
                 <Lock className="mr-1 inline size-3" />
-                Proposal đang được review bởi {proposal.claimedByEditorName}. Bạn chỉ có thể xem.
+                Proposal is being reviewed by {proposal.claimedByEditorName}. You can only view it.
               </p>
             )}
             <div className="mt-3">
@@ -209,9 +209,11 @@ export function ProposalReviewPage() {
                       actionMutation.mutate(
                         { action: "FORWARD" },
                         {
-                          onSuccess: () => toast.success("Đã chuyển tiếp tới Board."),
+                          onSuccess: () => toast.success("Forwarded to Board."),
                           onError: (err) =>
-                            toast.error(err instanceof Error ? err.message : "Lỗi chuyển Board."),
+                            toast.error(
+                              err instanceof Error ? err.message : "Error forwarding to Board.",
+                            ),
                         },
                       ),
                   },
@@ -225,10 +227,10 @@ export function ProposalReviewPage() {
                       actionMutation.mutate(
                         { action: "REQUEST_CHANGES", payload: { comment: reason } },
                         {
-                          onSuccess: () => toast.success("Đã yêu cầu chỉnh sửa."),
+                          onSuccess: () => toast.success("Requested changes."),
                           onError: (err) =>
                             toast.error(
-                              err instanceof Error ? err.message : "Lỗi yêu cầu chỉnh sửa.",
+                              err instanceof Error ? err.message : "Error requesting changes.",
                             ),
                         },
                       ),
@@ -243,9 +245,9 @@ export function ProposalReviewPage() {
                       actionMutation.mutate(
                         { action: "REJECT", payload: { comment: reason } },
                         {
-                          onSuccess: () => toast.success("Đã reject đề xuất."),
+                          onSuccess: () => toast.success("Proposal rejected."),
                           onError: (err) =>
-                            toast.error(err instanceof Error ? err.message : "Lỗi reject."),
+                            toast.error(err instanceof Error ? err.message : "Reject error."),
                         },
                       ),
                   },
@@ -284,12 +286,11 @@ function ClaimStatusCard({
         <div className="flex items-center gap-2">
           <Unlock className="size-4 text-emerald-600" />
           <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-            Đề xuất này đang chờ nhận review
+            This proposal is waiting to be claimed
           </p>
         </div>
         <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-400">
-          Nhấn "Nhận Review" để bắt đầu biên tập. Chỉ bạn mới có thể thực hiện quyết định sau khi
-          claim.
+          Click "Claim Review" to start editing. Only you can make decisions after claim.
         </p>
         <button
           type="button"
@@ -298,12 +299,12 @@ function ClaimStatusCard({
             actionMutation.mutate(
               { action: "CLAIM" },
               {
-                onSuccess: () => toast.success("Đã nhận review proposal."),
+                onSuccess: () => toast.success("Proposal review claimed."),
                 onError: (err: unknown) =>
                   toast.error(
                     err instanceof Error
                       ? err.message
-                      : "Không thể claim — có thể đã có Editor khác nhận.",
+                      : "Could not claim - another editor may have claimed it.",
                   ),
               },
             )
@@ -315,7 +316,7 @@ function ClaimStatusCard({
           ) : (
             <ShieldCheck className="size-3" />
           )}
-          Nhận Review
+          Claim Review
         </button>
       </div>
     );
@@ -327,15 +328,15 @@ function ClaimStatusCard({
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-blue-600" />
           <p className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-            Bạn đang nhận review đề xuất này
+            You are reviewing this proposal
           </p>
         </div>
         <p className="mt-1 text-[11px] text-blue-700 dark:text-blue-400">
-          Bạn có thể thực hiện quyết định: Yêu cầu chỉnh sửa, Reject, hoặc Chuyển tiếp tới Board.
+          You can decide: request changes, reject, or forward to Board.
         </p>
         {proposal.claimedAt && (
           <p className="mt-1 text-[10px] text-blue-600 dark:text-blue-400">
-            Đã claim lúc: {formatDateTime(proposal.claimedAt)}
+            Claimed at: {formatDateTime(proposal.claimedAt)}
           </p>
         )}
       </div>
@@ -348,16 +349,15 @@ function ClaimStatusCard({
         <div className="flex items-center gap-2">
           <Lock className="size-4 text-amber-600" />
           <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-            Đang được review bởi {proposal.claimedByEditorName}
+            Being reviewed by {proposal.claimedByEditorName}
           </p>
         </div>
         <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
-          Bạn chỉ có thể xem nội dung. Quyết định chỉ có thể được thực hiện bởi Editor đã nhận
-          review.
+          You can only view the content. Decisions can only be made by the assigned editor review.
         </p>
         {proposal.claimedAt && (
           <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
-            Đã claim lúc: {formatDateTime(proposal.claimedAt)}
+            Claimed at: {formatDateTime(proposal.claimedAt)}
           </p>
         )}
         {isEicOrAdmin && (
@@ -368,9 +368,9 @@ function ClaimStatusCard({
               actionMutation.mutate(
                 { action: "RELEASE_CLAIM" },
                 {
-                  onSuccess: () => toast.success("Đã giải phóng claim."),
+                  onSuccess: () => toast.success("Claim released."),
                   onError: (err: unknown) =>
-                    toast.error(err instanceof Error ? err.message : "Lỗi giải phóng claim."),
+                    toast.error(err instanceof Error ? err.message : "Error releasing claim."),
                 },
               )
             }
@@ -381,7 +381,7 @@ function ClaimStatusCard({
             ) : (
               <Unlock className="size-3" />
             )}
-            Giải phóng Claim
+            Release Claim
           </button>
         )}
       </div>

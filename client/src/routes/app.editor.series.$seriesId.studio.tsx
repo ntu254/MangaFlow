@@ -10,7 +10,7 @@ export const Route = createFileRoute("/app/editor/series/$seriesId/studio")({
   head: () => ({
     meta: [
       { title: "Series Studio — beachRead Studio" },
-      { name: "description", content: "Studio canvas (read-only) cho editor review." },
+      { name: "description", content: "Studio canvas (read-only) for editor review." },
     ],
   }),
   validateSearch: (search: Record<string, unknown>): StudioSearch => ({

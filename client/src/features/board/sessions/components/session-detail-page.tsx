@@ -34,15 +34,15 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
   if (isLoading) {
     return (
       <p className="mx-auto max-w-5xl rounded border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-        Đang tải session...
+        Loading session...
       </p>
     );
   }
   if (isError || !session)
     return (
       <EmptyState
-        title="Session không tồn tại"
-        description="Quay về danh sách."
+        title="Session not found"
+        description="Back to list."
         action={
           <Link to="/app/board/sessions" className="text-xs underline">
             Sessions
@@ -69,20 +69,20 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
           <div>
             <h1 className="font-serif text-3xl">{session.title}</h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              {SESSION_MODE_LABEL[session.mode]} - {SESSION_STATUS_LABEL[session.status]} - Mở bởi{" "}
-              {session.createdByName}
+              {SESSION_MODE_LABEL[session.mode]} - {SESSION_STATUS_LABEL[session.status]} - Opened
+              by {session.createdByName}
             </p>
           </div>
           <div className="text-right text-[11px] text-muted-foreground">
-            <p>Mở: {new Date(session.openedAt).toLocaleString("vi-VN")}</p>
+            <p>Opened: {new Date(session.openedAt).toLocaleString("vi-VN")}</p>
             {session.scheduledFor ? (
-              <p>Họp: {new Date(session.scheduledFor).toLocaleString("vi-VN")}</p>
+              <p>Meeting: {new Date(session.scheduledFor).toLocaleString("vi-VN")}</p>
             ) : null}
             {session.closesAt ? (
-              <p>Đóng dự kiến: {new Date(session.closesAt).toLocaleString("vi-VN")}</p>
+              <p>Expected close: {new Date(session.closesAt).toLocaleString("vi-VN")}</p>
             ) : null}
             {session.closedAt ? (
-              <p>Đã đóng: {new Date(session.closedAt).toLocaleString("vi-VN")}</p>
+              <p>Closed: {new Date(session.closedAt).toLocaleString("vi-VN")}</p>
             ) : null}
           </div>
         </div>
@@ -92,22 +92,22 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
               onClick={async () => {
                 try {
                   await closeSessionMutation.mutateAsync(session.id);
-                  toast.success("Đã đóng session.");
+                  toast.success("Closed session.");
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Lỗi.");
+                  toast.error(e instanceof Error ? e.message : "Error.");
                 }
               }}
               disabled={closeSessionMutation.isPending}
               className="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-40"
             >
-              Đóng session
+              Close session
             </button>
             <button
               onClick={() => setCancelDialogOpen(true)}
               disabled={cancelSessionMutation.isPending}
               className="rounded border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-40"
             >
-              Huỷ
+              Cancel
             </button>
           </div>
         ) : null}
@@ -135,8 +135,8 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
         <section className="space-y-3 rounded-lg border border-fuchsia-300 bg-fuchsia-50/40 p-4">
           <h2 className="font-serif text-xl text-fuchsia-950">Tie-break panel (Editor-in-chief)</h2>
           <p className="text-xs text-fuchsia-950/80">
-            {tieCount} proposal cần phá tie. Phiếu của bạn có weight 2 và sẽ chốt status proposal
-            ngay lập tức.
+            {tieCount} proposals need tie-breaking. Your vote has weight 2 and will finalize
+            proposal status immediately.
           </p>
           {session.proposalIds.map((pid) => {
             const proposal = proposals.find((p) => p.id === pid);
@@ -158,18 +158,18 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
       <ConfirmDialog
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
-        title="Huỷ session"
-        description="Bạn có chắc muốn huỷ session này? Các proposal trong session sẽ quay lại trạng thái trước đó."
-        confirmLabel="Huỷ session"
-        cancelLabel="Không"
+        title="Cancel session"
+        description="Are you sure you want to cancel this session? Proposals in the session will return to their previous status."
+        confirmLabel="Cancel session"
+        cancelLabel="No"
         variant="danger"
         onConfirm={async () => {
           try {
             await cancelSessionMutation.mutateAsync(session.id);
-            toast.info("Đã huỷ session.");
+            toast.info("Session canceled.");
             navigate({ to: "/app/board/sessions" });
           } catch (e) {
-            toast.error(e instanceof Error ? e.message : "Lỗi.");
+            toast.error(e instanceof Error ? e.message : "Error.");
           }
         }}
         isLoading={cancelSessionMutation.isPending}

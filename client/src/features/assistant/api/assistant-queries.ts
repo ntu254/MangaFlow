@@ -454,11 +454,12 @@ export function useMarkAllReadMutation() {
 
 export function mapNotificationError(err: unknown): string {
   if (err instanceof Error) {
-    if (err.message.includes("NOT_FOUND")) return "Thông báo không tồn tại.";
-    if (err.message.includes("FORBIDDEN")) return "Bạn không có quyền thực hiện thao tác này.";
+    if (err.message.includes("NOT_FOUND")) return "Notification not found.";
+    if (err.message.includes("FORBIDDEN"))
+      return "You do not have permission to perform this action.";
     return err.message;
   }
-  return "Đã xảy ra lỗi không xác định.";
+  return "An unknown error occurred.";
 }
 
 export function useAssistantEarningsQuery() {

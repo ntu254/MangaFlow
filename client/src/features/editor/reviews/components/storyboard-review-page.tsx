@@ -51,7 +51,7 @@ export function StoryboardReviewPage() {
   if (isLoading) {
     return (
       <div className="p-10">
-        <EmptyState title="Đang tải storyboard" />
+        <EmptyState title="Loading storyboard" />
       </div>
     );
   }
@@ -59,7 +59,7 @@ export function StoryboardReviewPage() {
   if (!chapter || !series) {
     return (
       <div className="p-10">
-        <EmptyState title="Không tìm thấy storyboard" />
+        <EmptyState title="Storyboard not found" />
       </div>
     );
   }
@@ -105,7 +105,7 @@ export function StoryboardReviewPage() {
             Pages
           </p>
           {pages.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Chưa có page</p>
+            <p className="text-xs text-muted-foreground">No pages yet</p>
           ) : (
             pages.map((p) => {
               const cnt = comments.filter((c) => c.pageId === p.id).length;
@@ -176,7 +176,7 @@ export function StoryboardReviewPage() {
 
           <ul className="space-y-1.5 border-t border-border pt-2">
             {pageComments.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Chưa có comment</p>
+              <p className="text-xs text-muted-foreground">No comments yet</p>
             ) : (
               pageComments.map((c) => (
                 <li

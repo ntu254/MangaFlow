@@ -52,11 +52,11 @@ export function DecisionHistoryPage() {
           <TableSkeleton rows={3} columns={5} />
         ) : isError ? (
           <ErrorState
-            title="Không thể tải decision history"
-            description={error instanceof Error ? error.message : "Vui lòng thử lại sau."}
+            title="Unable to load decision history"
+            description={error instanceof Error ? error.message : "Please try again later."}
           />
         ) : rows.length === 0 ? (
-          <EmptyState title="Chưa có decision history" />
+          <EmptyState title="No decision history yet" />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">

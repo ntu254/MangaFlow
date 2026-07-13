@@ -13,7 +13,7 @@ export const Route = createFileRoute("/app/assistant/tasks/$taskId/studio")({
   head: () => ({
     meta: [
       { title: "Task Studio — beachRead Studio" },
-      { name: "description", content: "Workspace tập trung cho một task của Assistant." },
+      { name: "description", content: "Focused workspace for an Assistant task." },
     ],
   }),
   component: RouteComponent,
@@ -40,7 +40,7 @@ function RouteComponent() {
       <div className="grid min-h-[420px] place-items-center rounded-md border border-border bg-card/60">
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
           <RefreshCw className="size-3.5 animate-spin" />
-          Đang mở Studio...
+          Opening Studio...
         </div>
       </div>
     );
@@ -49,8 +49,8 @@ function RouteComponent() {
   if (taskIsError || !task) {
     return (
       <EmptyState
-        title="Không mở được Studio"
-        description={taskError instanceof Error ? taskError.message : "Không tìm thấy task."}
+        title="Could not open Studio"
+        description={taskError instanceof Error ? taskError.message : "Task not found."}
         action={<BackToTasksLink />}
       />
     );
@@ -59,8 +59,8 @@ function RouteComponent() {
   if (!canAssistantAccessTask(task, user.id)) {
     return (
       <EmptyState
-        title="Bạn không có quyền xem task này"
-        description="Task này không được giao cho bạn."
+        title="You do not have permission to view this task"
+        description="This task is not assigned to you."
         action={<BackToTasksLink />}
       />
     );
@@ -69,8 +69,8 @@ function RouteComponent() {
   if (!seriesId) {
     return (
       <EmptyState
-        title="Không xác định được series"
-        description="Task này thiếu series/chapter context để mở Studio canvas."
+        title="Could not identify the series"
+        description="This task is missing series/chapter context required to open the Studio canvas."
         action={<BackToTasksLink />}
       />
     );

@@ -25,17 +25,17 @@ import {
 } from "@/features/board";
 
 const LABELS: Record<ProposalAction, string> = {
-  EDIT: "Chỉnh sửa",
-  SUBMIT: "Gửi Editor",
+  EDIT: "Edit",
+  SUBMIT: "Send to Editor",
   RESUBMIT: "Resubmit",
-  WITHDRAW: "Rút lại",
+  WITHDRAW: "Withdraw",
   CLAIM: "Claim review",
-  RELEASE_CLAIM: "Bỏ claim",
-  REASSIGN_CLAIM: "Chuyển claim",
-  REQUEST_CHANGES: "Yêu cầu chỉnh sửa",
-  FORWARD: "Chuyển Board",
+  RELEASE_CLAIM: "Release claim",
+  REASSIGN_CLAIM: "Transfer claim",
+  REQUEST_CHANGES: "Changes requested",
+  FORWARD: "Send to Board",
   REJECT: "Reject",
-  RECALL: "Recall khỏi Board",
+  RECALL: "Recall from Board",
   VOTE: "Vote",
   FORCE_STATUS: "Force status",
 };
@@ -121,10 +121,10 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
       { action },
       {
         onSuccess: () => {
-          toast.success(`${LABELS[action]} thành công.`);
+          toast.success(`${LABELS[action]} completed.`);
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Lỗi không xác định.");
+          toast.error(err instanceof Error ? err.message : "Unknown error.");
         },
       },
     );
@@ -133,18 +133,18 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   const confirm = () => {
     if (!open) return;
     if (REQUIRES_COMMENT.includes(open) && comment.trim().length < 8) {
-      toast.error("Vui lòng ghi rõ ít nhất 8 ký tự.");
+      toast.error("Please enter at least 8 characters.");
       return;
     }
     actionMutation.mutate(
       { action: open, payload: { comment: comment.trim() || undefined } },
       {
         onSuccess: () => {
-          toast.success(`${LABELS[open]} thành công.`);
+          toast.success(`${LABELS[open]} completed.`);
           setOpen(null);
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Lỗi không xác định.");
+          toast.error(err instanceof Error ? err.message : "Unknown error.");
         },
       },
     );
@@ -156,7 +156,9 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
         Actions
       </p>
       {visible.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Không có action khả dụng với role hiện tại.</p>
+        <p className="text-xs text-muted-foreground">
+          No actions are available for the current role.
+        </p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {visible.map((a) => {
@@ -183,7 +185,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
             onClick={() => setPromoteOpen(true)}
             className="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
           >
-            {existingSeries ? "Đã sản xuất → mở series" : "Khởi tạo sản xuất"}
+            {existingSeries ? "In production -> open series" : "Start production"}
           </button>
         </div>
       ) : null}
@@ -194,7 +196,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
             onClick={() => setAttachOpen(true)}
             className="rounded bg-indigo-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800"
           >
-            Đính vào voting session
+            Attach to voting session
           </button>
         </div>
       ) : null}
@@ -206,13 +208,15 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="comment">
-              Comment {open && REQUIRES_COMMENT.includes(open) ? "(bắt buộc)" : "(không bắt buộc)"}
+              Comment {open && REQUIRES_COMMENT.includes(open) ? "(required)" : "(optional)"}
             </Label>
             <Textarea
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder={open === "REJECT" ? "Ghi rõ lý do reject…" : "Ghi chú (tuỳ chọn)…"}
+              placeholder={
+                open === "REJECT" ? "Explain the rejection reason..." : "Note (optional)..."
+              }
               rows={5}
             />
           </div>
@@ -221,13 +225,13 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
               onClick={() => setOpen(null)}
               className="rounded border border-border px-3 py-1.5 text-xs"
             >
-              Huỷ
+              Cancel
             </button>
             <button
               onClick={confirm}
               className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
             >
-              Xác nhận
+              Confirm
             </button>
           </DialogFooter>
         </DialogContent>
@@ -267,7 +271,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
       <Dialog open={attachOpen} onOpenChange={(v) => !v && setAttachOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Đính proposal vào voting session</DialogTitle>
+            <DialogTitle>Attach proposal to a voting session</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -278,8 +282,8 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
                 onChange={(e) => setAttachTarget(e.target.value)}
                 className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
               >
-                <option value="__new">+ Tạo session mới (mở trang tạo)</option>
-                <option value="__adhoc">+ Tao nhanh phien ad-hoc cho proposal nay</option>
+                <option value="__new">+ Create new session (open creation page)</option>
+                <option value="__adhoc">+ Tao nhanh phien ad-hoc for proposal nay</option>
                 {openScheduledSessions.map((vs) => (
                   <option key={vs.id} value={vs.id}>
                     {vs.title} ({vs.proposalIds.length} proposals)
@@ -293,7 +297,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
               onClick={() => setAttachOpen(false)}
               className="rounded border border-border px-3 py-1.5 text-xs"
             >
-              Huỷ
+              Cancel
             </button>
             <button
               onClick={async () => {
@@ -309,7 +313,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
                       mode: "AD_HOC",
                       proposalIds: [proposal.id],
                     });
-                    toast.success("Đã tạo session ad-hoc.");
+                    toast.success("Ad-hoc session created.");
                     setAttachOpen(false);
                     navigate({ to: "/app/board/sessions/$sid", params: { sid: s.id } });
                     return;
@@ -323,16 +327,16 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
                       ),
                     },
                   });
-                  toast.success("Đã đính vào session.");
+                  toast.success("Attached to session.");
                   setAttachOpen(false);
                   navigate({ to: "/app/board/sessions/$sid", params: { sid: attachTarget } });
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Lỗi.");
+                  toast.error(e instanceof Error ? e.message : "Error.");
                 }
               }}
               className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
             >
-              Xác nhận
+              Confirm
             </button>
           </DialogFooter>
         </DialogContent>

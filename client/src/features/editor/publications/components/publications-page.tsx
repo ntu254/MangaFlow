@@ -44,7 +44,7 @@ export function EditorPublicationsPage() {
       <PageHeader
         eyebrow="Editor"
         title="Publications"
-        description="Quản lý chapter sẵn sàng xuất bản, lịch publish và trạng thái phát hành."
+        description="Manage chapters ready for publication, publishing schedules, and release status."
       />
 
       <div className="flex flex-wrap gap-1.5 border-b border-border">
@@ -69,12 +69,12 @@ export function EditorPublicationsPage() {
         series={series}
         emptyText={
           tab === "READY"
-            ? "Chưa có chapter nào sẵn sàng xuất bản"
+            ? "No chapters are ready for publication"
             : tab === "SCHEDULED"
-              ? "Chưa có chapter nào được lên lịch"
+              ? "No chapters are scheduled"
               : tab === "PUBLISHED"
-                ? "Chưa có chapter nào được publish"
-                : "Không có chapter Failed / Cancelled"
+                ? "No chapters have been published"
+                : "None chapter Failed / Cancelled"
         }
       />
     </div>

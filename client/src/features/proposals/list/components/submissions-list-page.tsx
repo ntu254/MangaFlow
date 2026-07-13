@@ -22,7 +22,7 @@ const STATUS_FILTERS: (ProposalStatus | "ALL")[] = [
 
 function timeAgo(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (d < 60) return "vừa xong";
+  if (d < 60) return "just now";
   if (d < 3600) return `${Math.floor(d / 60)}m`;
   if (d < 86400) return `${Math.floor(d / 3600)}h`;
   return `${Math.floor(d / 86400)}d`;
@@ -87,7 +87,7 @@ export function SubmissionsListPage() {
       <PageHeader
         eyebrow="Phase 2 · Series Proposal"
         title="Submissions"
-        description="Mangaka đề xuất series — Editor review — Board vote."
+        description="Mangaka proposals series — Editor review — Board vote."
       >
         {(user.role === "mangaka" || user.role === "admin") && (
           <Link
@@ -105,7 +105,7 @@ export function SubmissionsListPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Tìm theo tên hoặc tác giả…"
+            placeholder="Search by title or author..."
             className="h-9 rounded border border-border bg-background pl-8 pr-3 text-sm w-64"
           />
         </div>
@@ -116,7 +116,7 @@ export function SubmissionsListPage() {
         >
           {STATUS_FILTERS.map((s) => (
             <option key={s} value={s}>
-              {s === "ALL" ? "Tất cả status" : STATUS_LABEL[s as ProposalStatus]}
+              {s === "ALL" ? "All status" : STATUS_LABEL[s as ProposalStatus]}
             </option>
           ))}
         </select>
@@ -137,11 +137,11 @@ export function SubmissionsListPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="Chưa có proposal nào"
+          title="No proposals yet"
           description={
             user.role === "mangaka"
-              ? "Bấm “New proposal” để bắt đầu đề xuất series đầu tiên."
-              : "Không có proposal khớp filter."
+              ? 'Click "New proposal" to start your first series proposal.'
+              : "No proposals match the filters."
           }
         />
       ) : (

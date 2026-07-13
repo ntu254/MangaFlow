@@ -36,7 +36,7 @@ import {
 
 type Scope = "OWNER" | "FULL SERIES" | "TASK ONLY" | "READ ONLY";
 type MemberKind = "MANGAKA" | "EDITOR" | "ASSISTANT" | "TASK-ONLY";
-type Risk = "Thấp" | "Trung bình" | "Cao";
+type Risk = "Low" | "Medium" | "High";
 type Presence = "Online" | "Away" | "Offline";
 
 type MemberRow = {
@@ -65,16 +65,16 @@ function hash(s: string): number {
 }
 
 const PRESENCES: Presence[] = ["Online", "Away", "Offline"];
-const RISKS: Risk[] = ["Thấp", "Trung bình", "Cao"];
+const RISKS: Risk[] = ["Low", "Medium", "High"];
 const LAST_ACTIVE = [
-  "Hôm nay 09:21",
-  "Hôm nay 08:47",
-  "Hôm nay 09:10",
-  "Hôm nay 08:59",
-  "Hôm qua 22:31",
-  "Hôm nay 07:45",
-  "2 ngày trước",
-  "3 ngày trước",
+  "Today 09:21",
+  "Today 08:47",
+  "Today 09:10",
+  "Today 08:59",
+  "Yesterday 22:31",
+  "Today 07:45",
+  "2 days ago",
+  "3 days ago",
 ];
 
 function mockMetrics(id: string, kind: MemberKind) {
@@ -85,7 +85,7 @@ function mockMetrics(id: string, kind: MemberKind) {
   const revision = isOwner ? 0 : (h >> 4) % 5;
   const done = isOwner ? 0 : (h >> 6) % 20;
   const completed = isOwner ? 120 + (h % 30) : (h >> 8) % 60;
-  const risk = isOwner ? "Thấp" : RISKS[(h >> 3) % RISKS.length];
+  const risk = isOwner ? "Low" : RISKS[(h >> 3) % RISKS.length];
   const lastActive = LAST_ACTIVE[h % LAST_ACTIVE.length];
   const presence = PRESENCES[(h >> 1) % PRESENCES.length];
   const joinedDays = (h % 360) + 30;
@@ -177,7 +177,7 @@ function ScopePill({ scope }: { scope: Scope }) {
 
 function RiskDot({ risk }: { risk: Risk }) {
   const color =
-    risk === "Cao" ? "bg-rose-500" : risk === "Trung bình" ? "bg-amber-500" : "bg-emerald-500";
+    risk === "High" ? "bg-rose-500" : risk === "Medium" ? "bg-amber-500" : "bg-emerald-500";
   return (
     <span className="inline-flex items-center gap-1.5 text-xs">
       <span className={`size-1.5 rounded-full ${color}`} /> {risk}
@@ -259,7 +259,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         role: "assistant",
         scope: "Full chapter",
       });
-      toast.success(`Đã thêm ${u.name}.`);
+      toast.success(`Added ${u.name}.`);
       setPicker(false);
     } catch (err) {
       toast.error(mapApiError(err));
@@ -269,7 +269,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   const handleRemoveAssistant = async (memberId: string, name: string) => {
     try {
       await removeMember.mutateAsync();
-      toast.success(`Đã vô hiệu hoá ${name}.`);
+      toast.success(`Deactivated ${name}.`);
       setSelectedId(null);
     } catch (err) {
       toast.error(mapApiError(err));
@@ -285,12 +285,12 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   const handleInviteAssistant = async () => {
     const email = inviteEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Email không hợp lệ.");
+      toast.error("Invalid email.");
       return;
     }
     try {
       await inviteAssistant.mutateAsync({ email, scope: inviteScope });
-      toast.success("Đã mời assistant.");
+      toast.success("Assistant invited.");
       closeInvite();
     } catch (err) {
       toast.error(mapApiError(err));
@@ -300,7 +300,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   const handleUpdateScope = async (memberId: string, scope: string) => {
     try {
       await updateMember.mutateAsync({ scope });
-      toast.success("Đã cập nhật phạm vi.");
+      toast.success("Scope updated.");
       setEditingMemberId(null);
     } catch (err) {
       toast.error(mapApiError(err));
@@ -356,7 +356,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Quản lý đội ngũ
+            Team management
           </p>
           <div className="flex items-center gap-2">
             {canEdit || isMangakaOwner ? (
@@ -364,7 +364,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                 onClick={() => setInviteOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
               >
-                <UserPlus className="size-3.5" /> Mời assistant
+                <UserPlus className="size-3.5" /> Invite assistant
               </button>
             ) : null}
             {canEdit ? (
@@ -373,13 +373,13 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                   onClick={() => setPicker((p) => !p)}
                   className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
                 >
-                  <Plus className="size-3.5" /> Thêm assistant
+                  <Plus className="size-3.5" /> Add assistant
                 </button>
                 {picker ? (
                   <div className="absolute right-0 z-10 mt-2 w-64 space-y-1 rounded-md border border-border bg-card p-2 shadow-lg">
                     {available.length === 0 ? (
                       <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                        Không còn assistant để thêm.
+                        No more assistants to add.
                       </p>
                     ) : (
                       available.map((a) => (
@@ -414,14 +414,14 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             tone="blue"
             label="Editor"
             value={tantouEditor ? 1 : 0}
-            hint={tantouEditor?.userName ?? "Chưa assign"}
+            hint={tantouEditor?.userName ?? "Unassigned"}
             trailing={
               isMangakaOwner ? (
                 <button
                   onClick={() => setAssignEditorOpen(true)}
                   className="text-[10px] font-semibold text-accent hover:underline"
                 >
-                  {tantouEditor ? "Thay đổi" : "Assign"}
+                  {tantouEditor ? "Change" : "Assign"}
                 </button>
               ) : (
                 <ScopePill scope="FULL SERIES" />
@@ -447,10 +447,10 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         {/* Workload */}
         <div className="space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Tổng quan khối lượng công việc
+            Workload overview
           </p>
           {workloadFeatured.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Chưa có assistant nào.</p>
+            <p className="text-xs text-muted-foreground">No assistants yet.</p>
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               {workloadFeatured.map((m) => (
@@ -469,16 +469,16 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         <div className="rounded-md border border-border bg-card">
           <div className="border-b border-border px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Danh sách thành viên
+              Member list
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-2 text-left font-semibold">Tên</th>
-                  <th className="px-3 py-2 text-left font-semibold">Vai trò</th>
-                  <th className="px-3 py-2 text-left font-semibold">Phạm vi truy cập</th>
+                  <th className="px-4 py-2 text-left font-semibold">Name</th>
+                  <th className="px-3 py-2 text-left font-semibold">Role</th>
+                  <th className="px-3 py-2 text-left font-semibold">Access scope</th>
                   <th className="px-3 py-2 text-right font-semibold">Active</th>
                   <th className="px-3 py-2 text-right font-semibold">Pending</th>
                   <th className="px-3 py-2 text-right font-semibold">Completed</th>
@@ -540,8 +540,8 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
           </div>
           <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs text-muted-foreground">
             <span>
-              Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, members.length)} của{" "}
-              {members.length} thành viên
+              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, members.length)} of{" "}
+              {members.length} members
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -606,18 +606,18 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Mời assistant</h3>
+              <h3 className="text-sm font-semibold">Invite assistant</h3>
               <button
                 onClick={closeInvite}
                 className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Đóng"
+                aria-label="Close"
               >
                 <X className="size-3.5" />
               </button>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              Nhập email của assistant đã có tài khoản. Chỉ có vai trò <b>assistant</b> mới được
-              mời.
+              Enter the email of an existing assistant account. Only users with the <b>assistant</b>{" "}
+              role can be invited.
             </p>
             <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Email
@@ -634,7 +634,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
               className="mb-3 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-foreground"
             />
             <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Phạm vi truy cập
+              Access scope
             </label>
             <select
               value={inviteScope}
@@ -652,14 +652,14 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                 onClick={closeInvite}
                 className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
               >
-                Huỷ
+                Cancel
               </button>
               <button
                 onClick={handleInviteAssistant}
                 disabled={inviteAssistant.isPending || inviteEmail.trim().length === 0}
                 className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {inviteAssistant.isPending ? "Đang mời..." : "Mời"}
+                {inviteAssistant.isPending ? "Inviting..." : "Invite"}
               </button>
             </div>
           </div>
@@ -670,7 +670,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
       {editingMemberId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-80 rounded-md border border-border bg-card p-4 shadow-lg">
-            <h3 className="mb-3 text-sm font-semibold">Đổi phạm vi truy cập</h3>
+            <h3 className="mb-3 text-sm font-semibold">Change access scope</h3>
             <select
               value={scopeDraft}
               onChange={(e) => setScopeDraft(e.target.value)}
@@ -685,14 +685,14 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                 onClick={() => setEditingMemberId(null)}
                 className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
               >
-                Huỷ
+                Cancel
               </button>
               <button
                 onClick={() => handleUpdateScope(editingMemberId, scopeDraft)}
                 disabled={updateMember.isPending}
                 className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-50"
               >
-                {updateMember.isPending ? "Đang lưu..." : "Lưu"}
+                {updateMember.isPending ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
@@ -704,18 +704,18 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-80 rounded-md border border-border bg-card p-4 shadow-lg">
             <h3 className="mb-3 text-sm font-semibold">
-              {tantouEditor ? "Thay đổi Tantou Editor" : "Assign Tantou Editor"}
+              {tantouEditor ? "Change Tantou Editor" : "Assign Tantou Editor"}
             </h3>
             {tantouEditor ? (
               <div className="mb-3 rounded border border-border bg-background p-3">
-                <p className="text-xs text-muted-foreground">Editor hiện tại:</p>
+                <p className="text-xs text-muted-foreground">Current editor:</p>
                 <p className="mt-1 text-sm font-semibold">{tantouEditor.userName}</p>
                 <p className="text-xs text-muted-foreground">{tantouEditor.userEmail}</p>
                 <button
                   onClick={async () => {
                     try {
                       await removeEditor.mutateAsync();
-                      toast.success("Đã gỡ Tantou Editor.");
+                      toast.success("Tantou Editor removed.");
                       setAssignEditorOpen(false);
                     } catch (err) {
                       toast.error(mapApiError(err));
@@ -724,21 +724,21 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                   disabled={removeEditor.isPending}
                   className="mt-2 inline-flex items-center gap-1 rounded border border-rose-300 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                 >
-                  <Ban className="size-3" /> Gỡ editor
+                  <Ban className="size-3" /> Remove editor
                 </button>
               </div>
             ) : (
               <p className="mb-3 text-xs text-muted-foreground">
-                Chưa có Tantou Editor. Chọn editor từ danh sách bên dưới.
+                No Tantou Editor yet. Select an editor from the list below.
               </p>
             )}
             <div className="mb-3">
-              <p className="mb-1 text-xs font-semibold">Chọn editor:</p>
+              <p className="mb-1 text-xs font-semibold">Select editor:</p>
               <select
                 id="assign-editor-select"
                 className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
               >
-                <option value="">-- Chọn editor --</option>
+                <option value="">-- Select editor --</option>
                 <option value="u-editor">Tanaka Akira</option>
                 <option value="u-mobile-editor">Mobile Editor</option>
               </select>
@@ -748,7 +748,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                 onClick={() => setAssignEditorOpen(false)}
                 className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
               >
-                Huỷ
+                Cancel
               </button>
               <button
                 onClick={async () => {
@@ -757,13 +757,13 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                   ) as HTMLSelectElement;
                   const editorId = select?.value;
                   if (!editorId) {
-                    toast.error("Vui lòng chọn editor.");
+                    toast.error("Please select an editor.");
                     return;
                   }
                   const editorName = editorId === "u-editor" ? "Tanaka Akira" : "Mobile Editor";
                   try {
                     await assignEditor.mutateAsync({ editorId, editorName });
-                    toast.success("Đã assign Tantou Editor.");
+                    toast.success("Tantou Editor assigned.");
                     setAssignEditorOpen(false);
                   } catch (err) {
                     toast.error(mapApiError(err));
@@ -772,7 +772,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                 disabled={assignEditor.isPending}
                 className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-50"
               >
-                {assignEditor.isPending ? "Đang lưu..." : "Assign"}
+                {assignEditor.isPending ? "Saving..." : "Assign"}
               </button>
             </div>
           </div>
@@ -819,9 +819,9 @@ function WorkloadCard({
           <p className="mt-0.5 flex items-center justify-center gap-1 font-semibold">
             <span
               className={`size-1.5 rounded-full ${
-                member.risk === "Cao"
+                member.risk === "High"
                   ? "bg-rose-500"
-                  : member.risk === "Trung bình"
+                  : member.risk === "Medium"
                     ? "bg-amber-500"
                     : "bg-emerald-500"
               }`}
@@ -834,7 +834,7 @@ function WorkloadCard({
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div className="h-full rounded-full bg-foreground" style={{ width: `${member.load}%` }} />
         </div>
-        <p className="mt-1 text-right text-[10px] text-muted-foreground">{member.load}% tải</p>
+        <p className="mt-1 text-right text-[10px] text-muted-foreground">{member.load}% load</p>
       </div>
     </button>
   );
@@ -870,7 +870,7 @@ function MemberDetail({
       title: `Ch. ${String(c.number).padStart(3, "0")} – ${c.title}`,
       due: c.draftDueAt ?? c.reviewDueAt ?? c.plannedAt ?? "",
       status: ["IN PROGRESS", "IN REVIEW", "PENDING"][i % 3],
-      risk: ["Trung bình", "Thấp", "Thấp"][i % 3] as Risk,
+      risk: ["Medium", "Low", "Low"][i % 3] as Risk,
     }));
   }, [chapters]);
 
@@ -914,19 +914,19 @@ function MemberDetail({
               style={{ width: `${member.load}%` }}
             />
           </div>
-          <p className="mt-0.5 text-right text-[10px] text-muted-foreground">{member.load}% tải</p>
+          <p className="mt-0.5 text-right text-[10px] text-muted-foreground">{member.load}% load</p>
         </div>
 
         <div className="mt-3">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Nhiệm vụ
+              Tasks
             </p>
-            <button className="text-[10px] text-accent hover:underline">Xem tất cả →</button>
+            <button className="text-[10px] text-accent hover:underline">View all →</button>
           </div>
           <ul className="mt-1.5 space-y-1.5">
             {tasks.length === 0 ? (
-              <li className="text-[11px] text-muted-foreground">Chưa có nhiệm vụ.</li>
+              <li className="text-[11px] text-muted-foreground">No tasks yet.</li>
             ) : (
               tasks.map((t) => (
                 <li
@@ -959,14 +959,14 @@ function MemberDetail({
             <Eye className="size-3.5" />
           </button>
           <button
-            title="Đổi phạm vi truy cập"
+            title="Change access scope"
             onClick={() => onEditScope?.(member.id)}
             className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 py-1.5 hover:bg-muted"
           >
             <ShieldCheck className="size-3.5" />
           </button>
           <button
-            title="Gửi tin nhắn"
+            title="Send message"
             className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 py-1.5 hover:bg-muted"
           >
             <Mail className="size-3.5" />
@@ -977,7 +977,7 @@ function MemberDetail({
             onClick={onRemove}
             className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md border border-rose-300 bg-background px-2 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50"
           >
-            <Ban className="size-3" /> Vô hiệu hoá
+            <Ban className="size-3" /> Disable
           </button>
         ) : null}
       </div>

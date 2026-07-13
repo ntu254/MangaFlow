@@ -186,8 +186,9 @@ export function AdminPayrollPage() {
 
         <div className="mt-6">
           <SeparationOfDutiesWarning>
-            Người phê duyệt chất lượng bản vẽ (Mangaka/Editor) không được tự mình giải ngân. Payroll
-            confirmation, voiding, and payment actions remain override-gated and audit-backed.
+            The person who approves drawing quality (Mangaka/Editor) cannot issue payouts
+            themselves. Payroll confirmation, voiding, and payment actions remain override-gated and
+            audit-backed.
           </SeparationOfDutiesWarning>
         </div>
 

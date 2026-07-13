@@ -167,7 +167,7 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
 
   const save = async (status: "DRAFT" | "SUBMITTED") => {
     if (status === "SUBMITTED" && !file) {
-      toast.error("Hãy chọn file đã chỉnh sửa để submit.");
+      toast.error("Choose the edited file before submitting.");
       return;
     }
 
@@ -191,17 +191,17 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
         mimeType: uploaded?.mimeType,
       });
 
-      toast.success(status === "SUBMITTED" ? "Đã submit work." : "Đã lưu draft.");
+      toast.success(status === "SUBMITTED" ? "Work submitted." : "Draft saved.");
       reset();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Lỗi khi tạo submission.");
+      toast.error(error instanceof Error ? error.message : "Failed to create submission.");
     }
   };
 
   if (readOnly) {
     return (
       <div className="p-3 text-xs leading-relaxed text-muted-foreground">
-        Task đang ở trạng thái read-only, không thể upload file chỉnh sửa.
+        This task is read-only, so edited files cannot be uploaded.
       </div>
     );
   }
@@ -213,24 +213,24 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
           Upload edited file
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          Upload file đã chỉnh sửa cho task này để Mangaka review.
+          Upload the edited file for Mangaka review.
         </p>
       </div>
       <div>
         <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Phiên bản
+          Version
         </p>
         <p className="text-xs font-semibold">
-          v{nextVersion} <span className="text-muted-foreground">(tự sinh)</span>
+          v{nextVersion} <span className="text-muted-foreground">(auto-generated)</span>
         </p>
       </div>
       <div>
         <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          File kết quả
+          Result file
         </label>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/60 px-3 py-4 text-xs text-muted-foreground hover:border-foreground/40">
           <Upload className="size-3.5" />
-          <span className="truncate">{file ? file.name : "Chọn file để upload"}</span>
+          <span className="truncate">{file ? file.name : "Choose a file to upload"}</span>
           <input
             type="file"
             className="hidden"
@@ -245,7 +245,7 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
         <Textarea
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          placeholder="Ghi chú gửi Mangaka (tùy chọn)..."
+          placeholder="Note to Mangaka (optional)..."
           className="text-xs"
           rows={4}
         />
@@ -364,14 +364,14 @@ function InspectorBody({
     return (
       <div className="space-y-3 pt-4">
         <p className="text-sm text-muted-foreground">
-          Chọn region, task hoặc comment trên canvas hoặc layers panel để xem chi tiết.
+          Select a region, task, or comment on the canvas or layers panel to view details.
         </p>
       </div>
     );
   }
 
   if (selection.kind === "page") {
-    if (!page) return <Empty>Page không tồn tại.</Empty>;
+    if (!page) return <Empty>Page does not exist.</Empty>;
     const pageRegions = regions.filter((r) => r.pageId === page.id);
     const pageTasks = tasks.filter((t) => t.pageId === page.id);
     const pageComments = comments.filter((c) => c.pageId === page.id);
@@ -395,7 +395,7 @@ function InspectorBody({
 
   if (selection.kind === "region") {
     const region = regions.find((r) => r.id === selection.regionId);
-    if (!region) return <Empty>Region đã bị xóa.</Empty>;
+    if (!region) return <Empty>Region was deleted.</Empty>;
     const linked = region.taskId ? tasks.find((t) => t.id === region.taskId) : undefined;
     const hasActive =
       Boolean(linked) &&
@@ -636,7 +636,7 @@ function InspectorBody({
 
   if (selection.kind === "task") {
     const task = tasks.find((t) => t.id === selection.taskId);
-    if (!task) return <Empty>Task không tồn tại.</Empty>;
+    if (!task) return <Empty>Task does not exist.</Empty>;
     const initials = (task.assigneeName ?? "?")
       .split(/\s+/)
       .map((p) => p[0])
@@ -796,7 +796,7 @@ function InspectorBody({
         {permissions.mode === "assistant" && (
           <div className="mt-4 border-t border-border pt-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Nộp Bài
+              Submit work
             </h4>
             <TaskSubmissionPanel
               task={task}
@@ -1039,7 +1039,7 @@ function InspectorBody({
 
   // comment
   const comment = comments.find((c) => c.id === selection.commentId);
-  if (!comment) return <Empty>Comment không tồn tại.</Empty>;
+  if (!comment) return <Empty>Comment does not exist.</Empty>;
   return (
     <div className="pt-2">
       <SectionTitle>Comment</SectionTitle>
@@ -1142,7 +1142,7 @@ function CommentsList({
       </div>
       {filtered.length === 0 ? (
         <p className="pt-6 text-center text-xs text-muted-foreground">
-          {comments.length === 0 ? "Chưa có comment." : "Không có comment phù hợp."}
+          {comments.length === 0 ? "No comments yet." : "No matching comments."}
         </p>
       ) : (
         <ul className="space-y-2">

@@ -166,7 +166,7 @@ export function ReviewQueuePage() {
         getRowKey={(item) => item.id}
         getRowAccent={reviewRowAccent}
         fixed
-        empty={isLoading ? "Đang tải hàng đợi review…" : "Không có mục nào cần duyệt."}
+        empty={isLoading ? "Loading review queue..." : "No items need review."}
       />
     </QueuePage>
   );

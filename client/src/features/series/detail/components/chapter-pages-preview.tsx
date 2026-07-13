@@ -27,7 +27,7 @@ export function ChapterPagesPreview({
     if (!files || !user) return;
     const valid = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (valid.length === 0) {
-      toast.error("Chọn file ảnh.");
+      toast.error("Choose an image file.");
       return;
     }
 
@@ -47,7 +47,7 @@ export function ChapterPagesPreview({
           mimeType: uploaded.mimeType,
         });
       }
-      toast.success(`Upload ${valid.length} page(s) thành công.`);
+      toast.success(`Upload ${valid.length} page(s) completed.`);
     } catch (e) {
       toast.error(mapApiError(e));
     }
@@ -65,7 +65,7 @@ export function ChapterPagesPreview({
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Pages đã upload ({chapter.pages.length} / {target})
+          Pages has upload ({chapter.pages.length} / {target})
         </p>
         <div className="flex items-center gap-2">
           {canUpload ? (
@@ -89,12 +89,12 @@ export function ChapterPagesPreview({
             </>
           ) : null}
           <button className="text-[11px] font-semibold text-accent hover:underline">
-            Xem tất cả
+            View all
           </button>
         </div>
       </div>
       {chapter.pages.length === 0 && !canUpload ? (
-        <p className="text-xs text-muted-foreground">Chưa có page nào.</p>
+        <p className="text-xs text-muted-foreground">No pages yet.</p>
       ) : (
         <div
           className={compact ? "grid grid-cols-6 gap-1.5 lg:grid-cols-8" : "grid grid-cols-5 gap-2"}

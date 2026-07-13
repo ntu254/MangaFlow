@@ -14,116 +14,116 @@ const STATUS_CONFIG: Record<
   }
 > = {
   DRAFT: {
-    label: "Draft / Nháp",
+    label: "Draft",
     pillClass: "bg-muted text-muted-foreground border-border",
-    stage: "Khởi tạo đề xuất",
-    nextAction: "Complete proposal and submit / Hoàn thành đề xuất và gửi",
+    stage: "Proposal setup",
+    nextAction: "Complete proposal and submit / Complete and submit the proposal",
     ctaLabel: "Continue Draft",
   },
   SUBMITTED: {
-    label: "Submitted / Đã nộp",
+    label: "Submitted",
     pillClass:
       "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50",
-    stage: "Đã nộp",
-    nextAction: "Waiting for editor assignment / Chờ Editor nhận",
+    stage: "Submitted",
+    nextAction: "Waiting for editor assignment / Waiting for Editor claim",
     ctaLabel: "View Status",
   },
   PENDING_EDITOR: {
-    label: "Awaiting Editor / Chờ Editor duyệt",
+    label: "Awaiting Editor",
     pillClass:
       "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50",
-    stage: "Editor duyệt",
-    nextAction: "Waiting for editor review / Đang chờ Editor xem xét",
+    stage: "Editor review",
+    nextAction: "Waiting for editor review / Waiting for Editor review",
     ctaLabel: "View Status",
   },
   EDITOR_REVIEWING: {
-    label: "Editor Reviewing / Editor đang xem xét",
+    label: "Editor Reviewing",
     pillClass:
       "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50",
-    stage: "Editor đang xem xét",
-    nextAction: "Editor is reviewing / Editor đang xem xét",
+    stage: "Editor is reviewing",
+    nextAction: "Editor is reviewing / Editor is reviewing",
     ctaLabel: "View Status",
   },
   CHANGES_REQUESTED: {
-    label: "Changes Requested / Cần chỉnh sửa",
+    label: "Changes Requested",
     pillClass:
       "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50",
-    stage: "Editor phản hồi",
-    nextAction: "Revise proposal and resubmit / Cần sửa đổi đề xuất và nộp lại",
+    stage: "Editor feedback",
+    nextAction: "Revise proposal and resubmit / Revise and resubmit the proposal",
     ctaLabel: "Edit & Resubmit",
   },
   RESUBMITTED: {
-    label: "Resubmitted / Đã nộp lại",
+    label: "Resubmitted",
     pillClass:
       "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50",
-    stage: "Đã nộp lại",
-    nextAction: "Waiting for editor re-review / Chờ Editor xem xét lại",
+    stage: "Resubmitted",
+    nextAction: "Waiting for editor re-review / Waiting for Editor re-review",
     ctaLabel: "View Status",
   },
   PENDING_BOARD: {
-    label: "Pending Board / Chờ Hội đồng duyệt",
+    label: "Pending Board",
     pillClass:
       "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50",
-    stage: "Hội đồng bỏ phiếu",
-    nextAction: "Waiting for board decision / Đang chờ Hội đồng bỏ phiếu",
+    stage: "Board voting",
+    nextAction: "Waiting for board decision / Pending Board voting",
     ctaLabel: "View Status",
   },
   BOARD_VOTING: {
-    label: "Board Voting / Hội đồng đang bỏ phiếu",
+    label: "Board Voting",
     pillClass:
       "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50",
-    stage: "Hội đồng đang bỏ phiếu",
-    nextAction: "Board members are voting / Hội đồng đang bỏ phiếu",
+    stage: "Board voting",
+    nextAction: "Board members are voting / Board voting",
     ctaLabel: "View Status",
   },
   TIE_BREAK: {
-    label: "Tie-break / Cần quyết định EIC",
+    label: "Tie-break",
     pillClass:
       "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50",
-    stage: "Tổng biên tập quyết định",
-    nextAction: "Waiting for Editor-in-Chief tie-break / Chờ Tổng biên tập quyết định",
+    stage: "Editor-in-chief decision",
+    nextAction: "Waiting for Editor-in-Chief tie-break / Waiting for Editor-in-chief decision",
     ctaLabel: "View Status",
   },
   APPROVED: {
-    label: "Approved / Đã duyệt",
+    label: "Approved",
     pillClass:
       "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50",
-    stage: "Đã duyệt",
-    nextAction: "Proposal approved / Đề xuất đã được duyệt",
+    stage: "Approved",
+    nextAction: "Proposal approved / Proposal approved",
     ctaLabel: "View Proposal",
   },
   REJECTED: {
-    label: "Rejected / Từ chối",
+    label: "Rejected",
     pillClass:
       "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50",
-    stage: "Bị từ chối",
-    nextAction: "Proposal rejected / Đề xuất bị từ chối",
+    stage: "Rejected",
+    nextAction: "Proposal rejected / Proposal rejected",
     ctaLabel: "View Proposal",
   },
   WITHDRAWN: {
-    label: "Withdrawn / Đã rút",
+    label: "Withdrawn",
     pillClass:
       "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-950/30 dark:text-slate-400 dark:border-slate-900/50",
-    stage: "Đã rút đề xuất",
-    nextAction: "Proposal withdrawn / Đề xuất đã bị rút",
+    stage: "Proposal withdrawn",
+    nextAction: "Proposal withdrawn / Proposal withdrawn",
     ctaLabel: "View Proposal",
   },
   ARCHIVED: {
-    label: "Archived / Đã lưu trữ",
+    label: "Archived",
     pillClass:
       "bg-stone-50 text-stone-700 border-stone-200 dark:bg-stone-950/30 dark:text-stone-400 dark:border-stone-900/50",
-    stage: "Đã lưu trữ",
-    nextAction: "Proposal archived / Đề xuất đã lưu trữ",
+    stage: "Archived",
+    nextAction: "Proposal archived / Proposal archived",
     ctaLabel: "View Proposal",
   },
 };
 
 function timeAgo(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (d < 60) return "vừa xong";
-  if (d < 3600) return `${Math.floor(d / 60)} phút trước`;
-  if (d < 86400) return `${Math.floor(d / 3600)} giờ trước`;
-  return `${Math.floor(d / 86400)} ngày trước`;
+  if (d < 60) return "just now";
+  if (d < 3600) return `${Math.floor(d / 60)} minutes ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)} hours ago`;
+  return `${Math.floor(d / 86400)} days ago`;
 }
 
 function getInitials(title: string): string {
@@ -187,7 +187,7 @@ export function ProposalCard({ proposal }: { proposal: SeriesProposal }) {
           </div>
 
           <p className="line-clamp-1 text-xs text-muted-foreground">
-            {proposal.synopsis || "Chưa có tóm tắt nội dung."}
+            {proposal.synopsis || "No synopsis yet."}
           </p>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
@@ -198,7 +198,7 @@ export function ProposalCard({ proposal }: { proposal: SeriesProposal }) {
             <span>·</span>
             <span className="flex items-center gap-1">
               <Clock className="size-3" />
-              Cập nhật: {timeAgo(proposal.updatedAt)}
+              Updated: {timeAgo(proposal.updatedAt)}
             </span>
           </div>
 
