@@ -114,20 +114,6 @@ export function mapApiError(err: unknown): string {
   return "An unknown error occurred.";
 }
 
-// Queries
-export function useCreateSeriesMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation<ProductionSeries, Error, Partial<ProductionSeries>>({
-    mutationFn: (body) => seriesApi.create(body) as Promise<ProductionSeries>,
-    onSuccess: (series) => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.mine() });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(series.id) });
-      queryClient.invalidateQueries({ queryKey: ["proposals"] });
-    },
-  });
-}
-
 export function useChaptersQuery(seriesId: string) {
   return useQuery<Chapter[]>({
     queryKey: seriesKeys.chapters(seriesId),

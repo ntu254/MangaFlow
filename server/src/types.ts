@@ -174,6 +174,7 @@ export const TASK_ACTIONS: readonly TaskAction[] = [
 // ---------------------------------------------------------------------------
 
 export type SubmissionStatus =
+  | "DRAFT"
   | "PENDING"
   | "MANGAKA_APPROVED"
   | "MANGAKA_REVISION_REQUESTED"

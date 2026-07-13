@@ -13,12 +13,6 @@ export interface UpdateProposalRequest {
   [key: string]: unknown;
 }
 
-export interface CreateSeriesRequest {
-  title?: string;
-  description?: string;
-  [key: string]: unknown;
-}
-
 export interface UpdateSeriesRequest {
   title?: string;
   description?: string;
@@ -151,6 +145,13 @@ export interface AtRiskDecisionRequest {
   [key: string]: unknown;
 }
 
+export interface AtRiskReportRequest {
+  rankingSummary: string;
+  recommendation: string;
+  notes?: string;
+  [key: string]: unknown;
+}
+
 export interface ImportRankingsRequest {
   csvData?: string;
   rankings?: Array<{ seriesId: string; rank: number; [key: string]: unknown }>;
@@ -221,7 +222,6 @@ export const proposalsApi = {
 export const seriesApi = {
   list: () => apiRequest("/series"),
   get: (id: string) => apiRequest(`/series/${id}`),
-  create: (body: CreateSeriesRequest) => apiRequest("/series", { method: "POST", body }),
   patch: (id: string, body: UpdateSeriesRequest) =>
     apiRequest(`/series/${id}`, { method: "PATCH", body }),
   action: (id: string, action: "archive" | "unpublish") =>
@@ -331,6 +331,10 @@ export const boardApi = {
     apiRequest(`/board/series/${seriesId}/decisions/tie-break`, { method: "POST", body }),
   atRiskDecision: (seriesId: string, body: AtRiskDecisionRequest) =>
     apiRequest(`/board/series/${seriesId}/at-risk-decisions`, { method: "POST", body }),
+  createAtRiskReport: (seriesId: string, body: AtRiskReportRequest) =>
+    apiRequest(`/series/${seriesId}/at-risk-reports`, { method: "POST", body }),
+  latestAtRiskReport: (seriesId: string) =>
+    apiRequest(`/series/${seriesId}/at-risk-reports/latest`),
   rankings: () => apiRequest("/rankings"),
   importRankings: (body: unknown) => apiRequest("/rankings/import", { method: "POST", body }),
   decisionHistory: () => apiRequest("/board/decisions/history"),

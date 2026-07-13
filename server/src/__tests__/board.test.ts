@@ -163,21 +163,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.data.status).toBe("APPROVED");
 
     const series = await SeriesModel.find({ proposalId: "proposal-quorum-test" }).lean();
-    expect(series).toHaveLength(1);
-    expect(series[0]).toMatchObject({
-      id: "s-proposal-quorum-test",
-      title: "Quorum Test",
-      status: "ONGOING",
-      proposalId: "proposal-quorum-test",
-      authorId: "u-mangaka",
-    });
-
-    const mangaka = await loginAs("inoue@beachread.jp");
-    const mine = await request(createApp())
-      .get("/api/series?mine=true")
-      .set("Authorization", `Bearer ${mangaka.accessToken}`)
-      .expect(200);
-    expect(mine.body.data.some((s: any) => s.proposalId === "proposal-quorum-test")).toBe(true);
+    expect(series).toHaveLength(0);
   });
 
   it("POST /api/board/series/:id/votes rejects duplicate vote with DUPLICATE_VOTE", async () => {
@@ -312,13 +298,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     expect(res.body.data.status).toBe("APPROVED");
     const series = await SeriesModel.find({ proposalId: "proposal-tie-approve-test" }).lean();
-    expect(series).toHaveLength(1);
-    expect(series[0]).toMatchObject({
-      cadence: "monthly",
-      publicationType: "MONTHLY",
-      targetChapters: 18,
-      proposalId: "proposal-tie-approve-test",
-    });
+    expect(series).toHaveLength(0);
   });
 
   it("POST /api/board/series/:id/decisions/finalize works for BOARD", async () => {
@@ -340,7 +320,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     const res = await request(createApp())
       .post("/api/board/series/proposal-finalize-test/decisions/finalize")
       .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ decision: "APPROVED", publicationType: "WEEKLY" })
+      .send({ decision: "APPROVED", publicationType: "WEEKLY", tantouEditorId: "u-editor" })
       .expect(200);
 
     expect(res.body.data.status).toBe("APPROVED");
@@ -348,7 +328,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     await request(createApp())
       .post("/api/board/series/proposal-finalize-test/decisions/finalize")
       .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ decision: "APPROVED", publicationType: "WEEKLY" })
+      .send({ decision: "APPROVED", publicationType: "WEEKLY", tantouEditorId: "u-editor" })
       .expect(200);
 
     const series = await SeriesModel.find({ proposalId: "proposal-finalize-test" }).lean();
@@ -359,6 +339,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       status: "ONGOING",
       proposalId: "proposal-finalize-test",
       publicationType: "WEEKLY",
+      editorId: "u-editor",
     });
   });
 
@@ -414,22 +395,92 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.code).toBe("FORBIDDEN");
   });
 
-  it("POST /api/board/series/:id/at-risk-decisions transitions the series (HIATUS)", async () => {
-    const admin = await loginAs("admin@beachread.jp");
+  it("POST /api/board/series/:id/at-risk-decisions requires a submitted Tantou report", async () => {
+    const board = await loginAs("board@beachread.jp");
     const res = await request(createApp())
       .post("/api/board/series/s-berserk-prod/at-risk-decisions")
-      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ decision: "HIATUS", note: "Rankings dropped" })
+      .expect(409);
+
+    expect(res.body.code).toBe("AT_RISK_REPORT_REQUIRED");
+  });
+
+  it("Tantou Editor can submit an at-risk report and Board can view the latest report", async () => {
+    const tantou = await loginAs("tanaka@beachread.jp");
+    const board = await loginAs("board@beachread.jp");
+
+    const res = await request(createApp())
+      .post("/api/series/s-berserk-prod/at-risk-reports")
+      .set("Authorization", `Bearer ${tantou.accessToken}`)
+      .send({
+        rankingSummary: "Final score fell below the serialization threshold.",
+        recommendation: "HIATUS",
+        notes: "Production recovery needs a short pause.",
+      })
+      .expect(201);
+
+    expect(res.body.data.status).toBe("SUBMITTED");
+    expect(res.body.data.editorId).toBe("u-editor");
+
+    const latest = await request(createApp())
+      .get("/api/series/s-berserk-prod/at-risk-reports/latest")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(200);
+
+    expect(latest.body.data.id).toBe(res.body.data.id);
+    expect(latest.body.data.recommendation).toBe("HIATUS");
+  });
+
+  it("rejects Mangaka and non-Tantou Editor at-risk report submissions", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const otherEditor = await loginAs("editor@mangaflow.local");
+
+    await request(createApp())
+      .post("/api/series/s-berserk-prod/at-risk-reports")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ rankingSummary: "Risk data", recommendation: "CONTINUE" })
+      .expect(403);
+
+    const res = await request(createApp())
+      .post("/api/series/s-berserk-prod/at-risk-reports")
+      .set("Authorization", `Bearer ${otherEditor.accessToken}`)
+      .send({ rankingSummary: "Risk data", recommendation: "CONTINUE" })
+      .expect(403);
+
+    expect(res.body.code).toBe("NOT_TANTOU_EDITOR");
+  });
+
+  it("POST /api/board/series/:id/at-risk-decisions transitions the series after report (HIATUS)", async () => {
+    const tantou = await loginAs("tanaka@beachread.jp");
+    const board = await loginAs("board@beachread.jp");
+    await request(createApp())
+      .post("/api/series/s-berserk-prod/at-risk-reports")
+      .set("Authorization", `Bearer ${tantou.accessToken}`)
+      .send({ rankingSummary: "Rankings dropped.", recommendation: "HIATUS" })
+      .expect(201);
+
+    const res = await request(createApp())
+      .post("/api/board/series/s-berserk-prod/at-risk-decisions")
+      .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ decision: "HIATUS", note: "Rankings dropped" })
       .expect(200);
 
     expect(res.body.data.status).toBe("HIATUS");
   });
 
-  it("POST /api/board/series/:id/at-risk-decisions can cancel the series", async () => {
-    const admin = await loginAs("admin@beachread.jp");
+  it("POST /api/board/series/:id/at-risk-decisions can cancel the series after report", async () => {
+    const tantou = await loginAs("tanaka@beachread.jp");
+    const board = await loginAs("board@beachread.jp");
+    await request(createApp())
+      .post("/api/series/s-berserk-prod/at-risk-reports")
+      .set("Authorization", `Bearer ${tantou.accessToken}`)
+      .send({ rankingSummary: "Cancellation threshold hit.", recommendation: "CANCELLED" })
+      .expect(201);
+
     const res = await request(createApp())
       .post("/api/board/series/s-berserk-prod/at-risk-decisions")
-      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ decision: "CANCELLED", note: "Discontinued" })
       .expect(200);
 

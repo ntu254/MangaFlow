@@ -30,7 +30,7 @@ import {
   rejectStatusOverride,
   sanitizePatch,
 } from "../validators/common.js";
-import { createSeriesSchema, patchSeriesSchema } from "../validators/series.schema.js";
+import { patchSeriesSchema } from "../validators/series.schema.js";
 import {
   createChapterSchema,
   patchChapterSchema,
@@ -130,50 +130,11 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const createSeries = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const now = nowIso();
-  const body = parseBody(createSeriesSchema, req);
-  rejectProtectedFields(body as Record<string, unknown>);
-
-  // A manually created Series may be given a Tantou editor up front, but it must
-  // be a real, active EDITOR — never a hardcoded seed account. When none is
-  // supplied the Series starts without a Tantou and the Board assigns one later
-  // (flowchart node K); the name is taken from the account, not client input.
-  let editorId: string | undefined;
-  let editorName: string | undefined;
-  if (body.editorId) {
-    const editor = (await UserModel.findOne({ id: body.editorId, active: true }).lean()) as any;
-    if (!editor) throw new AppError(404, "Editor not found or inactive.", "EDITOR_NOT_FOUND");
-    if (editor.role !== "EDITOR") {
-      throw new AppError(400, "Assigned Tantou must be an active Editor.", "INVALID_TANTOU_EDITOR");
-    }
-    editorId = String(editor.id);
-    editorName = String(editor.name ?? "");
-  }
-
-  const seriesId = id("s");
-  const series = await SeriesModel.create({
-    id: seriesId,
-    slug: seriesSlug(body.slug ?? body.title ?? "series", seriesId),
-    title: body.title ?? "Untitled series",
-    synopsis: body.synopsis ?? "",
-    genres: Array.isArray(body.genres) ? body.genres : [],
-    coverUrl: body.coverUrl ?? "",
-    coverFileKey: body.coverFileKey,
-    status: body.status ?? "PLANNING",
-    cadence: body.cadence ?? "monthly",
-    startDate: body.startDate ?? now,
-    targetChapters: Number(body.targetChapters ?? 12),
-    authorId: body.authorId ?? actor.id,
-    authorName: body.authorName ?? actor.name,
-    ...(editorId ? { editorId, editorName } : {}),
-    assistantIds: Array.isArray(body.assistantIds) ? body.assistantIds : [],
-    proposalId: body.proposalId,
-    createdAt: now,
-    updatedAt: now,
-  });
-  await audit(req, "series.create", "series", (series as any).id);
-  created(res, series);
+  throw new AppError(
+    403,
+    "Series are created only after the Board approves a Proposal with a Tantou Editor and publication type.",
+    "SERIES_CREATION_WORKFLOW_REQUIRED",
+  );
 });
 
 export const getSeries = asyncRoute(async (req: AuthedRequest, res) => {
@@ -339,6 +300,9 @@ export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) =>
   // A cancelled or paused Series cannot accept new chapters (flowchart AS/AT).
   const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  if (req.actor?.role !== "MANGAKA" || series.authorId !== req.actor.id) {
+    throw new AppError(403, "Only the series Mangaka can create chapters.", "MANGAKA_OWNER_REQUIRED");
+  }
   if (["CANCELLED", "HIATUS", "COMPLETED"].includes(String(series.status))) {
     throw new AppError(
       409,
@@ -640,6 +604,10 @@ export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {
   const chapterId = String(req.params.chapterId);
   const chapter = await ChapterModel.findOne({ id: chapterId });
   if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  const series = (await SeriesModel.findOne({ id: (chapter as any).seriesId }).lean()) as any;
+  if (req.actor?.role !== "MANGAKA" || series?.authorId !== req.actor.id) {
+    throw new AppError(403, "Only the series Mangaka can create pages.", "MANGAKA_OWNER_REQUIRED");
+  }
 
   const body = parseBody(createPageSchema, req);
   const hasPageAsset = Boolean(body.fileKey || body.fileUrl || body.imageUrl);

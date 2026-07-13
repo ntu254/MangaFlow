@@ -66,6 +66,22 @@ export const ASSISTANTS: User[] = [
   { id: "u-assist-3", name: "Ito Daichi", email: "daichi@beachread.jp", role: "assistant" },
 ];
 
+export const EDITORS: User[] = [
+  {
+    id: "u-editor",
+    name: "Tanaka Akira",
+    email: "tanaka@beachread.jp",
+    role: "editor",
+    isEditorInChief: true,
+  },
+  {
+    id: "u-mobile-editor",
+    name: "Mobile Editor",
+    email: "editor@mangaflow.local",
+    role: "editor",
+  },
+];
+
 export const MANGAKAS: User[] = [
   { id: "u-mangaka", name: "Inoue Takehiko", email: "inoue@beachread.jp", role: "mangaka" },
 ];
@@ -73,15 +89,8 @@ export const MANGAKAS: User[] = [
 export function findUserById(id: string): User | undefined {
   if (id === "u-admin")
     return { id: "u-admin", name: "Hayashi Admin", email: "admin@beachread.jp", role: "admin" };
-  if (id === "u-editor")
-    return {
-      id: "u-editor",
-      name: "Tanaka Akira",
-      email: "tanaka@beachread.jp",
-      role: "editor",
-      isEditorInChief: true,
-    };
   return (
+    EDITORS.find((u) => u.id === id) ??
     BOARD_MEMBERS.find((u) => u.id === id) ??
     ASSISTANTS.find((u) => u.id === id) ??
     MANGAKAS.find((u) => u.id === id)

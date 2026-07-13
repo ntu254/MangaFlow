@@ -8,13 +8,36 @@ import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
 import type { AuthedRequest } from "../types.js";
 
+async function assertSeriesAccess(req: AuthedRequest, seriesId?: string) {
+  const actor = requireActor(req);
+  if (actor.role === "ADMIN") return;
+  if (!seriesId) {
+    throw new AppError(403, "Submission is not linked to a readable series.", "FORBIDDEN");
+  }
+
+  const series = await SeriesModel.findOne({ id: seriesId }).lean();
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+
+  const allowed =
+    (actor.role === "MANGAKA" && (series as any).authorId === actor.id) ||
+    (actor.role === "EDITOR" && (series as any).editorId === actor.id);
+  if (!allowed) throw new AppError(403, "You do not have access to this series.", "FORBIDDEN");
+}
+
+async function resolveSeriesId(record: { seriesId?: string; chapterId?: string }) {
+  if (record.seriesId) return record.seriesId;
+  if (!record.chapterId) return undefined;
+  const chapter = await ChapterModel.findOne({ id: record.chapterId }).select({ seriesId: 1 }).lean();
+  return (chapter as any)?.seriesId as string | undefined;
+}
+
 export const listSubmissions = asyncRoute(async (req: AuthedRequest, res) => {
   const filter = filterFromQuery(req);
-  const actor = req.actor;
-  if (actor?.role === "ASSISTANT") {
+  const actor = requireActor(req);
+  if (actor.role === "ASSISTANT") {
     // Assistants only ever see their own submissions.
     filter.assistantId = actor.id;
-  } else if (actor?.role === "MANGAKA" || actor?.role === "EDITOR") {
+  } else if (actor.role === "MANGAKA" || actor.role === "EDITOR") {
     // Mangaka/Editor only see submissions that belong to the series they own
     // (author for Mangaka, assigned editor for Editor). Scope by both seriesId
     // and chapterId so records persisted with either linkage are matched.
@@ -26,12 +49,16 @@ export const listSubmissions = asyncRoute(async (req: AuthedRequest, res) => {
       .lean();
     const chapterIds = chapters.map((item) => (item as any).id);
     filter.$or = [{ seriesId: { $in: seriesIds } }, { chapterId: { $in: chapterIds } }];
+  } else if (actor.role === "BOARD") {
+    filter.id = { $in: [] };
   }
-  // ADMIN/BOARD remain unscoped.
   await paginated(req, res, SubmissionModel, filter, { submittedAt: -1 });
 });
 export const createSubmission = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
+  if (actor.role !== "ASSISTANT") {
+    throw new AppError(403, "Only the assigned assistant can create a submission.", "FORBIDDEN");
+  }
   const body = parseBody(createSubmissionSchema, req);
   const { status, version: _version, ...clientFields } = body;
   rejectProtectedFields(clientFields as Record<string, unknown>);
@@ -40,8 +67,15 @@ export const createSubmission = asyncRoute(async (req: AuthedRequest, res) => {
 
   const task = await StudioTaskModel.findOne({ id: body.taskId }).lean();
   if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-  if (actor.role === "ASSISTANT" && (task as any).assigneeId !== actor.id) {
+  if ((task as any).assigneeId !== actor.id) {
     throw new AppError(403, "Task is not assigned to the current assistant.", "TASK_NOT_ASSIGNED");
+  }
+  const taskChapter = (task as any).chapterId
+    ? await ChapterModel.findOne({ id: (task as any).chapterId }).select({ seriesId: 1 }).lean()
+    : undefined;
+  const seriesId = (task as any).seriesId ?? (taskChapter as any)?.seriesId;
+  if (!seriesId) {
+    throw new AppError(409, "Task must belong to a series before submission.", "INVALID_TRANSITION");
   }
 
   const version =
@@ -57,25 +91,24 @@ export const createSubmission = asyncRoute(async (req: AuthedRequest, res) => {
     { $set: { status: "SUPERSEDED", updatedAt: nowIso() } },
   );
   // PENDING is the initial state when Assistant submits work for review
-  const isSubmitted = body.intent === "SUBMIT";
+  const isSubmitted = body.intent !== "DRAFT";
   const timestamp = nowIso();
   const submission = await SubmissionModel.create({
     id: id("sub"),
     ...clientFields,
     taskId: body.taskId,
-    seriesId: clientFields.seriesId ?? (task as any).seriesId,
-    chapterId: clientFields.chapterId ?? (task as any).chapterId,
-    pageId: clientFields.pageId ?? (task as any).pageId,
-    regionId: clientFields.regionId ?? (task as any).regionId,
+    seriesId,
+    chapterId: (task as any).chapterId,
+    pageId: (task as any).pageId,
+    regionId: (task as any).regionId,
     assistantId: actor.id,
     assistantName: actor.name,
     submittedBy: { id: actor.id, name: actor.name, role: actor.role },
     submittedAt: isSubmitted ? timestamp : undefined,
     version,
     versionLabel: `v${version}`,
-    // PENDING = submitted for review; use intent DRAFT for pre-submission saves
-    status: isSubmitted ? "PENDING" : "PENDING",
-    reviewStage: "MANGAKA_REVIEW",
+    status: isSubmitted ? "PENDING" : "DRAFT",
+    reviewStage: isSubmitted ? "MANGAKA_REVIEW" : undefined,
     resultText: body.notes,
     fileKey: body.fileKey,
     fileName: body.fileName,
@@ -94,14 +127,22 @@ export const createSubmission = asyncRoute(async (req: AuthedRequest, res) => {
     (submission as any).id,
     {
       taskId: body.taskId,
-      status: isSubmitted ? "PENDING" : "PENDING",
+      status: isSubmitted ? "PENDING" : "DRAFT",
       version,
     },
   );
   created(res, submission);
 });
 export const reviewQueue = asyncRoute(async (req: AuthedRequest, res) => {
-  const chapters = await ChapterModel.find({ status: "EDITOR_REVIEW" }).select({ id: 1 }).lean();
+  const actor = requireActor(req);
+  const series = await SeriesModel.find({ editorId: actor.id }).select({ id: 1 }).lean();
+  const seriesIds = series.map((item: any) => item.id);
+  const chapters = await ChapterModel.find({
+    seriesId: { $in: seriesIds },
+    status: "EDITOR_REVIEW",
+  })
+    .select({ id: 1 })
+    .lean();
   const chapterIds = chapters.map((chapter: any) => chapter.id);
   return paginated(
     req,
@@ -119,8 +160,12 @@ export const reviewQueue = asyncRoute(async (req: AuthedRequest, res) => {
 export const getSubmission = asyncRoute(async (req: AuthedRequest, res) => {
   const submission = await SubmissionModel.findOne({ id: String(req.params.submissionId) }).lean();
   if (!submission) throw new AppError(404, "Submission not found.", "SUBMISSION_NOT_FOUND");
-  if (req.actor?.role === "ASSISTANT" && (submission as any).assistantId !== req.actor.id) {
+  const actor = requireActor(req);
+  if (actor.role === "ASSISTANT" && (submission as any).assistantId !== actor.id) {
     throw new AppError(403, "Submission is not owned by the current assistant.", "FORBIDDEN");
+  }
+  if (actor.role !== "ASSISTANT") {
+    await assertSeriesAccess(req, await resolveSeriesId(submission as any));
   }
   ok(res, submission);
 });
@@ -128,8 +173,12 @@ export const getSubmission = asyncRoute(async (req: AuthedRequest, res) => {
 export const listTaskSubmissions = asyncRoute(async (req: AuthedRequest, res) => {
   const task = await StudioTaskModel.findOne({ id: String(req.params.taskId) }).lean();
   if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-  if (req.actor?.role === "ASSISTANT" && (task as any).assigneeId !== req.actor.id) {
+  const actor = requireActor(req);
+  if (actor.role === "ASSISTANT" && (task as any).assigneeId !== actor.id) {
     throw new AppError(403, "Task is not assigned to the current assistant.", "TASK_NOT_ASSIGNED");
+  }
+  if (actor.role !== "ASSISTANT") {
+    await assertSeriesAccess(req, await resolveSeriesId(task as any));
   }
   const submissions = await SubmissionModel.find({ taskId: String(req.params.taskId) })
     .sort({ submittedAt: -1 })

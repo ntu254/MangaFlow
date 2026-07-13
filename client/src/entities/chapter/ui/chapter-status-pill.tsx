@@ -1,6 +1,7 @@
 import { CHAPTER_STATUS_LABEL, type ChapterStatus } from "@/entities/series/model/series-types";
 
 const TONES: Record<ChapterStatus, string> = {
+  IN_PRODUCTION: "bg-sky-100 text-sky-800 border-sky-300",
   PLANNED: "bg-zinc-200 text-zinc-800 border-zinc-300",
   DRAFTING: "bg-blue-100 text-blue-800 border-blue-300",
   IN_REVIEW: "bg-amber-100 text-amber-900 border-amber-300",

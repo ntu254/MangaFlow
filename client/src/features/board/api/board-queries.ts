@@ -16,7 +16,21 @@ export const boardKeys = {
   all: ["board"] as const,
   queue: () => [...boardKeys.all, "queue"] as const,
   votes: (seriesId: string) => [...boardKeys.all, "votes", seriesId] as const,
+  atRiskReport: (seriesId: string) => [...boardKeys.all, "atRiskReport", seriesId] as const,
   sessions: () => [...boardKeys.all, "sessions"] as const,
+};
+
+export type AtRiskReport = {
+  id: string;
+  seriesId: string;
+  editorId: string;
+  editorName?: string;
+  rankingSummary: string;
+  recommendation: string;
+  notes?: string;
+  status: "SUBMITTED";
+  createdAt: string;
+  updatedAt: string;
 };
 
 function isBoardWorkflowUser(role: string): boolean {
@@ -107,7 +121,8 @@ export function useFinalizeDecisionMutation() {
       body: {
         decision: "APPROVED" | "REJECTED";
         note?: string;
-        publicationType?: "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+        publicationType?: "WEEKLY" | "MONTHLY";
+        tantouEditorId?: string;
       };
     }
   >({
@@ -128,12 +143,17 @@ export function useFinalizeSeriesDecisionMutation(seriesId: string) {
   return useMutation<
     Record<string, unknown>,
     Error,
-    { decision: "APPROVED" | "REJECTED"; note?: string }
+    {
+      decision: "APPROVED" | "REJECTED";
+      note?: string;
+      publicationType?: "WEEKLY" | "MONTHLY";
+      tantouEditorId?: string;
+    }
   >({
     mutationFn: (body) =>
       apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/decisions/finalize`, {
         method: "POST",
-        body: { decision: body.decision, note: body.note },
+        body,
       }),
     onSuccess: () => {
       invalidateBoardDecisionCaches(queryClient, seriesId);
@@ -181,7 +201,10 @@ export function useAtRiskDecisionMutation() {
   return useMutation<
     Record<string, unknown>,
     Error,
-    { seriesId: string; body: { decision?: string; note?: string } }
+    {
+      seriesId: string;
+      body: { decision?: string; note?: string; publicationType?: "WEEKLY" | "MONTHLY" };
+    }
   >({
     mutationFn: ({ seriesId, body }) =>
       apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/at-risk-decisions`, {
@@ -190,6 +213,50 @@ export function useAtRiskDecisionMutation() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
+      queryClient.invalidateQueries({ queryKey: seriesKeys.rankingsList() });
+    },
+  });
+}
+
+export function useLatestAtRiskReportQuery(seriesId: string) {
+  const user = useAuth((s) => s.user);
+
+  return useQuery<AtRiskReport | null, Error>({
+    queryKey: boardKeys.atRiskReport(seriesId),
+    queryFn: async () => {
+      try {
+        return await apiRequest<AtRiskReport>(`/series/${seriesId}/at-risk-reports/latest`);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("AT_RISK_REPORT_NOT_FOUND")) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    enabled: Boolean(user && seriesId),
+    staleTime: 15000,
+  });
+}
+
+export function useCreateAtRiskReportMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    AtRiskReport,
+    Error,
+    {
+      seriesId: string;
+      body: { rankingSummary: string; recommendation: string; notes?: string };
+    }
+  >({
+    mutationFn: ({ seriesId, body }) =>
+      apiRequest<AtRiskReport>(`/series/${seriesId}/at-risk-reports`, {
+        method: "POST",
+        body,
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: boardKeys.atRiskReport(variables.seriesId) });
+      queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
     },
   });
 }
@@ -197,6 +264,8 @@ export function useAtRiskDecisionMutation() {
 export { useVotingSessionsQuery } from "../sessions/api/sessions.queries";
 
 export { useCreateVotingSessionMutation } from "../sessions/api/sessions.queries";
+
+export type { AtRiskQueueItem } from "../model/board-adapters";
 
 export function mapBoardApiError(err: unknown): string {
   if (err instanceof Error) {

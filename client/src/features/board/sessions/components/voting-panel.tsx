@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { RestrictedActionTooltip } from "@/entities/access";
 import { DecisionEffectPreview } from "@/entities/proposal";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/shared/auth";
+import { EDITORS, useAuth } from "@/shared/auth";
 import { canShowAction } from "@/entities/access/model/permission-guard";
 import { checkAction } from "@/entities/proposal";
 import { SeparationOfDutiesWarning } from "@/entities/access";
@@ -40,6 +40,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
   const [decision, setDecision] = useState<PanelDecision | undefined>();
   const [comment, setComment] = useState("");
   const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY" | undefined>();
+  const [tantouEditorId, setTantouEditorId] = useState(EDITORS[0]?.id ?? "");
 
   if (!user) return null;
 
@@ -88,6 +89,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
           decision: finalDecision,
           note: comment.trim() || undefined,
           publicationType: finalDecision === "APPROVED" ? publicationType : undefined,
+          tantouEditorId: finalDecision === "APPROVED" ? tantouEditorId : undefined,
         },
       },
       {
@@ -95,6 +97,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
           toast.success(`Finalized: ${finalDecision}`);
           setComment("");
           setPublicationType(undefined);
+          setTantouEditorId(EDITORS[0]?.id ?? "");
         },
         onError: (err) => {
           toast.error(mapBoardApiError(err));
@@ -207,11 +210,27 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
                   ))}
                 </div>
               </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold text-foreground">
+                  Tantou Editor (required khi Approve)
+                </p>
+                <select
+                  value={tantouEditorId}
+                  onChange={(event) => setTantouEditorId(event.target.value)}
+                  className="h-9 w-full rounded border border-border bg-background px-2 text-xs"
+                >
+                  {EDITORS.map((editor) => (
+                    <option key={editor.id} value={editor.id}>
+                      {editor.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  disabled={!canFinalize || finalize.isPending || !publicationType}
+                  disabled={!canFinalize || finalize.isPending || !publicationType || !tantouEditorId}
                   onClick={() => handleFinalize("APPROVED")}
                   className="rounded bg-emerald-800 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-900 disabled:opacity-40"
                 >
