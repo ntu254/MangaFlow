@@ -16,7 +16,7 @@ export const Route = createFileRoute("/app/")({
         throw redirect({ to: "/app/board/dashboard" });
       }
       if (parsed?.state?.user?.role === "admin") {
-        throw redirect({ to: "/app/admin/dashboard" });
+        throw redirect({ to: "/app/admin/users" });
       }
     } catch (error) {
       if (isRedirect(error)) throw error;

@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { StudiosPage } from "@/features/admin/studios";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/studios")({
   head: () => ({ meta: [{ title: "Admin - Studios and Teams - beachRead Studio" }] }),
-  component: StudiosPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });
