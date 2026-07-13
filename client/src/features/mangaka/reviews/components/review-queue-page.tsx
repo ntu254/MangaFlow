@@ -19,6 +19,7 @@ import {
   QueueTable,
   QueueTabs,
   StatCard,
+  StateBlock,
   type QueueAccent,
   type QueueColumn,
   type QueueTab,
@@ -30,6 +31,7 @@ type Row = {
   taskTitle: string;
   seriesTitle: string;
   chapterNumber?: number;
+  ownerId?: string;
 };
 
 type TabKey = "ALL" | "WITH_FILE" | "NEEDS_FILE";
@@ -43,25 +45,32 @@ function hasFile(sub: AssistantSubmission) {
 export function ReviewQueuePage() {
   const user = useAuth((s) => s.user);
   const queryClient = useQueryClient();
-  const { data: submissions = [], isLoading } = useMangakaReviewQueueQuery();
-  const { data: tasks = [] } = useStudioTasksQuery({});
-  const { data: chapters = [] } = useMyChaptersQuery();
-  const { data: seriesList = [] } = useMySeriesQuery();
+  const {
+    data: submissions = [],
+    isLoading,
+    error: submissionsError,
+  } = useMangakaReviewQueueQuery();
+  const { data: tasks = [], error: tasksError } = useStudioTasksQuery({});
+  const { data: chapters = [], error: chaptersError } = useMyChaptersQuery();
+  const { data: seriesList = [], error: seriesError } = useMySeriesQuery();
   const [tab, setTab] = useState<TabKey>("ALL");
   const [page, setPage] = useState(1);
 
   const rows = useMemo<Row[]>(() => {
-    return submissions.map((sub) => {
-      const task = tasks.find((t) => t.id === sub.taskId);
-      const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
-      return {
-        sub,
-        taskTitle: task?.title ?? sub.taskId,
-        seriesTitle: ctx?.series?.title ?? "—",
-        chapterNumber: ctx?.chapter?.number,
-      };
-    });
-  }, [submissions, tasks, chapters, seriesList]);
+    return submissions
+      .map((sub) => {
+        const task = tasks.find((t) => t.id === sub.taskId);
+        const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
+        return {
+          sub,
+          taskTitle: task?.title ?? sub.taskId,
+          seriesTitle: ctx?.series?.title ?? "—",
+          chapterNumber: ctx?.chapter?.number,
+          ownerId: ctx?.series?.authorId,
+        };
+      })
+      .filter((row) => !row.ownerId || row.ownerId === user?.id);
+  }, [submissions, tasks, chapters, seriesList, user?.id]);
 
   const counts = useMemo(
     () => ({
@@ -151,6 +160,47 @@ export function ReviewQueuePage() {
   ];
 
   if (!user) return null;
+
+  if (user.role !== "mangaka") {
+    return (
+      <QueuePage
+        eyebrow="Mangaka"
+        title="Review Queue"
+        description="Assistant submissions awaiting Mangaka owner review."
+      >
+        <StateBlock
+          tone="danger"
+          title="Mangaka access required"
+          description="Only the Mangaka owner of a series can review assistant submissions here."
+        />
+      </QueuePage>
+    );
+  }
+
+  const loadError = submissionsError ?? tasksError ?? chaptersError ?? seriesError;
+
+  if (loadError) {
+    return (
+      <QueuePage
+        eyebrow="Mangaka"
+        title="Review Queue"
+        description="Assistant submissions awaiting your review."
+        actions={
+          <QueueActionButton
+            icon={<RefreshCw className="size-4" />}
+            label="Refresh"
+            onClick={() => queryClient.invalidateQueries()}
+          />
+        }
+      >
+        <StateBlock
+          tone="danger"
+          title="Could not load review queue"
+          description={loadError instanceof Error ? loadError.message : "Please try again."}
+        />
+      </QueuePage>
+    );
+  }
 
   return (
     <QueuePage

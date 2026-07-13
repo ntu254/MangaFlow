@@ -864,7 +864,6 @@ function InspectorBody({
             </div>
           </div>
         )}
-
       </div>
     );
   }

@@ -17,14 +17,7 @@ import {
   TextButton,
   DataPagination,
 } from "@/shared/ui";
-import {
-  Download,
-  RotateCcw,
-  Banknote,
-  CheckCircle2,
-  FileText,
-  CheckCircle,
-} from "lucide-react";
+import { Download, RotateCcw, Banknote, CheckCircle2, FileText, CheckCircle } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AccessDenied, mapAdminError, useAdminAccess } from "../../_shared";
 import { useAdminPayrollQuery } from "../../api/admin-queries";
@@ -274,11 +267,7 @@ export function AdminPayrollPage() {
         />
       </section>
 
-      <PayrollInspector
-        earning={selected}
-        open={inspectorOpen}
-        onOpenChange={setInspectorOpen}
-      />
+      <PayrollInspector earning={selected} open={inspectorOpen} onOpenChange={setInspectorOpen} />
     </PageFrame>
   );
 }

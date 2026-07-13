@@ -230,7 +230,9 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  disabled={!canFinalize || finalize.isPending || !publicationType || !tantouEditorId}
+                  disabled={
+                    !canFinalize || finalize.isPending || !publicationType || !tantouEditorId
+                  }
                   onClick={() => handleFinalize("APPROVED")}
                   className="rounded bg-emerald-800 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-900 disabled:opacity-40"
                 >

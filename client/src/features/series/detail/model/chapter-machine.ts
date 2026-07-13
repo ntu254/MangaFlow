@@ -77,7 +77,8 @@ export function checkChapterAction(
         return { ok: false, reason: "Can only publish from APPROVED/SCHEDULED." };
       return { ok: true };
     case "REASSIGN":
-      if (!isEditor(user, series)) return { ok: false, reason: "Only the Tantou Editor or Admin can do this." };
+      if (!isEditor(user, series))
+        return { ok: false, reason: "Only the Tantou Editor or Admin can do this." };
       if (chapter.status === "PUBLISHED")
         return { ok: false, reason: "Chapter has already been published." };
       return { ok: true };

@@ -101,7 +101,7 @@ export const roleRows: AdminRoleRow[] = [
       "Override with reason",
       "Payroll operations",
     ],
-    restricted: ["Creative approval requires override reason", "No silent destructive actions"],
+    restricted: ["Creative approval requires confirmation reason", "No silent destructive actions"],
   },
   {
     role: "mangaka",

@@ -68,12 +68,13 @@ export function ReviewSummaryPanel({
     "Publication readiness": Boolean(readiness?.ready),
   }));
   const [note, setNote] = useState("");
-  const [targetValue, setTargetValue] = useState(() => (page ? `PAGE:${page.id}` : ""));
+  const pageId = page?.id;
+  const [targetValue, setTargetValue] = useState(() => (pageId ? `PAGE:${pageId}` : ""));
   const pageLabel = page ? `Page ${chapterPageLabel(page)}` : "Page";
 
   useEffect(() => {
-    setTargetValue(page ? `PAGE:${page.id}` : "");
-  }, [page?.id]);
+    setTargetValue(pageId ? `PAGE:${pageId}` : "");
+  }, [pageId]);
 
   const targetOptions = [
     ...(page ? [{ value: `PAGE:${page.id}`, label: `${pageLabel} issue` }] : []),

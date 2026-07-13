@@ -1,32 +1,30 @@
-import type { AtRiskDecisionKind } from "@/entities/board/model/board-types";
+import {
+  AT_RISK_DECISIONS,
+  AT_RISK_DECISION_EFFECT,
+  AT_RISK_DECISION_LABEL,
+  isAtRiskDecisionKind,
+  requiresAtRiskDecisionReason as requiresReason,
+  type AtRiskDecisionKind,
+} from "@/entities/board/model/board-types";
 
 export type VisualAtRiskDecision = AtRiskDecisionKind;
 
-export const VISUAL_AT_RISK_DECISIONS: VisualAtRiskDecision[] = ["CONTINUE", "RESCHEDULE", "HIATUS", "CANCELLED"];
+export const VISUAL_AT_RISK_DECISIONS: readonly VisualAtRiskDecision[] = AT_RISK_DECISIONS;
 
 export function getAtRiskDecisionLabel(decision: VisualAtRiskDecision): string {
-  return decision.replace(/_/g, " ");
+  return AT_RISK_DECISION_LABEL[decision];
 }
 
 export function getAtRiskDecisionEffect(decision: VisualAtRiskDecision): string {
-  switch (decision) {
-    case "CONTINUE":
-      return "CONTINUE -> Series remains ONGOING.";
-    case "RESCHEDULE":
-      return "RESCHEDULE -> Publication cadence changes.";
-    case "HIATUS":
-      return "HIATUS -> Series moves to HIATUS.";
-    case "CANCELLED":
-      return "CANCELLED -> Series moves to CANCELLED.";
-  }
+  return AT_RISK_DECISION_EFFECT[decision];
 }
 
 export function isAtRiskDecisionSupported(
   decision: VisualAtRiskDecision,
 ): decision is AtRiskDecisionKind {
-  return ["CONTINUE", "RESCHEDULE", "HIATUS", "CANCELLED"].includes(decision);
+  return isAtRiskDecisionKind(decision);
 }
 
 export function requiresAtRiskDecisionReason(decision: VisualAtRiskDecision): boolean {
-  return ["RESCHEDULE", "HIATUS", "CANCELLED"].includes(decision);
+  return requiresReason(decision);
 }

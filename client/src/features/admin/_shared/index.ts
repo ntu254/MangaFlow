@@ -54,12 +54,7 @@ export { mapAdminError } from "./api/admin-queries";
 export { adminKeys } from "./api/admin-queries";
 export { useAdminWorkflowSummaryQuery } from "./api/admin-queries";
 export { useDemoDataMutation } from "./api/admin-queries";
-export type {
-  AdminUser,
-  AuditEntry,
-  Earning,
-  EarningItem,
-} from "./api/admin-queries";
+export type { AdminUser, AuditEntry, Earning, EarningItem } from "./api/admin-queries";
 
 // Model exports
 export { formatDateTime, formatJpy, getAdminUsers } from "./model/admin-data";
