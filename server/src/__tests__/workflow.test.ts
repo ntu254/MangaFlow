@@ -102,6 +102,130 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
   });
 
+  describe("MVP read access scope", () => {
+    beforeEach(async () => {
+      await UserModel.create({
+        id: "u-other-editor",
+        name: "Other Editor",
+        email: "other-editor@beachread.jp",
+        passwordHash: await bcrypt.hash("other-editor@beachread.jp", 10),
+        role: "EDITOR",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await SeriesModel.create({
+        id: "s-other-owner-prod",
+        slug: "other-owner-prod",
+        title: "Other Owner Series",
+        authorId: "u-other-mangaka",
+        authorName: "Other Mangaka",
+        editorId: "u-other-editor",
+        editorName: "Other Editor",
+        assistantIds: [],
+        status: "ONGOING",
+        publicationType: "MONTHLY",
+        cadence: "monthly",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      await ChapterModel.create({
+        id: "ch-other-owner-1",
+        seriesId: "s-other-owner-prod",
+        number: 1,
+        title: "Other Chapter",
+        status: "PLANNED",
+        assigneeId: "u-other-mangaka",
+        assigneeName: "Other Mangaka",
+        pages: [
+          {
+            id: "pg-other-owner-1",
+            pageNumber: 1,
+            fileKey: "pages/other-owner-1.png",
+            fileUrl: "metadata://display/other-owner-1.png",
+          },
+        ],
+        reviewNotes: [],
+        revisionRound: 0,
+        history: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    });
+
+    it("returns 404 for cross-series Mangaka reads", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      await request(createApp())
+        .get("/api/series/s-other-owner-prod")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(404);
+    });
+
+    it("returns 404 for assistants without membership or assigned task", async () => {
+      const assistant = await loginAs("jun@beachread.jp");
+      await request(createApp())
+        .get("/api/chapters/ch-other-owner-1/pages")
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(404);
+    });
+
+    it("returns 404 for editors who are not the Series Tantou", async () => {
+      const editor = await loginAs("editor@mangaflow.local");
+      await request(createApp())
+        .get("/api/series/s-berserk-prod")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .expect(404);
+    });
+
+    it("blocks Board from production assets but allows governance summary", async () => {
+      const board = await loginAs("board@beachread.jp");
+      await ChapterModel.updateOne(
+        { id: "ch-s-berserk-prod-4" },
+        { $set: { "pages.0.fileKey": "pages/board-production-denied.png" } },
+      );
+
+      await request(createApp())
+        .post("/api/files/presign-download")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .send({ key: "pages/board-production-denied.png" })
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/series/p-004/summary")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+    });
+
+    it("keeps happy path reads for Mangaka, Tantou, Assistant, Board and Admin", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
+      const assistant = await loginAs("jun@beachread.jp");
+      const board = await loginAs("board@beachread.jp");
+      const admin = await loginAs("admin@beachread.jp");
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+      await request(createApp())
+        .get("/api/series/s-berserk-prod")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .expect(200);
+      await request(createApp())
+        .get("/api/studio/tasks/tsk-001")
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(200);
+      await request(createApp())
+        .get("/api/series/p-004/summary")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+      await request(createApp())
+        .get("/api/admin/users")
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .expect(200);
+    });
+  });
+
   describe("Pages CRUD & Presigned URLs", () => {
     it("handles page CRUD lifecycle on chapters", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
@@ -240,7 +364,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .post("/api/files/presign-download")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
         .send({ key: "covers/file-cover-access.png" })
-        .expect(403);
+        .expect(404);
     });
 
     it("issues presigned upload urls for PDF proposal files", async () => {
@@ -668,7 +792,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .get("/api/studio/tasks/tsk-other-assistant")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .expect(403);
+        .expect(404);
     });
 
     it("blocks assistants from acting on or submitting to unassigned tasks", async () => {

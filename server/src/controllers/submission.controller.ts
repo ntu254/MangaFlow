@@ -6,22 +6,15 @@ import { parseBody, rejectProtectedFields } from "../validators/common.js";
 import { createSubmissionSchema, submissionActionSchema } from "../validators/submission.schema.js";
 import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
+import { assertCanReadSeries } from "../services/mvp-access.service.js";
 import type { AuthedRequest } from "../types.js";
 
 async function assertSeriesAccess(req: AuthedRequest, seriesId?: string) {
   const actor = requireActor(req);
-  if (actor.role === "ADMIN") return;
   if (!seriesId) {
-    throw new AppError(403, "Submission is not linked to a readable series.", "FORBIDDEN");
+    throw new AppError(404, "Submission not found.", "SUBMISSION_NOT_FOUND");
   }
-
-  const series = await SeriesModel.findOne({ id: seriesId }).lean();
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-
-  const allowed =
-    (actor.role === "MANGAKA" && (series as any).authorId === actor.id) ||
-    (actor.role === "EDITOR" && (series as any).editorId === actor.id);
-  if (!allowed) throw new AppError(403, "You do not have access to this series.", "FORBIDDEN");
+  await assertCanReadSeries(actor, seriesId);
 }
 
 async function resolveSeriesId(record: { seriesId?: string; chapterId?: string }) {
@@ -50,6 +43,8 @@ export const listSubmissions = asyncRoute(async (req: AuthedRequest, res) => {
     const chapterIds = chapters.map((item) => (item as any).id);
     filter.$or = [{ seriesId: { $in: seriesIds } }, { chapterId: { $in: chapterIds } }];
   } else if (actor.role === "BOARD") {
+    filter.id = { $in: [] };
+  } else if (actor.role === "ADMIN") {
     filter.id = { $in: [] };
   }
   await paginated(req, res, SubmissionModel, filter, { submittedAt: -1 });
@@ -162,7 +157,7 @@ export const getSubmission = asyncRoute(async (req: AuthedRequest, res) => {
   if (!submission) throw new AppError(404, "Submission not found.", "SUBMISSION_NOT_FOUND");
   const actor = requireActor(req);
   if (actor.role === "ASSISTANT" && (submission as any).assistantId !== actor.id) {
-    throw new AppError(403, "Submission is not owned by the current assistant.", "FORBIDDEN");
+    throw new AppError(404, "Submission not found.", "SUBMISSION_NOT_FOUND");
   }
   if (actor.role !== "ASSISTANT") {
     await assertSeriesAccess(req, await resolveSeriesId(submission as any));
@@ -175,7 +170,7 @@ export const listTaskSubmissions = asyncRoute(async (req: AuthedRequest, res) =>
   if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   const actor = requireActor(req);
   if (actor.role === "ASSISTANT" && (task as any).assigneeId !== actor.id) {
-    throw new AppError(403, "Task is not assigned to the current assistant.", "TASK_NOT_ASSIGNED");
+    throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   }
   if (actor.role !== "ASSISTANT") {
     await assertSeriesAccess(req, await resolveSeriesId(task as any));

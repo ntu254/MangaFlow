@@ -14,7 +14,7 @@ export {
   Divider,
   InspectorSection,
   InfoRow,
-  OverrideDialog,
+  ConfirmationDialog,
   PageGuard,
   MetricGrid,
   DataTable,
@@ -44,7 +44,7 @@ export {
   Divider as AdminDivider,
   InspectorSection as AdminInspectorSection,
   InfoRow as AdminInfoRow,
-  OverrideDialog as AdminOverrideDialog,
+  ConfirmationDialog as AdminConfirmationDialog,
 } from "@/shared/ui";
 
 export { AccessDenied as AdminAccessDenied } from "./components/admin-access";
