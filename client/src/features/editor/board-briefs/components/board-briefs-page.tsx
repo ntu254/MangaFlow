@@ -24,11 +24,7 @@ function isAtRiskRanking(row: { atRisk?: boolean; status?: string }) {
 
 export function AtRiskReportsPage() {
   const user = useAuth((s) => s.user);
-  const {
-    data: series = [],
-    isLoading: seriesLoading,
-    error: seriesError,
-  } = useMySeriesQuery();
+  const { data: series = [], isLoading: seriesLoading, error: seriesError } = useMySeriesQuery();
   const {
     data: rankings = [],
     isLoading: rankingsLoading,

@@ -60,8 +60,8 @@ export function AtRiskDecisionPanel({
             onClick={() => setDecision(item)}
             className={`h-10 rounded-[5px] border px-3 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               decision === item
-                ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)]"
-                : "border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-ink)] hover:bg-[var(--admin-hover)]"
+                ? "border-(--admin-navy) bg-(--admin-navy) text-(--admin-cream)"
+                : "border-(--admin-border) bg-(--admin-surface) text-(--admin-ink) hover:bg-(--admin-hover)"
             }`}
             title={AT_RISK_DECISION_EFFECT[item]}
           >
@@ -72,9 +72,7 @@ export function AtRiskDecisionPanel({
 
       {decision === "RESCHEDULE" ? (
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-[var(--admin-muted)]">
-            Publication type
-          </label>
+          <label className="text-[11px] font-semibold text-(--admin-muted)">Publication type</label>
           <div className="grid grid-cols-2 gap-2">
             {(["WEEKLY", "MONTHLY"] as const).map((type) => (
               <button
@@ -83,8 +81,8 @@ export function AtRiskDecisionPanel({
                 onClick={() => setPublicationType(type)}
                 className={`rounded border px-3 py-2 text-xs font-semibold ${
                   publicationType === type
-                    ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)]"
-                    : "border-[var(--admin-border)] bg-[var(--admin-surface)]"
+                    ? "border-(--admin-navy) bg-(--admin-navy) text-(--admin-cream)"
+                    : "border-(--admin-border) bg-(--admin-surface)"
                 }`}
               >
                 {type === "WEEKLY" ? "Weekly" : "Monthly"}
@@ -95,7 +93,7 @@ export function AtRiskDecisionPanel({
       ) : null}
 
       <div>
-        <label className="mb-1 block text-[11px] font-semibold text-[var(--admin-muted)]">
+        <label className="mb-1 block text-[11px] font-semibold text-(--admin-muted)">
           Decision note {reasonRequired ? "*" : ""}
         </label>
         <Textarea

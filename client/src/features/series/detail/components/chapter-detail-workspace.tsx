@@ -114,7 +114,9 @@ export function ChapterDetailWorkspace({
   const isMangakaOwner = user.role === "mangaka" && user.id === series.authorId;
   const canUpload =
     isMangakaOwner &&
-    (chapter.status === "DRAFTING" || chapter.status === "REVISION" || chapter.status === "PLANNED");
+    (chapter.status === "DRAFTING" ||
+      chapter.status === "REVISION" ||
+      chapter.status === "PLANNED");
   const submitCheck = checkChapterAction("SUBMIT_REVIEW", user, chapter, series);
   const submissionReadinessKeys = new Set([
     "allPagesUploaded",

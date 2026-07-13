@@ -19,8 +19,6 @@ export {
 
 export { useAdminAuditQuery } from "../audit/api/audit.queries";
 
-export {
-  useAdminPayrollQuery,
-} from "../payroll/api/payroll.queries";
+export { useAdminPayrollQuery } from "../payroll/api/payroll.queries";
 
 export { useAdminStorageSummaryQuery } from "../materials/api/materials.queries";

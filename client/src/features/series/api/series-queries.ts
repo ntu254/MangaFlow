@@ -1,4 +1,9 @@
-import type { Chapter, ChapterPage, MaterialItem, SeriesRanking } from "@/entities/series/model/series-types";
+import type {
+  Chapter,
+  ChapterPage,
+  MaterialItem,
+  SeriesRanking,
+} from "@/entities/series/model/series-types";
 import {
   seriesKeys,
   chapterKeys,

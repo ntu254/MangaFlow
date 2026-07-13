@@ -321,7 +321,10 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
                   <button
                     onClick={() => handleFinalize("APPROVED")}
                     disabled={
-                      finalize.isPending || finalize.isSuccess || !publicationType || !tantouEditorId
+                      finalize.isPending ||
+                      finalize.isSuccess ||
+                      !publicationType ||
+                      !tantouEditorId
                     }
                     className="rounded bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-40"
                   >
