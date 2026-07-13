@@ -13,9 +13,6 @@ import {
 } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
-import { presignR2Download, presignR2Upload } from "../services/r2.service.js";
-import { createDisplayUrl, createLocalUploadUrl } from "../services/file-access.service.js";
-import { assertFileKeyVisible } from "../services/studio-access.service.js";
 import {
   applyChapterAction,
   chapterReadiness,
@@ -34,8 +31,6 @@ import { patchSeriesSchema } from "../validators/series.schema.js";
 import {
   createChapterSchema,
   patchChapterSchema,
-  createPageSchema,
-  patchPageSchema,
 } from "../validators/chapter.schema.js";
 import {
   addMemberSchema,
@@ -52,18 +47,6 @@ import {
   scopedChapterFilterForActor,
   scopedProductionSeriesFilter,
 } from "../services/mvp-access.service.js";
-
-const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
-  "application/pdf",
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/octet-stream",
-]);
-
-function isAllowedUploadContentType(contentType?: string) {
-  if (!contentType) return true;
-  return contentType.startsWith("image/") || ALLOWED_UPLOAD_CONTENT_TYPES.has(contentType);
-}
 
 function seriesSlug(input: string, fallback: string) {
   return slugify(input) || fallback;
@@ -486,54 +469,3 @@ export const getChapterReadiness = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, chapterReadiness(chapter, comments, tasks, submissions, materials));
 });
 
-export const presignUpload = asyncRoute(async (req: AuthedRequest, res) => {
-  const fileName = String(req.body.fileName ?? "page.png");
-  const contentType =
-    typeof req.body.contentType === "string"
-      ? req.body.contentType
-      : typeof req.body.fileType === "string"
-        ? req.body.fileType
-        : undefined;
-  if (!isAllowedUploadContentType(contentType)) {
-    throw new AppError(
-      400,
-      "Only image, PDF, and ZIP uploads are supported.",
-      "UNSUPPORTED_FILE_TYPE",
-    );
-  }
-  const folder = typeof req.body.folder === "string" ? req.body.folder : undefined;
-  const signed = await presignR2Upload({ fileName, contentType, folder });
-  if (signed.storage === "metadata-only" || process.env.VITEST) {
-    ok(res, {
-      ...signed,
-      uploadUrl: createLocalUploadUrl(signed.key, contentType, fileName),
-      downloadUrl: createDisplayUrl(signed.key, fileName).url,
-      persistent: true,
-      storage: "local" as const,
-    });
-    return;
-  }
-  ok(res, signed);
-});
-
-export const presignDownload = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const key = req.body.key;
-  if (!key) throw new AppError(400, "key is required.", "VALIDATION_ERROR");
-  await assertFileKeyVisible(actor, String(key));
-  ok(res, await presignR2Download(String(key)));
-});
-
-export const displayUrl = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const key = req.body.key;
-  if (!key) throw new AppError(400, "key is required.", "VALIDATION_ERROR");
-  await assertFileKeyVisible(actor, String(key));
-  ok(
-    res,
-    createDisplayUrl(
-      String(key),
-      typeof req.body.fileName === "string" ? req.body.fileName : undefined,
-    ),
-  );
-});

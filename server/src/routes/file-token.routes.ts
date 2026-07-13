@@ -1,5 +1,8 @@
 import express, { Router } from "express";
-import { displayFile, putLocalUpload } from "../controllers/file-token.controller.js";
+import {
+  displayFile,
+  putLocalUpload,
+} from "../modules/files/presentation/file-token.controller.js";
 
 const router = Router();
 
