@@ -239,6 +239,16 @@ export type ProposalsListMeta = {
   };
 };
 
+export type SeriesListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -275,6 +285,13 @@ export const proposalsApi = {
 
 export const seriesApi = {
   list: () => apiRequest("/series"),
+  listContract: (state?: TableState, options?: { mine?: boolean }) => {
+    const query = tableStateQuery(state);
+    const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+    if (options?.mine) params.set("mine", "true");
+    const qs = params.toString();
+    return apiListRequest<unknown, SeriesListMeta>(`/series${qs ? `?${qs}` : ""}`);
+  },
   get: (id: string) => apiRequest(`/series/${id}`),
   patch: (id: string, body: UpdateSeriesRequest) =>
     apiRequest(`/series/${id}`, { method: "PATCH", body }),

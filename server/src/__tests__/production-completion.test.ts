@@ -8,6 +8,7 @@ import {
   EarningModel,
   ProposalModel,
   RankingModel,
+  SeriesModel,
   StudioCommentModel,
   StudioTaskModel,
   VotingSessionModel,
@@ -182,6 +183,90 @@ describe("Production-first completion hardening", () => {
     const res = await request(createApp())
       .get("/api/proposals?sortBy=actions")
       .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(400);
+
+    expect(res.body.code).toBe("INVALID_SORT_FIELD");
+  });
+
+  it("supports series list contract pagination, search, filters, and sort", async () => {
+    await SeriesModel.create([
+      {
+        id: "series-list-alpha",
+        slug: "series-list-alpha",
+        title: "Alpha Production Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-editor",
+        editorName: "Tanaka Editor",
+        synopsis: "Alpha production search",
+        status: "ONGOING",
+        publicationType: "WEEKLY",
+        genres: ["Action"],
+        assistantIds: [],
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-01T00:00:00.000Z"),
+      },
+      {
+        id: "series-list-beta",
+        slug: "series-list-beta",
+        title: "Beta Production Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-editor",
+        editorName: "Tanaka Editor",
+        synopsis: "Beta production search",
+        status: "HIATUS",
+        publicationType: "MONTHLY",
+        genres: ["Drama"],
+        assistantIds: [],
+        createdAt: new Date("2026-03-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-02T00:00:00.000Z"),
+      },
+      {
+        id: "series-list-gamma",
+        slug: "series-list-gamma",
+        title: "Gamma Production Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-editor",
+        editorName: "Tanaka Editor",
+        synopsis: "Gamma production search",
+        status: "ONGOING",
+        publicationType: "WEEKLY",
+        genres: ["Comedy"],
+        assistantIds: [],
+        createdAt: new Date("2026-03-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-03T00:00:00.000Z"),
+      },
+    ]);
+
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const filters = encodeURIComponent(
+      JSON.stringify({ status: { type: "select", value: "ONGOING" } }),
+    );
+    const res = await request(createApp())
+      .get(
+        `/api/series?mine=true&page=1&pageSize=1&q=Production%20Contract&sortBy=title&sortDir=asc&filters=${filters}`,
+      )
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("series-list-alpha");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+    });
+    expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
+    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "ONGOING" });
+  });
+
+  it("rejects unsupported series list sort fields", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const res = await request(createApp())
+      .get("/api/series?sortBy=actions")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(400);
 
     expect(res.body.code).toBe("INVALID_SORT_FIELD");

@@ -47,6 +47,14 @@ import {
   scopedChapterFilterForActor,
   scopedProductionSeriesFilter,
 } from "../services/mvp-access.service.js";
+import {
+  buildPagination,
+  combineMongoFilters,
+  listFiltersToMongo,
+  listSearchToMongo,
+  listSortToMongo,
+  parseListQuery,
+} from "../shared/contracts/list-contract.js";
 
 function seriesSlug(input: string, fallback: string) {
   return slugify(input) || fallback;
@@ -73,9 +81,39 @@ async function assertMangakaOwnsChapter(req: AuthedRequest, chapterId: string) {
   return chapter;
 }
 
+const SERIES_LIST_CONFIG = {
+  searchable: ["title", "authorName", "editorName", "synopsis"] as const,
+  sortable: ["title", "status", "publicationType", "updatedAt", "createdAt"] as const,
+  filterable: {
+    title: "text",
+    status: "select",
+    publicationType: "select",
+    authorId: "select",
+    editorId: "select",
+    createdAt: "dateRange",
+    updatedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "updatedAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+function summarizeSeries(series: any[]) {
+  const byStatus = series.reduce<Record<string, number>>((acc, item) => {
+    const status = String(item.status ?? "UNKNOWN");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: series.length,
+    byStatus,
+  };
+}
+
 export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const mine = req.query.mine === "true";
+  const query = parseListQuery(req, SERIES_LIST_CONFIG);
 
   const readableSeriesIds = await readableProductionSeriesIds(actor);
   let filter: Record<string, any> = scopedProductionSeriesFilter(readableSeriesIds);
@@ -90,9 +128,21 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
     }
   }
 
-  const { page, limit, skip } = paginationFromQuery(req);
+  filter = combineMongoFilters(
+    filter,
+    listSearchToMongo(query.q, ["title", "authorName", "editorName", "synopsis"]),
+    listFiltersToMongo(query.filters),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
+
   const [series, total] = await Promise.all([
-    SeriesModel.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+    SeriesModel.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
     SeriesModel.countDocuments(filter),
   ]);
   const repaired = await Promise.all(
@@ -107,12 +157,12 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   return res.status(200).json({
     success: true,
     data: repaired,
-    pagination: {
-      page,
-      pageSize: limit,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summarizeSeries(repaired),
     },
   });
 });
