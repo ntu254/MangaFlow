@@ -102,6 +102,152 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
   });
 
+  describe("MVP read authorization matrix", () => {
+    it("scopes proposal reads by role and hides out-of-scope proposals", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const otherMangaka = await createAndLoginOtherMangaka();
+      const board = await loginAs("board@beachread.jp");
+      const assistant = await loginAs("jun@beachread.jp");
+
+      await request(createApp())
+        .get("/api/proposals/p-001")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+
+      await request(createApp())
+        .get("/api/proposals/p-001")
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/proposals/p-001")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/proposals/p-004")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+
+      await request(createApp())
+        .get("/api/proposals/p-004")
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(404);
+    });
+
+    it("hides production Series, Chapter, Page, Member, and Activity reads outside ownership", async () => {
+      const board = await loginAs("board@beachread.jp");
+      const admin = await loginAs("admin@beachread.jp");
+      const otherMangaka = await createAndLoginOtherMangaka();
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod/summary")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod")
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .expect(404);
+
+      for (const path of [
+        "/api/series/s-berserk-prod",
+        "/api/series/s-berserk-prod/chapters",
+        "/api/series/s-berserk-prod/members",
+        "/api/series/s-berserk-prod/activity",
+        "/api/chapters/ch-s-berserk-prod-5",
+        "/api/chapters/ch-s-berserk-prod-5/pages",
+        "/api/chapters/ch-s-berserk-prod-5/readiness",
+      ]) {
+        await request(createApp())
+          .get(path)
+          .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+          .expect(404);
+      }
+    });
+
+    it("scopes task, region, comment, and submission reads to assigned production actors", async () => {
+      const assistant = await loginAs("jun@beachread.jp");
+      const unassignedAssistant = await loginAs("hina@beachread.jp");
+      const board = await loginAs("board@beachread.jp");
+
+      await request(createApp())
+        .get("/api/studio/tasks/tsk-001")
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(200);
+
+      await request(createApp())
+        .get("/api/studio/tasks/tsk-001")
+        .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/tasks/tsk-001/submissions")
+        .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/comments/task/tsk-001")
+        .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
+        .expect(404);
+
+      const regionRes = await request(createApp())
+        .get("/api/studio/regions?pageId=ch-s-berserk-prod-5-p1")
+        .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
+        .expect(200);
+      expect(regionRes.body.data.some((region: any) => region.id === "reg-001")).toBe(false);
+
+      const commentRes = await request(createApp())
+        .get("/api/comments?taskId=tsk-001")
+        .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
+        .expect(200);
+      expect(commentRes.body.data.some((comment: any) => comment.id === "cmt-001")).toBe(false);
+
+      await request(createApp())
+        .get("/api/studio/tasks/tsk-001")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(404);
+    });
+
+    it("scopes at-risk report and ranking reads to governance or responsible production actors", async () => {
+      const tantou = await loginAs("tanaka@beachread.jp");
+      const board = await loginAs("board@beachread.jp");
+      const otherMangaka = await createAndLoginOtherMangaka();
+      const unassignedAssistant = await loginAs("hina@beachread.jp");
+
+      await request(createApp())
+        .post("/api/series/s-berserk-prod/at-risk-reports")
+        .set("Authorization", `Bearer ${tantou.accessToken}`)
+        .send({ rankingSummary: "Score dropped below threshold.", recommendation: "HIATUS" })
+        .expect(201);
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod/at-risk-reports/latest")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod/at-risk-reports/latest")
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .expect(404);
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod/rankings")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+
+      await request(createApp())
+        .get("/api/series/s-berserk-prod/rankings")
+        .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
+        .expect(404);
+    });
+  });
+
   describe("Pages CRUD & Presigned URLs", () => {
     it("handles page CRUD lifecycle on chapters", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
@@ -230,7 +376,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .post("/api/files/presign-download")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
         .send({ key: "covers/file-cover-access.png" })
-        .expect(403);
+        .expect(404);
     });
 
     it("issues presigned upload urls for PDF proposal files", async () => {
@@ -479,7 +625,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .get("/api/studio/tasks/tsk-other-assistant")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .expect(403);
+        .expect(404);
     });
 
     it("blocks assistants from acting on or submitting to unassigned tasks", async () => {
@@ -995,8 +1141,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const directErrRes = await request(createApp())
         .get("/api/series/s-other-author-series/rankings")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .expect(403);
-      expect(directErrRes.body.code).toBe("FORBIDDEN");
+        .expect(404);
+      expect(directErrRes.body.code).toBe("SERIES_NOT_FOUND");
     });
   });
 });

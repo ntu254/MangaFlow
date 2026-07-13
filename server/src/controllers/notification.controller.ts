@@ -6,6 +6,11 @@ import { audit, notifyMany } from "../services/audit.service.js";
 import { parseBody, rejectProtectedFields } from "../validators/common.js";
 import { z } from "zod";
 import type { AuthedRequest } from "../types.js";
+import {
+  assertCanReadGovernanceSeries,
+  assertCanReadProductionSeries,
+  readableProductionSeriesIds,
+} from "../services/mvp-access.service.js";
 
 const rankingImportRowSchema = z
   .object({
@@ -75,22 +80,17 @@ export const listRankings = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   let filter: Record<string, any> = {};
 
-  if (actor.role === "MANGAKA") {
-    const series = await SeriesModel.find({ authorId: actor.id }).select("id").lean();
-    const seriesIds = series.map((s: any) => s.id);
-    filter.seriesId = { $in: seriesIds };
+  if (actor.role !== "BOARD") {
+    const seriesIds = await readableProductionSeriesIds(actor);
+    filter.seriesId = seriesIds.length > 0 ? { $in: seriesIds } : "__mvp_no_ranking_access__";
   }
 
   const querySeriesId = req.query.seriesId;
   if (querySeriesId) {
-    if (actor.role === "MANGAKA") {
-      const series = await SeriesModel.findOne({
-        id: String(querySeriesId),
-        authorId: actor.id,
-      }).lean();
-      if (!series) {
-        return ok(res, []);
-      }
+    if (actor.role === "BOARD") {
+      await assertCanReadGovernanceSeries(actor, String(querySeriesId));
+    } else {
+      await assertCanReadProductionSeries(actor, String(querySeriesId));
     }
     filter.seriesId = String(querySeriesId);
   }
@@ -102,15 +102,10 @@ export const listSeriesRankings = asyncRoute(async (req: AuthedRequest, res) => 
   const actor = requireActor(req);
   const seriesId = String(req.params.seriesId);
 
-  if (actor.role === "MANGAKA") {
-    const series = await SeriesModel.findOne({ id: seriesId, authorId: actor.id }).lean();
-    if (!series) {
-      throw new AppError(
-        403,
-        "You do not have permission to view rankings for this series.",
-        "FORBIDDEN",
-      );
-    }
+  if (actor.role === "BOARD") {
+    await assertCanReadGovernanceSeries(actor, seriesId);
+  } else {
+    await assertCanReadProductionSeries(actor, seriesId);
   }
 
   const rankings = await RankingModel.find({ seriesId }).sort({ finalScore: -1 }).lean();

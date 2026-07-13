@@ -9,6 +9,10 @@ import { parseBody, rejectProtectedFields } from "../validators/common.js";
 import { createProposalSchema, patchProposalSchema } from "../validators/proposal.schema.js";
 import type { AuthedRequest, ProposalAction, ProposalStatus } from "../types.js";
 import { PROPOSAL_ACTIONS } from "../types.js";
+import {
+  canReadProposal,
+  scopedProposalFilterForActor,
+} from "../services/mvp-access.service.js";
 
 const PROPOSAL_STATUSES = new Set<ProposalStatus>([
   "DRAFT",
@@ -27,7 +31,8 @@ const PROPOSAL_STATUSES = new Set<ProposalStatus>([
 ]);
 
 export const listProposals = asyncRoute(async (req: AuthedRequest, res) => {
-  const filter: Record<string, unknown> = {};
+  const actor = requireActor(req);
+  let filter: Record<string, unknown> = scopedProposalFilterForActor(actor);
   const rawStatus = req.query.status;
   const statuses = Array.isArray(rawStatus)
     ? rawStatus.flatMap((value) => String(value).split(","))
@@ -43,8 +48,9 @@ export const listProposals = asyncRoute(async (req: AuthedRequest, res) => {
     if (invalid) {
       throw new AppError(400, `Invalid proposal status filter: ${invalid}`, "VALIDATION_ERROR");
     }
-    filter.status =
+    const statusFilter =
       normalizedStatuses.length === 1 ? normalizedStatuses[0] : { $in: normalizedStatuses };
+    filter = { $and: [filter, { status: statusFilter }] };
   }
 
   await paginated(req, res, ProposalModel, filter, { updatedAt: -1 });
@@ -106,8 +112,11 @@ export const createProposal = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const getProposal = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
   const proposal = await ProposalModel.findOne({ id: String(req.params.id) }).lean();
-  if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
+  if (!proposal || !canReadProposal(actor, proposal)) {
+    throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
+  }
   ok(res, proposal);
 });
 

@@ -44,6 +44,14 @@ import {
 } from "../validators/team.schema.js";
 import type { AuthedRequest, ChapterAction } from "../types.js";
 import { CHAPTER_ACTIONS } from "../types.js";
+import {
+  assertCanReadChapter,
+  assertCanReadGovernanceSeries,
+  assertCanReadProductionSeries,
+  readableProductionSeriesIds,
+  scopedChapterFilterForActor,
+  scopedProductionSeriesFilter,
+} from "../services/mvp-access.service.js";
 
 const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
   "application/pdf",
@@ -93,29 +101,16 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const mine = req.query.mine === "true";
 
-  let filter: Record<string, any> = {};
-  if (actor.role === "MANGAKA") {
-    filter.authorId = actor.id;
-  } else if (actor.role === "EDITOR") {
-    filter.editorId = actor.id;
-  } else if (actor.role === "ASSISTANT") {
-    const memberships = await SeriesMemberModel.find({ userId: actor.id, status: "active" }).lean();
-    const seriesIds = memberships.map((m: any) => m.seriesId);
-    filter.id = { $in: seriesIds };
-  }
+  const readableSeriesIds = await readableProductionSeriesIds(actor);
+  let filter: Record<string, any> = scopedProductionSeriesFilter(readableSeriesIds);
 
   if (mine) {
     if (actor.role === "MANGAKA") {
-      filter.authorId = actor.id;
+      filter = { $and: [filter, { authorId: actor.id }] };
     } else if (actor.role === "EDITOR") {
-      filter.editorId = actor.id;
+      filter = { $and: [filter, { editorId: actor.id }] };
     } else if (actor.role === "ASSISTANT") {
-      const memberships = await SeriesMemberModel.find({
-        userId: actor.id,
-        status: "active",
-      }).lean();
-      const seriesIds = memberships.map((m: any) => m.seriesId);
-      filter.id = { $in: seriesIds };
+      filter = scopedProductionSeriesFilter(readableSeriesIds);
     }
   }
 
@@ -155,8 +150,8 @@ export const createSeries = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const getSeries = asyncRoute(async (req: AuthedRequest, res) => {
-  const series = await SeriesModel.findOne({ id: String(req.params.id) }).lean();
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  const actor = requireActor(req);
+  const series = await assertCanReadProductionSeries(actor, String(req.params.id));
   ok(res, series);
 });
 
@@ -207,6 +202,7 @@ export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const listSeriesChapters = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertCanReadProductionSeries(requireActor(req), String(req.params.id));
   const filter = { seriesId: String(req.params.id) };
   const { page, limit, skip } = paginationFromQuery(req);
   const [chapters, total] = await Promise.all([
@@ -284,14 +280,19 @@ export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) =>
   created(res, chapter);
 });
 
-export const getSeriesSummary = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(res, await seriesProposalSummary(String(req.params.seriesId))),
-);
+export const getSeriesSummary = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
+  if (actor.role === "BOARD") {
+    await assertCanReadGovernanceSeries(actor, String(req.params.seriesId));
+  } else {
+    await assertCanReadProductionSeries(actor, String(req.params.seriesId));
+  }
+  ok(res, await seriesProposalSummary(String(req.params.seriesId)));
+});
 
 export const getSeriesActivity = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
-  const series = await SeriesModel.findOne({ id: seriesId }).lean();
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  await assertCanReadProductionSeries(requireActor(req), seriesId);
 
   const chapters = await ChapterModel.find({ seriesId }).select({ id: 1 }).lean();
   const chapterIds = chapters.map((chapter: any) => chapter.id);
@@ -315,6 +316,7 @@ export const getSeriesActivity = asyncRoute(async (req: AuthedRequest, res) => {
 // Team Members
 export const listMembers = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
+  await assertCanReadProductionSeries(requireActor(req), seriesId);
   const members = await SeriesMemberModel.find({ seriesId }).lean();
   ok(res, members);
 });
@@ -444,8 +446,7 @@ export const inviteAssistant = asyncRoute(async (req: AuthedRequest, res) => {
 
 // Chapters (standalone)
 export const getChapter = asyncRoute(async (req: AuthedRequest, res) => {
-  const chapter = await ChapterModel.findOne({ id: String(req.params.chapterId) }).lean();
-  if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  const chapter = await assertCanReadChapter(requireActor(req), String(req.params.chapterId));
   ok(res, (await attachPublications([chapter]))[0]);
 });
 
@@ -458,8 +459,6 @@ export const patchChapter = asyncRoute(async (req: AuthedRequest, res) => {
     "summary",
     "draftDueAt",
     "reviewDueAt",
-    "scheduledAt",
-    "publishedAt",
     "metadata",
   ];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields);
@@ -499,10 +498,11 @@ export const listChapters = asyncRoute(async (req: AuthedRequest, res) => {
     }
   }
   if (req.query.seriesId) filter.seriesId = String(req.query.seriesId);
+  const scopedFilter = await scopedChapterFilterForActor(user, filter);
   const { page, limit, skip } = paginationFromQuery(req);
   const [chapters, total] = await Promise.all([
-    ChapterModel.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
-    ChapterModel.countDocuments(filter),
+    ChapterModel.find(scopedFilter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+    ChapterModel.countDocuments(scopedFilter),
   ]);
   const enriched = await attachPublications(chapters);
   return res.status(200).json({
@@ -519,15 +519,13 @@ export const listChapters = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const getChapterPages = asyncRoute(async (req: AuthedRequest, res) => {
-  const chapter = await ChapterModel.findOne({ id: String(req.params.chapterId) }).lean();
-  if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  const chapter = await assertCanReadChapter(requireActor(req), String(req.params.chapterId));
   ok(res, (chapter as any).pages ?? []);
 });
 
 export const getChapterReadiness = asyncRoute(async (req: AuthedRequest, res) => {
   const chapterId = String(req.params.chapterId);
-  const chapter = await ChapterModel.findOne({ id: chapterId }).lean();
-  if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  const chapter = await assertCanReadChapter(requireActor(req), chapterId);
   const pageIds = ((chapter as any).pages ?? []).map((page: any) => page.id);
   const [tasks, submissions, materials] = await Promise.all([
     StudioTaskModel.find({ chapterId }).lean(),

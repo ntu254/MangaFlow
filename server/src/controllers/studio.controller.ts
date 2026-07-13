@@ -33,6 +33,16 @@ import {
 } from "../validators/studio.schema.js";
 import { TASK_ACTIONS } from "../types.js";
 import type { AuthedRequest } from "../types.js";
+import {
+  assertCanReadChapter,
+  assertCanReadComment,
+  assertCanReadPage,
+  assertCanReadProductionSeries,
+  assertCanReadTask,
+  scopedCommentFilterForActor,
+  scopedRegionFilterForActor,
+  scopedTaskFilterForActor,
+} from "../services/mvp-access.service.js";
 
 function rejectWorkflowStatusPatch(body: unknown) {
   if (body && typeof body === "object" && ("status" in body || "state" in body)) {
@@ -87,9 +97,10 @@ async function assertTaskAssignee(series: any, assigneeId: string | undefined) {
 }
 
 // Regions
-export const listRegions = asyncRoute(async (req: AuthedRequest, res) =>
-  paginated(req, res, StudioRegionModel, filterFromQuery(req), { updatedAt: -1 }),
-);
+export const listRegions = asyncRoute(async (req: AuthedRequest, res) => {
+  const filter = await scopedRegionFilterForActor(requireActor(req), filterFromQuery(req));
+  await paginated(req, res, StudioRegionModel, filter, { updatedAt: -1 });
+});
 export const createRegion = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(createRegionSchema, req);
   await assertCanManageStudio(req, body);
@@ -142,10 +153,7 @@ export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
 
 // Tasks
 export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
-  const filter = filterFromQuery(req);
-  if (req.actor?.role === "ASSISTANT") {
-    filter.assigneeId = req.actor.id;
-  }
+  const filter = await scopedTaskFilterForActor(requireActor(req), filterFromQuery(req));
   await paginated(req, res, StudioTaskModel, filter, { updatedAt: -1 });
 });
 export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
@@ -217,12 +225,18 @@ export const sendEditorReview = asyncRoute(async (req: AuthedRequest, res) =>
 );
 
 // Comments
-export const listComments = asyncRoute(async (req: AuthedRequest, res) =>
-  paginated(req, res, StudioCommentModel, filterFromQuery(req), { createdAt: -1 }),
-);
+export const listComments = asyncRoute(async (req: AuthedRequest, res) => {
+  const filter = await scopedCommentFilterForActor(requireActor(req), filterFromQuery(req));
+  await paginated(req, res, StudioCommentModel, filter, { createdAt: -1 });
+});
 export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const body = parseBody(createCommentSchema, req);
+  if (body.taskId) await assertCanReadTask(actor, body.taskId);
+  else if (body.pageId) await assertCanReadPage(actor, body.pageId);
+  else if (body.chapterId) await assertCanReadChapter(actor, body.chapterId);
+  else if (body.seriesId) await assertCanReadProductionSeries(actor, body.seriesId);
+  else throw new AppError(400, "Comment target is required.", "VALIDATION_ERROR");
   const comment = await StudioCommentModel.create({
     id: id("cmt"),
     ...body,
@@ -237,6 +251,7 @@ export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
   created(res, comment);
 });
 export const patchComment = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertCanReadComment(requireActor(req), String(req.params.commentId));
   const body = parseBody(patchCommentSchema, req);
   const allowedFields = ["text", "body", "type", "severity", "isBlocking", "metadata"];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields, {
@@ -248,26 +263,33 @@ export const patchComment = asyncRoute(async (req: AuthedRequest, res) => {
   );
 });
 export const resolveComment = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(
-    res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.resolved", {
-      status: "RESOLVED",
-    }),
-  ),
+  {
+    await assertCanReadComment(requireActor(req), String(req.params.commentId));
+    ok(
+      res,
+      await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.resolved", {
+        status: "RESOLVED",
+      }),
+    );
+  }
 );
 export const reopenComment = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(
-    res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.reopened", {
-      status: "REOPENED",
-    }),
-  ),
+  {
+    await assertCanReadComment(requireActor(req), String(req.params.commentId));
+    ok(
+      res,
+      await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.reopened", {
+        status: "REOPENED",
+      }),
+    );
+  }
 );
-export const listTaskComments = asyncRoute(async (req: AuthedRequest, res) =>
+export const listTaskComments = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertCanReadTask(requireActor(req), String(req.params.taskId));
   ok(
     res,
     await StudioCommentModel.find({ taskId: String(req.params.taskId) })
       .sort({ createdAt: -1 })
       .lean(),
-  ),
-);
+  );
+});

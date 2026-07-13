@@ -4,6 +4,7 @@ import { AppError, asyncRoute, created, ok } from "../lib/http.js";
 import { audit } from "../services/audit.service.js";
 import { requireActor } from "./helpers.js";
 import type { AuthedRequest } from "../types.js";
+import { assertCanReadGovernanceSeries } from "../services/mvp-access.service.js";
 
 export const createAtRiskReport = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
@@ -35,7 +36,9 @@ export const createAtRiskReport = asyncRoute(async (req: AuthedRequest, res) => 
 });
 
 export const getLatestAtRiskReport = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
   const seriesId = String(req.params.seriesId);
+  await assertCanReadGovernanceSeries(actor, seriesId);
   const report = await AtRiskReportModel.findOne({ seriesId, status: "SUBMITTED" })
     .sort({ createdAt: -1 })
     .lean();
