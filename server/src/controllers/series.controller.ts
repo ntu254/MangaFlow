@@ -134,6 +134,23 @@ export const createSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const now = nowIso();
   const body = parseBody(createSeriesSchema, req);
   rejectProtectedFields(body as Record<string, unknown>);
+
+  // A manually created Series may be given a Tantou editor up front, but it must
+  // be a real, active EDITOR — never a hardcoded seed account. When none is
+  // supplied the Series starts without a Tantou and the Board assigns one later
+  // (flowchart node K); the name is taken from the account, not client input.
+  let editorId: string | undefined;
+  let editorName: string | undefined;
+  if (body.editorId) {
+    const editor = (await UserModel.findOne({ id: body.editorId, active: true }).lean()) as any;
+    if (!editor) throw new AppError(404, "Editor not found or inactive.", "EDITOR_NOT_FOUND");
+    if (editor.role !== "EDITOR") {
+      throw new AppError(400, "Assigned Tantou must be an active Editor.", "INVALID_TANTOU_EDITOR");
+    }
+    editorId = String(editor.id);
+    editorName = String(editor.name ?? "");
+  }
+
   const seriesId = id("s");
   const series = await SeriesModel.create({
     id: seriesId,
@@ -149,8 +166,7 @@ export const createSeries = asyncRoute(async (req: AuthedRequest, res) => {
     targetChapters: Number(body.targetChapters ?? 12),
     authorId: body.authorId ?? actor.id,
     authorName: body.authorName ?? actor.name,
-    editorId: body.editorId ?? "u-editor",
-    editorName: body.editorName ?? "Tanaka Akira",
+    ...(editorId ? { editorId, editorName } : {}),
     assistantIds: Array.isArray(body.assistantIds) ? body.assistantIds : [],
     proposalId: body.proposalId,
     createdAt: now,
