@@ -229,6 +229,16 @@ export type BoardQueueListMeta = {
   };
 };
 
+export type ProposalsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -253,6 +263,8 @@ export const bootstrapApi = {
 
 export const proposalsApi = {
   list: () => apiRequest("/proposals"),
+  listContract: (state?: TableState) =>
+    apiListRequest<unknown, ProposalsListMeta>(`/proposals${tableStateQuery(state)}`),
   get: (id: string) => apiRequest(`/proposals/${id}`),
   create: (body: CreateProposalRequest) => apiRequest("/proposals", { method: "POST", body }),
   patch: (id: string, body: UpdateProposalRequest) =>

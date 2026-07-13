@@ -10,6 +10,13 @@ import {
   canReadProposal,
   scopedProposalFilterForActor,
 } from "../../../services/mvp-access.service.js";
+import {
+  combineMongoFilters,
+  listFiltersToMongo,
+  listSearchToMongo,
+  listSortToMongo,
+  type ListQuery,
+} from "../../../shared/contracts/list-contract.js";
 import { PROPOSAL_STATUSES } from "../domain/proposal-status.js";
 import {
   createProposalRecord,
@@ -45,6 +52,47 @@ export function proposalListFilterForRequest(req: AuthedRequest) {
 
 export function proposalListModel() {
   return ProposalModel;
+}
+
+export async function listProposals(req: AuthedRequest, query: ListQuery) {
+  const scopedFilter = proposalListFilterForRequest(req);
+  const filter = combineMongoFilters(
+    scopedFilter,
+    listSearchToMongo(query.q, ["title", "authorName", "synopsis", "logline"]),
+    listFiltersToMongo(query.filters),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
+
+  const [proposals, total, allVisible] = await Promise.all([
+    ProposalModel.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
+    ProposalModel.countDocuments(filter),
+    ProposalModel.find(scopedFilter).select("status").lean(),
+  ]);
+
+  return {
+    data: proposals,
+    total,
+    summary: summarizeProposals(allVisible),
+  };
+}
+
+function summarizeProposals(proposals: any[]) {
+  const byStatus = proposals.reduce<Record<string, number>>((acc, proposal) => {
+    const status = String(proposal.status ?? "UNKNOWN");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: proposals.length,
+    byStatus,
+  };
 }
 
 export async function createProposal(req: AuthedRequest, body: any) {
