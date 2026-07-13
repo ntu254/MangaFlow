@@ -217,6 +217,18 @@ export type AdminUsersListMeta = {
   };
 };
 
+export type BoardQueueListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    pending: number;
+    needsFinalize: number;
+    tieBreak: number;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -345,6 +357,8 @@ export const boardApi = {
   deleteSessionNote: (id: string, noteId: string) =>
     apiRequest(`/voting-sessions/${id}/notes/${noteId}`, { method: "DELETE" }),
   queue: () => apiRequest("/board/queue"),
+  queueList: (state?: TableState) =>
+    apiListRequest<unknown, BoardQueueListMeta>(`/board/queue${tableStateQuery(state)}`),
   getVotes: (seriesId: string) => apiRequest(`/board/series/${seriesId}/votes`),
   castVote: (seriesId: string, body: CastVoteRequest) =>
     apiRequest(`/board/series/${seriesId}/votes`, { method: "POST", body }),

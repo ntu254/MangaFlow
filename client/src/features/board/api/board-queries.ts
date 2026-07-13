@@ -8,8 +8,10 @@ import {
 } from "../model/board-adapters";
 import { proposalKeys } from "@/features/proposals";
 import { seriesKeys } from "@/entities/series";
-import { ApiRequestError, apiRequest } from "@/shared/api/client";
+import { boardApi, type BoardQueueListMeta } from "@/shared/api/services";
+import { ApiRequestError, apiRequest, type ApiListEnvelope } from "@/shared/api/client";
 import { useAuth } from "@/shared/auth";
+import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const boardKeys = {
@@ -58,6 +60,23 @@ export function useBoardQueueQuery() {
       return rows.map(mapBoardQueueItem);
     },
     enabled: Boolean(user && isBoardWorkflowUser(user.role)),
+    staleTime: 30000,
+  });
+}
+
+export function useBoardQueueListQuery(tableState: TableState) {
+  const user = useAuth((s) => s.user);
+
+  return useQuery<ApiListEnvelope<BoardQueueItem, BoardQueueListMeta>, Error>({
+    queryKey: [...boardKeys.queue(), "list", tableState],
+    queryFn: async () => {
+      const list = await boardApi.queueList(tableState);
+      return {
+        ...list,
+        data: list.data.map((row) => mapBoardQueueItem(row as Record<string, unknown>)),
+      } as ApiListEnvelope<BoardQueueItem, BoardQueueListMeta>;
+    },
+    enabled: Boolean(user?.role === "board"),
     staleTime: 30000,
   });
 }
