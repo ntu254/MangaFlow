@@ -12,12 +12,13 @@ import {
   SubmissionModel,
   VotingSessionModel,
   RankingModel,
+  UserModel,
   stripMongo,
 } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { apiToWebRole, canMutate } from "../domain/roles.js";
 import { AppError } from "../lib/http.js";
-import { audit, notifyMany } from "./audit.service.js";
+import { audit, notifyMany, notifyRole } from "./audit.service.js";
 import type {
   AuthedRequest,
   ChapterAction,
@@ -103,6 +104,22 @@ function toObject<T>(doc: unknown) {
   return stripMongo(doc) as T;
 }
 
+/**
+ * Validate that a user id refers to an active EDITOR, for use as the Tantou
+ * editor a Series is bound to. Throws if the user is missing/inactive or not
+ * an editor. Returns the id/name to denormalize onto the proposal/series.
+ */
+async function resolveTantouEditor(editorId: string) {
+  const user = (await UserModel.findOne({ id: editorId, active: true }).lean()) as any;
+  if (!user) {
+    throw new AppError(404, "Editor not found or inactive.", "EDITOR_NOT_FOUND");
+  }
+  if (user.role !== "EDITOR") {
+    throw new AppError(400, "Assigned Tantou must be an Editor.", "INVALID_TANTOU_EDITOR");
+  }
+  return { id: String(user.id), name: String(user.name ?? "") };
+}
+
 function cadenceFromPublicationType(value: unknown) {
   const normalized = String(value ?? "").toUpperCase();
   if (normalized === "WEEKLY") return "weekly";
@@ -142,6 +159,12 @@ async function ensureProductionSeriesForApprovedProposal(proposal: any) {
       patch.publicationType = desiredPublicationType;
       patch.cadence = desiredCadence;
     }
+    // Backfill the Board-assigned Tantou if the Series was created before the
+    // Board picked one (e.g. on vote quorum) and none is set yet.
+    if (proposal.boardApprovedEditorId && !existing.editorId) {
+      patch.editorId = proposal.boardApprovedEditorId;
+      patch.editorName = proposal.boardApprovedEditorName ?? "";
+    }
     if (Object.keys(patch).length > 0) {
       patch.updatedAt = nowIso();
       await SeriesModel.updateOne({ id: existing.id }, { $set: patch });
@@ -151,8 +174,12 @@ async function ensureProductionSeriesForApprovedProposal(proposal: any) {
   }
 
   const now = nowIso();
-  const editorId = proposal.assignedEditorId ?? proposal.claimedByEditorId ?? "u-editor";
-  const editorName = proposal.assignedEditorName ?? proposal.claimedByEditorName ?? "Tanaka Akira";
+  // The Tantou editor is assigned by the Board (flowchart node K), not
+  // inherited from whoever claimed the proposal review. If the Board has not
+  // picked one yet, the Series is created without an editor and the Board
+  // assigns the Tantou later via the tantou endpoint.
+  const editorId = proposal.boardApprovedEditorId ?? "";
+  const editorName = proposal.boardApprovedEditorName ?? "";
 
   const series = await SeriesModel.findOneAndUpdate(
     { proposalId: proposal.id },
@@ -470,11 +497,11 @@ export async function applyProposalAction(
         throw new AppError(409, "Only draft proposals can be submitted.", "INVALID_TRANSITION");
       patch.status = "PENDING_EDITOR";
       patch.submittedAt = new Date();
-      notifications.push({
-        userId: "u-editor",
-        kind: "proposal.submitted",
-        message: `${proposal.title} is waiting for editor review.`,
-      });
+      await notifyRole(
+        "EDITOR",
+        "proposal.submitted",
+        `${proposal.title} is waiting for editor review.`,
+      );
       await audit(req, "PROPOSAL_SUBMITTED", "proposal", proposalId, {
         fromStatus,
         toStatus: "PENDING_EDITOR",
@@ -640,13 +667,11 @@ export async function applyProposalAction(
       patch.assignedEditorId = proposal.claimedByEditorId ?? actor.id;
       patch.assignedEditorName = proposal.claimedByEditorName ?? actor.name;
       patch.editorForwardedAt = new Date();
-      ["u-board", "u-board-2", "u-board-3", "u-board-4", "u-board-5"].forEach((userId) => {
-        notifications.push({
-          userId,
-          kind: "proposal.board",
-          message: `${proposal.title} is ready for Board vote.`,
-        });
-      });
+      await notifyRole(
+        "BOARD",
+        "proposal.board",
+        `${proposal.title} is ready for Board vote.`,
+      );
       await audit(req, "PROPOSAL_FORWARDED_TO_BOARD", "proposal", proposalId, {
         fromStatus,
         toStatus: "PENDING_BOARD",
@@ -687,13 +712,12 @@ export async function applyProposalAction(
     case "VOTE": {
       if (!["PENDING_BOARD", "BOARD_VOTING", "TIE_BREAK"].includes(proposal.status))
         throw new AppError(409, "Proposal is not open for voting.", "INVALID_TRANSITION");
-      if (
-        (proposal.votes ?? []).some((vote: any) => normalizeBoardVote(vote).memberId === actor.id)
-      ) {
-        throw new AppError(409, "This user has already voted on the proposal.", "DUPLICATE_VOTE");
-      }
       const decision = normalizeVote(payload.voteDecision ?? payload.value ?? payload.decision);
       const isTieBreak = proposal.status === "TIE_BREAK";
+      const weight =
+        isTieBreak && actor.role === "EDITOR" && actor.isEditorInChief && decision !== "ABSTAIN"
+          ? EIC_TIEBREAK_WEIGHT
+          : 1;
       const vote = {
         memberId: actor.id,
         memberName: actor.name,
@@ -703,22 +727,34 @@ export async function applyProposalAction(
         comment: payload.comment ?? payload.note,
         createdAt: nowIso(),
         votedAt: new Date(),
-        weight:
-          isTieBreak && actor.role === "EDITOR" && actor.isEditorInChief && decision !== "ABSTAIN"
-            ? EIC_TIEBREAK_WEIGHT
-            : 1,
+        weight,
         isChair: actor.isChair,
         isEditorInChief: actor.isEditorInChief,
       };
-      const votes = [...(proposal.votes ?? []), vote];
-      const tally = evaluateBoardTally(votes);
 
-      // Update cache in proposal (denormalized)
-      patch.votes = votes;
-      if (proposal.status === "PENDING_BOARD") patch.status = "BOARD_VOTING";
-      if (tally.status) patch.status = tally.status;
+      // Append the ballot atomically. The previous read-modify-write on
+      // proposal.votes could lose concurrent ballots and mis-evaluate quorum;
+      // pushing under a filter that excludes this member both prevents lost
+      // writes and enforces one-vote-per-member without a separate racy read.
+      const pushed = await ProposalModel.findOneAndUpdate(
+        {
+          id: proposalId,
+          status: { $in: ["PENDING_BOARD", "BOARD_VOTING", "TIE_BREAK"] },
+          "votes.memberId": { $ne: actor.id },
+          "votes.voterId": { $ne: actor.id },
+        },
+        { $push: { votes: vote }, $set: { updatedAt: nowIso() } },
+        { returnDocument: "after" },
+      );
+      if (!pushed) {
+        const fresh = (await ProposalModel.findOne({ id: proposalId }).lean()) as any;
+        if ((fresh?.votes ?? []).some((v: any) => normalizeBoardVote(v).memberId === actor.id)) {
+          throw new AppError(409, "This user has already voted on the proposal.", "DUPLICATE_VOTE");
+        }
+        throw new AppError(409, "Proposal is not open for voting.", "INVALID_TRANSITION");
+      }
 
-      // Write to source-of-truth collection
+      // Mirror to the source-of-truth ballots collection.
       const sessionId = payload.sessionId ?? null;
       await ProposalVoteModel.findOneAndUpdate(
         { sessionId, proposalId: proposal.id, voterId: actor.id },
@@ -733,11 +769,18 @@ export async function applyProposalAction(
             decision,
             comment: payload.comment ?? payload.note,
             votedAt: new Date(),
-            weight: vote.weight,
+            weight,
           },
         },
         { upsert: true },
       );
+
+      // Derive the outcome from the persisted ballots (not a stale snapshot).
+      // Only the status is set here; the votes array is already persisted by
+      // the atomic $push above, so it is deliberately left out of `patch`.
+      const tally = evaluateBoardTally((pushed.toObject() as any).votes ?? []);
+      if (proposal.status === "PENDING_BOARD") patch.status = "BOARD_VOTING";
+      if (tally.status) patch.status = tally.status;
 
       notifications.push({
         userId: proposal.authorId,
@@ -755,13 +798,23 @@ export async function applyProposalAction(
       if (!payload.forceStatus)
         throw new AppError(400, "forceStatus is required.", "VALIDATION_ERROR");
       patch.status = payload.forceStatus;
-      // Board picks the publication cadence when finalizing an approval.
+      // On approval the Board finalizes two decisions before the Series is
+      // created: (K) which Editor becomes the Tantou, and (L) the cadence.
       if (payload.forceStatus === "APPROVED") {
         const pubType = normalizePublicationType(payload.publicationType);
         if (!pubType) {
           throw new AppError(400, "Invalid publicationType.", "VALIDATION_ERROR");
         }
         patch.boardApprovedPublicationType = pubType;
+
+        // (K) Board-assigned Tantou Editor. Optional at finalize — if the Board
+        // does not pick one here, they assign it later via the tantou endpoint.
+        const tantouId = payload.tantouEditorId ?? payload.editorId;
+        if (tantouId) {
+          const editor = await resolveTantouEditor(String(tantouId));
+          patch.boardApprovedEditorId = editor.id;
+          patch.boardApprovedEditorName = editor.name;
+        }
       }
       break;
     }
@@ -1265,6 +1318,20 @@ export async function applyChapterAction(
     throw new AppError(403, "Chapter assignee permission is required.", "FORBIDDEN");
   if (rule.editor && !isEditor)
     throw new AppError(403, "Editor permission is required.", "FORBIDDEN");
+  // Publication scheduling/publishing is the Tantou Editor's job (flowchart
+  // node B): only the series' assigned editor (or an Admin) may run these.
+  if (["SCHEDULE", "POSTPONE", "PUBLISH"].includes(action)) {
+    const isTantou =
+      actor.role === "ADMIN" ||
+      (actor.role === "EDITOR" && (series as any).editorId === actor.id);
+    if (!isTantou) {
+      throw new AppError(
+        403,
+        "Only the series' Tantou Editor can schedule or publish chapters.",
+        "NOT_TANTOU_EDITOR",
+      );
+    }
+  }
   if (
     (action === "EDITOR_APPROVE" || action === "REQUEST_REVISION" || action === "REJECT") &&
     (series as any).authorId === actor.id
@@ -1603,6 +1670,33 @@ export async function applyTaskAction(
   const task = doc.toObject() as any;
   const normalizedAction = action.toUpperCase();
   assertTaskActionAllowed(actor, task, action);
+
+  // Enforce a valid source status per action so a task cannot skip stages —
+  // e.g. jump straight to MANGAKA_APPROVED from TODO without ever being
+  // submitted, which would mint an earning for work that never happened.
+  // (EDITOR_APPROVE keeps its own guard below with a domain-specific message.)
+  const TASK_ACTION_FROM: Record<string, string[]> = {
+    START: ["TODO"],
+    SUBMIT: ["IN_PROGRESS", "MANGAKA_REVISION_REQUESTED", "EDITOR_REVISION_REQUESTED"],
+    APPROVE: ["SUBMITTED", "MANGAKA_REVIEWING"],
+    MANGAKA_APPROVE: ["SUBMITTED", "MANGAKA_REVIEWING"],
+    REQUEST_REVISION: ["SUBMITTED", "MANGAKA_REVIEWING", "MANGAKA_APPROVED", "EDITOR_REVIEWING"],
+    REJECT: ["SUBMITTED", "MANGAKA_REVIEWING", "MANGAKA_APPROVED", "EDITOR_REVIEWING"],
+    REOPEN: [
+      "REJECTED",
+      "CANCELLED",
+      "MANGAKA_REVISION_REQUESTED",
+      "EDITOR_REVISION_REQUESTED",
+    ],
+  };
+  const allowedFrom = TASK_ACTION_FROM[normalizedAction];
+  if (allowedFrom && !allowedFrom.includes(String(task.status))) {
+    throw new AppError(
+      409,
+      `Task action ${normalizedAction} is not valid from status "${task.status}".`,
+      "INVALID_TRANSITION",
+    );
+  }
 
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
 
@@ -2024,6 +2118,29 @@ export async function submissionDecision(
     requireMutationRole(actor, ["MANGAKA", "EDITOR"]);
   }
 
+  // Enforce the two-round order: the Editor can only approve a submission the
+  // Mangaka has already approved (flowchart X → Z → AA). This mirrors the guard
+  // in applyTaskAction so both review paths stay consistent.
+  if (action === "editor-approve" && submission.status !== "MANGAKA_APPROVED") {
+    throw new AppError(
+      409,
+      "Submission must be Mangaka-approved before the Editor can approve it.",
+      "INVALID_TRANSITION",
+    );
+  }
+  if (
+    action === "approve" &&
+    !["PENDING", "SUBMITTED", "MANGAKA_REVIEWING", "MANGAKA_REVISION_REQUESTED"].includes(
+      submission.status,
+    )
+  ) {
+    throw new AppError(
+      409,
+      "Submission is not awaiting Mangaka review.",
+      "INVALID_TRANSITION",
+    );
+  }
+
   let status: string = "PENDING";
   const reviewPatch: Record<string, unknown> = {};
 
@@ -2139,6 +2256,93 @@ export async function submissionDecision(
 
   await audit(req, `submission.${action}`, "submission", submissionId, { status });
   return updated;
+}
+
+export type AtRiskDecision = "CONTINUE" | "RESCHEDULE" | "HIATUS" | "CANCELLED";
+
+function normalizeAtRiskDecision(value: unknown): AtRiskDecision {
+  const normalized = String(value ?? "").toUpperCase();
+  if (["CONTINUE", "RESCHEDULE", "HIATUS", "CANCELLED"].includes(normalized)) {
+    return normalized as AtRiskDecision;
+  }
+  if (normalized === "CANCEL") return "CANCELLED";
+  throw new AppError(
+    400,
+    "Decision must be CONTINUE, RESCHEDULE, HIATUS, or CANCELLED.",
+    "VALIDATION_ERROR",
+  );
+}
+
+/**
+ * Board's decision on an at-risk Series (flowchart AQ → AR/AS/AT). Unlike the
+ * previous stub — which only audited and pinged a hardcoded id — this actually
+ * transitions the Series and notifies the Mangaka and Tantou editor.
+ */
+export async function atRiskSeriesDecision(
+  req: AuthedRequest,
+  seriesId: string,
+  rawDecision: unknown,
+  opts: { publicationType?: unknown; note?: string } = {},
+) {
+  const actor = ensureActor(req);
+  requireMutationRole(actor, ["BOARD"]);
+  const decision = normalizeAtRiskDecision(rawDecision);
+
+  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+
+  const patch: Record<string, unknown> = { updatedAt: nowIso() };
+  const resumeFromHiatus = String(series.status) === "HIATUS" ? "ONGOING" : series.status;
+
+  switch (decision) {
+    case "CONTINUE":
+      // Keep producing; lift the at-risk flag on this Series' rankings.
+      patch.status = resumeFromHiatus;
+      await RankingModel.updateMany(
+        { seriesId, $or: [{ atRisk: true }, { status: "AT_RISK" }] },
+        { $set: { atRisk: false, status: "ACTIVE", updatedAt: nowIso() } },
+      );
+      break;
+    case "RESCHEDULE": {
+      const pubType = normalizePublicationType(opts.publicationType);
+      if (!pubType) throw new AppError(400, "Invalid publicationType.", "VALIDATION_ERROR");
+      patch.publicationType = pubType;
+      patch.cadence = cadenceFromPublicationType(pubType);
+      patch.status = resumeFromHiatus;
+      break;
+    }
+    case "HIATUS":
+      patch.status = "HIATUS";
+      break;
+    case "CANCELLED":
+      patch.status = "CANCELLED";
+      patch.cancelledAt = new Date();
+      patch.cancelledById = actor.id;
+      patch.cancelReason = opts.note ?? "";
+      break;
+  }
+
+  await SeriesModel.updateOne({ id: seriesId }, { $set: patch });
+
+  const auditAction = `series.at_risk_${decision.toLowerCase()}`;
+  const recipients = [series.authorId, series.editorId].filter(Boolean) as string[];
+  await notifyMany(
+    recipients.map((userId) => ({
+      userId,
+      kind: auditAction,
+      title: "Series decision",
+      message: `Board decision for ${series.title ?? seriesId}: ${decision}.`,
+    })),
+  );
+
+  await audit(req, auditAction, "series", seriesId, {
+    decision,
+    note: opts.note,
+    publicationType: patch.publicationType,
+    status: patch.status,
+  });
+
+  return toObject(await SeriesModel.findOne({ id: seriesId }).lean());
 }
 
 export async function taskDetail(req: AuthedRequest, taskId: string) {
