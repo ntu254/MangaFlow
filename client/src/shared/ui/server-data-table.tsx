@@ -32,6 +32,7 @@ export type ServerDataTableProps<TData> = {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
   getRowId?: (row: TData, index: number) => string;
+  getRowClassName?: (row: TData) => string | undefined;
   isLoading?: boolean;
   error?: unknown;
   emptyTitle?: string;
@@ -52,6 +53,7 @@ export function ServerDataTable<TData>({
   data,
   columns,
   getRowId,
+  getRowClassName,
   isLoading,
   error,
   emptyTitle = "No records found",
@@ -118,7 +120,7 @@ export function ServerDataTable<TData>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className={getRowClassName?.(row.original)}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
