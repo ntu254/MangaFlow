@@ -16,7 +16,7 @@ export const createSubmissionSchema = z.object({
   notes: z.string().max(2000).optional(),
   version: z.number().int().positive().optional(),
   reviewStage: z.enum(["MANGAKA_REVIEW", "EDITOR_REVIEW", "FINAL"]).optional(),
-  status: z.enum(["PENDING", "MANGAKA_APPROVED", "MANGAKA_REVISION_REQUESTED",
+  status: z.enum(["DRAFT", "PENDING", "MANGAKA_APPROVED", "MANGAKA_REVISION_REQUESTED",
     "EDITOR_APPROVED", "EDITOR_REVISION_REQUESTED", "REJECTED", "SUPERSEDED"]).optional(),
   metadata: z.any().optional()
 }).strict();

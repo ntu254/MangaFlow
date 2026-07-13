@@ -858,6 +858,7 @@ const submissionSchema = looseSchema({
     type: String,
     default: "PENDING",
     enum: [
+      "DRAFT",
       "PENDING",
       "SUBMITTED",
       "MANGAKA_APPROVED",
@@ -1144,6 +1145,23 @@ const rankingImportSchema = looseSchema({
 rankingImportSchema.index({ period: 1, status: 1 });
 rankingImportSchema.index({ importedById: 1, createdAt: -1 });
 
+// ------------------------------------------------------------------
+// At-risk report
+// ------------------------------------------------------------------
+
+const atRiskReportSchema = looseSchema({
+  seriesId: { type: String, required: true, index: true },
+  editorId: { type: String, required: true, index: true },
+  editorName: { type: String },
+  rankingSummary: { type: String, required: true },
+  recommendation: { type: String, required: true },
+  notes: { type: String },
+  status: { type: String, enum: ["SUBMITTED"], default: "SUBMITTED", index: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+atRiskReportSchema.index({ seriesId: 1, status: 1, createdAt: -1 });
+
 /* ------------------------------------------------------------------ */
 /*  Earning                                                             */
 /* ------------------------------------------------------------------ */
@@ -1324,6 +1342,7 @@ export const NotificationModel = mongoose.model<any>("Notification", notificatio
 export const AuditEntryModel = mongoose.model<any>("AuditEntry", auditSchema);
 export const RankingModel = mongoose.model<any>("Ranking", rankingSchema);
 export const RankingImportModel = mongoose.model<any>("RankingImport", rankingImportSchema);
+export const AtRiskReportModel = mongoose.model<any>("AtRiskReport", atRiskReportSchema);
 export const EarningModel = mongoose.model<any>("Earning", earningSchema);
 export const EarningItemModel = mongoose.model<any>("EarningItem", earningItemSchema);
 export const AiProcessingModel = mongoose.model<any>("AiProcessing", aiProcessingSchema);
@@ -1347,6 +1366,7 @@ export const allMutableModels = [
   AuditEntryModel,
   RankingModel,
   RankingImportModel,
+  AtRiskReportModel,
   EarningModel,
   EarningItemModel,
   AiProcessingModel,

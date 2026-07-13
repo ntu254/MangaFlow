@@ -37,15 +37,14 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
 
   it("rejects PATCH /series/:id with protected fields", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: "MF-022 test series" })
-      .expect(201);
-    const seriesId = res.body.data.id;
+      .expect(403);
 
     const patchRes = await request(createApp())
-      .patch(`/api/series/${seriesId}`)
+      .patch("/api/series/s-berserk-prod")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ authorId: "hacked", createdAt: "2020-01-01" })
       .expect(400);
@@ -54,15 +53,14 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
 
   it("rejects PATCH /series/:id with invalid field type", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: "MF-022 type test" })
-      .expect(201);
-    const seriesId = res.body.data.id;
+      .expect(403);
 
     await request(createApp())
-      .patch(`/api/series/${seriesId}`)
+      .patch("/api/series/s-berserk-prod")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: 12345 })
       .expect(400);
@@ -694,26 +692,28 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
     await mongo.stop();
   });
 
-  it("Mangaka can see review queue (submissions with SUBMITTED status)", async () => {
+  it("Mangaka can see review queue (submissions with PENDING status)", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const assistant = await loginAs("jun@beachread.jp");
 
-    // Insert a submission directly with SUBMITTED status (API defaults to PENDING)
+    // Insert a submission directly in the canonical review-queue status.
     const subId = `sub-review-q-${Date.now()}`;
     await SubmissionModel.create({
       id: subId,
       taskId: "tsk-review-q",
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-4",
       assistantId: "usr-6",
       assistantName: "Jun Tanaka",
-      status: "SUBMITTED",
+      status: "PENDING",
       submittedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    // Verify it appears in the SUBMITTED filter
+    // Verify it appears in the PENDING review filter.
     const queueRes = await request(createApp())
-      .get("/api/submissions?status=SUBMITTED")
+      .get("/api/submissions?status=PENDING")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(200);
     expect(Array.isArray(queueRes.body.data)).toBe(true);
@@ -721,28 +721,32 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
     expect(found).toBeDefined();
   });
 
-  it("GET /api/submissions?status=SUBMITTED filters correctly", async () => {
+  it("GET /api/submissions?status=PENDING filters correctly", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
 
-    // Insert a SUBMITTED submission
+    // Insert a PENDING submission.
     const subIdSubmitted = `sub-filter-submitted-${Date.now()}`;
     await SubmissionModel.create({
       id: subIdSubmitted,
       taskId: "tsk-filter-q",
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-4",
       assistantId: "usr-6",
       assistantName: "Jun Tanaka",
       version: 1,
-      status: "SUBMITTED",
+      status: "PENDING",
       submittedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    // Insert a MANGAKA_APPROVED submission (should not appear in SUBMITTED filter)
+    // Insert a MANGAKA_APPROVED submission (should not appear in the PENDING filter).
     const subIdApproved = `sub-filter-approved-${Date.now()}`;
     await SubmissionModel.create({
       id: subIdApproved,
       taskId: "tsk-filter-q",
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-4",
       assistantId: "usr-6",
       assistantName: "Jun Tanaka",
       version: 2,
@@ -752,9 +756,9 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    // Verify only SUBMITTED ones appear in queue
+    // Verify only PENDING submissions appear in the queue.
     const queueRes = await request(createApp())
-      .get("/api/submissions?status=SUBMITTED")
+      .get("/api/submissions?status=PENDING")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(200);
     expect(Array.isArray(queueRes.body.data)).toBe(true);

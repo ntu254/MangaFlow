@@ -27,7 +27,17 @@ export const requestRevision = asyncRoute(async (req: AuthedRequest, res) => ok(
 export const rejectSeries = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "REJECT", { ...req.body, comment: req.body?.rejectReason })));
 export const forwardToBoard = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "FORWARD", req.body)));
 export const castVote = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "VOTE", req.body)));
-export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "FORCE_STATUS", { forceStatus: req.body?.decision === "REJECTED" ? "REJECTED" : "APPROVED", comment: req.body?.note, publicationType: req.body?.publicationType })));
+export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(
+    res,
+    await applyProposalAction(req, String(req.params.seriesId), "FORCE_STATUS", {
+      forceStatus: req.body?.decision === "REJECTED" ? "REJECTED" : "APPROVED",
+      comment: req.body?.note,
+      publicationType: req.body?.publicationType,
+      tantouEditorId: req.body?.tantouEditorId ?? req.body?.editorId,
+    }),
+  ),
+);
 export const tieBreakDecision = asyncRoute(async (req: AuthedRequest, res) => ok(res, await applyProposalAction(req, String(req.params.seriesId), "VOTE", req.body)));
 
 export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) =>

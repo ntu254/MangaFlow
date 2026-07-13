@@ -12,6 +12,7 @@ import {
   SubmissionModel,
   VotingSessionModel,
   RankingModel,
+  AtRiskReportModel,
   UserModel,
   stripMongo,
 } from "../db/models.js";
@@ -150,6 +151,7 @@ function slugifySeries(input: string, fallback: string) {
 
 async function ensureProductionSeriesForApprovedProposal(proposal: any) {
   if (!proposal || proposal.status !== "APPROVED") return null;
+  if (!proposal.boardApprovedEditorId || !proposal.boardApprovedPublicationType) return null;
 
   const existing: any = await SeriesModel.findOne({ proposalId: proposal.id }).lean();
   const seriesId = `s-${proposal.id}`;
@@ -181,11 +183,9 @@ async function ensureProductionSeriesForApprovedProposal(proposal: any) {
   }
 
   const now = nowIso();
-  // The Tantou editor is assigned by the Board (flowchart node K), not
-  // inherited from whoever claimed the proposal review. If the Board has not
-  // picked one yet, the Series is created without an editor and the Board
-  // assigns the Tantou later via the tantou endpoint.
-  const editorId = proposal.boardApprovedEditorId ?? "";
+  // Series creation happens only after the Board has selected both the Tantou
+  // Editor and publication cadence (flowchart nodes K → L → M).
+  const editorId = proposal.boardApprovedEditorId;
   const editorName = proposal.boardApprovedEditorName ?? "";
 
   const series = await SeriesModel.findOneAndUpdate(
@@ -816,14 +816,14 @@ export async function applyProposalAction(
         }
         patch.boardApprovedPublicationType = pubType;
 
-        // (K) Board-assigned Tantou Editor. Optional at finalize — if the Board
-        // does not pick one here, they assign it later via the tantou endpoint.
+        // (K) Board-assigned Tantou Editor is required before Series creation.
         const tantouId = payload.tantouEditorId ?? payload.editorId;
-        if (tantouId) {
-          const editor = await resolveTantouEditor(String(tantouId));
-          patch.boardApprovedEditorId = editor.id;
-          patch.boardApprovedEditorName = editor.name;
+        if (!tantouId) {
+          throw new AppError(400, "tantouEditorId is required.", "VALIDATION_ERROR");
         }
+        const editor = await resolveTantouEditor(String(tantouId));
+        patch.boardApprovedEditorId = editor.id;
+        patch.boardApprovedEditorName = editor.name;
       }
       break;
     }
@@ -1271,6 +1271,9 @@ export async function applyChapterAction(
       (chapter.assigneeId === actor.id || (series as any).authorId === actor.id)) ||
     (actor.role === "ASSISTANT" && chapter.assigneeId === actor.id);
   const isEditor = actor.role === "ADMIN" || actor.role === "EDITOR";
+  const isTantouEditor =
+    actor.role === "ADMIN" ||
+    (actor.role === "EDITOR" && (series as any).editorId === actor.id);
   const isMangakaOrEditor =
     actor.role === "ADMIN" || actor.role === "EDITOR" || actor.role === "MANGAKA";
   const fromStatus = chapter.status as ChapterStatus;
@@ -1327,6 +1330,13 @@ export async function applyChapterAction(
     throw new AppError(403, "Chapter assignee permission is required.", "FORBIDDEN");
   if (rule.editor && !isEditor)
     throw new AppError(403, "Editor permission is required.", "FORBIDDEN");
+  if (["EDITOR_APPROVE", "REQUEST_REVISION", "REJECT"].includes(action) && !isTantouEditor) {
+    throw new AppError(
+      403,
+      "Only the series' Tantou Editor can review this chapter.",
+      "NOT_TANTOU_EDITOR",
+    );
+  }
   // Publication scheduling/publishing is the Tantou Editor's job (flowchart
   // node B): only the series' assigned editor (or an Admin) may run these.
   if (["SCHEDULE", "POSTPONE", "PUBLISH"].includes(action)) {
@@ -1679,6 +1689,38 @@ export async function applyTaskAction(
   const task = doc.toObject() as any;
   const normalizedAction = action.toUpperCase();
   assertTaskActionAllowed(actor, task, action);
+  const taskChapter = task.chapterId
+    ? await ChapterModel.findOne({ id: task.chapterId }).select({ seriesId: 1 }).lean()
+    : undefined;
+  const series = (await SeriesModel.findOne({ id: task.seriesId ?? (taskChapter as any)?.seriesId }).lean()) as any;
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+
+  const isAdmin = actor.role === "ADMIN";
+  const isMangakaOwner = actor.role === "MANGAKA" && series.authorId === actor.id;
+  const isTantouEditor = actor.role === "EDITOR" && series.editorId === actor.id;
+  const editorStage = ["MANGAKA_APPROVED", "EDITOR_REVIEWING"].includes(String(task.status));
+
+  if (["APPROVE", "MANGAKA_APPROVE"].includes(normalizedAction) && !isAdmin && !isMangakaOwner) {
+    throw new AppError(403, "Only the series Mangaka can approve this task.", "FORBIDDEN");
+  }
+  if (normalizedAction === "EDITOR_APPROVE" && !isAdmin && !isTantouEditor) {
+    throw new AppError(403, "Only the assigned Tantou Editor can approve this task.", "FORBIDDEN");
+  }
+  if (["REQUEST_REVISION", "REJECT"].includes(normalizedAction)) {
+    const allowed = editorStage ? isTantouEditor : isMangakaOwner;
+    if (!isAdmin && !allowed) {
+      throw new AppError(
+        403,
+        editorStage
+          ? "Only the assigned Tantou Editor can review this task."
+          : "Only the series Mangaka can review this task.",
+        "FORBIDDEN",
+      );
+    }
+  }
+  if (["REASSIGN", "CANCEL"].includes(normalizedAction) && !isAdmin && !isMangakaOwner) {
+    throw new AppError(403, "Only the series Mangaka can reassign or cancel this task.", "FORBIDDEN");
+  }
 
   // Enforce a valid source status per action so a task cannot skip stages —
   // e.g. jump straight to MANGAKA_APPROVED from TODO without ever being
@@ -2108,6 +2150,16 @@ export async function submissionDecision(
   const existingDoc = await SubmissionModel.findOne({ id: submissionId }).lean();
   if (!existingDoc) throw new AppError(404, "Submission not found.", "SUBMISSION_NOT_FOUND");
   const submission = existingDoc as any;
+  const task = (await StudioTaskModel.findOne({ id: submission.taskId }).lean()) as any;
+  const chapter = (task?.chapterId ?? submission.chapterId)
+    ? await ChapterModel.findOne({ id: task?.chapterId ?? submission.chapterId }).select({ seriesId: 1 }).lean()
+    : undefined;
+  const seriesId = submission.seriesId ?? task?.seriesId ?? (chapter as any)?.seriesId;
+  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  const isMangakaOwner = actor.role === "MANGAKA" && series.authorId === actor.id;
+  const isTantouEditor = actor.role === "EDITOR" && series.editorId === actor.id;
+  const isAdmin = actor.role === "ADMIN";
 
   // Self-approval check
   if (
@@ -2121,10 +2173,34 @@ export async function submissionDecision(
     );
   }
 
-  if (action === "editor-approve") {
-    requireMutationRole(actor, ["EDITOR"]);
+  if (action === "approve") {
+    if (!isAdmin && !isMangakaOwner) {
+      throw new AppError(403, "Only the series Mangaka can approve this submission.", "FORBIDDEN");
+    }
+    if (!["PENDING", "SUBMITTED"].includes(submission.status)) {
+      throw new AppError(409, "Submission is not awaiting Mangaka review.", "INVALID_TRANSITION");
+    }
+  } else if (action === "editor-approve") {
+    if (!isAdmin && !isTantouEditor) {
+      throw new AppError(403, "Only the assigned Tantou Editor can approve this submission.", "FORBIDDEN");
+    }
+    if (submission.status !== "MANGAKA_APPROVED") {
+      throw new AppError(
+        409,
+        "Submission must be Mangaka-approved before the Editor can approve it.",
+        "INVALID_TRANSITION",
+      );
+    }
+  } else if (["PENDING", "SUBMITTED"].includes(submission.status)) {
+    if (!isAdmin && !isMangakaOwner) {
+      throw new AppError(403, "Only the series Mangaka can review this submission.", "FORBIDDEN");
+    }
+  } else if (submission.status === "MANGAKA_APPROVED") {
+    if (!isAdmin && !isTantouEditor) {
+      throw new AppError(403, "Only the assigned Tantou Editor can review this submission.", "FORBIDDEN");
+    }
   } else {
-    requireMutationRole(actor, ["MANGAKA", "EDITOR"]);
+    throw new AppError(409, "Submission is not awaiting review.", "INVALID_TRANSITION");
   }
 
   // Enforce the two-round order: the Editor can only approve a submission the
@@ -2169,12 +2245,20 @@ export async function submissionDecision(
     reviewPatch.reviewStage = "FINAL";
   } else if (action === "reject") {
     status = "REJECTED";
-    reviewPatch.editorNote = note;
-    reviewPatch.editorReviewedById = actor.id;
-    reviewPatch.editorReviewedAt = new Date();
+    if (["PENDING", "SUBMITTED"].includes(submission.status)) {
+      reviewPatch.mangakaDecision = "REJECTED";
+      reviewPatch.mangakaNote = note;
+      reviewPatch.mangakaReviewedById = actor.id;
+      reviewPatch.mangakaReviewedAt = new Date();
+    } else {
+      reviewPatch.editorDecision = "REJECTED";
+      reviewPatch.editorNote = note;
+      reviewPatch.editorReviewedById = actor.id;
+      reviewPatch.editorReviewedAt = new Date();
+    }
   } else if (action === "request-revision") {
     // Which stage is active?
-    if (["PENDING", "MANGAKA_REVISION_REQUESTED"].includes(submission.status)) {
+    if (["PENDING", "SUBMITTED"].includes(submission.status)) {
       status = "MANGAKA_REVISION_REQUESTED";
       reviewPatch.mangakaNote = note;
       reviewPatch.mangakaReviewedById = actor.id;
@@ -2299,6 +2383,16 @@ export async function atRiskSeriesDecision(
 
   const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  const report = await AtRiskReportModel.findOne({ seriesId, status: "SUBMITTED" })
+    .sort({ createdAt: -1 })
+    .lean();
+  if (!report) {
+    throw new AppError(
+      409,
+      "A submitted Tantou at-risk report is required before the Board can decide.",
+      "AT_RISK_REPORT_REQUIRED",
+    );
+  }
 
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
   const resumeFromHiatus = String(series.status) === "HIATUS" ? "ONGOING" : series.status;
@@ -2347,6 +2441,7 @@ export async function atRiskSeriesDecision(
   await audit(req, auditAction, "series", seriesId, {
     decision,
     note: opts.note,
+    reportId: (report as any).id,
     publicationType: patch.publicationType,
     status: patch.status,
   });
@@ -2359,5 +2454,17 @@ export async function taskDetail(req: AuthedRequest, taskId: string) {
   const task = await StudioTaskModel.findOne({ id: taskId }).lean();
   if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   assertTaskReadable(actor, task);
+  if (actor.role !== "ASSISTANT" && actor.role !== "ADMIN") {
+    const taskChapter = (task as any).chapterId
+      ? await ChapterModel.findOne({ id: (task as any).chapterId }).select({ seriesId: 1 }).lean()
+      : undefined;
+    const series = (await SeriesModel.findOne({
+      id: (task as any).seriesId ?? (taskChapter as any)?.seriesId,
+    }).lean()) as any;
+    const allowed =
+      (actor.role === "MANGAKA" && series?.authorId === actor.id) ||
+      (actor.role === "EDITOR" && series?.editorId === actor.id);
+    if (!allowed) throw new AppError(403, "You do not have access to this task.", "FORBIDDEN");
+  }
   return task;
 }

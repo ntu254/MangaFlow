@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RequestChangesDialog } from "./request-changes-dialog";
 import { ResubmitDialog } from "./resubmit-dialog";
-import { PromoteDialog } from "@/features/series";
 import { useMySeriesQuery } from "@/entities/series";
 import {
   useCreateVotingSessionMutation,
@@ -63,7 +62,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   const [comment, setComment] = useState("");
   const [changesOpen, setChangesOpen] = useState(false);
   const [resubmitOpen, setResubmitOpen] = useState(false);
-  const [promoteOpen, setPromoteOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachTarget, setAttachTarget] = useState<string>("__new");
   const { data: seriesList = [] } = useMySeriesQuery();
@@ -72,8 +70,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   const createSessionMutation = useCreateVotingSessionMutation();
   const updateSessionMutation = useUpdateVotingSessionMutation();
   const existingSeries = seriesList.find((x) => x.proposalId === proposal.id);
-  const canPromote =
-    proposal.status === "APPROVED" && (user.role === "admin" || user.role === "editor");
   const canAttach =
     user.role === "editor" &&
     (proposal.status === "PENDING_BOARD" || proposal.status === "TIE_BREAK") &&
@@ -179,13 +175,18 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
         </div>
       )}
 
-      {canPromote ? (
+      {existingSeries ? (
         <div className="mt-3 border-t border-border pt-3">
           <button
-            onClick={() => setPromoteOpen(true)}
+            onClick={() =>
+              navigate({
+                to: "/app/series/$slug/$tab",
+                params: { slug: existingSeries.slug, tab: "overview" },
+              })
+            }
             className="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
           >
-            {existingSeries ? "In production -> open series" : "Start production"}
+            In production - open series
           </button>
         </div>
       ) : null}
@@ -261,13 +262,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
           });
         }}
       />
-      <PromoteDialog
-        proposal={proposal}
-        open={promoteOpen}
-        onClose={() => setPromoteOpen(false)}
-        existingSeries={existingSeries}
-      />
-
       <Dialog open={attachOpen} onOpenChange={(v) => !v && setAttachOpen(false)}>
         <DialogContent>
           <DialogHeader>

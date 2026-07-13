@@ -14,7 +14,7 @@ async function loginAs(email: string, password = email) {
   return response.body.data as { accessToken: string };
 }
 
-describe("POST /api/series — Tantou editor assignment", () => {
+describe("POST /api/series workflow lock", () => {
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
     await mongoose.connect(mongo.getUri());
@@ -29,48 +29,39 @@ describe("POST /api/series — Tantou editor assignment", () => {
     await mongo.stop();
   });
 
-  it("does NOT auto-assign a seed editor when none is provided", async () => {
+  it("returns 403 for Mangaka manual Series creation", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ title: "No-editor series" })
-      .expect(201);
-
-    // The old code hardcoded "u-editor" / "Tanaka Akira"; it must be gone.
-    expect(res.body.data.editorId ?? "").not.toBe("u-editor");
-    expect(res.body.data.editorName ?? "").not.toBe("Tanaka Akira");
-    expect(res.body.data.editorId ?? "").toBe("");
+      .expect(403);
   });
 
-  it("accepts an explicit active EDITOR as the Tantou", async () => {
+  it("returns 403 for Editor manual Series creation even with Tantou fields", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: "Editor series", editorId: "u-editor", editorName: "Spoofed Name" })
-      .expect(201);
-
-    expect(res.body.data.editorId).toBe("u-editor");
-    // Name is taken from the account record, not the client-supplied value.
-    expect(res.body.data.editorName).toBe("Tanaka Akira");
+      .expect(403);
   });
 
-  it("rejects a non-editor account as the Tantou (400)", async () => {
+  it("checks workflow lock before Tantou validation", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ title: "Bad editor series", editorId: "u-mangaka" })
-      .expect(400);
+      .expect(403);
   });
 
-  it("rejects an unknown/inactive editor id (404)", async () => {
+  it("checks workflow lock before unknown editor validation", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ title: "Missing editor series", editorId: "u-does-not-exist" })
-      .expect(404);
+      .expect(403);
   });
 });

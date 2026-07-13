@@ -20,7 +20,7 @@ import {
   useVotingSessionsQuery,
 } from "../../api/board-queries";
 import { useProposalQuery } from "@/features/proposals";
-import { isEditorInChief, useAuth } from "@/shared/auth";
+import { EDITORS, isEditorInChief, useAuth } from "@/shared/auth";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Panel, ResolvedImage } from "@/shared/ui";
 
@@ -41,6 +41,7 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
   const [comment, setComment] = useState("");
   const [finalizeNote, setFinalizeNote] = useState("");
   const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY" | undefined>();
+  const [tantouEditorId, setTantouEditorId] = useState(EDITORS[0]?.id ?? "");
 
   const { data: proposal } = useProposalQuery(id);
   const { data: voteData, isLoading: votesLoading } = useBoardVotesQuery(id);
@@ -127,6 +128,7 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
           decision: dec,
           note: finalizeNote.trim() || undefined,
           publicationType: dec === "APPROVED" ? publicationType : undefined,
+          tantouEditorId: dec === "APPROVED" ? tantouEditorId : undefined,
         },
       },
       {
@@ -295,10 +297,32 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
                     ))}
                   </div>
                 </div>
+                <div className="mt-3 space-y-1.5">
+                  <Label
+                    htmlFor="tantou-editor"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
+                    Tantou Editor (required when approving)
+                  </Label>
+                  <select
+                    id="tantou-editor"
+                    value={tantouEditorId}
+                    onChange={(e) => setTantouEditorId(e.target.value)}
+                    className="h-9 w-full max-w-xs rounded-md border border-border bg-background px-2 text-sm"
+                  >
+                    {EDITORS.map((editor) => (
+                      <option key={editor.id} value={editor.id}>
+                        {editor.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleFinalize("APPROVED")}
-                    disabled={finalize.isPending || finalize.isSuccess || !publicationType}
+                    disabled={
+                      finalize.isPending || finalize.isSuccess || !publicationType || !tantouEditorId
+                    }
                     className="rounded bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-40"
                   >
                     {finalize.isPending ? "Processing..." : "Approve (APPROVED)"}

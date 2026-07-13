@@ -172,13 +172,20 @@ describe("MangaFlow backend live contract", () => {
   it("issues scoped backend display URLs and streams uploaded Studio page files", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const assistant = await loginAs("jun@beachread.jp");
+    const unassignedAssistant = await loginAs("hina@beachread.jp");
     const uploaded = await createUploadedPage(mangaka.accessToken, "pg-display-test");
 
     const forbidden = await request(createApp())
       .post("/api/files/display-url")
-      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
       .send({ key: uploaded.key, fileName: "pg-display-test.png" });
     expect(forbidden.status).toBe(403);
+
+    await request(createApp())
+      .post("/api/files/display-url")
+      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .send({ key: uploaded.key, fileName: "pg-display-test.png" })
+      .expect(200);
 
     const display = await request(createApp())
       .post("/api/files/display-url")
@@ -341,12 +348,12 @@ describe("MangaFlow backend live contract", () => {
       .send({ title: 12345 })
       .expect(400);
 
-    // POST /series with invalid title type
+    // POST /series is locked to the Board approval workflow before body validation.
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: 12345 })
-      .expect(400);
+      .expect(403);
 
     // POST /materials with missing required fields should still create (no strict required)
     const matRes = await request(createApp())
@@ -359,24 +366,22 @@ describe("MangaFlow backend live contract", () => {
 
   it("blocks protected fields on PATCH /series/:id", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
-    const series = await request(createApp())
+    await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: "Validation test series" })
-      .expect(201);
-
-    const seriesId = series.body.data.id;
+      .expect(403);
 
     // PATCH with protected field should be rejected
     await request(createApp())
-      .patch(`/api/series/${seriesId}`)
+      .patch("/api/series/s-berserk-prod")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ authorId: "hacked", createdAt: "2020-01-01" })
       .expect(400);
 
     // PATCH with allowed fields should succeed
     await request(createApp())
-      .patch(`/api/series/${seriesId}`)
+      .patch("/api/series/s-berserk-prod")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: "Updated title" })
       .expect(200);

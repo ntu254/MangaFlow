@@ -1,11 +1,9 @@
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AtRiskDecisionKind =
   | "CONTINUE"
-  | "WARNING"
-  | "CANCEL"
-  | "COMPLETE"
-  | "CHANGE_FORMAT"
-  | "HIATUS";
+  | "RESCHEDULE"
+  | "HIATUS"
+  | "CANCELLED";
 export type RankingPeriodStatus = "DRAFT" | "IMPORTED" | "VALIDATED" | "FINALIZED";
 export type RankingTrend = "UP" | "DOWN" | "FLAT";
 
@@ -73,9 +71,7 @@ export const RISK_LABEL: Record<RiskLevel, string> = {
 
 export const AT_RISK_DECISION_LABEL: Record<AtRiskDecisionKind, string> = {
   CONTINUE: "Continue",
-  WARNING: "Warning",
-  CANCEL: "Cancel",
-  COMPLETE: "Complete",
-  CHANGE_FORMAT: "Change format",
+  RESCHEDULE: "Reschedule",
   HIATUS: "Hiatus",
+  CANCELLED: "Cancelled",
 };
