@@ -128,7 +128,9 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
   const studioPermissions = getStudioPermissions(user, series);
   const canEnterStudio = studioPermissions.canEnterStudio && !isLocked;
 
-  const visibleTabs = isLocked ? (["proposal", "overview", "rankings"] as const) : TABS;
+  const visibleTabs = isLocked
+    ? (["proposal", "overview", "rankings"] as const)
+    : TABS.filter((item) => item !== "materials");
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">

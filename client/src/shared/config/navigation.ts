@@ -17,10 +17,6 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   admin: [
     { to: "/app/admin/dashboard", label: "Dashboard", group: "Admin" },
     { to: "/app/admin/users", label: "Users", group: "Admin" },
-    { to: "/app/admin/materials", label: "Material Library", group: "Admin" },
-    { to: "/app/admin/payroll", label: "Payroll", group: "Admin" },
-    { to: "/app/admin/audit", label: "Audit Logs", group: "Admin" },
-    { to: "/app/admin/settings", label: "Settings", group: "Admin" },
     { to: "/app/admin/notifications", label: "Notifications", group: "Admin" },
   ],
   mangaka: [
@@ -49,7 +45,6 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   board: [
     { to: "/app/board/dashboard", label: "Dashboard", group: "Governance" },
     { to: "/app/board/queue", label: "Board Queue", group: "Governance" },
-    { to: "/app/board/sessions", label: "Voting Sessions", group: "Governance", minRole: "admin" },
     { to: "/app/board/rankings", label: "Rankings", group: "Governance" },
     { to: "/app/board/at-risk", label: "At-risk Reviews", group: "Governance" },
     { to: "/app/board/decisions", label: "Decisions", group: "Governance" },

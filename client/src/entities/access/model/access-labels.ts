@@ -49,18 +49,18 @@ export const RESTRICTION_LABEL: Record<RestrictionCode, string> = {
   SELF_APPROVAL_BLOCKED: "You cannot approve a submission you submitted yourself.",
   LAST_ADMIN_BLOCKED: "The last system Admin cannot be removed.",
   CALLBACK_MISSING: "This action is not supported by the backend in the MVP.",
-  ADMIN_OVERRIDE_REQUIRED: "This action requires Admin Override.",
+  ADMIN_OVERRIDE_REQUIRED: "This action requires Admin confirmation.",
   ROLE_FORBIDDEN: "You do not have permission to perform this action.",
   ONLY_BOARD_MEMBERS_CAN_VOTE: "Chi thanh vien Board moi duoc vote trong phien dang mo.",
 };
 
 export const DEFAULT_ALLOWED_ACTIONS: Record<Role, string[]> = {
-  admin: ["Inspect system data", "Manage users", "View audit logs", "Configure settings"],
+  admin: ["Manage users", "Assign roles", "Deactivate accounts", "Reset passwords"],
   mangaka: [
-    "Create series",
+    "Create proposals",
     "Manage owned chapters",
     "Review assistant submissions",
-    "Manage materials",
+    "Manage owned series team",
   ],
   assistant: ["View assigned task", "Submit work", "Read feedback", "View own earnings"],
   editor: ["Review proposals", "Annotate pages", "Request revision", "Monitor deadlines"],
@@ -75,6 +75,6 @@ export const DEFAULT_RESTRICTED_ACTIONS: Record<Role, string[]> = {
   ],
   mangaka: ["Board voting", "Admin settings", "System audit logs"],
   assistant: ["Board decisions", "Ranking import", "Team management", "Other assistant earnings"],
-  editor: ["Assistant payroll actions", "Admin user management", "Board final vote"],
+  editor: ["Series creation", "Admin user management", "Board final vote"],
   board: ["Creative file editing", "Assistant task creation", "Payroll", "Admin user management"],
 };

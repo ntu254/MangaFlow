@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAuth, MANGAKAS, ASSISTANTS, findUserById } from "@/shared/auth";
+import { useAuth, findUserById } from "@/shared/auth";
 import { useCreateChapterMutation, mapApiError } from "../../api/series-queries";
 import { fromDateInputValue } from "@/shared/lib/format-date";
 import type { ProductionSeries } from "@/entities/series/model/series-types";
@@ -37,8 +37,6 @@ export function ChapterFormDialog({
   const candidates = [
     findUserById(series.authorId),
     ...series.assistantIds.map((id) => findUserById(id)),
-    ...MANGAKAS.filter((m) => m.id !== series.authorId),
-    ...ASSISTANTS.filter((a) => !series.assistantIds.includes(a.id)),
   ].filter(Boolean);
 
   const submit = () => {

@@ -156,7 +156,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const ROLE_DESCRIPTION: Record<Role, string> = {
-  admin: "Full system access, payroll, and audit logs",
+  admin: "Account, role, and access management",
   mangaka: "Author: submit series proposals and lead production",
   assistant: "Assistant: receive tasks, submit work, and track earnings",
   editor: "Editor: review proposals, final chapter review, and publication",

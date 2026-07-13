@@ -32,16 +32,16 @@ router.post(
 
 // Regions
 router.get("/studio/regions", listRegions);
-router.post("/studio/regions", requireRole("EDITOR", "MANGAKA") as any, createRegion);
-router.patch("/studio/regions", requireRole("EDITOR", "MANGAKA") as any, patchRegions);
-router.patch("/studio/regions/:id", requireRole("EDITOR", "MANGAKA") as any, patchRegion);
-router.delete("/studio/regions/:id", requireRole("EDITOR", "MANGAKA") as any, deleteRegion);
+router.post("/studio/regions", requireRole("MANGAKA") as any, createRegion);
+router.patch("/studio/regions", requireRole("MANGAKA") as any, patchRegions);
+router.patch("/studio/regions/:id", requireRole("MANGAKA") as any, patchRegion);
+router.delete("/studio/regions/:id", requireRole("MANGAKA") as any, deleteRegion);
 
 // Tasks
 router.get("/studio/tasks", listTasks);
-router.post("/studio/tasks", requireRole("EDITOR", "MANGAKA") as any, createTask);
-router.patch("/studio/tasks", requireRole("EDITOR", "MANGAKA") as any, patchTasks);
-router.patch("/studio/tasks/:id", requireRole("EDITOR", "MANGAKA") as any, patchTask);
+router.post("/studio/tasks", requireRole("MANGAKA") as any, createTask);
+router.patch("/studio/tasks", requireRole("MANGAKA") as any, patchTasks);
+router.patch("/studio/tasks/:id", requireRole("MANGAKA") as any, patchTask);
 router.get("/tasks/:taskId", getTaskDetail);
 router.get("/studio/tasks/:taskId", getTaskDetailAlias);
 router.post(

@@ -14,7 +14,7 @@ import { useState } from "react";
 
 export function OverrideDialog({
   trigger,
-  actionLabel = "Confirm Override",
+  actionLabel = "Confirm",
   onConfirm,
   auditImpact,
   targetLabel,
@@ -60,11 +60,11 @@ export function OverrideDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-rose-700" />
-            Override Required
+            Admin Confirmation Required
           </DialogTitle>
           <DialogDescription id="override-dialog-description">
-            This is not a normal workflow action. A written reason is required and will be stored in
-            the audit trail.
+            This account-management action requires a written confirmation reason before it is
+            applied.
           </DialogDescription>
         </DialogHeader>
 
@@ -79,11 +79,11 @@ export function OverrideDialog({
           <div className="rounded-md border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-950">
             <p className="flex items-center gap-2 font-semibold">
               <FileClock className="size-3.5" />
-              Audit impact
+              Confirmation impact
             </p>
             <p className="mt-1">
               {auditImpact ??
-                "Creates an admin audit entry with actor, action, target, reason, and request id."}
+                "Records the acting admin, target account, reason, and request id for traceability."}
             </p>
           </div>
 
@@ -94,7 +94,7 @@ export function OverrideDialog({
             id="override-reason"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Explain the business reason and expected audit outcome..."
+            placeholder="Explain the business reason for this account change..."
             rows={4}
             className="focus-visible:ring-2 focus-visible:ring-ring"
             aria-invalid={reason.length > 0 && !isReady}

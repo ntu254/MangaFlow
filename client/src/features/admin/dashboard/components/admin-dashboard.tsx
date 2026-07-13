@@ -10,27 +10,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth } from "@/shared/auth";
 import {
   useChaptersForSeriesQuery,
   useMySeriesQuery,
   useRankingsListQuery,
 } from "@/entities/series";
 import { useProposalsQuery } from "@/features/proposals";
-import { useAdminAuditQuery } from "../../audit/api/audit.queries";
 import { useAdminUsersQuery } from "../../users/api/users.queries";
-import { MetricCard, PageHeader, Panel, StateBlock } from "@/shared/ui";
+import { MetricCard, PageHeader, Panel } from "@/shared/ui";
 import { AccessDenied, useAdminAccess } from "../../_shared";
 import { PageShell } from "@/shared/layout/page-layout";
 
 export function AdminDashboard() {
   const { denial } = useAdminAccess();
-  const user = useAuth((state) => state.user);
   const { data: proposals = [], isLoading: proposalsLoading } = useProposalsQuery();
   const { data: series = [], isLoading: seriesLoading } = useMySeriesQuery();
   const seriesIds = series.map((item) => item.id);
   const { data: chapters = [], isLoading: chaptersLoading } = useChaptersForSeriesQuery(seriesIds);
-  const { data: auditEntries = [] } = useAdminAuditQuery();
   const { data: rankings = [], isLoading: rankingsLoading } = useRankingsListQuery();
   const { data: users = [], isLoading: usersLoading } = useAdminUsersQuery();
   const boardPending = proposals.filter((proposal) => proposal.status === "PENDING_BOARD").length;
@@ -47,7 +43,7 @@ export function AdminDashboard() {
     return (
       <AccessDenied
         title="Operations control"
-        description="System health, governance backlog, and override-sensitive operations for the MangaFlow workspace."
+        description="MVP account management and read-only workflow health for the MangaFlow workspace."
         denial={denial}
       />
     );
@@ -58,7 +54,7 @@ export function AdminDashboard() {
       <PageShell maxWidth="7xl">
         <PageHeader
           title="Operations control"
-          description="System health, governance backlog, and override-sensitive operations for the MangaFlow workspace."
+          description="MVP account management and read-only workflow health for the MangaFlow workspace."
         />
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -76,7 +72,7 @@ export function AdminDashboard() {
     <PageShell maxWidth="7xl">
       <PageHeader
         title="Operations control"
-        description="System health, governance backlog, and override-sensitive operations for the MangaFlow workspace."
+        description="MVP account management and read-only workflow health for the MangaFlow workspace."
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -146,8 +142,8 @@ export function AdminDashboard() {
         </Panel>
 
         <SeparationOfDutiesWarning>
-          Admin override is for operational recovery only. Normal creative approval remains owned by
-          editor, mangaka, and board workflows.
+          Admin controls accounts and roles only. Creative approval remains owned by editor,
+          mangaka, and board workflow actions.
         </SeparationOfDutiesWarning>
       </section>
 
@@ -196,27 +192,15 @@ export function AdminDashboard() {
           </div>
         </Panel>
 
-        <Panel title="Latest audit entries">
-          {auditEntries.length === 0 ? (
-            <div className="flex min-h-32 flex-col items-center justify-center rounded border border-dashed border-[var(--admin-border)] text-center">
-              <Users className="size-5 text-[var(--admin-faint)]" />
-              <p className="mt-2 text-xs text-[var(--admin-faint)]">No local audit entries yet.</p>
-            </div>
-          ) : (
-            <ul className="space-y-3 text-xs">
-              {auditEntries.slice(0, 4).map((entry) => (
-                <li
-                  key={entry.id}
-                  className="border-b border-[var(--admin-border)]/60 pb-2 last:border-0 last:pb-0"
-                >
-                  <p className="font-semibold">{entry.action}</p>
-                  <p className="text-[var(--admin-faint)]">
-                    {entry.actorId} - {entry.entityType}/{entry.entityId}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+        <Panel title="MVP admin scope">
+          <div className="flex min-h-32 flex-col justify-center rounded border border-dashed border-[var(--admin-border)] px-4 text-xs text-[var(--admin-faint)]">
+            <Users className="mb-3 size-5" />
+            <p className="font-semibold text-[var(--admin-ink)]">User management only</p>
+            <p className="mt-1">
+              Create accounts, assign roles, deactivate users, and reset passwords. Workflow state
+              changes stay inside Mangaka, Tantou Editor, and Board actions.
+            </p>
+          </div>
         </Panel>
       </section>
     </PageShell>

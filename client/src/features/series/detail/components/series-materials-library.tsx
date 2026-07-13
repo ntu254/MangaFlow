@@ -172,8 +172,7 @@ export function SeriesMaterialsLibrary({
 
   const materials = useMemo(() => rawMaterials.map(mapApiMaterialToSeriesMaterial), [rawMaterials]);
 
-  const canEdit =
-    !!user && (user.role === "admin" || user.role === "editor" || user.role === "mangaka");
+  const canEdit = !!user && user.role === "mangaka" && user.id === series.authorId;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

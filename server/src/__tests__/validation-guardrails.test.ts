@@ -80,11 +80,11 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("rejects PATCH /regions with workflow status fields", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
 
     const patchRes = await request(createApp())
       .patch("/api/studio/regions/nonexistent-id")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ status: "APPROVED" })
       .expect(400);
     expect(patchRes.body.code).toBe("VALIDATION_ERROR");
