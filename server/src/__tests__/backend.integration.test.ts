@@ -152,9 +152,16 @@ describe("MangaFlow backend live contract", () => {
 
     try {
       const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@beachread.jp");
       await request(createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` }))
         .post("/api/ai/bubbles/detect")
         .set("Authorization", `Bearer ${editor.accessToken}`)
+        .attach("file", Buffer.from("fake-image"), "page.png")
+        .expect(403);
+
+      await request(createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` }))
+        .post("/api/ai/bubbles/detect")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .attach("file", Buffer.from("fake-image"), "page.png")
         .expect(200)
         .expect((response) => {
@@ -233,8 +240,15 @@ describe("MangaFlow backend live contract", () => {
 
     try {
       const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
       const uploaded = await createUploadedPage(mangaka.accessToken, "pg-ai-detect-test");
       const app = createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` });
+
+      await request(app)
+        .post(`/api/studio/pages/${uploaded.pageId}/ai/detect-bubbles`)
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({})
+        .expect(403);
 
       await request(app)
         .post(`/api/studio/pages/${uploaded.pageId}/ai/detect-bubbles`)
@@ -285,8 +299,15 @@ describe("MangaFlow backend live contract", () => {
 
     try {
       const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
       const uploaded = await createUploadedPage(mangaka.accessToken, "pg-ai-whiten-test");
       const app = createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` });
+
+      await request(app)
+        .post(`/api/studio/pages/${uploaded.pageId}/ai/whiten-bubbles`)
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({})
+        .expect(403);
 
       const whiten = await request(app)
         .post(`/api/studio/pages/${uploaded.pageId}/ai/whiten-bubbles`)

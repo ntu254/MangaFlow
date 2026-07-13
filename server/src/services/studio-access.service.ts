@@ -59,9 +59,7 @@ export async function assertCanReadStudioPage(actor: RequestActor, pageId: strin
 
 export async function assertCanRunPageAi(actor: RequestActor, pageId: string) {
   const resolved = await resolveStudioPage(pageId);
-  const canRun =
-    actor.role === "ADMIN" ||
-    (actor.role === "MANGAKA" && (resolved.series as any).authorId === actor.id);
+  const canRun = actor.role === "MANGAKA" && (resolved.series as any).authorId === actor.id;
   if (!canRun) {
     throw new AppError(
       403,

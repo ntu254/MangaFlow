@@ -1859,6 +1859,14 @@ export async function applyTaskAction(
         fromAssignee: task.assigneeId,
         toAssignee: payload.newAssigneeId,
       });
+      await notifyMany([
+        {
+          userId: String(payload.newAssigneeId),
+          kind: "task.reassigned",
+          title: "Task reassigned",
+          message: `You were assigned to ${task.title ?? "a production task"}.`,
+        },
+      ]);
       break;
 
     default:

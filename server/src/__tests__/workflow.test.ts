@@ -6,6 +6,7 @@ import { createApp } from "../app.js";
 import {
   ChapterModel,
   MaterialModel,
+  NotificationModel,
   ProposalModel,
   RankingModel,
   SeriesModel,
@@ -536,6 +537,28 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const mangaka = await loginAs("inoue@beachread.jp");
       const editor = await loginAs("tanaka@beachread.jp");
       const otherMangaka = await createAndLoginOtherMangaka();
+      await UserModel.create({
+        id: "u-reassign-assist",
+        name: "Reassign Assistant",
+        email: "reassign-assist@beachread.jp",
+        passwordHash: await bcrypt.hash("reassign-assist@beachread.jp", 10),
+        role: "ASSISTANT",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await SeriesModel.updateOne(
+        { id: "s-berserk-prod" },
+        { $addToSet: { assistantIds: "u-reassign-assist" } },
+      );
+      await SeriesMemberModel.create({
+        id: "sm-reassign-assist",
+        seriesId: "s-berserk-prod",
+        userId: "u-reassign-assist",
+        role: "assistant",
+        scope: "Task only",
+        status: "active",
+      });
       const body = {
         seriesId: "s-berserk-prod",
         chapterId: "ch-s-berserk-prod-4",
@@ -566,6 +589,11 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(201);
 
       const taskId = createRes.body.data.id;
+      const assignedNotification = await NotificationModel.findOne({
+        userId: "u-assist",
+        kind: "task.assigned",
+      }).lean();
+      expect(assignedNotification?.message).toContain("Owner-created task");
 
       await request(createApp())
         .patch(`/api/studio/tasks/${taskId}`)
@@ -585,6 +613,24 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .send({ title: "Owner updated task" })
         .expect(200);
       expect(patchRes.body.data.title).toBe("Owner updated task");
+
+      await request(createApp())
+        .post(`/api/studio/tasks/${taskId}/actions/REASSIGN`)
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({ newAssigneeId: "u-reassign-assist", newAssigneeName: "Reassign Assistant" })
+        .expect(403);
+
+      await request(createApp())
+        .post(`/api/studio/tasks/${taskId}/actions/REASSIGN`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ newAssigneeId: "u-reassign-assist", newAssigneeName: "Reassign Assistant" })
+        .expect(200);
+
+      const reassignedNotification = await NotificationModel.findOne({
+        userId: "u-reassign-assist",
+        kind: "task.reassigned",
+      }).lean();
+      expect(reassignedNotification?.message).toContain("Owner updated task");
     });
   });
 

@@ -11,10 +11,10 @@ export function createAiRoutes(aiServiceUrl: string) {
     createAiHandlers(aiServiceUrl);
 
   router.get("/ai/health", health);
-  router.post("/ai/bubbles/detect", requireRole("EDITOR", "MANGAKA"), upload.single("file"), detectBubbles);
-  router.post("/ai/bubbles/process", requireRole("EDITOR", "MANGAKA"), upload.single("file"), processBubbles);
-  router.post("/studio/pages/:pageId/ai/detect-bubbles", requireRole("EDITOR", "MANGAKA"), detectPageBubbles);
-  router.post("/studio/pages/:pageId/ai/whiten-bubbles", requireRole("EDITOR", "MANGAKA"), whitenPageBubbles);
+  router.post("/ai/bubbles/detect", requireRole("MANGAKA"), upload.single("file"), detectBubbles);
+  router.post("/ai/bubbles/process", requireRole("MANGAKA"), upload.single("file"), processBubbles);
+  router.post("/studio/pages/:pageId/ai/detect-bubbles", requireRole("MANGAKA"), detectPageBubbles);
+  router.post("/studio/pages/:pageId/ai/whiten-bubbles", requireRole("MANGAKA"), whitenPageBubbles);
 
   return router;
 }

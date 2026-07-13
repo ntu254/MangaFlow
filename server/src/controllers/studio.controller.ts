@@ -8,7 +8,7 @@ import {
   UserModel,
 } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
-import { audit } from "../services/audit.service.js";
+import { audit, notify } from "../services/audit.service.js";
 import {
   applyTaskAction,
   sendChapterToEditorReview,
@@ -167,6 +167,12 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
     updatedAt: nowIso(),
   });
   await audit(req, "studio_task.create", "task", (task as any).id);
+  await notify(
+    assistant.id,
+    "task.assigned",
+    `You were assigned to ${task.title ?? "a production task"}.`,
+    "Task assigned",
+  );
   created(res, task);
 });
 export const patchTasks = asyncRoute(async (req: AuthedRequest, res) => {
