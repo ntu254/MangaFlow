@@ -28,7 +28,7 @@ const TONES: Partial<Record<ChapterAction, string>> = {
   SUBMIT_REVIEW: "bg-foreground text-background hover:bg-foreground/90",
   RESUBMIT: "bg-foreground text-background hover:bg-foreground/90",
   REQUEST_REVISION: "bg-amber-600 text-white hover:bg-amber-700",
-  APPROVE: "bg-emerald-700 text-white hover:bg-emerald-800",
+  EDITOR_APPROVE: "bg-emerald-700 text-white hover:bg-emerald-800",
   SCHEDULE: "bg-indigo-700 text-white hover:bg-indigo-800",
   PUBLISH: "bg-rose-700 text-white hover:bg-rose-800",
   REASSIGN: "bg-card border border-border text-foreground hover:bg-muted",
@@ -83,7 +83,7 @@ export function ChapterActionPanel({
         <div className="flex flex-wrap gap-2">
           {actions.map((a) => {
             const c = checkChapterAction(a, user, chapter, series);
-            const disabledBySeparation = a === "APPROVE" && selfApprovalBlocked;
+            const disabledBySeparation = a === "EDITOR_APPROVE" && selfApprovalBlocked;
             return (
               <button
                 key={a}
@@ -102,7 +102,7 @@ export function ChapterActionPanel({
           })}
         </div>
       )}
-      {selfApprovalBlocked && actions.includes("APPROVE") ? (
+      {selfApprovalBlocked && actions.includes("EDITOR_APPROVE") ? (
         <div className="mt-3">
           <SeparationOfDutiesWarning reason="SELF_APPROVAL_BLOCKED" />
         </div>

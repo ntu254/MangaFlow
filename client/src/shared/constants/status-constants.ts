@@ -20,30 +20,9 @@ export const CHAPTER_STATUSES = [
   "READY_FOR_PUBLICATION",
   "SCHEDULED",
   "PUBLISHED",
-  // Legacy values kept for backward compat with old data
-  // @deprecated — migrate via migrate-schema-v2.ts
-  "IN_REVIEW",
-  "APPROVED",
 ] as const;
 
 export type ChapterStatusV2 = (typeof CHAPTER_STATUSES)[number];
-
-/**
- * New canonical chapter statuses only (no legacy).
- * Use for new writes and UI display.
- */
-export const CHAPTER_STATUSES_CANONICAL = [
-  "PLANNED",
-  "DRAFTING",
-  "ASSISTANT_WORKING",
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  "REVISION",
-  "EDITOR_APPROVED",
-  "READY_FOR_PUBLICATION",
-  "SCHEDULED",
-  "PUBLISHED",
-] as const;
 
 export const CHAPTER_STATUS_LABEL: Record<ChapterStatusV2, string> = {
   PLANNED: "Planned",
@@ -56,9 +35,6 @@ export const CHAPTER_STATUS_LABEL: Record<ChapterStatusV2, string> = {
   READY_FOR_PUBLICATION: "Ready for Publication",
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
-  // Legacy labels (keep for old data rendering)
-  IN_REVIEW: "In Review",
-  APPROVED: "Approved",
 };
 
 /** Ordered flow for progress display */
@@ -84,21 +60,7 @@ export const CHAPTER_TERMINAL_STATUSES = new Set([
 ]);
 
 /** Statuses that count as "in review" */
-export const CHAPTER_REVIEW_STATUSES = new Set([
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  // Legacy
-  "IN_REVIEW",
-]);
-
-/** Legacy → canonical mapping for display normalization */
-export const CHAPTER_LEGACY_STATUS_MAP: Record<
-  Extract<ChapterStatusV2, "IN_REVIEW" | "APPROVED">,
-  string
-> = {
-  IN_REVIEW: "EDITOR_REVIEW",
-  APPROVED: "EDITOR_APPROVED",
-};
+export const CHAPTER_REVIEW_STATUSES = new Set(["MANGAKA_REVIEW", "EDITOR_REVIEW"]);
 
 // ---------------------------------------------------------------------------
 // Page
@@ -277,15 +239,6 @@ export type ProductionSeriesStatusV2 = (typeof SERIES_STATUSES)[number];
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Normalize a legacy status to its canonical V2 equivalent.
- * Useful for displaying data that may have been written before migration.
- */
-export function normalizeChapterStatus(status: string): string {
-  const key = status as keyof typeof CHAPTER_LEGACY_STATUS_MAP;
-  return CHAPTER_LEGACY_STATUS_MAP[key] ?? status;
-}
 
 /**
  * Returns true if a task is effectively "done" (eligible for earning).

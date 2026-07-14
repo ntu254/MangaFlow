@@ -18,11 +18,7 @@ export type ChapterStatus =
   | "EDITOR_APPROVED"
   | "READY_FOR_PUBLICATION"
   | "SCHEDULED"
-  | "PUBLISHED"
-  // Legacy values — do not use in new writes
-  // @deprecated migrate via migrate-schema-v2.ts
-  | "IN_REVIEW"
-  | "APPROVED";
+  | "PUBLISHED";
 
 export type ChapterAction =
   | "START_DRAFT"
@@ -36,9 +32,7 @@ export type ChapterAction =
   | "SCHEDULE"
   | "POSTPONE"
   | "PUBLISH"
-  | "REASSIGN"
-  // Legacy
-  | "APPROVE";
+  | "REASSIGN";
 
 export type ChapterPage = {
   id: string;
@@ -159,9 +153,6 @@ export const CHAPTER_STATUS_LABEL: Record<ChapterStatus, string> = {
   READY_FOR_PUBLICATION: "Ready for Publication",
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
-  // Legacy
-  IN_REVIEW: "In Review",
-  APPROVED: "Approved",
 };
 
 export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
@@ -172,7 +163,6 @@ export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
   REJECT: "Reject",
   RESUBMIT: "Resubmit",
   EDITOR_APPROVE: "Editor approve",
-  APPROVE: "Approve",
   MARK_READY: "Mark ready",
   SCHEDULE: "Schedule",
   POSTPONE: "Postpone",
