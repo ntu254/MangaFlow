@@ -8,6 +8,7 @@ import {
   evaluateBoardTally,
   normalizeBoardVote
 } from "../services/workflow.service.js";
+import { finalizeBoardProposal } from "../modules/board/application/board-proposal.service.js";
 import { requireActor } from "./helpers.js";
 import { requireRole, requireBoardChair } from "../middleware/auth.js";
 import type { AuthedRequest } from "../types.js";
@@ -30,9 +31,9 @@ export const castVote = asyncRoute(async (req: AuthedRequest, res) => ok(res, aw
 export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) =>
   ok(
     res,
-    await applyProposalAction(req, String(req.params.seriesId), "FORCE_STATUS", {
-      forceStatus: req.body?.decision === "REJECTED" ? "REJECTED" : "APPROVED",
-      comment: req.body?.note,
+    await finalizeBoardProposal(req, String(req.params.seriesId), {
+      decision: req.body?.decision === "REJECTED" ? "REJECTED" : "APPROVED",
+      note: req.body?.note,
       publicationType: req.body?.publicationType,
       tantouEditorId: req.body?.tantouEditorId ?? req.body?.editorId,
     }),

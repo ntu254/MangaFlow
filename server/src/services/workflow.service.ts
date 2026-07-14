@@ -458,11 +458,8 @@ function assertProposalAction(action: ProposalAction, actor: RequestActor, propo
       }
       requireMutationRole(actor, ["BOARD"]);
       return;
-    case "FORCE_STATUS":
+    case "FINALIZE_BOARD_DECISION":
       requireMutationRole(actor, ["BOARD", "ADMIN"]);
-      return;
-    case "ARCHIVE":
-      requireMutationRole(actor, ["ADMIN"]);
       return;
     default:
       throw new AppError(400, `Invalid proposal action: ${action}`, "INVALID_ACTION");
@@ -802,13 +799,13 @@ export async function applyProposalAction(
       break;
     }
 
-    case "FORCE_STATUS": {
-      if (!payload.forceStatus)
-        throw new AppError(400, "forceStatus is required.", "VALIDATION_ERROR");
-      patch.status = payload.forceStatus;
+    case "FINALIZE_BOARD_DECISION": {
+      if (!payload.decisionStatus)
+        throw new AppError(400, "decisionStatus is required.", "VALIDATION_ERROR");
+      patch.status = payload.decisionStatus;
       // On approval the Board finalizes two decisions before the Series is
       // created: (K) which Editor becomes the Tantou, and (L) the cadence.
-      if (payload.forceStatus === "APPROVED") {
+      if (payload.decisionStatus === "APPROVED") {
         const pubType = normalizePublicationType(payload.publicationType);
         if (!pubType) {
           throw new AppError(400, "Invalid publicationType.", "VALIDATION_ERROR");
@@ -944,15 +941,6 @@ export async function applyProposalAction(
       patch.advanced = payload.advanced ?? proposal.advanced;
       break;
 
-    case "ARCHIVE":
-      if (["APPROVED"].includes(proposal.status)) {
-        throw new AppError(409, "Approved proposals cannot be archived directly.", "FORBIDDEN");
-      }
-      patch.status = "ARCHIVED";
-      patch.archivedAt = new Date();
-      patch.archivedById = actor.id;
-      patch.archiveReason = payload.reason ?? payload.archiveReason ?? "";
-      break;
   }
 
   const nextStatus = (patch.status as ProposalStatus | undefined) ?? fromStatus;

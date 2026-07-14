@@ -47,7 +47,6 @@ import { Route as AppEditorBoardBriefsRouteImport } from './routes/app.editor.bo
 import { Route as AppBoardRankingsRouteImport } from './routes/app.board.rankings'
 import { Route as AppBoardQueueRouteImport } from './routes/app.board.queue'
 import { Route as AppBoardNotificationsRouteImport } from './routes/app.board.notifications'
-import { Route as AppBoardDecisionsRouteImport } from './routes/app.board.decisions'
 import { Route as AppBoardDashboardRouteImport } from './routes/app.board.dashboard'
 import { Route as AppBoardAtRiskRouteImport } from './routes/app.board.at-risk'
 import { Route as AppBoardIdRouteImport } from './routes/app.board.$id'
@@ -261,11 +260,6 @@ const AppBoardNotificationsRoute = AppBoardNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => AppBoardRoute,
 } as any)
-const AppBoardDecisionsRoute = AppBoardDecisionsRouteImport.update({
-  id: '/decisions',
-  path: '/decisions',
-  getParentRoute: () => AppBoardRoute,
-} as any)
 const AppBoardDashboardRoute = AppBoardDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -417,7 +411,6 @@ export interface FileRoutesByFullPath {
   '/app/board/$id': typeof AppBoardIdRoute
   '/app/board/at-risk': typeof AppBoardAtRiskRoute
   '/app/board/dashboard': typeof AppBoardDashboardRoute
-  '/app/board/decisions': typeof AppBoardDecisionsRoute
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/board/rankings': typeof AppBoardRankingsRouteWithChildren
@@ -473,7 +466,6 @@ export interface FileRoutesByTo {
   '/app/board/$id': typeof AppBoardIdRoute
   '/app/board/at-risk': typeof AppBoardAtRiskRoute
   '/app/board/dashboard': typeof AppBoardDashboardRoute
-  '/app/board/decisions': typeof AppBoardDecisionsRoute
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/editor/board-briefs': typeof AppEditorBoardBriefsRoute
@@ -535,7 +527,6 @@ export interface FileRoutesById {
   '/app/board/$id': typeof AppBoardIdRoute
   '/app/board/at-risk': typeof AppBoardAtRiskRoute
   '/app/board/dashboard': typeof AppBoardDashboardRoute
-  '/app/board/decisions': typeof AppBoardDecisionsRoute
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/board/rankings': typeof AppBoardRankingsRouteWithChildren
@@ -600,7 +591,6 @@ export interface FileRouteTypes {
     | '/app/board/$id'
     | '/app/board/at-risk'
     | '/app/board/dashboard'
-    | '/app/board/decisions'
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/board/rankings'
@@ -656,7 +646,6 @@ export interface FileRouteTypes {
     | '/app/board/$id'
     | '/app/board/at-risk'
     | '/app/board/dashboard'
-    | '/app/board/decisions'
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/editor/board-briefs'
@@ -717,7 +706,6 @@ export interface FileRouteTypes {
     | '/app/board/$id'
     | '/app/board/at-risk'
     | '/app/board/dashboard'
-    | '/app/board/decisions'
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/board/rankings'
@@ -1026,13 +1014,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBoardNotificationsRouteImport
       parentRoute: typeof AppBoardRoute
     }
-    '/app/board/decisions': {
-      id: '/app/board/decisions'
-      path: '/decisions'
-      fullPath: '/app/board/decisions'
-      preLoaderRoute: typeof AppBoardDecisionsRouteImport
-      parentRoute: typeof AppBoardRoute
-    }
     '/app/board/dashboard': {
       id: '/app/board/dashboard'
       path: '/dashboard'
@@ -1254,7 +1235,6 @@ interface AppBoardRouteChildren {
   AppBoardIdRoute: typeof AppBoardIdRoute
   AppBoardAtRiskRoute: typeof AppBoardAtRiskRoute
   AppBoardDashboardRoute: typeof AppBoardDashboardRoute
-  AppBoardDecisionsRoute: typeof AppBoardDecisionsRoute
   AppBoardNotificationsRoute: typeof AppBoardNotificationsRoute
   AppBoardQueueRoute: typeof AppBoardQueueRoute
   AppBoardRankingsRoute: typeof AppBoardRankingsRouteWithChildren
@@ -1266,7 +1246,6 @@ const AppBoardRouteChildren: AppBoardRouteChildren = {
   AppBoardIdRoute: AppBoardIdRoute,
   AppBoardAtRiskRoute: AppBoardAtRiskRoute,
   AppBoardDashboardRoute: AppBoardDashboardRoute,
-  AppBoardDecisionsRoute: AppBoardDecisionsRoute,
   AppBoardNotificationsRoute: AppBoardNotificationsRoute,
   AppBoardQueueRoute: AppBoardQueueRoute,
   AppBoardRankingsRoute: AppBoardRankingsRouteWithChildren,

@@ -149,8 +149,8 @@ export function finalizeBoardProposal(
     editorId?: string;
   },
 ) {
-  return applyProposalAction(req, proposalId, "FORCE_STATUS", {
-    forceStatus: payload.decision,
+  return applyProposalAction(req, proposalId, "FINALIZE_BOARD_DECISION", {
+    decisionStatus: payload.decision,
     comment: payload.note,
     publicationType: payload.publicationType,
     tantouEditorId: payload.tantouEditorId ?? payload.editorId,

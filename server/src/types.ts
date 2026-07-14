@@ -55,13 +55,12 @@ export type ProposalAction =
   | "REJECT"
   | "RECALL"
   | "VOTE"
-  | "FORCE_STATUS"
-  | "ARCHIVE";
+  | "FINALIZE_BOARD_DECISION";
 
 export const PROPOSAL_ACTIONS: readonly ProposalAction[] = [
   "SUBMIT", "WITHDRAW", "EDIT", "CLAIM", "RELEASE_CLAIM", "REASSIGN_CLAIM",
   "REQUEST_CHANGES", "RESUBMIT", "FORWARD", "REJECT", "RECALL", "VOTE",
-  "FORCE_STATUS", "ARCHIVE",
+  "FINALIZE_BOARD_DECISION",
 ];
 
 // ---------------------------------------------------------------------------

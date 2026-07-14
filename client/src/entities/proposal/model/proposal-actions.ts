@@ -113,9 +113,6 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
       if (p.votes.some((v) => v.memberId === user.id))
         return { ok: false, reason: "You have already voted." };
       return { ok: true };
-    case "FORCE_STATUS":
-      if (user.role !== "admin") return { ok: false, reason: "Only an admin can do this." };
-      return { ok: true };
   }
 }
 
@@ -133,7 +130,6 @@ export function allowedActions(user: User, p: SeriesProposal): ProposalAction[] 
     "REJECT",
     "RECALL",
     "VOTE",
-    "FORCE_STATUS",
   ];
   return all.filter((a) => checkAction(a, user, p).ok);
 }
