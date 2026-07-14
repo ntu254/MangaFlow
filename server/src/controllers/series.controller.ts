@@ -141,14 +141,6 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   });
 });
 
-export const createSeries = asyncRoute(async (req: AuthedRequest, res) => {
-  throw new AppError(
-    403,
-    "Series are created only after the Board approves a Proposal with a Tantou Editor and publication type.",
-    "SERIES_CREATION_WORKFLOW_REQUIRED",
-  );
-});
-
 export const getSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const series = await assertCanReadProductionSeries(actor, String(req.params.id));
@@ -237,48 +229,6 @@ async function attachPublications(chapters: any[]) {
     };
   });
 }
-
-export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) => {
-  const now = nowIso();
-  const seriesId = String(req.params.id);
-  const body = parseBody(createChapterSchema, req);
-  rejectProtectedFields(body as Record<string, unknown>);
-
-  // A cancelled or paused Series cannot accept new chapters (flowchart AS/AT).
-  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-  if (req.actor?.role !== "MANGAKA" || series.authorId !== req.actor.id) {
-    throw new AppError(403, "Only the series Mangaka can create chapters.", "MANGAKA_OWNER_REQUIRED");
-  }
-  if (["CANCELLED", "HIATUS", "COMPLETED"].includes(String(series.status))) {
-    throw new AppError(
-      409,
-      `Cannot create a chapter for a ${String(series.status).toLowerCase()} series.`,
-      "SERIES_NOT_PRODUCIBLE",
-    );
-  }
-
-  const chapter = await ChapterModel.create({
-    id: id("ch"),
-    seriesId,
-    number: Number(body.number ?? 1),
-    title: body.title ?? "Untitled chapter",
-    status: "PLANNED",
-    assigneeId: body.assigneeId ?? req.actor?.id,
-    assigneeName: body.assigneeName ?? req.actor?.name,
-    draftDueAt: body.draftDueAt ? new Date(body.draftDueAt) : undefined,
-    reviewDueAt: body.reviewDueAt ? new Date(body.reviewDueAt) : undefined,
-    plannedAt: body.plannedAt ? new Date(body.plannedAt) : undefined,
-    pages: [],
-    reviewNotes: [],
-    revisionRound: 0,
-    history: [],
-    createdAt: now,
-    updatedAt: now,
-  });
-  await audit(req, "chapter.create", "chapter", (chapter as any).id);
-  created(res, chapter);
-});
 
 export const getSeriesSummary = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
