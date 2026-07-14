@@ -1,27 +1,44 @@
-import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, RefreshCw, Scale, Vote } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ProposalStatusPill } from "@/entities/proposal";
+import {
+  parseTableStateFromSearchParams,
+  resetTableState,
+  setTableFilter,
+  tableStateToSearchParams,
+  type TableState,
+} from "@/shared/table";
 import {
   DataPagination,
   EmptyState,
   QueueActionButton,
   QueuePage,
   QueueTable,
-  QueueTabs,
+  SearchToolbar,
   StatCard,
   type QueueAccent,
   type QueueColumn,
-  type QueueTab,
 } from "@/shared/ui";
-import { ProposalStatusPill } from "@/entities/proposal";
-import { BoardVoteProgress } from "./board-vote-progress";
-import { useBoardQueueQuery } from "../../api/board-queries";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2, RefreshCw, RotateCcw, Scale, Vote } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useBoardQueueListQuery } from "../../api/board-queries";
 import type { BoardQueueItem } from "../../model/board-adapters";
-
-type TabKey = "ALL" | "PENDING" | "FINALIZE" | "TIE" | "APPROVED" | "REJECTED";
+import { BoardVoteProgress } from "./board-vote-progress";
 
 const PAGE_SIZE = 8;
+const DEFAULT_BOARD_QUEUE_TABLE_STATE: Partial<TableState> = {
+  pageSize: PAGE_SIZE,
+  sortBy: "updatedAt",
+  sortDir: "desc",
+};
 
 function getStatus(item: BoardQueueItem): "PENDING_BOARD" | "TIE_BREAK" | "APPROVED" | "REJECTED" {
   if (item.decisionStatus === "TIE_BREAK_REQUIRED") return "TIE_BREAK";
@@ -36,64 +53,50 @@ function needsFinalize(item: BoardQueueItem) {
   return getStatus(item) === "PENDING_BOARD" && item.voteSummary.canFinalize;
 }
 
-function matchesTab(item: BoardQueueItem, tab: TabKey): boolean {
-  const status = getStatus(item);
-  switch (tab) {
-    case "ALL":
-      return true;
-    case "PENDING":
-      return status === "PENDING_BOARD" && !needsFinalize(item);
-    case "FINALIZE":
-      return needsFinalize(item);
-    case "TIE":
-      return status === "TIE_BREAK";
-    case "APPROVED":
-      return status === "APPROVED";
-    case "REJECTED":
-      return status === "REJECTED";
-  }
+function useBoardQueueTableState() {
+  const [tableState, setTableState] = useState(() =>
+    parseTableStateFromSearchParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search),
+      DEFAULT_BOARD_QUEUE_TABLE_STATE,
+    ),
+  );
+
+  useEffect(() => {
+    const params = tableStateToSearchParams(tableState);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [tableState]);
+
+  return [tableState, setTableState] as const;
 }
 
 export function BoardQueuePage() {
   const queryClient = useQueryClient();
-  const { data: items, isLoading, error } = useBoardQueueQuery();
-  const [tab, setTab] = useState<TabKey>("ALL");
-  const [page, setPage] = useState(1);
+  const [tableState, setTableState] = useBoardQueueTableState();
+  const { data: queueList, isLoading, error } = useBoardQueueListQuery(tableState);
 
-  const boardItems = useMemo(
-    () => (items ?? []).filter((i): i is BoardQueueItem => i.seriesStatus !== "AT_RISK"),
-    [items],
-  );
-
-  const counts = useMemo(
-    () => ({
-      ALL: boardItems.length,
-      PENDING: boardItems.filter((i) => matchesTab(i, "PENDING")).length,
-      FINALIZE: boardItems.filter((i) => matchesTab(i, "FINALIZE")).length,
-      TIE: boardItems.filter((i) => matchesTab(i, "TIE")).length,
-      APPROVED: boardItems.filter((i) => matchesTab(i, "APPROVED")).length,
-      REJECTED: boardItems.filter((i) => matchesTab(i, "REJECTED")).length,
-    }),
-    [boardItems],
-  );
-
-  const filtered = useMemo(
-    () => boardItems.filter((item) => matchesTab(item, tab)),
-    [boardItems, tab],
-  );
-  const paged = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page],
-  );
-
-  const tabs: QueueTab[] = [
-    { key: "ALL", label: "All", count: counts.ALL },
-    { key: "PENDING", label: "Pending Vote", count: counts.PENDING },
-    { key: "FINALIZE", label: "Needs Finalize", count: counts.FINALIZE },
-    { key: "TIE", label: "Tie-break", count: counts.TIE },
-    { key: "APPROVED", label: "Approved", count: counts.APPROVED },
-    { key: "REJECTED", label: "Rejected", count: counts.REJECTED },
-  ];
+  const boardItems = queueList?.data ?? [];
+  const pagination = queueList?.pagination ?? {
+    page: tableState.page,
+    pageSize: tableState.pageSize,
+    total: 0,
+  };
+  const summary = queueList?.meta.summary ?? {
+    total: 0,
+    pending: 0,
+    needsFinalize: 0,
+    tieBreak: 0,
+  };
+  const statusFilter =
+    tableState.filters.status?.type === "select"
+      ? String(tableState.filters.status.value)
+      : "ALL";
+  const sortValue = `${tableState.sortBy ?? "updatedAt"}:${tableState.sortDir}`;
+  const filtersActive =
+    tableState.q.trim().length > 0 || Object.keys(tableState.filters).length > 0;
+  const approvedOnPage = boardItems.filter((item) => getStatus(item) === "APPROVED").length;
 
   const columns: QueueColumn<BoardQueueItem>[] = [
     {
@@ -144,7 +147,7 @@ export function BoardQueuePage() {
       <div className="mx-auto max-w-7xl p-6">
         <EmptyState
           title="Unable to load queue"
-          description="An error occurred while loading data from the server."
+          description={error instanceof Error ? error.message : "Board queue could not be loaded."}
         />
       </div>
     );
@@ -159,7 +162,7 @@ export function BoardQueuePage() {
         <QueueActionButton
           icon={<RefreshCw className="size-4" />}
           label="Refresh"
-          onClick={() => queryClient.invalidateQueries()}
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["board", "queue"] })}
         />
       }
       stats={
@@ -168,61 +171,114 @@ export function BoardQueuePage() {
             tone="blue"
             icon={<Vote className="size-4" />}
             label="Pending Vote"
-            value={counts.PENDING}
+            value={summary.pending}
             hint="Awaiting votes"
           />
           <StatCard
             tone="emerald"
             icon={<CheckCircle2 className="size-4" />}
             label="Needs Finalize"
-            value={counts.FINALIZE}
+            value={summary.needsFinalize}
             hint="Quorum reached"
           />
           <StatCard
             tone="amber"
             icon={<Scale className="size-4" />}
             label="Tie-break"
-            value={counts.TIE}
+            value={summary.tieBreak}
             hint="Require resolution"
           />
           <StatCard
             tone="violet"
             icon={<CheckCircle2 className="size-4" />}
-            label="Approved"
-            value={counts.APPROVED}
-            hint="Decided approve"
+            label="Approved on Page"
+            value={approvedOnPage}
+            hint="Current result"
           />
         </>
       }
-      tabs={
-        <QueueTabs
-          tabs={tabs}
-          active={tab}
-          onChange={(key) => {
-            setTab(key as TabKey);
-            setPage(1);
-          }}
+      toolbar={
+        <SearchToolbar
+          query={tableState.q}
+          onQueryChange={(q) => setTableState((state) => ({ ...state, q, page: 1 }))}
+          placeholder="Search proposal title, author, or synopsis"
+          filters={
+            <>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setTableState((state) =>
+                    setTableFilter(
+                      state,
+                      "status",
+                      value === "ALL" ? undefined : { type: "select", value },
+                    ),
+                  )
+                }
+              >
+                <SelectTrigger className="h-10 w-[170px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All statuses</SelectItem>
+                  <SelectItem value="PENDING_BOARD">Pending Board</SelectItem>
+                  <SelectItem value="BOARD_VOTING">Board Voting</SelectItem>
+                  <SelectItem value="TIE_BREAK">Tie-break</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={sortValue}
+                onValueChange={(value) => {
+                  const [sortBy, sortDir] = value.split(":") as [string, "asc" | "desc"];
+                  setTableState((state) => ({ ...state, sortBy, sortDir, page: 1 }));
+                }}
+              >
+                <SelectTrigger className="h-10 w-[180px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="updatedAt:desc">Newest updated</SelectItem>
+                  <SelectItem value="updatedAt:asc">Oldest updated</SelectItem>
+                  <SelectItem value="title:asc">Title A-Z</SelectItem>
+                  <SelectItem value="title:desc">Title Z-A</SelectItem>
+                  <SelectItem value="status:asc">Status A-Z</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          }
+          actions={
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!filtersActive}
+              onClick={() => setTableState(resetTableState(DEFAULT_BOARD_QUEUE_TABLE_STATE))}
+              className="h-10 gap-2 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] shadow-sm"
+            >
+              <RotateCcw className="size-4" />
+              Reset
+            </Button>
+          }
         />
       }
       footer={
         <DataPagination
-          total={filtered.length}
-          page={page}
-          pageSize={PAGE_SIZE}
-          onPageChange={setPage}
+          total={pagination.total}
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          onPageChange={(page) => setTableState((state) => ({ ...state, page }))}
           itemName="proposals"
         />
       }
     >
       <QueueTable
         columns={columns}
-        rows={paged}
+        rows={boardItems}
         getRowKey={(item) => item.id}
         getRowAccent={(item): QueueAccent =>
           getStatus(item) === "TIE_BREAK" ? "amber" : needsFinalize(item) ? "emerald" : null
         }
         minWidth={820}
-        empty={isLoading ? "Loading queue…" : "No proposals match the current filter."}
+        empty={isLoading ? "Loading queue..." : "No proposals match the current filter."}
       />
     </QueuePage>
   );

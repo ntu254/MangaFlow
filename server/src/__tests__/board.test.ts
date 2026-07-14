@@ -57,6 +57,97 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     const found = res.body.data.find((p: any) => p.id === "proposal-board-q");
     expect(found).toBeDefined();
     expect(found.decisionStatus).toBe("PENDING");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 20,
+    });
+    expect(res.body.meta.summary.total).toBeGreaterThanOrEqual(1);
+  });
+
+  it("GET /api/board/queue supports MVP list contract pagination, search, filters, and sort", async () => {
+    await ProposalModel.create([
+      {
+        id: "proposal-board-alpha",
+        title: "Alpha Serialization Candidate",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Alpha synopsis",
+        status: "PENDING_BOARD",
+        requestedPublicationType: "WEEKLY",
+        genres: ["Action"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+      {
+        id: "proposal-board-zeta",
+        title: "Zeta Serialization Candidate",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Zeta synopsis",
+        status: "TIE_BREAK",
+        requestedPublicationType: "MONTHLY",
+        genres: ["Drama"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-01-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      },
+      {
+        id: "proposal-board-beta",
+        title: "Beta Serialization Candidate",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Beta synopsis",
+        status: "PENDING_BOARD",
+        requestedPublicationType: "WEEKLY",
+        genres: ["Adventure"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-01-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      },
+    ]);
+
+    const board = await loginAs("board@beachread.jp");
+    const filters = encodeURIComponent(
+      JSON.stringify({ status: { type: "select", value: "PENDING_BOARD" } }),
+    );
+    const res = await request(createApp())
+      .get(
+        `/api/board/queue?page=1&pageSize=1&q=Serialization&sortBy=title&sortDir=asc&filters=${filters}`,
+      )
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("proposal-board-alpha");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+    });
+    expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
+    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PENDING_BOARD" });
+  });
+
+  it("GET /api/board/queue rejects unsupported sort fields", async () => {
+    const board = await loginAs("board@beachread.jp");
+    const res = await request(createApp())
+      .get("/api/board/queue?sortBy=actions")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(400);
+
+    expect(res.body.code).toBe("INVALID_SORT_FIELD");
+  });
+
+  it("GET /api/board/queue requires Board role", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    await request(createApp())
+      .get("/api/board/queue")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(403);
   });
 
   it("GET /api/board/queue does not return APPROVED/REJECTED proposals", async () => {
