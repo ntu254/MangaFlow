@@ -1,163 +1,200 @@
-import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { FileCheck2, FileWarning, RefreshCw, Users } from "lucide-react";
-import { useAuth } from "@/shared/auth";
+import { Button } from "@/components/ui/button";
 import {
-  useStudioTasksQuery,
-  useMangakaReviewQueueQuery,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
+import { buildTaskContext } from "@/entities/task";
+import {
   useMyChaptersQuery,
   useMySeriesQuery,
+  useStudioTasksQuery,
+  useSubmissionsListQuery,
 } from "@/features/series";
-import { buildTaskContext } from "@/entities/task";
-import { ReviewStatusPill } from "@/entities/submission";
-import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
+import { useAuth } from "@/shared/auth";
+import { timeAgo } from "@/shared/lib/format-date";
 import {
-  DataPagination,
+  parseTableStateFromSearchParams,
+  resetTableState,
+  tableStateToSearchParams,
+  type TableState,
+} from "@/shared/table";
+import {
   QueueActionButton,
   QueuePage,
-  QueueTable,
-  QueueTabs,
+  SearchToolbar,
+  ServerDataTable,
   StatCard,
   StateBlock,
-  type QueueAccent,
-  type QueueColumn,
-  type QueueTab,
 } from "@/shared/ui";
-import { timeAgo } from "@/shared/lib/format-date";
-
-type Row = {
-  sub: AssistantSubmission;
-  taskTitle: string;
-  seriesTitle: string;
-  chapterNumber?: number;
-  ownerId?: string;
-};
-
-type TabKey = "ALL" | "WITH_FILE" | "NEEDS_FILE";
+import type { ColumnDef } from "@tanstack/react-table";
+import { Link } from "@tanstack/react-router";
+import { FileCheck2, FileWarning, RefreshCw, RotateCcw, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 const PAGE_SIZE = 8;
+const PENDING_REVIEW_FILTER = { status: { type: "select" as const, value: "PENDING" } };
+const DEFAULT_REVIEW_QUEUE_TABLE_STATE: Partial<TableState> = {
+  pageSize: PAGE_SIZE,
+  sortBy: "submittedAt",
+  sortDir: "desc",
+  filters: PENDING_REVIEW_FILTER,
+};
+const EMPTY_SUBMISSIONS: AssistantSubmission[] = [];
 
-function hasFile(sub: AssistantSubmission) {
-  return Boolean(sub.fileUrl || sub.fileKey);
+function hasFile(submission: AssistantSubmission) {
+  return Boolean(submission.fileUrl || submission.fileKey);
+}
+
+function useReviewQueueTableState() {
+  const [tableState, setTableState] = useState<TableState>(() => {
+    const parsed = parseTableStateFromSearchParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search),
+      DEFAULT_REVIEW_QUEUE_TABLE_STATE,
+    );
+    return {
+      ...parsed,
+      filters: {
+        ...parsed.filters,
+        ...PENDING_REVIEW_FILTER,
+      },
+    };
+  });
+
+  useEffect(() => {
+    const params = tableStateToSearchParams(tableState);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [tableState]);
+
+  return [tableState, setTableState] as const;
 }
 
 export function ReviewQueuePage() {
   const user = useAuth((s) => s.user);
-  const queryClient = useQueryClient();
+  const [tableState, setTableState] = useReviewQueueTableState();
   const {
-    data: submissions = [],
+    data: submissionsList,
     isLoading,
     error: submissionsError,
-  } = useMangakaReviewQueueQuery();
+  } = useSubmissionsListQuery(tableState);
   const { data: tasks = [], error: tasksError } = useStudioTasksQuery({});
   const { data: chapters = [], error: chaptersError } = useMyChaptersQuery();
   const { data: seriesList = [], error: seriesError } = useMySeriesQuery();
-  const [tab, setTab] = useState<TabKey>("ALL");
-  const [page, setPage] = useState(1);
 
-  const rows = useMemo<Row[]>(() => {
-    return submissions
-      .map((sub) => {
-        const task = tasks.find((t) => t.id === sub.taskId);
-        const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
-        return {
-          sub,
-          taskTitle: task?.title ?? sub.taskId,
-          seriesTitle: ctx?.series?.title ?? "—",
-          chapterNumber: ctx?.chapter?.number,
-          ownerId: ctx?.series?.authorId,
-        };
-      })
-      .filter((row) => !row.ownerId || row.ownerId === user?.id);
-  }, [submissions, tasks, chapters, seriesList, user?.id]);
+  const submissions = submissionsList?.data ?? EMPTY_SUBMISSIONS;
+  const pagination = submissionsList?.pagination ?? {
+    page: tableState.page,
+    pageSize: tableState.pageSize,
+    total: 0,
+  };
+  const sortValue = `${tableState.sortBy ?? "submittedAt"}:${tableState.sortDir}`;
+  const filtersActive = tableState.q.trim().length > 0;
 
-  const counts = useMemo(
+  const rows = useMemo(() => {
+    return submissions.map((submission) => {
+      const task = tasks.find((candidate) => candidate.id === submission.taskId);
+      const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
+      return {
+        submission,
+        task,
+        taskTitle: task?.title ?? submission.taskId,
+        seriesTitle: ctx?.series?.title ?? "—",
+        chapterNumber: ctx?.chapter?.number,
+      };
+    });
+  }, [submissions, tasks, chapters, seriesList]);
+
+  const pageStats = useMemo(
     () => ({
-      ALL: rows.length,
-      WITH_FILE: rows.filter((r) => hasFile(r.sub)).length,
-      NEEDS_FILE: rows.filter((r) => !hasFile(r.sub)).length,
-      assistants: new Set(rows.map((r) => r.sub.assistantId)).size,
+      withFile: submissions.filter(hasFile).length,
+      needsFile: submissions.filter((submission) => !hasFile(submission)).length,
+      assistants: new Set(submissions.map((submission) => submission.assistantId)).size,
     }),
-    [rows],
+    [submissions],
   );
 
-  const filtered = useMemo(() => {
-    if (tab === "WITH_FILE") return rows.filter((r) => hasFile(r.sub));
-    if (tab === "NEEDS_FILE") return rows.filter((r) => !hasFile(r.sub));
-    return rows;
-  }, [rows, tab]);
-  const paged = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page],
+  const columns = useMemo<ColumnDef<(typeof rows)[number], unknown>[]>(
+    () => [
+      {
+        id: "task",
+        header: "Task",
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-[var(--admin-ink)]">
+              {row.original.taskTitle}
+            </p>
+            <p className="truncate text-[11px] text-[var(--admin-faint)]">
+              {row.original.seriesTitle} · Ch.{row.original.chapterNumber ?? "—"}
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: "assistant",
+        header: "Assistant",
+        cell: ({ row }) => (
+          <span className="text-[12px] text-[var(--admin-muted)]">
+            {row.original.submission.assistantId}
+          </span>
+        ),
+      },
+      {
+        id: "version",
+        header: "Version",
+        cell: ({ row }) => (
+          <span className="text-[12px] font-semibold text-[var(--admin-ink)]">
+            {row.original.submission.versionLabel}
+          </span>
+        ),
+      },
+      {
+        id: "file",
+        header: "File",
+        cell: ({ row }) => (
+          <span
+            className={
+              hasFile(row.original.submission)
+                ? "rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800"
+                : "rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800"
+            }
+          >
+            {hasFile(row.original.submission) ? "Attached" : "Missing"}
+          </span>
+        ),
+      },
+      {
+        id: "submitted",
+        header: "Submitted",
+        cell: ({ row }) => (
+          <span className="text-[12px] text-[var(--admin-faint)]">
+            {timeAgo(row.original.submission.submittedAt)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Link
+              to="/app/review/$submissionId"
+              params={{ submissionId: row.original.submission.id }}
+              className="inline-flex justify-center rounded-[6px] bg-[var(--admin-navy)] px-3 py-1.5 text-[11px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
+            >
+              Open Review
+            </Link>
+          </div>
+        ),
+      },
+    ],
+    [],
   );
-
-  const tabs: QueueTab[] = [
-    { key: "ALL", label: "All", count: counts.ALL },
-    { key: "WITH_FILE", label: "With file", count: counts.WITH_FILE },
-    { key: "NEEDS_FILE", label: "Needs file", count: counts.NEEDS_FILE },
-  ];
-
-  const columns: QueueColumn<Row>[] = [
-    {
-      key: "task",
-      header: "Task",
-      className: "min-w-[220px]",
-      render: (row) => (
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-[var(--admin-ink)]">{row.taskTitle}</p>
-          <p className="truncate text-[11px] text-[var(--admin-faint)]">
-            {row.seriesTitle} · Ch.{row.chapterNumber ?? "—"}
-          </p>
-        </div>
-      ),
-    },
-    {
-      key: "assistant",
-      header: "Assistant",
-      render: (row) => (
-        <span className="text-[12px] text-[var(--admin-muted)]">{row.sub.assistantId}</span>
-      ),
-    },
-    {
-      key: "version",
-      header: "Version",
-      render: (row) => (
-        <span className="text-[12px] font-semibold text-[var(--admin-ink)]">
-          {row.sub.versionLabel}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => <ReviewStatusPill status={row.sub.status} />,
-    },
-    {
-      key: "submitted",
-      header: "Submitted",
-      render: (row) => (
-        <span className="text-[12px] text-[var(--admin-faint)]">
-          {timeAgo(row.sub.submittedAt)}
-        </span>
-      ),
-    },
-    {
-      key: "action",
-      header: "Action",
-      align: "right",
-      className: "w-[120px]",
-      render: (row) => (
-        <Link
-          to="/app/review/$submissionId"
-          params={{ submissionId: row.sub.id }}
-          className="inline-flex justify-center rounded-[6px] bg-[var(--admin-navy)] px-3 py-1.5 text-[11px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
-        >
-          Open Review
-        </Link>
-      ),
-    },
-  ];
 
   if (!user) return null;
 
@@ -189,7 +226,7 @@ export function ReviewQueuePage() {
           <QueueActionButton
             icon={<RefreshCw className="size-4" />}
             label="Refresh"
-            onClick={() => queryClient.invalidateQueries()}
+            onClick={() => window.location.reload()}
           />
         }
       >
@@ -211,7 +248,7 @@ export function ReviewQueuePage() {
         <QueueActionButton
           icon={<RefreshCw className="size-4" />}
           label="Refresh"
-          onClick={() => queryClient.invalidateQueries()}
+          onClick={() => window.location.reload()}
         />
       }
       stats={
@@ -220,59 +257,87 @@ export function ReviewQueuePage() {
             tone="rose"
             icon={<FileWarning className="size-4" />}
             label="Needs Review"
-            value={counts.ALL}
-            hint="Submissions awaiting review"
+            value={pagination.total}
+            hint="Server-scoped queue"
           />
           <StatCard
             tone="emerald"
             icon={<FileCheck2 className="size-4" />}
             label="With File"
-            value={counts.WITH_FILE}
-            hint="Has attachment"
+            value={pageStats.withFile}
+            hint="Current page"
           />
           <StatCard
             tone="amber"
             icon={<FileWarning className="size-4" />}
             label="Needs File"
-            value={counts.NEEDS_FILE}
-            hint="Missing file"
+            value={pageStats.needsFile}
+            hint="Current page"
           />
           <StatCard
             tone="blue"
             icon={<Users className="size-4" />}
             label="Assistants"
-            value={counts.assistants}
-            hint="Submitter"
+            value={pageStats.assistants}
+            hint="Current page"
           />
         </>
       }
-      tabs={
-        <QueueTabs
-          tabs={tabs}
-          active={tab}
-          onChange={(key) => {
-            setTab(key as TabKey);
-            setPage(1);
-          }}
-        />
-      }
-      footer={
-        <DataPagination
-          total={filtered.length}
-          page={page}
-          pageSize={PAGE_SIZE}
-          onPageChange={setPage}
-          itemName="submissions"
-        />
-      }
     >
-      <QueueTable
+      <ServerDataTable
+        data={rows}
         columns={columns}
-        rows={paged}
-        getRowKey={(row) => row.sub.id}
-        getRowAccent={(row): QueueAccent => (!hasFile(row.sub) ? "amber" : null)}
-        minWidth={820}
-        empty={isLoading ? "Loading submissions…" : "No submissions need review."}
+        getRowId={(row) => row.submission.id}
+        isLoading={isLoading}
+        error={submissionsError}
+        emptyTitle="No submissions need review"
+        emptyDescription="When an Assistant submits work for a Series you own, it appears here."
+        skeletonRows={tableState.pageSize}
+        toolbar={
+          <SearchToolbar
+            query={tableState.q}
+            onQueryChange={(q) => setTableState((state) => ({ ...state, q, page: 1 }))}
+            placeholder="Search task, file, reviewer note..."
+            filters={
+              <Select
+                value={sortValue}
+                onValueChange={(value) => {
+                  const [sortBy, sortDir] = value.split(":") as [string, "asc" | "desc"];
+                  setTableState((state) => ({ ...state, sortBy, sortDir, page: 1 }));
+                }}
+              >
+                <SelectTrigger className="h-10 w-[180px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="submittedAt:desc">Newest submitted</SelectItem>
+                  <SelectItem value="submittedAt:asc">Oldest submitted</SelectItem>
+                  <SelectItem value="version:desc">Highest version</SelectItem>
+                  <SelectItem value="updatedAt:desc">Recently updated</SelectItem>
+                </SelectContent>
+              </Select>
+            }
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!filtersActive}
+                onClick={() => setTableState(resetTableState(DEFAULT_REVIEW_QUEUE_TABLE_STATE))}
+                className="h-10 gap-2 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] shadow-sm"
+              >
+                <RotateCcw className="size-4" />
+                Reset
+              </Button>
+            }
+          />
+        }
+        pagination={{
+          total: pagination.total,
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          onPageChange: (page) => setTableState((state) => ({ ...state, page })),
+          itemName: "submissions",
+        }}
       />
     </QueuePage>
   );
