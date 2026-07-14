@@ -1,9 +1,9 @@
-import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { createMangaFlowQueryClient } from "./shared/query";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  const queryClient = createMangaFlowQueryClient();
 
   const router = createRouter({
     routeTree,

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { clearApiTokens, registerUnauthorizedHandler } from "@/shared/api/client";
+import { registerHttpUnauthorizedHandler } from "@/shared/api/http-client";
 import { loginDemoRole, loginWithPassword, logoutLive as apiLogoutLive } from "@/shared/api/auth";
 
 export type Role = "admin" | "mangaka" | "assistant" | "editor" | "board";
@@ -164,5 +165,9 @@ export const ROLE_DESCRIPTION: Record<Role, string> = {
 };
 
 registerUnauthorizedHandler(() => {
+  useAuth.getState().logout();
+});
+
+registerHttpUnauthorizedHandler(() => {
   useAuth.getState().logout();
 });
