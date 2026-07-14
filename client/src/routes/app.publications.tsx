@@ -4,12 +4,12 @@ import { CalendarDays } from "lucide-react";
 export const Route = createFileRoute("/app/publications")({
   head: () => ({
     meta: [
-      { title: "Publication Calendar - beachRead Studio" },
+      { title: "Publication Calendar - MangaFlow" },
       {
         name: "description",
         content: "Publication schedules are managed in each Series Workspace.",
       },
-      { property: "og:title", content: "Publication Calendar - beachRead Studio" },
+      { property: "og:title", content: "Publication Calendar - MangaFlow" },
       { property: "og:description", content: "Publishing schedule." },
     ],
   }),

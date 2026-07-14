@@ -30,11 +30,10 @@ export function ProposalReviewPage() {
   const isUnclaimed = !!proposal && !proposal.claimedByEditorId;
   const isClaimedByMe = !!proposal && !!user && proposal.claimedByEditorId === user.id;
   const isClaimedByOther = !!proposal && !!proposal.claimedByEditorId && !isClaimedByMe;
-  const isEicOrAdmin =
-    !!user && (user.role === "admin" || (user.role === "editor" && isEditorInChief(user)));
+  const isEic = !!user && user.role === "editor" && isEditorInChief(user);
 
-  // Decision support — only the claiming editor (or EIC/Admin) can act
-  const canDecide = isClaimedByMe || isEicOrAdmin;
+  // Decision support: only the claiming editor or Editor-in-Chief can act.
+  const canDecide = isClaimedByMe || isEic;
   const isEditorReview = !!proposal && EDITOR_REVIEW_STATUSES.includes(proposal.status);
   const supportsForward = isEditorReview && !isSelf && canDecide;
   const supportsRevision = isEditorReview && !isSelf && canDecide;
@@ -171,7 +170,7 @@ export function ProposalReviewPage() {
             isUnclaimed={isUnclaimed}
             isClaimedByMe={isClaimedByMe}
             isClaimedByOther={isClaimedByOther}
-            isEicOrAdmin={isEicOrAdmin}
+            isEic={isEic}
             actionMutation={actionMutation}
           />
 
@@ -191,7 +190,7 @@ export function ProposalReviewPage() {
                 You need to claim the review (Start Review) before making a decision.
               </p>
             )}
-            {isClaimedByOther && !isEicOrAdmin && (
+            {isClaimedByOther && !isEic && (
               <p className="mt-2 text-xs text-muted-foreground">
                 <Lock className="mr-1 inline size-3" />
                 Proposal is being reviewed by {proposal.claimedByEditorName}. You can only view it.
@@ -267,7 +266,7 @@ function ClaimStatusCard({
   isUnclaimed,
   isClaimedByMe,
   isClaimedByOther,
-  isEicOrAdmin,
+  isEic,
   actionMutation,
 }: {
   proposal: SeriesProposal;
@@ -275,7 +274,7 @@ function ClaimStatusCard({
   isUnclaimed: boolean;
   isClaimedByMe: boolean;
   isClaimedByOther: boolean;
-  isEicOrAdmin: boolean;
+  isEic: boolean;
   actionMutation: ReturnType<typeof useProposalActionMutation>;
 }) {
   if (!EDITOR_REVIEW_STATUSES.includes(proposal.status)) return null;
@@ -360,7 +359,7 @@ function ClaimStatusCard({
             Claimed at: {formatDateTime(proposal.claimedAt)}
           </p>
         )}
-        {isEicOrAdmin && (
+        {isEic && (
           <button
             type="button"
             disabled={actionMutation.isPending}

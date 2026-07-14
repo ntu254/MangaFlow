@@ -48,7 +48,7 @@ export function TasksPage() {
   }
 
   const mine = chapters.filter((c) => {
-    if (user.role === "editor" || user.role === "admin") {
+    if (user.role === "editor") {
       return c.status === "EDITOR_REVIEW" || c.status === "EDITOR_APPROVED";
     }
     if (user.role === "mangaka" || user.role === "assistant") {

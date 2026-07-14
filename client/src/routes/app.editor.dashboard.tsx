@@ -4,7 +4,7 @@ import { EditorDashboard } from "@/features/editor/dashboard";
 export const Route = createFileRoute("/app/editor/dashboard")({
   head: () => ({
     meta: [
-      { title: "Editor Dashboard — beachRead Studio" },
+      { title: "Editor Dashboard — MangaFlow" },
       { name: "description", content: "Today review focus, queue summary, deadline risk." },
     ],
   }),

@@ -35,7 +35,7 @@ export type AtRiskReport = {
 };
 
 function isBoardWorkflowUser(role: string): boolean {
-  return role === "board" || role === "admin" || role === "editor";
+  return role === "board" || role === "editor";
 }
 
 function invalidateBoardDecisionCaches(

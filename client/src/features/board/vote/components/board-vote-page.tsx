@@ -227,12 +227,12 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
             </div>
           ) : null}
 
-          {(user.role === "board" || user.role === "admin") &&
+          {user.role === "board" &&
             (status === "PENDING_BOARD" || status === "TIE_BREAK") &&
             tally.status !== null && (
               <Panel
                 title="Board Decision (Finalize)"
-                description={`The Board has completed voting. Preliminary result: ${tally.status}. Board/Admin can officially finalize this proposal decision and persist the status to the database.`}
+                description={`The Board has completed voting. Preliminary result: ${tally.status}. Board finalization persists the official proposal decision.`}
               >
                 <div className="space-y-1.5">
                   <Label

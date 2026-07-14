@@ -3,8 +3,8 @@ import { createFileRoute, isRedirect, Outlet, redirect } from "@tanstack/react-r
 export const Route = createFileRoute("/app/board")({
   head: () => ({
     meta: [
-      { title: "Board Vote — beachRead Studio" },
-      { name: "description", content: "Board proposal voting." },
+      { title: "Board Vote — MangaFlow" },
+      { name: "description", content: "Board proposal voting, rankings, and at-risk decisions." },
     ],
   }),
   beforeLoad: () => {
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/app/board")({
     } catch (e) {
       if (isRedirect(e)) throw e;
     }
-    if (role && role !== "board" && role !== "admin") {
+    if (role && role !== "board") {
       throw redirect({ to: "/app/dashboard" });
     }
   },

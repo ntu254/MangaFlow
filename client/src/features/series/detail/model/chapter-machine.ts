@@ -15,7 +15,7 @@ function isMangakaOwner(user: User, chapter: Chapter, series: ProductionSeries) 
 }
 
 function isEditor(user: User, series: ProductionSeries) {
-  return user.role === "admin" || (user.role === "editor" && series.editorId === user.id);
+  return user.role === "editor" && series.editorId === user.id;
 }
 
 export function checkChapterAction(
@@ -27,7 +27,7 @@ export function checkChapterAction(
   switch (action) {
     case "START_DRAFT":
       if (!isMangakaOwner(user, chapter, series))
-        return { ok: false, reason: "Only the assignee or an admin can do this." };
+        return { ok: false, reason: "Only the Mangaka owner can do this." };
       if (chapter.status !== "PLANNED")
         return { ok: false, reason: "Can only start from PLANNED." };
       return { ok: true };
@@ -78,7 +78,7 @@ export function checkChapterAction(
       return { ok: true };
     case "REASSIGN":
       if (!isEditor(user, series))
-        return { ok: false, reason: "Only the Tantou Editor or Admin can do this." };
+        return { ok: false, reason: "Only the Tantou Editor can do this." };
       if (chapter.status === "PUBLISHED")
         return { ok: false, reason: "Chapter has already been published." };
       return { ok: true };

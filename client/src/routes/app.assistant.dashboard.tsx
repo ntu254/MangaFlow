@@ -4,7 +4,7 @@ import { AssistantDashboard } from "@/features/assistant/dashboard";
 export const Route = createFileRoute("/app/assistant/dashboard")({
   head: () => ({
     meta: [
-      { title: "Assistant Dashboard — beachRead Studio" },
+      { title: "Assistant Dashboard — MangaFlow" },
       {
         name: "description",
         content: "Overview of Assistant tasks, deadlines, revisions, and earnings.",

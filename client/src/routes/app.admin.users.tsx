@@ -4,7 +4,7 @@ import { AdminUsersPage } from "@/features/admin/users";
 export const Route = createFileRoute("/app/admin/users")({
   head: () => ({
     meta: [
-      { title: "Admin - Users - beachRead Studio" },
+      { title: "Admin - Users - MangaFlow" },
       { name: "description", content: "User, role, scope, and account status management." },
       { property: "og:title", content: "Admin - Users" },
       { property: "og:description", content: "User management." },

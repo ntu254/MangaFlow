@@ -93,7 +93,7 @@ export function StudioTab({
     basePermissions.mode === "assistant"
       ? { seriesId: series.id, assigneeId: user.id }
       : { chapterId: chapterId ?? "" };
-  const broadRead = ["assistant", "board", "admin"].includes(basePermissions.mode);
+  const broadRead = basePermissions.mode === "assistant";
   const regionFilters = broadRead ? { seriesId: series.id } : { chapterId: chapterId ?? "" };
   const commentFilters = broadRead ? { seriesId: series.id } : { chapterId: chapterId ?? "" };
 

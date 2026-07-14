@@ -2,6 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { NotificationsPage } from "@/features/notifications";
 
 export const Route = createFileRoute("/app/notifications")({
-  head: () => ({ meta: [{ title: "Notifications — beachRead Studio" }] }),
+  head: () => ({ meta: [{ title: "Notifications — MangaFlow" }] }),
   component: NotificationsPage,
 });

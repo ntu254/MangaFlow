@@ -106,7 +106,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
     );
   };
 
-  const canFinalizeRole = user.role === "admin" || user.role === "board";
+  const canFinalizeRole = user.role === "board";
   const isDecided = ["APPROVED", "REJECTED", "WITHDRAWN"].includes(proposal.status);
   const finalizeLocked = finalize.isPending || finalize.isSuccess || isDecided;
   const canFinalize = canFinalizeRole && !existing && !finalizeLocked;
@@ -170,7 +170,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
         <>
           <hr className="border-border" />
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Finalize (Board/Admin)
+            Board finalization
           </p>
 
           {isDecided ? (

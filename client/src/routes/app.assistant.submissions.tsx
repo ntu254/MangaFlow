@@ -4,7 +4,7 @@ import { SubmissionsPage } from "@/features/assistant/submissions";
 export const Route = createFileRoute("/app/assistant/submissions")({
   head: () => ({
     meta: [
-      { title: "Submissions — beachRead Studio" },
+      { title: "Submissions — MangaFlow" },
       { name: "description", content: "Track submitted work." },
     ],
   }),

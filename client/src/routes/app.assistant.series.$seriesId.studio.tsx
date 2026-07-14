@@ -9,7 +9,7 @@ type StudioSearch = {
 export const Route = createFileRoute("/app/assistant/series/$seriesId/studio")({
   head: () => ({
     meta: [
-      { title: "Series Studio — beachRead Studio" },
+      { title: "Series Studio — MangaFlow" },
       { name: "description", content: "Studio canvas (read-only) for assistant." },
     ],
   }),

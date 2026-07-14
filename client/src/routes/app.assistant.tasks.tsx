@@ -4,7 +4,7 @@ import { MyTasksPage } from "@/features/assistant/tasks";
 export const Route = createFileRoute("/app/assistant/tasks")({
   head: () => ({
     meta: [
-      { title: "My Tasks — beachRead Studio" },
+      { title: "My Tasks — MangaFlow" },
       { name: "description", content: "Assigned Assistant tasks." },
     ],
   }),

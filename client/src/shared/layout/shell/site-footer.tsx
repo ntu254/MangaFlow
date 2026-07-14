@@ -44,7 +44,7 @@ export function SiteFooter() {
               <span className="grid size-7 place-items-center rounded-full border-2 border-background">
                 <span className="size-2 rounded-full bg-background" />
               </span>
-              <span className="font-serif text-xl italic">beachRead</span>
+              <span className="font-serif text-xl italic">MangaFlow</span>
             </div>
             <p className="text-xs leading-relaxed text-background/60">
               世界中の物語に最高のマンガを届ける。
@@ -56,7 +56,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-12 flex items-center justify-between border-t border-background/10 pt-6 text-[10px] uppercase tracking-widest text-background/40">
-          <span>© 2026 beachRead Inc. All rights reserved.</span>
+          <span>© 2026 MangaFlow All rights reserved.</span>
           <div className="flex gap-4">
             <span>IG</span>
             <span>YT</span>

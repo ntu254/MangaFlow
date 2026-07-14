@@ -12,7 +12,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 export const Route = createFileRoute("/app/assistant/tasks/$taskId/studio")({
   head: () => ({
     meta: [
-      { title: "Task Studio — beachRead Studio" },
+      { title: "Task Studio — MangaFlow" },
       { name: "description", content: "Focused workspace for an Assistant task." },
     ],
   }),

@@ -7,7 +7,7 @@ import type {
   StudioTool,
 } from "@/entities/series/model/studio-types";
 
-export type StudioRoleMode = "mangaka" | "assistant" | "editor" | "board" | "admin";
+export type StudioRoleMode = "mangaka" | "assistant" | "editor" | "board" | "none";
 
 export type StudioPermissionSet = {
   mode: StudioRoleMode;
@@ -180,15 +180,16 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
   if (role === "board") {
     return {
       mode: "board",
-      title: "Board sample viewer",
-      summary: "Read-only viewer for samples. Production workflow controls are hidden.",
-      leftPanelTitle: "Samples",
-      taskPanelTitle: "Viewer Notes",
-      canEnterStudio: true,
-      canViewPages: true,
+      title: "Board governance scope",
+      summary:
+        "Board members use proposal, ranking, and at-risk governance screens; production Studio assets are not visible.",
+      leftPanelTitle: "Governance only",
+      taskPanelTitle: "Governance only",
+      canEnterStudio: false,
+      canViewPages: false,
       canViewRegions: false,
       canViewTasks: false,
-      canViewComments: true,
+      canViewComments: false,
       canUploadPages: false,
       canCreateRegion: false,
       canEditRegion: false,
@@ -212,21 +213,21 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canUploadReferences: false,
       canUploadCharacterSheets: false,
       allowedTools: VIEWER_TOOLS,
-      visibleLayerKinds: ["comment"],
+      visibleLayerKinds: [],
     };
   }
 
   return {
-    mode: "admin",
-    title: "Admin inspection mode",
-    summary: "Governance view only. Workflow repairs require the proper role action.",
-    leftPanelTitle: "Workspace Inspection",
-    taskPanelTitle: "Audit / Workflow Inspection",
-    canEnterStudio: true,
-    canViewPages: true,
-    canViewRegions: true,
-    canViewTasks: true,
-    canViewComments: true,
+    mode: "none",
+    title: "No production access",
+    summary: "This role does not have access to production studio assets in the MVP.",
+    leftPanelTitle: "No access",
+    taskPanelTitle: "No access",
+    canEnterStudio: false,
+    canViewPages: false,
+    canViewRegions: false,
+    canViewTasks: false,
+    canViewComments: false,
     canUploadPages: false,
     canCreateRegion: false,
     canEditRegion: false,
@@ -241,16 +242,16 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
     canReopenTask: false,
     canSubmitTask: false,
     canReviewSubmission: false,
-    canCreateComment: true,
-    canResolveComment: true,
-    canReopenComment: true,
+    canCreateComment: false,
+    canResolveComment: false,
+    canReopenComment: false,
     canUploadWorkingFiles: false,
     canUploadStoryboard: false,
     canUploadManuscript: false,
     canUploadReferences: false,
     canUploadCharacterSheets: false,
-    allowedTools: ["select", "pan", "comment"],
-    visibleLayerKinds: ["region", "task", "comment"],
+    allowedTools: VIEWER_TOOLS,
+    visibleLayerKinds: [],
   };
 }
 

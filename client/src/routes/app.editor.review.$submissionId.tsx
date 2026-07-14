@@ -3,7 +3,7 @@ import { EditorSubmissionReview } from "@/features/editor/submission-review";
 
 export const Route = createFileRoute("/app/editor/review/$submissionId")({
   head: () => ({
-    meta: [{ title: "Review Submission — beachRead Studio" }],
+    meta: [{ title: "Review Submission — MangaFlow" }],
   }),
   component: RouteComponent,
 });

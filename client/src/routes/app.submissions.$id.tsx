@@ -10,7 +10,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/app/submissions/$id")({
   validateSearch: searchSchema,
-  head: () => ({ meta: [{ title: "Proposal detail — beachRead Studio" }] }),
+  head: () => ({ meta: [{ title: "Proposal detail — MangaFlow" }] }),
   component: RouteComponent,
 });
 

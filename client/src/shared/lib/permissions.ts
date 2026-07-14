@@ -6,9 +6,9 @@ export type ActionCheck = {
   reason?: string;
 };
 
-export const OWNER_OR_ADMIN = (user: User, p: { authorId: string }) =>
-  user.role === "admin" || (user.role === "mangaka" && p.authorId === user.id);
+export const IS_AUTHOR = (user: User, p: { authorId: string }) =>
+  user.role === "mangaka" && p.authorId === user.id;
 
-export const EDITOR_OR_ADMIN = (user: User) => user.role === "editor" || user.role === "admin";
+export const IS_EDITOR = (user: User) => user.role === "editor";
 
-export const BOARD_OR_ADMIN = (user: User) => user.role === "board" || user.role === "admin";
+export const IS_BOARD = (user: User) => user.role === "board";

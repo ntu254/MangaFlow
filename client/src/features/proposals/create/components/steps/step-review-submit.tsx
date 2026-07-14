@@ -154,7 +154,7 @@ export function StepReviewSubmit({
           <span className="text-sm font-medium">Original work confirmation</span>
           <p className="text-xs text-muted-foreground">
             I confirm that this is an <strong>original work</strong> and I hold all rights to submit
-            the manuscript and supporting materials to beachRead Studio for editorial review.
+            the manuscript and supporting materials to MangaFlow for editorial review.
           </p>
         </div>
       </label>

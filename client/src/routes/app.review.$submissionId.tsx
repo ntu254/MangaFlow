@@ -4,7 +4,7 @@ import { SubmissionReview } from "@/features/mangaka/reviews";
 export const Route = createFileRoute("/app/review/$submissionId")({
   head: () => ({
     meta: [
-      { title: "Review Submission — beachRead Studio" },
+      { title: "Review Submission — MangaFlow" },
       { name: "description", content: "Submission detail awaiting Mangaka review." },
     ],
   }),

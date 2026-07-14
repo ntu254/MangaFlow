@@ -86,18 +86,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "beachRead — Read manga from around the world" },
+      { title: "MangaFlow — Read manga from around the world" },
       {
         name: "description",
         content:
-          "beachRead — a multi-role manga reading and publishing platform: Reader, Mangaka, Assistant, Editor, Board.",
+          "MangaFlow — a multi-role manga reading and publishing platform: Reader, Mangaka, Assistant, Editor, Board.",
       },
-      { name: "author", content: "beachRead" },
-      { property: "og:title", content: "beachRead" },
+      { name: "author", content: "MangaFlow" },
+      { property: "og:title", content: "MangaFlow" },
       { property: "og:description", content: "Bringing the best of manga to readers worldwide." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@beachRead" },
+      { name: "twitter:site", content: "@MangaFlow" },
     ],
     links: [
       {

@@ -1,7 +1,7 @@
 import type { User } from "@/shared/auth";
 import { isEditorInChief } from "@/shared/auth";
 import type { ProposalAction, SeriesProposal } from "./proposal-types";
-import { OWNER_OR_ADMIN, EDITOR_OR_ADMIN, BOARD_OR_ADMIN } from "@/shared/lib/permissions";
+import { IS_AUTHOR, IS_EDITOR, IS_BOARD } from "@/shared/lib/permissions";
 
 export type ActionCheck = {
   ok: boolean;
@@ -13,46 +13,44 @@ const EDITOR_REVIEW_STATUSES = ["PENDING_EDITOR", "EDITOR_REVIEWING"];
 export function checkAction(action: ProposalAction, user: User, p: SeriesProposal): ActionCheck {
   switch (action) {
     case "EDIT":
-      if (!OWNER_OR_ADMIN(user, p))
-        return { ok: false, reason: "Only the author or an admin can do this." };
+      if (!IS_AUTHOR(user, p)) return { ok: false, reason: "Only the author can do this." };
       if (!["DRAFT", "CHANGES_REQUESTED"].includes(p.status))
         return { ok: false, reason: "Editing is only allowed in DRAFT or CHANGES_REQUESTED." };
       return { ok: true };
     case "SUBMIT":
-      if (!OWNER_OR_ADMIN(user, p)) return { ok: false, reason: "Only the author can do this." };
+      if (!IS_AUTHOR(user, p)) return { ok: false, reason: "Only the author can do this." };
       if (p.status !== "DRAFT") return { ok: false, reason: "You can only submit from DRAFT." };
       return { ok: true };
     case "RESUBMIT":
-      if (!OWNER_OR_ADMIN(user, p)) return { ok: false, reason: "Only the author can do this." };
+      if (!IS_AUTHOR(user, p)) return { ok: false, reason: "Only the author can do this." };
       if (p.status !== "CHANGES_REQUESTED")
         return { ok: false, reason: "You can only resubmit when changes are requested." };
       return { ok: true };
     case "WITHDRAW":
-      if (!OWNER_OR_ADMIN(user, p)) return { ok: false, reason: "Only the author can do this." };
+      if (!IS_AUTHOR(user, p)) return { ok: false, reason: "Only the author can do this." };
       if (!["DRAFT", "PENDING_EDITOR", "CHANGES_REQUESTED"].includes(p.status))
         return { ok: false, reason: "You cannot withdraw after sending to Board." };
       return { ok: true };
     case "CLAIM":
-      if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Only an editor can do this." };
+      if (!IS_EDITOR(user)) return { ok: false, reason: "Only an editor can do this." };
       if (p.status !== "PENDING_EDITOR")
         return { ok: false, reason: "You can only claim while PENDING_EDITOR." };
       if (p.claimedByEditorId && p.claimedByEditorId !== user.id)
         return { ok: false, reason: "Another editor has just claimed this item." };
       return { ok: true };
     case "REQUEST_CHANGES":
-      if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Only an editor can do this." };
+      if (!IS_EDITOR(user)) return { ok: false, reason: "Only an editor can do this." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return { ok: false, reason: "Only while the proposal is under editor review." };
       if (
         p.claimedByEditorId &&
         p.claimedByEditorId !== user.id &&
-        !isEditorInChief(user) &&
-        user.role !== "admin"
+        !(user.role === "editor" && isEditorInChief(user))
       )
         return { ok: false, reason: "This proposal has been claimed by another editor." };
       return { ok: true };
     case "FORWARD":
-      if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Only an editor can do this." };
+      if (!IS_EDITOR(user)) return { ok: false, reason: "Only an editor can do this." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return {
           ok: false,
@@ -61,13 +59,12 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
       if (
         p.claimedByEditorId &&
         p.claimedByEditorId !== user.id &&
-        !isEditorInChief(user) &&
-        user.role !== "admin"
+        !(user.role === "editor" && isEditorInChief(user))
       )
         return { ok: false, reason: "This proposal has been claimed by another editor." };
       return { ok: true };
     case "REJECT":
-      if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Only an editor can do this." };
+      if (!IS_EDITOR(user)) return { ok: false, reason: "Only an editor can do this." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return {
           ok: false,
@@ -76,26 +73,24 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
       if (
         p.claimedByEditorId &&
         p.claimedByEditorId !== user.id &&
-        !isEditorInChief(user) &&
-        user.role !== "admin"
+        !(user.role === "editor" && isEditorInChief(user))
       )
         return { ok: false, reason: "This proposal has been claimed by another editor." };
       return { ok: true };
     case "RELEASE_CLAIM":
-      if (user.role !== "admin" && !(user.role === "editor" && isEditorInChief(user)))
-        return { ok: false, reason: "Only an Admin or Editor-in-chief can do this." };
+      if (!(user.role === "editor" && isEditorInChief(user)))
+        return { ok: false, reason: "Only the Editor-in-chief can do this." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status) || !p.claimedByEditorId)
         return { ok: false, reason: "The proposal has not been claimed." };
       return { ok: true };
     case "REASSIGN_CLAIM":
-      if (user.role !== "admin" && !(user.role === "editor" && isEditorInChief(user)))
-        return { ok: false, reason: "Only an Admin or Editor-in-chief can do this." };
+      if (!(user.role === "editor" && isEditorInChief(user)))
+        return { ok: false, reason: "Only the Editor-in-chief can do this." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return { ok: false, reason: "Only while the proposal is under editor review." };
       return { ok: true };
     case "RECALL":
-      if (!EDITOR_OR_ADMIN(user))
-        return { ok: false, reason: "Only the assigned editor can do this." };
+      if (!IS_EDITOR(user)) return { ok: false, reason: "Only the assigned editor can do this." };
       if (p.status !== "PENDING_BOARD")
         return { ok: false, reason: "You can only recall while PENDING_BOARD." };
       return { ok: true };
@@ -103,11 +98,11 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
       if (p.status !== "PENDING_BOARD" && p.status !== "TIE_BREAK")
         return { ok: false, reason: "Voting is only allowed in PENDING_BOARD or TIE_BREAK." };
       if (p.status === "PENDING_BOARD") {
-        if (!BOARD_OR_ADMIN(user)) return { ok: false, reason: "Only a board member can do this." };
+        if (!IS_BOARD(user)) return { ok: false, reason: "Only a board member can do this." };
       } else {
         // TIE_BREAK
         const isEiC = user.role === "editor" && isEditorInChief(user);
-        if (!isEiC && user.role !== "admin")
+        if (!isEiC)
           return { ok: false, reason: "Only the Editor-in-chief can cast a tie-break vote." };
       }
       if (p.votes.some((v) => v.memberId === user.id))

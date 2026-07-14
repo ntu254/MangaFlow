@@ -4,7 +4,7 @@ import { ReviewQueuePage } from "@/features/mangaka/reviews";
 export const Route = createFileRoute("/app/review/")({
   head: () => ({
     meta: [
-      { title: "Review Queue — beachRead Studio" },
+      { title: "Review Queue — MangaFlow" },
       { name: "description", content: "Submissions awaiting Mangaka review." },
     ],
   }),
