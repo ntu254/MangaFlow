@@ -817,6 +817,101 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
   });
 
+  describe("Submission list contract", () => {
+    it("serves scoped submissions through the MVP list contract", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      await SubmissionModel.create([
+        {
+          id: "sub-contract-v1",
+          taskId: "tsk-contract-submission",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          assistantId: "u-assist",
+          assistantName: "ContractSub Assistant",
+          version: 1,
+          status: "PENDING",
+          reviewStage: "MANGAKA_REVIEW",
+          submittedAt: new Date("2026-07-01T00:00:00.000Z"),
+          createdAt: new Date("2026-07-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+        },
+        {
+          id: "sub-contract-v2",
+          taskId: "tsk-contract-submission",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          assistantId: "u-assist",
+          assistantName: "ContractSub Assistant",
+          version: 2,
+          status: "PENDING",
+          reviewStage: "MANGAKA_REVIEW",
+          submittedAt: new Date("2026-07-02T00:00:00.000Z"),
+          createdAt: new Date("2026-07-02T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-02T00:00:00.000Z"),
+        },
+        {
+          id: "sub-contract-approved",
+          taskId: "tsk-contract-submission",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          assistantId: "u-assist",
+          assistantName: "ContractSub Assistant",
+          version: 3,
+          status: "MANGAKA_APPROVED",
+          reviewStage: "EDITOR_REVIEW",
+          submittedAt: new Date("2026-07-03T00:00:00.000Z"),
+          createdAt: new Date("2026-07-03T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-03T00:00:00.000Z"),
+        },
+      ]);
+
+      const response = await request(createApp())
+        .get("/api/submissions")
+        .query({
+          q: "ContractSub",
+          filters: JSON.stringify({ status: { type: "select", value: "PENDING" } }),
+          sortBy: "version",
+          sortDir: "desc",
+          page: 1,
+          pageSize: 1,
+        })
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe("sub-contract-v2");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        pageSize: 1,
+        total: 2,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      });
+      expect(response.body.meta).toMatchObject({
+        q: "ContractSub",
+        sort: { field: "version", dir: "desc" },
+      });
+      expect(response.body.meta.filters.status).toEqual({ type: "select", value: "PENDING" });
+      expect(response.body.meta.summary.byStatus.PENDING).toBe(1);
+      expect(response.body.data.map((submission: any) => submission.id)).not.toContain(
+        "sub-contract-approved",
+      );
+    });
+
+    it("rejects non-data submission list sort fields", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      const response = await request(createApp())
+        .get("/api/submissions?sortBy=actions")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(400);
+
+      expect(response.body.code).toBe("INVALID_SORT_FIELD");
+    });
+  });
+
   describe("Creator self-approval check", () => {
     it("blocks assistants from approving their own submission and allows mangakas", async () => {
       const assistant = await loginAs("jun@beachread.jp"); // id: u-assist
