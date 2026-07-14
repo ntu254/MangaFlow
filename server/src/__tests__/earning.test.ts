@@ -6,7 +6,7 @@ import {
   earningPeriodOf,
   earningIdFor,
   recomputeAssistantEarning,
-} from "../services/earning.service.js";
+} from "../modules/earnings/application/earning.service.js";
 
 let mongo: MongoMemoryServer;
 

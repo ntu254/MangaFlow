@@ -24,7 +24,7 @@ import {
   earningPeriodOf,
   recomputeAssistantEarning,
   resolveTaskRate,
-} from "./earning.service.js";
+} from "../modules/earnings/application/earning.service.js";
 import type {
   AuthedRequest,
   ChapterAction,
