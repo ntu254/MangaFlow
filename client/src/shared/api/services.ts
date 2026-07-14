@@ -417,13 +417,13 @@ export const boardApi = {
   queue: () => apiRequest("/board/queue"),
   queueList: (state?: TableState) =>
     apiListRequest<unknown, BoardQueueListMeta>(`/board/queue${tableStateQuery(state)}`),
-  getVotes: (seriesId: string) => apiRequest(`/board/series/${seriesId}/votes`),
+  getVotes: (seriesId: string) => apiRequest(`/board/proposals/${seriesId}/votes`),
   castVote: (seriesId: string, body: CastVoteRequest) =>
-    apiRequest(`/board/series/${seriesId}/votes`, { method: "POST", body }),
+    apiRequest(`/board/proposals/${seriesId}/votes`, { method: "POST", body }),
   finalizeDecision: (seriesId: string, body: FinalizeDecisionRequest) =>
-    apiRequest(`/board/series/${seriesId}/decisions/finalize`, { method: "POST", body }),
+    apiRequest(`/board/proposals/${seriesId}/finalization`, { method: "POST", body }),
   tieBreak: (seriesId: string, body: TieBreakRequest) =>
-    apiRequest(`/board/series/${seriesId}/decisions/tie-break`, { method: "POST", body }),
+    apiRequest(`/board/proposals/${seriesId}/tie-break`, { method: "POST", body }),
   atRiskDecision: (seriesId: string, body: AtRiskDecisionRequest) =>
     apiRequest(`/board/series/${seriesId}/at-risk-decisions`, { method: "POST", body }),
   createAtRiskReport: (seriesId: string, body: AtRiskReportRequest) =>

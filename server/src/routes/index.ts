@@ -12,7 +12,6 @@ import adminRoutes from "./admin.routes.js";
 import publicationRoutes from "./publication.routes.js";
 import tantouRoutes from "./tantou.routes.js";
 import notificationRoutes from "./notification.routes.js";
-import mobileRoutes from "./mobile.routes.js";
 import { createAiRoutes } from "./ai.routes.js";
 import fileTokenRoutes from "./file-token.routes.js";
 import atRiskRoutes from "./at-risk.routes.js";
@@ -46,7 +45,6 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(atRiskReportRoutes);
   router.use(atRiskRoutes);
   router.use(notificationRoutes);
-  router.use(mobileRoutes);
 
   // AI routes — needs aiServiceUrl from config
   if (options.aiServiceUrl) {
