@@ -628,6 +628,101 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(404);
     });
 
+    it("serves studio tasks through the MVP list contract with scoped search, filters, sort, and pagination", async () => {
+      const assistant = await loginAs("jun@beachread.jp");
+
+      await StudioTaskModel.create([
+        {
+          id: "tsk-contract-ink",
+          title: "Ink background",
+          type: "inking",
+          priority: "high",
+          chapterId: "ch-s-berserk-prod-4",
+          seriesId: "s-berserk-prod",
+          status: "TODO",
+          assigneeId: assistant.user.id,
+          assigneeName: "Jun",
+          instructions: "Clean speed lines",
+          dueAt: "2026-08-12T00:00:00.000Z",
+          createdAt: "2026-07-02T00:00:00.000Z",
+          updatedAt: "2026-07-02T00:00:00.000Z",
+        },
+        {
+          id: "tsk-contract-letter",
+          title: "Letter dialogue",
+          type: "lettering",
+          priority: "normal",
+          chapterId: "ch-s-berserk-prod-4",
+          seriesId: "s-berserk-prod",
+          status: "IN_PROGRESS",
+          assigneeId: assistant.user.id,
+          assigneeName: "Jun",
+          instructions: "Place translated bubbles",
+          dueAt: "2026-08-10T00:00:00.000Z",
+          createdAt: "2026-07-01T00:00:00.000Z",
+          updatedAt: "2026-07-01T00:00:00.000Z",
+        },
+        {
+          id: "tsk-contract-other",
+          title: "Other assistant ink",
+          type: "inking",
+          priority: "low",
+          chapterId: "ch-s-berserk-prod-4",
+          seriesId: "s-berserk-prod",
+          status: "TODO",
+          assigneeId: "u-other-assistant",
+          assigneeName: "Other Assistant",
+          instructions: "Should stay hidden from Jun",
+          dueAt: "2026-08-09T00:00:00.000Z",
+          createdAt: "2026-07-03T00:00:00.000Z",
+          updatedAt: "2026-07-03T00:00:00.000Z",
+        },
+      ]);
+
+      const response = await request(createApp())
+        .get("/api/studio/tasks")
+        .query({
+          q: "ink",
+          filters: JSON.stringify({ status: { type: "select", value: "TODO" } }),
+          sortBy: "title",
+          sortDir: "asc",
+          page: 1,
+          pageSize: 1,
+          assigneeId: "u-other-assistant",
+        })
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe("tsk-contract-ink");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        pageSize: 1,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
+      expect(response.body.meta).toMatchObject({
+        q: "ink",
+        sort: { field: "title", dir: "asc" },
+      });
+      expect(response.body.meta.filters.status).toEqual({ type: "select", value: "TODO" });
+      expect(response.body.meta.summary.byStatus.TODO).toBe(1);
+      expect(response.body.data.map((task: any) => task.id)).not.toContain("tsk-contract-other");
+    });
+
+    it("rejects non-data task list sort fields", async () => {
+      const assistant = await loginAs("jun@beachread.jp");
+
+      const response = await request(createApp())
+        .get("/api/studio/tasks?sortBy=actions")
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(400);
+
+      expect(response.body.code).toBe("INVALID_SORT_FIELD");
+    });
+
     it("blocks assistants from acting on or submitting to unassigned tasks", async () => {
       const assistant = await loginAs("jun@beachread.jp");
 

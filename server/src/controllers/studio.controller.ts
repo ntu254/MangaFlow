@@ -40,6 +40,48 @@ import {
   assertCanManageStudio,
   rejectWorkflowStatusPatch,
 } from "../modules/studio/application/studio-access.application.js";
+import {
+  buildPagination,
+  combineMongoFilters,
+  listFiltersToMongo,
+  listSearchToMongo,
+  listSortToMongo,
+  parseListQuery,
+} from "../shared/contracts/list-contract.js";
+
+const TASK_LIST_CONFIG = {
+  searchable: ["title", "description", "instructions", "type", "assigneeName"] as const,
+  sortable: ["title", "status", "priority", "type", "dueAt", "updatedAt", "createdAt"] as const,
+  filterable: {
+    title: "text",
+    status: "select",
+    priority: "select",
+    type: "select",
+    seriesId: "select",
+    chapterId: "select",
+    pageId: "select",
+    regionId: "select",
+    assigneeId: "select",
+    dueAt: "dateRange",
+    createdAt: "dateRange",
+    updatedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "updatedAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+function summarizeTasks(tasks: any[]) {
+  const byStatus = tasks.reduce<Record<string, number>>((acc, task) => {
+    const status = String(task.status ?? "UNKNOWN");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: tasks.length,
+    byStatus,
+  };
+}
 
 // Regions
 export const listRegions = asyncRoute(async (req: AuthedRequest, res) => {
@@ -98,8 +140,46 @@ export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
 
 // Tasks
 export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
-  const filter = await scopedTaskFilterForActor(requireActor(req), filterFromQuery(req));
-  await paginated(req, res, StudioTaskModel, filter, { updatedAt: -1 });
+  const actor = requireActor(req);
+  const query = parseListQuery(req, TASK_LIST_CONFIG);
+  const directFilters = filterFromQuery(req);
+  const columnFilters = { ...query.filters };
+  if (actor.role === "ASSISTANT") {
+    delete directFilters.assigneeId;
+    delete directFilters.assistantId;
+    delete columnFilters.assigneeId;
+    delete columnFilters.assistantId;
+  }
+  const filter = await scopedTaskFilterForActor(
+    actor,
+    combineMongoFilters(
+      directFilters,
+      listSearchToMongo(query.q, TASK_LIST_CONFIG.searchable),
+      listFiltersToMongo(columnFilters),
+    ),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
+  const [tasks, total] = await Promise.all([
+    StudioTaskModel.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
+    StudioTaskModel.countDocuments(filter),
+  ]);
+  return res.status(200).json({
+    success: true,
+    data: tasks,
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: columnFilters,
+      summary: summarizeTasks(tasks),
+    },
+  });
 });
 export const sendEditorReview = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await sendChapterToEditorReview(req, String(req.params.chapterId))),

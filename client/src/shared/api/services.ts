@@ -259,6 +259,16 @@ export type ChaptersListMeta = {
   };
 };
 
+export type StudioTasksListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -274,6 +284,15 @@ function tableStateQuery(state?: TableState) {
   }
   const query = params.toString();
   return query ? `?${query}` : "";
+}
+
+function withPageSize(query: string, pageSize: number) {
+  const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+  if (!params.has("pageSize") && !params.has("limit")) {
+    params.set("pageSize", String(pageSize));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }
 
 export const bootstrapApi = {
@@ -328,7 +347,9 @@ export const studioApi = {
     apiRequest("/studio/regions", { method: "POST", body }),
   patchRegion: (id: string, body: UpdateRegionRequest) =>
     apiRequest(`/studio/regions/${id}`, { method: "PATCH", body }),
-  tasks: (query = "") => apiRequest(`/studio/tasks${query}`),
+  tasks: (query = "") => apiRequest(`/studio/tasks${withPageSize(query, 100)}`),
+  tasksList: (state?: TableState) =>
+    apiListRequest<unknown, StudioTasksListMeta>(`/studio/tasks${tableStateQuery(state)}`),
   createTask: (body: CreateTaskRequest) => apiRequest("/studio/tasks", { method: "POST", body }),
   patchTask: (id: string, body: UpdateTaskRequest) =>
     apiRequest(`/studio/tasks/${id}`, { method: "PATCH", body }),
