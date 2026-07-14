@@ -5,7 +5,6 @@ import { audit } from "../../../services/audit.service.js";
 import { atRiskSeriesDecision } from "../../../services/workflow.service.js";
 import { requireActor } from "../../../controllers/helpers.js";
 import type { AuthedRequest } from "../../../types.js";
-import { assertCanReadGovernanceSeries } from "../../../services/mvp-access.service.js";
 
 export async function createAtRiskReport(req: AuthedRequest, seriesId: string, body: any) {
   const actor = requireActor(req);
@@ -39,7 +38,12 @@ export async function createAtRiskReport(req: AuthedRequest, seriesId: string, b
 
 export async function getLatestAtRiskReport(req: AuthedRequest, seriesId: string) {
   const actor = requireActor(req);
-  await assertCanReadGovernanceSeries(actor, seriesId);
+  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
+  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  const canRead = actor.role === "BOARD" || (actor.role === "EDITOR" && series.editorId === actor.id);
+  if (!canRead) {
+    throw new AppError(404, "No submitted at-risk report found.", "AT_RISK_REPORT_NOT_FOUND");
+  }
   const report = await AtRiskReportModel.findOne({ seriesId, status: "SUBMITTED" })
     .sort({ createdAt: -1 })
     .lean();

@@ -608,9 +608,11 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.code).toBe("AT_RISK_REPORT_REQUIRED");
   });
 
-  it("Tantou Editor can submit an at-risk report and Board can view the latest report", async () => {
+  it("Tantou Editor can submit an at-risk report and Board/Tantou can view the latest report", async () => {
     const tantou = await loginAs("tanaka@mangaflow.local");
     const board = await loginAs("board@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
+    const otherEditor = await loginAs("nishida@mangaflow.local");
 
     const res = await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
@@ -632,6 +634,21 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     expect(latest.body.data.id).toBe(res.body.data.id);
     expect(latest.body.data.recommendation).toBe("HIATUS");
+
+    await request(createApp())
+      .get("/api/series/s-berserk-prod/at-risk-reports/latest")
+      .set("Authorization", `Bearer ${tantou.accessToken}`)
+      .expect(200);
+
+    await request(createApp())
+      .get("/api/series/s-berserk-prod/at-risk-reports/latest")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(404);
+
+    await request(createApp())
+      .get("/api/series/s-berserk-prod/at-risk-reports/latest")
+      .set("Authorization", `Bearer ${otherEditor.accessToken}`)
+      .expect(404);
   });
 
   it("rejects Mangaka and non-Tantou Editor at-risk report submissions", async () => {
