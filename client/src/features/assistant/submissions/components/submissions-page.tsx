@@ -1,3 +1,11 @@
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type { StudioTask } from "@/entities/series/model/studio-types";
 import {
@@ -7,52 +15,208 @@ import {
   type SubmissionStatus,
 } from "@/entities/submission/model/assistant-types";
 import { buildTaskContext } from "@/entities/task";
+import { useSubmissionsListQuery } from "@/features/series";
+import { useAuth } from "@/shared/auth";
+import { formatDateTime } from "@/shared/lib/format-date";
+import {
+  parseTableStateFromSearchParams,
+  resetTableState,
+  setTableFilter,
+  tableStateToSearchParams,
+  type TableState,
+} from "@/shared/table";
+import { PageHeader, SearchToolbar, ServerDataTable } from "@/shared/ui";
+import { StatCard } from "@/shared/ui/stat-card";
+import type { ColumnDef } from "@tanstack/react-table";
+import { Link } from "@tanstack/react-router";
+import {
+  AlertOctagon,
+  CheckCircle2,
+  ExternalLink,
+  RotateCcw,
+  Send,
+  X,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useChaptersForSeriesQuery,
   useMySeriesQuery,
   useStudioTasksQuery,
-  useSubmissionsQuery,
 } from "../../api/assistant-queries";
-import { useAuth } from "@/shared/auth";
-import { formatDateTime } from "@/shared/lib/format-date";
-import { EmptyState } from "@/shared/ui/empty-state";
-import { PageHeader } from "@/shared/ui";
-import { StatCard } from "@/shared/ui/stat-card";
-import { Link } from "@tanstack/react-router";
-import { AlertOctagon, CheckCircle2, ExternalLink, Send, X, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+
+type StatusFilter = SubmissionStatus | "ALL";
+
+const PAGE_SIZE = 10;
+const DEFAULT_SUBMISSION_TABLE_STATE: Partial<TableState> = {
+  pageSize: PAGE_SIZE,
+  sortBy: "submittedAt",
+  sortDir: "desc",
+};
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "ALL", label: "All status" },
+  ...(Object.keys(SUBMISSION_STATUS_LABEL) as SubmissionStatus[]).map((status) => ({
+    value: status,
+    label: SUBMISSION_STATUS_LABEL[status],
+  })),
+];
+
+function useSubmissionTableState() {
+  const [tableState, setTableState] = useState(() =>
+    parseTableStateFromSearchParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search),
+      DEFAULT_SUBMISSION_TABLE_STATE,
+    ),
+  );
+
+  useEffect(() => {
+    const params = tableStateToSearchParams(tableState);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [tableState]);
+
+  return [tableState, setTableState] as const;
+}
+
+function statusCount(items: AssistantSubmission[], status: SubmissionStatus) {
+  return items.filter((item) => item.status === status).length;
+}
 
 export function SubmissionsPage() {
   const user = useAuth((s) => s.user);
+  const [tableState, setTableState] = useSubmissionTableState();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: seriesList = [] } = useMySeriesQuery();
   const seriesIds = useMemo(() => seriesList.map((series) => series.id), [seriesList]);
   const { data: chapters = [] } = useChaptersForSeriesQuery(seriesIds);
-  const { data: tasks = [] } = useStudioTasksQuery({
-    assigneeId: user?.id ?? "",
-  });
-  const { data: items = [] } = useSubmissionsQuery({ assistantId: user?.id ?? "" });
-  const [status, setStatus] = useState<"ALL" | SubmissionStatus>("ALL");
-  const [seriesFilter, setSeriesFilter] = useState("ALL");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data: tasks = [] } = useStudioTasksQuery({});
+  const { data: submissionList, isLoading, error } = useSubmissionsListQuery(tableState);
 
-  const mine = items;
+  const items = submissionList?.data ?? [];
+  const pagination = submissionList?.pagination ?? {
+    page: tableState.page,
+    pageSize: tableState.pageSize,
+    total: 0,
+  };
+  const selected = selectedId ? items.find((item) => item.id === selectedId) : undefined;
+  const statusFilter =
+    tableState.filters.status?.type === "select"
+      ? (String(tableState.filters.status.value) as StatusFilter)
+      : "ALL";
+  const seriesFilter =
+    tableState.filters.seriesId?.type === "select"
+      ? String(tableState.filters.seriesId.value)
+      : "ALL";
+  const sortValue = `${tableState.sortBy ?? "submittedAt"}:${tableState.sortDir}`;
+  const filtersActive =
+    tableState.q.trim().length > 0 || Object.keys(tableState.filters).length > 0;
 
-  const count = (s: SubmissionStatus) => mine.filter((m) => m.status === s).length;
-
-  const filtered = useMemo(() => {
-    return mine
-      .filter((m) => status === "ALL" || m.status === status)
-      .filter((m) => {
-        if (seriesFilter === "ALL") return true;
-        const t = tasks.find((t) => t.id === m.taskId);
-        if (t?.seriesId === seriesFilter) return true;
-        const c = chapters.find((c) => c.id === t?.chapterId);
-        return c?.seriesId === seriesFilter;
-      })
-      .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-  }, [mine, status, seriesFilter, tasks, chapters]);
-
-  const selected = selectedId ? mine.find((m) => m.id === selectedId) : undefined;
+  const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
+  const columns = useMemo<ColumnDef<AssistantSubmission, unknown>[]>(
+    () => [
+      {
+        id: "version",
+        header: "Version",
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => setSelectedId(row.original.id)}
+            className="text-left font-semibold text-[var(--admin-ink)]"
+          >
+            {row.original.versionLabel}
+          </button>
+        ),
+      },
+      {
+        id: "taskId",
+        header: "Task",
+        cell: ({ row }) => {
+          const task = taskById.get(row.original.taskId);
+          return <span>{task?.title ?? row.original.taskId}</span>;
+        },
+      },
+      {
+        id: "seriesId",
+        header: "Series",
+        cell: ({ row }) => {
+          const task = taskById.get(row.original.taskId);
+          const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
+          return <span className="text-muted-foreground">{ctx?.series?.title ?? "—"}</span>;
+        },
+      },
+      {
+        id: "chapterId",
+        header: "Ch / Page",
+        cell: ({ row }) => {
+          const task = taskById.get(row.original.taskId);
+          const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
+          return (
+            <span className="text-muted-foreground">
+              Ch.{ctx?.chapter?.number ?? "—"} / P.{String(ctx?.pageIndex ?? 0).padStart(2, "0")}
+            </span>
+          );
+        },
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <span
+            className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${SUBMISSION_STATUS_BADGE[row.original.status]}`}
+          >
+            {SUBMISSION_STATUS_LABEL[row.original.status]}
+          </span>
+        ),
+      },
+      {
+        id: "submittedAt",
+        header: "Submitted",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDateTime(row.original.submittedAt)}</span>
+        ),
+      },
+      {
+        id: "reviewer",
+        header: "Reviewer",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.reviewedByName ?? "—"}</span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => {
+          const task = taskById.get(row.original.taskId);
+          return (
+            <div className="flex justify-end gap-2">
+              {task ? (
+                <Link
+                  to="/app/assistant/tasks/$taskId/studio"
+                  params={{ taskId: task.id }}
+                  className="rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background hover:opacity-90"
+                >
+                  Studio
+                </Link>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedId(row.original.id)}
+                className="h-7 px-2 text-[10px]"
+              >
+                Details
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [chapters, seriesList, taskById],
+  );
 
   if (!user) return null;
 
@@ -61,7 +225,7 @@ export function SubmissionsPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Submissions"
-        description={`${mine.length} of your submissions.`}
+        description={`${pagination.total} submissions scoped to your assistant account.`}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -69,130 +233,142 @@ export function SubmissionsPage() {
           tone="sky"
           icon={<Send className="size-4" />}
           label="Submitted"
-          value={count("SUBMITTED")}
+          value={statusCount(items, "SUBMITTED")}
         />
         <StatCard
           tone="orange"
           icon={<AlertOctagon className="size-4" />}
           label="Revision"
-          value={count("MANGAKA_REVISION_REQUESTED") + count("EDITOR_REVISION_REQUESTED")}
+          value={
+            statusCount(items, "MANGAKA_REVISION_REQUESTED") +
+            statusCount(items, "EDITOR_REVISION_REQUESTED")
+          }
         />
         <StatCard
           tone="emerald"
           icon={<CheckCircle2 className="size-4" />}
           label="Approved"
-          value={count("APPROVED")}
+          value={statusCount(items, "APPROVED")}
         />
         <StatCard
           tone="rose"
           icon={<XCircle className="size-4" />}
           label="Rejected"
-          value={count("REJECTED")}
+          value={statusCount(items, "REJECTED")}
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as typeof status)}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-        >
-          <option value="ALL">All status</option>
-          {(Object.keys(SUBMISSION_STATUS_LABEL) as SubmissionStatus[]).map((s) => (
-            <option key={s} value={s}>
-              {SUBMISSION_STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
-        <select
-          value={seriesFilter}
-          onChange={(e) => setSeriesFilter(e.target.value)}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-        >
-          <option value="ALL">All series</option>
-          {seriesList.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.title}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          title="You have not submitted anything yet"
-          description="Submit work from Task Studio to track it here."
-        />
-      ) : (
-        <div className="overflow-x-auto rounded-md border border-border bg-card">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-3 py-2 text-left font-semibold">Version</th>
-                <th className="px-3 py-2 text-left font-semibold">Task</th>
-                <th className="px-3 py-2 text-left font-semibold">Series</th>
-                <th className="px-3 py-2 text-left font-semibold">Ch / Page</th>
-                <th className="px-3 py-2 text-left font-semibold">Status</th>
-                <th className="px-3 py-2 text-left font-semibold">Submitted</th>
-                <th className="px-3 py-2 text-left font-semibold">Reviewer</th>
-                <th className="px-3 py-2 text-right font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((m) => {
-                const t = tasks.find((tt) => tt.id === m.taskId);
-                const ctx = t ? buildTaskContext(t, chapters, seriesList) : undefined;
-                return (
-                  <tr
-                    key={m.id}
-                    onClick={() => setSelectedId(m.id)}
-                    className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/40"
-                  >
-                    <td className="px-3 py-2.5 font-semibold">{m.versionLabel}</td>
-                    <td className="px-3 py-2.5">{t?.title ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">
-                      {ctx?.series?.title ?? "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">
-                      Ch.{ctx?.chapter?.number ?? "—"} / P.
-                      {String(ctx?.pageIndex ?? 0).padStart(2, "0")}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${SUBMISSION_STATUS_BADGE[m.status]}`}
-                      >
-                        {SUBMISSION_STATUS_LABEL[m.status]}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">
-                      {formatDateTime(m.submittedAt)}
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{m.reviewedByName ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-right">
-                      {t ? (
-                        <Link
-                          to="/app/assistant/tasks/$taskId/studio"
-                          params={{ taskId: t.id }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background hover:opacity-90"
-                        >
-                          Studio
-                        </Link>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ServerDataTable
+        data={items}
+        columns={columns}
+        getRowId={(submission) => submission.id}
+        isLoading={isLoading}
+        error={error}
+        emptyTitle="You have not submitted anything yet"
+        emptyDescription="Submit work from Task Studio to track status, reviewer feedback, and approved work here."
+        skeletonRows={tableState.pageSize}
+        toolbar={
+          <SearchToolbar
+            query={tableState.q}
+            onQueryChange={(q) => setTableState((state) => ({ ...state, q, page: 1 }))}
+            placeholder="Search file, reviewer note, task..."
+            filters={
+              <>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    setTableState((state) =>
+                      setTableFilter(
+                        state,
+                        "status",
+                        value === "ALL" ? undefined : { type: "select", value },
+                      ),
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-10 w-[190px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_FILTERS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={seriesFilter}
+                  onValueChange={(value) =>
+                    setTableState((state) =>
+                      setTableFilter(
+                        state,
+                        "seriesId",
+                        value === "ALL" ? undefined : { type: "select", value },
+                      ),
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-10 w-[180px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All series</SelectItem>
+                    {seriesList.map((series) => (
+                      <SelectItem key={series.id} value={series.id}>
+                        {series.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sortValue}
+                  onValueChange={(value) => {
+                    const [sortBy, sortDir] = value.split(":") as [string, "asc" | "desc"];
+                    setTableState((state) => ({ ...state, sortBy, sortDir, page: 1 }));
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-[180px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="submittedAt:desc">Newest submitted</SelectItem>
+                    <SelectItem value="submittedAt:asc">Oldest submitted</SelectItem>
+                    <SelectItem value="status:asc">Status A-Z</SelectItem>
+                    <SelectItem value="version:desc">Highest version</SelectItem>
+                    <SelectItem value="updatedAt:desc">Recently updated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            }
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!filtersActive}
+                onClick={() => setTableState(resetTableState(DEFAULT_SUBMISSION_TABLE_STATE))}
+                className="h-10 gap-2 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] shadow-sm"
+              >
+                <RotateCcw className="size-4" />
+                Reset
+              </Button>
+            }
+          />
+        }
+        pagination={{
+          total: pagination.total,
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          onPageChange: (page) => setTableState((state) => ({ ...state, page })),
+          itemName: "submissions",
+        }}
+      />
 
       <SubmissionDetailDrawer
         submission={selected}
-        getTask={(id) => tasks.find((t) => t.id === id)}
+        getTask={(id) => taskById.get(id)}
         open={!!selected}
-        onOpenChange={(o) => !o && setSelectedId(null)}
+        onOpenChange={(open) => !open && setSelectedId(null)}
       />
     </div>
   );
@@ -210,7 +386,7 @@ function SubmissionDetailDrawer({
   onOpenChange: (v: boolean) => void;
 }) {
   if (!submission) return null;
-  const t = getTask(submission.taskId);
+  const task = getTask(submission.taskId);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full max-w-md overflow-y-auto p-0 sm:max-w-md">
@@ -219,9 +395,10 @@ function SubmissionDetailDrawer({
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               {submission.versionLabel} · {SUBMISSION_STATUS_LABEL[submission.status]}
             </p>
-            <p className="mt-1 font-serif text-xl">{t?.title ?? submission.taskId}</p>
+            <p className="mt-1 font-serif text-xl">{task?.title ?? submission.taskId}</p>
           </div>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Close"
@@ -251,10 +428,10 @@ function SubmissionDetailDrawer({
               <p className="mt-1">{submission.feedback}</p>
             </div>
           ) : null}
-          {t ? (
+          {task ? (
             <Link
               to="/app/assistant/tasks/$taskId/studio"
-              params={{ taskId: t.id }}
+              params={{ taskId: task.id }}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90"
             >
               <ExternalLink className="size-3.5" /> View Task Studio
