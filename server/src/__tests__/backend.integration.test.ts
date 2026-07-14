@@ -164,12 +164,12 @@ describe("MangaFlow backend live contract", () => {
       throw new Error("Expected test server port.");
 
     try {
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@beachread.jp");
       await request(
         createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` }),
       )
         .post("/api/ai/bubbles/detect")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .attach("file", Buffer.from("fake-image"), "page.png")
         .expect(200)
         .expect((response) => {

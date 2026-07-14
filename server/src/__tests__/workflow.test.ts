@@ -689,6 +689,81 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(response.body.code).toBe("INVALID_SORT_FIELD");
     });
 
+    it("limits production Studio Region and Task management to the owning Mangaka", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const editor = await loginAs("tanaka@beachread.jp");
+      const admin = await loginAs("admin@beachread.jp");
+      const otherMangaka = await createAndLoginOtherMangaka();
+
+      const createdRegion = await request(createApp())
+        .post("/api/studio/regions")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          type: "background",
+          label: "Owner-only production region",
+          x: 10,
+          y: 20,
+          width: 120,
+          height: 90,
+        })
+        .expect(201);
+
+      const createdRegionId = createdRegion.body.data.id;
+      expect(createdRegionId).toMatch(/^region-/);
+
+      await request(createApp())
+        .post("/api/studio/regions")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({ seriesId: "s-berserk-prod", type: "background" })
+        .expect(403);
+
+      await request(createApp())
+        .patch(`/api/studio/regions/${createdRegionId}`)
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .send({ label: "Admin should not edit production region" })
+        .expect(403);
+
+      await request(createApp())
+        .delete(`/api/studio/regions/${createdRegionId}`)
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .expect(403);
+
+      const createdTask = await request(createApp())
+        .post("/api/studio/tasks")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          assigneeId: "u-assist",
+          title: "Owner-only cleanup",
+          type: "CLEANUP",
+          priority: "MEDIUM",
+        })
+        .expect(201);
+
+      const createdTaskId = createdTask.body.data.id;
+      expect(createdTaskId).toMatch(/^task-/);
+
+      await request(createApp())
+        .post("/api/studio/tasks")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          assigneeId: "u-assist",
+          title: "Editor should not create production task",
+        })
+        .expect(403);
+
+      await request(createApp())
+        .patch(`/api/studio/tasks/${createdTaskId}`)
+        .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
+        .send({ title: "Other Mangaka should not edit production task" })
+        .expect(403);
+    });
+
     it("serves comments through the MVP list contract", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
 
