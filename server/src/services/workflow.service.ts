@@ -1013,12 +1013,12 @@ const APPROVED_TASK_STATUSES = ["MANGAKA_APPROVED", "EDITOR_APPROVED"];
 function pageHasUploadedAsset(page: any) {
   const hasDurableFile = typeof page.fileKey === "string" && page.fileKey.trim().length > 0;
   const fallback = String(page.fileUrl ?? page.imageUrl ?? "");
-  const hasLegacyFile =
+  const hasResolvablePreviewUrl =
     fallback.length > 0 &&
     !fallback.startsWith("metadata://signed-url-not-issued") &&
     !fallback.includes("placeholder-page");
   return (
-    (hasDurableFile || hasLegacyFile) &&
+    (hasDurableFile || hasResolvablePreviewUrl) &&
     page.status !== "PENDING_UPLOAD" &&
     page.status !== "REVISION_REQUIRED"
   );
@@ -2097,7 +2097,7 @@ export async function submissionDecision(
     {
       $set: {
         status,
-        // Keep legacy fields for backward compat
+        // Denormalized reviewer snapshot for existing review/detail screens.
         reviewerNote: note,
         reviewedById: actor.id,
         reviewedByName: actor.name,

@@ -192,9 +192,9 @@ export type ProposalVoteEmbedded = {
   /** @deprecated use ProposalVoteModel (proposalvotes collection) as source of truth */
   voterId?: string;
   voterName?: string;
-  /** legacy field */
+  /** @deprecated use voterId */
   memberId?: string;
-  /** legacy field */
+  /** @deprecated use voterName */
   memberName?: string;
   decision: VoteDecision;
   comment?: string;
@@ -816,7 +816,7 @@ export type SubmissionRecord = {
   editorNote?: string;
   editorReviewedById?: string;
   editorReviewedAt?: Date;
-  // Legacy single-reviewer fields (kept for backward compat)
+  // Denormalized reviewer snapshot fields retained for existing review screens.
   resultText?: string;
   imageUrl?: string;
   fileKey?: string;

@@ -84,7 +84,7 @@ export type AssistantEarning = {
   id: string;
   assistantId: string;
   period: string; // YYYY-MM
-  month?: string; // legacy fallback
+  month?: string; // optional API fallback
   tasksCount?: number;
   subtotal?: number;
   amount: number;

@@ -189,7 +189,7 @@ export type SeriesProposal = {
   revisionRound: number;
   createdAt: string;
   updatedAt: string;
-  // MVP wizard additions — all optional, backward compatible
+  // MVP wizard fields captured during proposal drafting.
   logline?: string;
   hook?: string;
   mainCharacters?: string;

@@ -685,7 +685,6 @@ export const seedChapters = [
     seriesId: "s-vinland-prod",
     number: 1,
     title: "New Harbor",
-    // Was APPROVED (legacy) → EDITOR_APPROVED (new canonical)
     status: "EDITOR_APPROVED",
     assigneeId: "u-mangaka",
     assigneeName: "Inoue Takehiko",
@@ -821,7 +820,7 @@ export const seedSubmissions = [
     mangakaReviewedById: "u-mangaka",
     mangakaReviewedAt: ago(20),
     resultText: "Cleaned bubble and exported metadata-only preview.",
-    // Legacy fields kept for compat
+    // Denormalized reviewer snapshot for review/detail screens.
     reviewerNote: "Bubble cleaned well. Pass to editor.",
     reviewedById: "u-mangaka",
     reviewedByName: "Inoue Takehiko",
