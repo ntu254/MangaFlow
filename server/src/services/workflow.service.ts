@@ -10,7 +10,6 @@ import {
   StudioTaskModel,
   SubmissionModel,
   RankingModel,
-  AtRiskReportModel,
   UserModel,
   stripMongo,
 } from "../db/models.js";
@@ -2170,104 +2169,6 @@ export async function submissionDecision(
 
   await audit(req, `submission.${action}`, "submission", submissionId, { status });
   return updated;
-}
-
-export type AtRiskDecision = "CONTINUE" | "RESCHEDULE" | "HIATUS" | "CANCELLED";
-
-function normalizeAtRiskDecision(value: unknown): AtRiskDecision {
-  const normalized = String(value ?? "").toUpperCase();
-  if (["CONTINUE", "RESCHEDULE", "HIATUS", "CANCELLED"].includes(normalized)) {
-    return normalized as AtRiskDecision;
-  }
-  if (normalized === "CANCEL") return "CANCELLED";
-  throw new AppError(
-    400,
-    "Decision must be CONTINUE, RESCHEDULE, HIATUS, or CANCELLED.",
-    "VALIDATION_ERROR",
-  );
-}
-
-/**
- * Board's decision on an at-risk Series (flowchart AQ → AR/AS/AT). Unlike the
- * previous stub — which only audited and pinged a hardcoded id — this actually
- * transitions the Series and notifies the Mangaka and Tantou editor.
- */
-export async function atRiskSeriesDecision(
-  req: AuthedRequest,
-  seriesId: string,
-  rawDecision: unknown,
-  opts: { publicationType?: unknown; note?: string } = {},
-) {
-  const actor = ensureActor(req);
-  requireMutationRole(actor, ["BOARD"]);
-  const decision = normalizeAtRiskDecision(rawDecision);
-
-  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-  const report = await AtRiskReportModel.findOne({ seriesId, status: "SUBMITTED" })
-    .sort({ createdAt: -1 })
-    .lean();
-  if (!report) {
-    throw new AppError(
-      409,
-      "A submitted Tantou at-risk report is required before the Board can decide.",
-      "AT_RISK_REPORT_REQUIRED",
-    );
-  }
-
-  const patch: Record<string, unknown> = { updatedAt: nowIso() };
-  const resumeFromHiatus = String(series.status) === "HIATUS" ? "ONGOING" : series.status;
-
-  switch (decision) {
-    case "CONTINUE":
-      // Keep producing; lift the at-risk flag on this Series' rankings.
-      patch.status = resumeFromHiatus;
-      await RankingModel.updateMany(
-        { seriesId, $or: [{ atRisk: true }, { status: "AT_RISK" }] },
-        { $set: { atRisk: false, status: "ACTIVE", updatedAt: nowIso() } },
-      );
-      break;
-    case "RESCHEDULE": {
-      const pubType = normalizePublicationType(opts.publicationType);
-      if (!pubType) throw new AppError(400, "Invalid publicationType.", "VALIDATION_ERROR");
-      patch.publicationType = pubType;
-      patch.cadence = cadenceFromPublicationType(pubType);
-      patch.status = resumeFromHiatus;
-      break;
-    }
-    case "HIATUS":
-      patch.status = "HIATUS";
-      break;
-    case "CANCELLED":
-      patch.status = "CANCELLED";
-      patch.cancelledAt = new Date();
-      patch.cancelledById = actor.id;
-      patch.cancelReason = opts.note ?? "";
-      break;
-  }
-
-  await SeriesModel.updateOne({ id: seriesId }, { $set: patch });
-
-  const auditAction = `series.at_risk_${decision.toLowerCase()}`;
-  const recipients = [series.authorId, series.editorId].filter(Boolean) as string[];
-  await notifyMany(
-    recipients.map((userId) => ({
-      userId,
-      kind: auditAction,
-      title: "Series decision",
-      message: `Board decision for ${series.title ?? seriesId}: ${decision}.`,
-    })),
-  );
-
-  await audit(req, auditAction, "series", seriesId, {
-    decision,
-    note: opts.note,
-    reportId: (report as any).id,
-    publicationType: patch.publicationType,
-    status: patch.status,
-  });
-
-  return toObject(await SeriesModel.findOne({ id: seriesId }).lean());
 }
 
 export async function taskDetail(req: AuthedRequest, taskId: string) {
