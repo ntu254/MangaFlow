@@ -44,7 +44,6 @@ import { Route as AppEditorPublicationsRouteImport } from './routes/app.editor.p
 import { Route as AppEditorNotificationsRouteImport } from './routes/app.editor.notifications'
 import { Route as AppEditorDashboardRouteImport } from './routes/app.editor.dashboard'
 import { Route as AppEditorBoardBriefsRouteImport } from './routes/app.editor.board-briefs'
-import { Route as AppBoardSessionsRouteImport } from './routes/app.board.sessions'
 import { Route as AppBoardRankingsRouteImport } from './routes/app.board.rankings'
 import { Route as AppBoardQueueRouteImport } from './routes/app.board.queue'
 import { Route as AppBoardNotificationsRouteImport } from './routes/app.board.notifications'
@@ -70,13 +69,10 @@ import { Route as AppAdminDashboardRouteImport } from './routes/app.admin.dashbo
 import { Route as AppAdminBoardRouteImport } from './routes/app.admin.board'
 import { Route as AppAdminAuditRouteImport } from './routes/app.admin.audit'
 import { Route as AppEditorReviewIndexRouteImport } from './routes/app.editor.review.index'
-import { Route as AppBoardSessionsIndexRouteImport } from './routes/app.board.sessions.index'
 import { Route as AppBoardRankingsIndexRouteImport } from './routes/app.board.rankings.index'
 import { Route as AppSeriesSlugTabRouteImport } from './routes/app.series.$slug.$tab'
 import { Route as AppEditorReviewSubmissionIdRouteImport } from './routes/app.editor.review.$submissionId'
 import { Route as AppEditorProposalsProposalIdRouteImport } from './routes/app.editor.proposals.$proposalId'
-import { Route as AppBoardSessionsNewRouteImport } from './routes/app.board.sessions.new'
-import { Route as AppBoardSessionsSidRouteImport } from './routes/app.board.sessions.$sid'
 import { Route as AppBoardRankingsImportRouteImport } from './routes/app.board.rankings.import'
 import { Route as AppBoardProposalsProposalIdRouteImport } from './routes/app.board.proposals.$proposalId'
 import { Route as AppEditorStoryboardsStoryboardIdReviewRouteImport } from './routes/app.editor.storyboards.$storyboardId.review'
@@ -261,11 +257,6 @@ const AppEditorBoardBriefsRoute = AppEditorBoardBriefsRouteImport.update({
   path: '/board-briefs',
   getParentRoute: () => AppEditorRoute,
 } as any)
-const AppBoardSessionsRoute = AppBoardSessionsRouteImport.update({
-  id: '/sessions',
-  path: '/sessions',
-  getParentRoute: () => AppBoardRoute,
-} as any)
 const AppBoardRankingsRoute = AppBoardRankingsRouteImport.update({
   id: '/rankings',
   path: '/rankings',
@@ -392,11 +383,6 @@ const AppEditorReviewIndexRoute = AppEditorReviewIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppEditorReviewRoute,
 } as any)
-const AppBoardSessionsIndexRoute = AppBoardSessionsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppBoardSessionsRoute,
-} as any)
 const AppBoardRankingsIndexRoute = AppBoardRankingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -419,16 +405,6 @@ const AppEditorProposalsProposalIdRoute =
     path: '/proposals/$proposalId',
     getParentRoute: () => AppEditorRoute,
   } as any)
-const AppBoardSessionsNewRoute = AppBoardSessionsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppBoardSessionsRoute,
-} as any)
-const AppBoardSessionsSidRoute = AppBoardSessionsSidRouteImport.update({
-  id: '/$sid',
-  path: '/$sid',
-  getParentRoute: () => AppBoardSessionsRoute,
-} as any)
 const AppBoardRankingsImportRoute = AppBoardRankingsImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -522,7 +498,6 @@ export interface FileRoutesByFullPath {
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/board/rankings': typeof AppBoardRankingsRouteWithChildren
-  '/app/board/sessions': typeof AppBoardSessionsRouteWithChildren
   '/app/editor/board-briefs': typeof AppEditorBoardBriefsRoute
   '/app/editor/dashboard': typeof AppEditorDashboardRoute
   '/app/editor/notifications': typeof AppEditorNotificationsRoute
@@ -540,13 +515,10 @@ export interface FileRoutesByFullPath {
   '/app/submissions/': typeof AppSubmissionsIndexRoute
   '/app/board/proposals/$proposalId': typeof AppBoardProposalsProposalIdRoute
   '/app/board/rankings/import': typeof AppBoardRankingsImportRoute
-  '/app/board/sessions/$sid': typeof AppBoardSessionsSidRoute
-  '/app/board/sessions/new': typeof AppBoardSessionsNewRoute
   '/app/editor/proposals/$proposalId': typeof AppEditorProposalsProposalIdRoute
   '/app/editor/review/$submissionId': typeof AppEditorReviewSubmissionIdRoute
   '/app/series/$slug/$tab': typeof AppSeriesSlugTabRoute
   '/app/board/rankings/': typeof AppBoardRankingsIndexRoute
-  '/app/board/sessions/': typeof AppBoardSessionsIndexRoute
   '/app/editor/review/': typeof AppEditorReviewIndexRoute
   '/app/assistant/series/$seriesId/studio': typeof AppAssistantSeriesSeriesIdStudioRoute
   '/app/assistant/tasks/$taskId/studio': typeof AppAssistantTasksTaskIdStudioRoute
@@ -608,13 +580,10 @@ export interface FileRoutesByTo {
   '/app/submissions': typeof AppSubmissionsIndexRoute
   '/app/board/proposals/$proposalId': typeof AppBoardProposalsProposalIdRoute
   '/app/board/rankings/import': typeof AppBoardRankingsImportRoute
-  '/app/board/sessions/$sid': typeof AppBoardSessionsSidRoute
-  '/app/board/sessions/new': typeof AppBoardSessionsNewRoute
   '/app/editor/proposals/$proposalId': typeof AppEditorProposalsProposalIdRoute
   '/app/editor/review/$submissionId': typeof AppEditorReviewSubmissionIdRoute
   '/app/series/$slug/$tab': typeof AppSeriesSlugTabRoute
   '/app/board/rankings': typeof AppBoardRankingsIndexRoute
-  '/app/board/sessions': typeof AppBoardSessionsIndexRoute
   '/app/editor/review': typeof AppEditorReviewIndexRoute
   '/app/assistant/series/$seriesId/studio': typeof AppAssistantSeriesSeriesIdStudioRoute
   '/app/assistant/tasks/$taskId/studio': typeof AppAssistantTasksTaskIdStudioRoute
@@ -669,7 +638,6 @@ export interface FileRoutesById {
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/board/rankings': typeof AppBoardRankingsRouteWithChildren
-  '/app/board/sessions': typeof AppBoardSessionsRouteWithChildren
   '/app/editor/board-briefs': typeof AppEditorBoardBriefsRoute
   '/app/editor/dashboard': typeof AppEditorDashboardRoute
   '/app/editor/notifications': typeof AppEditorNotificationsRoute
@@ -687,13 +655,10 @@ export interface FileRoutesById {
   '/app/submissions/': typeof AppSubmissionsIndexRoute
   '/app/board/proposals/$proposalId': typeof AppBoardProposalsProposalIdRoute
   '/app/board/rankings/import': typeof AppBoardRankingsImportRoute
-  '/app/board/sessions/$sid': typeof AppBoardSessionsSidRoute
-  '/app/board/sessions/new': typeof AppBoardSessionsNewRoute
   '/app/editor/proposals/$proposalId': typeof AppEditorProposalsProposalIdRoute
   '/app/editor/review/$submissionId': typeof AppEditorReviewSubmissionIdRoute
   '/app/series/$slug/$tab': typeof AppSeriesSlugTabRoute
   '/app/board/rankings/': typeof AppBoardRankingsIndexRoute
-  '/app/board/sessions/': typeof AppBoardSessionsIndexRoute
   '/app/editor/review/': typeof AppEditorReviewIndexRoute
   '/app/assistant/series/$seriesId/studio': typeof AppAssistantSeriesSeriesIdStudioRoute
   '/app/assistant/tasks/$taskId/studio': typeof AppAssistantTasksTaskIdStudioRoute
@@ -749,7 +714,6 @@ export interface FileRouteTypes {
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/board/rankings'
-    | '/app/board/sessions'
     | '/app/editor/board-briefs'
     | '/app/editor/dashboard'
     | '/app/editor/notifications'
@@ -767,13 +731,10 @@ export interface FileRouteTypes {
     | '/app/submissions/'
     | '/app/board/proposals/$proposalId'
     | '/app/board/rankings/import'
-    | '/app/board/sessions/$sid'
-    | '/app/board/sessions/new'
     | '/app/editor/proposals/$proposalId'
     | '/app/editor/review/$submissionId'
     | '/app/series/$slug/$tab'
     | '/app/board/rankings/'
-    | '/app/board/sessions/'
     | '/app/editor/review/'
     | '/app/assistant/series/$seriesId/studio'
     | '/app/assistant/tasks/$taskId/studio'
@@ -835,13 +796,10 @@ export interface FileRouteTypes {
     | '/app/submissions'
     | '/app/board/proposals/$proposalId'
     | '/app/board/rankings/import'
-    | '/app/board/sessions/$sid'
-    | '/app/board/sessions/new'
     | '/app/editor/proposals/$proposalId'
     | '/app/editor/review/$submissionId'
     | '/app/series/$slug/$tab'
     | '/app/board/rankings'
-    | '/app/board/sessions'
     | '/app/editor/review'
     | '/app/assistant/series/$seriesId/studio'
     | '/app/assistant/tasks/$taskId/studio'
@@ -895,7 +853,6 @@ export interface FileRouteTypes {
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/board/rankings'
-    | '/app/board/sessions'
     | '/app/editor/board-briefs'
     | '/app/editor/dashboard'
     | '/app/editor/notifications'
@@ -913,13 +870,10 @@ export interface FileRouteTypes {
     | '/app/submissions/'
     | '/app/board/proposals/$proposalId'
     | '/app/board/rankings/import'
-    | '/app/board/sessions/$sid'
-    | '/app/board/sessions/new'
     | '/app/editor/proposals/$proposalId'
     | '/app/editor/review/$submissionId'
     | '/app/series/$slug/$tab'
     | '/app/board/rankings/'
-    | '/app/board/sessions/'
     | '/app/editor/review/'
     | '/app/assistant/series/$seriesId/studio'
     | '/app/assistant/tasks/$taskId/studio'
@@ -1183,13 +1137,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorBoardBriefsRouteImport
       parentRoute: typeof AppEditorRoute
     }
-    '/app/board/sessions': {
-      id: '/app/board/sessions'
-      path: '/sessions'
-      fullPath: '/app/board/sessions'
-      preLoaderRoute: typeof AppBoardSessionsRouteImport
-      parentRoute: typeof AppBoardRoute
-    }
     '/app/board/rankings': {
       id: '/app/board/rankings'
       path: '/rankings'
@@ -1365,13 +1312,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorReviewIndexRouteImport
       parentRoute: typeof AppEditorReviewRoute
     }
-    '/app/board/sessions/': {
-      id: '/app/board/sessions/'
-      path: '/'
-      fullPath: '/app/board/sessions/'
-      preLoaderRoute: typeof AppBoardSessionsIndexRouteImport
-      parentRoute: typeof AppBoardSessionsRoute
-    }
     '/app/board/rankings/': {
       id: '/app/board/rankings/'
       path: '/'
@@ -1399,20 +1339,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/editor/proposals/$proposalId'
       preLoaderRoute: typeof AppEditorProposalsProposalIdRouteImport
       parentRoute: typeof AppEditorRoute
-    }
-    '/app/board/sessions/new': {
-      id: '/app/board/sessions/new'
-      path: '/new'
-      fullPath: '/app/board/sessions/new'
-      preLoaderRoute: typeof AppBoardSessionsNewRouteImport
-      parentRoute: typeof AppBoardSessionsRoute
-    }
-    '/app/board/sessions/$sid': {
-      id: '/app/board/sessions/$sid'
-      path: '/$sid'
-      fullPath: '/app/board/sessions/$sid'
-      preLoaderRoute: typeof AppBoardSessionsSidRouteImport
-      parentRoute: typeof AppBoardSessionsRoute
     }
     '/app/board/rankings/import': {
       id: '/app/board/rankings/import'
@@ -1555,21 +1481,6 @@ const AppBoardRankingsRouteChildren: AppBoardRankingsRouteChildren = {
 const AppBoardRankingsRouteWithChildren =
   AppBoardRankingsRoute._addFileChildren(AppBoardRankingsRouteChildren)
 
-interface AppBoardSessionsRouteChildren {
-  AppBoardSessionsSidRoute: typeof AppBoardSessionsSidRoute
-  AppBoardSessionsNewRoute: typeof AppBoardSessionsNewRoute
-  AppBoardSessionsIndexRoute: typeof AppBoardSessionsIndexRoute
-}
-
-const AppBoardSessionsRouteChildren: AppBoardSessionsRouteChildren = {
-  AppBoardSessionsSidRoute: AppBoardSessionsSidRoute,
-  AppBoardSessionsNewRoute: AppBoardSessionsNewRoute,
-  AppBoardSessionsIndexRoute: AppBoardSessionsIndexRoute,
-}
-
-const AppBoardSessionsRouteWithChildren =
-  AppBoardSessionsRoute._addFileChildren(AppBoardSessionsRouteChildren)
-
 interface AppBoardRouteChildren {
   AppBoardIdRoute: typeof AppBoardIdRoute
   AppBoardAtRiskRoute: typeof AppBoardAtRiskRoute
@@ -1578,7 +1489,6 @@ interface AppBoardRouteChildren {
   AppBoardNotificationsRoute: typeof AppBoardNotificationsRoute
   AppBoardQueueRoute: typeof AppBoardQueueRoute
   AppBoardRankingsRoute: typeof AppBoardRankingsRouteWithChildren
-  AppBoardSessionsRoute: typeof AppBoardSessionsRouteWithChildren
   AppBoardIndexRoute: typeof AppBoardIndexRoute
   AppBoardProposalsProposalIdRoute: typeof AppBoardProposalsProposalIdRoute
 }
@@ -1591,7 +1501,6 @@ const AppBoardRouteChildren: AppBoardRouteChildren = {
   AppBoardNotificationsRoute: AppBoardNotificationsRoute,
   AppBoardQueueRoute: AppBoardQueueRoute,
   AppBoardRankingsRoute: AppBoardRankingsRouteWithChildren,
-  AppBoardSessionsRoute: AppBoardSessionsRouteWithChildren,
   AppBoardIndexRoute: AppBoardIndexRoute,
   AppBoardProposalsProposalIdRoute: AppBoardProposalsProposalIdRoute,
 }

@@ -8,15 +8,15 @@ import { canShowAction } from "@/entities/access/model/permission-guard";
 import { checkAction } from "@/entities/proposal";
 import { SeparationOfDutiesWarning } from "@/entities/access";
 import type {
+  BoardVote,
   SeriesProposal,
   VoteDecision,
-  BoardVote,
 } from "@/entities/proposal/model/proposal-types";
 import {
+  mapBoardApiError,
+  useBoardVotesQuery,
   useCastBoardVoteMutation,
   useFinalizeDecisionMutation,
-  useBoardVotesQuery,
-  mapBoardApiError,
 } from "../../api/board-queries";
 
 type PanelDecision = VoteDecision | "NEEDS_REVISION";
@@ -107,8 +107,6 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
   };
 
   const canFinalizeRole = user.role === "admin" || user.role === "board";
-  // Once a final decision exists (or one is in flight), lock BOTH finalize
-  // buttons so an Approve can't be overridden by a later Reject (and vice versa).
   const isDecided = ["APPROVED", "REJECTED", "WITHDRAWN"].includes(proposal.status);
   const finalizeLocked = finalize.isPending || finalize.isSuccess || isDecided;
   const canFinalize = canFinalizeRole && !existing && !finalizeLocked;
@@ -121,8 +119,8 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
 
       <div className="mb-2">
         <SeparationOfDutiesWarning>
-          Separation-of-duties warning (Vote vs Finalize): Board members cast votes (voting), but
-          final decisions (finalize) must be completed by Board/Admin.
+          Separation-of-duties warning: Board members cast votes, while the final decision is
+          completed through Board finalization.
         </SeparationOfDutiesWarning>
       </div>
 
@@ -183,7 +181,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
             <>
               <div className="space-y-1.5">
                 <p className="text-[10px] font-semibold text-foreground">
-                  Publication type (required khi Approve)
+                  Publication type (required when approving)
                 </p>
                 <div className="grid gap-1 rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
                   <span>
@@ -212,7 +210,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
               </div>
               <div className="space-y-1.5">
                 <p className="text-[10px] font-semibold text-foreground">
-                  Tantou Editor (required khi Approve)
+                  Tantou Editor (required when approving)
                 </p>
                 <select
                   value={tantouEditorId}
@@ -236,7 +234,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
                   onClick={() => handleFinalize("APPROVED")}
                   className="rounded bg-emerald-800 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-900 disabled:opacity-40"
                 >
-                  {finalize.isPending ? "..." : "→ Approve"}
+                  {finalize.isPending ? "..." : "Approve"}
                 </button>
                 <button
                   type="button"
@@ -244,7 +242,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
                   onClick={() => handleFinalize("REJECTED")}
                   className="rounded bg-rose-800 px-3 py-2 text-xs font-bold text-white hover:bg-rose-900 disabled:opacity-40"
                 >
-                  {finalize.isPending ? "..." : "→ Reject"}
+                  {finalize.isPending ? "..." : "Reject"}
                 </button>
               </div>
             </>

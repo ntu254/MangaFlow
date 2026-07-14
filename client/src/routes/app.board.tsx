@@ -17,7 +17,6 @@ export const Route = createFileRoute("/app/board")({
     } catch (e) {
       if (isRedirect(e)) throw e;
     }
-    // Allow admin (still using /app/board/sessions) and board.
     if (role && role !== "board" && role !== "admin") {
       throw redirect({ to: "/app/dashboard" });
     }
