@@ -123,7 +123,6 @@ export function ChapterDetailWorkspace({
     "allTasksApproved",
     "allSubmissionsApproved",
     "allCommentsResolved",
-    "reviewMaterialActive",
   ]);
   const knownSubmissionBlocker = reviewReadiness?.items.some(
     (item) => submissionReadinessKeys.has(item.key) && !item.passed,
