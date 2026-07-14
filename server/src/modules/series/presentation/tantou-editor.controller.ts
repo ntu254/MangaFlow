@@ -1,10 +1,10 @@
-import { asyncRoute, ok, AppError } from "../lib/http.js";
-import { AuthedRequest } from "../types.js";
-import { getTantouEditor } from "../services/tantou.service.js";
+import { asyncRoute, ok } from "../../../lib/http.js";
+import type { AuthedRequest } from "../../../types.js";
 import {
   assertCanReadGovernanceSeries,
   assertCanReadProductionSeries,
-} from "../services/mvp-access.service.js";
+} from "../../../services/mvp-access.service.js";
+import { getTantouEditor } from "../application/tantou-editor.service.js";
 
 export const getSeriesEditor = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
@@ -14,6 +14,5 @@ export const getSeriesEditor = asyncRoute(async (req: AuthedRequest, res) => {
   } else {
     await assertCanReadProductionSeries(actor, seriesId);
   }
-  const editor = await getTantouEditor(seriesId);
-  ok(res, editor);
+  ok(res, await getTantouEditor(seriesId));
 });
