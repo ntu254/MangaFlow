@@ -112,7 +112,7 @@ export const STUDIO_TASK_STATUSES = [
 
 export type StudioTaskStatusV2 = (typeof STUDIO_TASK_STATUSES)[number];
 
-export type TaskStatusLabelKey = StudioTaskStatusV2 | "COMPLETED" | "OPEN" | "REVISION_REQUESTED";
+export type TaskStatusLabelKey = StudioTaskStatusV2;
 
 export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   TODO: "To Do",
@@ -126,10 +126,6 @@ export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   EDITOR_APPROVED: "Editor Approved",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
-  // Legacy
-  COMPLETED: "Completed",
-  OPEN: "To Do",
-  REVISION_REQUESTED: "Revision Requested",
 };
 
 /** Task is considered "done" (eligible for earning) */

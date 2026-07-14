@@ -1,6 +1,6 @@
 import type { StudioTaskStatus } from "@/entities/series/model/studio-types";
 
-export type TaskStatusLabelKey = StudioTaskStatus | "COMPLETED" | "OPEN" | "REVISION_REQUESTED";
+export type TaskStatusLabelKey = StudioTaskStatus;
 
 export type {
   AssistantAccessScope,
@@ -28,9 +28,6 @@ export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   EDITOR_APPROVED: "Editor Approved",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
-  COMPLETED: "Completed",
-  OPEN: "To Do",
-  REVISION_REQUESTED: "Revision Requested",
 };
 
 export type TaskActionKind =
