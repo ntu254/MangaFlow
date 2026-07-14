@@ -24,7 +24,6 @@ import { Route as AppRankingsRouteImport } from './routes/app.rankings'
 import { Route as AppPublicationsRouteImport } from './routes/app.publications'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppEditorRouteImport } from './routes/app.editor'
-import { Route as AppEarningsRouteImport } from './routes/app.earnings'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBoardRouteImport } from './routes/app.board'
 import { Route as AppAssistantRouteImport } from './routes/app.assistant'
@@ -142,11 +141,6 @@ const AppNotificationsRoute = AppNotificationsRouteImport.update({
 const AppEditorRoute = AppEditorRouteImport.update({
   id: '/editor',
   path: '/editor',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppEarningsRoute = AppEarningsRouteImport.update({
-  id: '/earnings',
-  path: '/earnings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -383,7 +377,6 @@ export interface FileRoutesByFullPath {
   '/app/assistant': typeof AppAssistantRouteWithChildren
   '/app/board': typeof AppBoardRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/earnings': typeof AppEarningsRoute
   '/app/editor': typeof AppEditorRouteWithChildren
   '/app/notifications': typeof AppNotificationsRoute
   '/app/publications': typeof AppPublicationsRoute
@@ -440,7 +433,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/app/assistant': typeof AppAssistantRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/earnings': typeof AppEarningsRoute
   '/app/editor': typeof AppEditorRouteWithChildren
   '/app/notifications': typeof AppNotificationsRoute
   '/app/publications': typeof AppPublicationsRoute
@@ -497,7 +489,6 @@ export interface FileRoutesById {
   '/app/assistant': typeof AppAssistantRouteWithChildren
   '/app/board': typeof AppBoardRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/earnings': typeof AppEarningsRoute
   '/app/editor': typeof AppEditorRouteWithChildren
   '/app/notifications': typeof AppNotificationsRoute
   '/app/publications': typeof AppPublicationsRoute
@@ -560,7 +551,6 @@ export interface FileRouteTypes {
     | '/app/assistant'
     | '/app/board'
     | '/app/dashboard'
-    | '/app/earnings'
     | '/app/editor'
     | '/app/notifications'
     | '/app/publications'
@@ -617,7 +607,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/app/assistant'
     | '/app/dashboard'
-    | '/app/earnings'
     | '/app/editor'
     | '/app/notifications'
     | '/app/publications'
@@ -673,7 +662,6 @@ export interface FileRouteTypes {
     | '/app/assistant'
     | '/app/board'
     | '/app/dashboard'
-    | '/app/earnings'
     | '/app/editor'
     | '/app/notifications'
     | '/app/publications'
@@ -838,13 +826,6 @@ declare module '@tanstack/react-router' {
       path: '/editor'
       fullPath: '/app/editor'
       preLoaderRoute: typeof AppEditorRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/earnings': {
-      id: '/app/earnings'
-      path: '/earnings'
-      fullPath: '/app/earnings'
-      preLoaderRoute: typeof AppEarningsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -1341,7 +1322,6 @@ interface AppRouteChildren {
   AppAssistantRoute: typeof AppAssistantRouteWithChildren
   AppBoardRoute: typeof AppBoardRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
-  AppEarningsRoute: typeof AppEarningsRoute
   AppEditorRoute: typeof AppEditorRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppPublicationsRoute: typeof AppPublicationsRoute
@@ -1358,7 +1338,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppAssistantRoute: AppAssistantRouteWithChildren,
   AppBoardRoute: AppBoardRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
-  AppEarningsRoute: AppEarningsRoute,
   AppEditorRoute: AppEditorRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
   AppPublicationsRoute: AppPublicationsRoute,
