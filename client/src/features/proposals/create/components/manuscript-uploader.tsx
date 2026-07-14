@@ -42,7 +42,7 @@ const SAMPLE: DraftManuscript = {
   fileType: "application/pdf",
   sizeKB: 1280,
   pageCount: 28,
-  note: "Sample file for quick demo testing.",
+  note: "Seeded sample file for MVP workflow validation.",
 };
 
 export function ManuscriptUploader({

@@ -14,10 +14,13 @@ import {
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — beachRead" },
-      { name: "description", content: "Sign in to beachRead Studio with a demo role." },
-      { property: "og:title", content: "Sign in — beachRead" },
-      { property: "og:description", content: "Sign in with a demo role to explore the workspace." },
+      { title: "Sign in — MangaFlow" },
+      { name: "description", content: "Sign in to MangaFlow with a seeded MVP role." },
+      { property: "og:title", content: "Sign in — MangaFlow" },
+      {
+        property: "og:description",
+        content: "Sign in with a seeded role to validate the MangaFlow MVP workflow.",
+      },
     ],
   }),
   component: LoginPage,
@@ -61,17 +64,15 @@ function LoginPage() {
     <div className="min-h-screen bg-background bg-paper-grain" suppressHydrationWarning>
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-6 py-16">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">
-          Demo workspace
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent">MVP workspace</p>
         <h1 className="mt-2 font-serif text-5xl leading-tight">
           Enter the studio.
           <br />
           Choose a role to get started.
         </h1>
         <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-          The live backend is using seeded accounts from the Express API. Each role still opens its
-          own dashboard and menu set.
+          The backend is using seeded accounts from the Express API. Each role opens the workflow
+          screens it is allowed to use.
         </p>
         {error ? (
           <div className="mt-5 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -103,7 +104,7 @@ function LoginPage() {
             Quick select a Board member (5 people)
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Use this to demo 3/5 quorum, tie-breaks, and the Editor-in-chief tie-break vote.
+            Use this to validate 3/5 quorum, tie-breaks, and the Editor-in-chief tie-break vote.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {BOARD_MEMBERS.map((m, i) => (
