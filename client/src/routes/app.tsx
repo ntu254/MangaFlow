@@ -13,7 +13,6 @@ import {
   Bell,
   ChartNoAxesCombined,
   ClipboardList,
-  FileText,
   Gauge,
   ListChecks,
   LogOut,
@@ -227,7 +226,6 @@ function getNavIcon(label: string) {
   if (label === "Dashboard") return Gauge;
   if (label === "Users") return UserRound;
   if (label === "Earnings") return ReceiptText;
-  if (label === "Audit Logs") return FileText;
   if (label === "Settings") return Settings;
   if (label === "Task Board" || label === "My Tasks") return ClipboardList;
   if (label === "Review Queue" || label === "Board Queue") return ListChecks;
