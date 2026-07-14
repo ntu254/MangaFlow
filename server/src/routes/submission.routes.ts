@@ -15,7 +15,7 @@ import {
 const router = Router();
 
 router.get("/submissions", listSubmissions);
-router.post("/submissions", requireRole("ASSISTANT", "MANGAKA", "EDITOR") as any, createSubmission);
+router.post("/submissions", requireRole("ASSISTANT") as any, createSubmission);
 router.get("/submissions/review-queue", requireRole("EDITOR") as any, reviewQueue);
 router.get("/submissions/:submissionId", getSubmission);
 router.get("/tasks/:taskId/submissions", listTaskSubmissions);

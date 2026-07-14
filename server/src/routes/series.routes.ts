@@ -45,7 +45,7 @@ router.get("/series/:id", getSeries);
 router.patch("/series/:id", requireRole("MANGAKA") as any, patchSeries);
 router.post(
   "/series/:id/actions/:action",
-  requireRole("ADMIN", "EDITOR", "MANGAKA") as any,
+  requireRole("BOARD") as any,
   seriesLifecycleAction,
 );
 router.delete("/series/:id", requireRole("ADMIN", "MANGAKA") as any, deleteSeries);

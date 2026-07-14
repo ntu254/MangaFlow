@@ -558,6 +558,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     it("blocks manual Series lifecycle actions outside Board at-risk decisions", async () => {
       const admin = await loginAs("admin@beachread.jp");
       const editor = await loginAs("tanaka@beachread.jp");
+      const board = await loginAs("board@beachread.jp");
 
       await request(createApp())
         .post("/api/series/s-berserk-prod/actions/HIATUS")
@@ -570,6 +571,13 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .set("Authorization", `Bearer ${editor.accessToken}`)
         .send({})
         .expect(403);
+
+      const boardAttempt = await request(createApp())
+        .post("/api/series/s-berserk-prod/actions/HIATUS")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .send({})
+        .expect(403);
+      expect(boardAttempt.body.code).toBe("BOARD_AT_RISK_DECISION_REQUIRED");
 
       await request(createApp())
         .delete("/api/series/s-berserk-prod")
