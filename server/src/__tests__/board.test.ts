@@ -343,6 +343,81 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     });
   });
 
+  it("POST /api/board/proposals/:proposalId/votes casts a Board vote through the explicit MVP command", async () => {
+    await ProposalModel.create({
+      id: "proposal-command-vote",
+      title: "Explicit Vote Command",
+      authorId: "u-mangaka",
+      authorName: "Inoue Takehiko",
+      synopsis: "Test",
+      status: "PENDING_BOARD",
+      genres: ["Action"],
+      votes: [],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const board = await loginAs("board@beachread.jp");
+    const res = await request(createApp())
+      .post("/api/board/proposals/proposal-command-vote/votes")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ voteDecision: "APPROVE", comment: "Ready for serialization." })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("BOARD_VOTING");
+    expect(res.body.data.votes).toHaveLength(1);
+    expect(res.body.data.votes[0]).toMatchObject({
+      memberId: "u-board",
+      decision: "APPROVE",
+      comment: "Ready for serialization.",
+    });
+  });
+
+  it("POST /api/board/proposals/:proposalId/finalization creates Series only after Tantou and cadence are selected", async () => {
+    await ProposalModel.create({
+      id: "proposal-command-finalize",
+      title: "Explicit Finalize Command",
+      authorId: "u-mangaka",
+      authorName: "Inoue Takehiko",
+      synopsis: "Test",
+      status: "PENDING_BOARD",
+      genres: ["Action"],
+      votes: [],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const board = await loginAs("board@beachread.jp");
+
+    await request(createApp())
+      .post("/api/board/proposals/proposal-command-finalize/finalization")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ decision: "APPROVED", publicationType: "WEEKLY" })
+      .expect(400);
+
+    const res = await request(createApp())
+      .post("/api/board/proposals/proposal-command-finalize/finalization")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({
+        decision: "APPROVED",
+        publicationType: "WEEKLY",
+        tantouEditorId: "u-editor",
+      })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("APPROVED");
+
+    const series = await SeriesModel.find({ proposalId: "proposal-command-finalize" }).lean();
+    expect(series).toHaveLength(1);
+    expect(series[0]).toMatchObject({
+      id: "s-proposal-command-finalize",
+      publicationType: "WEEKLY",
+      editorId: "u-editor",
+    });
+  });
+
   it("POST /api/board/series/:id/decisions/finalize works for ADMIN", async () => {
     await ProposalModel.create({
       id: "proposal-finalize-admin",
