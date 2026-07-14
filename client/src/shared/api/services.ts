@@ -434,7 +434,6 @@ export const boardApi = {
   rankingsList: (state?: TableState) =>
     apiListRequest<unknown, RankingsListMeta>(`/rankings${tableStateQuery(state)}`),
   importRankings: (body: unknown) => apiRequest("/rankings/import", { method: "POST", body }),
-  decisionHistory: () => apiRequest("/board/decisions/history"),
 };
 
 export const adminApi = {

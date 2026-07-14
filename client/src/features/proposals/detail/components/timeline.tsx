@@ -26,7 +26,7 @@ const TYPE_LABEL: Record<ProposalEvent["type"], string> = {
   EDIT: "updated",
   TIE_BREAK: "moved to tie-break",
   MANUSCRIPT_UPLOAD: "upload manuscript",
-  FORCE_STATUS: "forced status",
+  FINALIZE_BOARD_DECISION: "finalized Board decision",
 };
 
 export function Timeline({ events }: { events: ProposalEvent[] }) {

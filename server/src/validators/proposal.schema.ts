@@ -92,8 +92,7 @@ export const PROPOSAL_ACTIONS = [
   "REJECT",
   "RECALL",
   "VOTE",
-  "FORCE_STATUS",
-  "ARCHIVE",
+  "FINALIZE_BOARD_DECISION",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -154,7 +153,6 @@ export const proposalActionSchema = z.object({
   feedbackSummary: z.string().max(5000).optional(),
   editorRecommendation: z.string().max(5000).optional(),
   rejectReason: z.string().max(5000).optional(),
-  forceStatus: z.enum(PROPOSAL_STATUSES).optional(),
   editorId: z.string().optional(),
   editorName: z.string().optional(),
   sessionId: z.string().optional(),
@@ -162,7 +160,6 @@ export const proposalActionSchema = z.object({
   value: z.enum(VOTE_DECISIONS).optional(),
   decision: z.enum(VOTE_DECISIONS).optional(),
   reason: z.string().max(2000).optional(),
-  archiveReason: z.string().max(2000).optional(),
   fileName: z.string().optional(),
   fileType: z.string().optional(),
   sizeKB: z.number().optional(),

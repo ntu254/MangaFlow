@@ -68,8 +68,7 @@ export type ProposalAction =
   | "FORWARD"
   | "REJECT"
   | "RECALL"
-  | "VOTE"
-  | "FORCE_STATUS";
+  | "VOTE";
 
 export type VoteDecision = "APPROVE" | "REJECT" | "ABSTAIN";
 
@@ -107,7 +106,7 @@ export type ProposalEvent = {
     | "EDIT"
     | "TIE_BREAK"
     | "MANUSCRIPT_UPLOAD"
-    | "FORCE_STATUS";
+    | "FINALIZE_BOARD_DECISION";
   fromStatus?: ProposalStatus;
   toStatus?: ProposalStatus;
   comment?: string;

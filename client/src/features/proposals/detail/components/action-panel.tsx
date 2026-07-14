@@ -31,7 +31,6 @@ const LABELS: Record<ProposalAction, string> = {
   REJECT: "Reject",
   RECALL: "Recall from Board",
   VOTE: "Vote",
-  FORCE_STATUS: "Force status",
 };
 
 const TONES: Partial<Record<ProposalAction, string>> = {
@@ -45,7 +44,6 @@ const TONES: Partial<Record<ProposalAction, string>> = {
   CLAIM: "bg-blue-700 text-white hover:bg-blue-800",
   VOTE: "bg-foreground text-background hover:bg-foreground/90",
   EDIT: "bg-card text-foreground border border-border hover:bg-muted",
-  FORCE_STATUS: "bg-card text-foreground border border-border hover:bg-muted",
 };
 
 const REQUIRES_COMMENT: ProposalAction[] = ["REJECT"];

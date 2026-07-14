@@ -7,7 +7,14 @@ import {
 import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 import { useMemo } from "react";
 
-const DECISIVE = new Set(["DECIDE", "REJECT", "TIE_BREAK", "FORCE_STATUS", "FORWARD", "RECALL"]);
+const DECISIVE = new Set([
+  "DECIDE",
+  "REJECT",
+  "TIE_BREAK",
+  "FINALIZE_BOARD_DECISION",
+  "FORWARD",
+  "RECALL",
+]);
 
 export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
   const events = useMemo(

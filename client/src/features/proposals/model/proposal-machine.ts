@@ -39,7 +39,6 @@ function tallyDecision(votes: BoardVote[]): ProposalStatus | null {
 export type TransitionPayload = {
   comment?: string;
   voteDecision?: VoteDecision;
-  forceStatus?: ProposalStatus;
   manuscript?: Omit<
     ManuscriptVersion,
     "id" | "version" | "uploadedAt" | "uploadedById" | "uploadedByName" | "supersedes"
@@ -405,19 +404,6 @@ export function applyTransition(
           message: `Proposal "${p.title}" is waiting for a tie-break vote of Editor-in-chief.`,
         });
       }
-      break;
-    }
-    case "FORCE_STATUS": {
-      if (!payload.forceStatus) throw new Error("Missing forceStatus.");
-      const from = next.status;
-      next.status = payload.forceStatus;
-      events.push({
-        ...baseEvent,
-        type: "FORCE_STATUS",
-        fromStatus: from,
-        toStatus: payload.forceStatus,
-        comment: payload.comment ?? "Admin force.",
-      });
       break;
     }
     case "EDIT":

@@ -43,7 +43,6 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: "/app/board/queue", label: "Board Queue", group: "Governance" },
     { to: "/app/board/rankings", label: "Rankings", group: "Governance" },
     { to: "/app/board/at-risk", label: "At-risk Reviews", group: "Governance" },
-    { to: "/app/board/decisions", label: "Decisions", group: "Governance" },
     { to: "/app/board/notifications", label: "Notifications", group: "Governance" },
   ],
 };
