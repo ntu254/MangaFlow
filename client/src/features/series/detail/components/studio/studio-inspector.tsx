@@ -723,81 +723,79 @@ function InspectorBody({
         {/* Editor Actions, Comments & Submissions */}
         {permissions.mode === "editor" && (
           <div className="space-y-4">
-            {latestSubmission &&
-              (latestSubmission.status === "PENDING" ||
-                latestSubmission.status === "SUBMITTED") && (
-                <div className="mt-4 border-t border-border pt-3 space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Review Submission
-                  </h4>
-                  <div className="flex gap-2">
+            {latestSubmission && latestSubmission.status === "PENDING" && (
+              <div className="mt-4 border-t border-border pt-3 space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Review Submission
+                </h4>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9"
+                    onClick={() =>
+                      onReviewSubmission &&
+                      onReviewSubmission(latestSubmission.id, "editor-approve")
+                    }
+                  >
+                    Approve
+                  </Button>
+                  {!isRevisionNoteExpanded && (
                     <Button
                       size="sm"
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9"
-                      onClick={() =>
-                        onReviewSubmission &&
-                        onReviewSubmission(latestSubmission.id, "editor-approve")
-                      }
+                      variant="outline"
+                      className="flex-1 text-xs h-9"
+                      onClick={() => setIsRevisionNoteExpanded(true)}
                     >
-                      Approve
+                      Request Revision
                     </Button>
-                    {!isRevisionNoteExpanded && (
+                  )}
+                </div>
+                {isRevisionNoteExpanded && (
+                  <div className="space-y-2 mt-2">
+                    <Label className="text-[10px] font-bold text-muted-foreground">
+                      Revision Notes
+                    </Label>
+                    <Textarea
+                      placeholder="What needs to be corrected..."
+                      value={revisionNote}
+                      onChange={(e) => setRevisionNote(e.target.value)}
+                      className="text-xs h-16 text-foreground"
+                    />
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 text-xs h-9"
-                        onClick={() => setIsRevisionNoteExpanded(true)}
+                        className="flex-1 h-7 text-xs"
+                        onClick={() => {
+                          setIsRevisionNoteExpanded(false);
+                          setRevisionNote("");
+                        }}
                       >
-                        Request Revision
+                        Cancel
                       </Button>
-                    )}
-                  </div>
-                  {isRevisionNoteExpanded && (
-                    <div className="space-y-2 mt-2">
-                      <Label className="text-[10px] font-bold text-muted-foreground">
-                        Revision Notes
-                      </Label>
-                      <Textarea
-                        placeholder="What needs to be corrected..."
-                        value={revisionNote}
-                        onChange={(e) => setRevisionNote(e.target.value)}
-                        className="text-xs h-16 text-foreground"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 h-7 text-xs"
-                          onClick={() => {
+                      <Button
+                        size="sm"
+                        className="flex-1 h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                        disabled={!revisionNote}
+                        onClick={() => {
+                          if (onReviewSubmission) {
+                            onReviewSubmission(
+                              latestSubmission.id,
+                              "request-revision",
+                              revisionNote,
+                            );
                             setIsRevisionNoteExpanded(false);
                             setRevisionNote("");
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white"
-                          disabled={!revisionNote}
-                          onClick={() => {
-                            if (onReviewSubmission) {
-                              onReviewSubmission(
-                                latestSubmission.id,
-                                "request-revision",
-                                revisionNote,
-                              );
-                              setIsRevisionNoteExpanded(false);
-                              setRevisionNote("");
-                            }
-                          }}
-                        >
-                          Send Request
-                        </Button>
-                      </div>
+                          }
+                        }}
+                      >
+                        Send Request
+                      </Button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Submission History */}
             <div className="mt-4 border-t border-border pt-3">

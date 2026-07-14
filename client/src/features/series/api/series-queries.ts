@@ -711,21 +711,25 @@ function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
     case "PENDING":
     case "SUBMITTED":
     case "IN_REVIEW":
-      return "SUBMITTED";
+      return "PENDING";
     case "REVISION_REQUESTED":
     case "MANGAKA_REVISION_REQUESTED":
+      return "MANGAKA_REVISION_REQUESTED";
     case "EDITOR_REVISION_REQUESTED":
-      return "REVISION_REQUESTED";
+      return "EDITOR_REVISION_REQUESTED";
     case "MANGAKA_APPROVED":
       return "MANGAKA_APPROVED";
     case "EDITOR_APPROVED":
-      return "EDITOR_APPROVED";
     case "APPROVED":
-      return "APPROVED";
+      return "EDITOR_APPROVED";
     case "REJECTED":
       return "REJECTED";
-    default:
+    case "SUPERSEDED":
+      return "SUPERSEDED";
+    case "DRAFT":
       return "DRAFT";
+    default:
+      return "PENDING";
   }
 }
 

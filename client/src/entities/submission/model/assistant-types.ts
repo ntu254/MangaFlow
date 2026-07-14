@@ -9,12 +9,9 @@ export const ASSISTANT_SCOPE_LABEL: Record<AssistantAccessScope, string> = {
 
 export type SubmissionStatus =
   | "DRAFT"
-  | "SUBMITTED"
   | "PENDING"
-  | "REVISION_REQUESTED"
   | "MANGAKA_REVISION_REQUESTED"
   | "EDITOR_REVISION_REQUESTED"
-  | "APPROVED"
   | "MANGAKA_APPROVED"
   | "EDITOR_APPROVED"
   | "REJECTED"
@@ -22,12 +19,9 @@ export type SubmissionStatus =
 
 export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
   DRAFT: "Draft",
-  SUBMITTED: "Submitted",
-  PENDING: "Pending",
-  REVISION_REQUESTED: "Revision",
+  PENDING: "Pending review",
   MANGAKA_REVISION_REQUESTED: "Mangaka Revision",
   EDITOR_REVISION_REQUESTED: "Editor Revision",
-  APPROVED: "Approved",
   MANGAKA_APPROVED: "Mangaka approved",
   EDITOR_APPROVED: "Editor approved",
   REJECTED: "Rejected",
@@ -36,12 +30,9 @@ export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
 
 export const SUBMISSION_STATUS_BADGE: Record<SubmissionStatus, string> = {
   DRAFT: "bg-zinc-200 text-zinc-800",
-  SUBMITTED: "bg-cyan-100 text-cyan-900",
   PENDING: "bg-amber-100 text-amber-900",
-  REVISION_REQUESTED: "bg-orange-100 text-orange-900",
   MANGAKA_REVISION_REQUESTED: "bg-orange-100 text-orange-900",
   EDITOR_REVISION_REQUESTED: "bg-amber-100 text-amber-900",
-  APPROVED: "bg-emerald-100 text-emerald-900",
   MANGAKA_APPROVED: "bg-blue-100 text-blue-900",
   EDITOR_APPROVED: "bg-emerald-200 text-emerald-900",
   REJECTED: "bg-rose-100 text-rose-900",

@@ -232,8 +232,8 @@ export function SubmissionsPage() {
         <StatCard
           tone="sky"
           icon={<Send className="size-4" />}
-          label="Submitted"
-          value={statusCount(items, "SUBMITTED")}
+          label="Pending review"
+          value={statusCount(items, "PENDING")}
         />
         <StatCard
           tone="orange"
@@ -248,7 +248,7 @@ export function SubmissionsPage() {
           tone="emerald"
           icon={<CheckCircle2 className="size-4" />}
           label="Approved"
-          value={statusCount(items, "APPROVED")}
+          value={statusCount(items, "EDITOR_APPROVED")}
         />
         <StatCard
           tone="rose"

@@ -118,7 +118,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
     return <SubmissionReviewMissing backLink={backLink} />;
   }
 
-  const isPending = submission.status === "PENDING" || submission.status === "SUBMITTED";
+  const isPending = submission.status === "PENDING";
   const isMangakaOwner = ctx?.series?.authorId === user.id;
 
   if (ctx?.series && !isMangakaOwner) {
