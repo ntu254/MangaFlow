@@ -19,7 +19,6 @@ import {
 } from "@/shared/api/client";
 import {
   assistantApi,
-  seriesApi,
   studioApi,
   type StudioRegionsListMeta,
   type StudioTasksListMeta,
@@ -150,31 +149,10 @@ export function useChapterReadinessQuery(chapterId: string) {
   });
 }
 
-export interface TantouEditor {
-  id: string;
-  seriesId: string;
-  userId: string;
-  role: string;
-  scope?: string;
-  status: string;
-  userName: string;
-  userEmail?: string;
-  joinedAt?: string;
-}
-
 export function useSeriesMembersQuery(seriesId: string) {
   return useQuery<DbMember[]>({
     queryKey: seriesKeys.members(seriesId),
     queryFn: () => apiRequest<DbMember[]>(`/series/${seriesId}/members`),
-    enabled: !!seriesId,
-    staleTime: 60000,
-  });
-}
-
-export function useTantouEditorQuery(seriesId: string) {
-  return useQuery<TantouEditor | null>({
-    queryKey: seriesKeys.editor(seriesId),
-    queryFn: () => seriesApi.getEditor(seriesId) as Promise<TantouEditor | null>,
     enabled: !!seriesId,
     staleTime: 60000,
   });

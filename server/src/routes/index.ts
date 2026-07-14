@@ -10,7 +10,6 @@ import submissionRoutes from "./submission.routes.js";
 import adminRoutes from "./admin.routes.js";
 import earningRoutes from "./earning.routes.js";
 import publicationRoutes from "./publication.routes.js";
-import tantouRoutes from "./tantou.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import { createAiRoutes } from "./ai.routes.js";
 import fileTokenRoutes from "./file-token.routes.js";
@@ -41,7 +40,6 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(adminRoutes);
   router.use(earningRoutes);
   router.use(publicationRoutes);
-  router.use(tantouRoutes);
   router.use(atRiskReportRoutes);
   router.use(atRiskRoutes);
   router.use(notificationRoutes);

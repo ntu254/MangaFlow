@@ -29,13 +29,12 @@ import { formatDate, formatDateTime } from "@/shared/lib/format-date";
 import { checkAction } from "@/entities/proposal";
 import type { ProductionSeries } from "@/entities/series/model/series-types";
 import { useSeriesProposalQuery, useProposalActionMutation } from "@/features/proposals";
-import { useTantouEditorQuery, type TantouEditor, mapApiError } from "../../api/series-queries";
+import { mapApiError } from "../../api/series-queries";
 import { cn } from "@/shared/lib/cn";
 
 export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   const user = useAuth((s) => s.user);
   const { data: proposal, isLoading, isError, error } = useSeriesProposalQuery(series);
-  const { data: tantouEditor } = useTantouEditorQuery(series.id);
   const actionMutation = useProposalActionMutation(series.proposalId ?? "", series.id);
   const [resubmitOpen, setResubmitOpen] = useState(false);
   const [showAllFeedback, setShowAllFeedback] = useState(false);
@@ -115,10 +114,10 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
       <div className="grid gap-5 lg:grid-cols-3">
         <StatusCard
           proposal={proposal}
+          editorName={series.editorName}
           canEdit={canEdit}
           canResubmit={canResubmit}
           onResubmit={() => setResubmitOpen(true)}
-          tantouEditor={tantouEditor}
         />
         <SummaryCard proposal={proposal} />
         <RecentFeedbackCard
@@ -194,13 +193,13 @@ function StatusCard({
   canEdit,
   canResubmit,
   onResubmit,
-  tantouEditor,
+  editorName,
 }: {
   proposal: SeriesProposal;
+  editorName?: string;
   canEdit: boolean;
   canResubmit: boolean;
   onResubmit: () => void;
-  tantouEditor?: TantouEditor | null;
 }) {
   const submitEvents = proposal.history.filter((h) => h.type === "SUBMIT" || h.type === "RESUBMIT");
   const lastSubmit = submitEvents[submitEvents.length - 1];
@@ -219,12 +218,12 @@ function StatusCard({
             {lastSubmit ? formatDate(lastSubmit.createdAt) : "Not submitted"}
           </Row>
           <Row label="Reviewer">
-            {(tantouEditor?.userName ?? proposal.assignedEditorName) ? (
+            {(editorName ?? proposal.assignedEditorName) ? (
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold uppercase">
-                  {initials(tantouEditor?.userName ?? proposal.assignedEditorName ?? "")}
+                  {initials(editorName ?? proposal.assignedEditorName ?? "")}
                 </span>
-                {tantouEditor?.userName ?? proposal.assignedEditorName}
+                {editorName ?? proposal.assignedEditorName}
               </span>
             ) : (
               "—"

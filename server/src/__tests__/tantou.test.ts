@@ -29,32 +29,15 @@ describe("Tantou Editor Assignment", () => {
     await mongo.stop();
   });
 
-  describe("GET /api/series/:seriesId/editor - RBAC", () => {
-    it("returns editor for authenticated user", async () => {
+  describe("Tantou assignment routes - MVP guard", () => {
+    it("does not expose the legacy reader route; Series summary carries Tantou data", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
-      const response = await request(createApp())
+      await request(createApp())
         .get("/api/series/s-berserk-prod/editor")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .expect(200);
-      expect(response.body.data).toBeDefined();
-      expect(response.body.data.role).toBe("editor");
-      expect(response.body.data.userId).toBe("u-editor");
+        .expect(404);
     });
 
-    it("returns editor with user info", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const response = await request(createApp())
-        .get("/api/series/s-berserk-prod/editor")
-        .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .expect(200);
-      expect(response.body.data).toBeDefined();
-      expect(response.body.data.userId).toBe("u-editor");
-      expect(response.body.data.userName).toBe("Tanaka Akira");
-      expect(response.body.data.userEmail).toBe("tanaka@beachread.jp");
-    });
-  });
-
-  describe("Tantou assignment mutations - MVP guard", () => {
     it("does not expose manual assignment; Board finalization is the only Tantou selection path", async () => {
       const board = await loginAs("board@beachread.jp");
       await request(createApp())

@@ -318,8 +318,6 @@ export const seriesApi = {
   chapterAction: (chapterId: string, action: string, body?: unknown) =>
     apiRequest(`/chapters/${chapterId}/actions/${action}`, { method: "POST", body: body ?? {} }),
   readiness: (chapterId: string) => apiRequest(`/chapters/${chapterId}/readiness`),
-  // Tantou Editor
-  getEditor: (seriesId: string) => apiRequest(`/series/${seriesId}/editor`),
 };
 
 export const studioApi = {

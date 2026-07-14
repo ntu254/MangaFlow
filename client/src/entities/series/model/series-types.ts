@@ -221,7 +221,6 @@ export const seriesKeys = {
   chaptersBundle: (seriesIds: string[]) =>
     [...seriesKeys.all, "chaptersBundle", [...seriesIds].sort()] as const,
   members: (seriesId: string) => [...seriesKeys.detail(seriesId), "members"] as const,
-  editor: (seriesId: string) => [...seriesKeys.detail(seriesId), "editor"] as const,
   rankings: (seriesId: string) => [...seriesKeys.detail(seriesId), "rankings"] as const,
   activity: (seriesId: string) => [...seriesKeys.detail(seriesId), "activity"] as const,
   proposal: (seriesId: string) => [...seriesKeys.detail(seriesId), "proposal"] as const,

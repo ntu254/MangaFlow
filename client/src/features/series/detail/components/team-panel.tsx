@@ -23,10 +23,8 @@ import {
   useInviteAssistantMutation,
   useRemoveMemberMutation,
   useUpdateMemberMutation,
-  useTantouEditorQuery,
   mapApiError,
   type DbMember,
-  type TantouEditor,
 } from "../../api/series-queries";
 
 // ---------- helpers ----------
@@ -59,12 +57,12 @@ function ownerOf(series: ProductionSeries): MemberRow {
   };
 }
 
-function editorOf(series: ProductionSeries, tantouEditor?: TantouEditor | null): MemberRow {
-  const editorName = tantouEditor?.userName ?? series.editorName;
+function editorOf(series: ProductionSeries): MemberRow {
+  const editorName = series.editorName;
   return {
-    id: tantouEditor?.id ?? `editor-${series.id}`,
+    id: series.editorId ?? `editor-${series.id}`,
     name: editorName,
-    email: tantouEditor?.userEmail ?? `${editorName.toLowerCase().replace(/\s+/g, ".")}@studio.jp`,
+    email: `${editorName.toLowerCase().replace(/\s+/g, ".")}@studio.jp`,
     kind: "EDITOR",
     scope: "FULL SERIES",
   };
@@ -157,7 +155,6 @@ export function TeamPanel({ series }: { series: ProductionSeries }) {
   );
 
   const { data: dbMembers = [], isLoading: isMembersLoading } = useSeriesMembersQuery(series.id);
-  const { data: tantouEditor } = useTantouEditorQuery(series.id);
 
   const addMember = useAddMemberMutation(series.id);
   const inviteAssistant = useInviteAssistantMutation(series.id);
@@ -222,7 +219,7 @@ export function TeamPanel({ series }: { series: ProductionSeries }) {
   };
 
   const members: MemberRow[] = useMemo(() => {
-    const list: MemberRow[] = [ownerOf(series), editorOf(series, tantouEditor)];
+    const list: MemberRow[] = [ownerOf(series), editorOf(series)];
     dbMembers.forEach((dbM: DbMember, idx: number) => {
       const u = findUserById(dbM.userId);
       if (!u) return;
@@ -244,7 +241,7 @@ export function TeamPanel({ series }: { series: ProductionSeries }) {
       });
     });
     return list;
-  }, [series, dbMembers, tantouEditor]);
+  }, [series, dbMembers]);
 
   const assistantsList = members.filter((m) => m.kind === "ASSISTANT");
   const taskOnlyList = members.filter((m) => m.kind === "TASK-ONLY");
@@ -320,8 +317,8 @@ export function TeamPanel({ series }: { series: ProductionSeries }) {
             icon={<PenLine className="size-4" />}
             tone="blue"
             label="Editor"
-            value={tantouEditor ? 1 : 0}
-            hint={tantouEditor?.userName ?? "Unassigned"}
+            value={series.editorId ? 1 : 0}
+            hint={series.editorName ?? "Unassigned"}
             trailing={<ScopePill scope="FULL SERIES" />}
           />
           <StatCard
