@@ -18,7 +18,7 @@ export function StatusFlow({ status }: { status: ProposalStatus }) {
             <li key={s} className="flex flex-1 items-center gap-2">
               <div
                 className={cn(
-                  "flex h-7 flex-1 items-center justify-center rounded text-[10px] font-semibold uppercase tracking-wider",
+                  "flex min-h-7 py-1 px-2 flex-1 items-center justify-center rounded text-[10px] font-semibold uppercase tracking-wider text-center leading-tight",
                   current
                     ? "bg-foreground text-background"
                     : active

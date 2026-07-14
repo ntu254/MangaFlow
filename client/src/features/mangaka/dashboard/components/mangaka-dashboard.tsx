@@ -86,7 +86,7 @@ export function MangakaDashboard() {
         description={`${mangakaQueue.length} submissions need review, ${inProgressTasks.length} tasks in progress.`}
         actions={
           <Link
-            to="/app/dashboard"
+            to="/app/review"
             aria-label="Open Review Queue"
             className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
           >
@@ -231,13 +231,12 @@ export function MangakaDashboard() {
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                          risk.tone === "rose"
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${risk.tone === "rose"
                             ? "bg-rose-100 text-rose-900"
                             : risk.tone === "amber"
                               ? "bg-amber-100 text-amber-900"
                               : "bg-emerald-100 text-emerald-900"
-                        }`}
+                          }`}
                       >
                         {formatDate(t.dueAt)}
                       </span>
