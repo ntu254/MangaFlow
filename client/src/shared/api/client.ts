@@ -56,7 +56,7 @@ type RequestOptions = {
   headers?: HeadersInit;
 };
 
-const TOKEN_KEY = "beachread-api-tokens";
+const TOKEN_KEY = "mangaflow-api-tokens";
 
 export class ApiRequestError extends Error {
   readonly status: number;

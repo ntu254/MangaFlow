@@ -59,7 +59,7 @@ describe("Production-first completion hardening", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     await request(createApp())
       .post("/api/comments")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -84,7 +84,7 @@ describe("Production-first completion hardening", () => {
       updatedAt: new Date(),
     });
 
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     await request(createApp())
       .post("/api/studio/tasks/task-rbac/actions/START")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -93,7 +93,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("returns pagination metadata for proposal lists", async () => {
-    const editor = await loginAs("nishida@beachread.jp");
+    const editor = await loginAs("nishida@mangaflow.local");
     const res = await request(createApp())
       .get("/api/proposals?page=1&pageSize=2")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -163,7 +163,7 @@ describe("Production-first completion hardening", () => {
       },
     ]);
 
-    const editor = await loginAs("nishida@beachread.jp");
+    const editor = await loginAs("nishida@mangaflow.local");
     const filters = encodeURIComponent(
       JSON.stringify({ status: { type: "select", value: "PENDING_EDITOR" } }),
     );
@@ -189,7 +189,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("rejects unsupported proposal list sort fields", async () => {
-    const editor = await loginAs("nishida@beachread.jp");
+    const editor = await loginAs("nishida@mangaflow.local");
     const res = await request(createApp())
       .get("/api/proposals?sortBy=actions")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -250,7 +250,7 @@ describe("Production-first completion hardening", () => {
       },
     ]);
 
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const filters = encodeURIComponent(
       JSON.stringify({ status: { type: "select", value: "ONGOING" } }),
     );
@@ -276,7 +276,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("rejects unsupported series list sort fields", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const res = await request(createApp())
       .get("/api/series?sortBy=actions")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -331,7 +331,7 @@ describe("Production-first completion hardening", () => {
       },
     ]);
 
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const filters = encodeURIComponent(
       JSON.stringify({ status: { type: "select", value: "PLANNED" } }),
     );
@@ -357,7 +357,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("rejects unsupported chapter list sort fields", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const res = await request(createApp())
       .get("/api/chapters?mine=true&sortBy=actions")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -367,7 +367,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("does not expose Board voting session endpoints in the MVP API", async () => {
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
 
     await request(createApp())
       .post("/api/voting-sessions")
@@ -400,7 +400,7 @@ describe("Production-first completion hardening", () => {
       updatedAt: new Date(),
     });
 
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const res = await request(createApp())
       .get("/api/assistant/earnings")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -417,7 +417,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("does not expose non-user-management admin summaries in the MVP API", async () => {
-    const admin = await loginAs("admin@beachread.jp");
+    const admin = await loginAs("admin@mangaflow.local");
 
     await request(createApp())
       .get("/api/admin/workflow-summary")
@@ -431,7 +431,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("imports rankings through the live Board API and blocks unrelated roles", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     await request(createApp())
       .post("/api/rankings/import")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -442,7 +442,7 @@ describe("Production-first completion hardening", () => {
       })
       .expect(403);
 
-    const admin = await loginAs("admin@beachread.jp");
+    const admin = await loginAs("admin@mangaflow.local");
     await request(createApp())
       .post("/api/rankings/import")
       .set("Authorization", `Bearer ${admin.accessToken}`)
@@ -453,7 +453,7 @@ describe("Production-first completion hardening", () => {
       })
       .expect(403);
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .post("/api/rankings/import")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -486,7 +486,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("does not expose the legacy Board decision history aggregate", async () => {
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     await request(createApp())
       .get("/api/board/decisions/history")
       .set("Authorization", `Bearer ${board.accessToken}`)

@@ -35,14 +35,14 @@ async function createAndLoginOtherMangaka() {
   await UserModel.create({
     id: "u-other-mangaka",
     name: "Other Mangaka",
-    email: "other-mangaka@beachread.jp",
-    passwordHash: await bcrypt.hash("other-mangaka@beachread.jp", 10),
+    email: "other-mangaka@mangaflow.local",
+    passwordHash: await bcrypt.hash("other-mangaka@mangaflow.local", 10),
     role: "MANGAKA",
     active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  return loginAs("other-mangaka@beachread.jp");
+  return loginAs("other-mangaka@mangaflow.local");
 }
 
 describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
@@ -74,7 +74,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const res = await request(createApp())
         .get("/api/series")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -89,7 +89,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("limits assistants to series they are assigned to as members", async () => {
-      const assistant = await loginAs("jun@beachread.jp"); // id: u-assist
+      const assistant = await loginAs("jun@mangaflow.local"); // id: u-assist
 
       const res = await request(createApp())
         .get("/api/series")
@@ -106,10 +106,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("MVP read authorization matrix", () => {
     it("scopes proposal reads by role and hides out-of-scope proposals", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
-      const board = await loginAs("board@beachread.jp");
-      const assistant = await loginAs("jun@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       await request(createApp())
         .get("/api/proposals/p-001")
@@ -138,8 +138,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("hides production Series, Chapter, Page, Member, and Activity reads outside ownership", async () => {
-      const board = await loginAs("board@beachread.jp");
-      const admin = await loginAs("admin@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
+      const admin = await loginAs("admin@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
 
       await request(createApp())
@@ -174,9 +174,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("scopes task, region, comment, and submission reads to assigned production actors", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
-      const unassignedAssistant = await loginAs("hina@beachread.jp");
-      const board = await loginAs("board@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
+      const unassignedAssistant = await loginAs("hina@mangaflow.local");
+      const board = await loginAs("board@mangaflow.local");
 
       await request(createApp())
         .get("/api/studio/tasks/tsk-001")
@@ -221,10 +221,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("scopes at-risk report and ranking reads to governance or responsible production actors", async () => {
-      const tantou = await loginAs("tanaka@beachread.jp");
-      const board = await loginAs("board@beachread.jp");
+      const tantou = await loginAs("tanaka@mangaflow.local");
+      const board = await loginAs("board@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
-      const unassignedAssistant = await loginAs("hina@beachread.jp");
+      const unassignedAssistant = await loginAs("hina@mangaflow.local");
 
       await request(createApp())
         .post("/api/series/s-berserk-prod/at-risk-reports")
@@ -259,7 +259,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Pages CRUD & Presigned URLs", () => {
     it("handles page CRUD lifecycle on chapters", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       // 1. POST new page to chapter
       const createRes = await request(createApp())
@@ -295,7 +295,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         true,
       );
 
-      const editor = await loginAs("tanaka@beachread.jp");
+      const editor = await loginAs("tanaka@mangaflow.local");
       await request(createApp())
         .post("/api/chapters/ch-s-berserk-prod-4/pages")
         .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -360,7 +360,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("mocks presigned upload and download urls for a persisted file key", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       const uploadRes = await request(createApp())
         .post("/api/files/presign-upload")
@@ -395,8 +395,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("allows Board to resolve proposal covers and rejects unrelated assistants", async () => {
-      const board = await loginAs("board@beachread.jp");
-      const assistant = await loginAs("jun@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
+      const assistant = await loginAs("jun@mangaflow.local");
       await ProposalModel.create({
         id: "p-cover-access-test",
         slug: "cover-access-test",
@@ -421,7 +421,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("issues presigned upload urls for PDF proposal files", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       const uploadRes = await request(createApp())
         .post("/api/files/presign-upload")
@@ -440,8 +440,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Series Members sub-router CRUD", () => {
     it("allows only the owning Mangaka to manage assistant team members", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
 
       await request(createApp())
@@ -516,20 +516,20 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("allows only the owning Mangaka to invite assistants", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
 
       await request(createApp())
         .post("/api/series/s-berserk-prod/invites")
         .set("Authorization", `Bearer ${editor.accessToken}`)
-        .send({ email: "hina@beachread.jp", scope: "Task only" })
+        .send({ email: "hina@mangaflow.local", scope: "Task only" })
         .expect(403);
 
       await request(createApp())
         .post("/api/series/s-berserk-prod/invites")
         .set("Authorization", `Bearer ${otherMangaka.accessToken}`)
-        .send({ email: "hina@beachread.jp", scope: "Task only" })
+        .send({ email: "hina@mangaflow.local", scope: "Task only" })
         .expect(403);
 
       await SeriesMemberModel.deleteMany({
@@ -544,7 +544,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const response = await request(createApp())
         .post("/api/series/s-berserk-prod/invites")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .send({ email: "hina@beachread.jp", scope: "Task only" })
+        .send({ email: "hina@mangaflow.local", scope: "Task only" })
         .expect(201);
 
       expect(response.body.data.userId).toBe("u-assist-2");
@@ -553,8 +553,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Series and Chapter owner guards", () => {
     it("allows only the owning Mangaka to patch basic Series fields", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
 
       await request(createApp())
@@ -585,9 +585,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("blocks manual Series lifecycle actions outside Board at-risk decisions", async () => {
-      const admin = await loginAs("admin@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
-      const board = await loginAs("board@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
+      const board = await loginAs("board@mangaflow.local");
 
       await request(createApp())
         .post("/api/series/s-berserk-prod/actions/HIATUS")
@@ -615,8 +615,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("allows only the owning Mangaka to patch Chapter planning fields", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
 
       await request(createApp())
@@ -649,7 +649,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Task action states", () => {
     it("serves studio regions through the MVP list contract", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       await StudioRegionModel.create([
         {
@@ -718,7 +718,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects non-data studio region sort fields", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       const response = await request(createApp())
         .get("/api/studio/regions?sortBy=actions")
@@ -729,9 +729,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("limits production Studio Region and Task management to the owning Mangaka", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
-      const admin = await loginAs("admin@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
+      const admin = await loginAs("admin@mangaflow.local");
       const otherMangaka = await createAndLoginOtherMangaka();
 
       const createdRegion = await request(createApp())
@@ -804,7 +804,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("serves comments through the MVP list contract", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       await StudioCommentModel.create([
         {
@@ -873,7 +873,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects non-data comment list sort fields", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       const response = await request(createApp())
         .get("/api/comments?sortBy=actions")
@@ -884,7 +884,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("limits assistant task list and direct task reads to assigned tasks", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       await StudioTaskModel.create([
         {
@@ -921,7 +921,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("serves studio tasks through the MVP list contract with scoped search, filters, sort, and pagination", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       await StudioTaskModel.create([
         {
@@ -1012,7 +1012,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects non-data task list sort fields", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       const response = await request(createApp())
         .get("/api/studio/tasks?sortBy=actions")
@@ -1023,7 +1023,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("blocks assistants from acting on or submitting to unassigned tasks", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       await StudioTaskModel.create({
         id: "tsk-unassigned-guard",
@@ -1051,7 +1051,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("creates assistant submissions with server-owned identity and submitted status", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       await StudioTaskModel.create({
         id: "tsk-submit-owned",
@@ -1079,7 +1079,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("applies task status transitions through actions", async () => {
-      const assistant = await loginAs("jun@beachread.jp");
+      const assistant = await loginAs("jun@mangaflow.local");
 
       // Create a test task in TODO state
       await StudioTaskModel.create({
@@ -1128,7 +1128,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Submission list contract", () => {
     it("serves scoped submissions through the MVP list contract", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       await SubmissionModel.create([
         {
@@ -1215,7 +1215,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects non-data submission list sort fields", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       const response = await request(createApp())
         .get("/api/submissions?sortBy=actions")
@@ -1228,8 +1228,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Creator self-approval check", () => {
     it("blocks assistants from approving their own submission and allows mangakas", async () => {
-      const assistant = await loginAs("jun@beachread.jp"); // id: u-assist
-      const mangaka = await loginAs("inoue@beachread.jp"); // id: u-mangaka
+      const assistant = await loginAs("jun@mangaflow.local"); // id: u-assist
+      const mangaka = await loginAs("inoue@mangaflow.local"); // id: u-mangaka
 
       // Create a test task and submission
       await StudioTaskModel.create({
@@ -1384,7 +1384,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     }
 
     it("sends an uploaded chapter without assistant tasks directly to Editor Review", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
 
       const response = await request(createApp())
@@ -1403,7 +1403,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     it.each(["TODO", "IN_PROGRESS", "SUBMITTED"])(
       "blocks editor review while an assistant task is %s",
       async (taskStatus) => {
-        const mangaka = await loginAs("inoue@beachread.jp");
+        const mangaka = await loginAs("inoue@mangaflow.local");
         const fixture = await createReviewFixture({
           ownerId: mangaka.user.id,
           taskStatus,
@@ -1419,7 +1419,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     );
 
     it("sends the assistant flow after task and submission are Mangaka-approved", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({
         ownerId: mangaka.user.id,
         taskStatus: "MANGAKA_APPROVED",
@@ -1441,7 +1441,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("blocks unresolved blocking comments", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({
         ownerId: mangaka.user.id,
         blockingTarget: "PAGE",
@@ -1455,7 +1455,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("continues editor review without a material readiness gate", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
 
       const response = await request(createApp())
@@ -1466,7 +1466,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects a Mangaka who does not own the series", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({ ownerId: "u-someone-else" });
       const response = await request(createApp())
         .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
@@ -1476,7 +1476,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects non-Mangaka roles", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const fixture = await createReviewFixture();
       await request(createApp())
         .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
@@ -1485,7 +1485,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("blocks a chapter without an uploaded page image", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({
         ownerId: mangaka.user.id,
         page: false,
@@ -1498,8 +1498,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("only exposes sent submissions in the Editor review queue", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const sent = await createReviewFixture({
         ownerId: mangaka.user.id,
         taskStatus: "MANGAKA_APPROVED",
@@ -1525,8 +1525,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("propagates Editor approval and revision to page, task, and submission states", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
-      const editor = await loginAs("tanaka@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
+      const editor = await loginAs("tanaka@mangaflow.local");
       const approved = await createReviewFixture({
         ownerId: mangaka.user.id,
         taskStatus: "MANGAKA_APPROVED",
@@ -1592,7 +1592,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("writes only canonical statuses, never action or deprecated status names", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
       await request(createApp())
         .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
@@ -1615,7 +1615,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   describe("Rankings scoping & read-only Mangaka restrictions", () => {
     it("serves rankings through the MVP list contract", async () => {
-      const board = await loginAs("board@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
 
       await RankingModel.create([
         {
@@ -1679,7 +1679,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("rejects non-data ranking list sort fields", async () => {
-      const board = await loginAs("board@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
 
       const response = await request(createApp())
         .get("/api/rankings?sortBy=actions")
@@ -1690,7 +1690,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
     });
 
     it("restricts Mangakas to view only rankings associated with their own series", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
 
       // Let's check which series are in database: s-berserk-prod, s-vinland-prod.
       // Inoue Takehiko is the author of both or proposal p-001/etc. Let's make sure.

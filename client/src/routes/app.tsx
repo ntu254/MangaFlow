@@ -26,7 +26,7 @@ import {
 export const Route = createFileRoute("/app")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem("beachread-auth");
+    const raw = window.localStorage.getItem("mangaflow-auth");
     if (!raw) throw redirect({ to: "/login" });
     try {
       const parsed = JSON.parse(raw) as { state?: { user?: unknown } };

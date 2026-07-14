@@ -10,24 +10,24 @@ import {
 
 export const DEMO_CREDENTIALS: Record<WebRole, { email: string; password: string }> = {
   admin: {
-    email: import.meta.env.VITE_DEMO_ADMIN_EMAIL ?? "admin@beachread.jp",
-    password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD ?? "admin@beachread.jp",
+    email: import.meta.env.VITE_DEMO_ADMIN_EMAIL ?? "admin@mangaflow.local",
+    password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD ?? "admin@mangaflow.local",
   },
   mangaka: {
-    email: import.meta.env.VITE_DEMO_MANGAKA_EMAIL ?? "inoue@beachread.jp",
-    password: import.meta.env.VITE_DEMO_MANGAKA_PASSWORD ?? "inoue@beachread.jp",
+    email: import.meta.env.VITE_DEMO_MANGAKA_EMAIL ?? "inoue@mangaflow.local",
+    password: import.meta.env.VITE_DEMO_MANGAKA_PASSWORD ?? "inoue@mangaflow.local",
   },
   assistant: {
-    email: import.meta.env.VITE_DEMO_ASSISTANT_EMAIL ?? "jun@beachread.jp",
-    password: import.meta.env.VITE_DEMO_ASSISTANT_PASSWORD ?? "jun@beachread.jp",
+    email: import.meta.env.VITE_DEMO_ASSISTANT_EMAIL ?? "jun@mangaflow.local",
+    password: import.meta.env.VITE_DEMO_ASSISTANT_PASSWORD ?? "jun@mangaflow.local",
   },
   editor: {
-    email: import.meta.env.VITE_DEMO_EDITOR_EMAIL ?? "tanaka@beachread.jp",
-    password: import.meta.env.VITE_DEMO_EDITOR_PASSWORD ?? "tanaka@beachread.jp",
+    email: import.meta.env.VITE_DEMO_EDITOR_EMAIL ?? "tanaka@mangaflow.local",
+    password: import.meta.env.VITE_DEMO_EDITOR_PASSWORD ?? "tanaka@mangaflow.local",
   },
   board: {
-    email: import.meta.env.VITE_DEMO_BOARD_EMAIL ?? "board@beachread.jp",
-    password: import.meta.env.VITE_DEMO_BOARD_PASSWORD ?? "board@beachread.jp",
+    email: import.meta.env.VITE_DEMO_BOARD_EMAIL ?? "board@mangaflow.local",
+    password: import.meta.env.VITE_DEMO_BOARD_PASSWORD ?? "board@mangaflow.local",
   },
 };
 

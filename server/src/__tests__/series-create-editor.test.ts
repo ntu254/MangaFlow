@@ -30,7 +30,7 @@ describe("POST /api/series workflow lock", () => {
   });
 
   it("returns 403 for Mangaka manual Series creation", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -39,16 +39,20 @@ describe("POST /api/series workflow lock", () => {
   });
 
   it("returns 403 for Editor manual Series creation even with Tantou fields", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send({ title: "Editor series", editorId: "u-editor", editorName: "Spoofed Name" })
+      .send({
+        title: "Editor series",
+        editorId: "u-editor",
+        editorName: "Spoofed Name",
+      })
       .expect(403);
   });
 
   it("checks workflow lock before Tantou validation", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -57,7 +61,7 @@ describe("POST /api/series workflow lock", () => {
   });
 
   it("checks workflow lock before unknown editor validation", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)

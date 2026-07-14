@@ -11,7 +11,11 @@ async function loginAs(email: string, password = email) {
     .post("/api/auth/login")
     .send({ email, password })
     .expect(200);
-  return response.body.data as { accessToken: string; refreshToken: string; user: { id: string; role: string } };
+  return response.body.data as {
+    accessToken: string;
+    refreshToken: string;
+    user: { id: string; role: string };
+  };
 }
 
 describe("Tantou Editor Assignment", () => {
@@ -31,7 +35,7 @@ describe("Tantou Editor Assignment", () => {
 
   describe("Tantou assignment routes - MVP guard", () => {
     it("does not expose the legacy reader route; Series summary carries Tantou data", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       await request(createApp())
         .get("/api/series/s-berserk-prod/editor")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -39,7 +43,7 @@ describe("Tantou Editor Assignment", () => {
     });
 
     it("does not expose manual assignment; Board finalization is the only Tantou selection path", async () => {
-      const board = await loginAs("board@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
       await request(createApp())
         .post("/api/series/s-berserk-prod/editor")
         .set("Authorization", `Bearer ${board.accessToken}`)
@@ -48,7 +52,7 @@ describe("Tantou Editor Assignment", () => {
     });
 
     it("does not expose manual removal; lifecycle changes stay inside Board workflow commands", async () => {
-      const board = await loginAs("board@beachread.jp");
+      const board = await loginAs("board@mangaflow.local");
       await request(createApp())
         .delete("/api/series/s-berserk-prod/editor")
         .set("Authorization", `Bearer ${board.accessToken}`)

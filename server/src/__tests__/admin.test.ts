@@ -11,7 +11,11 @@ async function loginAs(email: string, password = email) {
     .post("/api/auth/login")
     .send({ email, password })
     .expect(200);
-  return response.body.data as { accessToken: string; refreshToken: string; user: { id: string; role: string } };
+  return response.body.data as {
+    accessToken: string;
+    refreshToken: string;
+    user: { id: string; role: string };
+  };
 }
 
 describe("Admin RBAC and mutations", () => {
@@ -31,7 +35,7 @@ describe("Admin RBAC and mutations", () => {
 
   describe("GET /api/admin/users - RBAC", () => {
     it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
+      const editor = await loginAs("tanaka@mangaflow.local");
       await request(createApp())
         .get("/api/admin/users")
         .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -39,7 +43,7 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("returns 403 for mangaka", async () => {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       await request(createApp())
         .get("/api/admin/users")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -47,7 +51,7 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("returns 200 for admin", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       const response = await request(createApp())
         .get("/api/admin/users")
         .set("Authorization", `Bearer ${admin.accessToken}`)
@@ -59,7 +63,7 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("supports MVP list pagination, search, filters, and sort", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       const filters = encodeURIComponent(
         JSON.stringify({
           role: { type: "select", value: "ASSISTANT" },
@@ -68,25 +72,30 @@ describe("Admin RBAC and mutations", () => {
       );
 
       const response = await request(createApp())
-        .get(`/api/admin/users?page=1&pageSize=2&q=suzuki&sortBy=email&sortDir=desc&filters=${filters}`)
+        .get(
+          `/api/admin/users?page=1&pageSize=2&q=suzuki&sortBy=email&sortDir=desc&filters=${filters}`,
+        )
         .set("Authorization", `Bearer ${admin.accessToken}`)
         .expect(200);
 
       expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0].email).toBe("jun@beachread.jp");
+      expect(response.body.data[0].email).toBe("jun@mangaflow.local");
       expect(response.body.pagination).toMatchObject({
         page: 1,
         pageSize: 2,
         total: 1,
       });
       expect(response.body.meta.sort).toEqual({ field: "email", dir: "desc" });
-      expect(response.body.meta.filters.role).toEqual({ type: "select", value: "ASSISTANT" });
+      expect(response.body.meta.filters.role).toEqual({
+        type: "select",
+        value: "ASSISTANT",
+      });
     });
   });
 
   describe("MVP excludes non-user-management admin surfaces", () => {
     it("does not expose admin audit, payroll, workflow, storage, demo, or managed notifications", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       const endpoints = [
         "/api/admin/audit",
         "/api/admin/payroll",
@@ -106,16 +115,20 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("does not expose admin override", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       await request(createApp())
         .post("/api/admin/override")
         .set("Authorization", `Bearer ${admin.accessToken}`)
-        .send({ action: "force_status", targetId: "series-001", reason: "MVP should block this" })
+        .send({
+          action: "force_status",
+          targetId: "series-001",
+          reason: "MVP should block this",
+        })
         .expect(404);
     });
 
     it("does not expose admin payroll confirmation/payment/void actions", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
 
       await request(createApp())
         .post("/api/admin/payroll/earn-001/confirm")
@@ -137,7 +150,7 @@ describe("Admin RBAC and mutations", () => {
 
   describe("PATCH /api/admin/users/:userId - RBAC", () => {
     it("returns 403 for non-admin user", async () => {
-      const editor = await loginAs("tanaka@beachread.jp");
+      const editor = await loginAs("tanaka@mangaflow.local");
       await request(createApp())
         .patch("/api/admin/users/u-assist")
         .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -146,7 +159,7 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("admin can update user name", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       const response = await request(createApp())
         .patch("/api/admin/users/u-assist")
         .set("Authorization", `Bearer ${admin.accessToken}`)
@@ -156,7 +169,7 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("admin cannot overwrite protected fields", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       await request(createApp())
         .patch("/api/admin/users/u-assist")
         .set("Authorization", `Bearer ${admin.accessToken}`)
@@ -165,7 +178,7 @@ describe("Admin RBAC and mutations", () => {
     });
 
     it("admin can change user role", async () => {
-      const admin = await loginAs("admin@beachread.jp");
+      const admin = await loginAs("admin@mangaflow.local");
       const response = await request(createApp())
         .patch("/api/admin/users/u-assist")
         .set("Authorization", `Bearer ${admin.accessToken}`)
@@ -174,5 +187,4 @@ describe("Admin RBAC and mutations", () => {
       expect(response.body.data.role).toBe("EDITOR");
     });
   });
-
 });

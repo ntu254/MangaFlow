@@ -80,10 +80,10 @@ describe("MangaFlow backend live contract", () => {
   }
 
   it("authenticates seeded web users with uppercase API roles", async () => {
-    const web = await loginAs("tanaka@beachread.jp");
+    const web = await loginAs("tanaka@mangaflow.local");
     expect(web.user.role).toBe("EDITOR");
 
-    const board = await loginAs("sato@beachread.jp");
+    const board = await loginAs("sato@mangaflow.local");
     expect(board.user.role).toBe("BOARD");
 
     await request(createApp())
@@ -91,7 +91,7 @@ describe("MangaFlow backend live contract", () => {
       .set("Authorization", `Bearer ${web.accessToken}`)
       .expect(200)
       .expect((response) => {
-        expect(response.body.data.email).toBe("tanaka@beachread.jp");
+        expect(response.body.data.email).toBe("tanaka@mangaflow.local");
       });
 
     const refreshed = await request(createApp())
@@ -102,7 +102,7 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("returns bootstrap and proposal review queue from the same seeded workflow state", async () => {
-    const editor = await loginAs("nishida@beachread.jp");
+    const editor = await loginAs("nishida@mangaflow.local");
 
     await request(createApp())
       .get("/api/me/bootstrap")
@@ -126,7 +126,7 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("applies board voting with quorum and creates audit-backed state changes", async () => {
-    const board = await loginAs("kobayashi@beachread.jp");
+    const board = await loginAs("kobayashi@mangaflow.local");
 
     const response = await request(createApp())
       .post("/api/board/proposals/p-004/votes")
@@ -164,7 +164,7 @@ describe("MangaFlow backend live contract", () => {
       throw new Error("Expected test server port.");
 
     try {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       await request(
         createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` }),
       )
@@ -187,9 +187,9 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("issues scoped backend display URLs and streams uploaded Studio page files", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
-    const assistant = await loginAs("jun@beachread.jp");
-    const unassignedAssistant = await loginAs("hina@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
+    const assistant = await loginAs("jun@mangaflow.local");
+    const unassignedAssistant = await loginAs("hina@mangaflow.local");
     const uploaded = await createUploadedPage(
       mangaka.accessToken,
       "pg-display-test",
@@ -254,7 +254,7 @@ describe("MangaFlow backend live contract", () => {
       throw new Error("Expected test server port.");
 
     try {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const uploaded = await createUploadedPage(
         mangaka.accessToken,
         "pg-ai-detect-test",
@@ -312,7 +312,7 @@ describe("MangaFlow backend live contract", () => {
       throw new Error("Expected test server port.");
 
     try {
-      const mangaka = await loginAs("inoue@beachread.jp");
+      const mangaka = await loginAs("inoue@mangaflow.local");
       const uploaded = await createUploadedPage(
         mangaka.accessToken,
         "pg-ai-whiten-test",
@@ -353,7 +353,7 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("returns my chapters filtered by role via /chapters?mine=true", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     const response = await request(createApp())
       .get("/api/chapters?mine=true")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -369,7 +369,7 @@ describe("MangaFlow backend live contract", () => {
       ]).toContain(ch.status);
     }
 
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const mangakaRes = await request(createApp())
       .get("/api/chapters?mine=true")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -382,8 +382,8 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("rejects invalid body with 400 and validation error", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     // POST /proposals is Mangaka-owned; Editor cannot create a Proposal.
     await request(createApp())
@@ -415,14 +415,14 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("blocks protected fields on PATCH /series/:id", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ title: "Validation test series" })
       .expect(403);
 
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     // PATCH with protected field should be rejected for the owning Mangaka.
     await request(createApp())

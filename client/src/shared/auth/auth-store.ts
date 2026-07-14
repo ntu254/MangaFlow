@@ -23,25 +23,30 @@ type AuthState = {
 };
 
 const DEMO_USERS: Record<Role, User> = {
-  admin: { id: "u-admin", name: "Hayashi Admin", email: "admin@beachread.jp", role: "admin" },
+  admin: { id: "u-admin", name: "Hayashi Admin", email: "admin@mangaflow.local", role: "admin" },
   mangaka: {
     id: "u-mangaka",
     name: "Inoue Takehiko",
-    email: "inoue@beachread.jp",
+    email: "inoue@mangaflow.local",
     role: "mangaka",
   },
-  assistant: { id: "u-assist", name: "Suzuki Jun", email: "jun@beachread.jp", role: "assistant" },
+  assistant: {
+    id: "u-assist",
+    name: "Suzuki Jun",
+    email: "jun@mangaflow.local",
+    role: "assistant",
+  },
   editor: {
     id: "u-editor",
     name: "Tanaka Akira",
-    email: "tanaka@beachread.jp",
+    email: "tanaka@mangaflow.local",
     role: "editor",
     isEditorInChief: true,
   },
   board: {
     id: "u-board",
     name: "Yamamoto Director",
-    email: "board@beachread.jp",
+    email: "board@mangaflow.local",
     role: "board",
     isChair: true,
   },
@@ -51,45 +56,45 @@ export const BOARD_MEMBERS: User[] = [
   {
     id: "u-board",
     name: "Yamamoto Director",
-    email: "board@beachread.jp",
+    email: "board@mangaflow.local",
     role: "board",
     isChair: true,
   },
-  { id: "u-board-2", name: "Sato Eriko", email: "sato@beachread.jp", role: "board" },
-  { id: "u-board-3", name: "Kobayashi Ren", email: "kobayashi@beachread.jp", role: "board" },
-  { id: "u-board-4", name: "Watanabe Kaoru", email: "watanabe@beachread.jp", role: "board" },
-  { id: "u-board-5", name: "Mori Haruto", email: "mori@beachread.jp", role: "board" },
+  { id: "u-board-2", name: "Sato Eriko", email: "sato@mangaflow.local", role: "board" },
+  { id: "u-board-3", name: "Kobayashi Ren", email: "kobayashi@mangaflow.local", role: "board" },
+  { id: "u-board-4", name: "Watanabe Kaoru", email: "watanabe@mangaflow.local", role: "board" },
+  { id: "u-board-5", name: "Mori Haruto", email: "mori@mangaflow.local", role: "board" },
 ];
 
 export const ASSISTANTS: User[] = [
-  { id: "u-assist", name: "Suzuki Jun", email: "jun@beachread.jp", role: "assistant" },
-  { id: "u-assist-2", name: "Nakamura Hina", email: "hina@beachread.jp", role: "assistant" },
-  { id: "u-assist-3", name: "Ito Daichi", email: "daichi@beachread.jp", role: "assistant" },
+  { id: "u-assist", name: "Suzuki Jun", email: "jun@mangaflow.local", role: "assistant" },
+  { id: "u-assist-2", name: "Nakamura Hina", email: "hina@mangaflow.local", role: "assistant" },
+  { id: "u-assist-3", name: "Ito Daichi", email: "daichi@mangaflow.local", role: "assistant" },
 ];
 
 export const EDITORS: User[] = [
   {
     id: "u-editor",
     name: "Tanaka Akira",
-    email: "tanaka@beachread.jp",
+    email: "tanaka@mangaflow.local",
     role: "editor",
     isEditorInChief: true,
   },
   {
     id: "u-editor-2",
     name: "Nishida Emi",
-    email: "nishida@beachread.jp",
+    email: "nishida@mangaflow.local",
     role: "editor",
   },
 ];
 
 export const MANGAKAS: User[] = [
-  { id: "u-mangaka", name: "Inoue Takehiko", email: "inoue@beachread.jp", role: "mangaka" },
+  { id: "u-mangaka", name: "Inoue Takehiko", email: "inoue@mangaflow.local", role: "mangaka" },
 ];
 
 export function findUserById(id: string): User | undefined {
   if (id === "u-admin")
-    return { id: "u-admin", name: "Hayashi Admin", email: "admin@beachread.jp", role: "admin" };
+    return { id: "u-admin", name: "Hayashi Admin", email: "admin@mangaflow.local", role: "admin" };
   return (
     EDITORS.find((u) => u.id === id) ??
     BOARD_MEMBERS.find((u) => u.id === id) ??
@@ -116,7 +121,7 @@ export const useAuth = create<AuthState>()(
         set({ user: null });
       },
     }),
-    { name: "beachread-auth" },
+    { name: "mangaflow-auth" },
   ),
 );
 

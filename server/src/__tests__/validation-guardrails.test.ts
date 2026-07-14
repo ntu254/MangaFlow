@@ -4,7 +4,11 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { ProposalModel, StudioTaskModel, SubmissionModel } from "../db/models.js";
+import {
+  ProposalModel,
+  StudioTaskModel,
+  SubmissionModel,
+} from "../db/models.js";
 
 let mongo: MongoMemoryServer;
 
@@ -36,8 +40,8 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("rejects PATCH /series/:id with protected fields", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .post("/api/series")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -53,7 +57,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("rejects PATCH /series/:id with invalid field type", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     await request(createApp())
       .patch("/api/series/s-berserk-prod")
@@ -63,7 +67,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("does not expose production material creation in the MVP API", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     await request(createApp())
       .post("/api/materials")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -72,7 +76,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("rejects PATCH /regions with workflow status fields", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     const patchRes = await request(createApp())
       .patch("/api/studio/regions/nonexistent-id")
@@ -83,7 +87,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("does not expose voting session creation in the MVP API", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     await request(createApp())
       .post("/api/voting-sessions")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -92,7 +96,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("rejects review actions with unknown fields via strict schema", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     const res = await request(createApp())
       .get("/api/submissions")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -109,7 +113,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("blocks ASSISTANT from submission review actions (RBAC)", async () => {
-    const assistant = await loginAs("sato@beachread.jp");
+    const assistant = await loginAs("sato@mangaflow.local");
     const res = await request(createApp())
       .get("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -125,7 +129,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("does not expose production material creation to assistants", async () => {
-    const assistant = await loginAs("sato@beachread.jp");
+    const assistant = await loginAs("sato@mangaflow.local");
     await request(createApp())
       .post("/api/materials")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -134,16 +138,21 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("blocks non-editor/non-mangaka from studio region creation (RBAC)", async () => {
-    const assistant = await loginAs("sato@beachread.jp");
+    const assistant = await loginAs("sato@mangaflow.local");
     await request(createApp())
       .post("/api/studio/regions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
-      .send({ seriesId: "s-demo-1", chapterId: "ch-1-1", pageId: "page-1", type: "BUBBLE" })
+      .send({
+        seriesId: "s-demo-1",
+        chapterId: "ch-1-1",
+        pageId: "page-1",
+        type: "BUBBLE",
+      })
       .expect(403);
   });
 
   it("blocks non-editor/non-mangaka from chapter PATCH (RBAC)", async () => {
-    const assistant = await loginAs("sato@beachread.jp");
+    const assistant = await loginAs("sato@mangaflow.local");
     await request(createApp())
       .patch("/api/chapters/ch-1-1")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -152,7 +161,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("blocks non-owner from reading notifications (ownership check)", async () => {
-    const assistant = await loginAs("sato@beachread.jp");
+    const assistant = await loginAs("sato@mangaflow.local");
     const notifRes = await request(createApp())
       .get("/api/notifications")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -160,7 +169,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     const notification = notifRes.body.data[0];
     if (!notification) return;
 
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     await request(createApp())
       .patch(`/api/notifications/${notification.id}/read`)
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -170,7 +179,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   // MF-015: Proposal live API tests
 
   it("GET /api/proposals/:id returns proposal", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const listRes = await request(createApp())
       .get("/api/proposals")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -186,7 +195,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("POST /api/proposals creates unique non-empty slugs for duplicate titles", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const create = () =>
       request(createApp())
         .post("/api/proposals")
@@ -203,8 +212,8 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("POST /api/proposals is Mangaka-owned and never accepts author spoofing", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     await request(createApp())
       .post("/api/proposals")
@@ -215,7 +224,11 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     await request(createApp())
       .post("/api/proposals")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
-      .send({ title: "Spoofed author", authorId: "u-editor", authorName: "Tanaka Akira" })
+      .send({
+        title: "Spoofed author",
+        authorId: "u-editor",
+        authorName: "Tanaka Akira",
+      })
       .expect(400);
 
     const created = await request(createApp())
@@ -229,7 +242,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("RESUBMIT persists the revised proposal, real files, and resolved checklist", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await ProposalModel.create({
       id: "p-full-revision-test",
       slug: "full-revision-test",
@@ -252,7 +265,13 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
           editorName: "Tanaka Akira",
           comment: "Revise the pitch and manuscript.",
           createdAt: new Date().toISOString(),
-          items: [{ id: "rci-full-revision", text: "Update manuscript", resolved: false }],
+          items: [
+            {
+              id: "rci-full-revision",
+              text: "Update manuscript",
+              resolved: false,
+            },
+          ],
         },
       ],
       revisionRound: 1,
@@ -293,7 +312,10 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
           },
         ],
         resolvedItems: {
-          "rci-full-revision": { resolved: true, response: "Uploaded the revised manuscript." },
+          "rci-full-revision": {
+            resolved: true,
+            response: "Uploaded the revised manuscript.",
+          },
         },
         comment: "Ready for another review.",
       })
@@ -302,14 +324,16 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     expect(response.body.data.status).toBe("RESUBMITTED");
     expect(response.body.data.title).toBe("Revised title");
     expect(response.body.data.manuscripts).toHaveLength(1);
-    expect(response.body.data.manuscripts[0].fileUrl).toBe("metadata://revision.pdf");
+    expect(response.body.data.manuscripts[0].fileUrl).toBe(
+      "metadata://revision.pdf",
+    );
     expect(response.body.data.materials).toHaveLength(1);
     expect(response.body.data.requestedChanges[0].resolvedAt).toBeTruthy();
     expect(response.body.data.requestedChanges[0].items[0].response).toBe(
       "Uploaded the revised manuscript.",
     );
 
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     const nextReview = await request(createApp())
       .post("/api/proposals/p-full-revision-test/actions/REQUEST_CHANGES")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -319,7 +343,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("PATCH /api/proposals/:id rejects protected fields", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const listRes = await request(createApp())
       .get("/api/proposals")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -335,7 +359,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("limits direct Proposal edit and withdrawal routes to Mangaka", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
 
     await request(createApp())
       .patch("/api/proposals/p-001")
@@ -351,7 +375,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("PATCH /api/proposals/:id saves full revision content without resubmitting", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await ProposalModel.create({
       id: "p-edit-revision-test",
       slug: "edit-revision-test",
@@ -385,7 +409,8 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({
         title: "After edit",
-        synopsis: "After edit synopsis with the complete revised proposal content.",
+        synopsis:
+          "After edit synopsis with the complete revised proposal content.",
         logline: "Updated logline",
         hook: "Updated hook",
         mainCharacters: "Updated characters",
@@ -422,11 +447,13 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     expect(response.body.data.status).toBe("CHANGES_REQUESTED");
     expect(response.body.data.title).toBe("After edit");
     expect(response.body.data.manuscripts).toHaveLength(2);
-    expect(response.body.data.manuscripts[1].fileUrl).toBe("metadata://manuscript-new");
+    expect(response.body.data.manuscripts[1].fileUrl).toBe(
+      "metadata://manuscript-new",
+    );
   });
 
   it("PATCH /api/proposals/:id rejects edits outside draft or revision", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .patch("/api/proposals/p-002")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -435,7 +462,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("POST /api/proposals/:id/actions/SUBMIT works from DRAFT for author", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const listRes = await request(createApp())
       .get("/api/proposals")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -452,12 +479,14 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("POST /api/proposals/:id/actions/SUBMIT rejects invalid transition", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const listRes = await request(createApp())
       .get("/api/proposals")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(200);
-    const proposal = listRes.body.data.find((p: any) => p.status === "PENDING_EDITOR");
+    const proposal = listRes.body.data.find(
+      (p: any) => p.status === "PENDING_EDITOR",
+    );
     if (!proposal) return;
 
     await request(createApp())
@@ -468,7 +497,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("allows the claiming editor to forward an EDITOR_REVIEWING proposal", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     await ProposalModel.create({
       id: "p-claim-forward-test",
       slug: "claim-forward-test",
@@ -494,7 +523,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("GET /api/proposals/:id returns 404 for nonexistent proposal", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .get("/api/proposals/nonexistent-id")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -510,7 +539,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
 
   beforeEach(async () => {
     await seedDatabase();
-    // Seed a task assigned to u-assist (jun@beachread.jp)
+    // Seed a task assigned to u-assist (jun@mangaflow.local)
     await StudioTaskModel.create({
       id: "tsk-mf027-test",
       title: "MF-027 Test Task",
@@ -533,7 +562,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("ASSISTANT can create a submission via POST /api/submissions", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const res = await request(createApp())
       .post("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -556,7 +585,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("ASSISTANT can create a submitted work item visible to live review filters", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const createRes = await request(createApp())
       .post("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -575,11 +604,13 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
       .get("/api/submissions?assistantId=u-assist&status=PENDING")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .expect(200);
-    expect(listRes.body.data.some((sub: any) => sub.id === createRes.body.data.id)).toBe(true);
+    expect(
+      listRes.body.data.some((sub: any) => sub.id === createRes.body.data.id),
+    ).toBe(true);
   });
 
   it("GET /api/submissions lists all submissions", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const res = await request(createApp())
       .get("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -588,7 +619,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("GET /api/submissions filters by assistantId", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const me = await request(createApp())
       .get("/api/me/bootstrap")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -613,7 +644,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("GET /api/tasks/:taskId/submissions returns submissions for a task", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     // Create a submission first
     await request(createApp())
       .post("/api/submissions")
@@ -630,7 +661,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("ASSISTANT cannot approve their own submission (RBAC)", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const createRes = await request(createApp())
       .post("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -646,8 +677,8 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("MANGAKA can approve a submission", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const createRes = await request(createApp())
       .post("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -664,8 +695,8 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("MANGAKA can request revision on a submission", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     const createRes = await request(createApp())
       .post("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -682,7 +713,7 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
   });
 
   it("submission creation rejects unknown fields via strict schema", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     await request(createApp())
       .post("/api/submissions")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -722,8 +753,8 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
   });
 
   it("Mangaka can see review queue (submissions with PENDING status)", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
-    const assistant = await loginAs("jun@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
+    const assistant = await loginAs("jun@mangaflow.local");
 
     // Insert a submission directly in the canonical review-queue status.
     const subId = `sub-review-q-${Date.now()}`;
@@ -751,7 +782,7 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
   });
 
   it("GET /api/submissions?status=PENDING filters correctly", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     // Insert a PENDING submission.
     const subIdSubmitted = `sub-filter-submitted-${Date.now()}`;
@@ -791,14 +822,18 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(200);
     expect(Array.isArray(queueRes.body.data)).toBe(true);
-    const approved = queueRes.body.data.find((s: any) => s.id === subIdApproved);
+    const approved = queueRes.body.data.find(
+      (s: any) => s.id === subIdApproved,
+    );
     expect(approved).toBeUndefined();
-    const submitted = queueRes.body.data.find((s: any) => s.id === subIdSubmitted);
+    const submitted = queueRes.body.data.find(
+      (s: any) => s.id === subIdSubmitted,
+    );
     expect(submitted).toBeDefined();
   });
 
   it("Self-approval is blocked for submissions (SELF_APPROVAL_BLOCKED)", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
 
     // Insert a SUBMITTED submission where assistant is both creator and reviewer
     const subId = `sub-self-approve-${Date.now()}`;
@@ -822,8 +857,8 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
   });
 
   it("Invalid review body returns 400 VALIDATION_ERROR", async () => {
-    const assistant = await loginAs("jun@beachread.jp");
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
+    const mangaka = await loginAs("inoue@mangaflow.local");
 
     // Create a submission
     const createRes = await request(createApp())

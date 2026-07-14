@@ -55,7 +55,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .get("/api/board/queue")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -118,7 +118,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       },
     ]);
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const filters = encodeURIComponent(
       JSON.stringify({ status: { type: "select", value: "PENDING_BOARD" } }),
     );
@@ -144,7 +144,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("GET /api/board/queue rejects unsupported sort fields", async () => {
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .get("/api/board/queue?sortBy=actions")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -154,7 +154,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("GET /api/board/queue requires Board role", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
     await request(createApp())
       .get("/api/board/queue")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -176,7 +176,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .get("/api/board/queue")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -214,7 +214,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .get("/api/board/proposals/proposal-votes-test/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -255,7 +255,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board3 = await loginAs("kobayashi@beachread.jp");
+    const board3 = await loginAs("kobayashi@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-quorum-test/votes")
       .set("Authorization", `Bearer ${board3.accessToken}`)
@@ -292,7 +292,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-dup-test/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -317,7 +317,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     await request(createApp())
       .post("/api/board/proposals/proposal-rbac-test/votes")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -353,7 +353,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const editor = await loginAs("nishida@beachread.jp");
+    const editor = await loginAs("nishida@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-tie-test/tie-break")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -393,7 +393,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const eic = await loginAs("tanaka@beachread.jp");
+    const eic = await loginAs("tanaka@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-tie-approve-test/tie-break")
       .set("Authorization", `Bearer ${eic.accessToken}`)
@@ -422,7 +422,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-finalize-test/finalization")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -474,7 +474,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-command-vote/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -505,7 +505,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
 
     await request(createApp())
       .post("/api/board/proposals/proposal-command-finalize/finalization")
@@ -551,14 +551,14 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const admin = await loginAs("admin@beachread.jp");
+    const admin = await loginAs("admin@mangaflow.local");
     await request(createApp())
       .post("/api/board/proposals/proposal-finalize-admin/finalization")
       .set("Authorization", `Bearer ${admin.accessToken}`)
       .send({ decision: "REJECTED" })
       .expect(403);
 
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-finalize-admin/finalization")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -587,7 +587,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const assistant = await loginAs("jun@beachread.jp");
+    const assistant = await loginAs("jun@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-finalize-assistant/finalization")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
@@ -598,7 +598,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions requires a submitted Tantou report", async () => {
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     const res = await request(createApp())
       .post("/api/board/series/s-berserk-prod/at-risk-decisions")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -609,8 +609,8 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("Tantou Editor can submit an at-risk report and Board can view the latest report", async () => {
-    const tantou = await loginAs("tanaka@beachread.jp");
-    const board = await loginAs("board@beachread.jp");
+    const tantou = await loginAs("tanaka@mangaflow.local");
+    const board = await loginAs("board@mangaflow.local");
 
     const res = await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
@@ -635,8 +635,8 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("rejects Mangaka and non-Tantou Editor at-risk report submissions", async () => {
-    const mangaka = await loginAs("inoue@beachread.jp");
-    const otherEditor = await loginAs("nishida@beachread.jp");
+    const mangaka = await loginAs("inoue@mangaflow.local");
+    const otherEditor = await loginAs("nishida@mangaflow.local");
 
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
@@ -654,8 +654,8 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions transitions the series after report (HIATUS)", async () => {
-    const tantou = await loginAs("tanaka@beachread.jp");
-    const board = await loginAs("board@beachread.jp");
+    const tantou = await loginAs("tanaka@mangaflow.local");
+    const board = await loginAs("board@mangaflow.local");
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
       .set("Authorization", `Bearer ${tantou.accessToken}`)
@@ -672,8 +672,8 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions allows a non-chair Board member after report", async () => {
-    const tantou = await loginAs("tanaka@beachread.jp");
-    const boardMember = await loginAs("sato@beachread.jp");
+    const tantou = await loginAs("tanaka@mangaflow.local");
+    const boardMember = await loginAs("sato@mangaflow.local");
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
       .set("Authorization", `Bearer ${tantou.accessToken}`)
@@ -693,8 +693,8 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions can cancel the series after report", async () => {
-    const tantou = await loginAs("tanaka@beachread.jp");
-    const board = await loginAs("board@beachread.jp");
+    const tantou = await loginAs("tanaka@mangaflow.local");
+    const board = await loginAs("board@mangaflow.local");
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
       .set("Authorization", `Bearer ${tantou.accessToken}`)
@@ -714,7 +714,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions rejects an invalid decision", async () => {
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     await request(createApp())
       .post("/api/board/series/s-berserk-prod/at-risk-decisions")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -723,7 +723,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions returns 404 for unknown series", async () => {
-    const board = await loginAs("board@beachread.jp");
+    const board = await loginAs("board@mangaflow.local");
     await request(createApp())
       .post("/api/board/series/series-001/at-risk-decisions")
       .set("Authorization", `Bearer ${board.accessToken}`)
@@ -745,7 +745,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const editor = await loginAs("tanaka@beachread.jp");
+    const editor = await loginAs("tanaka@mangaflow.local");
     const scheduledAt = new Date(
       Date.now() + 48 * 60 * 60 * 1000,
     ).toISOString();

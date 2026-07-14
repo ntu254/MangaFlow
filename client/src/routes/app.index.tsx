@@ -4,7 +4,7 @@ export const Route = createFileRoute("/app/")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem("beachread-auth");
+      const raw = window.localStorage.getItem("mangaflow-auth");
       const parsed = raw ? (JSON.parse(raw) as { state?: { user?: { role?: string } } }) : null;
       if (parsed?.state?.user?.role === "assistant") {
         throw redirect({ to: "/app/assistant/dashboard" });
