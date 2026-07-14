@@ -165,15 +165,7 @@ export function UsersTable({
         },
       },
     ],
-    [
-      currentUser,
-      onDelete,
-      onRoleChange,
-      onSelect,
-      onToggleActive,
-      users,
-      activeAdminCount,
-    ],
+    [currentUser, onDelete, onRoleChange, onSelect, onToggleActive, users, activeAdminCount],
   );
 
   return (

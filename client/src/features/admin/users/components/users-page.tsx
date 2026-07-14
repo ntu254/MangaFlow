@@ -238,9 +238,7 @@ export function AdminUsersPage() {
                     setTableFilter(
                       state,
                       "role",
-                      value === "ALL"
-                        ? undefined
-                        : { type: "select", value: value.toUpperCase() },
+                      value === "ALL" ? undefined : { type: "select", value: value.toUpperCase() },
                     ),
                   )
                 }
@@ -259,9 +257,7 @@ export function AdminUsersPage() {
                     setTableFilter(
                       state,
                       "active",
-                      value === "ALL"
-                        ? undefined
-                        : { type: "boolean", value: value === "ACTIVE" },
+                      value === "ALL" ? undefined : { type: "boolean", value: value === "ACTIVE" },
                     ),
                   )
                 }

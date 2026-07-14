@@ -4,7 +4,10 @@ export const Route = createFileRoute("/app/admin/materials")({
   head: () => ({
     meta: [
       { title: "Admin - User Management - beachRead Studio" },
-      { name: "description", content: "Material library administration is outside the MVP admin surface." },
+      {
+        name: "description",
+        content: "Material library administration is outside the MVP admin surface.",
+      },
     ],
   }),
   beforeLoad: () => {

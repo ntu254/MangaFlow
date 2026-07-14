@@ -90,9 +90,7 @@ export function BoardQueuePage() {
     tieBreak: 0,
   };
   const statusFilter =
-    tableState.filters.status?.type === "select"
-      ? String(tableState.filters.status.value)
-      : "ALL";
+    tableState.filters.status?.type === "select" ? String(tableState.filters.status.value) : "ALL";
   const sortValue = `${tableState.sortBy ?? "updatedAt"}:${tableState.sortDir}`;
   const filtersActive =
     tableState.q.trim().length > 0 || Object.keys(tableState.filters).length > 0;

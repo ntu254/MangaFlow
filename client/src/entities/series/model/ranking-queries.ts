@@ -1,5 +1,10 @@
 import { apiRequest, type ApiListEnvelope } from "@/shared/api/client";
-import { boardApi, seriesApi, type RankingsListMeta, type SeriesListMeta } from "@/shared/api/services";
+import {
+  boardApi,
+  seriesApi,
+  type RankingsListMeta,
+  type SeriesListMeta,
+} from "@/shared/api/services";
 import type { TableState } from "@/shared/table";
 import { useQuery } from "@tanstack/react-query";
 import type { ProductionSeries, SeriesRanking } from "./series-types";
@@ -41,7 +46,9 @@ export function useRankingsListContractQuery(tableState: TableState) {
   return useQuery<ApiListEnvelope<SeriesRanking, RankingsListMeta>>({
     queryKey: [...rankingKeys.all, "listContract", tableState] as const,
     queryFn: () =>
-      boardApi.rankingsList(tableState) as Promise<ApiListEnvelope<SeriesRanking, RankingsListMeta>>,
+      boardApi.rankingsList(tableState) as Promise<
+        ApiListEnvelope<SeriesRanking, RankingsListMeta>
+      >,
     staleTime: 60000,
   });
 }
