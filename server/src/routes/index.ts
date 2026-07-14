@@ -16,6 +16,7 @@ import notificationRoutes from "./notification.routes.js";
 import mobileRoutes from "./mobile.routes.js";
 import { createAiRoutes } from "./ai.routes.js";
 import fileTokenRoutes from "./file-token.routes.js";
+import atRiskRoutes from "./at-risk.routes.js";
 import atRiskReportRoutes from "./at-risk-report.routes.js";
 
 export type ApiRouterOptions = {
@@ -45,6 +46,7 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(publicationRoutes);
   router.use(tantouRoutes);
   router.use(atRiskReportRoutes);
+  router.use(atRiskRoutes);
   router.use(notificationRoutes);
   router.use(mobileRoutes);
 
