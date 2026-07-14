@@ -11,6 +11,7 @@ import {
   SeriesModel,
   SeriesMemberModel,
   StudioCommentModel,
+  StudioRegionModel,
   StudioTaskModel,
   SubmissionModel,
   UserModel,
@@ -591,6 +592,162 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
   });
 
   describe("Task action states", () => {
+    it("serves studio regions through the MVP list contract", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      await StudioRegionModel.create([
+        {
+          id: "region-contract-bg",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          pageId: "page-contract-1",
+          type: "background",
+          label: "Contract background panel",
+          status: "CONFIRMED",
+          x: 10,
+          y: 20,
+          width: 200,
+          height: 160,
+          createdAt: new Date("2026-07-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+        },
+        {
+          id: "region-contract-character",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          pageId: "page-contract-1",
+          type: "character",
+          label: "Contract character panel",
+          status: "CONFIRMED",
+          x: 30,
+          y: 40,
+          width: 120,
+          height: 180,
+          createdAt: new Date("2026-07-02T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-02T00:00:00.000Z"),
+        },
+      ]);
+
+      const response = await request(createApp())
+        .get("/api/studio/regions")
+        .query({
+          q: "Contract",
+          filters: JSON.stringify({ status: { type: "select", value: "CONFIRMED" } }),
+          sortBy: "label",
+          sortDir: "asc",
+          page: 1,
+          pageSize: 1,
+          pageId: "page-contract-1",
+        })
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe("region-contract-bg");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        pageSize: 1,
+        total: 2,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      });
+      expect(response.body.meta).toMatchObject({
+        q: "Contract",
+        sort: { field: "label", dir: "asc" },
+      });
+      expect(response.body.meta.summary.byStatus.CONFIRMED).toBe(1);
+    });
+
+    it("rejects non-data studio region sort fields", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      const response = await request(createApp())
+        .get("/api/studio/regions?sortBy=actions")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(400);
+
+      expect(response.body.code).toBe("INVALID_SORT_FIELD");
+    });
+
+    it("serves comments through the MVP list contract", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      await StudioCommentModel.create([
+        {
+          id: "comment-contract-open",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          pageId: "page-contract-1",
+          taskId: "task-contract-comment",
+          authorId: mangaka.user.id,
+          authorName: "Inoue",
+          body: "Contract comment needs cleanup",
+          text: "Contract comment needs cleanup",
+          status: "OPEN",
+          isBlocking: true,
+          createdAt: new Date("2026-07-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+        },
+        {
+          id: "comment-contract-resolved",
+          seriesId: "s-berserk-prod",
+          chapterId: "ch-s-berserk-prod-4",
+          pageId: "page-contract-1",
+          taskId: "task-contract-comment",
+          authorId: mangaka.user.id,
+          authorName: "Inoue",
+          body: "Contract comment already fixed",
+          text: "Contract comment already fixed",
+          status: "RESOLVED",
+          isBlocking: false,
+          createdAt: new Date("2026-07-02T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-02T00:00:00.000Z"),
+        },
+      ]);
+
+      const response = await request(createApp())
+        .get("/api/comments")
+        .query({
+          q: "Contract comment",
+          filters: JSON.stringify({ status: { type: "select", value: "OPEN" } }),
+          sortBy: "createdAt",
+          sortDir: "desc",
+          page: 1,
+          pageSize: 1,
+          taskId: "task-contract-comment",
+        })
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe("comment-contract-open");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        pageSize: 1,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
+      expect(response.body.meta).toMatchObject({
+        q: "Contract comment",
+        sort: { field: "createdAt", dir: "desc" },
+      });
+      expect(response.body.meta.summary.blocking).toBe(1);
+    });
+
+    it("rejects non-data comment list sort fields", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      const response = await request(createApp())
+        .get("/api/comments?sortBy=actions")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(400);
+
+      expect(response.body.code).toBe("INVALID_SORT_FIELD");
+    });
+
     it("limits assistant task list and direct task reads to assigned tasks", async () => {
       const assistant = await loginAs("jun@beachread.jp");
 

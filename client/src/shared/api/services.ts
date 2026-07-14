@@ -269,6 +269,28 @@ export type StudioTasksListMeta = {
   };
 };
 
+export type StudioRegionsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+    byType: Record<string, number>;
+  };
+};
+
+export type StudioCommentsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+    blocking: number;
+  };
+};
+
 export type SubmissionsListMeta = {
   q?: string;
   sort?: { field: string; dir: "asc" | "desc" };
@@ -352,7 +374,9 @@ export const seriesApi = {
 };
 
 export const studioApi = {
-  regions: (query = "") => apiRequest(`/studio/regions${query}`),
+  regions: (query = "") => apiRequest(`/studio/regions${withPageSize(query, 100)}`),
+  regionsList: (state?: TableState) =>
+    apiListRequest<unknown, StudioRegionsListMeta>(`/studio/regions${tableStateQuery(state)}`),
   createRegion: (body: CreateRegionRequest) =>
     apiRequest("/studio/regions", { method: "POST", body }),
   patchRegion: (id: string, body: UpdateRegionRequest) =>
@@ -363,7 +387,9 @@ export const studioApi = {
   createTask: (body: CreateTaskRequest) => apiRequest("/studio/tasks", { method: "POST", body }),
   patchTask: (id: string, body: UpdateTaskRequest) =>
     apiRequest(`/studio/tasks/${id}`, { method: "PATCH", body }),
-  comments: (query = "") => apiRequest(`/comments${query}`),
+  comments: (query = "") => apiRequest(`/comments${withPageSize(query, 100)}`),
+  commentsList: (state?: TableState) =>
+    apiListRequest<unknown, StudioCommentsListMeta>(`/comments${tableStateQuery(state)}`),
   createComment: (body: CreateCommentRequest) => apiRequest("/comments", { method: "POST", body }),
   resolveComment: (id: string) =>
     apiRequest(`/comments/${id}/resolve`, { method: "POST", body: {} }),

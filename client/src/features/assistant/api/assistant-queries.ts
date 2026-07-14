@@ -215,7 +215,7 @@ export function useChaptersForSeriesQuery(seriesIds: string[]) {
 }
 
 export function useStudioRegionsQuery(filters: StudioRegionFilters, enabled = true) {
-  const qs = buildQuery(filters);
+  const qs = buildQuery({ ...filters, pageSize: "100" });
   return useQuery<StudioRegion[]>({
     queryKey: studioKeys.regions(filters),
     queryFn: () => apiRequest<StudioRegion[]>(`/studio/regions${qs}`),
@@ -267,7 +267,7 @@ export function useStudioTaskActionMutation(taskId: string) {
 }
 
 export function useCommentsQuery(filters: StudioCommentFilters) {
-  const qs = buildQuery(filters);
+  const qs = buildQuery({ ...filters, pageSize: "100" });
   return useQuery<StudioComment[]>({
     queryKey: studioKeys.comments(filters),
     queryFn: () => apiRequest<StudioComment[]>(`/comments${qs}`),

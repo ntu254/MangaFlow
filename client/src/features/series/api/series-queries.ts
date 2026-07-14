@@ -22,6 +22,7 @@ import {
   assistantApi,
   seriesApi,
   studioApi,
+  type StudioRegionsListMeta,
   type StudioTasksListMeta,
   type SubmissionsListMeta,
 } from "@/shared/api/services";
@@ -564,10 +565,22 @@ export function useStudioRegionsQuery(filters: {
   if (filters.pageId) params.set("pageId", filters.pageId);
   if (filters.chapterId) params.set("chapterId", filters.chapterId);
   if (filters.seriesId) params.set("seriesId", filters.seriesId);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<StudioRegion[]>({
     queryKey: studioKeys.regions(filters),
     queryFn: () => apiRequest<StudioRegion[]>(`/studio/regions${qs ? `?${qs}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useStudioRegionsListQuery(tableState: TableState) {
+  return useQuery<ApiListEnvelope<StudioRegion, StudioRegionsListMeta>>({
+    queryKey: [...studioKeys.all, "regionsList", tableState] as const,
+    queryFn: () =>
+      studioApi.regionsList(tableState) as Promise<
+        ApiListEnvelope<StudioRegion, StudioRegionsListMeta>
+      >,
     staleTime: 30000,
   });
 }

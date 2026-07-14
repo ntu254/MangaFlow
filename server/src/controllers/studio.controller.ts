@@ -16,7 +16,6 @@ import {
   filterFromQuery,
   createLoose,
   patchById,
-  paginated,
 } from "./helpers.js";
 import { parseBody, sanitizePatch } from "../validators/common.js";
 import {
@@ -26,6 +25,7 @@ import {
   patchCommentSchema,
 } from "../validators/studio.schema.js";
 import type { AuthedRequest } from "../types.js";
+import type { Response } from "express";
 import {
   assertCanReadChapter,
   assertCanReadComment,
@@ -48,6 +48,47 @@ import {
   listSortToMongo,
   parseListQuery,
 } from "../shared/contracts/list-contract.js";
+import type { ListFieldConfig, ListQuery } from "../shared/contracts/list-contract.js";
+
+const REGION_LIST_CONFIG = {
+  searchable: ["type", "label"] as const,
+  sortable: ["type", "status", "label", "updatedAt", "createdAt"] as const,
+  filterable: {
+    type: "select",
+    status: "select",
+    seriesId: "select",
+    chapterId: "select",
+    pageId: "select",
+    taskId: "select",
+    activeTaskId: "select",
+    label: "text",
+    createdAt: "dateRange",
+    updatedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "updatedAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+const COMMENT_LIST_CONFIG = {
+  searchable: ["body", "text", "authorName", "type", "severity"] as const,
+  sortable: ["status", "severity", "type", "createdAt", "updatedAt"] as const,
+  filterable: {
+    seriesId: "select",
+    chapterId: "select",
+    pageId: "select",
+    regionId: "select",
+    taskId: "select",
+    authorId: "select",
+    status: "select",
+    type: "select",
+    severity: "select",
+    isBlocking: "boolean",
+    createdAt: "dateRange",
+    updatedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "createdAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
 
 const TASK_LIST_CONFIG = {
   searchable: ["title", "description", "instructions", "type", "assigneeName"] as const,
@@ -83,10 +124,70 @@ function summarizeTasks(tasks: any[]) {
   };
 }
 
+function summarizeByField(items: any[], field: string) {
+  return items.reduce<Record<string, number>>((acc, item) => {
+    const value = String(item[field] ?? "UNKNOWN");
+    acc[value] = (acc[value] ?? 0) + 1;
+    return acc;
+  }, {});
+}
+
+async function sendStudioList(
+  req: AuthedRequest,
+  res: Response,
+  model: typeof StudioRegionModel | typeof StudioCommentModel,
+  config: ListFieldConfig,
+  scope: (base: Record<string, unknown>) => Promise<Record<string, unknown>>,
+  summary: (items: any[]) => Record<string, unknown>,
+) {
+  const query: ListQuery = parseListQuery(req, config);
+  const filter = await scope(
+    combineMongoFilters(
+      filterFromQuery(req),
+      listSearchToMongo(query.q, config.searchable),
+      listFiltersToMongo(query.filters),
+    ),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
+  const [items, total] = await Promise.all([
+    model
+      .find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
+    model.countDocuments(filter),
+  ]);
+  return res.status(200).json({
+    success: true,
+    data: items,
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summary(items),
+    },
+  });
+}
+
 // Regions
 export const listRegions = asyncRoute(async (req: AuthedRequest, res) => {
-  const filter = await scopedRegionFilterForActor(requireActor(req), filterFromQuery(req));
-  await paginated(req, res, StudioRegionModel, filter, { updatedAt: -1 });
+  const actor = requireActor(req);
+  await sendStudioList(
+    req,
+    res,
+    StudioRegionModel,
+    REGION_LIST_CONFIG,
+    (base) => scopedRegionFilterForActor(actor, base),
+    (regions) => ({
+      total: regions.length,
+      byStatus: summarizeByField(regions, "status"),
+      byType: summarizeByField(regions, "type"),
+    }),
+  );
 });
 export const createRegion = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(createRegionSchema, req);
@@ -187,8 +288,19 @@ export const sendEditorReview = asyncRoute(async (req: AuthedRequest, res) =>
 
 // Comments
 export const listComments = asyncRoute(async (req: AuthedRequest, res) => {
-  const filter = await scopedCommentFilterForActor(requireActor(req), filterFromQuery(req));
-  await paginated(req, res, StudioCommentModel, filter, { createdAt: -1 });
+  const actor = requireActor(req);
+  await sendStudioList(
+    req,
+    res,
+    StudioCommentModel,
+    COMMENT_LIST_CONFIG,
+    (base) => scopedCommentFilterForActor(actor, base),
+    (comments) => ({
+      total: comments.length,
+      byStatus: summarizeByField(comments, "status"),
+      blocking: comments.filter((comment: any) => comment.isBlocking || comment.blocking).length,
+    }),
+  );
 });
 export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
