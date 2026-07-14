@@ -260,7 +260,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
 
       {tab === "rankings" ? <SeriesRankingsTab series={series} /> : null}
 
-      {tab === "team" ? <TeamPanel series={series} chapters={chapters} /> : null}
+      {tab === "team" ? <TeamPanel series={series} /> : null}
     </div>
   );
 }

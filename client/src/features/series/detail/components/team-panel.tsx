@@ -13,9 +13,9 @@ import {
   ShieldCheck,
   Eye,
 } from "lucide-react";
-import { useAuth, ASSISTANTS, findUserById, type User as AppUser } from "@/shared/auth";
+import { useAuth, ASSISTANTS, findUserById } from "@/shared/auth";
 import type { Role } from "@/shared/auth";
-import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
+import type { ProductionSeries } from "@/entities/series/model/series-types";
 import { StatCard } from "@/shared/ui/stat-card";
 import {
   useSeriesMembersQuery,
@@ -33,8 +33,6 @@ import {
 
 type Scope = "OWNER" | "FULL SERIES" | "TASK ONLY" | "READ ONLY";
 type MemberKind = "MANGAKA" | "EDITOR" | "ASSISTANT" | "TASK-ONLY";
-type Risk = "Low" | "Medium" | "High";
-type Presence = "Online" | "Away" | "Offline";
 
 type MemberRow = {
   id: string;
@@ -43,16 +41,6 @@ type MemberRow = {
   avatar?: string;
   kind: MemberKind;
   scope: Scope;
-  active: number;
-  pending: number;
-  revision: number;
-  completed: number;
-  done: number;
-  risk: Risk;
-  lastActive: string;
-  presence: Presence;
-  joined: string;
-  load: number; // 0..100
 };
 
 function hash(s: string): number {
@@ -61,72 +49,24 @@ function hash(s: string): number {
   return h;
 }
 
-const PRESENCES: Presence[] = ["Online", "Away", "Offline"];
-const RISKS: Risk[] = ["Low", "Medium", "High"];
-const LAST_ACTIVE = [
-  "Today 09:21",
-  "Today 08:47",
-  "Today 09:10",
-  "Today 08:59",
-  "Yesterday 22:31",
-  "Today 07:45",
-  "2 days ago",
-  "3 days ago",
-];
-
-function mockMetrics(id: string, kind: MemberKind) {
-  const h = hash(id);
-  const isOwner = kind === "MANGAKA";
-  const active = isOwner ? 0 : (h % 13) + 1;
-  const pending = isOwner ? 0 : (h >> 2) % 6;
-  const revision = isOwner ? 0 : (h >> 4) % 5;
-  const done = isOwner ? 0 : (h >> 6) % 20;
-  const completed = isOwner ? 120 + (h % 30) : (h >> 8) % 60;
-  const risk = isOwner ? "Low" : RISKS[(h >> 3) % RISKS.length];
-  const lastActive = LAST_ACTIVE[h % LAST_ACTIVE.length];
-  const presence = PRESENCES[(h >> 1) % PRESENCES.length];
-  const joinedDays = (h % 360) + 30;
-  const joined = new Date(Date.now() - joinedDays * 86400_000).toLocaleDateString("vi-VN");
-  const load = Math.min(100, Math.round((active / 20) * 100) + 20);
-  return { active, pending, revision, done, completed, risk, lastActive, presence, joined, load };
-}
-
 function ownerOf(series: ProductionSeries): MemberRow {
-  const m = mockMetrics(series.authorId, "MANGAKA");
   return {
     id: series.authorId,
     name: series.authorName,
     email: `${series.authorName.toLowerCase().replace(/\s+/g, ".")}@studio.jp`,
     kind: "MANGAKA",
     scope: "OWNER",
-    ...m,
   };
 }
 
 function editorOf(series: ProductionSeries, tantouEditor?: TantouEditor | null): MemberRow {
-  const editorId = tantouEditor?.userId ?? series.editorId;
   const editorName = tantouEditor?.userName ?? series.editorName;
-  const m = mockMetrics(editorId, "EDITOR");
   return {
     id: tantouEditor?.id ?? `editor-${series.id}`,
     name: editorName,
     email: tantouEditor?.userEmail ?? `${editorName.toLowerCase().replace(/\s+/g, ".")}@studio.jp`,
     kind: "EDITOR",
     scope: "FULL SERIES",
-    ...m,
-  };
-}
-
-function assistantRow(u: AppUser, scope: Scope = "FULL SERIES"): MemberRow {
-  const m = mockMetrics(u.id, "ASSISTANT");
-  return {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    avatar: u.avatar,
-    kind: scope === "TASK ONLY" || scope === "READ ONLY" ? "TASK-ONLY" : "ASSISTANT",
-    scope,
-    ...m,
   };
 }
 
@@ -172,26 +112,6 @@ function ScopePill({ scope }: { scope: Scope }) {
   );
 }
 
-function RiskDot({ risk }: { risk: Risk }) {
-  const color =
-    risk === "High" ? "bg-rose-500" : risk === "Medium" ? "bg-amber-500" : "bg-emerald-500";
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs">
-      <span className={`size-1.5 rounded-full ${color}`} /> {risk}
-    </span>
-  );
-}
-
-function PresenceDot({ presence }: { presence: Presence }) {
-  const color =
-    presence === "Online"
-      ? "bg-emerald-500"
-      : presence === "Away"
-        ? "bg-amber-500"
-        : "bg-slate-400";
-  return <span className={`size-1.5 rounded-full ${color}`} />;
-}
-
 function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   const h = hash(name);
   const hues = [
@@ -221,7 +141,7 @@ function roleForMember(kind: MemberKind): Role {
 
 // ---------- main ----------
 
-export function TeamPanel({ series, chapters }: { series: ProductionSeries; chapters: Chapter[] }) {
+export function TeamPanel({ series }: { series: ProductionSeries }) {
   const user = useAuth((s) => s.user);
   const isMangakaOwner = !!user && user.role === "mangaka" && user.id === series.authorId;
   const canEdit = isMangakaOwner;
@@ -314,7 +234,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             ? "TASK ONLY"
             : "READ ONLY";
 
-      const m = mockMetrics(u.id, u.role === "assistant" ? "ASSISTANT" : "TASK-ONLY");
       list.push({
         id: dbM.id,
         name: u.name,
@@ -322,7 +241,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         avatar: u.avatar,
         kind: u.role === "assistant" ? "ASSISTANT" : "TASK-ONLY",
         scope: mappedScope,
-        ...m,
       });
     });
     return list;
@@ -330,11 +248,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
 
   const assistantsList = members.filter((m) => m.kind === "ASSISTANT");
   const taskOnlyList = members.filter((m) => m.kind === "TASK-ONLY");
-
-  // Workload featured = first 4 assistants/task-only
-  const workloadFeatured = members
-    .filter((m) => m.kind !== "MANGAKA" && m.kind !== "EDITOR")
-    .slice(0, 4);
 
   const pageSize = 8;
   const pageCount = Math.max(1, Math.ceil(members.length / pageSize));
@@ -416,38 +329,16 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             tone="emerald"
             label="Assistants"
             value={assistantsList.length}
-            hint={`${assistantsList.length} active · 1 invited`}
+            hint="Series members"
           />
           <StatCard
             icon={<ClipboardList className="size-4" />}
             tone="sky"
             label="Task-only members"
             value={taskOnlyList.length}
-            hint={`${taskOnlyList.length} active · 2 invited`}
+            hint="Limited access"
           />
         </div>
-
-        {/* Workload */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Workload overview
-          </p>
-          {workloadFeatured.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No assistants yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {workloadFeatured.map((m) => (
-                <WorkloadCard
-                  key={m.id}
-                  member={m}
-                  selected={selectedId === m.id}
-                  onClick={() => setSelectedId(m.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Members table */}
         <div className="rounded-md border border-border bg-card">
           <div className="border-b border-border px-4 py-3">
@@ -462,11 +353,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                   <th className="px-4 py-2 text-left font-semibold">Name</th>
                   <th className="px-3 py-2 text-left font-semibold">Role</th>
                   <th className="px-3 py-2 text-left font-semibold">Access scope</th>
-                  <th className="px-3 py-2 text-right font-semibold">Active</th>
-                  <th className="px-3 py-2 text-right font-semibold">Pending</th>
-                  <th className="px-3 py-2 text-right font-semibold">Completed</th>
-                  <th className="px-3 py-2 text-left font-semibold">Deadline risk</th>
-                  <th className="px-3 py-2 text-left font-semibold">Last active</th>
                   <th className="px-3 py-2 text-right font-semibold">Action</th>
                 </tr>
               </thead>
@@ -496,13 +382,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                       <td className="px-3 py-3">
                         <ScopePill scope={m.scope} />
                       </td>
-                      <td className="px-3 py-3 text-right tabular-nums">{m.active}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">{m.pending}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">{m.completed}</td>
-                      <td className="px-3 py-3">
-                        <RiskDot risk={m.risk} />
-                      </td>
-                      <td className="px-3 py-3 text-muted-foreground">{m.lastActive}</td>
                       <td className="px-3 py-3 text-right">
                         <button
                           onClick={(e) => {
@@ -561,7 +440,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
       {selected ? (
         <MemberDetail
           member={selected}
-          chapters={chapters}
           canEdit={canEdit}
           onClose={() => setSelectedId(null)}
           onRemove={() => handleRemoveAssistant(selected.id, selected.name)}
@@ -685,98 +563,19 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   );
 }
 
-function WorkloadCard({
-  member,
-  selected,
-  onClick,
-}: {
-  member: MemberRow;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-md border bg-card p-3 text-left transition ${
-        selected
-          ? "border-foreground ring-1 ring-foreground"
-          : "border-border hover:border-foreground/40"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <Avatar name={member.name} size={28} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold">{member.name}</p>
-          <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <PresenceDot presence={member.presence} /> {member.presence}
-          </p>
-        </div>
-      </div>
-      <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px]">
-        <Stat label="Active" value={member.active} />
-        <Stat label="Pending" value={member.pending} />
-        <Stat label="Revision" value={member.revision} />
-        <Stat label="Done" value={member.done} />
-        <div>
-          <p className="text-muted-foreground">Risk</p>
-          <p className="mt-0.5 flex items-center justify-center gap-1 font-semibold">
-            <span
-              className={`size-1.5 rounded-full ${
-                member.risk === "High"
-                  ? "bg-rose-500"
-                  : member.risk === "Medium"
-                    ? "bg-amber-500"
-                    : "bg-emerald-500"
-              }`}
-            />
-            {member.risk}
-          </p>
-        </div>
-      </div>
-      <div className="mt-3">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-foreground" style={{ width: `${member.load}%` }} />
-        </div>
-        <p className="mt-1 text-right text-[10px] text-muted-foreground">{member.load}% load</p>
-      </div>
-    </button>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <p className="text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-bold tabular-nums">{value}</p>
-    </div>
-  );
-}
-
 function MemberDetail({
   member,
-  chapters,
   canEdit,
   onClose,
   onRemove,
   onEditScope,
 }: {
   member: MemberRow;
-  chapters: Chapter[];
   canEdit: boolean;
   onClose: () => void;
   onRemove: () => void;
   onEditScope?: (id: string) => void;
 }) {
-  const tasks = useMemo(() => {
-    return chapters.slice(0, 3).map((c, i) => ({
-      id: c.id,
-      title: `Ch. ${String(c.number).padStart(3, "0")} – ${c.title}`,
-      due: c.draftDueAt ?? c.reviewDueAt ?? c.plannedAt ?? "",
-      status: ["IN PROGRESS", "IN REVIEW", "PENDING"][i % 3],
-      risk: ["Medium", "Low", "Low"][i % 3] as Risk,
-    }));
-  }, [chapters]);
-
   return (
     <aside className="flex w-full shrink-0 flex-col rounded-md border border-border bg-card xl:w-[280px]">
       <div className="flex-1 overflow-y-auto p-3">
@@ -794,62 +593,19 @@ function MemberDetail({
             <X className="size-3.5" />
           </button>
         </div>
-
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <RolePill kind={member.kind} />
           <ScopePill scope={member.scope} />
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-            <PresenceDot presence={member.presence} /> {member.presence}
-          </span>
-        </div>
-        <p className="mt-1 text-[10px] text-muted-foreground">Tham gia {member.joined}</p>
-
-        <div className="mt-3 grid grid-cols-4 gap-1 text-center">
-          <MiniStat value={member.active} label="Active" />
-          <MiniStat value={member.pending} label="Pending" />
-          <MiniStat value={member.revision} label="Revision" />
-          <MiniStat value={member.completed} label="Done" />
-        </div>
-        <div className="mt-2">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-foreground"
-              style={{ width: `${member.load}%` }}
-            />
-          </div>
-          <p className="mt-0.5 text-right text-[10px] text-muted-foreground">{member.load}% load</p>
         </div>
 
         <div className="mt-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Tasks
-            </p>
-            <button className="text-[10px] text-accent hover:underline">View all →</button>
-          </div>
-          <ul className="mt-1.5 space-y-1.5">
-            {tasks.length === 0 ? (
-              <li className="text-[11px] text-muted-foreground">No tasks yet.</li>
-            ) : (
-              tasks.map((t) => (
-                <li
-                  key={t.id}
-                  className="rounded border border-border bg-background/60 px-2 py-1.5 text-[11px]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate font-semibold">{t.title}</p>
-                    <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {t.status}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <span>{t.due ? new Date(t.due).toLocaleDateString("vi-VN") : "—"}</span>
-                    <RiskDot risk={t.risk} />
-                  </p>
-                </li>
-              ))
-            )}
-          </ul>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Access
+          </p>
+          <p className="mt-1.5 rounded border border-border bg-background/60 px-2 py-2 text-[11px] leading-5 text-muted-foreground">
+            This panel only shows membership and access scope. Workload metrics should come from a
+            real task summary API before being displayed.
+          </p>
         </div>
       </div>
 
@@ -885,14 +641,5 @@ function MemberDetail({
         ) : null}
       </div>
     </aside>
-  );
-}
-
-function MiniStat({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="rounded border border-border bg-background/60 px-1 py-1.5">
-      <p className="text-sm font-bold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
-    </div>
   );
 }
