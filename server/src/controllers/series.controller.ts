@@ -13,9 +13,6 @@ import {
 } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
-import { presignR2Download, presignR2Upload } from "../services/r2.service.js";
-import { createDisplayUrl, createLocalUploadUrl } from "../services/file-access.service.js";
-import { assertFileKeyVisible } from "../services/studio-access.service.js";
 import {
   applyChapterAction,
   chapterReadiness,
@@ -34,8 +31,6 @@ import { patchSeriesSchema } from "../validators/series.schema.js";
 import {
   createChapterSchema,
   patchChapterSchema,
-  createPageSchema,
-  patchPageSchema,
 } from "../validators/chapter.schema.js";
 import {
   addMemberSchema,
@@ -52,18 +47,14 @@ import {
   scopedChapterFilterForActor,
   scopedProductionSeriesFilter,
 } from "../services/mvp-access.service.js";
-
-const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
-  "application/pdf",
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/octet-stream",
-]);
-
-function isAllowedUploadContentType(contentType?: string) {
-  if (!contentType) return true;
-  return contentType.startsWith("image/") || ALLOWED_UPLOAD_CONTENT_TYPES.has(contentType);
-}
+import {
+  buildPagination,
+  combineMongoFilters,
+  listFiltersToMongo,
+  listSearchToMongo,
+  listSortToMongo,
+  parseListQuery,
+} from "../shared/contracts/list-contract.js";
 
 function seriesSlug(input: string, fallback: string) {
   return slugify(input) || fallback;
@@ -90,16 +81,69 @@ async function assertMangakaOwnsChapter(req: AuthedRequest, chapterId: string) {
   return chapter;
 }
 
-async function assertMangakaOwnsPage(req: AuthedRequest, pageId: string) {
-  const chapter = (await ChapterModel.findOne({ "pages.id": pageId }).lean()) as any;
-  if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
-  await assertMangakaOwnsSeries(req, String(chapter.seriesId));
-  return chapter;
+const SERIES_LIST_CONFIG = {
+  searchable: ["title", "authorName", "editorName", "synopsis"] as const,
+  sortable: ["title", "status", "publicationType", "updatedAt", "createdAt"] as const,
+  filterable: {
+    title: "text",
+    status: "select",
+    publicationType: "select",
+    authorId: "select",
+    editorId: "select",
+    createdAt: "dateRange",
+    updatedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "updatedAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+function summarizeSeries(series: any[]) {
+  const byStatus = series.reduce<Record<string, number>>((acc, item) => {
+    const status = String(item.status ?? "UNKNOWN");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: series.length,
+    byStatus,
+  };
+}
+
+const CHAPTER_LIST_CONFIG = {
+  searchable: ["title", "assigneeName", "summary"] as const,
+  sortable: ["number", "title", "status", "updatedAt", "createdAt", "draftDueAt", "reviewDueAt"] as const,
+  filterable: {
+    title: "text",
+    seriesId: "select",
+    status: "select",
+    assigneeId: "select",
+    draftDueAt: "dateRange",
+    reviewDueAt: "dateRange",
+    scheduledAt: "dateRange",
+    publishedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "updatedAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+function summarizeChapters(chapters: any[]) {
+  const byStatus = chapters.reduce<Record<string, number>>((acc, chapter) => {
+    const status = String(chapter.status ?? "UNKNOWN");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: chapters.length,
+    byStatus,
+  };
 }
 
 export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const mine = req.query.mine === "true";
+  const query = parseListQuery(req, SERIES_LIST_CONFIG);
 
   const readableSeriesIds = await readableProductionSeriesIds(actor);
   let filter: Record<string, any> = scopedProductionSeriesFilter(readableSeriesIds);
@@ -114,9 +158,21 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
     }
   }
 
-  const { page, limit, skip } = paginationFromQuery(req);
+  filter = combineMongoFilters(
+    filter,
+    listSearchToMongo(query.q, ["title", "authorName", "editorName", "synopsis"]),
+    listFiltersToMongo(query.filters),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
+
   const [series, total] = await Promise.all([
-    SeriesModel.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+    SeriesModel.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
     SeriesModel.countDocuments(filter),
   ]);
   const repaired = await Promise.all(
@@ -131,22 +187,14 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   return res.status(200).json({
     success: true,
     data: repaired,
-    pagination: {
-      page,
-      pageSize: limit,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summarizeSeries(repaired),
     },
   });
-});
-
-export const createSeries = asyncRoute(async (req: AuthedRequest, res) => {
-  throw new AppError(
-    403,
-    "Series are created only after the Board approves a Proposal with a Tantou Editor and publication type.",
-    "SERIES_CREATION_WORKFLOW_REQUIRED",
-  );
 });
 
 export const getSeries = asyncRoute(async (req: AuthedRequest, res) => {
@@ -203,22 +251,36 @@ export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const listSeriesChapters = asyncRoute(async (req: AuthedRequest, res) => {
   await assertCanReadProductionSeries(requireActor(req), String(req.params.id));
-  const filter = { seriesId: String(req.params.id) };
-  const { page, limit, skip } = paginationFromQuery(req);
+  const query = parseListQuery(req, {
+    ...CHAPTER_LIST_CONFIG,
+    defaultSort: { field: "number", dir: "asc" },
+  });
+  const filter = combineMongoFilters(
+    { seriesId: String(req.params.id) },
+    listSearchToMongo(query.q, ["title", "assigneeName", "summary"]),
+    listFiltersToMongo(query.filters),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { number: 1 as const };
   const [chapters, total] = await Promise.all([
-    ChapterModel.find(filter).sort({ number: 1 }).skip(skip).limit(limit).lean(),
+    ChapterModel.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
     ChapterModel.countDocuments(filter),
   ]);
   const enriched = await attachPublications(chapters);
   return res.status(200).json({
     success: true,
     data: enriched,
-    pagination: {
-      page,
-      pageSize: limit,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summarizeChapters(enriched),
     },
   });
 });
@@ -237,48 +299,6 @@ async function attachPublications(chapters: any[]) {
     };
   });
 }
-
-export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) => {
-  const now = nowIso();
-  const seriesId = String(req.params.id);
-  const body = parseBody(createChapterSchema, req);
-  rejectProtectedFields(body as Record<string, unknown>);
-
-  // A cancelled or paused Series cannot accept new chapters (flowchart AS/AT).
-  const series = (await SeriesModel.findOne({ id: seriesId }).lean()) as any;
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-  if (req.actor?.role !== "MANGAKA" || series.authorId !== req.actor.id) {
-    throw new AppError(403, "Only the series Mangaka can create chapters.", "MANGAKA_OWNER_REQUIRED");
-  }
-  if (["CANCELLED", "HIATUS", "COMPLETED"].includes(String(series.status))) {
-    throw new AppError(
-      409,
-      `Cannot create a chapter for a ${String(series.status).toLowerCase()} series.`,
-      "SERIES_NOT_PRODUCIBLE",
-    );
-  }
-
-  const chapter = await ChapterModel.create({
-    id: id("ch"),
-    seriesId,
-    number: Number(body.number ?? 1),
-    title: body.title ?? "Untitled chapter",
-    status: "PLANNED",
-    assigneeId: body.assigneeId ?? req.actor?.id,
-    assigneeName: body.assigneeName ?? req.actor?.name,
-    draftDueAt: body.draftDueAt ? new Date(body.draftDueAt) : undefined,
-    reviewDueAt: body.reviewDueAt ? new Date(body.reviewDueAt) : undefined,
-    plannedAt: body.plannedAt ? new Date(body.plannedAt) : undefined,
-    pages: [],
-    reviewNotes: [],
-    revisionRound: 0,
-    history: [],
-    createdAt: now,
-    updatedAt: now,
-  });
-  await audit(req, "chapter.create", "chapter", (chapter as any).id);
-  created(res, chapter);
-});
 
 export const getSeriesSummary = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
@@ -486,6 +506,7 @@ export const chapterAction = asyncRoute(async (req: AuthedRequest, res) =>
 
 export const listChapters = asyncRoute(async (req: AuthedRequest, res) => {
   const user = req.actor!;
+  const query = parseListQuery(req, CHAPTER_LIST_CONFIG);
   const filter: Record<string, unknown> = {};
   if (req.query.mine === "true") {
     if (user.role === "MANGAKA" || user.role === "ASSISTANT") {
@@ -498,22 +519,35 @@ export const listChapters = asyncRoute(async (req: AuthedRequest, res) => {
     }
   }
   if (req.query.seriesId) filter.seriesId = String(req.query.seriesId);
-  const scopedFilter = await scopedChapterFilterForActor(user, filter);
-  const { page, limit, skip } = paginationFromQuery(req);
+  const scopedFilter = await scopedChapterFilterForActor(
+    user,
+    combineMongoFilters(
+      filter,
+      listSearchToMongo(query.q, ["title", "assigneeName", "summary"]),
+      listFiltersToMongo(query.filters),
+    ),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
   const [chapters, total] = await Promise.all([
-    ChapterModel.find(scopedFilter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+    ChapterModel.find(scopedFilter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
     ChapterModel.countDocuments(scopedFilter),
   ]);
   const enriched = await attachPublications(chapters);
   return res.status(200).json({
     success: true,
     data: enriched,
-    pagination: {
-      page,
-      pageSize: limit,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summarizeChapters(enriched),
     },
   });
 });
@@ -543,116 +577,3 @@ export const getChapterReadiness = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, chapterReadiness(chapter, comments, tasks, submissions, materials));
 });
 
-export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {
-  const chapterId = String(req.params.chapterId);
-  const chapter = await ChapterModel.findOne({ id: chapterId });
-  if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
-  const series = (await SeriesModel.findOne({ id: (chapter as any).seriesId }).lean()) as any;
-  if (req.actor?.role !== "MANGAKA" || series?.authorId !== req.actor.id) {
-    throw new AppError(403, "Only the series Mangaka can create pages.", "MANGAKA_OWNER_REQUIRED");
-  }
-
-  const body = parseBody(createPageSchema, req);
-  const hasPageAsset = Boolean(body.fileKey || body.fileUrl || body.imageUrl);
-  const newPage = {
-    id: body.id ?? id("pg"),
-    pageNumber: Number(body.pageNumber ?? ((chapter as any).pages?.length ?? 0) + 1),
-    status: body.status ?? (hasPageAsset ? "UPLOADED" : "PENDING_UPLOAD"),
-    imageUrl: body.imageUrl ?? body.fileUrl ?? "metadata://r2/placeholder-page.png",
-    fileKey: body.fileKey,
-    fileName: body.fileName,
-    fileUrl: body.fileUrl ?? body.imageUrl,
-    sizeKB: body.sizeKB,
-    mimeType: body.mimeType,
-    imageWidth: body.imageWidth,
-    imageHeight: body.imageHeight,
-    uploadedAt: nowIso(),
-  };
-
-  await ChapterModel.updateOne(
-    { id: chapterId },
-    { $push: { pages: newPage }, $set: { updatedAt: nowIso() } },
-  );
-
-  created(res, newPage);
-});
-
-export const updatePage = asyncRoute(async (req: AuthedRequest, res) => {
-  const pageId = String(req.params.pageId);
-  const chapter = await assertMangakaOwnsPage(req, pageId);
-
-  const body = parseBody(patchPageSchema, req);
-  const pages = (chapter as any).pages.map((p: any) => {
-    if (p.id === pageId) {
-      return { ...p, ...body, updatedAt: nowIso() };
-    }
-    return p;
-  });
-
-  await ChapterModel.updateOne({ id: chapter.id }, { $set: { pages, updatedAt: nowIso() } });
-  const updatedPage = pages.find((p: any) => p.id === pageId);
-  ok(res, updatedPage);
-});
-
-export const deletePage = asyncRoute(async (req: AuthedRequest, res) => {
-  const pageId = String(req.params.pageId);
-  const chapter = await assertMangakaOwnsPage(req, pageId);
-
-  await ChapterModel.updateOne(
-    { id: chapter.id },
-    { $pull: { pages: { id: pageId } }, $set: { updatedAt: nowIso() } },
-  );
-  ok(res, { id: pageId });
-});
-
-export const presignUpload = asyncRoute(async (req: AuthedRequest, res) => {
-  const fileName = String(req.body.fileName ?? "page.png");
-  const contentType =
-    typeof req.body.contentType === "string"
-      ? req.body.contentType
-      : typeof req.body.fileType === "string"
-        ? req.body.fileType
-        : undefined;
-  if (!isAllowedUploadContentType(contentType)) {
-    throw new AppError(
-      400,
-      "Only image, PDF, and ZIP uploads are supported.",
-      "UNSUPPORTED_FILE_TYPE",
-    );
-  }
-  const folder = typeof req.body.folder === "string" ? req.body.folder : undefined;
-  const signed = await presignR2Upload({ fileName, contentType, folder });
-  if (signed.storage === "metadata-only" || process.env.VITEST) {
-    ok(res, {
-      ...signed,
-      uploadUrl: createLocalUploadUrl(signed.key, contentType, fileName),
-      downloadUrl: createDisplayUrl(signed.key, fileName).url,
-      persistent: true,
-      storage: "local" as const,
-    });
-    return;
-  }
-  ok(res, signed);
-});
-
-export const presignDownload = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const key = req.body.key;
-  if (!key) throw new AppError(400, "key is required.", "VALIDATION_ERROR");
-  await assertFileKeyVisible(actor, String(key));
-  ok(res, await presignR2Download(String(key)));
-});
-
-export const displayUrl = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const key = req.body.key;
-  if (!key) throw new AppError(400, "key is required.", "VALIDATION_ERROR");
-  await assertFileKeyVisible(actor, String(key));
-  ok(
-    res,
-    createDisplayUrl(
-      String(key),
-      typeof req.body.fileName === "string" ? req.body.fileName : undefined,
-    ),
-  );
-});

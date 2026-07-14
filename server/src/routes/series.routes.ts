@@ -2,13 +2,11 @@ import { Router } from "express";
 import { requireRole } from "../middleware/auth.js";
 import {
   listSeries,
-  createSeries,
   getSeries,
   patchSeries,
   seriesLifecycleAction,
   deleteSeries,
   listSeriesChapters,
-  createSeriesChapter,
   getSeriesSummary,
   getSeriesActivity,
   listMembers,
@@ -22,13 +20,21 @@ import {
   listChapters,
   getChapterPages,
   getChapterReadiness,
-  createChapterPage,
-  updatePage,
-  deletePage,
-  presignUpload,
-  presignDownload,
-  displayUrl,
 } from "../controllers/series.controller.js";
+import {
+  createSeries,
+  createSeriesChapter,
+} from "../modules/series/presentation/series-production.controller.js";
+import {
+  createChapterPage,
+  deletePage,
+  updatePage,
+} from "../modules/studio/presentation/page-production.controller.js";
+import {
+  displayUrl,
+  presignDownload,
+  presignUpload,
+} from "../modules/files/presentation/file.controller.js";
 
 const router = Router();
 

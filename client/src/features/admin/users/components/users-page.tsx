@@ -20,8 +20,15 @@ import {
   TextButton,
   DataPagination,
 } from "@/shared/ui";
+import {
+  parseTableStateFromSearchParams,
+  resetTableState,
+  setTableFilter,
+  tableStateToSearchParams,
+  type TableState,
+} from "@/shared/table";
 import { Download, Lock, Plus, RotateCcw, Shield, User, Users } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AccessDenied, mapAdminError, useAdminAccess } from "../../_shared";
 import { ALL_ROLES } from "../../_shared/model/admin-constants";
@@ -42,19 +49,37 @@ type StatusFilter = "ALL" | "ACTIVE" | "DEACTIVATED";
 type PrivilegeFilter = "ALL" | "CHAIR" | "EDITOR";
 
 const ROWS_PER_PAGE = 10;
+const DEFAULT_USERS_TABLE_STATE: Partial<TableState> = {
+  pageSize: ROWS_PER_PAGE,
+  sortBy: "createdAt",
+  sortDir: "desc",
+};
+
+const EMPTY_SUMMARY = {
+  total: 0,
+  active: 0,
+  locked: 0,
+  adminCount: 0,
+};
 
 export function AdminUsersPage() {
   const { user: currentUser, canQueryAdmin, denial } = useAdminAccess();
-  const { data: users = [], isLoading, error } = useAdminUsersQuery({ enabled: canQueryAdmin });
+  const [tableState, setTableState] = useState(() =>
+    parseTableStateFromSearchParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search),
+      DEFAULT_USERS_TABLE_STATE,
+    ),
+  );
+  const {
+    data: usersList,
+    isLoading,
+    error,
+  } = useAdminUsersQuery({ enabled: canQueryAdmin, tableState });
   const updateUserMutation = useAdminUserMutation();
   const createUserMutation = useCreateUserMutation();
   const deleteUserMutation = useDeleteUserMutation();
-
-  const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [privilegeFilter, setPrivilegeFilter] = useState<PrivilegeFilter>("ALL");
-  const [page, setPage] = useState(1);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -68,39 +93,38 @@ export function AdminUsersPage() {
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
-  const locked = users.filter((user) => user.active === false).length;
-  const active = users.length - locked;
-  const adminCount = users.filter((user) => user.role.toUpperCase() === "ADMIN").length;
+  const users = usersList?.data ?? [];
+  const pagination = usersList?.pagination ?? {
+    page: tableState.page,
+    pageSize: tableState.pageSize,
+    total: 0,
+  };
+  const summary = usersList?.meta.summary ?? EMPTY_SUMMARY;
+  const roleFilter =
+    tableState.filters.role?.type === "select"
+      ? (String(tableState.filters.role.value).toLowerCase() as RoleFilter)
+      : "ALL";
+  const statusFilter =
+    tableState.filters.active?.type === "boolean"
+      ? tableState.filters.active.value
+        ? "ACTIVE"
+        : "DEACTIVATED"
+      : "ALL";
+  const privilegeFilter =
+    tableState.filters.isChair?.type === "boolean"
+      ? "CHAIR"
+      : tableState.filters.isEditorInChief?.type === "boolean"
+        ? "EDITOR"
+        : "ALL";
   const filtersActive =
-    query.trim().length > 0 ||
-    roleFilter !== "ALL" ||
-    statusFilter !== "ALL" ||
-    privilegeFilter !== "ALL";
+    tableState.q.trim().length > 0 || Object.keys(tableState.filters).length > 0;
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return users
-      .filter(
-        (user) => roleFilter === "ALL" || user.role.toLowerCase() === roleFilter.toLowerCase(),
-      )
-      .filter((user) => {
-        if (statusFilter === "ALL") return true;
-        return statusFilter === "ACTIVE" ? user.active !== false : user.active === false;
-      })
-      .filter((user) => {
-        if (privilegeFilter === "ALL") return true;
-        return privilegeFilter === "CHAIR" ? user.isChair === true : user.isEditorInChief === true;
-      })
-      .filter((user) => !needle || `${user.name} ${user.email}`.toLowerCase().includes(needle));
-  }, [users, query, roleFilter, statusFilter, privilegeFilter]);
-
-  useEffect(() => setPage(1), [query, roleFilter, statusFilter, privilegeFilter]);
   useEffect(() => {
-    const lastPage = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
-    setPage((currentPage) => Math.min(currentPage, lastPage));
-  }, [filtered.length]);
+    const params = tableStateToSearchParams(tableState);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [tableState]);
 
-  const visibleRows = filtered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
   const selected = selectedId ? users.find((user) => user.id === selectedId) : undefined;
 
   if (denial) {
@@ -122,16 +146,13 @@ export function AdminUsersPage() {
   }
 
   const clearFilters = () => {
-    setQuery("");
-    setRoleFilter("ALL");
-    setStatusFilter("ALL");
-    setPrivilegeFilter("ALL");
+    setTableState(resetTableState(DEFAULT_USERS_TABLE_STATE));
   };
 
   const exportUsers = () => {
     const csv = [
       ["Name", "Email", "Role", "Status"],
-      ...filtered.map((user) => [
+      ...users.map((user) => [
         user.name,
         user.email,
         user.role,
@@ -168,7 +189,7 @@ export function AdminUsersPage() {
         <div className="mt-6">
           <SeparationOfDutiesWarning>
             User role, activation, and deletion changes require a separate admin confirmation reason
-            and are recorded in the audit trail.
+            before they are applied.
           </SeparationOfDutiesWarning>
         </div>
 
@@ -176,41 +197,53 @@ export function AdminUsersPage() {
           <MetricCard
             icon={<Users className="size-5" />}
             label="Total Users"
-            value={users.length}
+            value={summary.total}
             hint="All platform accounts"
           />
           <MetricCard
             icon={<User className="size-5" />}
             label="Active"
-            value={active}
-            hint={`${users.length ? Math.round((active / users.length) * 100) : 0}% of all accounts`}
+            value={summary.active}
+            hint={`${
+              summary.total ? Math.round((summary.active / summary.total) * 100) : 0
+            }% of all accounts`}
             tone="success"
           />
           <MetricCard
             icon={<Lock className="size-5" />}
             label="Deactivated"
-            value={locked}
+            value={summary.locked}
             hint="Require attention"
-            tone={locked > 0 ? "warning" : "default"}
+            tone={summary.locked > 0 ? "warning" : "default"}
           />
           <MetricCard
             icon={<Shield className="size-5" />}
             label="Admins"
-            value={adminCount}
+            value={summary.adminCount}
             hint="Full access accounts"
           />
         </MetricGrid>
 
         <SearchToolbar
           className="mt-7"
-          query={query}
-          onQueryChange={setQuery}
+          query={tableState.q}
+          onQueryChange={(q) => setTableState((state) => ({ ...state, q, page: 1 }))}
           placeholder="Search by name or email"
           filters={
             <>
               <FilterSelect
                 value={roleFilter}
-                onValueChange={(value) => setRoleFilter(value as RoleFilter)}
+                onValueChange={(value) =>
+                  setTableState((state) =>
+                    setTableFilter(
+                      state,
+                      "role",
+                      value === "ALL"
+                        ? undefined
+                        : { type: "select", value: value.toUpperCase() },
+                    ),
+                  )
+                }
               >
                 <SelectItem value="ALL">All Roles</SelectItem>
                 {ALL_ROLES.map((role) => (
@@ -221,7 +254,17 @@ export function AdminUsersPage() {
               </FilterSelect>
               <FilterSelect
                 value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+                onValueChange={(value) =>
+                  setTableState((state) =>
+                    setTableFilter(
+                      state,
+                      "active",
+                      value === "ALL"
+                        ? undefined
+                        : { type: "boolean", value: value === "ACTIVE" },
+                    ),
+                  )
+                }
               >
                 <SelectItem value="ALL">All Statuses</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
@@ -229,7 +272,22 @@ export function AdminUsersPage() {
               </FilterSelect>
               <FilterSelect
                 value={privilegeFilter}
-                onValueChange={(value) => setPrivilegeFilter(value as PrivilegeFilter)}
+                onValueChange={(value) =>
+                  setTableState((state) => {
+                    let next = setTableFilter(state, "isChair", undefined);
+                    next = setTableFilter(next, "isEditorInChief", undefined);
+                    if (value === "CHAIR") {
+                      return setTableFilter(next, "isChair", { type: "boolean", value: true });
+                    }
+                    if (value === "EDITOR") {
+                      return setTableFilter(next, "isEditorInChief", {
+                        type: "boolean",
+                        value: true,
+                      });
+                    }
+                    return next;
+                  })
+                }
               >
                 <SelectItem value="ALL">All Privileges</SelectItem>
                 <SelectItem value="CHAIR">Chair</SelectItem>
@@ -253,11 +311,12 @@ export function AdminUsersPage() {
 
         <UsersTable
           users={users}
-          rows={visibleRows}
+          rows={users}
           selectedId={selectedId}
           currentUser={currentUser}
           isLoading={isLoading}
           updateSucceeded={updateUserMutation.isSuccess}
+          activeAdminCount={summary.adminCount}
           onSelect={(user) => {
             setSelectedId(user.id);
             setInspectorOpen(true);
@@ -270,10 +329,10 @@ export function AdminUsersPage() {
           onDelete={setDeleteTarget}
         />
         <DataPagination
-          total={filtered.length}
-          page={page}
-          pageSize={ROWS_PER_PAGE}
-          onPageChange={setPage}
+          total={pagination.total}
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          onPageChange={(page) => setTableState((state) => ({ ...state, page }))}
           itemName="users"
         />
       </section>
@@ -295,7 +354,7 @@ export function AdminUsersPage() {
         onOpenChange={(next) => !next && setDeactivateTarget(null)}
         actionLabel={deactivateTarget?.active !== false ? "Deactivate" : "Activate"}
         targetLabel={deactivateTarget ? `${deactivateTarget.name} (${deactivateTarget.email})` : ""}
-        auditImpact="Creates an admin audit entry for account status change with actor, target user id, reason, and request id."
+        auditImpact="Records the actor, target user id, confirmation reason, and request id."
         onConfirm={(reason) => {
           if (!deactivateTarget) return;
           updateUserMutation.mutate(

@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AdminAuditPage } from "@/features/admin/audit";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/audit")({
   head: () => ({ meta: [{ title: "Admin - Audit Log - beachRead Studio" }] }),
-  component: AdminAuditPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });

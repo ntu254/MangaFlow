@@ -184,7 +184,7 @@ export function useMyChaptersQuery() {
 
   return useQuery<Chapter[]>({
     queryKey: chapterKeys.all,
-    queryFn: () => apiRequest<Chapter[]>("/chapters?mine=true"),
+    queryFn: () => apiRequest<Chapter[]>("/chapters?mine=true&pageSize=100"),
     enabled: !!user && hasApiTokens() && canLoadMyChapters,
     staleTime: 60000,
   });
@@ -205,7 +205,7 @@ export function useChaptersForSeriesQuery(seriesIds: string[]) {
     queryKey: seriesKeys.chaptersBundle(sortedIds),
     queryFn: async () => {
       const groups = await Promise.all(
-        sortedIds.map((seriesId) => apiRequest<Chapter[]>(`/series/${seriesId}/chapters`)),
+        sortedIds.map((seriesId) => apiRequest<Chapter[]>(`/series/${seriesId}/chapters?pageSize=100`)),
       );
       return groups.flat();
     },
@@ -225,7 +225,7 @@ export function useStudioRegionsQuery(filters: StudioRegionFilters, enabled = tr
 }
 
 export function useStudioTasksQuery(filters: StudioTaskFilters) {
-  const qs = buildQuery(filters);
+  const qs = buildQuery({ ...filters, pageSize: "100" });
   return useQuery<StudioTask[]>({
     queryKey: studioKeys.tasks(filters),
     queryFn: () => apiRequest<StudioTask[]>(`/studio/tasks${qs}`),
@@ -331,7 +331,7 @@ export function useTaskSubmissionsQuery(taskId: string) {
 }
 
 export function useSubmissionsQuery(filters: SubmissionFilters) {
-  const qs = buildQuery(filters);
+  const qs = buildQuery({ ...filters, pageSize: "100" });
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.list(filters),
     queryFn: async () => {

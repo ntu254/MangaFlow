@@ -3,10 +3,12 @@ import {
   listNotifications,
   markRead,
   archiveNotification,
+} from "../controllers/notification.controller.js";
+import {
   listRankings,
   listSeriesRankings,
   importRankings
-} from "../controllers/notification.controller.js";
+} from "../modules/rankings/presentation/ranking.controller.js";
 import { requireRole } from "../middleware/auth.js";
 
 const router = Router();

@@ -1,4 +1,6 @@
-import { apiRequest } from "@/shared/api/client";
+import { apiRequest, type ApiListEnvelope } from "@/shared/api/client";
+import { seriesApi, type SeriesListMeta } from "@/shared/api/services";
+import type { TableState } from "@/shared/table";
 import { useQuery } from "@tanstack/react-query";
 import type { ProductionSeries, SeriesRanking } from "./series-types";
 import { seriesKeys } from "./series-types";
@@ -12,6 +14,17 @@ export function useMySeriesQuery() {
   return useQuery<ProductionSeries[]>({
     queryKey: seriesKeys.mine(),
     queryFn: () => apiRequest<ProductionSeries[]>("/series?mine=true"),
+    staleTime: 60000,
+  });
+}
+
+export function useSeriesListQuery(tableState: TableState, options: { mine?: boolean } = {}) {
+  return useQuery<ApiListEnvelope<ProductionSeries, SeriesListMeta>>({
+    queryKey: [...seriesKeys.all, "list", tableState, options],
+    queryFn: () =>
+      seriesApi.listContract(tableState, options) as Promise<
+        ApiListEnvelope<ProductionSeries, SeriesListMeta>
+      >,
     staleTime: 60000,
   });
 }

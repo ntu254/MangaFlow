@@ -54,6 +54,33 @@ describe("Admin RBAC and mutations", () => {
         .expect(200);
       expect(response.body.data).toEqual(expect.any(Array));
       expect(response.body.data.length).toBeGreaterThan(0);
+      expect(response.body.pagination.total).toBeGreaterThan(0);
+      expect(response.body.meta.summary.total).toBeGreaterThan(0);
+    });
+
+    it("supports MVP list pagination, search, filters, and sort", async () => {
+      const admin = await loginAs("admin@beachread.jp");
+      const filters = encodeURIComponent(
+        JSON.stringify({
+          role: { type: "select", value: "ASSISTANT" },
+          active: { type: "boolean", value: true },
+        }),
+      );
+
+      const response = await request(createApp())
+        .get(`/api/admin/users?page=1&pageSize=2&q=suzuki&sortBy=email&sortDir=desc&filters=${filters}`)
+        .set("Authorization", `Bearer ${admin.accessToken}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].email).toBe("jun@beachread.jp");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        pageSize: 2,
+        total: 1,
+      });
+      expect(response.body.meta.sort).toEqual({ field: "email", dir: "desc" });
+      expect(response.body.meta.filters.role).toEqual({ type: "select", value: "ASSISTANT" });
     });
   });
 

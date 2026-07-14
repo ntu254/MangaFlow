@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { clearApiTokens, registerUnauthorizedHandler } from "@/shared/api/client";
+import { registerHttpUnauthorizedHandler } from "@/shared/api/http-client";
 import { loginDemoRole, loginWithPassword, logoutLive as apiLogoutLive } from "@/shared/api/auth";
 
 export type Role = "admin" | "mangaka" | "assistant" | "editor" | "board";
@@ -156,7 +157,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const ROLE_DESCRIPTION: Record<Role, string> = {
-  admin: "Full system access, payroll, and audit logs",
+  admin: "Admin: manage user accounts, roles, access status, and password resets",
   mangaka: "Author: submit series proposals and lead production",
   assistant: "Assistant: receive tasks, submit work, and track earnings",
   editor: "Editor: review proposals, final chapter review, and publication",
@@ -164,5 +165,9 @@ export const ROLE_DESCRIPTION: Record<Role, string> = {
 };
 
 registerUnauthorizedHandler(() => {
+  useAuth.getState().logout();
+});
+
+registerHttpUnauthorizedHandler(() => {
   useAuth.getState().logout();
 });

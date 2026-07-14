@@ -1,6 +1,8 @@
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
 import type { ProductionSeries } from "@/entities/series/model/series-types";
-import { apiRequest } from "@/shared/api/client";
+import { apiRequest, type ApiListEnvelope } from "@/shared/api/client";
+import { proposalsApi, type ProposalsListMeta } from "@/shared/api/services";
+import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const proposalKeys = {
@@ -41,6 +43,18 @@ export function useProposalsQuery(filters?: {
         return true;
       });
     },
+    staleTime: 30000,
+  });
+}
+
+export function useProposalsListQuery(tableState: TableState, enabled = true) {
+  return useQuery<ApiListEnvelope<SeriesProposal, ProposalsListMeta>>({
+    queryKey: proposalKeys.list({ tableState }),
+    queryFn: () =>
+      proposalsApi.listContract(tableState) as Promise<
+        ApiListEnvelope<SeriesProposal, ProposalsListMeta>
+      >,
+    enabled,
     staleTime: 30000,
   });
 }

@@ -1,4 +1,5 @@
-import { apiRequest } from "./client";
+import { apiListRequest, apiRequest, type ApiListEnvelope } from "./client";
+import type { TableState } from "@/shared/table";
 
 export interface CreateProposalRequest {
   title: string;
@@ -204,6 +205,106 @@ export interface OverrideRequest {
   reason: string;
 }
 
+export type AdminUsersListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    active: number;
+    locked: number;
+    adminCount: number;
+  };
+};
+
+export type BoardQueueListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    pending: number;
+    needsFinalize: number;
+    tieBreak: number;
+  };
+};
+
+export type ProposalsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
+export type SeriesListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
+export type ChaptersListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
+export type StudioTasksListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
+export type SubmissionsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
+function tableStateQuery(state?: TableState) {
+  if (!state) return "";
+  const params = new URLSearchParams();
+  params.set("page", String(state.page));
+  params.set("pageSize", String(state.pageSize));
+  if (state.q.trim()) params.set("q", state.q.trim());
+  if (state.sortBy) {
+    params.set("sortBy", state.sortBy);
+    params.set("sortDir", state.sortDir);
+  }
+  if (Object.keys(state.filters).length > 0) {
+    params.set("filters", JSON.stringify(state.filters));
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+function withPageSize(query: string, pageSize: number) {
+  const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+  if (!params.has("pageSize") && !params.has("limit")) {
+    params.set("pageSize", String(pageSize));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export const bootstrapApi = {
   me: () => apiRequest("/me/bootstrap"),
   dashboard: (role: string) => apiRequest(`/dashboard/${role}/summary`),
@@ -211,6 +312,8 @@ export const bootstrapApi = {
 
 export const proposalsApi = {
   list: () => apiRequest("/proposals"),
+  listContract: (state?: TableState) =>
+    apiListRequest<unknown, ProposalsListMeta>(`/proposals${tableStateQuery(state)}`),
   get: (id: string) => apiRequest(`/proposals/${id}`),
   create: (body: CreateProposalRequest) => apiRequest("/proposals", { method: "POST", body }),
   patch: (id: string, body: UpdateProposalRequest) =>
@@ -221,10 +324,26 @@ export const proposalsApi = {
 
 export const seriesApi = {
   list: () => apiRequest("/series"),
+  listContract: (state?: TableState, options?: { mine?: boolean }) => {
+    const query = tableStateQuery(state);
+    const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+    if (options?.mine) params.set("mine", "true");
+    const qs = params.toString();
+    return apiListRequest<unknown, SeriesListMeta>(`/series${qs ? `?${qs}` : ""}`);
+  },
   get: (id: string) => apiRequest(`/series/${id}`),
   patch: (id: string, body: UpdateSeriesRequest) =>
     apiRequest(`/series/${id}`, { method: "PATCH", body }),
-  chapters: (id: string) => apiRequest(`/series/${id}/chapters`),
+  chapters: (id: string) => apiRequest(`/series/${id}/chapters?pageSize=100`),
+  chaptersList: (id: string, state?: TableState) =>
+    apiListRequest<unknown, ChaptersListMeta>(`/series/${id}/chapters${tableStateQuery(state)}`),
+  myChaptersList: (state?: TableState) => {
+    const query = tableStateQuery(state);
+    const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+    params.set("mine", "true");
+    const qs = params.toString();
+    return apiListRequest<unknown, ChaptersListMeta>(`/chapters?${qs}`);
+  },
   chapterAction: (chapterId: string, action: string, body?: unknown) =>
     apiRequest(`/chapters/${chapterId}/actions/${action}`, { method: "POST", body: body ?? {} }),
   readiness: (chapterId: string) => apiRequest(`/chapters/${chapterId}/readiness`),
@@ -238,7 +357,9 @@ export const studioApi = {
     apiRequest("/studio/regions", { method: "POST", body }),
   patchRegion: (id: string, body: UpdateRegionRequest) =>
     apiRequest(`/studio/regions/${id}`, { method: "PATCH", body }),
-  tasks: (query = "") => apiRequest(`/studio/tasks${query}`),
+  tasks: (query = "") => apiRequest(`/studio/tasks${withPageSize(query, 100)}`),
+  tasksList: (state?: TableState) =>
+    apiListRequest<unknown, StudioTasksListMeta>(`/studio/tasks${tableStateQuery(state)}`),
   createTask: (body: CreateTaskRequest) => apiRequest("/studio/tasks", { method: "POST", body }),
   patchTask: (id: string, body: UpdateTaskRequest) =>
     apiRequest(`/studio/tasks/${id}`, { method: "PATCH", body }),
@@ -250,7 +371,9 @@ export const studioApi = {
 };
 
 export const assistantApi = {
-  submissions: () => apiRequest("/submissions"),
+  submissions: () => apiRequest("/submissions?pageSize=100"),
+  submissionsList: (state?: TableState) =>
+    apiListRequest<unknown, SubmissionsListMeta>(`/submissions${tableStateQuery(state)}`),
   createSubmission: (body: CreateSubmissionRequest) =>
     apiRequest("/submissions", { method: "POST", body }),
   requestRevision: (id: string, reviewerNote: string) =>
@@ -315,6 +438,8 @@ export const boardApi = {
   deleteSessionNote: (id: string, noteId: string) =>
     apiRequest(`/voting-sessions/${id}/notes/${noteId}`, { method: "DELETE" }),
   queue: () => apiRequest("/board/queue"),
+  queueList: (state?: TableState) =>
+    apiListRequest<unknown, BoardQueueListMeta>(`/board/queue${tableStateQuery(state)}`),
   getVotes: (seriesId: string) => apiRequest(`/board/series/${seriesId}/votes`),
   castVote: (seriesId: string, body: CastVoteRequest) =>
     apiRequest(`/board/series/${seriesId}/votes`, { method: "POST", body }),
@@ -334,7 +459,12 @@ export const boardApi = {
 };
 
 export const adminApi = {
-  users: () => apiRequest("/admin/users"),
+  usersList: (state?: TableState) =>
+    apiListRequest<unknown, AdminUsersListMeta>(`/admin/users${tableStateQuery(state)}`),
+  users: async () => {
+    const list = await adminApi.usersList();
+    return list.data;
+  },
   createUser: (body: CreateUserRequest) => apiRequest("/admin/users", { method: "POST", body }),
   getUser: (userId: string) => apiRequest(`/admin/users/${userId}`),
   updateUser: (userId: string, body: UpdateUserRequest) =>

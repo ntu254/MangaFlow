@@ -1,3 +1,8 @@
+import type { AxiosRequestConfig } from "axios";
+
+import { ApiError, isApiError } from "./api-error";
+import { httpClient } from "./http-client";
+
 export type ApiRole = "ADMIN" | "MANGAKA" | "ASSISTANT" | "EDITOR" | "BOARD";
 export type WebRole = "admin" | "mangaka" | "assistant" | "editor" | "board";
 
@@ -22,6 +27,21 @@ export type ApiEnvelope<T> = {
     pageSize: number;
     total: number;
   };
+};
+
+export type ApiListPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+};
+
+export type ApiListEnvelope<T, TMeta = Record<string, unknown>> = {
+  data: T[];
+  pagination: ApiListPagination;
+  meta: TMeta;
 };
 
 export type ApiTokens = {
@@ -125,115 +145,122 @@ export function registerUnauthorizedHandler(fn: () => void) {
   _onUnauthorized = fn;
 }
 
-// --- Refresh dedup guard ---
-let _refreshPromise: Promise<boolean> | null = null;
-
-async function doRefreshTokens(refreshToken: string): Promise<boolean> {
-  try {
-    const data = await apiRequest<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
-      method: "POST",
-      auth: false,
-      body: { refreshToken },
-    });
-    setApiTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-    return true;
-  } catch {
-    clearApiTokens();
-    if (_onUnauthorized) _onUnauthorized();
-    return false;
+function normalizeHeaders(headers?: HeadersInit): Record<string, string> | undefined {
+  if (!headers) return undefined;
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
   }
-}
-
-function refreshTokens(refreshToken: string): Promise<boolean> {
-  if (!_refreshPromise) {
-    _refreshPromise = doRefreshTokens(refreshToken).finally(() => {
-      _refreshPromise = null;
-    });
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
   }
-  return _refreshPromise;
+  return headers as Record<string, string>;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const tokens = getApiTokens();
-  const headers: HeadersInit = {
-    Accept: "application/json",
-    ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-    ...(options.auth !== false && tokens?.accessToken
-      ? { Authorization: `Bearer ${tokens.accessToken}` }
-      : {}),
-    ...(options.headers ?? {}),
-  };
+  try {
+    const response = await httpClient.request<ApiEnvelope<T>>({
+      url: path,
+      method: options.method ?? "GET",
+      data: options.body,
+      headers: normalizeHeaders(options.headers),
+      skipAuth: options.auth === false,
+      skipAuthRefresh: path === "/auth/refresh",
+    } satisfies AxiosRequestConfig);
 
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
-    method: options.method ?? "GET",
-    headers,
-    body:
-      options.body instanceof FormData
-        ? options.body
-        : options.body === undefined
-          ? undefined
-          : JSON.stringify(options.body),
-  });
-
-  // Handle 401: attempt refresh exactly once, then give up
-  if (response.status === 401 && options.auth !== false && path !== "/auth/refresh") {
-    if (tokens?.refreshToken) {
-      const refreshed = await refreshTokens(tokens.refreshToken);
-      if (refreshed) {
-        // Retry original request once with new tokens
-        const newTokens = getApiTokens();
-        const retryHeaders: HeadersInit = {
-          Accept: "application/json",
-          ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-          ...(newTokens?.accessToken ? { Authorization: `Bearer ${newTokens.accessToken}` } : {}),
-          ...(options.headers ?? {}),
-        };
-        const retryResponse = await fetch(`${apiBaseUrl()}${path}`, {
-          method: options.method ?? "GET",
-          headers: retryHeaders,
-          body:
-            options.body instanceof FormData
-              ? options.body
-              : options.body === undefined
-                ? undefined
-                : JSON.stringify(options.body),
-        });
-        const retryEnvelope = (await retryResponse
-          .json()
-          .catch(() => null)) as ApiEnvelope<T> | null;
-        if (!retryResponse.ok || !retryEnvelope?.success) {
-          throw new ApiRequestError({
-            status: retryResponse.status,
-            message: retryEnvelope?.message ?? `API request failed with ${retryResponse.status}`,
-            code: retryEnvelope?.code,
-            requestId: retryEnvelope?.requestId,
-          });
-        }
-        return retryEnvelope.data;
-      }
-      // Refresh failed — tokens cleared inside doRefreshTokens
+    const envelope = response.data;
+    if (!envelope?.success) {
       throw new ApiRequestError({
-        status: 401,
-        message: "Session expired. Please log in again.",
+        status: response.status,
+        message: envelope?.message ?? `API request failed with ${response.status}`,
+        code: envelope?.code,
+        requestId: envelope?.requestId,
       });
     }
-    // No refresh token — force logout
-    if (_onUnauthorized) _onUnauthorized();
+
+    return envelope.data;
+  } catch (error) {
+    if (error instanceof ApiRequestError) throw error;
+    if (isApiError(error)) {
+      if (error.status === 401 && options.auth !== false) {
+        _onUnauthorized?.();
+      }
+      throw new ApiRequestError({
+        status: error.status,
+        message: error.message,
+        code: error.code,
+        requestId: error.requestId,
+      });
+    }
+    if (error instanceof Error) {
+      throw new ApiRequestError({
+        status: error instanceof ApiError ? error.status : 0,
+        message: error.message,
+        code: "CLIENT_ERROR",
+      });
+    }
     throw new ApiRequestError({
-      status: 401,
-      message: "Unauthorized",
+      status: 0,
+      message: "Unknown API error",
+      code: "CLIENT_ERROR",
     });
   }
+}
 
-  const envelope = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok || !envelope?.success) {
+export async function apiListRequest<T, TMeta = Record<string, unknown>>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ApiListEnvelope<T, TMeta>> {
+  try {
+    const response = await httpClient.request<
+      ApiEnvelope<T[]> & { pagination: ApiListPagination; meta: TMeta }
+    >({
+      url: path,
+      method: options.method ?? "GET",
+      data: options.body,
+      headers: normalizeHeaders(options.headers),
+      skipAuth: options.auth === false,
+      skipAuthRefresh: path === "/auth/refresh",
+    } satisfies AxiosRequestConfig);
+
+    const envelope = response.data;
+    if (!envelope?.success) {
+      throw new ApiRequestError({
+        status: response.status,
+        message: envelope?.message ?? `API request failed with ${response.status}`,
+        code: envelope?.code,
+        requestId: envelope?.requestId,
+      });
+    }
+
+    return {
+      data: envelope.data,
+      pagination: envelope.pagination,
+      meta: envelope.meta,
+    };
+  } catch (error) {
+    if (error instanceof ApiRequestError) throw error;
+    if (isApiError(error)) {
+      if (error.status === 401 && options.auth !== false) {
+        _onUnauthorized?.();
+      }
+      throw new ApiRequestError({
+        status: error.status,
+        message: error.message,
+        code: error.code,
+        requestId: error.requestId,
+      });
+    }
+    if (error instanceof Error) {
+      throw new ApiRequestError({
+        status: error instanceof ApiError ? error.status : 0,
+        message: error.message,
+        code: "CLIENT_ERROR",
+      });
+    }
     throw new ApiRequestError({
-      status: response.status,
-      message: envelope?.message ?? `API request failed with ${response.status}`,
-      code: envelope?.code,
-      requestId: envelope?.requestId,
+      status: 0,
+      message: "Unknown API error",
+      code: "CLIENT_ERROR",
     });
   }
-
-  return envelope.data;
 }

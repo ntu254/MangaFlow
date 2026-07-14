@@ -5,9 +5,11 @@ import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
 import {
   AuditEntryModel,
+  ChapterModel,
   EarningModel,
   ProposalModel,
   RankingModel,
+  SeriesModel,
   StudioCommentModel,
   StudioTaskModel,
   VotingSessionModel,
@@ -91,7 +93,7 @@ describe("Production-first completion hardening", () => {
   it("returns pagination metadata for proposal lists", async () => {
     const editor = await loginAs("editor@mangaflow.local");
     const res = await request(createApp())
-      .get("/api/proposals?page=1&limit=2")
+      .get("/api/proposals?page=1&pageSize=2")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .expect(200);
 
@@ -100,10 +102,253 @@ describe("Production-first completion hardening", () => {
     expect(res.body.pagination).toMatchObject({
       page: 1,
       pageSize: 2,
-      limit: 2,
     });
+    expect(res.body.meta).toMatchObject({
+      sort: { field: "updatedAt", dir: "desc" },
+    });
+    expect(res.body.meta.summary.total).toBeGreaterThanOrEqual(res.body.data.length);
     expect(res.body.pagination.total).toBeGreaterThanOrEqual(res.body.data.length);
     expect(res.body.pagination.totalPages).toBeGreaterThanOrEqual(1);
+  });
+
+  it("supports proposal list contract search, filters, and sort", async () => {
+    await ProposalModel.create([
+      {
+        id: "proposal-list-alpha",
+        title: "Alpha Proposal List Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Searchable Alpha synopsis",
+        status: "PENDING_EDITOR",
+        requestedPublicationType: "WEEKLY",
+        genres: ["Action"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-02-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-02-01T00:00:00.000Z"),
+      },
+      {
+        id: "proposal-list-beta",
+        title: "Beta Proposal List Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Searchable Beta synopsis",
+        status: "PENDING_BOARD",
+        requestedPublicationType: "MONTHLY",
+        genres: ["Drama"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-02-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-02-02T00:00:00.000Z"),
+      },
+      {
+        id: "proposal-list-gamma",
+        title: "Gamma Proposal List Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Searchable Gamma synopsis",
+        status: "PENDING_EDITOR",
+        requestedPublicationType: "WEEKLY",
+        genres: ["Comedy"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-02-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-02-03T00:00:00.000Z"),
+      },
+    ]);
+
+    const editor = await loginAs("editor@mangaflow.local");
+    const filters = encodeURIComponent(
+      JSON.stringify({ status: { type: "select", value: "PENDING_EDITOR" } }),
+    );
+    const res = await request(createApp())
+      .get(
+        `/api/proposals?page=1&pageSize=1&q=Proposal%20List&sortBy=title&sortDir=asc&filters=${filters}`,
+      )
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("proposal-list-alpha");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+    });
+    expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
+    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PENDING_EDITOR" });
+  });
+
+  it("rejects unsupported proposal list sort fields", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    const res = await request(createApp())
+      .get("/api/proposals?sortBy=actions")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(400);
+
+    expect(res.body.code).toBe("INVALID_SORT_FIELD");
+  });
+
+  it("supports series list contract pagination, search, filters, and sort", async () => {
+    await SeriesModel.create([
+      {
+        id: "series-list-alpha",
+        slug: "series-list-alpha",
+        title: "Alpha Production Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-editor",
+        editorName: "Tanaka Editor",
+        synopsis: "Alpha production search",
+        status: "ONGOING",
+        publicationType: "WEEKLY",
+        genres: ["Action"],
+        assistantIds: [],
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-01T00:00:00.000Z"),
+      },
+      {
+        id: "series-list-beta",
+        slug: "series-list-beta",
+        title: "Beta Production Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-editor",
+        editorName: "Tanaka Editor",
+        synopsis: "Beta production search",
+        status: "HIATUS",
+        publicationType: "MONTHLY",
+        genres: ["Drama"],
+        assistantIds: [],
+        createdAt: new Date("2026-03-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-02T00:00:00.000Z"),
+      },
+      {
+        id: "series-list-gamma",
+        slug: "series-list-gamma",
+        title: "Gamma Production Contract",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-editor",
+        editorName: "Tanaka Editor",
+        synopsis: "Gamma production search",
+        status: "ONGOING",
+        publicationType: "WEEKLY",
+        genres: ["Comedy"],
+        assistantIds: [],
+        createdAt: new Date("2026-03-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-03T00:00:00.000Z"),
+      },
+    ]);
+
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const filters = encodeURIComponent(
+      JSON.stringify({ status: { type: "select", value: "ONGOING" } }),
+    );
+    const res = await request(createApp())
+      .get(
+        `/api/series?mine=true&page=1&pageSize=1&q=Production%20Contract&sortBy=title&sortDir=asc&filters=${filters}`,
+      )
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("series-list-alpha");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+    });
+    expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
+    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "ONGOING" });
+  });
+
+  it("rejects unsupported series list sort fields", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const res = await request(createApp())
+      .get("/api/series?sortBy=actions")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(400);
+
+    expect(res.body.code).toBe("INVALID_SORT_FIELD");
+  });
+
+  it("supports series chapter list contract pagination, search, filters, and sort", async () => {
+    await ChapterModel.create([
+      {
+        id: "chapter-list-alpha",
+        seriesId: "s-berserk-prod",
+        number: 31,
+        title: "Alpha Chapter Contract",
+        status: "PLANNED",
+        assigneeId: "u-mangaka",
+        assigneeName: "Inoue Takehiko",
+        pages: [],
+        reviewNotes: [],
+        history: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-04-01T00:00:00.000Z"),
+      },
+      {
+        id: "chapter-list-beta",
+        seriesId: "s-berserk-prod",
+        number: 32,
+        title: "Beta Chapter Contract",
+        status: "EDITOR_REVIEW",
+        assigneeId: "u-mangaka",
+        assigneeName: "Inoue Takehiko",
+        pages: [],
+        reviewNotes: [],
+        history: [],
+        createdAt: new Date("2026-04-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-04-02T00:00:00.000Z"),
+      },
+      {
+        id: "chapter-list-gamma",
+        seriesId: "s-berserk-prod",
+        number: 33,
+        title: "Gamma Chapter Contract",
+        status: "PLANNED",
+        assigneeId: "u-mangaka",
+        assigneeName: "Inoue Takehiko",
+        pages: [],
+        reviewNotes: [],
+        history: [],
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      },
+    ]);
+
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const filters = encodeURIComponent(
+      JSON.stringify({ status: { type: "select", value: "PLANNED" } }),
+    );
+    const res = await request(createApp())
+      .get(
+        `/api/series/s-berserk-prod/chapters?page=1&pageSize=1&q=Chapter%20Contract&sortBy=number&sortDir=asc&filters=${filters}`,
+      )
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("chapter-list-alpha");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+    });
+    expect(res.body.meta.sort).toEqual({ field: "number", dir: "asc" });
+    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PLANNED" });
+  });
+
+  it("rejects unsupported chapter list sort fields", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const res = await request(createApp())
+      .get("/api/chapters?mine=true&sortBy=actions")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(400);
+
+    expect(res.body.code).toBe("INVALID_SORT_FIELD");
   });
 
   it("supports live voting session detail and notes", async () => {

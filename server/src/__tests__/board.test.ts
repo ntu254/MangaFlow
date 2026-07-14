@@ -3,7 +3,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { ProposalModel, RankingModel, SeriesModel } from "../db/models.js";
+import { ChapterModel, ProposalModel, PublicationModel, RankingModel, SeriesModel } from "../db/models.js";
 
 let mongo: MongoMemoryServer;
 
@@ -57,6 +57,97 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     const found = res.body.data.find((p: any) => p.id === "proposal-board-q");
     expect(found).toBeDefined();
     expect(found.decisionStatus).toBe("PENDING");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 20,
+    });
+    expect(res.body.meta.summary.total).toBeGreaterThanOrEqual(1);
+  });
+
+  it("GET /api/board/queue supports MVP list contract pagination, search, filters, and sort", async () => {
+    await ProposalModel.create([
+      {
+        id: "proposal-board-alpha",
+        title: "Alpha Serialization Candidate",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Alpha synopsis",
+        status: "PENDING_BOARD",
+        requestedPublicationType: "WEEKLY",
+        genres: ["Action"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+      {
+        id: "proposal-board-zeta",
+        title: "Zeta Serialization Candidate",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Zeta synopsis",
+        status: "TIE_BREAK",
+        requestedPublicationType: "MONTHLY",
+        genres: ["Drama"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-01-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      },
+      {
+        id: "proposal-board-beta",
+        title: "Beta Serialization Candidate",
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        synopsis: "Beta synopsis",
+        status: "PENDING_BOARD",
+        requestedPublicationType: "WEEKLY",
+        genres: ["Adventure"],
+        votes: [],
+        history: [],
+        createdAt: new Date("2026-01-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      },
+    ]);
+
+    const board = await loginAs("board@beachread.jp");
+    const filters = encodeURIComponent(
+      JSON.stringify({ status: { type: "select", value: "PENDING_BOARD" } }),
+    );
+    const res = await request(createApp())
+      .get(
+        `/api/board/queue?page=1&pageSize=1&q=Serialization&sortBy=title&sortDir=asc&filters=${filters}`,
+      )
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("proposal-board-alpha");
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+    });
+    expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
+    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PENDING_BOARD" });
+  });
+
+  it("GET /api/board/queue rejects unsupported sort fields", async () => {
+    const board = await loginAs("board@beachread.jp");
+    const res = await request(createApp())
+      .get("/api/board/queue?sortBy=actions")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(400);
+
+    expect(res.body.code).toBe("INVALID_SORT_FIELD");
+  });
+
+  it("GET /api/board/queue requires Board role", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    await request(createApp())
+      .get("/api/board/queue")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(403);
   });
 
   it("GET /api/board/queue does not return APPROVED/REJECTED proposals", async () => {
@@ -343,6 +434,81 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     });
   });
 
+  it("POST /api/board/proposals/:proposalId/votes casts a Board vote through the explicit MVP command", async () => {
+    await ProposalModel.create({
+      id: "proposal-command-vote",
+      title: "Explicit Vote Command",
+      authorId: "u-mangaka",
+      authorName: "Inoue Takehiko",
+      synopsis: "Test",
+      status: "PENDING_BOARD",
+      genres: ["Action"],
+      votes: [],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const board = await loginAs("board@beachread.jp");
+    const res = await request(createApp())
+      .post("/api/board/proposals/proposal-command-vote/votes")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ voteDecision: "APPROVE", comment: "Ready for serialization." })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("BOARD_VOTING");
+    expect(res.body.data.votes).toHaveLength(1);
+    expect(res.body.data.votes[0]).toMatchObject({
+      memberId: "u-board",
+      decision: "APPROVE",
+      comment: "Ready for serialization.",
+    });
+  });
+
+  it("POST /api/board/proposals/:proposalId/finalization creates Series only after Tantou and cadence are selected", async () => {
+    await ProposalModel.create({
+      id: "proposal-command-finalize",
+      title: "Explicit Finalize Command",
+      authorId: "u-mangaka",
+      authorName: "Inoue Takehiko",
+      synopsis: "Test",
+      status: "PENDING_BOARD",
+      genres: ["Action"],
+      votes: [],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const board = await loginAs("board@beachread.jp");
+
+    await request(createApp())
+      .post("/api/board/proposals/proposal-command-finalize/finalization")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ decision: "APPROVED", publicationType: "WEEKLY" })
+      .expect(400);
+
+    const res = await request(createApp())
+      .post("/api/board/proposals/proposal-command-finalize/finalization")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({
+        decision: "APPROVED",
+        publicationType: "WEEKLY",
+        tantouEditorId: "u-editor",
+      })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("APPROVED");
+
+    const series = await SeriesModel.find({ proposalId: "proposal-command-finalize" }).lean();
+    expect(series).toHaveLength(1);
+    expect(series[0]).toMatchObject({
+      id: "s-proposal-command-finalize",
+      publicationType: "WEEKLY",
+      editorId: "u-editor",
+    });
+  });
+
   it("POST /api/board/series/:id/decisions/finalize works for ADMIN", async () => {
     await ProposalModel.create({
       id: "proposal-finalize-admin",
@@ -503,5 +669,39 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       .set("Authorization", `Bearer ${admin.accessToken}`)
       .send({ decision: "CONTINUE" })
       .expect(404);
+  });
+
+  it("Tantou Editor schedules publication through explicit MVP publication command", async () => {
+    await ChapterModel.create({
+      id: "chapter-publication-command",
+      seriesId: "s-berserk-prod",
+      number: 99,
+      title: "Publication Command",
+      status: "READY_FOR_PUBLICATION",
+      pages: [],
+      reviewNotes: [],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const editor = await loginAs("tanaka@beachread.jp");
+    const scheduledAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const res = await request(createApp())
+      .post("/api/chapters/chapter-publication-command/publication/schedule")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ scheduledAt })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("READY_FOR_PUBLICATION");
+
+    const publication = await PublicationModel.findOne({
+      chapterId: "chapter-publication-command",
+    }).lean();
+    expect(publication).toMatchObject({
+      status: "SCHEDULED",
+      scheduledById: "u-editor",
+    });
+    expect(new Date((publication as any).scheduledAt).toISOString()).toBe(scheduledAt);
   });
 });

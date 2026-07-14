@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import authRoutes from "./auth.routes.js";
 import bootstrapRoutes from "./bootstrap.routes.js";
+import boardRoutes from "./board.routes.js";
 import proposalRoutes from "./proposal.routes.js";
 import votingRoutes from "./voting.routes.js";
 import seriesRoutes from "./series.routes.js";
@@ -9,11 +10,13 @@ import studioRoutes from "./studio.routes.js";
 import submissionRoutes from "./submission.routes.js";
 import materialRoutes from "./material.routes.js";
 import adminRoutes from "./admin.routes.js";
+import publicationRoutes from "./publication.routes.js";
 import tantouRoutes from "./tantou.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import mobileRoutes from "./mobile.routes.js";
 import { createAiRoutes } from "./ai.routes.js";
 import fileTokenRoutes from "./file-token.routes.js";
+import atRiskRoutes from "./at-risk.routes.js";
 import atRiskReportRoutes from "./at-risk-report.routes.js";
 
 export type ApiRouterOptions = {
@@ -32,6 +35,7 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
 
   // Protected feature routes
   router.use(bootstrapRoutes);
+  router.use(boardRoutes);
   router.use(proposalRoutes);
   router.use(votingRoutes);
   router.use(seriesRoutes);
@@ -39,8 +43,10 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(submissionRoutes);
   router.use(materialRoutes);
   router.use(adminRoutes);
+  router.use(publicationRoutes);
   router.use(tantouRoutes);
   router.use(atRiskReportRoutes);
+  router.use(atRiskRoutes);
   router.use(notificationRoutes);
   router.use(mobileRoutes);
 

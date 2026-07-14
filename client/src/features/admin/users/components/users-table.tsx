@@ -5,24 +5,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { RestrictedActionTooltip } from "@/entities/access";
 import { canShowAction } from "@/entities/access/model/permission-guard";
 import { RoleBadge } from "@/entities/user";
 import { ROLE_LABEL, type Role } from "@/shared/auth";
 import { cn } from "@/shared/lib/cn";
-import { AvatarInitials, DataTable, StateBlock, StatusPill } from "@/shared/ui";
+import { AvatarInitials, ServerDataTable, StateBlock, StatusPill } from "@/shared/ui";
 import { ArrowDown, ArrowUp, Check, ChevronDown, MoreHorizontal } from "lucide-react";
+import { useMemo } from "react";
 import type { AdminUser } from "../../api/admin-queries";
 import { ALL_ROLES } from "../../_shared/model/admin-constants";
-import { EmptyUserFilters } from "./empty-user-filters";
 import { formatUserDate, isLastAdmin, privilegeLabel } from "./user-utils";
 
 export function UsersTable({
@@ -32,6 +25,7 @@ export function UsersTable({
   currentUser,
   isLoading,
   updateSucceeded,
+  activeAdminCount,
   onSelect,
   onRoleChange,
   onToggleActive,
@@ -43,150 +37,172 @@ export function UsersTable({
   currentUser: { id: string; role: string } | null;
   isLoading: boolean;
   updateSucceeded: boolean;
+  activeAdminCount?: number;
   onSelect: (user: AdminUser) => void;
   onRoleChange: (user: AdminUser, role: Role) => void;
   onToggleActive: (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
 }) {
-  return (
-    <DataTable className="mt-5" isLoading={isLoading} skeletonRows={5} skeletonColumns={7}>
-      {updateSucceeded ? (
-        <div className="p-4">
-          <StateBlock
-            tone="success"
-            title="User update recorded"
-            description="The backend user record was updated and the admin directory is refreshing."
+  const columns = useMemo<ColumnDef<AdminUser, unknown>[]>(
+    () => [
+      {
+        id: "user",
+        header: "User",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3 pl-2">
+            <AvatarInitials name={row.original.name} />
+            <div className="min-w-0">
+              <p className="truncate text-[14px] font-semibold leading-tight text-[var(--admin-ink)]">
+                {row.original.name}
+              </p>
+              <p className="mt-0.5 truncate text-[12px] text-[var(--admin-faint)]">
+                {row.original.email}
+              </p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "role",
+        header: "Role",
+        cell: ({ row }) => {
+          const lastAdmin = isLastAdmin(row.original, users, activeAdminCount);
+          return (
+            <RoleBadgeDropdown
+              user={row.original}
+              currentUser={currentUser}
+              lastAdmin={lastAdmin}
+              onRoleChange={onRoleChange}
+            />
+          );
+        },
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <StatusPill
+            status={row.original.active !== false ? "active" : "locked"}
+            className="border border-current/20 bg-opacity-70"
           />
-        </div>
+        ),
+      },
+      {
+        id: "privileges",
+        header: "Privileges",
+        cell: ({ row }) => (
+          <span className="text-[14px] text-[var(--admin-muted)]">
+            {privilegeLabel(row.original)}
+          </span>
+        ),
+      },
+      {
+        id: "createdAt",
+        header: () => (
+          <span className="inline-flex items-center gap-1">
+            Created
+            <ArrowUp className="size-3" />
+          </span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-[14px] text-[var(--admin-muted)]">
+            {formatUserDate(row.original.createdAt)}
+          </span>
+        ),
+      },
+      {
+        id: "updatedAt",
+        header: () => (
+          <span className="inline-flex items-center gap-1">
+            Updated
+            <ArrowDown className="size-3" />
+          </span>
+        ),
+        cell: ({ row }) => (
+          <span className="text-[14px] text-[var(--admin-muted)]">
+            {formatUserDate(row.original.updatedAt)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const active = row.original.active !== false;
+          const lastAdmin = isLastAdmin(row.original, users, activeAdminCount);
+
+          return (
+            <div className="pr-2 text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-9 rounded-[5px] border-[var(--admin-border)] bg-[var(--admin-surface)]"
+                    aria-label={`Open actions for ${row.original.name}`}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => onSelect(row.original)}>
+                    View details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onToggleActive(row.original)}>
+                    {active ? "Deactivate" : "Activate"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-rose-600 focus:text-rose-700"
+                    onSelect={() => onDelete(row.original)}
+                    disabled={lastAdmin}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    [
+      currentUser,
+      onDelete,
+      onRoleChange,
+      onSelect,
+      onToggleActive,
+      users,
+      activeAdminCount,
+    ],
+  );
+
+  return (
+    <div className="mt-5 space-y-3">
+      {updateSucceeded ? (
+        <StateBlock
+          tone="success"
+          title="User update recorded"
+          description="The backend user record was updated and the admin directory is refreshing."
+        />
       ) : null}
 
-      <div className="overflow-x-auto">
-        <Table>
-          <caption className="sr-only">User accounts</caption>
-          <TableHeader>
-            <TableRow className="border-[var(--admin-border)] hover:bg-transparent">
-              <TableHead
-                scope="col"
-                className="h-12 pl-5 font-serif text-[14px] font-semibold text-[var(--admin-ink)]"
-              >
-                User
-              </TableHead>
-              {["Role", "Status", "Privileges", "Created", "Updated"].map((heading) => (
-                <TableHead
-                  scope="col"
-                  key={heading}
-                  className="font-serif text-[14px] font-semibold text-[var(--admin-ink)]"
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {heading}
-                    {heading === "Created" ? <ArrowUp className="size-3" /> : null}
-                    {heading === "Updated" ? <ArrowDown className="size-3" /> : null}
-                  </span>
-                </TableHead>
-              ))}
-              <TableHead
-                scope="col"
-                className="pr-5 text-right font-serif text-[14px] font-semibold text-[var(--admin-ink)]"
-              >
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((user) => {
-              const active = user.active !== false;
-              const lastAdmin = isLastAdmin(user, users);
-              return (
-                <TableRow
-                  key={user.id}
-                  className={cn(
-                    "border-[var(--admin-border)] hover:bg-[var(--admin-hover)]",
-                    selectedId === user.id &&
-                      "bg-[var(--admin-hover)] shadow-[inset_3px_0_0_var(--admin-navy)]",
-                  )}
-                >
-                  <TableCell className="pl-5">
-                    <div className="flex items-center gap-3">
-                      <AvatarInitials name={user.name} />
-                      <div className="min-w-0">
-                        <p className="truncate text-[14px] font-semibold leading-tight text-[var(--admin-ink)]">
-                          {user.name}
-                        </p>
-                        <p className="mt-0.5 truncate text-[12px] text-[var(--admin-faint)]">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <RoleBadgeDropdown
-                      user={user}
-                      currentUser={currentUser}
-                      lastAdmin={lastAdmin}
-                      onRoleChange={onRoleChange}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <StatusPill
-                      status={active ? "active" : "locked"}
-                      className="border border-current/20 bg-opacity-70"
-                    />
-                  </TableCell>
-                  <TableCell className="text-[14px] text-[var(--admin-muted)]">
-                    {privilegeLabel(user)}
-                  </TableCell>
-                  <TableCell className="text-[14px] text-[var(--admin-muted)]">
-                    {formatUserDate(user.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-[14px] text-[var(--admin-muted)]">
-                    {formatUserDate(user.updatedAt)}
-                  </TableCell>
-                  <TableCell className="pr-5 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="size-9 rounded-[5px] border-[var(--admin-border)] bg-[var(--admin-surface)]"
-                          aria-label={`Open actions for ${user.name}`}
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => onSelect(user)}>
-                          View details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onToggleActive(user)}>
-                          {active ? "Deactivate" : "Activate"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-rose-600 focus:text-rose-700"
-                          onSelect={() => onDelete(user)}
-                          disabled={lastAdmin}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-10 text-center text-sm text-[var(--admin-faint)]"
-                >
-                  <EmptyUserFilters />
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
-      </div>
-    </DataTable>
+      <ServerDataTable
+        data={rows}
+        columns={columns}
+        getRowId={(user) => user.id}
+        getRowClassName={(user) =>
+          cn(
+            "border-[var(--admin-border)] hover:bg-[var(--admin-hover)]",
+            selectedId === user.id &&
+              "bg-[var(--admin-hover)] shadow-[inset_3px_0_0_var(--admin-navy)]",
+          )
+        }
+        isLoading={isLoading}
+        skeletonRows={5}
+        emptyTitle="No users match these filters"
+        emptyDescription="Reset filters or try a different name, email, role, status, or privilege."
+      />
+    </div>
   );
 }
 

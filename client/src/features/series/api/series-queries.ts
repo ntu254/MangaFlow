@@ -17,14 +17,22 @@ import type {
   StudioRegion,
 } from "@/entities/series/model/studio-types";
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
-import { ApiRequestError, apiRequest, hasApiTokens } from "@/shared/api/client";
-import { seriesApi } from "@/shared/api/services";
+import { ApiRequestError, apiRequest, hasApiTokens, type ApiListEnvelope } from "@/shared/api/client";
+import {
+  assistantApi,
+  seriesApi,
+  studioApi,
+  type StudioTasksListMeta,
+  type SubmissionsListMeta,
+} from "@/shared/api/services";
 import { useAuth } from "@/shared/auth";
+import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 export {
   rankingKeys,
   useMySeriesQuery,
+  useSeriesListQuery,
   useRankingsListQuery,
 } from "@/entities/series/model/ranking-queries";
 export {
@@ -33,6 +41,7 @@ export {
 } from "@/entities/series/model/comment-queries";
 export {
   useMyChaptersQuery,
+  useMyChaptersListQuery,
   useSeriesDetailQuery,
   useChaptersForSeriesQuery,
   useChapterQuery,
@@ -116,7 +125,7 @@ export function mapApiError(err: unknown): string {
 export function useChaptersQuery(seriesId: string) {
   return useQuery<Chapter[]>({
     queryKey: seriesKeys.chapters(seriesId),
-    queryFn: () => apiRequest<Chapter[]>(`/series/${seriesId}/chapters`),
+    queryFn: () => apiRequest<Chapter[]>(`/series/${seriesId}/chapters?pageSize=100`),
     enabled: !!seriesId,
     staleTime: 60000,
   });
@@ -653,10 +662,20 @@ export function useStudioTasksQuery(filters: {
   if (filters.regionId) params.set("regionId", filters.regionId);
   if (filters.assigneeId) params.set("assigneeId", filters.assigneeId);
   if (filters.status) params.set("status", filters.status);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<StudioTask[]>({
     queryKey: studioKeys.tasks(filters),
     queryFn: () => apiRequest<StudioTask[]>(`/studio/tasks${qs ? `?${qs}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useStudioTasksListQuery(tableState: TableState) {
+  return useQuery<ApiListEnvelope<StudioTask, StudioTasksListMeta>>({
+    queryKey: [...studioKeys.all, "tasksList", tableState] as const,
+    queryFn: () =>
+      studioApi.tasksList(tableState) as Promise<ApiListEnvelope<StudioTask, StudioTasksListMeta>>,
     staleTime: 30000,
   });
 }
@@ -920,6 +939,7 @@ export function useSubmissionsQuery(filters: {
   if (filters.assistantId) params.set("assistantId", filters.assistantId);
   if (filters.taskId) params.set("taskId", filters.taskId);
   if (filters.status) params.set("status", filters.status);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.list(filters),
@@ -927,6 +947,17 @@ export function useSubmissionsQuery(filters: {
       const raw = await apiRequest<Record<string, unknown>[]>(`/submissions${qs ? `?${qs}` : ""}`);
       return raw.map(mapSubmissionRecord);
     },
+    staleTime: 30000,
+  });
+}
+
+export function useSubmissionsListQuery(tableState: TableState) {
+  return useQuery<ApiListEnvelope<AssistantSubmission, SubmissionsListMeta>>({
+    queryKey: [...submissionKeys.all, "listContract", tableState] as const,
+    queryFn: () =>
+      assistantApi.submissionsList(tableState) as Promise<
+        ApiListEnvelope<AssistantSubmission, SubmissionsListMeta>
+      >,
     staleTime: 30000,
   });
 }
@@ -977,6 +1008,7 @@ export function useMangakaReviewQueueQuery(filters?: { assistantId?: string; tas
   params.set("status", "PENDING");
   if (filters?.assistantId) params.set("assistantId", filters.assistantId);
   if (filters?.taskId) params.set("taskId", filters.taskId);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.mangakaReviewQueue(filters),
@@ -1008,7 +1040,9 @@ export function useEditorReviewQueueQuery(options: { enabled?: boolean } = {}) {
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.editorReviewQueue(),
     queryFn: async () => {
-      const raw = await apiRequest<Record<string, unknown>[]>("/submissions/review-queue");
+      const raw = await apiRequest<Record<string, unknown>[]>(
+        "/submissions/review-queue?pageSize=100",
+      );
       return raw.map(mapSubmissionRecord);
     },
     enabled: options.enabled ?? true,
