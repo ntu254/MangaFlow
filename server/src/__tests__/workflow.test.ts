@@ -1442,6 +1442,81 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
   });
 
   describe("Rankings scoping & read-only Mangaka restrictions", () => {
+    it("serves rankings through the MVP list contract", async () => {
+      const board = await loginAs("board@beachread.jp");
+
+      await RankingModel.create([
+        {
+          id: "rank-contract-risk",
+          seriesId: "s-berserk-prod",
+          seriesTitle: "Contract Ranking Berserk",
+          period: "2026-W31",
+          readerScore: 4.2,
+          voteCount: 900,
+          finalScore: 4.8,
+          status: "AT_RISK",
+          atRisk: true,
+          source: "MANUAL",
+          createdAt: new Date("2026-07-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+        },
+        {
+          id: "rank-contract-safe",
+          seriesId: "s-vinland-prod",
+          seriesTitle: "Contract Ranking Vinland",
+          period: "2026-W31",
+          readerScore: 8.5,
+          voteCount: 1200,
+          finalScore: 8.7,
+          status: "ACTIVE",
+          atRisk: false,
+          source: "MANUAL",
+          createdAt: new Date("2026-07-02T00:00:00.000Z"),
+          updatedAt: new Date("2026-07-02T00:00:00.000Z"),
+        },
+      ]);
+
+      const response = await request(createApp())
+        .get("/api/rankings")
+        .query({
+          q: "Contract Ranking",
+          filters: JSON.stringify({ atRisk: { type: "boolean", value: true } }),
+          sortBy: "finalScore",
+          sortDir: "asc",
+          page: 1,
+          pageSize: 1,
+        })
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe("rank-contract-risk");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        pageSize: 1,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
+      expect(response.body.meta).toMatchObject({
+        q: "Contract Ranking",
+        sort: { field: "finalScore", dir: "asc" },
+      });
+      expect(response.body.meta.summary.atRisk).toBe(1);
+    });
+
+    it("rejects non-data ranking list sort fields", async () => {
+      const board = await loginAs("board@beachread.jp");
+
+      const response = await request(createApp())
+        .get("/api/rankings?sortBy=actions")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .expect(400);
+
+      expect(response.body.code).toBe("INVALID_SORT_FIELD");
+    });
+
     it("restricts Mangakas to view only rankings associated with their own series", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
 

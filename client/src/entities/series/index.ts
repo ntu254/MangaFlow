@@ -3,6 +3,7 @@ export * from "./model/series-types";
 export {
   rankingKeys,
   useRankingsListQuery,
+  useRankingsListContractQuery,
   useMySeriesQuery,
   useSeriesListQuery,
 } from "./model/ranking-queries";

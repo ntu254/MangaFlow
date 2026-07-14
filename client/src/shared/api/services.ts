@@ -301,6 +301,17 @@ export type SubmissionsListMeta = {
   };
 };
 
+export type RankingsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    atRisk: number;
+    byStatus: Record<string, number>;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -479,7 +490,9 @@ export const boardApi = {
     apiRequest(`/series/${seriesId}/at-risk-reports`, { method: "POST", body }),
   latestAtRiskReport: (seriesId: string) =>
     apiRequest(`/series/${seriesId}/at-risk-reports/latest`),
-  rankings: () => apiRequest("/rankings"),
+  rankings: () => apiRequest("/rankings?pageSize=100"),
+  rankingsList: (state?: TableState) =>
+    apiListRequest<unknown, RankingsListMeta>(`/rankings${tableStateQuery(state)}`),
   importRankings: (body: unknown) => apiRequest("/rankings/import", { method: "POST", body }),
   decisionHistory: () => apiRequest("/board/decisions/history"),
 };

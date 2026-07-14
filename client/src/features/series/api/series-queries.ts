@@ -35,6 +35,7 @@ export {
   useMySeriesQuery,
   useSeriesListQuery,
   useRankingsListQuery,
+  useRankingsListContractQuery,
 } from "@/entities/series/model/ranking-queries";
 export {
   useCommentsQuery,
