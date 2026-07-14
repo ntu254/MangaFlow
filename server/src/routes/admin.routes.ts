@@ -1,18 +1,6 @@
 import { Router } from "express";
 import { requireRole } from "../middleware/auth.js";
-import {
-  listAudit,
-  listManagedNotifications,
-  createManagedNotification,
-  patchManagedNotification,
-  deleteManagedNotification,
-  listPayroll,
-  listAssistantEarnings,
-  workflowSummary,
-  storageSummary,
-  resetDemoData,
-  clearDemoData,
-} from "../controllers/admin.controller.js";
+import { listAssistantEarnings } from "../controllers/admin.controller.js";
 import {
   createUser,
   deactivateUser,
@@ -30,16 +18,6 @@ router.get("/admin/users/:userId", requireRole("ADMIN") as any, getUser);
 router.patch("/admin/users/:userId", requireRole("ADMIN") as any, updateUser);
 router.post("/admin/users/:userId/deactivate", requireRole("ADMIN") as any, deactivateUser);
 router.delete("/admin/users/:userId", requireRole("ADMIN") as any, deleteUser);
-router.get("/admin/audit", requireRole("ADMIN") as any, listAudit);
-router.get("/admin/notifications", requireRole("ADMIN") as any, listManagedNotifications);
-router.post("/admin/notifications", requireRole("ADMIN") as any, createManagedNotification);
-router.patch("/admin/notifications/:notificationId", requireRole("ADMIN") as any, patchManagedNotification);
-router.delete("/admin/notifications/:notificationId", requireRole("ADMIN") as any, deleteManagedNotification);
-router.get("/admin/payroll", requireRole("ADMIN") as any, listPayroll);
-router.get("/admin/workflow-summary", requireRole("ADMIN") as any, workflowSummary);
-router.get("/admin/storage-summary", requireRole("ADMIN") as any, storageSummary);
-router.post("/admin/demo/reset", requireRole("ADMIN") as any, resetDemoData);
-router.post("/admin/demo/clear", requireRole("ADMIN") as any, clearDemoData);
 router.get("/assistant/earnings", requireRole("ASSISTANT") as any, listAssistantEarnings);
 
 export default router;

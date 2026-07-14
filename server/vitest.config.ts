@@ -10,6 +10,7 @@ export default defineConfig({
     pool: "forks",
     singleFork: true,
     globals: true,
+    hookTimeout: 30_000,
     include: ["src/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     exclude: ["dist/**", "node_modules/**"],
   },

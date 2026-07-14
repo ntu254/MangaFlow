@@ -4,7 +4,6 @@ import authRoutes from "./auth.routes.js";
 import bootstrapRoutes from "./bootstrap.routes.js";
 import boardRoutes from "./board.routes.js";
 import proposalRoutes from "./proposal.routes.js";
-import votingRoutes from "./voting.routes.js";
 import seriesRoutes from "./series.routes.js";
 import studioRoutes from "./studio.routes.js";
 import submissionRoutes from "./submission.routes.js";
@@ -37,7 +36,6 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(bootstrapRoutes);
   router.use(boardRoutes);
   router.use(proposalRoutes);
-  router.use(votingRoutes);
   router.use(seriesRoutes);
   router.use(studioRoutes);
   router.use(submissionRoutes);
