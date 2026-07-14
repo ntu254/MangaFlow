@@ -114,8 +114,6 @@ export function mapApiError(err: unknown): string {
       return "All assistant tasks and submissions must be approved by Mangaka first.";
     if (code === "BLOCKING_COMMENTS_UNRESOLVED")
       return "Blocking comments must be resolved before editor review.";
-    if (code === "REVIEW_MATERIAL_NOT_ACTIVE")
-      return "Review materials must be ACTIVE before editor review.";
     if (code === "NOT_FOUND" || code === "PROPOSAL_NOT_FOUND") return "Proposal not found.";
     const msg = err.message;
     if (msg.includes("SELF_APPROVAL_BLOCKED")) return "You cannot approve your own submission.";

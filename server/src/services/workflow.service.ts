@@ -1,7 +1,6 @@
 import {
   ChapterModel,
   EarningItemModel,
-  MaterialModel,
   ProposalModel,
   ProposalVoteModel,
   PublicationModel,
@@ -1111,30 +1110,10 @@ export async function sendChapterToEditorReview(req: AuthedRequest, chapterId: s
     );
   }
 
-  const pageIds = chapter.pages.map((page: any) => page.id);
-  const [tasks, submissions, reviewMaterials] = await Promise.all([
+  const [tasks, submissions] = await Promise.all([
     StudioTaskModel.find({ chapterId }).lean(),
     SubmissionModel.find({ chapterId }).lean(),
-    MaterialModel.find({
-      $and: [
-        { $or: [{ chapterId }, { pageId: { $in: pageIds } }] },
-        {
-          $or: [{ fileKey: { $exists: true, $ne: "" } }, { url: { $exists: true, $ne: "" } }],
-        },
-      ],
-    }).lean(),
   ]);
-  if (
-    reviewMaterials.some(
-      (material: any) => !["ACTIVE", "APPROVED"].includes(String(material.status)),
-    )
-  ) {
-    throw new AppError(
-      409,
-      "Review materials must be ACTIVE before sending to editor review.",
-      "REVIEW_MATERIAL_NOT_ACTIVE",
-    );
-  }
   const relevantTasks = tasks.filter((task: any) => task.status !== "CANCELLED");
   if (relevantTasks.some((task: any) => !APPROVED_TASK_STATUSES.includes(String(task.status)))) {
     throw new AppError(
@@ -1865,16 +1844,8 @@ export function chapterReadiness(
   comments: any[] = [],
   tasks: any[] = [],
   submissions: any[] = [],
-  materials: any[] = [],
 ) {
   const items = [
-    {
-      key: "reviewMaterialActive",
-      passed: materials.every((material: any) =>
-        ["ACTIVE", "APPROVED"].includes(String(material.status)),
-      ),
-      reason: "Review materials must be ACTIVE before sending to editor review.",
-    },
     {
       key: "allPagesUploaded",
       passed:
