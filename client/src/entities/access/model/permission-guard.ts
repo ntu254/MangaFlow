@@ -35,7 +35,6 @@ export type GuardInput = {
 export type GuardResult = {
   allowed: boolean;
   reason?: RestrictionCode;
-  requiresOverride?: boolean;
 };
 
 export function canShowAction({

@@ -12,7 +12,7 @@ import { cn } from "@/shared/lib/cn";
 import { AlertTriangle, FileClock } from "lucide-react";
 import { useState } from "react";
 
-export function OverrideDialog({
+export function ConfirmationReasonDialog({
   trigger,
   actionLabel = "Confirm",
   onConfirm,
@@ -56,13 +56,13 @@ export function OverrideDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (nextOpen ? setOpenValue(true) : close())}>
       {!isControlled && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent aria-describedby="override-dialog-description">
+      <DialogContent aria-describedby="confirmation-reason-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-rose-700" />
             Confirmation Required
           </DialogTitle>
-          <DialogDescription id="override-dialog-description">
+          <DialogDescription id="confirmation-reason-dialog-description">
             A written confirmation reason is required before this admin user-management change is
             applied.
           </DialogDescription>
@@ -87,11 +87,11 @@ export function OverrideDialog({
             </p>
           </div>
 
-          <label className="block text-xs font-semibold" htmlFor="override-reason">
+          <label className="block text-xs font-semibold" htmlFor="confirmation-reason">
             Confirmation reason
           </label>
           <Textarea
-            id="override-reason"
+            id="confirmation-reason"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Explain the business reason for this admin confirmation..."
