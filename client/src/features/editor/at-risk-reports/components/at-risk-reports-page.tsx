@@ -212,8 +212,6 @@ export function AtRiskReportsPage() {
   );
 }
 
-export const BoardBriefsPage = AtRiskReportsPage;
-
 function Field({
   label,
   value,

@@ -43,7 +43,7 @@ import { Route as AppEditorReviewRouteImport } from './routes/app.editor.review'
 import { Route as AppEditorPublicationsRouteImport } from './routes/app.editor.publications'
 import { Route as AppEditorNotificationsRouteImport } from './routes/app.editor.notifications'
 import { Route as AppEditorDashboardRouteImport } from './routes/app.editor.dashboard'
-import { Route as AppEditorBoardBriefsRouteImport } from './routes/app.editor.board-briefs'
+import { Route as AppEditorAtRiskReportsRouteImport } from './routes/app.editor.at-risk-reports'
 import { Route as AppBoardRankingsRouteImport } from './routes/app.board.rankings'
 import { Route as AppBoardQueueRouteImport } from './routes/app.board.queue'
 import { Route as AppBoardNotificationsRouteImport } from './routes/app.board.notifications'
@@ -239,9 +239,9 @@ const AppEditorDashboardRoute = AppEditorDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppEditorRoute,
 } as any)
-const AppEditorBoardBriefsRoute = AppEditorBoardBriefsRouteImport.update({
-  id: '/board-briefs',
-  path: '/board-briefs',
+const AppEditorAtRiskReportsRoute = AppEditorAtRiskReportsRouteImport.update({
+  id: '/at-risk-reports',
+  path: '/at-risk-reports',
   getParentRoute: () => AppEditorRoute,
 } as any)
 const AppBoardRankingsRoute = AppBoardRankingsRouteImport.update({
@@ -407,7 +407,7 @@ export interface FileRoutesByFullPath {
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/board/rankings': typeof AppBoardRankingsRouteWithChildren
-  '/app/editor/board-briefs': typeof AppEditorBoardBriefsRoute
+  '/app/editor/at-risk-reports': typeof AppEditorAtRiskReportsRoute
   '/app/editor/dashboard': typeof AppEditorDashboardRoute
   '/app/editor/notifications': typeof AppEditorNotificationsRoute
   '/app/editor/publications': typeof AppEditorPublicationsRoute
@@ -460,7 +460,7 @@ export interface FileRoutesByTo {
   '/app/board/dashboard': typeof AppBoardDashboardRoute
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
-  '/app/editor/board-briefs': typeof AppEditorBoardBriefsRoute
+  '/app/editor/at-risk-reports': typeof AppEditorAtRiskReportsRoute
   '/app/editor/dashboard': typeof AppEditorDashboardRoute
   '/app/editor/notifications': typeof AppEditorNotificationsRoute
   '/app/editor/publications': typeof AppEditorPublicationsRoute
@@ -521,7 +521,7 @@ export interface FileRoutesById {
   '/app/board/notifications': typeof AppBoardNotificationsRoute
   '/app/board/queue': typeof AppBoardQueueRoute
   '/app/board/rankings': typeof AppBoardRankingsRouteWithChildren
-  '/app/editor/board-briefs': typeof AppEditorBoardBriefsRoute
+  '/app/editor/at-risk-reports': typeof AppEditorAtRiskReportsRoute
   '/app/editor/dashboard': typeof AppEditorDashboardRoute
   '/app/editor/notifications': typeof AppEditorNotificationsRoute
   '/app/editor/publications': typeof AppEditorPublicationsRoute
@@ -584,7 +584,7 @@ export interface FileRouteTypes {
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/board/rankings'
-    | '/app/editor/board-briefs'
+    | '/app/editor/at-risk-reports'
     | '/app/editor/dashboard'
     | '/app/editor/notifications'
     | '/app/editor/publications'
@@ -637,7 +637,7 @@ export interface FileRouteTypes {
     | '/app/board/dashboard'
     | '/app/board/notifications'
     | '/app/board/queue'
-    | '/app/editor/board-briefs'
+    | '/app/editor/at-risk-reports'
     | '/app/editor/dashboard'
     | '/app/editor/notifications'
     | '/app/editor/publications'
@@ -697,7 +697,7 @@ export interface FileRouteTypes {
     | '/app/board/notifications'
     | '/app/board/queue'
     | '/app/board/rankings'
-    | '/app/editor/board-briefs'
+    | '/app/editor/at-risk-reports'
     | '/app/editor/dashboard'
     | '/app/editor/notifications'
     | '/app/editor/publications'
@@ -973,11 +973,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorDashboardRouteImport
       parentRoute: typeof AppEditorRoute
     }
-    '/app/editor/board-briefs': {
-      id: '/app/editor/board-briefs'
-      path: '/board-briefs'
-      fullPath: '/app/editor/board-briefs'
-      preLoaderRoute: typeof AppEditorBoardBriefsRouteImport
+    '/app/editor/at-risk-reports': {
+      id: '/app/editor/at-risk-reports'
+      path: '/at-risk-reports'
+      fullPath: '/app/editor/at-risk-reports'
+      preLoaderRoute: typeof AppEditorAtRiskReportsRouteImport
       parentRoute: typeof AppEditorRoute
     }
     '/app/board/rankings': {
@@ -1264,7 +1264,7 @@ const AppEditorSeriesRouteWithChildren = AppEditorSeriesRoute._addFileChildren(
 )
 
 interface AppEditorRouteChildren {
-  AppEditorBoardBriefsRoute: typeof AppEditorBoardBriefsRoute
+  AppEditorAtRiskReportsRoute: typeof AppEditorAtRiskReportsRoute
   AppEditorDashboardRoute: typeof AppEditorDashboardRoute
   AppEditorNotificationsRoute: typeof AppEditorNotificationsRoute
   AppEditorPublicationsRoute: typeof AppEditorPublicationsRoute
@@ -1276,7 +1276,7 @@ interface AppEditorRouteChildren {
 }
 
 const AppEditorRouteChildren: AppEditorRouteChildren = {
-  AppEditorBoardBriefsRoute: AppEditorBoardBriefsRoute,
+  AppEditorAtRiskReportsRoute: AppEditorAtRiskReportsRoute,
   AppEditorDashboardRoute: AppEditorDashboardRoute,
   AppEditorNotificationsRoute: AppEditorNotificationsRoute,
   AppEditorPublicationsRoute: AppEditorPublicationsRoute,
