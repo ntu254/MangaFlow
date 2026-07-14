@@ -3,7 +3,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { ProposalModel, RankingModel, SeriesModel } from "../db/models.js";
+import { ChapterModel, ProposalModel, PublicationModel, RankingModel, SeriesModel } from "../db/models.js";
 
 let mongo: MongoMemoryServer;
 
@@ -578,5 +578,39 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       .set("Authorization", `Bearer ${admin.accessToken}`)
       .send({ decision: "CONTINUE" })
       .expect(404);
+  });
+
+  it("Tantou Editor schedules publication through explicit MVP publication command", async () => {
+    await ChapterModel.create({
+      id: "chapter-publication-command",
+      seriesId: "s-berserk-prod",
+      number: 99,
+      title: "Publication Command",
+      status: "READY_FOR_PUBLICATION",
+      pages: [],
+      reviewNotes: [],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const editor = await loginAs("tanaka@beachread.jp");
+    const scheduledAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const res = await request(createApp())
+      .post("/api/chapters/chapter-publication-command/publication/schedule")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ scheduledAt })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("READY_FOR_PUBLICATION");
+
+    const publication = await PublicationModel.findOne({
+      chapterId: "chapter-publication-command",
+    }).lean();
+    expect(publication).toMatchObject({
+      status: "SCHEDULED",
+      scheduledById: "u-editor",
+    });
+    expect(new Date((publication as any).scheduledAt).toISOString()).toBe(scheduledAt);
   });
 });

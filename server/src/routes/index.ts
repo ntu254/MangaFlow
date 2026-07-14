@@ -10,6 +10,7 @@ import studioRoutes from "./studio.routes.js";
 import submissionRoutes from "./submission.routes.js";
 import materialRoutes from "./material.routes.js";
 import adminRoutes from "./admin.routes.js";
+import publicationRoutes from "./publication.routes.js";
 import tantouRoutes from "./tantou.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import mobileRoutes from "./mobile.routes.js";
@@ -41,6 +42,7 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(submissionRoutes);
   router.use(materialRoutes);
   router.use(adminRoutes);
+  router.use(publicationRoutes);
   router.use(tantouRoutes);
   router.use(atRiskReportRoutes);
   router.use(notificationRoutes);
