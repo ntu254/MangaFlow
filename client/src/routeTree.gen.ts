@@ -56,18 +56,7 @@ import { Route as AppAssistantSubmissionsRouteImport } from './routes/app.assist
 import { Route as AppAssistantNotificationsRouteImport } from './routes/app.assistant.notifications'
 import { Route as AppAssistantEarningsRouteImport } from './routes/app.assistant.earnings'
 import { Route as AppAssistantDashboardRouteImport } from './routes/app.assistant.dashboard'
-import { Route as AppAdminWorkflowsRouteImport } from './routes/app.admin.workflows'
 import { Route as AppAdminUsersRouteImport } from './routes/app.admin.users'
-import { Route as AppAdminStudiosRouteImport } from './routes/app.admin.studios'
-import { Route as AppAdminSettingsRouteImport } from './routes/app.admin.settings'
-import { Route as AppAdminSeriesRouteImport } from './routes/app.admin.series'
-import { Route as AppAdminRatesRouteImport } from './routes/app.admin.rates'
-import { Route as AppAdminPayrollRouteImport } from './routes/app.admin.payroll'
-import { Route as AppAdminNotificationsRouteImport } from './routes/app.admin.notifications'
-import { Route as AppAdminMaterialsRouteImport } from './routes/app.admin.materials'
-import { Route as AppAdminDashboardRouteImport } from './routes/app.admin.dashboard'
-import { Route as AppAdminBoardRouteImport } from './routes/app.admin.board'
-import { Route as AppAdminAuditRouteImport } from './routes/app.admin.audit'
 import { Route as AppEditorReviewIndexRouteImport } from './routes/app.editor.review.index'
 import { Route as AppBoardRankingsIndexRouteImport } from './routes/app.board.rankings.index'
 import { Route as AppSeriesSlugTabRouteImport } from './routes/app.series.$slug.$tab'
@@ -318,64 +307,9 @@ const AppAssistantDashboardRoute = AppAssistantDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppAssistantRoute,
 } as any)
-const AppAdminWorkflowsRoute = AppAdminWorkflowsRouteImport.update({
-  id: '/workflows',
-  path: '/workflows',
-  getParentRoute: () => AppAdminRoute,
-} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminStudiosRoute = AppAdminStudiosRouteImport.update({
-  id: '/studios',
-  path: '/studios',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminSettingsRoute = AppAdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminSeriesRoute = AppAdminSeriesRouteImport.update({
-  id: '/series',
-  path: '/series',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminRatesRoute = AppAdminRatesRouteImport.update({
-  id: '/rates',
-  path: '/rates',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminPayrollRoute = AppAdminPayrollRouteImport.update({
-  id: '/payroll',
-  path: '/payroll',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminNotificationsRoute = AppAdminNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminMaterialsRoute = AppAdminMaterialsRouteImport.update({
-  id: '/materials',
-  path: '/materials',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminDashboardRoute = AppAdminDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminBoardRoute = AppAdminBoardRouteImport.update({
-  id: '/board',
-  path: '/board',
-  getParentRoute: () => AppAdminRoute,
-} as any)
-const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
   getParentRoute: () => AppAdminRoute,
 } as any)
 const AppEditorReviewIndexRoute = AppEditorReviewIndexRouteImport.update({
@@ -474,18 +408,7 @@ export interface FileRoutesByFullPath {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
-  '/app/admin/audit': typeof AppAdminAuditRoute
-  '/app/admin/board': typeof AppAdminBoardRoute
-  '/app/admin/dashboard': typeof AppAdminDashboardRoute
-  '/app/admin/materials': typeof AppAdminMaterialsRoute
-  '/app/admin/notifications': typeof AppAdminNotificationsRoute
-  '/app/admin/payroll': typeof AppAdminPayrollRoute
-  '/app/admin/rates': typeof AppAdminRatesRoute
-  '/app/admin/series': typeof AppAdminSeriesRoute
-  '/app/admin/settings': typeof AppAdminSettingsRoute
-  '/app/admin/studios': typeof AppAdminStudiosRoute
   '/app/admin/users': typeof AppAdminUsersRoute
-  '/app/admin/workflows': typeof AppAdminWorkflowsRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
   '/app/assistant/notifications': typeof AppAssistantNotificationsRoute
@@ -541,18 +464,7 @@ export interface FileRoutesByTo {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app': typeof AppIndexRoute
   '/read': typeof ReadIndexRoute
-  '/app/admin/audit': typeof AppAdminAuditRoute
-  '/app/admin/board': typeof AppAdminBoardRoute
-  '/app/admin/dashboard': typeof AppAdminDashboardRoute
-  '/app/admin/materials': typeof AppAdminMaterialsRoute
-  '/app/admin/notifications': typeof AppAdminNotificationsRoute
-  '/app/admin/payroll': typeof AppAdminPayrollRoute
-  '/app/admin/rates': typeof AppAdminRatesRoute
-  '/app/admin/series': typeof AppAdminSeriesRoute
-  '/app/admin/settings': typeof AppAdminSettingsRoute
-  '/app/admin/studios': typeof AppAdminStudiosRoute
   '/app/admin/users': typeof AppAdminUsersRoute
-  '/app/admin/workflows': typeof AppAdminWorkflowsRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
   '/app/assistant/notifications': typeof AppAssistantNotificationsRoute
@@ -614,18 +526,7 @@ export interface FileRoutesById {
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
-  '/app/admin/audit': typeof AppAdminAuditRoute
-  '/app/admin/board': typeof AppAdminBoardRoute
-  '/app/admin/dashboard': typeof AppAdminDashboardRoute
-  '/app/admin/materials': typeof AppAdminMaterialsRoute
-  '/app/admin/notifications': typeof AppAdminNotificationsRoute
-  '/app/admin/payroll': typeof AppAdminPayrollRoute
-  '/app/admin/rates': typeof AppAdminRatesRoute
-  '/app/admin/series': typeof AppAdminSeriesRoute
-  '/app/admin/settings': typeof AppAdminSettingsRoute
-  '/app/admin/studios': typeof AppAdminStudiosRoute
   '/app/admin/users': typeof AppAdminUsersRoute
-  '/app/admin/workflows': typeof AppAdminWorkflowsRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
   '/app/assistant/notifications': typeof AppAssistantNotificationsRoute
@@ -690,18 +591,7 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app/'
     | '/read/'
-    | '/app/admin/audit'
-    | '/app/admin/board'
-    | '/app/admin/dashboard'
-    | '/app/admin/materials'
-    | '/app/admin/notifications'
-    | '/app/admin/payroll'
-    | '/app/admin/rates'
-    | '/app/admin/series'
-    | '/app/admin/settings'
-    | '/app/admin/studios'
     | '/app/admin/users'
-    | '/app/admin/workflows'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
     | '/app/assistant/notifications'
@@ -757,18 +647,7 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app'
     | '/read'
-    | '/app/admin/audit'
-    | '/app/admin/board'
-    | '/app/admin/dashboard'
-    | '/app/admin/materials'
-    | '/app/admin/notifications'
-    | '/app/admin/payroll'
-    | '/app/admin/rates'
-    | '/app/admin/series'
-    | '/app/admin/settings'
-    | '/app/admin/studios'
     | '/app/admin/users'
-    | '/app/admin/workflows'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
     | '/app/assistant/notifications'
@@ -829,18 +708,7 @@ export interface FileRouteTypes {
     | '/read/$slug'
     | '/app/'
     | '/read/'
-    | '/app/admin/audit'
-    | '/app/admin/board'
-    | '/app/admin/dashboard'
-    | '/app/admin/materials'
-    | '/app/admin/notifications'
-    | '/app/admin/payroll'
-    | '/app/admin/rates'
-    | '/app/admin/series'
-    | '/app/admin/settings'
-    | '/app/admin/studios'
     | '/app/admin/users'
-    | '/app/admin/workflows'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
     | '/app/assistant/notifications'
@@ -1221,88 +1089,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssistantDashboardRouteImport
       parentRoute: typeof AppAssistantRoute
     }
-    '/app/admin/workflows': {
-      id: '/app/admin/workflows'
-      path: '/workflows'
-      fullPath: '/app/admin/workflows'
-      preLoaderRoute: typeof AppAdminWorkflowsRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
     '/app/admin/users': {
       id: '/app/admin/users'
       path: '/users'
       fullPath: '/app/admin/users'
       preLoaderRoute: typeof AppAdminUsersRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/studios': {
-      id: '/app/admin/studios'
-      path: '/studios'
-      fullPath: '/app/admin/studios'
-      preLoaderRoute: typeof AppAdminStudiosRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/settings': {
-      id: '/app/admin/settings'
-      path: '/settings'
-      fullPath: '/app/admin/settings'
-      preLoaderRoute: typeof AppAdminSettingsRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/series': {
-      id: '/app/admin/series'
-      path: '/series'
-      fullPath: '/app/admin/series'
-      preLoaderRoute: typeof AppAdminSeriesRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/rates': {
-      id: '/app/admin/rates'
-      path: '/rates'
-      fullPath: '/app/admin/rates'
-      preLoaderRoute: typeof AppAdminRatesRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/payroll': {
-      id: '/app/admin/payroll'
-      path: '/payroll'
-      fullPath: '/app/admin/payroll'
-      preLoaderRoute: typeof AppAdminPayrollRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/notifications': {
-      id: '/app/admin/notifications'
-      path: '/notifications'
-      fullPath: '/app/admin/notifications'
-      preLoaderRoute: typeof AppAdminNotificationsRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/materials': {
-      id: '/app/admin/materials'
-      path: '/materials'
-      fullPath: '/app/admin/materials'
-      preLoaderRoute: typeof AppAdminMaterialsRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/dashboard': {
-      id: '/app/admin/dashboard'
-      path: '/dashboard'
-      fullPath: '/app/admin/dashboard'
-      preLoaderRoute: typeof AppAdminDashboardRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/board': {
-      id: '/app/admin/board'
-      path: '/board'
-      fullPath: '/app/admin/board'
-      preLoaderRoute: typeof AppAdminBoardRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
-    '/app/admin/audit': {
-      id: '/app/admin/audit'
-      path: '/audit'
-      fullPath: '/app/admin/audit'
-      preLoaderRoute: typeof AppAdminAuditRouteImport
       parentRoute: typeof AppAdminRoute
     }
     '/app/editor/review/': {
@@ -1400,34 +1191,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppAdminRouteChildren {
-  AppAdminAuditRoute: typeof AppAdminAuditRoute
-  AppAdminBoardRoute: typeof AppAdminBoardRoute
-  AppAdminDashboardRoute: typeof AppAdminDashboardRoute
-  AppAdminMaterialsRoute: typeof AppAdminMaterialsRoute
-  AppAdminNotificationsRoute: typeof AppAdminNotificationsRoute
-  AppAdminPayrollRoute: typeof AppAdminPayrollRoute
-  AppAdminRatesRoute: typeof AppAdminRatesRoute
-  AppAdminSeriesRoute: typeof AppAdminSeriesRoute
-  AppAdminSettingsRoute: typeof AppAdminSettingsRoute
-  AppAdminStudiosRoute: typeof AppAdminStudiosRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
-  AppAdminWorkflowsRoute: typeof AppAdminWorkflowsRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
-  AppAdminAuditRoute: AppAdminAuditRoute,
-  AppAdminBoardRoute: AppAdminBoardRoute,
-  AppAdminDashboardRoute: AppAdminDashboardRoute,
-  AppAdminMaterialsRoute: AppAdminMaterialsRoute,
-  AppAdminNotificationsRoute: AppAdminNotificationsRoute,
-  AppAdminPayrollRoute: AppAdminPayrollRoute,
-  AppAdminRatesRoute: AppAdminRatesRoute,
-  AppAdminSeriesRoute: AppAdminSeriesRoute,
-  AppAdminSettingsRoute: AppAdminSettingsRoute,
-  AppAdminStudiosRoute: AppAdminStudiosRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
-  AppAdminWorkflowsRoute: AppAdminWorkflowsRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
 }
 

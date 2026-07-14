@@ -161,34 +161,6 @@ export interface UpdateUserRequest {
   [key: string]: unknown;
 }
 
-export interface CreateNotificationRequest {
-  title: string;
-  message: string;
-  audienceType?: string;
-  audienceRole?: string;
-  userId?: string;
-  priority?: string;
-  kind?: string;
-  targetRole?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface UpdateNotificationRequest {
-  targetRole?: string;
-  type?: string;
-  title?: string;
-  message?: string;
-  status?: string;
-  [key: string]: unknown;
-}
-
-export interface OverrideRequest {
-  action: string;
-  targetId?: string;
-  reason: string;
-}
-
 export type AdminUsersListMeta = {
   q?: string;
   sort?: { field: string; dir: "asc" | "desc" };
@@ -480,40 +452,6 @@ export const adminApi = {
     apiRequest(`/admin/users/${userId}/deactivate`, { method: "POST", body: {} }),
   deleteUser: (userId: string, reason?: string) =>
     apiRequest(`/admin/users/${userId}`, { method: "DELETE", body: reason ? { reason } : {} }),
-  audit: (filters?: { action?: string; actorId?: string }) => {
-    const params = new URLSearchParams();
-    if (filters?.action) params.set("action", filters.action);
-    if (filters?.actorId) params.set("actorId", filters.actorId);
-    const qs = params.toString();
-    return apiRequest(`/admin/audit${qs ? `?${qs}` : ""}`);
-  },
-  notifications: (filters?: { targetRole?: string; status?: string; type?: string }) => {
-    const params = new URLSearchParams();
-    if (filters?.targetRole) params.set("targetRole", filters.targetRole);
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.type) params.set("type", filters.type);
-    const qs = params.toString();
-    return apiRequest(`/admin/notifications${qs ? `?${qs}` : ""}`);
-  },
-  createNotification: (body: CreateNotificationRequest) =>
-    apiRequest("/admin/notifications", { method: "POST", body }),
-  updateNotification: (notificationId: string, body: UpdateNotificationRequest) =>
-    apiRequest(`/admin/notifications/${notificationId}`, { method: "PATCH", body }),
-  deleteNotification: (notificationId: string) =>
-    apiRequest(`/admin/notifications/${notificationId}`, { method: "DELETE" }),
-  payroll: () => apiRequest("/admin/payroll"),
-  workflowSummary: () => apiRequest("/admin/workflow-summary"),
-  storageSummary: () => apiRequest("/admin/storage-summary"),
-  materials: () => apiRequest("/admin/materials"),
-  uploadMaterial: (body: FormData) => apiRequest("/admin/materials", { method: "POST", body }),
-  replaceMaterial: (id: string, body: FormData) =>
-    apiRequest(`/admin/materials/${id}/replace`, { method: "POST", body }),
-  archiveMaterial: (id: string, reason?: string) =>
-    apiRequest(`/admin/materials/${id}/archive`, { method: "POST", body: { reason } }),
-  restoreMaterial: (id: string, reason?: string) =>
-    apiRequest(`/admin/materials/${id}/restore`, { method: "POST", body: { reason } }),
-  resetDemo: () => apiRequest("/admin/demo/reset", { method: "POST", body: {} }),
-  clearDemo: () => apiRequest("/admin/demo/clear", { method: "POST", body: {} }),
 };
 
 export const assistantEarningsApi = {
