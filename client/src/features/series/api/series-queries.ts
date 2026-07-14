@@ -25,6 +25,7 @@ import { useMemo } from "react";
 export {
   rankingKeys,
   useMySeriesQuery,
+  useSeriesListQuery,
   useRankingsListQuery,
 } from "@/entities/series/model/ranking-queries";
 export {
