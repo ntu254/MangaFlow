@@ -58,20 +58,15 @@ export function earningIdFor(assistantId: string, period: string): string {
 
 export async function recomputeAssistantEarning(assistantId: string, period: string) {
   const existing = (await EarningModel.findOne({ assistantId, period }).lean()) as any;
-  if (existing && ["CONFIRMED", "PAID", "VOIDED"].includes(String(existing.status))) {
-    return existing;
-  }
 
   const items = await EarningItemModel.find({
     assistantId,
     period,
-    status: { $ne: "VOIDED" },
+    status: "APPROVED",
   }).lean();
 
   const subtotal = items.reduce((sum, item: any) => sum + Number(item.amount ?? 0), 0);
-  const bonus = Number(existing?.bonus ?? 0);
-  const penalty = Number(existing?.penalty ?? 0);
-  const amount = subtotal + bonus - penalty;
+  const amount = subtotal;
   const now = nowIso();
 
   await EarningModel.findOneAndUpdate(
@@ -82,15 +77,13 @@ export async function recomputeAssistantEarning(assistantId: string, period: str
         amount,
         tasksCount: items.length,
         currency: EARNING_CURRENCY,
+        status: "PENDING",
         updatedAt: now,
       },
       $setOnInsert: {
         id: earningIdFor(assistantId, period),
         assistantId,
         period,
-        bonus: 0,
-        penalty: 0,
-        status: "PENDING",
         createdAt: now,
       },
     },

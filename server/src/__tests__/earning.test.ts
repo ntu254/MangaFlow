@@ -21,7 +21,7 @@ async function seedItem(assistantId: string, period: string, amount: number, ext
     rate: amount,
     amount,
     currency: "VND",
-    status: "PENDING",
+    status: "APPROVED",
     createdAt: new Date(),
     ...extra,
   });
@@ -60,11 +60,10 @@ describe("Earning rate table & monthly rollup", () => {
     expect(earningPeriodOf(new Date("2026-07-13T00:00:00Z"))).toBe("2026-07");
   });
 
-  it("sums non-voided items into the monthly Earning aggregate", async () => {
+  it("sums approved items into the monthly Earning aggregate", async () => {
     const period = "2026-07";
     await seedItem("u-assist", period, 25000);
     await seedItem("u-assist", period, 40000);
-    await seedItem("u-assist", period, 99999, { status: "VOIDED" });
 
     const earning = (await recomputeAssistantEarning("u-assist", period)) as any;
 
@@ -75,7 +74,7 @@ describe("Earning rate table & monthly rollup", () => {
     expect(earning.status).toBe("PENDING");
   });
 
-  it("preserves admin bonus/penalty when recomputing", async () => {
+  it("updates read-only monthly totals when approved task items change", async () => {
     const period = "2026-07";
     await seedItem("u-assist", period, 50000);
     await EarningModel.create({
@@ -83,8 +82,6 @@ describe("Earning rate table & monthly rollup", () => {
       assistantId: "u-assist",
       period,
       subtotal: 0,
-      bonus: 10000,
-      penalty: 4000,
       amount: 0,
       currency: "VND",
       status: "PENDING",
@@ -94,10 +91,10 @@ describe("Earning rate table & monthly rollup", () => {
     const earning = (await recomputeAssistantEarning("u-assist", period)) as any;
 
     expect(earning.subtotal).toBe(50000);
-    expect(earning.amount).toBe(50000 + 10000 - 4000);
+    expect(earning.amount).toBe(50000);
   });
 
-  it("does not mutate a finalized (CONFIRMED/PAID) earning", async () => {
+  it("does not expose payroll confirmation/payment lifecycle in the MVP aggregate", async () => {
     const period = "2026-07";
     await seedItem("u-assist", period, 30000);
     await EarningModel.create({
@@ -107,13 +104,13 @@ describe("Earning rate table & monthly rollup", () => {
       subtotal: 999,
       amount: 999,
       currency: "VND",
-      status: "PAID",
+      status: "PENDING",
       createdAt: new Date(),
     });
 
     const earning = (await recomputeAssistantEarning("u-assist", period)) as any;
 
-    expect(earning.status).toBe("PAID");
-    expect(earning.amount).toBe(999);
+    expect(earning.status).toBe("PENDING");
+    expect(earning.amount).toBe(30000);
   });
 });

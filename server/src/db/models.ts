@@ -1026,15 +1026,9 @@ export type EarningRecord = {
   assistantId: string;
   period: string;
   subtotal?: number;
-  bonus?: number;
-  penalty?: number;
   amount: number;
   currency: string;
   status: EarningStatus;
-  confirmedById?: string;
-  confirmedAt?: Date;
-  paidAt?: Date;
-  paidById?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -1044,21 +1038,15 @@ const earningSchema = looseSchema({
   period: { type: String, required: true, index: true },
   tasksCount: { type: Number, default: 0 },
   subtotal: { type: Number, default: 0 },
-  bonus: { type: Number, default: 0 },
-  penalty: { type: Number, default: 0 },
   amount: { type: Number, required: true, default: 0 },
   currency: { type: String, default: "VND" },
   status: {
     type: String,
     required: true,
-    enum: ["PENDING", "CONFIRMED", "PAID", "VOIDED"],
+    enum: ["PENDING"],
     default: "PENDING",
     index: true,
   },
-  confirmedById: { type: String },
-  confirmedAt: { type: Date },
-  paidAt: { type: Date },
-  paidById: { type: String },
 });
 
 earningSchema.index({ assistantId: 1, period: 1 }, { unique: true });
@@ -1082,9 +1070,6 @@ export type EarningItemRecord = {
   status: EarningItemStatus;
   approvedById?: string;
   approvedAt?: Date;
-  voidedById?: string;
-  voidedAt?: Date;
-  voidReason?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -1104,15 +1089,12 @@ const earningItemSchema = looseSchema({
   status: {
     type: String,
     required: true,
-    enum: ["PENDING", "APPROVED", "VOIDED"],
-    default: "PENDING",
+    enum: ["APPROVED"],
+    default: "APPROVED",
     index: true,
   },
   approvedById: { type: String },
   approvedAt: { type: Date },
-  voidedById: { type: String },
-  voidedAt: { type: Date },
-  voidReason: { type: String },
 });
 
 // One earning item per task (a task can only be paid once)

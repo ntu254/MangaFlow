@@ -187,9 +187,9 @@ export type SubmissionReviewStage = "MANGAKA_REVIEW" | "EDITOR_REVIEW" | "FINAL"
 // Earning
 // ---------------------------------------------------------------------------
 
-export type EarningItemStatus = "PENDING" | "APPROVED" | "VOIDED";
+export type EarningItemStatus = "APPROVED";
 
-export type EarningStatus = "PENDING" | "CONFIRMED" | "PAID" | "VOIDED";
+export type EarningStatus = "PENDING";
 
 export type PublicationStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CANCELLED";
 

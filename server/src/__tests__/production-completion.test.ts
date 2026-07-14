@@ -378,7 +378,7 @@ describe("Production-first completion hardening", () => {
       period: "2026-06",
       amount: 12000,
       currency: "JPY",
-      status: "CONFIRMED",
+      status: "PENDING",
       taskId: "task-001",
       createdAt: new Date(),
       updatedAt: new Date(),

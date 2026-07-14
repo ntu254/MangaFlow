@@ -69,8 +69,8 @@ export type AssistantSubmission = {
   submittedAt: string;
 };
 
-export type EarningStatus = "PENDING" | "CONFIRMED" | "PAID" | "VOIDED";
-export type EarningItemStatus = "PENDING" | "APPROVED" | "VOIDED";
+export type EarningStatus = "PENDING";
+export type EarningItemStatus = "APPROVED";
 
 export type AssistantEarningItem = {
   id: string;
@@ -96,8 +96,6 @@ export type AssistantEarning = {
   month?: string; // legacy fallback
   tasksCount?: number;
   subtotal?: number;
-  bonus?: number;
-  penalty?: number;
   amount: number;
   currency: string;
   status: EarningStatus;
@@ -153,8 +151,7 @@ export type NotificationKind =
   | "SUBMISSION_APPROVED"
   | "SUBMISSION_REJECTED"
   | "COMMENT_REPLIED"
-  | "EARNING_CONFIRMED"
-  | "EARNING_PAID";
+  | "EARNING_RECORDED";
 
 export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, string> = {
   TASK_ASSIGNED: "New task",
@@ -163,6 +160,5 @@ export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, string> = {
   SUBMISSION_APPROVED: "Approved",
   SUBMISSION_REJECTED: "Rejected",
   COMMENT_REPLIED: "New reply",
-  EARNING_CONFIRMED: "Earning recorded",
-  EARNING_PAID: "Earning recorded",
+  EARNING_RECORDED: "Earning recorded",
 };
