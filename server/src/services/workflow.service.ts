@@ -10,7 +10,6 @@ import {
   StudioRegionModel,
   StudioTaskModel,
   SubmissionModel,
-  VotingSessionModel,
   RankingModel,
   AtRiskReportModel,
   UserModel,
@@ -2107,36 +2106,6 @@ export async function seriesProposalSummary(seriesId: string) {
         }
       : undefined,
   };
-}
-
-export async function closeVotingSession(req: AuthedRequest, sessionId: string) {
-  const actor = ensureActor(req);
-  requireMutationRole(actor, ["EDITOR", "BOARD"]);
-  const session = await VotingSessionModel.findOne({ id: sessionId });
-  if (!session) throw new AppError(404, "Voting session not found.", "SESSION_NOT_FOUND");
-  if (!["OPEN", "BOARD_VOTING"].includes((session as any).status))
-    throw new AppError(409, "Voting session is not open.", "INVALID_TRANSITION");
-  (session as any).status = "CLOSED";
-  (session as any).closedAt = new Date();
-  (session as any).finalizedById = actor.id;
-  (session as any).finalizedAt = new Date();
-  await session.save();
-  await audit(req, "BOARD_SESSION_FINALIZED", "voting_session", sessionId, {
-    closedById: actor.id,
-  });
-  return toObject(session);
-}
-
-export async function cancelVotingSession(req: AuthedRequest, sessionId: string) {
-  const actor = ensureActor(req);
-  requireMutationRole(actor, ["EDITOR", "BOARD"]);
-  const session = await VotingSessionModel.findOne({ id: sessionId });
-  if (!session) throw new AppError(404, "Voting session not found.", "SESSION_NOT_FOUND");
-  (session as any).status = "CANCELLED";
-  (session as any).cancelledAt = new Date();
-  await session.save();
-  await audit(req, "voting_session.cancel", "voting_session", sessionId);
-  return toObject(session);
 }
 
 export async function submissionDecision(

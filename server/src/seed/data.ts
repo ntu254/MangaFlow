@@ -672,40 +672,6 @@ export const seedMaterials = [
   }
 ];
 
-export const seedVotingSessions = [
-  {
-    id: "vs-001",
-    title: "Board review - weekly slate",
-    mode: "SCHEDULED",
-    status: "OPEN",
-    scheduledFor: ahead(2),
-    closesAt: ahead(3),
-    proposalIds: ["p-004"],
-    eligibleVoterIds: ["u-board", "u-board-2", "u-board-3", "u-board-4", "u-board-5"],
-    quorum: 3,
-    chairId: "u-board",
-    rules: {
-      approveThreshold: 3,
-      rejectThreshold: 3,
-      allowAbstain: true
-    },
-    createdById: "u-editor",
-    createdByName: "Tanaka Akira",
-    openedAt: ago(2),
-    outcomes: [
-      {
-        proposalId: "p-004",
-        decision: "PENDING",
-        approveCount: 2,
-        rejectCount: 0,
-        abstainCount: 0,
-        finalReason: "Waiting for more votes."
-      }
-    ],
-    notes: []
-  }
-];
-
 export const seedRankings = [
   {
     id: "rank-001",

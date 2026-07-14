@@ -90,14 +90,13 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     expect(patchRes.body.code).toBe("VALIDATION_ERROR");
   });
 
-  it("rejects voting session creation with unknown fields", async () => {
+  it("does not expose voting session creation in the MVP API", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .post("/api/voting-sessions")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ seriesId: "s-demo-1", unknownField: "bad" })
-      .expect(400);
-    expect(res.body.code).toBe("VALIDATION_ERROR");
+      .expect(404);
   });
 
   it("rejects review actions with unknown fields via strict schema", async () => {

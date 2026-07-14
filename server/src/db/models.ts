@@ -988,74 +988,6 @@ const materialSchema = looseSchema({
 });
 
 /* ------------------------------------------------------------------ */
-/*  VotingSession                                                       */
-/* ------------------------------------------------------------------ */
-
-export type VotingSessionRecord = {
-  id: string;
-  title: string;
-  mode?: string;
-  status: string;
-  proposalIds: string[];
-  eligibleVoterIds?: string[];
-  quorum?: number;
-  chairId?: string;
-  tieBreakerId?: string;
-  finalizedById?: string;
-  finalizedAt?: Date;
-  rules?: {
-    approveThreshold?: number;
-    rejectThreshold?: number;
-    allowAbstain?: boolean;
-  };
-  createdById: string;
-  createdByName: string;
-  openedAt?: Date;
-  scheduledFor?: Date;
-  closesAt?: Date;
-  closedAt?: Date;
-  cancelledAt?: Date;
-  outcomes?: {
-    proposalId: string;
-    decision?: string;
-    approveCount?: number;
-    rejectCount?: number;
-    abstainCount?: number;
-    finalReason?: string;
-  }[];
-  notes?: Record<string, unknown>[];
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const votingSessionSchema = looseSchema({
-  title: { type: String, required: true },
-  mode: { type: String },
-  status: { type: String, default: "DRAFT", index: true },
-  proposalIds: [{ type: String }],
-  eligibleVoterIds: [{ type: String }],
-  quorum: { type: Number },
-  chairId: { type: String },
-  tieBreakerId: { type: String },
-  finalizedById: { type: String },
-  finalizedAt: { type: Date },
-  rules: {
-    approveThreshold: { type: Number },
-    rejectThreshold: { type: Number },
-    allowAbstain: { type: Boolean, default: true },
-  },
-  createdById: { type: String, required: true, index: true },
-  createdByName: { type: String },
-  openedAt: { type: Date },
-  scheduledFor: { type: Date },
-  closesAt: { type: Date },
-  closedAt: { type: Date },
-  cancelledAt: { type: Date },
-  outcomes: [Schema.Types.Mixed],
-  notes: [Schema.Types.Mixed],
-});
-
-/* ------------------------------------------------------------------ */
 /*  Ranking                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -1337,7 +1269,6 @@ export const StudioTaskModel = mongoose.model<any>("StudioTask", studioTaskSchem
 export const StudioCommentModel = mongoose.model<any>("StudioComment", studioCommentSchema);
 export const SubmissionModel = mongoose.model<any>("Submission", submissionSchema);
 export const MaterialModel = mongoose.model<any>("Material", materialSchema);
-export const VotingSessionModel = mongoose.model<any>("VotingSession", votingSessionSchema);
 export const NotificationModel = mongoose.model<any>("Notification", notificationSchema);
 export const AuditEntryModel = mongoose.model<any>("AuditEntry", auditSchema);
 export const RankingModel = mongoose.model<any>("Ranking", rankingSchema);
@@ -1361,7 +1292,6 @@ export const allMutableModels = [
   StudioCommentModel,
   SubmissionModel,
   MaterialModel,
-  VotingSessionModel,
   NotificationModel,
   AuditEntryModel,
   RankingModel,

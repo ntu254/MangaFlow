@@ -12,7 +12,6 @@ import {
   SeriesModel,
   StudioCommentModel,
   StudioTaskModel,
-  VotingSessionModel,
 } from "../db/models.js";
 import { BOARD_QUORUM } from "../services/workflow.service.js";
 
@@ -351,36 +350,25 @@ describe("Production-first completion hardening", () => {
     expect(res.body.code).toBe("INVALID_SORT_FIELD");
   });
 
-  it("supports live voting session detail and notes", async () => {
+  it("does not expose Board voting session endpoints in the MVP API", async () => {
     const board = await loginAs("board@beachread.jp");
-    const created = await request(createApp())
+
+    await request(createApp())
       .post("/api/voting-sessions")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ title: "Live session", mode: "AD_HOC", proposalIds: ["p-001"] })
-      .expect(201);
-
-    const sessionId = created.body.data.id;
-    const detail = await request(createApp())
-      .get(`/api/voting-sessions/${sessionId}`)
-      .set("Authorization", `Bearer ${board.accessToken}`)
-      .expect(200);
-    expect(detail.body.data.title).toBe("Live session");
-
-    const note = await request(createApp())
-      .post(`/api/voting-sessions/${sessionId}/notes`)
-      .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ text: "Board packet is ready." })
-      .expect(201);
-
-    expect(note.body.data.text).toBe("Board packet is ready.");
-    const afterNote = await VotingSessionModel.findOne({ id: sessionId }).lean() as any;
-    expect(afterNote?.notes).toHaveLength(1);
+      .expect(404);
 
     await request(createApp())
-      .patch(`/api/voting-sessions/${sessionId}/notes/${note.body.data.id}`)
+      .get("/api/voting-sessions/legacy-session")
       .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ text: "Board packet confirmed." })
-      .expect(200);
+      .expect(404);
+
+    await request(createApp())
+      .post("/api/voting-sessions/legacy-session/notes")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ text: "Board packet is ready." })
+      .expect(404);
   });
 
   it("returns scoped assistant earnings", async () => {
@@ -408,34 +396,18 @@ describe("Production-first completion hardening", () => {
     expect(res.body.data.every((earning: any) => earning.assistantId === "u-assist")).toBe(true);
   });
 
-  it("returns admin workflow and storage summaries", async () => {
-    await ProposalModel.create({
-      id: "proposal-admin-summary",
-      title: "Admin Summary Proposal",
-      authorId: "u-mangaka",
-      authorName: "Inoue Takehiko",
-      synopsis: "Needs board",
-      status: "TIE_BREAK",
-      votes: [],
-      history: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
+  it("does not expose non-user-management admin summaries in the MVP API", async () => {
     const admin = await loginAs("admin@beachread.jp");
-    const workflow = await request(createApp())
+
+    await request(createApp())
       .get("/api/admin/workflow-summary")
       .set("Authorization", `Bearer ${admin.accessToken}`)
-      .expect(200);
-    expect(workflow.body.data.counts.highRisk).toBeGreaterThanOrEqual(1);
-    expect(Array.isArray(workflow.body.data.issues)).toBe(true);
+      .expect(404);
 
-    const storage = await request(createApp())
+    await request(createApp())
       .get("/api/admin/storage-summary")
       .set("Authorization", `Bearer ${admin.accessToken}`)
-      .expect(200);
-    expect(storage.body.data).toHaveProperty("indexedAssets");
-    expect(Array.isArray(storage.body.data.assets)).toBe(true);
+      .expect(404);
   });
 
   it("imports rankings through the live Board API and blocks unrelated roles", async () => {
@@ -482,57 +454,11 @@ describe("Production-first completion hardening", () => {
     expect(audit).toBeTruthy();
   });
 
-  it("returns a Board decision history read model", async () => {
-    await ProposalModel.create({
-      id: "proposal-decision-history",
-      title: "Decision History Proposal",
-      authorId: "u-mangaka",
-      authorName: "Inoue Takehiko",
-      synopsis: "Already approved",
-      status: "APPROVED",
-      votes: [],
-      history: [],
-      createdAt: new Date(),
-      updatedAt: new Date("2026-06-01T10:00:00.000Z"),
-    });
-
-    await VotingSessionModel.create({
-      id: "vs-decision-history",
-      title: "Closed decision session",
-      mode: "AD_HOC",
-      status: "CLOSED",
-      proposalIds: ["proposal-decision-history"],
-      createdById: "u-board",
-      createdByName: "Yamamoto Director",
-      openedAt: new Date("2026-06-01T09:00:00.000Z"),
-      closedAt: new Date("2026-06-01T11:00:00.000Z"),
-      outcomes: [{ proposalId: "proposal-decision-history", decision: "APPROVED" }],
-      notes: [],
-    });
-
-    await RankingModel.create({
-      id: "rank-decision-history",
-      seriesId: "s-berserk-prod",
-      seriesTitle: "Berserk: Lost Chapters",
-      period: "2026-W27",
-      readerScore: 4.2,
-      voteCount: 100,
-      finalScore: 4.2,
-      status: "AT_RISK",
-      atRisk: true,
-      createdAt: new Date(),
-      updatedAt: new Date("2026-06-02T10:00:00.000Z"),
-    });
-
+  it("does not expose the legacy Board decision history aggregate", async () => {
     const board = await loginAs("board@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .get("/api/board/decisions/history")
       .set("Authorization", `Bearer ${board.accessToken}`)
-      .expect(200);
-
-    expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data.some((row: any) => row.type === "Proposal" && row.id === "proposal-decision-history")).toBe(true);
-    expect(res.body.data.some((row: any) => row.type === "Session" && row.id === "vs-decision-history")).toBe(true);
-    expect(res.body.data.some((row: any) => row.type === "At-risk" && row.id === "rank-decision-history")).toBe(true);
+      .expect(404);
   });
 });
