@@ -86,7 +86,7 @@ export function useBoardVotesQuery(seriesId: string) {
   return useQuery<BoardVotesResult, Error>({
     queryKey: boardKeys.votes(seriesId),
     queryFn: async () => {
-      const raw = await apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/votes`);
+      const raw = await apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/votes`);
       return mapBoardVotes(raw);
     },
     enabled: Boolean(user && isBoardWorkflowUser(user.role) && seriesId),
@@ -103,7 +103,7 @@ export function useCastBoardVoteMutation() {
     { seriesId: string; body: { voteDecision: VoteDecision; comment?: string } }
   >({
     mutationFn: ({ seriesId, body }) =>
-      apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/votes`, {
+      apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/votes`, {
         method: "POST",
         body,
       }),
@@ -118,7 +118,7 @@ export function useCastVoteMutation(seriesId: string) {
 
   return useMutation<Record<string, unknown>, Error, { decision: VoteDecision; comment?: string }>({
     mutationFn: (body) =>
-      apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/votes`, {
+      apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/votes`, {
         method: "POST",
         body: { voteDecision: body.decision, comment: body.comment },
       }),
@@ -145,7 +145,7 @@ export function useFinalizeDecisionMutation() {
     }
   >({
     mutationFn: ({ seriesId, body }) =>
-      apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/decisions/finalize`, {
+      apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/finalization`, {
         method: "POST",
         body,
       }),
@@ -169,7 +169,7 @@ export function useFinalizeSeriesDecisionMutation(seriesId: string) {
     }
   >({
     mutationFn: (body) =>
-      apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/decisions/finalize`, {
+      apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/finalization`, {
         method: "POST",
         body,
       }),
@@ -188,7 +188,7 @@ export function useTieBreakMutation() {
     { seriesId: string; body: { voteDecision: VoteDecision; comment?: string } }
   >({
     mutationFn: ({ seriesId, body }) =>
-      apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/decisions/tie-break`, {
+      apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/tie-break`, {
         method: "POST",
         body,
       }),
@@ -203,7 +203,7 @@ export function useTieBreakSeriesMutation(seriesId: string) {
 
   return useMutation<Record<string, unknown>, Error, { decision: VoteDecision; comment?: string }>({
     mutationFn: (body) =>
-      apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/decisions/tie-break`, {
+      apiRequest<Record<string, unknown>>(`/board/proposals/${seriesId}/tie-break`, {
         method: "POST",
         body: { voteDecision: body.decision, comment: body.comment },
       }),

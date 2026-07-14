@@ -3,7 +3,13 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { ChapterModel, ProposalModel, PublicationModel, RankingModel, SeriesModel } from "../db/models.js";
+import {
+  ChapterModel,
+  ProposalModel,
+  PublicationModel,
+  RankingModel,
+  SeriesModel,
+} from "../db/models.js";
 
 let mongo: MongoMemoryServer;
 
@@ -28,7 +34,9 @@ beforeEach(async () => {
 
 describe("MF-030A Board Queue Live Submission Review", () => {
   async function loginAs(email: string) {
-    const res = await request(createApp()).post("/api/auth/login").send({ email, password: email });
+    const res = await request(createApp())
+      .post("/api/auth/login")
+      .send({ email, password: email });
     return res.body.data as { accessToken: string };
   }
 
@@ -129,7 +137,10 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       hasNextPage: true,
     });
     expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
-    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PENDING_BOARD" });
+    expect(res.body.meta.filters.status).toEqual({
+      type: "select",
+      value: "PENDING_BOARD",
+    });
   });
 
   it("GET /api/board/queue rejects unsupported sort fields", async () => {
@@ -175,7 +186,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(found).toBeUndefined();
   });
 
-  it("GET /api/board/series/:id/votes returns votes and tally", async () => {
+  it("GET /api/board/proposals/:id/votes returns votes and tally", async () => {
     await ProposalModel.create({
       id: "proposal-votes-test",
       title: "Votes Test",
@@ -205,7 +216,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const board = await loginAs("board@beachread.jp");
     const res = await request(createApp())
-      .get("/api/board/series/proposal-votes-test/votes")
+      .get("/api/board/proposals/proposal-votes-test/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .expect(200);
 
@@ -216,7 +227,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.data.tally.approve).toBe(2);
   });
 
-  it("POST /api/board/series/:id/votes casts vote and reaches quorum", async () => {
+  it("POST /api/board/proposals/:id/votes casts vote and reaches quorum", async () => {
     await ProposalModel.create({
       id: "proposal-quorum-test",
       title: "Quorum Test",
@@ -246,18 +257,20 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const board3 = await loginAs("kobayashi@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-quorum-test/votes")
+      .post("/api/board/proposals/proposal-quorum-test/votes")
       .set("Authorization", `Bearer ${board3.accessToken}`)
       .send({ voteDecision: "APPROVE" })
       .expect(200);
 
     expect(res.body.data.status).toBe("APPROVED");
 
-    const series = await SeriesModel.find({ proposalId: "proposal-quorum-test" }).lean();
+    const series = await SeriesModel.find({
+      proposalId: "proposal-quorum-test",
+    }).lean();
     expect(series).toHaveLength(0);
   });
 
-  it("POST /api/board/series/:id/votes rejects duplicate vote with DUPLICATE_VOTE", async () => {
+  it("POST /api/board/proposals/:id/votes rejects duplicate vote with DUPLICATE_VOTE", async () => {
     await ProposalModel.create({
       id: "proposal-dup-test",
       title: "Duplicate Vote Test",
@@ -281,7 +294,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const board = await loginAs("board@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-dup-test/votes")
+      .post("/api/board/proposals/proposal-dup-test/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ voteDecision: "REJECT" })
       .expect(409);
@@ -289,7 +302,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.code).toBe("DUPLICATE_VOTE");
   });
 
-  it("POST /api/board/series/:id/votes requires BOARD or ADMIN role", async () => {
+  it("POST /api/board/proposals/:id/votes requires BOARD or ADMIN role", async () => {
     await ProposalModel.create({
       id: "proposal-rbac-test",
       title: "RBAC Test",
@@ -306,13 +319,13 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const assistant = await loginAs("jun@beachread.jp");
     await request(createApp())
-      .post("/api/board/series/proposal-rbac-test/votes")
+      .post("/api/board/proposals/proposal-rbac-test/votes")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .send({ voteDecision: "APPROVE" })
       .expect(403);
   });
 
-  it("POST /api/board/series/:id/decisions/tie-break requires EIC", async () => {
+  it("POST /api/board/proposals/:id/tie-break requires EIC", async () => {
     await ProposalModel.create({
       id: "proposal-tie-test",
       title: "Tie Break Test",
@@ -342,7 +355,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const editor = await loginAs("editor@mangaflow.local");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-tie-test/decisions/tie-break")
+      .post("/api/board/proposals/proposal-tie-test/tie-break")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ voteDecision: "APPROVE" })
       .expect(403);
@@ -350,7 +363,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.code).toBe("EIC_REQUIRED");
   });
 
-  it("POST /api/board/series/:id/decisions/tie-break approval creates production series", async () => {
+  it("POST /api/board/proposals/:id/tie-break approval creates production series", async () => {
     await ProposalModel.create({
       id: "proposal-tie-approve-test",
       title: "Tie Approved Test",
@@ -382,17 +395,19 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const eic = await loginAs("tanaka@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-tie-approve-test/decisions/tie-break")
+      .post("/api/board/proposals/proposal-tie-approve-test/tie-break")
       .set("Authorization", `Bearer ${eic.accessToken}`)
       .send({ voteDecision: "APPROVE" })
       .expect(200);
 
     expect(res.body.data.status).toBe("APPROVED");
-    const series = await SeriesModel.find({ proposalId: "proposal-tie-approve-test" }).lean();
+    const series = await SeriesModel.find({
+      proposalId: "proposal-tie-approve-test",
+    }).lean();
     expect(series).toHaveLength(0);
   });
 
-  it("POST /api/board/series/:id/decisions/finalize works for BOARD", async () => {
+  it("POST /api/board/proposals/:id/finalization works for BOARD", async () => {
     await ProposalModel.create({
       id: "proposal-finalize-test",
       title: "Finalize Test",
@@ -409,20 +424,30 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const board = await loginAs("board@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-finalize-test/decisions/finalize")
+      .post("/api/board/proposals/proposal-finalize-test/finalization")
       .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ decision: "APPROVED", publicationType: "WEEKLY", tantouEditorId: "u-editor" })
+      .send({
+        decision: "APPROVED",
+        publicationType: "WEEKLY",
+        tantouEditorId: "u-editor",
+      })
       .expect(200);
 
     expect(res.body.data.status).toBe("APPROVED");
 
     await request(createApp())
-      .post("/api/board/series/proposal-finalize-test/decisions/finalize")
+      .post("/api/board/proposals/proposal-finalize-test/finalization")
       .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ decision: "APPROVED", publicationType: "WEEKLY", tantouEditorId: "u-editor" })
+      .send({
+        decision: "APPROVED",
+        publicationType: "WEEKLY",
+        tantouEditorId: "u-editor",
+      })
       .expect(200);
 
-    const series = await SeriesModel.find({ proposalId: "proposal-finalize-test" }).lean();
+    const series = await SeriesModel.find({
+      proposalId: "proposal-finalize-test",
+    }).lean();
     expect(series).toHaveLength(1);
     expect(series[0]).toMatchObject({
       id: "s-proposal-finalize-test",
@@ -500,7 +525,9 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     expect(res.body.data.status).toBe("APPROVED");
 
-    const series = await SeriesModel.find({ proposalId: "proposal-command-finalize" }).lean();
+    const series = await SeriesModel.find({
+      proposalId: "proposal-command-finalize",
+    }).lean();
     expect(series).toHaveLength(1);
     expect(series[0]).toMatchObject({
       id: "s-proposal-command-finalize",
@@ -509,7 +536,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     });
   });
 
-  it("POST /api/board/series/:id/decisions/finalize works for ADMIN", async () => {
+  it("POST /api/board/proposals/:id/finalization works for ADMIN", async () => {
     await ProposalModel.create({
       id: "proposal-finalize-admin",
       title: "Finalize Admin Test",
@@ -526,17 +553,19 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const admin = await loginAs("admin@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-finalize-admin/decisions/finalize")
+      .post("/api/board/proposals/proposal-finalize-admin/finalization")
       .set("Authorization", `Bearer ${admin.accessToken}`)
       .send({ decision: "REJECTED" })
       .expect(200);
 
     expect(res.body.data.status).toBe("REJECTED");
-    const series = await SeriesModel.find({ proposalId: "proposal-finalize-admin" }).lean();
+    const series = await SeriesModel.find({
+      proposalId: "proposal-finalize-admin",
+    }).lean();
     expect(series).toHaveLength(0);
   });
 
-  it("POST /api/board/series/:id/decisions/finalize blocks ASSISTANT", async () => {
+  it("POST /api/board/proposals/:id/finalization blocks ASSISTANT", async () => {
     await ProposalModel.create({
       id: "proposal-finalize-assistant",
       title: "Finalize Assistant Test",
@@ -553,7 +582,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
     const assistant = await loginAs("jun@beachread.jp");
     const res = await request(createApp())
-      .post("/api/board/series/proposal-finalize-assistant/decisions/finalize")
+      .post("/api/board/proposals/proposal-finalize-assistant/finalization")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .send({ decision: "APPROVED" })
       .expect(403);
@@ -641,7 +670,10 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
       .set("Authorization", `Bearer ${tantou.accessToken}`)
-      .send({ rankingSummary: "Cancellation threshold hit.", recommendation: "CANCELLED" })
+      .send({
+        rankingSummary: "Cancellation threshold hit.",
+        recommendation: "CANCELLED",
+      })
       .expect(201);
 
     const res = await request(createApp())
@@ -686,7 +718,9 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     });
 
     const editor = await loginAs("tanaka@beachread.jp");
-    const scheduledAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const scheduledAt = new Date(
+      Date.now() + 48 * 60 * 60 * 1000,
+    ).toISOString();
     const res = await request(createApp())
       .post("/api/chapters/chapter-publication-command/publication/schedule")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -702,6 +736,8 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       status: "SCHEDULED",
       scheduledById: "u-editor",
     });
-    expect(new Date((publication as any).scheduledAt).toISOString()).toBe(scheduledAt);
+    expect(new Date((publication as any).scheduledAt).toISOString()).toBe(
+      scheduledAt,
+    );
   });
 });

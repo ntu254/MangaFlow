@@ -3,8 +3,10 @@ import {
   BOARD_QUORUM,
   BOARD_TOTAL,
   evaluateBoardTally,
+  normalizeBoardVote,
 } from "../../../services/workflow.service.js";
 import { ProposalModel } from "../../../db/models.js";
+import { AppError } from "../../../lib/http.js";
 import {
   combineMongoFilters,
   listFiltersToMongo,
@@ -14,7 +16,11 @@ import {
 } from "../../../shared/contracts/list-contract.js";
 import type { AuthedRequest } from "../../../types.js";
 
-const BOARD_QUEUE_STATUSES = ["PENDING_BOARD", "BOARD_VOTING", "TIE_BREAK"] as const;
+const BOARD_QUEUE_STATUSES = [
+  "PENDING_BOARD",
+  "BOARD_VOTING",
+  "TIE_BREAK",
+] as const;
 
 export type BoardQueueItem = {
   id: string;
@@ -52,7 +58,9 @@ export async function listBoardQueue(query?: ListQuery) {
   };
 
   if (!query) {
-    const proposals = await ProposalModel.find(baseFilter).sort({ updatedAt: -1 }).lean();
+    const proposals = await ProposalModel.find(baseFilter)
+      .sort({ updatedAt: -1 })
+      .lean();
     return {
       data: proposals.map(toBoardQueueItem),
       total: proposals.length,
@@ -88,7 +96,8 @@ export async function listBoardQueue(query?: ListQuery) {
 
 function toBoardQueueItem(proposal: any): BoardQueueItem {
   const tally = evaluateBoardTally(proposal.votes ?? []);
-  const canFinalize = tally.status === "APPROVED" || tally.status === "REJECTED";
+  const canFinalize =
+    tally.status === "APPROVED" || tally.status === "REJECTED";
 
   return {
     id: proposal.id,
@@ -96,7 +105,8 @@ function toBoardQueueItem(proposal: any): BoardQueueItem {
     seriesTitle: proposal.title,
     title: proposal.title,
     seriesStatus: "BOARD_REVIEW",
-    decisionStatus: proposal.status === "TIE_BREAK" ? "TIE_BREAK_REQUIRED" : "PENDING",
+    decisionStatus:
+      proposal.status === "TIE_BREAK" ? "TIE_BREAK_REQUIRED" : "PENDING",
     requestedPublicationType: proposal.requestedPublicationType ?? "MONTHLY",
     publicationType: proposal.requestedPublicationType ?? "MONTHLY",
     genres: proposal.genres ?? [],
@@ -124,9 +134,13 @@ function toBoardQueueItem(proposal: any): BoardQueueItem {
 function summarizeBoardQueue(items: BoardQueueItem[]) {
   return {
     total: items.length,
-    pending: items.filter((item) => item.decisionStatus === "PENDING" && !item.canFinalize).length,
+    pending: items.filter(
+      (item) => item.decisionStatus === "PENDING" && !item.canFinalize,
+    ).length,
     needsFinalize: items.filter((item) => item.canFinalize).length,
-    tieBreak: items.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED").length,
+    tieBreak: items.filter(
+      (item) => item.decisionStatus === "TIE_BREAK_REQUIRED",
+    ).length,
   };
 }
 
@@ -136,6 +150,20 @@ export function castBoardProposalVote(
   payload: Record<string, unknown>,
 ) {
   return applyProposalAction(req, proposalId, "VOTE", payload);
+}
+
+export async function getBoardProposalVotes(proposalId: string) {
+  const proposal = await ProposalModel.findOne({ id: proposalId }).lean();
+  if (!proposal)
+    throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
+  const votes = ((proposal as any).votes ?? []).map(normalizeBoardVote);
+  return {
+    proposalId,
+    seriesId: proposalId,
+    votes,
+    tally: evaluateBoardTally(votes),
+    status: (proposal as any).status,
+  };
 }
 
 export function finalizeBoardProposal(

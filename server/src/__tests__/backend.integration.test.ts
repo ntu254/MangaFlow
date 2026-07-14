@@ -3,7 +3,11 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
-import { AiProcessingModel, ChapterModel, StudioRegionModel } from "../db/models.js";
+import {
+  AiProcessingModel,
+  ChapterModel,
+  StudioRegionModel,
+} from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryServer;
@@ -47,7 +51,10 @@ describe("MangaFlow backend live contract", () => {
       })
       .expect(200);
 
-    const uploadPath = new URL(uploadRes.body.data.uploadUrl, "http://localhost:3001").pathname;
+    const uploadPath = new URL(
+      uploadRes.body.data.uploadUrl,
+      "http://localhost:3001",
+    ).pathname;
     await request(app)
       .put(uploadPath)
       .set("Content-Type", "image/png")
@@ -94,7 +101,7 @@ describe("MangaFlow backend live contract", () => {
     expect(refreshed.body.data.accessToken).toEqual(expect.any(String));
   });
 
-  it("returns bootstrap and mobile review queues from the same seeded workflow state", async () => {
+  it("returns bootstrap and proposal review queue from the same seeded workflow state", async () => {
     const editor = await loginAs("editor@mangaflow.local");
 
     await request(createApp())
@@ -107,12 +114,14 @@ describe("MangaFlow backend live contract", () => {
       });
 
     await request(createApp())
-      .get("/api/editor/manuscripts/review-queue")
+      .get(
+        "/api/proposals?filters=%7B%22status%22%3A%7B%22type%22%3A%22select%22%2C%22value%22%3A%22PENDING_EDITOR%22%7D%7D",
+      )
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .expect(200)
       .expect((response) => {
         expect(response.body.data.length).toBeGreaterThan(0);
-        expect(response.body.data[0].series.status).toMatch(/EDITOR_REVIEW|REVISION_REQUESTED/);
+        expect(response.body.data[0].status).toBe("PENDING_EDITOR");
       });
   });
 
@@ -120,7 +129,7 @@ describe("MangaFlow backend live contract", () => {
     const board = await loginAs("kobayashi@beachread.jp");
 
     const response = await request(createApp())
-      .post("/api/board/series/p-004/votes")
+      .post("/api/board/proposals/p-004/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ value: "APPROVE", note: "The concept is production-ready." })
       .expect(200);
@@ -139,7 +148,10 @@ describe("MangaFlow backend live contract", () => {
       if (req.url === "/bubble/detect" && req.method === "POST") {
         req.resume();
         res.end(
-          JSON.stringify({ bubbles: [{ x: 1, y: 2, w: 3, h: 4 }], image_base64: "do-not-return" }),
+          JSON.stringify({
+            bubbles: [{ x: 1, y: 2, w: 3, h: 4 }],
+            image_base64: "do-not-return",
+          }),
         );
         return;
       }
@@ -148,11 +160,14 @@ describe("MangaFlow backend live contract", () => {
     });
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
-    if (!address || typeof address === "string") throw new Error("Expected test server port.");
+    if (!address || typeof address === "string")
+      throw new Error("Expected test server port.");
 
     try {
       const editor = await loginAs("tanaka@beachread.jp");
-      await request(createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` }))
+      await request(
+        createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` }),
+      )
         .post("/api/ai/bubbles/detect")
         .set("Authorization", `Bearer ${editor.accessToken}`)
         .attach("file", Buffer.from("fake-image"), "page.png")
@@ -162,7 +177,9 @@ describe("MangaFlow backend live contract", () => {
           expect(response.body.data.image_base64).toBeUndefined();
         });
 
-      const record = (await AiProcessingModel.findOne({ action: "bubble.detect" }).lean()) as any;
+      const record = (await AiProcessingModel.findOne({
+        action: "bubble.detect",
+      }).lean()) as any;
       expect(JSON.stringify(record?.metadata)).not.toContain("do-not-return");
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -173,7 +190,10 @@ describe("MangaFlow backend live contract", () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const assistant = await loginAs("jun@beachread.jp");
     const unassignedAssistant = await loginAs("hina@beachread.jp");
-    const uploaded = await createUploadedPage(mangaka.accessToken, "pg-display-test");
+    const uploaded = await createUploadedPage(
+      mangaka.accessToken,
+      "pg-display-test",
+    );
 
     const forbidden = await request(createApp())
       .post("/api/files/display-url")
@@ -193,7 +213,8 @@ describe("MangaFlow backend live contract", () => {
       .send({ key: uploaded.key, fileName: "pg-display-test.png" })
       .expect(200);
 
-    const displayPath = new URL(display.body.data.url, "http://localhost:3001").pathname;
+    const displayPath = new URL(display.body.data.url, "http://localhost:3001")
+      .pathname;
     await request(createApp())
       .get(displayPath)
       .expect("Content-Type", /image\/png/)
@@ -229,12 +250,18 @@ describe("MangaFlow backend live contract", () => {
     });
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
-    if (!address || typeof address === "string") throw new Error("Expected test server port.");
+    if (!address || typeof address === "string")
+      throw new Error("Expected test server port.");
 
     try {
       const mangaka = await loginAs("inoue@beachread.jp");
-      const uploaded = await createUploadedPage(mangaka.accessToken, "pg-ai-detect-test");
-      const app = createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` });
+      const uploaded = await createUploadedPage(
+        mangaka.accessToken,
+        "pg-ai-detect-test",
+      );
+      const app = createApp({
+        aiServiceUrl: `http://127.0.0.1:${address.port}`,
+      });
 
       await request(app)
         .post(`/api/studio/pages/${uploaded.pageId}/ai/detect-bubbles`)
@@ -281,12 +308,18 @@ describe("MangaFlow backend live contract", () => {
     });
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
-    if (!address || typeof address === "string") throw new Error("Expected test server port.");
+    if (!address || typeof address === "string")
+      throw new Error("Expected test server port.");
 
     try {
       const mangaka = await loginAs("inoue@beachread.jp");
-      const uploaded = await createUploadedPage(mangaka.accessToken, "pg-ai-whiten-test");
-      const app = createApp({ aiServiceUrl: `http://127.0.0.1:${address.port}` });
+      const uploaded = await createUploadedPage(
+        mangaka.accessToken,
+        "pg-ai-whiten-test",
+      );
+      const app = createApp({
+        aiServiceUrl: `http://127.0.0.1:${address.port}`,
+      });
 
       const whiten = await request(app)
         .post(`/api/studio/pages/${uploaded.pageId}/ai/whiten-bubbles`)
@@ -295,11 +328,18 @@ describe("MangaFlow backend live contract", () => {
         .expect(200);
 
       expect(whiten.body.data.fileKey).toContain("whitened.png");
-      const chapter = (await ChapterModel.findOne({ "pages.id": uploaded.pageId }).lean()) as any;
-      const page = chapter.pages.find((item: any) => item.id === uploaded.pageId);
+      const chapter = (await ChapterModel.findOne({
+        "pages.id": uploaded.pageId,
+      }).lean()) as any;
+      const page = chapter.pages.find(
+        (item: any) => item.id === uploaded.pageId,
+      );
       expect(page.metadata.aiWhitened.fileKey).toBe(whiten.body.data.fileKey);
 
-      const displayPath = new URL(whiten.body.data.fileUrl, "http://localhost:3001").pathname;
+      const displayPath = new URL(
+        whiten.body.data.fileUrl,
+        "http://localhost:3001",
+      ).pathname;
       await request(createApp())
         .get(displayPath)
         .expect("Content-Type", /image\/png/)
@@ -321,9 +361,12 @@ describe("MangaFlow backend live contract", () => {
 
     expect(response.body.data).toEqual(expect.any(Array));
     for (const ch of response.body.data) {
-      expect(["EDITOR_REVIEW", "EDITOR_APPROVED", "READY_FOR_PUBLICATION", "SCHEDULED"]).toContain(
-        ch.status,
-      );
+      expect([
+        "EDITOR_REVIEW",
+        "EDITOR_APPROVED",
+        "READY_FOR_PUBLICATION",
+        "SCHEDULED",
+      ]).toContain(ch.status);
     }
 
     const mangaka = await loginAs("inoue@beachread.jp");

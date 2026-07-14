@@ -7,6 +7,7 @@ import type { AuthedRequest } from "../../../types.js";
 import {
   castBoardProposalVote,
   finalizeBoardProposal,
+  getBoardProposalVotes,
   listBoardQueue as listBoardQueueQuery,
 } from "../application/board-proposal.service.js";
 import {
@@ -46,10 +47,30 @@ export const listBoardQueue = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const castProposalVote = asyncRoute(async (req: AuthedRequest, res) => {
   const payload = boardProposalVoteSchema.parse(req.body);
-  ok(res, await castBoardProposalVote(req, String(req.params.proposalId), payload));
+  ok(
+    res,
+    await castBoardProposalVote(req, String(req.params.proposalId), payload),
+  );
 });
+
+export const getProposalVotes = asyncRoute(async (req: AuthedRequest, res) => {
+  ok(res, await getBoardProposalVotes(String(req.params.proposalId)));
+});
+
+export const castProposalTieBreakVote = asyncRoute(
+  async (req: AuthedRequest, res) => {
+    const payload = boardProposalVoteSchema.parse(req.body);
+    ok(
+      res,
+      await castBoardProposalVote(req, String(req.params.proposalId), payload),
+    );
+  },
+);
 
 export const finalizeProposal = asyncRoute(async (req: AuthedRequest, res) => {
   const payload = boardProposalFinalizationSchema.parse(req.body);
-  ok(res, await finalizeBoardProposal(req, String(req.params.proposalId), payload));
+  ok(
+    res,
+    await finalizeBoardProposal(req, String(req.params.proposalId), payload),
+  );
 });
