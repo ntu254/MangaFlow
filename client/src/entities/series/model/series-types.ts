@@ -4,7 +4,7 @@ import type { SupportingMaterial } from "@/entities/proposal/model/proposal-type
 
 export type ProductionSeriesStatus = "PLANNING" | "ONGOING" | "HIATUS" | "COMPLETED" | "ARCHIVED";
 
-export type ChapterCadence = "weekly" | "biweekly" | "monthly";
+export type ChapterCadence = "weekly" | "monthly";
 export type SeriesPublicationType = "WEEKLY" | "MONTHLY";
 
 export type ChapterStatus =
@@ -187,7 +187,6 @@ export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
 
 export const CADENCE_LABEL: Record<ChapterCadence, string> = {
   weekly: "Weekly",
-  biweekly: "Biweekly",
   monthly: "Monthly",
 };
 
