@@ -17,9 +17,10 @@ import type {
   StudioRegion,
 } from "@/entities/series/model/studio-types";
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
-import { ApiRequestError, apiRequest, hasApiTokens } from "@/shared/api/client";
-import { seriesApi } from "@/shared/api/services";
+import { ApiRequestError, apiRequest, hasApiTokens, type ApiListEnvelope } from "@/shared/api/client";
+import { seriesApi, studioApi, type StudioTasksListMeta } from "@/shared/api/services";
 import { useAuth } from "@/shared/auth";
+import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 export {
@@ -655,10 +656,20 @@ export function useStudioTasksQuery(filters: {
   if (filters.regionId) params.set("regionId", filters.regionId);
   if (filters.assigneeId) params.set("assigneeId", filters.assigneeId);
   if (filters.status) params.set("status", filters.status);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<StudioTask[]>({
     queryKey: studioKeys.tasks(filters),
     queryFn: () => apiRequest<StudioTask[]>(`/studio/tasks${qs ? `?${qs}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useStudioTasksListQuery(tableState: TableState) {
+  return useQuery<ApiListEnvelope<StudioTask, StudioTasksListMeta>>({
+    queryKey: [...studioKeys.all, "tasksList", tableState] as const,
+    queryFn: () =>
+      studioApi.tasksList(tableState) as Promise<ApiListEnvelope<StudioTask, StudioTasksListMeta>>,
     staleTime: 30000,
   });
 }

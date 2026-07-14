@@ -225,7 +225,7 @@ export function useStudioRegionsQuery(filters: StudioRegionFilters, enabled = tr
 }
 
 export function useStudioTasksQuery(filters: StudioTaskFilters) {
-  const qs = buildQuery(filters);
+  const qs = buildQuery({ ...filters, pageSize: "100" });
   return useQuery<StudioTask[]>({
     queryKey: studioKeys.tasks(filters),
     queryFn: () => apiRequest<StudioTask[]>(`/studio/tasks${qs}`),
