@@ -6,9 +6,7 @@ const MAP: Record<string, string> = {
   MANGAKA_APPROVED: "bg-blue-100 text-blue-900",
   EDITOR_APPROVED: "bg-emerald-200 text-emerald-900",
   REJECTED: "bg-rose-100 text-rose-900",
-  IN_REVIEW: "bg-blue-100 text-blue-900",
   REVISION: "bg-orange-100 text-orange-900",
-  REVISION_REQUESTED: "bg-orange-100 text-orange-900",
   DRAFTING: "bg-violet-100 text-violet-900",
   SCHEDULED: "bg-indigo-100 text-indigo-900",
   PUBLISHED: "bg-emerald-200 text-emerald-900",
@@ -18,7 +16,6 @@ const MAP: Record<string, string> = {
 
 const LABEL: Record<string, string> = {
   PENDING_EDITOR: "Pending Editor",
-  IN_REVIEW: "In Review",
   CHANGES_REQUESTED: "Changes Requested",
   PENDING_BOARD: "Pending Board",
   MANGAKA_APPROVED: "Mangaka Approved",
@@ -27,7 +24,6 @@ const LABEL: Record<string, string> = {
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",
   REVISION: "Revision",
-  REVISION_REQUESTED: "Revision Requested",
   DRAFTING: "Drafting",
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",

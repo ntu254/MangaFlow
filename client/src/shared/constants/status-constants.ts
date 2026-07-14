@@ -162,11 +162,7 @@ export const SUBMISSION_STATUSES = [
 
 export type SubmissionStatusV2 = (typeof SUBMISSION_STATUSES)[number];
 
-export type SubmissionStatusLabelKey =
-  | SubmissionStatusV2
-  | "SUBMITTED"
-  | "APPROVED"
-  | "REVISION_REQUESTED";
+export type SubmissionStatusLabelKey = SubmissionStatusV2;
 
 export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatusLabelKey, string> = {
   PENDING: "Pending Review",
@@ -176,10 +172,6 @@ export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatusLabelKey, string> =
   EDITOR_REVISION_REQUESTED: "Editor Revision Requested",
   REJECTED: "Rejected",
   SUPERSEDED: "Superseded",
-  // Legacy
-  SUBMITTED: "Pending Review",
-  APPROVED: "Editor Approved",
-  REVISION_REQUESTED: "Revision Requested",
 };
 
 /** Submission is fully approved and eligible for earning */
