@@ -527,12 +527,8 @@ const chapterSchema = looseSchema({
       "REVISION",
       "EDITOR_APPROVED",
       "READY_FOR_PUBLICATION",
-      // Legacy only. New scheduling writes use Publication.status.
       "SCHEDULED",
       "PUBLISHED",
-      // Legacy values kept for backward compat during migration
-      "IN_REVIEW",
-      "APPROVED",
     ],
     index: true,
   },

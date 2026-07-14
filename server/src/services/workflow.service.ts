@@ -1331,19 +1331,11 @@ export async function applyChapterAction(
   if (rule.mangakaOrEditor && !isMangakaOrEditor)
     throw new AppError(403, "Mangaka or Editor permission is required.", "FORBIDDEN");
   if (rule.from && !rule.from.includes(fromStatus)) {
-    // Backward compat: also allow legacy status strings
-    const legacyMap: Record<string, string> = {
-      APPROVED: "EDITOR_APPROVED",
-      IN_REVIEW: "MANGAKA_REVIEW",
-    };
-    const normalizedStatus = legacyMap[fromStatus] ?? fromStatus;
-    if (!rule.from.includes(normalizedStatus)) {
-      throw new AppError(
-        409,
-        `Chapter transition is not valid from status "${fromStatus}".`,
-        "INVALID_TRANSITION",
-      );
-    }
+    throw new AppError(
+      409,
+      `Chapter transition is not valid from status "${fromStatus}".`,
+      "INVALID_TRANSITION",
+    );
   }
 
   if ((action === "SCHEDULE" || action === "POSTPONE" || action === "PUBLISH") && fromStatus !== "READY_FOR_PUBLICATION") {
@@ -1902,7 +1894,7 @@ export async function dashboardSummary(role: string) {
       },
       openComments: comments.filter((c: any) => c.status !== "RESOLVED").length,
       chaptersInReview: chapters.filter((c: any) =>
-        ["MANGAKA_REVIEW", "EDITOR_REVIEW", "IN_REVIEW"].includes(c.status),
+        ["MANGAKA_REVIEW", "EDITOR_REVIEW"].includes(c.status),
       ).length,
       recentActivity: proposals
         .slice(0, 4)

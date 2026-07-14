@@ -76,18 +76,8 @@ export type ChapterStatus =
   | "REVISION"
   | "EDITOR_APPROVED"
   | "READY_FOR_PUBLICATION"
-  /**
-   * Legacy only. New scheduling writes must use Publication.status.
-   * @deprecated
-   */
   | "SCHEDULED"
   | "PUBLISHED";
-
-/**
- * Legacy alias kept for backward-compat.
- * @deprecated Use individual status strings instead.
- */
-export type LegacyChapterStatus = ChapterStatus | "IN_REVIEW" | "APPROVED";
 
 export type ChapterAction =
   | "START_DRAFT"
