@@ -189,7 +189,7 @@ export function AdminUsersPage() {
         <div className="mt-6">
           <SeparationOfDutiesWarning>
             User role, activation, and deletion changes require a separate admin confirmation reason
-            and are recorded in the audit trail.
+            before they are applied.
           </SeparationOfDutiesWarning>
         </div>
 
@@ -354,7 +354,7 @@ export function AdminUsersPage() {
         onOpenChange={(next) => !next && setDeactivateTarget(null)}
         actionLabel={deactivateTarget?.active !== false ? "Deactivate" : "Activate"}
         targetLabel={deactivateTarget ? `${deactivateTarget.name} (${deactivateTarget.email})` : ""}
-        auditImpact="Creates an admin audit entry for account status change with actor, target user id, reason, and request id."
+        auditImpact="Records the actor, target user id, confirmation reason, and request id."
         onConfirm={(reason) => {
           if (!deactivateTarget) return;
           updateUserMutation.mutate(

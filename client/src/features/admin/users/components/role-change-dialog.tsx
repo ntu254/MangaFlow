@@ -48,7 +48,7 @@ export function RoleChangeDialog({
         isAdminChange
           ? currentRole === "admin"
             ? "Removing admin privileges is irreversible for the current session. Ensure another admin account exists."
-            : "Granting admin privileges gives full system access including user management, payroll, and audit operations."
+            : "Granting admin privileges allows user management, role assignment, account locks, and password reset workflows."
           : "Role changes affect what the user can see and do across the workspace. Some permissions may require re-authentication."
       }
       variant={isAdminChange ? "danger" : "default"}

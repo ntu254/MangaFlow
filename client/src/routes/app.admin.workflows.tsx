@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { WorkflowMonitorPage } from "@/features/admin/workflow-monitor";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/workflows")({
   head: () => ({ meta: [{ title: "Admin - Workflow Monitor - beachRead Studio" }] }),
-  component: WorkflowMonitorPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });

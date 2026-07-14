@@ -1,20 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ModulePlaceholder } from "@/shared/ui/module-placeholder";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/rates")({
   head: () => ({
     meta: [
-      { title: "Admin · Task Rates — beachRead Studio" },
-      { name: "description", content: "Manage task types and payroll rates." },
-      { property: "og:title", content: "Admin · Task Rates" },
-      { property: "og:description", content: "Task rates." },
+      { title: "Admin - Task Rates - beachRead Studio" },
+      { name: "description", content: "Task rates are outside the MVP admin surface." },
     ],
   }),
-  component: () => (
-    <ModulePlaceholder
-      phase={7}
-      title="Admin · Task Rates"
-      description="Manage task types and rate snapshots for earning calculations."
-    />
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });

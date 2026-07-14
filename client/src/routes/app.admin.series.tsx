@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SeriesManagementPage } from "@/features/admin/series-management";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/series")({
   head: () => ({ meta: [{ title: "Admin - Series - beachRead Studio" }] }),
-  component: SeriesManagementPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });

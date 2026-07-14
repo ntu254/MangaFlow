@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/board/sessions")({
   head: () => ({
@@ -7,5 +7,7 @@ export const Route = createFileRoute("/app/board/sessions")({
       { name: "description", content: "Board voting sessions: ad-hoc and scheduled." },
     ],
   }),
-  component: () => <Outlet />,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/board/queue" });
+  },
 });

@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AdminSettingsPage } from "@/features/admin/settings";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/settings")({
   head: () => ({
@@ -10,5 +9,7 @@ export const Route = createFileRoute("/app/admin/settings")({
       { property: "og:description", content: "System settings." },
     ],
   }),
-  component: AdminSettingsPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });

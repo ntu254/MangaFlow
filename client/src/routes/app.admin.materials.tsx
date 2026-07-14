@@ -1,7 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AdminMaterialsPage } from "@/features/admin/materials";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/admin/materials")({
-  head: () => ({ meta: [{ title: "Admin - Material Library - beachRead Studio" }] }),
-  component: AdminMaterialsPage,
+  head: () => ({
+    meta: [
+      { title: "Admin - User Management - beachRead Studio" },
+      { name: "description", content: "Material library administration is outside the MVP admin surface." },
+    ],
+  }),
+  beforeLoad: () => {
+    throw redirect({ to: "/app/admin/users" });
+  },
 });
