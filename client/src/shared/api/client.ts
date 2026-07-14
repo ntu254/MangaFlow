@@ -29,6 +29,21 @@ export type ApiEnvelope<T> = {
   };
 };
 
+export type ApiListPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+};
+
+export type ApiListEnvelope<T, TMeta = Record<string, unknown>> = {
+  data: T[];
+  pagination: ApiListPagination;
+  meta: TMeta;
+};
+
 export type ApiTokens = {
   accessToken: string;
   refreshToken: string;
@@ -163,6 +178,65 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
 
     return envelope.data;
+  } catch (error) {
+    if (error instanceof ApiRequestError) throw error;
+    if (isApiError(error)) {
+      if (error.status === 401 && options.auth !== false) {
+        _onUnauthorized?.();
+      }
+      throw new ApiRequestError({
+        status: error.status,
+        message: error.message,
+        code: error.code,
+        requestId: error.requestId,
+      });
+    }
+    if (error instanceof Error) {
+      throw new ApiRequestError({
+        status: error instanceof ApiError ? error.status : 0,
+        message: error.message,
+        code: "CLIENT_ERROR",
+      });
+    }
+    throw new ApiRequestError({
+      status: 0,
+      message: "Unknown API error",
+      code: "CLIENT_ERROR",
+    });
+  }
+}
+
+export async function apiListRequest<T, TMeta = Record<string, unknown>>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ApiListEnvelope<T, TMeta>> {
+  try {
+    const response = await httpClient.request<
+      ApiEnvelope<T[]> & { pagination: ApiListPagination; meta: TMeta }
+    >({
+      url: path,
+      method: options.method ?? "GET",
+      data: options.body,
+      headers: normalizeHeaders(options.headers),
+      skipAuth: options.auth === false,
+      skipAuthRefresh: path === "/auth/refresh",
+    } satisfies AxiosRequestConfig);
+
+    const envelope = response.data;
+    if (!envelope?.success) {
+      throw new ApiRequestError({
+        status: response.status,
+        message: envelope?.message ?? `API request failed with ${response.status}`,
+        code: envelope?.code,
+        requestId: envelope?.requestId,
+      });
+    }
+
+    return {
+      data: envelope.data,
+      pagination: envelope.pagination,
+      meta: envelope.meta,
+    };
   } catch (error) {
     if (error instanceof ApiRequestError) throw error;
     if (isApiError(error)) {

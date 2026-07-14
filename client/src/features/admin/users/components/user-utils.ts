@@ -18,8 +18,9 @@ export function formatUserDate(value?: string) {
   }).format(new Date(value));
 }
 
-export function isLastAdmin(user: AdminUser, users: AdminUser[]) {
+export function isLastAdmin(user: AdminUser, users: AdminUser[], activeAdminCount?: number) {
   if (user.role.toUpperCase() !== "ADMIN") return false;
+  if (typeof activeAdminCount === "number") return activeAdminCount <= 1;
   const adminCount = users.filter(
     (candidate) => candidate.role.toUpperCase() === "ADMIN" && candidate.active !== false,
   ).length;

@@ -32,7 +32,8 @@ export function AdminDashboard() {
   const { data: chapters = [], isLoading: chaptersLoading } = useChaptersForSeriesQuery(seriesIds);
   const { data: auditEntries = [] } = useAdminAuditQuery();
   const { data: rankings = [], isLoading: rankingsLoading } = useRankingsListQuery();
-  const { data: users = [], isLoading: usersLoading } = useAdminUsersQuery();
+  const { data: usersList, isLoading: usersLoading } = useAdminUsersQuery();
+  const users = usersList?.data ?? [];
   const boardPending = proposals.filter((proposal) => proposal.status === "PENDING_BOARD").length;
   const workflowIssues = chapters.filter((chapter) =>
     ["REVISION", "IN_REVIEW"].includes(chapter.status),

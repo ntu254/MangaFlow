@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminApi } from "@/shared/api/services";
+import { adminApi, type AdminUsersListMeta } from "@/shared/api/services";
+import type { ApiListEnvelope } from "@/shared/api/client";
 import { adminKeys, type AdminUser } from "../../_shared";
 import { isUnauthorizedApiError } from "@/shared/api/client";
+import type { TableState } from "@/shared/table";
 
 // Local definition to avoid exporting from the monolithic file, preserving its API
 function retryAdminQuery(failureCount: number, error: Error) {
@@ -11,12 +13,16 @@ function retryAdminQuery(failureCount: number, error: Error) {
 
 type AdminQueryOptions = {
   enabled?: boolean;
+  tableState?: TableState;
 };
 
 export function useAdminUsersQuery(options: AdminQueryOptions = {}) {
-  return useQuery<AdminUser[]>({
-    queryKey: adminKeys.users(),
-    queryFn: () => adminApi.users() as Promise<AdminUser[]>,
+  return useQuery<ApiListEnvelope<AdminUser, AdminUsersListMeta>>({
+    queryKey: [...adminKeys.users(), options.tableState],
+    queryFn: () =>
+      adminApi.usersList(options.tableState) as Promise<
+        ApiListEnvelope<AdminUser, AdminUsersListMeta>
+      >,
     enabled: options.enabled ?? true,
     retry: retryAdminQuery,
     staleTime: 60000,

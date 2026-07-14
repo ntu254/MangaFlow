@@ -25,6 +25,7 @@ export function UsersTable({
   currentUser,
   isLoading,
   updateSucceeded,
+  activeAdminCount,
   onSelect,
   onRoleChange,
   onToggleActive,
@@ -36,6 +37,7 @@ export function UsersTable({
   currentUser: { id: string; role: string } | null;
   isLoading: boolean;
   updateSucceeded: boolean;
+  activeAdminCount?: number;
   onSelect: (user: AdminUser) => void;
   onRoleChange: (user: AdminUser, role: Role) => void;
   onToggleActive: (user: AdminUser) => void;
@@ -64,7 +66,7 @@ export function UsersTable({
         id: "role",
         header: "Role",
         cell: ({ row }) => {
-          const lastAdmin = isLastAdmin(row.original, users);
+          const lastAdmin = isLastAdmin(row.original, users, activeAdminCount);
           return (
             <RoleBadgeDropdown
               user={row.original}
@@ -127,7 +129,7 @@ export function UsersTable({
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => {
           const active = row.original.active !== false;
-          const lastAdmin = isLastAdmin(row.original, users);
+          const lastAdmin = isLastAdmin(row.original, users, activeAdminCount);
 
           return (
             <div className="pr-2 text-right">
@@ -170,6 +172,7 @@ export function UsersTable({
       onSelect,
       onToggleActive,
       users,
+      activeAdminCount,
     ],
   );
 
