@@ -8,6 +8,7 @@ import seriesRoutes from "./series.routes.js";
 import studioRoutes from "./studio.routes.js";
 import submissionRoutes from "./submission.routes.js";
 import adminRoutes from "./admin.routes.js";
+import earningRoutes from "./earning.routes.js";
 import publicationRoutes from "./publication.routes.js";
 import tantouRoutes from "./tantou.routes.js";
 import notificationRoutes from "./notification.routes.js";
@@ -38,6 +39,7 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(studioRoutes);
   router.use(submissionRoutes);
   router.use(adminRoutes);
+  router.use(earningRoutes);
   router.use(publicationRoutes);
   router.use(tantouRoutes);
   router.use(atRiskReportRoutes);

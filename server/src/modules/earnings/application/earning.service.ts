@@ -99,3 +99,15 @@ export async function recomputeAssistantEarning(assistantId: string, period: str
 
   return EarningModel.findOne({ assistantId, period }).lean();
 }
+
+export async function listAssistantEarnings(assistantId: string) {
+  const earnings = await EarningModel.find({ assistantId })
+    .sort({ period: -1, updatedAt: -1 })
+    .lean();
+  const items = await EarningItemModel.find({ assistantId }).sort({ createdAt: -1 }).lean();
+
+  return earnings.map((earning: any) => ({
+    ...earning,
+    items: items.filter((item: any) => item.earningId === earning.id),
+  }));
+}
