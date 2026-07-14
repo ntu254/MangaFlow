@@ -15,7 +15,6 @@ const STYLES: Record<ProposalStatus, string> = {
   APPROVED: "bg-emerald-100 text-emerald-900",
   REJECTED: "bg-rose-100 text-rose-900",
   WITHDRAWN: "bg-zinc-200 text-zinc-600",
-  ARCHIVED: "bg-stone-200 text-stone-600",
 };
 
 export function ProposalStatusPill({

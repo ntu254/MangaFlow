@@ -9,7 +9,6 @@ const TONES: Record<ChapterStatus, string> = {
   APPROVED: "bg-emerald-100 text-emerald-900 border-emerald-300",
   SCHEDULED: "bg-indigo-100 text-indigo-900 border-indigo-300",
   PUBLISHED: "bg-foreground text-background border-foreground",
-  ARCHIVED: "bg-zinc-200 text-zinc-700 border-zinc-300",
   ASSISTANT_WORKING: "bg-sky-100 text-sky-800 border-sky-300",
   MANGAKA_REVIEW: "bg-blue-100 text-blue-900 border-blue-300",
   EDITOR_REVIEW: "bg-indigo-100 text-indigo-900 border-indigo-300",

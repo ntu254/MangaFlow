@@ -2,7 +2,7 @@ import type { Role } from "@/shared/auth";
 import type { PageStatus } from "@/shared/constants/status-constants";
 import type { SupportingMaterial } from "@/entities/proposal/model/proposal-types";
 
-export type ProductionSeriesStatus = "PLANNING" | "ONGOING" | "HIATUS" | "COMPLETED" | "ARCHIVED";
+export type ProductionSeriesStatus = "PLANNING" | "ONGOING" | "HIATUS" | "COMPLETED";
 
 export type ChapterCadence = "weekly" | "monthly";
 export type SeriesPublicationType = "WEEKLY" | "MONTHLY";
@@ -19,7 +19,6 @@ export type ChapterStatus =
   | "READY_FOR_PUBLICATION"
   | "SCHEDULED"
   | "PUBLISHED"
-  | "ARCHIVED"
   // Legacy values — do not use in new writes
   // @deprecated migrate via migrate-schema-v2.ts
   | "IN_REVIEW"
@@ -146,7 +145,6 @@ export const SERIES_STATUS_LABEL: Record<ProductionSeriesStatus, string> = {
   ONGOING: "Ongoing",
   HIATUS: "Hiatus",
   COMPLETED: "Completed",
-  ARCHIVED: "Archived",
 };
 
 export const CHAPTER_STATUS_LABEL: Record<ChapterStatus, string> = {
@@ -161,7 +159,6 @@ export const CHAPTER_STATUS_LABEL: Record<ChapterStatus, string> = {
   READY_FOR_PUBLICATION: "Ready for Publication",
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
-  ARCHIVED: "Archived",
   // Legacy
   IN_REVIEW: "In Review",
   APPROVED: "Approved",

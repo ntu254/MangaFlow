@@ -3,7 +3,7 @@ import { STATUS_FLOW, STATUS_LABEL } from "@/entities/proposal/model/proposal-ty
 import { cn } from "@/shared/lib/cn";
 
 export function StatusFlow({ status }: { status: ProposalStatus }) {
-  const terminal = status === "REJECTED" || status === "WITHDRAWN" || status === "ARCHIVED";
+  const terminal = status === "REJECTED" || status === "WITHDRAWN";
   const branchIndex = status === "CHANGES_REQUESTED" ? 2 : STATUS_FLOW.indexOf(status);
   return (
     <div className="rounded-md border border-border bg-card/40 p-4">

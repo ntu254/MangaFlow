@@ -13,5 +13,4 @@ export const PROPOSAL_STATUSES = new Set<ProposalStatus>([
   "APPROVED",
   "REJECTED",
   "WITHDRAWN",
-  "ARCHIVED",
 ]);

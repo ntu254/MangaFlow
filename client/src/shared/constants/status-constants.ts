@@ -20,7 +20,6 @@ export const CHAPTER_STATUSES = [
   "READY_FOR_PUBLICATION",
   "SCHEDULED",
   "PUBLISHED",
-  "ARCHIVED",
   // Legacy values kept for backward compat with old data
   // @deprecated — migrate via migrate-schema-v2.ts
   "IN_REVIEW",
@@ -44,7 +43,6 @@ export const CHAPTER_STATUSES_CANONICAL = [
   "READY_FOR_PUBLICATION",
   "SCHEDULED",
   "PUBLISHED",
-  "ARCHIVED",
 ] as const;
 
 export const CHAPTER_STATUS_LABEL: Record<ChapterStatusV2, string> = {
@@ -58,7 +56,6 @@ export const CHAPTER_STATUS_LABEL: Record<ChapterStatusV2, string> = {
   READY_FOR_PUBLICATION: "Ready for Publication",
   SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
-  ARCHIVED: "Archived",
   // Legacy labels (keep for old data rendering)
   IN_REVIEW: "In Review",
   APPROVED: "Approved",
@@ -81,7 +78,6 @@ export const CHAPTER_STATUS_FLOW = [
 /** Statuses that count as "done" for a chapter */
 export const CHAPTER_TERMINAL_STATUSES = new Set([
   "PUBLISHED",
-  "ARCHIVED",
   "EDITOR_APPROVED", // final editorial step
   "READY_FOR_PUBLICATION",
   "SCHEDULED",
@@ -251,7 +247,6 @@ export const PROPOSAL_STATUSES = [
   "APPROVED",
   "REJECTED",
   "WITHDRAWN",
-  "ARCHIVED",
 ] as const;
 
 export type ProposalStatusV2 = (typeof PROPOSAL_STATUSES)[number];
@@ -269,14 +264,13 @@ export const PROPOSAL_STATUS_LABEL: Record<ProposalStatusV2, string> = {
   APPROVED: "Approved",
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",
-  ARCHIVED: "Archived",
 };
 
 // ---------------------------------------------------------------------------
 // Series
 // ---------------------------------------------------------------------------
 
-export const SERIES_STATUSES = ["PLANNING", "ONGOING", "HIATUS", "COMPLETED", "ARCHIVED"] as const;
+export const SERIES_STATUSES = ["PLANNING", "ONGOING", "HIATUS", "COMPLETED"] as const;
 
 export type ProductionSeriesStatusV2 = (typeof SERIES_STATUSES)[number];
 

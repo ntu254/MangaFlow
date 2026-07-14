@@ -38,7 +38,7 @@ export function MangakaDashboard() {
 
   const isLoading = seriesLoading || chaptersLoading || tasksLoading || queueLoading;
 
-  const activeSeriesCount = seriesList.filter((s) => s.status !== "ARCHIVED").length;
+  const activeSeriesCount = seriesList.filter((s) => s.status !== "COMPLETED").length;
 
   const inProgressTasks = useMemo(() => {
     return tasks

@@ -17,7 +17,6 @@ export const PROPOSAL_STATUSES = [
   "APPROVED",
   "REJECTED",
   "WITHDRAWN",
-  "ARCHIVED",
 ] as const;
 
 export const CHAPTER_STATUSES = [
@@ -31,7 +30,6 @@ export const CHAPTER_STATUSES = [
   "READY_FOR_PUBLICATION",
   "SCHEDULED",
   "PUBLISHED",
-  "ARCHIVED",
   // Legacy values kept for backward compat
   "IN_REVIEW",
   "APPROVED",

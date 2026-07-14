@@ -53,7 +53,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 type StatusFilter = ProductionSeriesStatus | "ALL";
 type WorkflowFilter = "REVIEW_NEEDED" | "OVERDUE" | "BLOCKED" | "WAITING_EDITOR" | null;
 
-const STATUSES: StatusFilter[] = ["ALL", "PLANNING", "ONGOING", "HIATUS", "COMPLETED", "ARCHIVED"];
+const STATUSES: StatusFilter[] = ["ALL", "PLANNING", "ONGOING", "HIATUS", "COMPLETED"];
 const PAGE_SIZE = 8;
 const DEFAULT_SERIES_TABLE_STATE: Partial<TableState> = {
   pageSize: PAGE_SIZE,
@@ -68,7 +68,6 @@ const STATUS_LABEL: Record<StatusFilter, string> = {
   ONGOING: "Ongoing",
   HIATUS: "Hiatus",
   COMPLETED: "Completed",
-  ARCHIVED: "Archived",
 };
 
 const WORKFLOW_FILTERS: { key: WorkflowFilter; label: string }[] = [

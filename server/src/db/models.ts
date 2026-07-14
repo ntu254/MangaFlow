@@ -428,7 +428,7 @@ const seriesSchema = looseSchema({
   sourceProposalId: { type: String },
   visibility: {
     type: String,
-    enum: ["PRIVATE", "PUBLIC", "UNLISTED", "ARCHIVED"],
+    enum: ["PRIVATE", "PUBLIC", "UNLISTED"],
     default: "PRIVATE",
   },
   publishedAt: { type: Date },
@@ -530,7 +530,6 @@ const chapterSchema = looseSchema({
       // Legacy only. New scheduling writes use Publication.status.
       "SCHEDULED",
       "PUBLISHED",
-      "ARCHIVED",
       // Legacy values kept for backward compat during migration
       "IN_REVIEW",
       "APPROVED",

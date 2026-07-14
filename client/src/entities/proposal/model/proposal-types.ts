@@ -12,8 +12,7 @@ export type ProposalStatus =
   | "TIE_BREAK"
   | "APPROVED"
   | "REJECTED"
-  | "WITHDRAWN"
-  | "ARCHIVED";
+  | "WITHDRAWN";
 
 /**
  * UI group mapping — maps canonical backend statuses to simplified display groups.
@@ -26,8 +25,7 @@ export type ProposalUIGroup =
   | "need_changes"
   | "board_review"
   | "approved"
-  | "rejected"
-  | "archived";
+  | "rejected";
 
 export const PROPOSAL_TO_UI_GROUP: Record<ProposalStatus, ProposalUIGroup> = {
   DRAFT: "draft",
@@ -42,7 +40,6 @@ export const PROPOSAL_TO_UI_GROUP: Record<ProposalStatus, ProposalUIGroup> = {
   APPROVED: "approved",
   REJECTED: "rejected",
   WITHDRAWN: "rejected",
-  ARCHIVED: "archived",
 };
 
 export const PROPOSAL_UI_GROUP_LABEL: Record<ProposalUIGroup, string> = {
@@ -53,7 +50,6 @@ export const PROPOSAL_UI_GROUP_LABEL: Record<ProposalUIGroup, string> = {
   board_review: "Board Review",
   approved: "Approved",
   rejected: "Rejected",
-  archived: "Archived",
 };
 
 export type ProposalAction =
@@ -222,7 +218,6 @@ export const STATUS_LABEL: Record<ProposalStatus, string> = {
   APPROVED: "Approved",
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",
-  ARCHIVED: "Archived",
 };
 
 export const STATUS_FLOW: ProposalStatus[] = [

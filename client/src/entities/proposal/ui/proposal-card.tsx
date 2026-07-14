@@ -108,14 +108,6 @@ const STATUS_CONFIG: Record<
     nextAction: "Proposal withdrawn / Proposal withdrawn",
     ctaLabel: "View Proposal",
   },
-  ARCHIVED: {
-    label: "Archived",
-    pillClass:
-      "bg-stone-50 text-stone-700 border-stone-200 dark:bg-stone-950/30 dark:text-stone-400 dark:border-stone-900/50",
-    stage: "Archived",
-    nextAction: "Proposal archived / Proposal archived",
-    ctaLabel: "View Proposal",
-  },
 };
 
 function timeAgo(iso: string) {

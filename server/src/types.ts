@@ -37,8 +37,7 @@ export type ProposalStatus =
   | "TIE_BREAK"
   | "APPROVED"
   | "REJECTED"
-  | "WITHDRAWN"
-  | "ARCHIVED";
+  | "WITHDRAWN";
 
 export type VoteDecision = "APPROVE" | "REJECT" | "ABSTAIN";
 
@@ -82,8 +81,7 @@ export type ChapterStatus =
    * @deprecated
    */
   | "SCHEDULED"
-  | "PUBLISHED"
-  | "ARCHIVED";
+  | "PUBLISHED";
 
 /**
  * Legacy alias kept for backward-compat.
@@ -225,7 +223,7 @@ export type CommentTargetType = "CHAPTER" | "PAGE" | "REGION" | "TASK" | "SUBMIS
 // Series
 // ---------------------------------------------------------------------------
 
-export type SeriesVisibility = "PRIVATE" | "PUBLIC" | "UNLISTED" | "ARCHIVED";
+export type SeriesVisibility = "PRIVATE" | "PUBLIC" | "UNLISTED";
 
 // ---------------------------------------------------------------------------
 // Shared
