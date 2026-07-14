@@ -1,8 +1,21 @@
-import {
-  CHECKLIST_LABEL,
-  useEditorAnnotations,
-  type ChecklistKey,
-} from "../../model/editor-annotations-store";
+import { useState } from "react";
+
+type ChecklistKey =
+  | "hook"
+  | "characterMotivation"
+  | "audienceFit"
+  | "storyboardFlow"
+  | "manuscriptQuality"
+  | "serializePotential";
+
+const CHECKLIST_LABEL: Record<ChecklistKey, string> = {
+  hook: "Clear hook",
+  characterMotivation: "The main character has clear motivation",
+  audienceFit: "Good target-audience fit",
+  storyboardFlow: "Storyboard/name is readable enough",
+  manuscriptQuality: "Sample manuscript meets the minimum bar",
+  serializePotential: "Has serialization potential",
+};
 
 const KEYS: ChecklistKey[] = [
   "hook",
@@ -13,12 +26,8 @@ const KEYS: ChecklistKey[] = [
   "serializePotential",
 ];
 
-const EMPTY_CHECKLIST = {};
-
 export function EditorialChecklist({ proposalId }: { proposalId: string }) {
-  const checklists = useEditorAnnotations((s) => s.checklists);
-  const state = checklists[proposalId] ?? EMPTY_CHECKLIST;
-  const toggle = useEditorAnnotations((s) => s.toggleChecklist);
+  const [state, setState] = useState<Partial<Record<ChecklistKey, boolean>>>({});
   const passed = KEYS.filter((k) => state[k]).length;
   return (
     <div className="space-y-2 rounded-md border border-border bg-card p-4">
@@ -37,7 +46,7 @@ export function EditorialChecklist({ proposalId }: { proposalId: string }) {
               id={`chk-${proposalId}-${k}`}
               type="checkbox"
               checked={!!state[k]}
-              onChange={(e) => toggle(proposalId, k, e.target.checked)}
+              onChange={(e) => setState((current) => ({ ...current, [k]: e.target.checked }))}
               className="size-3.5"
             />
             <label htmlFor={`chk-${proposalId}-${k}`} className="text-xs">

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { AlertOctagon, CheckCircle2, MessageSquare } from "lucide-react";
 import type { StudioComment } from "@/entities/series/model/studio-types";
 import type { StudioTask } from "@/entities/series/model/studio-types";
@@ -144,19 +143,7 @@ export function ReviewSummaryPanel({
         </div>
       </Panel>
 
-      <Panel
-        title={`Comments (${pageComments.length})`}
-        action={
-          <Link
-            to="/app/editor/chapters/$chapterId/annotate"
-            params={{ chapterId }}
-            className="text-[11px] font-semibold text-[var(--admin-muted)] hover:text-[var(--admin-ink)]"
-          >
-            View all
-          </Link>
-        }
-        contentClassName="p-0"
-      >
+      <Panel title={`Comments (${pageComments.length})`} contentClassName="p-0">
         {pageComments.length === 0 ? (
           <p className="px-4 py-3 text-[12px] text-[var(--admin-faint)]">
             This page has no comments yet.

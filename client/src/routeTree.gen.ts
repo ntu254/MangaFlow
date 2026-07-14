@@ -64,7 +64,6 @@ import { Route as AppBoardRankingsImportRouteImport } from './routes/app.board.r
 import { Route as AppBoardProposalsProposalIdRouteImport } from './routes/app.board.proposals.$proposalId'
 import { Route as AppEditorSeriesSeriesIdStudioRouteImport } from './routes/app.editor.series.$seriesId.studio'
 import { Route as AppEditorChaptersChapterIdReviewRouteImport } from './routes/app.editor.chapters.$chapterId.review'
-import { Route as AppEditorChaptersChapterIdAnnotateRouteImport } from './routes/app.editor.chapters.$chapterId.annotate'
 import { Route as AppAssistantTasksTaskIdStudioRouteImport } from './routes/app.assistant.tasks.$taskId.studio'
 import { Route as AppAssistantSeriesSeriesIdStudioRouteImport } from './routes/app.assistant.series.$seriesId.studio'
 
@@ -349,12 +348,6 @@ const AppEditorChaptersChapterIdReviewRoute =
     path: '/chapters/$chapterId/review',
     getParentRoute: () => AppEditorRoute,
   } as any)
-const AppEditorChaptersChapterIdAnnotateRoute =
-  AppEditorChaptersChapterIdAnnotateRouteImport.update({
-    id: '/chapters/$chapterId/annotate',
-    path: '/chapters/$chapterId/annotate',
-    getParentRoute: () => AppEditorRoute,
-  } as any)
 const AppAssistantTasksTaskIdStudioRoute =
   AppAssistantTasksTaskIdStudioRouteImport.update({
     id: '/$taskId/studio',
@@ -424,7 +417,6 @@ export interface FileRoutesByFullPath {
   '/app/editor/review/': typeof AppEditorReviewIndexRoute
   '/app/assistant/series/$seriesId/studio': typeof AppAssistantSeriesSeriesIdStudioRoute
   '/app/assistant/tasks/$taskId/studio': typeof AppAssistantTasksTaskIdStudioRoute
-  '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
 }
@@ -475,7 +467,6 @@ export interface FileRoutesByTo {
   '/app/editor/review': typeof AppEditorReviewIndexRoute
   '/app/assistant/series/$seriesId/studio': typeof AppAssistantSeriesSeriesIdStudioRoute
   '/app/assistant/tasks/$taskId/studio': typeof AppAssistantTasksTaskIdStudioRoute
-  '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
 }
@@ -536,7 +527,6 @@ export interface FileRoutesById {
   '/app/editor/review/': typeof AppEditorReviewIndexRoute
   '/app/assistant/series/$seriesId/studio': typeof AppAssistantSeriesSeriesIdStudioRoute
   '/app/assistant/tasks/$taskId/studio': typeof AppAssistantTasksTaskIdStudioRoute
-  '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
 }
@@ -598,7 +588,6 @@ export interface FileRouteTypes {
     | '/app/editor/review/'
     | '/app/assistant/series/$seriesId/studio'
     | '/app/assistant/tasks/$taskId/studio'
-    | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
   fileRoutesByTo: FileRoutesByTo
@@ -649,7 +638,6 @@ export interface FileRouteTypes {
     | '/app/editor/review'
     | '/app/assistant/series/$seriesId/studio'
     | '/app/assistant/tasks/$taskId/studio'
-    | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
   id:
@@ -709,7 +697,6 @@ export interface FileRouteTypes {
     | '/app/editor/review/'
     | '/app/assistant/series/$seriesId/studio'
     | '/app/assistant/tasks/$taskId/studio'
-    | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
   fileRoutesById: FileRoutesById
@@ -1108,13 +1095,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEditorChaptersChapterIdReviewRouteImport
       parentRoute: typeof AppEditorRoute
     }
-    '/app/editor/chapters/$chapterId/annotate': {
-      id: '/app/editor/chapters/$chapterId/annotate'
-      path: '/chapters/$chapterId/annotate'
-      fullPath: '/app/editor/chapters/$chapterId/annotate'
-      preLoaderRoute: typeof AppEditorChaptersChapterIdAnnotateRouteImport
-      parentRoute: typeof AppEditorRoute
-    }
     '/app/assistant/tasks/$taskId/studio': {
       id: '/app/assistant/tasks/$taskId/studio'
       path: '/$taskId/studio'
@@ -1252,7 +1232,6 @@ interface AppEditorRouteChildren {
   AppEditorReviewRoute: typeof AppEditorReviewRouteWithChildren
   AppEditorSeriesRoute: typeof AppEditorSeriesRouteWithChildren
   AppEditorProposalsProposalIdRoute: typeof AppEditorProposalsProposalIdRoute
-  AppEditorChaptersChapterIdAnnotateRoute: typeof AppEditorChaptersChapterIdAnnotateRoute
   AppEditorChaptersChapterIdReviewRoute: typeof AppEditorChaptersChapterIdReviewRoute
 }
 
@@ -1264,8 +1243,6 @@ const AppEditorRouteChildren: AppEditorRouteChildren = {
   AppEditorReviewRoute: AppEditorReviewRouteWithChildren,
   AppEditorSeriesRoute: AppEditorSeriesRouteWithChildren,
   AppEditorProposalsProposalIdRoute: AppEditorProposalsProposalIdRoute,
-  AppEditorChaptersChapterIdAnnotateRoute:
-    AppEditorChaptersChapterIdAnnotateRoute,
   AppEditorChaptersChapterIdReviewRoute: AppEditorChaptersChapterIdReviewRoute,
 }
 
