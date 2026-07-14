@@ -103,7 +103,7 @@ function LoginPage() {
             Quick select a Board member (5 people)
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Use this to demo 3/5 quorum, tie-breaks, and the Chair's tie-breaking vote.
+            Use this to demo 3/5 quorum, tie-breaks, and the Editor-in-chief tie-break vote.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {BOARD_MEMBERS.map((m, i) => (

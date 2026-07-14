@@ -295,7 +295,7 @@ export function mapBoardApiError(err: unknown): string {
     if (msg.includes("NOT_FOUND")) return "Proposal not found.";
     if (msg.includes("EIC_REQUIRED")) return "Only the Editor-in-chief can break ties.";
     if (msg.includes("BOARD_CHAIR_REQUIRED"))
-      return "Only the Board Chair can perform this action.";
+      return "Only an authorized Board member can perform this action.";
     if (msg.includes("FORBIDDEN")) return "You do not have permission to perform this action.";
     return msg;
   }

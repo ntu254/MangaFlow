@@ -664,6 +664,24 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(res.body.data.status).toBe("HIATUS");
   });
 
+  it("POST /api/board/series/:id/at-risk-decisions allows a non-chair Board member after report", async () => {
+    const tantou = await loginAs("tanaka@beachread.jp");
+    const boardMember = await loginAs("sato@beachread.jp");
+    await request(createApp())
+      .post("/api/series/s-berserk-prod/at-risk-reports")
+      .set("Authorization", `Bearer ${tantou.accessToken}`)
+      .send({ rankingSummary: "Risk reviewed by the Board.", recommendation: "CONTINUE" })
+      .expect(201);
+
+    const res = await request(createApp())
+      .post("/api/board/series/s-berserk-prod/at-risk-decisions")
+      .set("Authorization", `Bearer ${boardMember.accessToken}`)
+      .send({ decision: "CONTINUE", note: "Board agrees to continue." })
+      .expect(200);
+
+    expect(res.body.data.status).toBe("ONGOING");
+  });
+
   it("POST /api/board/series/:id/at-risk-decisions can cancel the series after report", async () => {
     const tantou = await loginAs("tanaka@beachread.jp");
     const board = await loginAs("board@beachread.jp");
