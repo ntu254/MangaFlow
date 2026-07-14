@@ -1,123 +1,160 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, FileText, ListChecks, ShieldAlert, TrendingDown } from "lucide-react";
-import { AtRiskDecisionPanel } from "./at-risk-decision-panel";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { SeriesRanking } from "@/entities/series";
+import { useRankingsListContractQuery } from "@/entities/series";
+import {
+  parseTableStateFromSearchParams,
+  resetTableState,
+  tableStateToSearchParams,
+  type TableState,
+} from "@/shared/table";
 import {
   Notice,
   QueuePage,
-  QueueTable,
+  SearchToolbar,
+  ServerDataTable,
   StatCard,
   StateBlock,
   StatusPill,
-  type QueueAccent,
-  type QueueColumn,
 } from "@/shared/ui";
-import { useRankingsListQuery } from "@/entities/series";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  useBoardQueueQuery,
-  useLatestAtRiskReportQuery,
-  type AtRiskQueueItem,
-} from "../../api/board-queries";
+  AlertTriangle,
+  FileText,
+  ListChecks,
+  RotateCcw,
+  ShieldAlert,
+  TrendingDown,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLatestAtRiskReportQuery } from "../../api/board-queries";
+import { AtRiskDecisionPanel } from "./at-risk-decision-panel";
 
-type BoardAtRiskRow = AtRiskQueueItem & {
-  readerScore: number;
-  voteCount: number;
-  finalScore: number;
-  rankingStatus: string;
-  period: string;
+const PAGE_SIZE = 8;
+const AT_RISK_FILTER = { atRisk: { type: "boolean" as const, value: true } };
+const DEFAULT_AT_RISK_TABLE_STATE: Partial<TableState> = {
+  pageSize: PAGE_SIZE,
+  sortBy: "finalScore",
+  sortDir: "asc",
+  filters: AT_RISK_FILTER,
 };
+const EMPTY_RANKINGS: SeriesRanking[] = [];
 
-function isAtRiskQueueItem(item: unknown): item is AtRiskQueueItem {
-  return (
-    typeof item === "object" &&
-    item !== null &&
-    (item as { seriesStatus?: string }).seriesStatus === "AT_RISK"
-  );
+function useAtRiskTableState() {
+  const [tableState, setTableState] = useState<TableState>(() => {
+    const parsed = parseTableStateFromSearchParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search),
+      DEFAULT_AT_RISK_TABLE_STATE,
+    );
+    return {
+      ...parsed,
+      filters: {
+        ...parsed.filters,
+        ...AT_RISK_FILTER,
+      },
+    };
+  });
+
+  useEffect(() => {
+    const params = tableStateToSearchParams(tableState);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [tableState]);
+
+  return [tableState, setTableState] as const;
+}
+
+function score(value: unknown) {
+  return typeof value === "number" ? value.toFixed(1) : "—";
 }
 
 export function AtRiskReviewsPage() {
-  const { data: queue = [], isLoading: queueLoading, error: queueError } = useBoardQueueQuery();
-  const {
-    data: rankings = [],
-    isLoading: rankingsLoading,
-    error: rankingsError,
-  } = useRankingsListQuery();
-  const atRiskItems = queue.filter(isAtRiskQueueItem);
-  const rows = useMemo<BoardAtRiskRow[]>(
-    () =>
-      atRiskItems.map((item) => {
-        const ranking = rankings.find((row) => row.seriesId === item.seriesId);
-        return {
-          ...item,
-          readerScore: ranking?.readerScore ?? 0,
-          voteCount: ranking?.voteCount ?? 0,
-          finalScore: ranking?.finalScore ?? 0,
-          rankingStatus: ranking?.status ?? "AT_RISK",
-          period: ranking?.period ?? "Latest",
-        };
-      }),
-    [atRiskItems, rankings],
-  );
+  const [tableState, setTableState] = useAtRiskTableState();
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const { data: rankingList, isLoading, error } = useRankingsListContractQuery(tableState);
+
+  const rows = rankingList?.data ?? EMPTY_RANKINGS;
+  const pagination = rankingList?.pagination ?? {
+    page: tableState.page,
+    pageSize: tableState.pageSize,
+    total: 0,
+  };
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
   const {
     data: latestReport,
     isLoading: reportLoading,
     error: reportError,
   } = useLatestAtRiskReportQuery(selected?.seriesId ?? "");
-  const isLoading = queueLoading || rankingsLoading;
-  const loadError = queueError ?? rankingsError;
+  const sortValue = `${tableState.sortBy ?? "finalScore"}:${tableState.sortDir}`;
+  const filtersActive = tableState.q.trim().length > 0;
 
   const stats = useMemo(
     () => ({
-      total: rows.length,
-      lowScore: rows.filter((row) => row.finalScore < 5).length,
+      total: pagination.total,
+      lowScore: rows.filter((row) => (row.finalScore ?? 0) < 5).length,
       reports: latestReport ? 1 : 0,
     }),
-    [latestReport, rows],
+    [latestReport, pagination.total, rows],
   );
 
-  const columns: QueueColumn<BoardAtRiskRow>[] = [
-    {
-      key: "series",
-      header: "Series",
-      className: "min-w-[180px]",
-      render: (review) => (
-        <span className="font-semibold text-[var(--admin-ink)]">{review.seriesTitle}</span>
-      ),
-    },
-    {
-      key: "score",
-      header: "Final",
-      render: (review) => (
-        <span className="tabular-nums text-[var(--admin-muted)]">
-          {review.finalScore.toFixed(1)}
-        </span>
-      ),
-    },
-    {
-      key: "reader",
-      header: "Reader",
-      render: (review) => (
-        <span className="tabular-nums text-[var(--admin-muted)]">
-          {review.readerScore.toFixed(1)}
-        </span>
-      ),
-    },
-    {
-      key: "votes",
-      header: "Votes",
-      render: (review) => (
-        <span className="tabular-nums text-[var(--admin-muted)]">
-          {review.voteCount.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: () => <StatusPill status="at_risk" />,
-    },
-  ];
+  const columns = useMemo<ColumnDef<SeriesRanking, unknown>[]>(
+    () => [
+      {
+        id: "seriesTitle",
+        header: "Series",
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => setSelectedId(row.original.id)}
+            className="min-w-[180px] text-left font-semibold text-[var(--admin-ink)]"
+          >
+            {row.original.seriesTitle}
+          </button>
+        ),
+      },
+      {
+        id: "finalScore",
+        header: "Final",
+        cell: ({ row }) => (
+          <span className="tabular-nums text-[var(--admin-muted)]">
+            {score(row.original.finalScore)}
+          </span>
+        ),
+      },
+      {
+        id: "readerScore",
+        header: "Reader",
+        cell: ({ row }) => (
+          <span className="tabular-nums text-[var(--admin-muted)]">
+            {score(row.original.readerScore)}
+          </span>
+        ),
+      },
+      {
+        id: "voteCount",
+        header: "Votes",
+        cell: ({ row }) => (
+          <span className="tabular-nums text-[var(--admin-muted)]">
+            {(row.original.voteCount ?? 0).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: () => <StatusPill status="at_risk" />,
+      },
+    ],
+    [],
+  );
 
   return (
     <QueuePage
@@ -131,14 +168,14 @@ export function AtRiskReviewsPage() {
             icon={<ShieldAlert className="size-4" />}
             label="At-risk Series"
             value={stats.total}
-            hint="Flagged by ranking"
+            hint="Server-filtered"
           />
           <StatCard
             tone="amber"
             icon={<TrendingDown className="size-4" />}
             label="Low Score"
             value={stats.lowScore}
-            hint="Final score below 5"
+            hint="Current page below 5"
           />
           <StatCard
             tone="blue"
@@ -151,7 +188,7 @@ export function AtRiskReviewsPage() {
             tone="blue"
             icon={<ListChecks className="size-4" />}
             label="Open Decisions"
-            value={rows.length}
+            value={pagination.total}
             hint="Awaiting Board"
           />
         </>
@@ -161,28 +198,68 @@ export function AtRiskReviewsPage() {
         <Notice icon={<AlertTriangle className="size-5" />} title="Governance notice">
           The Board decision is blocked until the assigned Tantou Editor submits a report.
         </Notice>
-        {isLoading ? (
-          <StateBlock
-            title="Loading at-risk decisions"
-            description="Fetching ranking signals and Board queue."
-          />
-        ) : loadError ? (
+        {error ? (
           <StateBlock
             tone="danger"
             title="Could not load at-risk decisions"
-            description={loadError instanceof Error ? loadError.message : "Please try again."}
+            description={error instanceof Error ? error.message : "Please try again."}
           />
         ) : (
           <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-            <QueueTable
+            <ServerDataTable
+              data={rows}
               columns={columns}
-              rows={rows}
-              getRowKey={(review) => review.id}
-              getRowAccent={(review): QueueAccent => (review.finalScore < 5 ? "rose" : "amber")}
-              onRowClick={(review) => setSelectedId(review.id)}
-              isRowSelected={(review) => review.id === selected?.id}
-              minWidth={560}
-              empty="No series need review. New at-risk signals will appear here."
+              getRowId={(row) => row.id}
+              isLoading={isLoading}
+              error={error}
+              emptyTitle="No series need review"
+              emptyDescription="New at-risk ranking signals will appear here."
+              skeletonRows={tableState.pageSize}
+              toolbar={
+                <SearchToolbar
+                  query={tableState.q}
+                  onQueryChange={(q) => setTableState((state) => ({ ...state, q, page: 1 }))}
+                  placeholder="Search series, period, or status..."
+                  filters={
+                    <Select
+                      value={sortValue}
+                      onValueChange={(value) => {
+                        const [sortBy, sortDir] = value.split(":") as [string, "asc" | "desc"];
+                        setTableState((state) => ({ ...state, sortBy, sortDir, page: 1 }));
+                      }}
+                    >
+                      <SelectTrigger className="h-10 w-[180px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="finalScore:asc">Lowest score</SelectItem>
+                        <SelectItem value="finalScore:desc">Highest score</SelectItem>
+                        <SelectItem value="voteCount:desc">Most votes</SelectItem>
+                        <SelectItem value="period:desc">Latest period</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  }
+                  actions={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!filtersActive}
+                      onClick={() => setTableState(resetTableState(DEFAULT_AT_RISK_TABLE_STATE))}
+                      className="h-10 gap-2 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] shadow-sm"
+                    >
+                      <RotateCcw className="size-4" />
+                      Reset
+                    </Button>
+                  }
+                />
+              }
+              pagination={{
+                total: pagination.total,
+                page: pagination.page,
+                pageSize: pagination.pageSize,
+                onPageChange: (page) => setTableState((state) => ({ ...state, page })),
+                itemName: "series",
+              }}
             />
             {selected ? (
               <div className="space-y-4">
@@ -192,9 +269,9 @@ export function AtRiskReviewsPage() {
                   </p>
                   <dl className="mt-3 grid grid-cols-2 gap-3">
                     <Metric label="Period" value={selected.period} />
-                    <Metric label="Final score" value={selected.finalScore.toFixed(1)} />
-                    <Metric label="Reader score" value={selected.readerScore.toFixed(1)} />
-                    <Metric label="Votes" value={selected.voteCount.toLocaleString()} />
+                    <Metric label="Final score" value={score(selected.finalScore)} />
+                    <Metric label="Reader score" value={score(selected.readerScore)} />
+                    <Metric label="Votes" value={(selected.voteCount ?? 0).toLocaleString()} />
                   </dl>
                   <div className="mt-4 border-t border-[var(--admin-border)] pt-3">
                     {reportLoading ? (
