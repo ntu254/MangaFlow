@@ -30,9 +30,6 @@ export const CHAPTER_STATUSES = [
   "READY_FOR_PUBLICATION",
   "SCHEDULED",
   "PUBLISHED",
-  // Legacy values kept for backward compat
-  "IN_REVIEW",
-  "APPROVED",
 ] as const;
 
 export const TASK_STATUSES = [

@@ -708,12 +708,6 @@ const studioTaskSchema = looseSchema({
       "EDITOR_APPROVED",
       "REJECTED",
       "CANCELLED",
-      // Legacy values kept temporarily for backward compat during migration.
-      // New writes must use EDITOR_APPROVED (not COMPLETED) and TODO (not OPEN).
-      // @deprecated
-      "OPEN",
-      "COMPLETED",
-      "REVISION_REQUESTED",
     ],
     index: true,
   },
@@ -864,9 +858,6 @@ const submissionSchema = looseSchema({
       "EDITOR_REVISION_REQUESTED",
       "REJECTED",
       "SUPERSEDED",
-      // Legacy — kept during migration
-      "APPROVED",
-      "REVISION_REQUESTED",
     ],
     index: true,
   },
