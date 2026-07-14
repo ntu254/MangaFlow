@@ -34,6 +34,7 @@ export {
 } from "@/entities/series/model/comment-queries";
 export {
   useMyChaptersQuery,
+  useMyChaptersListQuery,
   useSeriesDetailQuery,
   useChaptersForSeriesQuery,
   useChapterQuery,
@@ -117,7 +118,7 @@ export function mapApiError(err: unknown): string {
 export function useChaptersQuery(seriesId: string) {
   return useQuery<Chapter[]>({
     queryKey: seriesKeys.chapters(seriesId),
-    queryFn: () => apiRequest<Chapter[]>(`/series/${seriesId}/chapters`),
+    queryFn: () => apiRequest<Chapter[]>(`/series/${seriesId}/chapters?pageSize=100`),
     enabled: !!seriesId,
     staleTime: 60000,
   });

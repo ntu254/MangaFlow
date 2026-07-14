@@ -249,6 +249,16 @@ export type SeriesListMeta = {
   };
 };
 
+export type ChaptersListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -295,7 +305,16 @@ export const seriesApi = {
   get: (id: string) => apiRequest(`/series/${id}`),
   patch: (id: string, body: UpdateSeriesRequest) =>
     apiRequest(`/series/${id}`, { method: "PATCH", body }),
-  chapters: (id: string) => apiRequest(`/series/${id}/chapters`),
+  chapters: (id: string) => apiRequest(`/series/${id}/chapters?pageSize=100`),
+  chaptersList: (id: string, state?: TableState) =>
+    apiListRequest<unknown, ChaptersListMeta>(`/series/${id}/chapters${tableStateQuery(state)}`),
+  myChaptersList: (state?: TableState) => {
+    const query = tableStateQuery(state);
+    const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+    params.set("mine", "true");
+    const qs = params.toString();
+    return apiListRequest<unknown, ChaptersListMeta>(`/chapters?${qs}`);
+  },
   chapterAction: (chapterId: string, action: string, body?: unknown) =>
     apiRequest(`/chapters/${chapterId}/actions/${action}`, { method: "POST", body: body ?? {} }),
   readiness: (chapterId: string) => apiRequest(`/chapters/${chapterId}/readiness`),

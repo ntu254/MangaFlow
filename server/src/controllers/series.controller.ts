@@ -110,6 +110,36 @@ function summarizeSeries(series: any[]) {
   };
 }
 
+const CHAPTER_LIST_CONFIG = {
+  searchable: ["title", "assigneeName", "summary"] as const,
+  sortable: ["number", "title", "status", "updatedAt", "createdAt", "draftDueAt", "reviewDueAt"] as const,
+  filterable: {
+    title: "text",
+    seriesId: "select",
+    status: "select",
+    assigneeId: "select",
+    draftDueAt: "dateRange",
+    reviewDueAt: "dateRange",
+    scheduledAt: "dateRange",
+    publishedAt: "dateRange",
+  } as const,
+  defaultSort: { field: "updatedAt", dir: "desc" } as const,
+  maxPageSize: 100,
+};
+
+function summarizeChapters(chapters: any[]) {
+  const byStatus = chapters.reduce<Record<string, number>>((acc, chapter) => {
+    const status = String(chapter.status ?? "UNKNOWN");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    total: chapters.length,
+    byStatus,
+  };
+}
+
 export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const mine = req.query.mine === "true";
@@ -221,22 +251,36 @@ export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const listSeriesChapters = asyncRoute(async (req: AuthedRequest, res) => {
   await assertCanReadProductionSeries(requireActor(req), String(req.params.id));
-  const filter = { seriesId: String(req.params.id) };
-  const { page, limit, skip } = paginationFromQuery(req);
+  const query = parseListQuery(req, {
+    ...CHAPTER_LIST_CONFIG,
+    defaultSort: { field: "number", dir: "asc" },
+  });
+  const filter = combineMongoFilters(
+    { seriesId: String(req.params.id) },
+    listSearchToMongo(query.q, ["title", "assigneeName", "summary"]),
+    listFiltersToMongo(query.filters),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { number: 1 as const };
   const [chapters, total] = await Promise.all([
-    ChapterModel.find(filter).sort({ number: 1 }).skip(skip).limit(limit).lean(),
+    ChapterModel.find(filter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
     ChapterModel.countDocuments(filter),
   ]);
   const enriched = await attachPublications(chapters);
   return res.status(200).json({
     success: true,
     data: enriched,
-    pagination: {
-      page,
-      pageSize: limit,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summarizeChapters(enriched),
     },
   });
 });
@@ -462,6 +506,7 @@ export const chapterAction = asyncRoute(async (req: AuthedRequest, res) =>
 
 export const listChapters = asyncRoute(async (req: AuthedRequest, res) => {
   const user = req.actor!;
+  const query = parseListQuery(req, CHAPTER_LIST_CONFIG);
   const filter: Record<string, unknown> = {};
   if (req.query.mine === "true") {
     if (user.role === "MANGAKA" || user.role === "ASSISTANT") {
@@ -474,22 +519,35 @@ export const listChapters = asyncRoute(async (req: AuthedRequest, res) => {
     }
   }
   if (req.query.seriesId) filter.seriesId = String(req.query.seriesId);
-  const scopedFilter = await scopedChapterFilterForActor(user, filter);
-  const { page, limit, skip } = paginationFromQuery(req);
+  const scopedFilter = await scopedChapterFilterForActor(
+    user,
+    combineMongoFilters(
+      filter,
+      listSearchToMongo(query.q, ["title", "assigneeName", "summary"]),
+      listFiltersToMongo(query.filters),
+    ),
+  );
+  const sort = Object.keys(listSortToMongo(query.sort)).length
+    ? listSortToMongo(query.sort)
+    : { updatedAt: -1 as const };
   const [chapters, total] = await Promise.all([
-    ChapterModel.find(scopedFilter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+    ChapterModel.find(scopedFilter)
+      .sort(sort)
+      .skip((query.page - 1) * query.pageSize)
+      .limit(query.pageSize)
+      .lean(),
     ChapterModel.countDocuments(scopedFilter),
   ]);
   const enriched = await attachPublications(chapters);
   return res.status(200).json({
     success: true,
     data: enriched,
-    pagination: {
-      page,
-      pageSize: limit,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+    pagination: buildPagination(query, total),
+    meta: {
+      q: query.q,
+      sort: query.sort,
+      filters: query.filters,
+      summary: summarizeChapters(enriched),
     },
   });
 });
