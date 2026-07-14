@@ -30,12 +30,11 @@ export async function createChapterPage(req: AuthedRequest, chapterId: string, b
     throw new AppError(403, "Only the series Mangaka can create pages.", "MANGAKA_OWNER_REQUIRED");
   }
 
-  const hasPageAsset = Boolean(body.fileKey || body.fileUrl || body.imageUrl);
   const newPage = {
     id: body.id ?? id("pg"),
     pageNumber: Number(body.pageNumber ?? ((chapter as any).pages?.length ?? 0) + 1),
-    status: body.status ?? (hasPageAsset ? "UPLOADED" : "PENDING_UPLOAD"),
-    imageUrl: body.imageUrl ?? body.fileUrl ?? "metadata://r2/placeholder-page.png",
+    status: body.status ?? "UPLOADED",
+    imageUrl: body.imageUrl ?? body.fileUrl,
     fileKey: body.fileKey,
     fileName: body.fileName,
     fileUrl: body.fileUrl ?? body.imageUrl,

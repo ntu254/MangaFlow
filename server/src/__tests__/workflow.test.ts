@@ -267,6 +267,15 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(createRes.body.data.id).toBe("pg-test-999");
       expect(createRes.body.data.status).toBe("UPLOADED");
 
+      await request(createApp())
+        .post("/api/chapters/ch-s-berserk-prod-4/pages")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({
+          id: "pg-test-missing-asset",
+          pageNumber: 998,
+        })
+        .expect(400);
+
       // Verify page was embedded
       const getRes = await request(createApp())
         .get("/api/chapters/ch-s-berserk-prod-4/pages")
@@ -275,6 +284,17 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(getRes.body.data.some((p: any) => p.id === "pg-test-999")).toBe(true);
 
       const editor = await loginAs("tanaka@beachread.jp");
+      await request(createApp())
+        .post("/api/chapters/ch-s-berserk-prod-4/pages")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({
+          id: "pg-test-editor-create",
+          pageNumber: 997,
+          imageUrl: "https://mock-s3-bucket.r2.cloudflarestorage.com/editor-create.png",
+          status: "UPLOADED",
+        })
+        .expect(403);
+
       await request(createApp())
         .patch("/api/pages/pg-test-999")
         .set("Authorization", `Bearer ${editor.accessToken}`)

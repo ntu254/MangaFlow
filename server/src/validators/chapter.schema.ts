@@ -33,7 +33,13 @@ export const createPageSchema = z.object({
   mimeType: z.string().optional(),
   imageWidth: z.number().optional(),
   imageHeight: z.number().optional()
-}).strict();
+}).strict().refine(
+  (body) => Boolean(body.fileKey || body.fileUrl || body.imageUrl),
+  {
+    message: "Page creation requires an uploaded page asset.",
+    path: ["fileKey"],
+  },
+);
 
 export const patchPageSchema = z.object({
   pageNumber: z.number().int().min(1).max(9999).optional(),
