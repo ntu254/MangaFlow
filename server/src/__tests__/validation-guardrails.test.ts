@@ -334,6 +334,22 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       .expect(400);
   });
 
+  it("limits direct Proposal edit and withdrawal routes to Mangaka", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+
+    await request(createApp())
+      .patch("/api/proposals/p-001")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ title: "Editor should use review actions" })
+      .expect(403);
+
+    await request(createApp())
+      .delete("/api/proposals/p-001")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ reason: "Editor should reject via workflow action" })
+      .expect(403);
+  });
+
   it("PATCH /api/proposals/:id saves full revision content without resubmitting", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     await ProposalModel.create({

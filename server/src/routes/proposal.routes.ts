@@ -14,8 +14,8 @@ const router = Router();
 router.get("/proposals", listProposals);
 router.post("/proposals", requireRole("MANGAKA") as any, createProposal);
 router.get("/proposals/:id", getProposal);
-router.patch("/proposals/:id", patchProposal);
-router.delete("/proposals/:id", requireRole("MANGAKA", "EDITOR") as any, deleteProposal);
+router.patch("/proposals/:id", requireRole("MANGAKA") as any, patchProposal);
+router.delete("/proposals/:id", requireRole("MANGAKA") as any, deleteProposal);
 router.post(
   "/proposals/:id/actions/:action",
   requireRole("MANGAKA", "EDITOR", "BOARD") as any,
