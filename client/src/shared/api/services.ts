@@ -106,22 +106,6 @@ export interface CreateMaterialVersionRequest {
   [key: string]: unknown;
 }
 
-export interface CreateVotingSessionRequest {
-  title: string;
-  mode: "AD_HOC" | "SCHEDULED";
-  scheduledFor?: string;
-  proposalIds: string[];
-  [key: string]: unknown;
-}
-
-export interface UpdateVotingSessionRequest {
-  title?: string;
-  mode?: "AD_HOC" | "SCHEDULED";
-  scheduledFor?: string;
-  proposalIds?: string[];
-  [key: string]: unknown;
-}
-
 export interface CastVoteRequest {
   decision: "APPROVE" | "REJECT" | "ABSTAIN";
   reason?: string;
@@ -458,22 +442,6 @@ export const filesApi = {
 };
 
 export const boardApi = {
-  sessions: () => apiRequest("/voting-sessions"),
-  session: (id: string) => apiRequest(`/voting-sessions/${id}`),
-  createSession: (body: CreateVotingSessionRequest) =>
-    apiRequest("/voting-sessions", { method: "POST", body }),
-  updateSession: (id: string, body: UpdateVotingSessionRequest) =>
-    apiRequest(`/voting-sessions/${id}`, { method: "PATCH", body }),
-  closeSession: (id: string) =>
-    apiRequest(`/voting-sessions/${id}/close`, { method: "POST", body: {} }),
-  cancelSession: (id: string) =>
-    apiRequest(`/voting-sessions/${id}/cancel`, { method: "POST", body: {} }),
-  addSessionNote: (id: string, body: { text: string }) =>
-    apiRequest(`/voting-sessions/${id}/notes`, { method: "POST", body }),
-  updateSessionNote: (id: string, noteId: string, body: { text: string }) =>
-    apiRequest(`/voting-sessions/${id}/notes/${noteId}`, { method: "PATCH", body }),
-  deleteSessionNote: (id: string, noteId: string) =>
-    apiRequest(`/voting-sessions/${id}/notes/${noteId}`, { method: "DELETE" }),
   queue: () => apiRequest("/board/queue"),
   queueList: (state?: TableState) =>
     apiListRequest<unknown, BoardQueueListMeta>(`/board/queue${tableStateQuery(state)}`),

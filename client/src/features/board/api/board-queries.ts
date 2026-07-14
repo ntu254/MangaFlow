@@ -19,7 +19,6 @@ export const boardKeys = {
   queue: () => [...boardKeys.all, "queue"] as const,
   votes: (seriesId: string) => [...boardKeys.all, "votes", seriesId] as const,
   atRiskReport: (seriesId: string) => [...boardKeys.all, "atRiskReport", seriesId] as const,
-  sessions: () => [...boardKeys.all, "sessions"] as const,
 };
 
 export type AtRiskReport = {
@@ -286,10 +285,6 @@ export function useCreateAtRiskReportMutation() {
   });
 }
 
-export { useVotingSessionsQuery } from "../sessions/api/sessions.queries";
-
-export { useCreateVotingSessionMutation } from "../sessions/api/sessions.queries";
-
 export type { AtRiskQueueItem } from "../model/board-adapters";
 
 export function mapBoardApiError(err: unknown): string {
@@ -306,11 +301,3 @@ export function mapBoardApiError(err: unknown): string {
   }
   return "An unknown error occurred.";
 }
-
-export { useAddVotingSessionNoteMutation } from "../sessions/api/sessions.queries";
-
-export {
-  useCancelVotingSessionMutation,
-  useCloseVotingSessionMutation,
-  useVotingSessionQuery,
-} from "../sessions/api/sessions.queries";

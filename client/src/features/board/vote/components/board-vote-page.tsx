@@ -17,7 +17,6 @@ import {
   useCastBoardVoteMutation,
   useFinalizeDecisionMutation,
   useTieBreakMutation,
-  useVotingSessionsQuery,
 } from "../../api/board-queries";
 import { useProposalQuery } from "@/features/proposals";
 import { EDITORS, isEditorInChief, useAuth } from "@/shared/auth";
@@ -48,7 +47,6 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
   const castVote = useCastBoardVoteMutation();
   const tieBreak = useTieBreakMutation();
   const finalize = useFinalizeDecisionMutation();
-  const { data: sessions = [] } = useVotingSessionsQuery();
 
   if (!user) return null;
 
@@ -79,10 +77,6 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
   const alreadyVoted = votes.find((v) => v.memberId === user.id);
   const eic = user.role === "editor" && isEditorInChief(user);
   const inTieBreak = status === "TIE_BREAK";
-
-  const activeSessions = sessions.filter(
-    (vs) => vs.status === "OPEN" && vs.proposalIds?.includes(id),
-  );
 
   const submitVote = () => {
     if (!decision) {
@@ -211,27 +205,6 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
               <p className="mt-3 text-sm leading-relaxed">{proposal.synopsis}</p>
             )}
           </header>
-
-          {activeSessions.length > 0 ? (
-            <div className="rounded border border-indigo-300 bg-indigo-50 p-3 text-xs text-indigo-950">
-              <p className="text-[10px] font-bold uppercase tracking-widest">
-                Voting session is open
-              </p>
-              <ul className="mt-1 space-y-0.5">
-                {activeSessions.map((vs) => (
-                  <li key={vs.id}>
-                    <Link
-                      to="/app/board/sessions/$sid"
-                      params={{ sid: vs.id }}
-                      className="underline"
-                    >
-                      {vs.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
 
           <VoteTally votes={votes} status={proposalStatus} />
 

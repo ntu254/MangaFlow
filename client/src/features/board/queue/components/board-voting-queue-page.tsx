@@ -22,16 +22,7 @@ export function BoardVotingQueuePage() {
         eyebrow="Governance"
         title="Board voting queue"
         description={`Quorum ${BOARD_QUORUM}/${BOARD_TOTAL} → APPROVED. ${BOARD_QUORUM} reject → REJECTED. Tied → Editor-in-chief breaks ties.`}
-      >
-        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-          <Link
-            to="/app/board/sessions"
-            className="rounded-full border border-border bg-card px-3 py-1 font-semibold hover:bg-muted"
-          >
-            Voting sessions
-          </Link>
-        </div>
-      </PageHeader>
+      />
 
       {isLoading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Loading queue...</div>

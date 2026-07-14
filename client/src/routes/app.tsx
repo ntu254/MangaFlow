@@ -13,7 +13,6 @@ import {
   Bell,
   ChartNoAxesCombined,
   ClipboardList,
-  Database,
   FileText,
   Gauge,
   ListChecks,
@@ -23,7 +22,6 @@ import {
   TriangleAlert,
   Upload,
   UserRound,
-  Vote,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
@@ -228,14 +226,12 @@ function AppLayout() {
 function getNavIcon(label: string) {
   if (label === "Dashboard") return Gauge;
   if (label === "Users") return UserRound;
-  if (label === "Material Library") return Database;
   if (label === "Payroll" || label === "Earnings") return ReceiptText;
   if (label === "Audit Logs") return FileText;
   if (label === "Settings") return Settings;
   if (label === "Task Board" || label === "My Tasks") return ClipboardList;
   if (label === "Review Queue" || label === "Board Queue") return ListChecks;
   if (label === "Rankings") return ChartNoAxesCombined;
-  if (label === "Voting Sessions") return Vote;
   if (label === "Ranking Import") return Upload;
   if (label === "At-risk Reviews") return TriangleAlert;
   if (label === "Notifications") return Bell;
