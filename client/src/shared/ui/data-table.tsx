@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "./empty-state";
+import { StateBlock } from "./state-block";
 import { TableSkeleton } from "./table-skeleton";
 import { cn } from "@/shared/lib/cn";
 
 export function DataTable({
   isLoading,
+  error,
   isEmpty,
   emptyTitle = "No data found",
   emptyDescription,
@@ -15,6 +17,7 @@ export function DataTable({
   stateClassName,
 }: {
   isLoading?: boolean;
+  error?: unknown;
   isEmpty?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -39,6 +42,15 @@ export function DataTable({
     return wrap(
       <div className={cn("p-4", stateClassName)}>
         <TableSkeleton rows={skeletonRows} columns={skeletonColumns} />
+      </div>,
+    );
+  }
+
+  if (error) {
+    const message = error instanceof Error ? error.message : "The table data could not be loaded.";
+    return wrap(
+      <div className={cn("p-4", stateClassName)}>
+        <StateBlock tone="danger" title="Could not load records" description={message} />
       </div>,
     );
   }
