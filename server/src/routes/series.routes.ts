@@ -20,9 +20,6 @@ import {
   listChapters,
   getChapterPages,
   getChapterReadiness,
-  createChapterPage,
-  updatePage,
-  deletePage,
   presignUpload,
   presignDownload,
   displayUrl,
@@ -31,6 +28,11 @@ import {
   createSeries,
   createSeriesChapter,
 } from "../modules/series/presentation/series-production.controller.js";
+import {
+  createChapterPage,
+  deletePage,
+  updatePage,
+} from "../modules/studio/presentation/page-production.controller.js";
 
 const router = Router();
 
