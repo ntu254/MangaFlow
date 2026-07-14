@@ -69,31 +69,39 @@ export type AssistantSubmission = {
   submittedAt: string;
 };
 
-export type EarningStatus = "PENDING" | "CONFIRMED" | "PAID" | "VOID";
+export type EarningStatus = "PENDING" | "CONFIRMED" | "PAID" | "VOIDED";
+export type EarningItemStatus = "PENDING" | "APPROVED" | "VOIDED";
 
-export const EARNING_STATUS_LABEL: Record<EarningStatus, string> = {
-  PENDING: "Pending",
-  CONFIRMED: "Confirmed",
-  PAID: "Paid",
-  VOID: "Void",
-};
-
-export const EARNING_STATUS_BADGE: Record<EarningStatus, string> = {
-  PENDING: "bg-amber-100 text-amber-900",
-  CONFIRMED: "bg-blue-100 text-blue-900",
-  PAID: "bg-emerald-100 text-emerald-900",
-  VOID: "bg-zinc-200 text-zinc-700",
+export type AssistantEarningItem = {
+  id: string;
+  earningId: string;
+  assistantId: string;
+  taskId?: string;
+  submissionId?: string;
+  seriesId?: string;
+  chapterId?: string;
+  taskType?: string;
+  period?: string;
+  rate?: number;
+  amount: number;
+  currency: string;
+  status: EarningItemStatus;
+  approvedAt?: string;
 };
 
 export type AssistantEarning = {
   id: string;
   assistantId: string;
-  taskId: string;
-  month: string; // YYYY-MM
-  amount: number; // JPY
+  period: string; // YYYY-MM
+  month?: string; // legacy fallback
+  tasksCount?: number;
+  subtotal?: number;
+  bonus?: number;
+  penalty?: number;
+  amount: number;
+  currency: string;
   status: EarningStatus;
-  approvedAt?: string;
-  paidAt?: string;
+  items?: AssistantEarningItem[];
 };
 
 export type TaskActionKind =
@@ -155,6 +163,6 @@ export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, string> = {
   SUBMISSION_APPROVED: "Approved",
   SUBMISSION_REJECTED: "Rejected",
   COMMENT_REPLIED: "New reply",
-  EARNING_CONFIRMED: "Earning confirmed",
-  EARNING_PAID: "Paid",
+  EARNING_CONFIRMED: "Earning recorded",
+  EARNING_PAID: "Earning recorded",
 };

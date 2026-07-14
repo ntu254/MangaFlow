@@ -11,8 +11,6 @@ export type {
 } from "@/entities/submission/model/assistant-types";
 export {
   ASSISTANT_SCOPE_LABEL,
-  EARNING_STATUS_BADGE,
-  EARNING_STATUS_LABEL,
   NOTIFICATION_KIND_LABEL,
   SUBMISSION_STATUS_BADGE,
   SUBMISSION_STATUS_LABEL,

@@ -140,14 +140,14 @@ export function AssistantDashboard() {
 
   const earningSummary = useMemo(() => {
     const monthKey = new Date().toISOString().slice(0, 7);
+    const monthEarnings = myEarnings.filter(
+      (earning) => (earning.period ?? earning.month) === monthKey,
+    );
     return {
-      pending: myEarnings.filter((e) => e.status === "PENDING").reduce((a, b) => a + b.amount, 0),
-      confirmed: myEarnings
-        .filter((e) => e.status === "CONFIRMED")
-        .reduce((a, b) => a + b.amount, 0),
-      paidMonth: myEarnings
-        .filter((e) => e.status === "PAID" && e.month === monthKey)
-        .reduce((a, b) => a + b.amount, 0),
+      approvedTasks: monthEarnings.reduce((sum, earning) => sum + (earning.items?.length ?? 0), 0),
+      thisMonth: monthEarnings.reduce((sum, earning) => sum + earning.amount, 0),
+      lifetime: myEarnings.reduce((sum, earning) => sum + earning.amount, 0),
+      currency: myEarnings[0]?.currency ?? "VND",
     };
   }, [myEarnings]);
 
@@ -365,20 +365,20 @@ export function AssistantDashboard() {
               <StatCard
                 tone="amber"
                 icon={<Coins className="size-4" />}
-                label="Pending"
-                value={formatYen(earningSummary.pending)}
+                label="Approved tasks"
+                value={String(earningSummary.approvedTasks)}
               />
               <StatCard
                 tone="blue"
                 icon={<Coins className="size-4" />}
-                label="Confirmed"
-                value={formatYen(earningSummary.confirmed)}
+                label="This month"
+                value={formatCurrency(earningSummary.thisMonth, earningSummary.currency)}
               />
               <StatCard
                 tone="emerald"
                 icon={<Coins className="size-4" />}
-                label="Paid (month)"
-                value={formatYen(earningSummary.paidMonth)}
+                label="Lifetime total"
+                value={formatCurrency(earningSummary.lifetime, earningSummary.currency)}
               />
             </div>
           )}
@@ -408,6 +408,10 @@ export function AssistantDashboard() {
   );
 }
 
-function formatYen(n: number) {
-  return `¥${n.toLocaleString("ja-JP")}`;
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat(currency === "VND" ? "vi-VN" : "en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
