@@ -28,8 +28,8 @@ function ChapterReaderBoundary() {
         </p>
         <h1 className="mt-2 font-serif text-4xl">Chapter reader is not active in this MVP</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          This route no longer renders placeholder pages. When public delivery is added, it should
-          read published chapter assets from the publication API.
+          This route is disabled until public delivery is backed by published chapter assets from
+          the publication API.
         </p>
         <Link
           to="/app/dashboard"

@@ -29,7 +29,7 @@ function SeriesReaderBoundary() {
         <h1 className="mt-2 font-serif text-4xl">Public series pages are not active yet</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           Published chapters are managed by Tantou workflow actions in the MVP. A public reader
-          should be wired from real publication APIs, not static placeholder data.
+          should be wired from real publication APIs before it is enabled.
         </p>
         <Link
           to="/app/dashboard"

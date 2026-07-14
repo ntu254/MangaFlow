@@ -235,8 +235,7 @@ export const STATUS_FLOW: ProposalStatus[] = [
   "APPROVED",
 ];
 
-// TODO: Restore production Board quorum after local workflow testing.
-export const BOARD_QUORUM = 1;
+export const BOARD_QUORUM = 3;
 export const BOARD_TOTAL = 5;
 export const EIC_TIEBREAK_WEIGHT = 2;
 /** @deprecated use EIC_TIEBREAK_WEIGHT */

@@ -106,9 +106,9 @@ export function SubmissionsListPage() {
     return (
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
-          eyebrow="Phase 2 · Series Proposal"
+          eyebrow="Proposal workflow"
           title="Submissions"
-          description="Mangaka proposals series — Editor review — Board vote."
+          description="Mangaka proposals ? Editor review ? Board vote."
         />
         <EmptyState
           title="Could not load proposals"
@@ -121,9 +121,9 @@ export function SubmissionsListPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        eyebrow="Phase 2 · Series Proposal"
+        eyebrow="Proposal workflow"
         title="Submissions"
-        description="Mangaka proposals series — Editor review — Board vote."
+        description="Mangaka proposals ? Editor review ? Board vote."
       >
         {user.role === "mangaka" && (
           <Link
