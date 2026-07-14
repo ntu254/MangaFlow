@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -5,96 +6,284 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { deadlineRisk, TaskStatusSummary } from "@/entities/task";
+import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
+import type { StudioTask, StudioTaskStatus } from "@/entities/series/model/studio-types";
+import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
+import {
+  buildTaskContext,
+  deadlineRisk,
+  getTaskEdgeSummary,
+  getTaskStatusLabel,
+  getVisualTaskStatus,
+  getVisualTaskStatusClass,
+  priorityBadge,
+  priorityLabel,
+  TaskStatusSummary,
+} from "@/entities/task";
+import { useStudioTasksListQuery } from "@/features/series";
+import { formatDate } from "@/shared/lib/format-date";
+import {
+  parseTableStateFromSearchParams,
+  resetTableState,
+  setTableFilter,
+  tableStateToSearchParams,
+  type TableState,
+} from "@/shared/table";
+import { PageHeader, SearchToolbar, ServerDataTable, StateBlock } from "@/shared/ui";
+import type { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useChaptersForSeriesQuery,
   useCommentsQuery,
   useMySeriesQuery,
-  useStudioTasksQuery,
 } from "../../api/assistant-queries";
-import { tasksForAssistant } from "../../model/assistant-access";
 import { useAuth } from "@/shared/auth";
-import { GridSkeleton, PageShell } from "@/shared/layout/page-layout";
-import { DataTable, PageHeader, SearchToolbar, StateBlock, TextButton } from "@/shared/ui";
-import { RotateCcw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { PageShell } from "@/shared/layout/page-layout";
+import { OpenTaskStudioAction } from "./open-task-studio-action";
 import { AssistantTaskDetailDrawer } from "./assistant-task-detail-drawer";
-import { AssistantTaskTable } from "./assistant-task-table";
 
-import { getVisualTaskStatus, type VisualTaskStatus } from "@/entities/task";
+type StatusFilter = StudioTaskStatus | "ALL";
+type PriorityFilter = StudioTask["priority"] | "ALL";
 
-type TabKey = "ALL" | VisualTaskStatus;
+const PAGE_SIZE = 10;
+const DEFAULT_TASK_TABLE_STATE: Partial<TableState> = {
+  pageSize: PAGE_SIZE,
+  sortBy: "dueAt",
+  sortDir: "asc",
+};
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "TODO", label: "To do" },
-  { key: "IN_PROGRESS", label: "In progress" },
-  { key: "SUBMITTED", label: "Submitted" },
-  { key: "MANGAKA_REVISION_REQUESTED", label: "Revision" },
-  { key: "EDITOR_REVISION_REQUESTED", label: "Editor Revision" },
-  { key: "MANGAKA_APPROVED", label: "Approved" },
-  { key: "EDITOR_APPROVED", label: "Editor Approved" },
-  { key: "BLOCKED", label: "Blocked" },
-  { key: "OVERDUE", label: "Overdue" },
-  { key: "REASSIGNED", label: "Reassigned" },
-  { key: "CANCELLED", label: "Cancelled" },
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "ALL", label: "All status" },
+  { value: "TODO", label: "To do" },
+  { value: "IN_PROGRESS", label: "In progress" },
+  { value: "SUBMITTED", label: "Submitted" },
+  { value: "MANGAKA_REVISION_REQUESTED", label: "Revision requested" },
+  { value: "MANGAKA_APPROVED", label: "Mangaka approved" },
+  { value: "EDITOR_REVISION_REQUESTED", label: "Editor revision" },
+  { value: "EDITOR_APPROVED", label: "Editor approved" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
+
+const PRIORITY_FILTERS: { value: PriorityFilter; label: string }[] = [
+  { value: "ALL", label: "All priority" },
+  { value: "high", label: "High" },
+  { value: "normal", label: "Normal" },
+  { value: "low", label: "Low" },
+];
+
+function useTaskTableState() {
+  const [tableState, setTableState] = useState(() =>
+    parseTableStateFromSearchParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search),
+      DEFAULT_TASK_TABLE_STATE,
+    ),
+  );
+
+  useEffect(() => {
+    const params = tableStateToSearchParams(tableState);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [tableState]);
+
+  return [tableState, setTableState] as const;
+}
+
+function dueSoonFilter() {
+  const sevenDays = new Date();
+  sevenDays.setDate(sevenDays.getDate() + 7);
+  return { type: "dateRange" as const, to: sevenDays.toISOString() };
+}
+
+function taskSeriesId(
+  task: StudioTask,
+  chapterById: Map<string, Chapter>,
+  seriesById: Map<string, ProductionSeries>,
+) {
+  if (task.seriesId && seriesById.has(task.seriesId)) return task.seriesId;
+  return chapterById.get(task.chapterId)?.seriesId;
+}
 
 export function MyTasksPage() {
   const user = useAuth((s) => s.user);
+  const [tableState, setTableState] = useTaskTableState();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: seriesList = [] } = useMySeriesQuery();
   const seriesIds = useMemo(() => seriesList.map((series) => series.id), [seriesList]);
   const { data: chapters = [] } = useChaptersForSeriesQuery(seriesIds);
-  const {
-    data: tasks = [],
-    isLoading: tasksLoading,
-    isError: tasksError,
-    error,
-  } = useStudioTasksQuery({
-    assigneeId: user?.id ?? "",
-  });
+  const { data: taskList, isLoading, isError, error } = useStudioTasksListQuery(tableState);
   const { data: comments = [] } = useCommentsQuery({});
-  const [tab, setTab] = useState<TabKey>("ALL");
-  const [query, setQuery] = useState("");
-  const [seriesFilter, setSeriesFilter] = useState<string>("ALL");
-  const [priority, setPriority] = useState<string>("ALL");
-  const [dueSoonOnly, setDueSoonOnly] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const mine = useMemo(() => (user ? tasksForAssistant(tasks, user.id) : []), [tasks, user]);
-
-  const filtered = useMemo(() => {
-    return mine
-      .filter((t) => tab === "ALL" || getVisualTaskStatus(t) === tab)
-      .filter((t) => (priority === "ALL" ? true : t.priority === priority))
-      .filter((t) => (dueSoonOnly ? deadlineRisk(t.dueAt).tone !== "emerald" : true))
-      .filter((t) => {
-        if (seriesFilter === "ALL") return true;
-        const c = chapters.find((c) => c.id === t.chapterId);
-        return c?.seriesId === seriesFilter;
-      })
-      .filter((t) => (query ? t.title.toLowerCase().includes(query.toLowerCase()) : true));
-  }, [mine, tab, priority, dueSoonOnly, seriesFilter, query, chapters]);
-
-  const selected = selectedId ? mine.find((t) => t.id === selectedId) : undefined;
-  const filtersActive =
-    tab !== "ALL" ||
-    query.trim().length > 0 ||
-    seriesFilter !== "ALL" ||
-    priority !== "ALL" ||
-    dueSoonOnly;
-
-  const clearFilters = () => {
-    setTab("ALL");
-    setQuery("");
-    setSeriesFilter("ALL");
-    setPriority("ALL");
-    setDueSoonOnly(false);
+  const tasks = taskList?.data ?? [];
+  const pagination = taskList?.pagination ?? {
+    page: tableState.page,
+    pageSize: tableState.pageSize,
+    total: 0,
   };
+  const statusFilter =
+    tableState.filters.status?.type === "select"
+      ? (String(tableState.filters.status.value) as StatusFilter)
+      : "ALL";
+  const priorityFilter =
+    tableState.filters.priority?.type === "select"
+      ? (String(tableState.filters.priority.value) as PriorityFilter)
+      : "ALL";
+  const seriesFilter =
+    tableState.filters.seriesId?.type === "select"
+      ? String(tableState.filters.seriesId.value)
+      : "ALL";
+  const dueSoonOnly = tableState.filters.dueAt?.type === "dateRange";
+  const sortValue = `${tableState.sortBy ?? "dueAt"}:${tableState.sortDir}`;
+  const filtersActive =
+    tableState.q.trim().length > 0 || Object.keys(tableState.filters).length > 0;
+
+  const chapterById = useMemo(
+    () => new Map(chapters.map((chapter) => [chapter.id, chapter])),
+    [chapters],
+  );
+  const seriesById = useMemo(
+    () => new Map(seriesList.map((series) => [series.id, series])),
+    [seriesList],
+  );
+  const selected = selectedId ? tasks.find((task) => task.id === selectedId) : undefined;
+
+  const columns = useMemo<ColumnDef<StudioTask, unknown>[]>(
+    () => [
+      {
+        id: "title",
+        header: "Task",
+        cell: ({ row }) => {
+          const task = row.original;
+          const ctx = buildTaskContext(task, chapters, seriesList);
+          const edgeSummary = getTaskEdgeSummary(task);
+          return (
+            <button
+              type="button"
+              onClick={() => setSelectedId(task.id)}
+              className="min-w-56 text-left"
+            >
+              <p className="truncate font-semibold text-[var(--admin-ink)]">{task.title}</p>
+              <p className="truncate text-[11px] text-[var(--admin-faint)]">
+                {ctx.series?.title ?? "—"}
+              </p>
+              {edgeSummary ? (
+                <p className="mt-0.5 truncate text-[10px] text-accent">{edgeSummary}</p>
+              ) : null}
+            </button>
+          );
+        },
+      },
+      {
+        id: "seriesId",
+        header: "Series",
+        cell: ({ row }) => {
+          const seriesId = taskSeriesId(row.original, chapterById, seriesById);
+          return (
+            <span className="text-[var(--admin-muted)]">
+              {seriesId ? (seriesById.get(seriesId)?.title ?? seriesId) : "—"}
+            </span>
+          );
+        },
+      },
+      {
+        id: "chapterId",
+        header: "Chapter / Page",
+        cell: ({ row }) => {
+          const ctx = buildTaskContext(row.original, chapters, seriesList);
+          return (
+            <span className="text-[var(--admin-muted)]">
+              Ch.{ctx.chapter?.number ?? "—"} / P.{String(ctx.pageIndex ?? 0).padStart(2, "0")}
+            </span>
+          );
+        },
+      },
+      {
+        id: "type",
+        header: "Type",
+        cell: ({ row }) => (
+          <span className="text-[var(--admin-muted)]">{REGION_TYPE_LABEL[row.original.type]}</span>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const visualStatus = getVisualTaskStatus(row.original);
+          return (
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getVisualTaskStatusClass(visualStatus)}`}
+            >
+              {getTaskStatusLabel(visualStatus)}
+            </span>
+          );
+        },
+      },
+      {
+        id: "dueAt",
+        header: "Due",
+        cell: ({ row }) => {
+          const risk = deadlineRisk(row.original.dueAt);
+          return (
+            <div className="flex flex-col">
+              <span className="tabular-nums">{formatDate(row.original.dueAt)}</span>
+              <span
+                className={`text-[10px] font-semibold ${
+                  risk.tone === "rose"
+                    ? "text-rose-600"
+                    : risk.tone === "amber"
+                      ? "text-amber-700"
+                      : "text-emerald-700"
+                }`}
+              >
+                {risk.label}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        id: "priority",
+        header: "Priority",
+        cell: ({ row }) => (
+          <span
+            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${priorityBadge(row.original.priority)}`}
+          >
+            {priorityLabel(row.original.priority)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1">
+            <OpenTaskStudioAction
+              task={row.original}
+              className="rounded-[5px] bg-[var(--admin-navy)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-60"
+            >
+              Open
+            </OpenTaskStudioAction>
+            <button
+              type="button"
+              onClick={() => setSelectedId(row.original.id)}
+              className="grid size-7 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Details"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [chapterById, chapters, seriesById, seriesList],
+  );
 
   if (!user) return null;
 
-  if (tasksError) {
+  if (isError) {
     return (
       <PageShell>
         <PageHeader
@@ -120,120 +309,151 @@ export function MyTasksPage() {
       <PageHeader
         eyebrow="Production"
         title="My tasks"
-        description={`${mine.length} assigned tasks, including deadlines, feedback, and processing status.`}
+        description={`${pagination.total} assigned tasks, including deadlines, feedback, and processing status.`}
       />
 
-      <TaskStatusSummary tasks={mine} />
+      <TaskStatusSummary tasks={tasks} />
 
-      <div className="space-y-4">
-        <SearchToolbar
-          query={query}
-          onQueryChange={setQuery}
-          placeholder="Search tasks..."
-          filters={
-            <>
-              <Select value={seriesFilter} onValueChange={setSeriesFilter}>
-                <SelectTrigger
-                  aria-label="Filter by series"
-                  className="h-10 w-44 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
+      <ServerDataTable
+        data={tasks}
+        columns={columns}
+        getRowId={(task) => task.id}
+        isLoading={isLoading}
+        error={error}
+        emptyTitle="You have no matching tasks"
+        emptyDescription="When a Mangaka assigns work to you, it appears here. Try resetting filters if you expected tasks."
+        skeletonRows={tableState.pageSize}
+        toolbar={
+          <SearchToolbar
+            query={tableState.q}
+            onQueryChange={(q) => setTableState((state) => ({ ...state, q, page: 1 }))}
+            placeholder="Search tasks, type, instructions..."
+            filters={
+              <>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    setTableState((state) =>
+                      setTableFilter(
+                        state,
+                        "status",
+                        value === "ALL" ? undefined : { type: "select", value },
+                      ),
+                    )
+                  }
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All series</SelectItem>
-                  {seriesList.map((series) => (
-                    <SelectItem key={series.id} value={series.id}>
-                      {series.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger
-                  aria-label="Filter by priority"
-                  className="h-10 w-40 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
+                  <SelectTrigger className="h-10 w-[190px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_FILTERS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={seriesFilter}
+                  onValueChange={(value) =>
+                    setTableState((state) =>
+                      setTableFilter(
+                        state,
+                        "seriesId",
+                        value === "ALL" ? undefined : { type: "select", value },
+                      ),
+                    )
+                  }
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All priority</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-              <TextButton
-                aria-pressed={dueSoonOnly}
-                onClick={() => setDueSoonOnly((value) => !value)}
-                className={
-                  dueSoonOnly
-                    ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
-                    : undefined
-                }
-              >
-                Due soon
-              </TextButton>
-            </>
-          }
-          actions={
-            <div className="flex items-center gap-2">
-              {filtersActive ? (
-                <button
+                  <SelectTrigger className="h-10 w-[180px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All series</SelectItem>
+                    {seriesList.map((series) => (
+                      <SelectItem key={series.id} value={series.id}>
+                        {series.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={(value) =>
+                    setTableState((state) =>
+                      setTableFilter(
+                        state,
+                        "priority",
+                        value === "ALL" ? undefined : { type: "select", value },
+                      ),
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-10 w-[150px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITY_FILTERS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sortValue}
+                  onValueChange={(value) => {
+                    const [sortBy, sortDir] = value.split(":") as [string, "asc" | "desc"];
+                    setTableState((state) => ({ ...state, sortBy, sortDir, page: 1 }));
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-[170px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dueAt:asc">Due soonest</SelectItem>
+                    <SelectItem value="dueAt:desc">Due latest</SelectItem>
+                    <SelectItem value="priority:desc">Priority high</SelectItem>
+                    <SelectItem value="updatedAt:desc">Recently updated</SelectItem>
+                    <SelectItem value="title:asc">Task A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
                   type="button"
-                  onClick={clearFilters}
-                  aria-label="Clear task filters"
-                  title="Clear filters"
-                  className="grid size-10 place-items-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-muted)] hover:bg-[var(--admin-hover)]"
+                  variant={dueSoonOnly ? "default" : "outline"}
+                  onClick={() =>
+                    setTableState((state) =>
+                      setTableFilter(state, "dueAt", dueSoonOnly ? undefined : dueSoonFilter()),
+                    )
+                  }
+                  className="h-10 rounded-[6px] px-4 text-[13px]"
                 >
-                  <RotateCcw className="size-4" />
-                </button>
-              ) : null}
-            </div>
-          }
-        />
-
-        <div className="flex gap-1 overflow-x-auto border-b border-[var(--admin-border)]">
-          {TABS.map((t) => (
-            <button
-              type="button"
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-[12px] font-semibold ${
-                tab === t.key
-                  ? "border-[var(--admin-navy)] text-[var(--admin-ink)]"
-                  : "border-transparent text-[var(--admin-faint)] hover:text-[var(--admin-ink)]"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {tasksLoading ? (
-          <DataTable isLoading skeletonRows={5} skeletonColumns={9} />
-        ) : filtered.length === 0 ? (
-          <DataTable
-            isEmpty
-            emptyTitle={
-              mine.length === 0 ? "You have no assigned tasks yet" : "No tasks match the filters"
+                  Due soon
+                </Button>
+              </>
             }
-            emptyDescription={
-              mine.length === 0
-                ? "When a Mangaka creates and assigns a new task to you, it will appear here."
-                : "Try changing the status or search filters."
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!filtersActive}
+                onClick={() => setTableState(resetTableState(DEFAULT_TASK_TABLE_STATE))}
+                className="h-10 gap-2 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] shadow-sm"
+              >
+                <RotateCcw className="size-4" />
+                Reset
+              </Button>
             }
           />
-        ) : (
-          <DataTable>
-            <AssistantTaskTable
-              tasks={filtered}
-              chapters={chapters}
-              seriesList={seriesList}
-              onSelect={setSelectedId}
-            />
-          </DataTable>
-        )}
-      </div>
+        }
+        pagination={{
+          total: pagination.total,
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          onPageChange: (page) => setTableState((state) => ({ ...state, page })),
+          itemName: "tasks",
+        }}
+      />
 
       <AssistantTaskDetailDrawer
         task={selected}
@@ -241,7 +461,7 @@ export function MyTasksPage() {
         seriesList={seriesList}
         comments={comments}
         open={!!selected}
-        onOpenChange={(o) => !o && setSelectedId(null)}
+        onOpenChange={(open) => !open && setSelectedId(null)}
       />
     </PageShell>
   );
