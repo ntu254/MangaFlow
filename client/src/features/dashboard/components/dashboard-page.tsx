@@ -144,8 +144,8 @@ export function DashboardPage() {
             おかえり, <span className="italic">{user.name.split(" ")[0]}</span>.
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            This is the demo dashboard for the <b>{ROLE_LABEL[user.role]}</b>. Modules will be wired
-            progressively in later phases.
+            Workflow overview for the <b>{ROLE_LABEL[user.role]}</b> role. Use the role navigation
+            to continue active MangaFlow work.
           </p>
         </div>
         <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
@@ -164,7 +164,7 @@ export function DashboardPage() {
           title={QUEUE_TITLE[user.role]}
           action={
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Mock data
+              Overview
             </span>
           }
         >
@@ -192,10 +192,9 @@ export function DashboardPage() {
         </Panel>
       </section>
 
-      <Panel title="Phase 1 scope" contentClassName="text-sm text-[var(--admin-muted)]">
-        Public reader + design system + role-aware shell with mock data. Phase 2 onward will build
-        Series Proposal flow, Page Studio, Task assignment, two-step review, Publication, Ranking,
-        and At-risk governance.
+      <Panel title="MVP workflow scope" contentClassName="text-sm text-[var(--admin-muted)]">
+        MangaFlow MVP connects Proposal review, Board finalization, Series production, Task review,
+        Publication, Ranking, At-risk governance, Notifications, and Assistant Earnings.
       </Panel>
     </div>
   );

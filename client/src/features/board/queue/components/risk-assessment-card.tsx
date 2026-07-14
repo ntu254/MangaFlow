@@ -19,7 +19,7 @@ export function RiskAssessmentCard({ proposal }: { proposal: SeriesProposal }) {
           ? "Tie-break or governance disagreement requires focused discussion."
           : risk === "MEDIUM"
             ? "Revision history exists; Board should inspect editorial notes."
-            : "No major governance risk detected in current mock workflow."}
+            : "No major governance risk detected for this proposal."}
       </p>
     </section>
   );
