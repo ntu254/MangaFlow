@@ -2,7 +2,8 @@ import { StudioTaskModel, UserModel } from "../../../db/models.js";
 import { id, nowIso } from "../../../domain/ids.js";
 import { AppError } from "../../../lib/http.js";
 import { audit } from "../../../services/audit.service.js";
-import { applyTaskAction, taskDetail } from "../../../services/workflow.service.js";
+import { applyTaskAction } from "../../../services/workflow.service.js";
+import { assertCanReadTask } from "../../../services/mvp-access.service.js";
 import { patchById, validateAction } from "../../../controllers/helpers.js";
 import { sanitizePatch } from "../../../validators/common.js";
 import { TASK_ACTIONS } from "../../../types.js";
@@ -77,7 +78,7 @@ export async function patchTask(req: AuthedRequest, taskId: string, body: Record
 }
 
 export function getTaskDetail(req: AuthedRequest, taskId: string) {
-  return taskDetail(req, taskId);
+  return assertCanReadTask(req.actor!, taskId);
 }
 
 export function runTaskAction(req: AuthedRequest, taskId: string, rawAction: string, body: Record<string, unknown>) {

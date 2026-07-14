@@ -63,12 +63,6 @@ function isAssignedAssistant(actor: RequestActor, task: any) {
   return actor.role === "ASSISTANT" && task.assigneeId === actor.id;
 }
 
-function assertTaskReadable(actor: RequestActor, task: any) {
-  if (actor.role === "ASSISTANT" && task.assigneeId !== actor.id) {
-    throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-  }
-}
-
 function assertTaskActionAllowed(actor: RequestActor, task: any, action: string) {
   const normalized = action.toUpperCase();
   const assistantActions = new Set([
@@ -2171,25 +2165,3 @@ export async function submissionDecision(
   return updated;
 }
 
-export async function taskDetail(req: AuthedRequest, taskId: string) {
-  const actor = ensureActor(req);
-  const task = await StudioTaskModel.findOne({ id: taskId }).lean();
-  if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-  assertTaskReadable(actor, task);
-  if (actor.role === "ADMIN" || actor.role === "BOARD") {
-    throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-  }
-  if (actor.role !== "ASSISTANT") {
-    const taskChapter = (task as any).chapterId
-      ? await ChapterModel.findOne({ id: (task as any).chapterId }).select({ seriesId: 1 }).lean()
-      : undefined;
-    const series = (await SeriesModel.findOne({
-      id: (task as any).seriesId ?? (taskChapter as any)?.seriesId,
-    }).lean()) as any;
-    const allowed =
-      (actor.role === "MANGAKA" && series?.authorId === actor.id) ||
-      (actor.role === "EDITOR" && series?.editorId === actor.id);
-    if (!allowed) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-  }
-  return task;
-}
