@@ -231,7 +231,7 @@ export type ProposalRecord = {
   genres?: string[];
   targetAudience?: string;
   requestedPublicationType?: string;
-  /** Board's chosen publication cadence at finalize-approve (WEEKLY|BIWEEKLY|MONTHLY). */
+  /** Board's chosen publication cadence at finalize-approve (WEEKLY|MONTHLY). */
   boardApprovedPublicationType?: string;
   chaptersPlanned?: number;
   coverUrl?: string;

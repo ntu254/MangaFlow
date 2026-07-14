@@ -378,7 +378,7 @@ export const seedSeries = [
     status: "ONGOING",
     visibility: "PUBLIC",
     publicationType: "WEEKLY",
-    cadence: "biweekly",
+    cadence: "weekly",
     startDate: ahead(-90),
     targetChapters: 24,
     authorId: "u-mangaka",
