@@ -9,7 +9,6 @@ import { VoteProgress } from "./vote-progress";
 import { DecisionHistory } from "@/entities/proposal";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { VoteTally } from "@/entities/proposal";
-import { useAuth } from "@/shared/auth";
 import { useProposalQuery } from "@/features/proposals";
 import { useBoardVotesQuery } from "../../api/board-queries";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,11 +19,8 @@ interface MergedProposal extends Omit<SeriesProposal, "votes"> {
 }
 
 export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
-  const user = useAuth((s) => s.user);
   const { data: proposalRaw, isLoading: proposalLoading } = useProposalQuery(proposalId);
   const { data: votesData, isLoading: votesLoading } = useBoardVotesQuery(proposalId);
-
-  if (!user) return null;
 
   if (proposalLoading || votesLoading) {
     return (
@@ -75,7 +71,7 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <main className="space-y-4">
           <ProposalSummaryCard proposal={mergedProposal} />
-          <CreativeMaterialsReadonly proposal={mergedProposal} user={user} />
+          <CreativeMaterialsReadonly proposal={mergedProposal} />
           <EditorRecommendationCard proposal={mergedProposal} />
           <section className="grid gap-4 md:grid-cols-2">
             <RiskAssessmentCard proposal={mergedProposal} />

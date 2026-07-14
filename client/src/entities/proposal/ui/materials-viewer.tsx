@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { FileText, ExternalLink, Trash2 } from "lucide-react";
-import type { User } from "@/shared/auth";
+import { useMemo, useState } from "react";
+import { FileText, ExternalLink } from "lucide-react";
 import type {
   ManuscriptVersion,
   SeriesProposal,
@@ -8,8 +7,6 @@ import type {
   SupportingMaterialKind,
 } from "@/entities/proposal/model/proposal-types";
 import { MATERIAL_KIND_LABEL } from "@/entities/proposal/model/proposal-types";
-import { useMaterialAnnotations } from "../model/material-annotations-store";
-import { Textarea } from "@/components/ui/textarea";
 
 type ViewerItem =
   | {
@@ -53,15 +50,10 @@ function toItems(p: SeriesProposal): ViewerItem[] {
   return [...m, ...mat];
 }
 
-export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; user: User }) {
+export function MaterialsViewer({ proposal }: { proposal: SeriesProposal }) {
   const items = useMemo(() => toItems(proposal), [proposal]);
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
   const [filter, setFilter] = useState<"all" | "manuscript" | SupportingMaterialKind>("all");
-  const annotations = useMaterialAnnotations((s) => s.annotations);
-  const addAnnotation = useMaterialAnnotations((s) => s.add);
-  const removeAnnotation = useMaterialAnnotations((s) => s.remove);
-  const markViewed = useMaterialAnnotations((s) => s.markViewed);
-  const [text, setText] = useState("");
 
   const filtered = useMemo(() => {
     if (filter === "all") return items;
@@ -70,26 +62,6 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
   }, [items, filter]);
 
   const selected = items.find((i) => i.id === selectedId) ?? filtered[0] ?? null;
-
-  useEffect(() => {
-    if (selected) markViewed(user.id, proposal.id, selected.id);
-  }, [selected, user.id, proposal.id, markViewed]);
-
-  const itemAnnotations = annotations.filter(
-    (a) => a.proposalId === proposal.id && selected && a.materialId === selected.id,
-  );
-
-  const submitAnnotation = () => {
-    if (!selected || !text.trim()) return;
-    addAnnotation({
-      proposalId: proposal.id,
-      materialId: selected.id,
-      memberId: user.id,
-      memberName: user.name,
-      text: text.trim(),
-    });
-    setText("");
-  };
 
   if (items.length === 0) {
     return (
@@ -116,9 +88,6 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
         <ul className="space-y-1">
           {filtered.map((it) => {
             const active = selected?.id === it.id;
-            const noteCount = annotations.filter(
-              (a) => a.proposalId === proposal.id && a.materialId === it.id,
-            ).length;
             return (
               <li key={it.id}>
                 <button
@@ -130,11 +99,6 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
                     <p className="truncate font-semibold">{it.title}</p>
                     <p className="truncate text-[10px] text-muted-foreground">{it.subtitle}</p>
                   </div>
-                  {noteCount > 0 ? (
-                    <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
-                      {noteCount}
-                    </span>
-                  ) : null}
                 </button>
               </li>
             );
@@ -172,59 +136,6 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
                   </div>
                 )}
               </div>
-            </div>
-
-            <div className="rounded border border-border bg-card/40 p-3">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Board annotations ({itemAnnotations.length})
-              </p>
-              {itemAnnotations.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No annotations for this material yet.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {itemAnnotations.map((a) => (
-                    <li
-                      key={a.id}
-                      className="flex items-start gap-2 rounded border border-border/60 bg-background p-2 text-xs"
-                    >
-                      <div className="flex-1">
-                        <p className="font-semibold">{a.memberName}</p>
-                        <p className="text-foreground/80">{a.text}</p>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">
-                          {new Date(a.createdAt).toLocaleString("vi-VN")}
-                        </p>
-                      </div>
-                      {a.memberId === user.id ? (
-                        <button
-                          onClick={() => removeAnnotation(a.id, user.id)}
-                          className="rounded p-1 text-muted-foreground hover:text-rose-700"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {user.role === "board" || user.role === "admin" ? (
-                <div className="mt-2 flex flex-col gap-2">
-                  <Textarea
-                    rows={2}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Add an annotation for Board discussion..."
-                  />
-                  <button
-                    onClick={submitAnnotation}
-                    disabled={!text.trim()}
-                    className="self-end rounded bg-foreground px-3 py-1 text-xs font-semibold text-background disabled:opacity-40"
-                  >
-                    Send annotation
-                  </button>
-                </div>
-              ) : null}
             </div>
           </>
         ) : null}

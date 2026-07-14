@@ -209,7 +209,7 @@ export function ProposalDetailPage({
           ) : tab === "manuscripts" ? (
             <ManuscriptList manuscripts={proposal.manuscripts} />
           ) : tab === "materials" ? (
-            <MaterialsViewer proposal={proposal} user={user} />
+            <MaterialsViewer proposal={proposal} />
           ) : tab === "revision" ? (
             <RevisionChecklist proposal={proposal} />
           ) : (

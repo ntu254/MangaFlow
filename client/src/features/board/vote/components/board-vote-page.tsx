@@ -372,8 +372,8 @@ export function BoardVotePage({ id }: BoardVotePageProps) {
           <div className="rounded border border-dashed border-border bg-card/30 p-4 text-xs">
             <p className="font-semibold text-foreground">Materials & History</p>
             <p className="mt-1 text-muted-foreground">
-              Material annotation gating is waiting for backend support.
-              {/* Follow-up: wire MaterialsViewer when backend material-annotations endpoint exists */}
+              Review attached proposal files in the proposal detail screen. Board votes and notes
+              are stored through the proposal workflow.
             </p>
           </div>
         </div>
