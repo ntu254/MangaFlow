@@ -18,31 +18,85 @@ export type SeedUser = {
 };
 
 export const seedUsers: SeedUser[] = [
-  { id: "u-admin", name: "Hayashi Admin", email: "admin@beachread.jp", password: "admin@beachread.jp", role: "ADMIN" },
-  { id: "u-mangaka", name: "Inoue Takehiko", email: "inoue@beachread.jp", password: "inoue@beachread.jp", role: "MANGAKA" },
-  { id: "u-assist", name: "Suzuki Jun", email: "jun@beachread.jp", password: "jun@beachread.jp", role: "ASSISTANT" },
-  { id: "u-assist-2", name: "Nakamura Hina", email: "hina@beachread.jp", password: "hina@beachread.jp", role: "ASSISTANT" },
+  {
+    id: "u-admin",
+    name: "Hayashi Admin",
+    email: "admin@beachread.jp",
+    password: "admin@beachread.jp",
+    role: "ADMIN",
+  },
+  {
+    id: "u-mangaka",
+    name: "Inoue Takehiko",
+    email: "inoue@beachread.jp",
+    password: "inoue@beachread.jp",
+    role: "MANGAKA",
+  },
+  {
+    id: "u-assist",
+    name: "Suzuki Jun",
+    email: "jun@beachread.jp",
+    password: "jun@beachread.jp",
+    role: "ASSISTANT",
+  },
+  {
+    id: "u-assist-2",
+    name: "Nakamura Hina",
+    email: "hina@beachread.jp",
+    password: "hina@beachread.jp",
+    role: "ASSISTANT",
+  },
   {
     id: "u-editor",
     name: "Tanaka Akira",
     email: "tanaka@beachread.jp",
     password: "tanaka@beachread.jp",
     role: "EDITOR",
-    isEditorInChief: true
+    isEditorInChief: true,
   },
   {
-    id: "u-mobile-editor",
-    name: "Mobile Editor",
-    email: "editor@mangaflow.local",
-    password: "editor@mangaflow.local",
-    role: "EDITOR"
+    id: "u-editor-2",
+    name: "Nishida Emi",
+    email: "nishida@beachread.jp",
+    password: "nishida@beachread.jp",
+    role: "EDITOR",
   },
-  { id: "u-board", name: "Yamamoto Director", email: "board@beachread.jp", password: "board@beachread.jp", role: "BOARD", isChair: true },
-  { id: "u-mobile-board", name: "Mobile Board Chair", email: "board@mangaflow.local", password: "board@mangaflow.local", role: "BOARD", isChair: true },
-  { id: "u-board-2", name: "Sato Eriko", email: "sato@beachread.jp", password: "sato@beachread.jp", role: "BOARD" },
-  { id: "u-board-3", name: "Kobayashi Ren", email: "kobayashi@beachread.jp", password: "kobayashi@beachread.jp", role: "BOARD" },
-  { id: "u-board-4", name: "Watanabe Kaoru", email: "watanabe@beachread.jp", password: "watanabe@beachread.jp", role: "BOARD" },
-  { id: "u-board-5", name: "Mori Haruto", email: "mori@beachread.jp", password: "mori@beachread.jp", role: "BOARD" }
+  {
+    id: "u-board",
+    name: "Yamamoto Director",
+    email: "board@beachread.jp",
+    password: "board@beachread.jp",
+    role: "BOARD",
+    isChair: true,
+  },
+  {
+    id: "u-board-2",
+    name: "Sato Eriko",
+    email: "sato@beachread.jp",
+    password: "sato@beachread.jp",
+    role: "BOARD",
+  },
+  {
+    id: "u-board-3",
+    name: "Kobayashi Ren",
+    email: "kobayashi@beachread.jp",
+    password: "kobayashi@beachread.jp",
+    role: "BOARD",
+  },
+  {
+    id: "u-board-4",
+    name: "Watanabe Kaoru",
+    email: "watanabe@beachread.jp",
+    password: "watanabe@beachread.jp",
+    role: "BOARD",
+  },
+  {
+    id: "u-board-5",
+    name: "Mori Haruto",
+    email: "mori@beachread.jp",
+    password: "mori@beachread.jp",
+    role: "BOARD",
+  },
 ];
 
 function manuscript(proposalId: string, version = 1) {
@@ -53,7 +107,7 @@ function manuscript(proposalId: string, version = 1) {
     file: {
       originalName: `${proposalId}-v${version}.pdf`,
       mimeType: "application/pdf",
-      size: 1_320_000 + version * 32_000
+      size: 1_320_000 + version * 32_000,
     },
     fileUrl: "metadata://signed-url-not-issued",
     fileType: "application/pdf",
@@ -61,7 +115,7 @@ function manuscript(proposalId: string, version = 1) {
     uploadedById: "u-mangaka",
     uploadedByName: "Inoue Takehiko",
     uploadedAt: ago(96 - version),
-    status: "SUBMITTED"
+    status: "SUBMITTED",
   };
 }
 
@@ -72,7 +126,8 @@ export const seedProposals = [
     title: "Iron Coast",
     authorId: "u-mangaka",
     authorName: "Inoue Takehiko",
-    synopsis: "A displaced smith returns to the iron coast to recover a family craft during a water war.",
+    synopsis:
+      "A displaced smith returns to the iron coast to recover a family craft during a water war.",
     logline: "A forge without water becomes the last honest court.",
     genres: ["Drama", "Historical", "Action"],
     targetAudience: "seinen",
@@ -86,9 +141,20 @@ export const seedProposals = [
     materials: [],
     requestedChanges: [],
     revisionRound: 0,
-    history: [{ id: "p-001-e1", proposalId: "p-001", actorId: "u-mangaka", actorName: "Inoue Takehiko", actorRole: "mangaka", type: "CREATE", toStatus: "DRAFT", createdAt: ago(72) }],
+    history: [
+      {
+        id: "p-001-e1",
+        proposalId: "p-001",
+        actorId: "u-mangaka",
+        actorName: "Inoue Takehiko",
+        actorRole: "mangaka",
+        type: "CREATE",
+        toStatus: "DRAFT",
+        createdAt: ago(72),
+      },
+    ],
     createdAt: ago(72),
-    updatedAt: ago(72)
+    updatedAt: ago(72),
   },
   {
     id: "p-002",
@@ -96,7 +162,8 @@ export const seedProposals = [
     title: "Neon Tide",
     authorId: "u-mangaka",
     authorName: "Inoue Takehiko",
-    synopsis: "A neon repairer in Osaka 2089 finds the city's signs storing erased memories.",
+    synopsis:
+      "A neon repairer in Osaka 2089 finds the city's signs storing erased memories.",
     logline: "Every broken sign remembers someone the city chose to forget.",
     genres: ["Sci-Fi", "Mystery", "Drama"],
     targetAudience: "seinen",
@@ -114,11 +181,30 @@ export const seedProposals = [
     revisionRound: 0,
     submittedAt: ago(48),
     history: [
-      { id: "p-002-e1", proposalId: "p-002", actorId: "u-mangaka", actorName: "Inoue Takehiko", actorRole: "mangaka", type: "CREATE", toStatus: "DRAFT", createdAt: ago(96) },
-      { id: "p-002-e2", proposalId: "p-002", actorId: "u-mangaka", actorName: "Inoue Takehiko", actorRole: "mangaka", type: "SUBMIT", fromStatus: "DRAFT", toStatus: "PENDING_EDITOR", createdAt: ago(48) }
+      {
+        id: "p-002-e1",
+        proposalId: "p-002",
+        actorId: "u-mangaka",
+        actorName: "Inoue Takehiko",
+        actorRole: "mangaka",
+        type: "CREATE",
+        toStatus: "DRAFT",
+        createdAt: ago(96),
+      },
+      {
+        id: "p-002-e2",
+        proposalId: "p-002",
+        actorId: "u-mangaka",
+        actorName: "Inoue Takehiko",
+        actorRole: "mangaka",
+        type: "SUBMIT",
+        fromStatus: "DRAFT",
+        toStatus: "PENDING_EDITOR",
+        createdAt: ago(48),
+      },
     ],
     createdAt: ago(96),
-    updatedAt: ago(48)
+    updatedAt: ago(48),
   },
   {
     id: "p-003",
@@ -126,7 +212,8 @@ export const seedProposals = [
     title: "Salt Letters",
     authorId: "u-mangaka",
     authorName: "Inoue Takehiko",
-    synopsis: "A boat courier crosses a postwar archipelago with the last letters between divided families.",
+    synopsis:
+      "A boat courier crosses a postwar archipelago with the last letters between divided families.",
     logline: "Some mail is heavier than ballast.",
     genres: ["Drama", "Slice of Life", "Historical"],
     targetAudience: "josei",
@@ -154,17 +241,45 @@ export const seedProposals = [
         comment: "Expand supporting characters and soften the opening tone.",
         createdAt: ago(100),
         items: [
-          { id: "rc-003-1-i1", text: "Introduce two supporting characters in chapter 1.", resolved: false },
-          { id: "rc-003-1-i2", text: "Lighten the first ten pages for josei positioning.", resolved: false }
-        ]
-      }
+          {
+            id: "rc-003-1-i1",
+            text: "Introduce two supporting characters in chapter 1.",
+            resolved: false,
+          },
+          {
+            id: "rc-003-1-i2",
+            text: "Lighten the first ten pages for josei positioning.",
+            resolved: false,
+          },
+        ],
+      },
     ],
     history: [
-      { id: "p-003-e1", proposalId: "p-003", actorId: "u-mangaka", actorName: "Inoue Takehiko", actorRole: "mangaka", type: "CREATE", toStatus: "DRAFT", createdAt: ago(160) },
-      { id: "p-003-e2", proposalId: "p-003", actorId: "u-editor", actorName: "Tanaka Akira", actorRole: "editor", type: "REQUEST_CHANGES", fromStatus: "EDITOR_REVIEWING", toStatus: "CHANGES_REQUESTED", comment: "Expand supporting characters.", createdAt: ago(100) }
+      {
+        id: "p-003-e1",
+        proposalId: "p-003",
+        actorId: "u-mangaka",
+        actorName: "Inoue Takehiko",
+        actorRole: "mangaka",
+        type: "CREATE",
+        toStatus: "DRAFT",
+        createdAt: ago(160),
+      },
+      {
+        id: "p-003-e2",
+        proposalId: "p-003",
+        actorId: "u-editor",
+        actorName: "Tanaka Akira",
+        actorRole: "editor",
+        type: "REQUEST_CHANGES",
+        fromStatus: "EDITOR_REVIEWING",
+        toStatus: "CHANGES_REQUESTED",
+        comment: "Expand supporting characters.",
+        createdAt: ago(100),
+      },
     ],
     createdAt: ago(160),
-    updatedAt: ago(100)
+    updatedAt: ago(100),
   },
   {
     id: "p-004",
@@ -172,7 +287,8 @@ export const seedProposals = [
     title: "Kabuki Static",
     authorId: "u-mangaka",
     authorName: "Inoue Takehiko",
-    synopsis: "A kabuki actor joins 1960s television and discovers stage scripts are being used as code.",
+    synopsis:
+      "A kabuki actor joins 1960s television and discovers stage scripts are being used as code.",
     logline: "Broadcast static becomes the chorus.",
     genres: ["Drama", "Mystery", "Historical"],
     targetAudience: "seinen",
@@ -186,8 +302,28 @@ export const seedProposals = [
     editorForwardedAt: ago(40),
     // @deprecated cache — source of truth is proposalvotes collection
     votes: [
-      { memberId: "u-board", memberName: "Yamamoto Director", voterId: "u-board", voterName: "Yamamoto Director", decision: "APPROVE", comment: "Strong concept.", createdAt: ago(18), votedAt: ago(18), isChair: true, weight: 1 },
-      { memberId: "u-board-2", memberName: "Sato Eriko", voterId: "u-board-2", voterName: "Sato Eriko", decision: "APPROVE", createdAt: ago(12), votedAt: ago(12), weight: 1 }
+      {
+        memberId: "u-board",
+        memberName: "Yamamoto Director",
+        voterId: "u-board",
+        voterName: "Yamamoto Director",
+        decision: "APPROVE",
+        comment: "Strong concept.",
+        createdAt: ago(18),
+        votedAt: ago(18),
+        isChair: true,
+        weight: 1,
+      },
+      {
+        memberId: "u-board-2",
+        memberName: "Sato Eriko",
+        voterId: "u-board-2",
+        voterName: "Sato Eriko",
+        decision: "APPROVE",
+        createdAt: ago(12),
+        votedAt: ago(12),
+        weight: 1,
+      },
     ],
     manuscripts: [manuscript("p-004")],
     materials: [],
@@ -195,11 +331,30 @@ export const seedProposals = [
     revisionRound: 0,
     submittedAt: ago(100),
     history: [
-      { id: "p-004-e1", proposalId: "p-004", actorId: "u-editor", actorName: "Tanaka Akira", actorRole: "editor", type: "FORWARD", fromStatus: "EDITOR_REVIEWING", toStatus: "PENDING_BOARD", createdAt: ago(40) },
-      { id: "p-004-e2", proposalId: "p-004", actorId: "u-board", actorName: "Yamamoto Director", actorRole: "board", type: "VOTE", comment: "APPROVE", createdAt: ago(18) }
+      {
+        id: "p-004-e1",
+        proposalId: "p-004",
+        actorId: "u-editor",
+        actorName: "Tanaka Akira",
+        actorRole: "editor",
+        type: "FORWARD",
+        fromStatus: "EDITOR_REVIEWING",
+        toStatus: "PENDING_BOARD",
+        createdAt: ago(40),
+      },
+      {
+        id: "p-004-e2",
+        proposalId: "p-004",
+        actorId: "u-board",
+        actorName: "Yamamoto Director",
+        actorRole: "board",
+        type: "VOTE",
+        comment: "APPROVE",
+        createdAt: ago(18),
+      },
     ],
     createdAt: ago(200),
-    updatedAt: ago(12)
+    updatedAt: ago(12),
   },
   {
     id: "p-009",
@@ -207,7 +362,8 @@ export const seedProposals = [
     title: "Ember Engine",
     authorId: "u-mangaka",
     authorName: "Inoue Takehiko",
-    synopsis: "Two engineer sisters on a soul-powered steamship decide whether to save the captain or free the last soul.",
+    synopsis:
+      "Two engineer sisters on a soul-powered steamship decide whether to save the captain or free the last soul.",
     logline: "A boiler room becomes a courtroom for the dead.",
     genres: ["Fantasy", "Drama", "Adventure"],
     targetAudience: "seinen",
@@ -220,19 +376,68 @@ export const seedProposals = [
     assignedEditorName: "Tanaka Akira",
     // @deprecated cache
     votes: [
-      { memberId: "u-board-2", memberName: "Sato Eriko", voterId: "u-board-2", voterName: "Sato Eriko", decision: "APPROVE", createdAt: ago(20), votedAt: ago(20), weight: 1 },
-      { memberId: "u-board-3", memberName: "Kobayashi Ren", voterId: "u-board-3", voterName: "Kobayashi Ren", decision: "APPROVE", createdAt: ago(18), votedAt: ago(18), weight: 1 },
-      { memberId: "u-board-4", memberName: "Watanabe Kaoru", voterId: "u-board-4", voterName: "Watanabe Kaoru", decision: "REJECT", createdAt: ago(16), votedAt: ago(16), weight: 1 },
-      { memberId: "u-board-5", memberName: "Mori Haruto", voterId: "u-board-5", voterName: "Mori Haruto", decision: "REJECT", createdAt: ago(14), votedAt: ago(14), weight: 1 }
+      {
+        memberId: "u-board-2",
+        memberName: "Sato Eriko",
+        voterId: "u-board-2",
+        voterName: "Sato Eriko",
+        decision: "APPROVE",
+        createdAt: ago(20),
+        votedAt: ago(20),
+        weight: 1,
+      },
+      {
+        memberId: "u-board-3",
+        memberName: "Kobayashi Ren",
+        voterId: "u-board-3",
+        voterName: "Kobayashi Ren",
+        decision: "APPROVE",
+        createdAt: ago(18),
+        votedAt: ago(18),
+        weight: 1,
+      },
+      {
+        memberId: "u-board-4",
+        memberName: "Watanabe Kaoru",
+        voterId: "u-board-4",
+        voterName: "Watanabe Kaoru",
+        decision: "REJECT",
+        createdAt: ago(16),
+        votedAt: ago(16),
+        weight: 1,
+      },
+      {
+        memberId: "u-board-5",
+        memberName: "Mori Haruto",
+        voterId: "u-board-5",
+        voterName: "Mori Haruto",
+        decision: "REJECT",
+        createdAt: ago(14),
+        votedAt: ago(14),
+        weight: 1,
+      },
     ],
     manuscripts: [manuscript("p-009")],
     materials: [],
     requestedChanges: [],
     revisionRound: 0,
     submittedAt: ago(100),
-    history: [{ id: "p-009-e1", proposalId: "p-009", actorId: "system", actorName: "System", actorRole: "admin", type: "TIE_BREAK", fromStatus: "PENDING_BOARD", toStatus: "TIE_BREAK", comment: "Split board vote.", createdAt: ago(14) }],
+    history: [
+      {
+        id: "p-009-e1",
+        proposalId: "p-009",
+        actorId: "system",
+        actorName: "System",
+        actorRole: "admin",
+        type: "TIE_BREAK",
+        fromStatus: "PENDING_BOARD",
+        toStatus: "TIE_BREAK",
+        comment: "Split board vote.",
+        createdAt: ago(14),
+      },
+    ],
     createdAt: ago(300),
-    updatedAt: ago(14)
+    updatedAt: ago(14),
   },
   {
     id: "p-007",
@@ -256,10 +461,21 @@ export const seedProposals = [
     materials: [],
     requestedChanges: [],
     revisionRound: 0,
-    history: [{ id: "p-007-e1", proposalId: "p-007", actorId: "u-editor", actorName: "Tanaka Akira", actorRole: "editor", type: "CREATE", toStatus: "DRAFT", createdAt: ago(72) }],
+    history: [
+      {
+        id: "p-007-e1",
+        proposalId: "p-007",
+        actorId: "u-editor",
+        actorName: "Tanaka Akira",
+        actorRole: "editor",
+        type: "CREATE",
+        toStatus: "DRAFT",
+        createdAt: ago(72),
+      },
+    ],
     createdAt: ago(72),
-    updatedAt: ago(72)
-  }
+    updatedAt: ago(72),
+  },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -280,7 +496,7 @@ export const seedProposalVotes = [
     votedAt: ago(18),
     weight: 1,
     createdAt: ago(18),
-    updatedAt: ago(18)
+    updatedAt: ago(18),
   },
   {
     id: "pv-002",
@@ -294,7 +510,7 @@ export const seedProposalVotes = [
     votedAt: ago(12),
     weight: 1,
     createdAt: ago(12),
-    updatedAt: ago(12)
+    updatedAt: ago(12),
   },
   // p-009 Ember Engine — TIE_BREAK
   {
@@ -309,7 +525,7 @@ export const seedProposalVotes = [
     votedAt: ago(20),
     weight: 1,
     createdAt: ago(20),
-    updatedAt: ago(20)
+    updatedAt: ago(20),
   },
   {
     id: "pv-004",
@@ -323,7 +539,7 @@ export const seedProposalVotes = [
     votedAt: ago(18),
     weight: 1,
     createdAt: ago(18),
-    updatedAt: ago(18)
+    updatedAt: ago(18),
   },
   {
     id: "pv-005",
@@ -337,7 +553,7 @@ export const seedProposalVotes = [
     votedAt: ago(16),
     weight: 1,
     createdAt: ago(16),
-    updatedAt: ago(16)
+    updatedAt: ago(16),
   },
   {
     id: "pv-006",
@@ -351,8 +567,8 @@ export const seedProposalVotes = [
     votedAt: ago(14),
     weight: 1,
     createdAt: ago(14),
-    updatedAt: ago(14)
-  }
+    updatedAt: ago(14),
+  },
 ];
 
 function pages(chapterId: string, count: number) {
@@ -363,7 +579,7 @@ function pages(chapterId: string, count: number) {
     fileName: `page-${String(index + 1).padStart(2, "0")}.jpg`,
     fileUrl: "metadata://signed-url-not-issued",
     sizeKB: 310 + index,
-    uploadedAt: ago(36)
+    uploadedAt: ago(36),
   }));
 }
 
@@ -390,7 +606,7 @@ export const seedSeries = [
     proposalId: "p-001",
     sourceProposalId: "p-001",
     createdAt: ahead(-90),
-    updatedAt: ahead(-2)
+    updatedAt: ahead(-2),
   },
   {
     id: "s-vinland-prod",
@@ -412,8 +628,8 @@ export const seedSeries = [
     /** @deprecated use seriesmembers */
     assistantIds: ["u-assist", "u-assist-2"],
     createdAt: ahead(-10),
-    updatedAt: ahead(-1)
-  }
+    updatedAt: ahead(-1),
+  },
 ];
 
 export const seedChapters = [
@@ -435,7 +651,7 @@ export const seedChapters = [
     revisionRound: 0,
     history: [],
     createdAt: ahead(-30),
-    updatedAt: ahead(-3)
+    updatedAt: ahead(-3),
   },
   {
     id: "ch-s-berserk-prod-5",
@@ -456,13 +672,13 @@ export const seedChapters = [
         authorRole: "editor",
         text: "Panel rhythm needs one more beat on page 12.",
         resolved: false,
-        createdAt: ahead(-1)
-      }
+        createdAt: ahead(-1),
+      },
     ],
     revisionRound: 0,
     history: [],
     createdAt: ahead(-20),
-    updatedAt: ahead(-1)
+    updatedAt: ahead(-1),
   },
   {
     id: "ch-s-vinland-prod-1",
@@ -479,8 +695,8 @@ export const seedChapters = [
     revisionRound: 0,
     history: [],
     createdAt: ahead(-12),
-    updatedAt: ahead(-1)
-  }
+    updatedAt: ahead(-1),
+  },
 ];
 
 export const seedStudioRegions = [
@@ -495,8 +711,8 @@ export const seedStudioRegions = [
     y: 160,
     width: 280,
     height: 160,
-    label: "Bubble 01"
-  }
+    label: "Bubble 01",
+  },
 ];
 
 export const seedStudioTasks = [
@@ -519,7 +735,7 @@ export const seedStudioTasks = [
     mangakaReviewedAt: ago(20),
     mangakaReviewedById: "u-mangaka",
     createdAt: ago(48),
-    updatedAt: ago(20)
+    updatedAt: ago(20),
   },
   {
     id: "tsk-002",
@@ -538,7 +754,7 @@ export const seedStudioTasks = [
     blockedReason: "Waiting for raw scanned pages from Mangaka.",
     blockedBy: "Inoue Takehiko",
     createdAt: ago(24),
-    updatedAt: ago(24)
+    updatedAt: ago(24),
   },
   {
     id: "tsk-003",
@@ -559,8 +775,8 @@ export const seedStudioTasks = [
     editorReviewedAt: ago(20),
     editorReviewedById: "u-editor",
     createdAt: ago(80),
-    updatedAt: ago(20)
-  }
+    updatedAt: ago(20),
+  },
 ];
 
 export const seedComments = [
@@ -581,8 +797,8 @@ export const seedComments = [
     /** @deprecated use isBlocking */
     blocking: true,
     status: "OPEN",
-    createdAt: ago(12)
-  }
+    createdAt: ago(12),
+  },
 ];
 
 export const seedSubmissions = [
@@ -609,7 +825,7 @@ export const seedSubmissions = [
     reviewerNote: "Bubble cleaned well. Pass to editor.",
     reviewedById: "u-mangaka",
     reviewedByName: "Inoue Takehiko",
-    reviewedAt: ago(20)
+    reviewedAt: ago(20),
   },
   {
     id: "sub-002",
@@ -637,8 +853,8 @@ export const seedSubmissions = [
     reviewerNote: "Great work.",
     reviewedById: "u-editor",
     reviewedByName: "Tanaka Akira",
-    reviewedAt: ago(20)
-  }
+    reviewedAt: ago(20),
+  },
 ];
 
 export const seedRankings = [
@@ -658,7 +874,7 @@ export const seedRankings = [
     importBatchId: "rimport-001",
     importedById: "u-admin",
     importedAt: ago(12),
-    atRisk: false
+    atRisk: false,
   },
   {
     id: "rank-002",
@@ -676,8 +892,8 @@ export const seedRankings = [
     importBatchId: "rimport-001",
     importedById: "u-admin",
     importedAt: ago(12),
-    atRisk: true
-  }
+    atRisk: true,
+  },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -699,8 +915,8 @@ export const seedRankingImports = [
     errors: [],
     importedAt: ago(12),
     createdAt: ago(14),
-    updatedAt: ago(12)
-  }
+    updatedAt: ago(12),
+  },
 ];
 
 export const seedEarnings = [
@@ -713,7 +929,7 @@ export const seedEarnings = [
     currency: "USD",
     status: "PENDING",
     createdAt: ago(48),
-    updatedAt: ago(48)
+    updatedAt: ago(48),
   },
   {
     id: "earn-002",
@@ -724,7 +940,7 @@ export const seedEarnings = [
     currency: "USD",
     status: "PENDING",
     createdAt: ago(48),
-    updatedAt: ago(10)
+    updatedAt: ago(10),
   },
   {
     id: "earn-003",
@@ -735,8 +951,8 @@ export const seedEarnings = [
     currency: "USD",
     status: "PENDING",
     createdAt: ago(350),
-    updatedAt: ago(200)
-  }
+    updatedAt: ago(200),
+  },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -759,7 +975,7 @@ export const seedEarningItems = [
     // Earnings are created only after Editor approval in the MVP.
     status: "APPROVED",
     createdAt: ago(20),
-    updatedAt: ago(20)
+    updatedAt: ago(20),
   },
   {
     id: "ei-002",
@@ -778,8 +994,8 @@ export const seedEarningItems = [
     approvedById: "u-admin",
     approvedAt: ago(18),
     createdAt: ago(50),
-    updatedAt: ago(18)
-  }
+    updatedAt: ago(18),
+  },
 ];
 
 export const seedSeriesMembers = [
@@ -793,7 +1009,7 @@ export const seedSeriesMembers = [
     assignedChapterIds: ["ch-s-berserk-prod-4", "ch-s-berserk-prod-5"],
     assignedTaskIds: ["tsk-001"],
     createdAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
-    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString()
+    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
   },
   {
     id: "sm-002",
@@ -805,7 +1021,7 @@ export const seedSeriesMembers = [
     assignedChapterIds: ["ch-s-vinland-prod-1"],
     assignedTaskIds: [],
     createdAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
-    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString()
+    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
   },
   {
     id: "sm-003",
@@ -817,7 +1033,7 @@ export const seedSeriesMembers = [
     assignedChapterIds: ["ch-s-vinland-prod-1"],
     assignedTaskIds: ["tsk-003"],
     createdAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
-    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString()
+    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
   },
   {
     id: "sm-editor-berserk",
@@ -829,7 +1045,7 @@ export const seedSeriesMembers = [
     assignedChapterIds: [],
     assignedTaskIds: [],
     createdAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
-    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString()
+    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
   },
   {
     id: "sm-editor-vinland",
@@ -841,8 +1057,8 @@ export const seedSeriesMembers = [
     assignedChapterIds: [],
     assignedTaskIds: [],
     createdAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
-    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString()
-  }
+    updatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
+  },
 ];
 
 export async function usersWithHashes() {
@@ -851,7 +1067,7 @@ export async function usersWithHashes() {
       ...user,
       email: user.email.toLowerCase(),
       active: true,
-      passwordHash: await bcrypt.hash(password, 10)
-    }))
+      passwordHash: await bcrypt.hash(password, 10),
+    })),
   );
 }

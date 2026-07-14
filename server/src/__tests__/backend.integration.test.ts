@@ -79,12 +79,12 @@ describe("MangaFlow backend live contract", () => {
     return { key: uploadRes.body.data.key, pageId };
   }
 
-  it("authenticates seeded web and mobile users with uppercase API roles", async () => {
+  it("authenticates seeded web users with uppercase API roles", async () => {
     const web = await loginAs("tanaka@beachread.jp");
     expect(web.user.role).toBe("EDITOR");
 
-    const mobile = await loginAs("board@mangaflow.local");
-    expect(mobile.user.role).toBe("BOARD");
+    const board = await loginAs("sato@beachread.jp");
+    expect(board.user.role).toBe("BOARD");
 
     await request(createApp())
       .get("/api/auth/me")
@@ -102,7 +102,7 @@ describe("MangaFlow backend live contract", () => {
   });
 
   it("returns bootstrap and proposal review queue from the same seeded workflow state", async () => {
-    const editor = await loginAs("editor@mangaflow.local");
+    const editor = await loginAs("nishida@beachread.jp");
 
     await request(createApp())
       .get("/api/me/bootstrap")

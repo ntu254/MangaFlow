@@ -76,9 +76,9 @@ export const EDITORS: User[] = [
     isEditorInChief: true,
   },
   {
-    id: "u-mobile-editor",
-    name: "Mobile Editor",
-    email: "editor@mangaflow.local",
+    id: "u-editor-2",
+    name: "Nishida Emi",
+    email: "nishida@beachread.jp",
     role: "editor",
   },
 ];

@@ -82,7 +82,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
       expect(res.body.data).toBeInstanceOf(Array);
       // Inoue Takehiko's series should be returned, but not u-other-mangaka's
-      const otherAuthorSeries = res.body.data.find((s: any) => s.id === "s-other-author");
+      const otherAuthorSeries = res.body.data.find(
+        (s: any) => s.id === "s-other-author",
+      );
       expect(otherAuthorSeries).toBeUndefined();
     });
 
@@ -200,13 +202,17 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/studio/regions?pageId=ch-s-berserk-prod-5-p1")
         .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
         .expect(200);
-      expect(regionRes.body.data.some((region: any) => region.id === "reg-001")).toBe(false);
+      expect(
+        regionRes.body.data.some((region: any) => region.id === "reg-001"),
+      ).toBe(false);
 
       const commentRes = await request(createApp())
         .get("/api/comments?taskId=tsk-001")
         .set("Authorization", `Bearer ${unassignedAssistant.accessToken}`)
         .expect(200);
-      expect(commentRes.body.data.some((comment: any) => comment.id === "cmt-001")).toBe(false);
+      expect(
+        commentRes.body.data.some((comment: any) => comment.id === "cmt-001"),
+      ).toBe(false);
 
       await request(createApp())
         .get("/api/studio/tasks/tsk-001")
@@ -223,7 +229,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .post("/api/series/s-berserk-prod/at-risk-reports")
         .set("Authorization", `Bearer ${tantou.accessToken}`)
-        .send({ rankingSummary: "Score dropped below threshold.", recommendation: "HIATUS" })
+        .send({
+          rankingSummary: "Score dropped below threshold.",
+          recommendation: "HIATUS",
+        })
         .expect(201);
 
       await request(createApp())
@@ -259,7 +268,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .send({
           id: "pg-test-999",
           pageNumber: 1,
-          imageUrl: "https://mock-s3-bucket.r2.cloudflarestorage.com/test-page-999.png",
+          imageUrl:
+            "https://mock-s3-bucket.r2.cloudflarestorage.com/test-page-999.png",
           status: "UPLOADED",
         })
         .expect(201);
@@ -281,7 +291,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/chapters/ch-s-berserk-prod-4/pages")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .expect(200);
-      expect(getRes.body.data.some((p: any) => p.id === "pg-test-999")).toBe(true);
+      expect(getRes.body.data.some((p: any) => p.id === "pg-test-999")).toBe(
+        true,
+      );
 
       const editor = await loginAs("tanaka@beachread.jp");
       await request(createApp())
@@ -290,7 +302,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .send({
           id: "pg-test-editor-create",
           pageNumber: 997,
-          imageUrl: "https://mock-s3-bucket.r2.cloudflarestorage.com/editor-create.png",
+          imageUrl:
+            "https://mock-s3-bucket.r2.cloudflarestorage.com/editor-create.png",
           status: "UPLOADED",
         })
         .expect(403);
@@ -298,7 +311,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .patch("/api/pages/pg-test-999")
         .set("Authorization", `Bearer ${editor.accessToken}`)
-        .send({ imageUrl: "https://mock-s3-bucket.r2.cloudflarestorage.com/editor-edit.png" })
+        .send({
+          imageUrl:
+            "https://mock-s3-bucket.r2.cloudflarestorage.com/editor-edit.png",
+        })
         .expect(403);
 
       const otherMangaka = await createAndLoginOtherMangaka();
@@ -318,7 +334,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const patchRes = await request(createApp())
         .patch("/api/pages/pg-test-999")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .send({ imageUrl: "https://mock-s3-bucket.r2.cloudflarestorage.com/test-page-999-v2.png" })
+        .send({
+          imageUrl:
+            "https://mock-s3-bucket.r2.cloudflarestorage.com/test-page-999-v2.png",
+        })
         .expect(200);
       expect(patchRes.body.data.imageUrl).toBe(
         "https://mock-s3-bucket.r2.cloudflarestorage.com/test-page-999-v2.png",
@@ -335,7 +354,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/chapters/ch-s-berserk-prod-4/pages")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .expect(200);
-      expect(verifyGetRes.body.data.some((p: any) => p.id === "pg-test-999")).toBe(false);
+      expect(
+        verifyGetRes.body.data.some((p: any) => p.id === "pg-test-999"),
+      ).toBe(false);
     });
 
     it("mocks presigned upload and download urls for a persisted file key", async () => {
@@ -489,7 +510,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/series/s-berserk-prod/members")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .expect(200);
-      expect(verifyGetRes.body.data.some((m: any) => m.id === memberId)).toBe(false);
+      expect(verifyGetRes.body.data.some((m: any) => m.id === memberId)).toBe(
+        false,
+      );
     });
 
     it("allows only the owning Mangaka to invite assistants", async () => {
@@ -509,8 +532,14 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .send({ email: "hina@beachread.jp", scope: "Task only" })
         .expect(403);
 
-      await SeriesMemberModel.deleteMany({ seriesId: "s-berserk-prod", userId: "u-assist-2" });
-      await SeriesModel.updateOne({ id: "s-berserk-prod" }, { $pull: { assistantIds: "u-assist-2" } });
+      await SeriesMemberModel.deleteMany({
+        seriesId: "s-berserk-prod",
+        userId: "u-assist-2",
+      });
+      await SeriesModel.updateOne(
+        { id: "s-berserk-prod" },
+        { $pull: { assistantIds: "u-assist-2" } },
+      );
 
       const response = await request(createApp())
         .post("/api/series/s-berserk-prod/invites")
@@ -543,7 +572,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .patch("/api/series/s-berserk-prod")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .send({ editorId: "u-mobile-editor" })
+        .send({ editorId: "u-editor-2" })
         .expect(400);
 
       const response = await request(createApp())
@@ -659,7 +688,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/studio/regions")
         .query({
           q: "Contract",
-          filters: JSON.stringify({ status: { type: "select", value: "CONFIRMED" } }),
+          filters: JSON.stringify({
+            status: { type: "select", value: "CONFIRMED" },
+          }),
           sortBy: "label",
           sortDir: "asc",
           page: 1,
@@ -812,7 +843,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/comments")
         .query({
           q: "Contract comment",
-          filters: JSON.stringify({ status: { type: "select", value: "OPEN" } }),
+          filters: JSON.stringify({
+            status: { type: "select", value: "OPEN" },
+          }),
           sortBy: "createdAt",
           sortDir: "desc",
           page: 1,
@@ -942,7 +975,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/studio/tasks")
         .query({
           q: "ink",
-          filters: JSON.stringify({ status: { type: "select", value: "TODO" } }),
+          filters: JSON.stringify({
+            status: { type: "select", value: "TODO" },
+          }),
           sortBy: "title",
           sortDir: "asc",
           page: 1,
@@ -966,9 +1001,14 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         q: "ink",
         sort: { field: "title", dir: "asc" },
       });
-      expect(response.body.meta.filters.status).toEqual({ type: "select", value: "TODO" });
+      expect(response.body.meta.filters.status).toEqual({
+        type: "select",
+        value: "TODO",
+      });
       expect(response.body.meta.summary.byStatus.TODO).toBe(1);
-      expect(response.body.data.map((task: any) => task.id)).not.toContain("tsk-contract-other");
+      expect(response.body.data.map((task: any) => task.id)).not.toContain(
+        "tsk-contract-other",
+      );
     });
 
     it("rejects non-data task list sort fields", async () => {
@@ -1002,7 +1042,11 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .post("/api/submissions")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .send({ taskId: "tsk-unassigned-guard", intent: "SUBMIT", fileKey: "uploads/proof.png" })
+        .send({
+          taskId: "tsk-unassigned-guard",
+          intent: "SUBMIT",
+          fileKey: "uploads/proof.png",
+        })
         .expect(403);
     });
 
@@ -1021,7 +1065,11 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const res = await request(createApp())
         .post("/api/submissions")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .send({ taskId: "tsk-submit-owned", intent: "SUBMIT", fileKey: "uploads/proof.png" })
+        .send({
+          taskId: "tsk-submit-owned",
+          intent: "SUBMIT",
+          fileKey: "uploads/proof.png",
+        })
         .expect(201);
 
       expect(res.body.data.assistantId).toBe(assistant.user.id);
@@ -1064,7 +1112,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .send({ reason: "Missing base layout storyboard" })
         .expect(200);
       expect(blockRes.body.data.blocked).toBe(true);
-      expect(blockRes.body.data.blockedReason).toBe("Missing base layout storyboard");
+      expect(blockRes.body.data.blockedReason).toBe(
+        "Missing base layout storyboard",
+      );
 
       // 4. UNBLOCK action -> blocked: false
       const unblockRes = await request(createApp())
@@ -1129,7 +1179,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .get("/api/submissions")
         .query({
           q: "ContractSub",
-          filters: JSON.stringify({ status: { type: "select", value: "PENDING" } }),
+          filters: JSON.stringify({
+            status: { type: "select", value: "PENDING" },
+          }),
           sortBy: "version",
           sortDir: "desc",
           page: 1,
@@ -1152,11 +1204,14 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         q: "ContractSub",
         sort: { field: "version", dir: "desc" },
       });
-      expect(response.body.meta.filters.status).toEqual({ type: "select", value: "PENDING" });
+      expect(response.body.meta.filters.status).toEqual({
+        type: "select",
+        value: "PENDING",
+      });
       expect(response.body.meta.summary.byStatus.PENDING).toBe(1);
-      expect(response.body.data.map((submission: any) => submission.id)).not.toContain(
-        "sub-contract-approved",
-      );
+      expect(
+        response.body.data.map((submission: any) => submission.id),
+      ).not.toContain("sub-contract-approved");
     });
 
     it("rejects non-data submission list sort fields", async () => {
@@ -1211,7 +1266,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(approveRes.body.data.status).toBe("MANGAKA_APPROVED");
 
       // Verify that the task status synced correctly to MANGAKA_APPROVED
-      const task = await StudioTaskModel.findOne({ id: "tsk-self-approve" }).lean();
+      const task = await StudioTaskModel.findOne({
+        id: "tsk-self-approve",
+      }).lean();
       expect((task as any).status).toBe("MANGAKA_APPROVED");
     });
   });
@@ -1338,7 +1395,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(response.body.data.nextStatus).toBe("EDITOR_REVIEW");
       expect(response.body.data.flow).toBe("DIRECT");
       expect(response.body.data.chapter.status).toBe("EDITOR_REVIEW");
-      expect(response.body.data.pages[0].status).toBe("READY_FOR_EDITOR_REVIEW");
+      expect(response.body.data.pages[0].status).toBe(
+        "READY_FOR_EDITOR_REVIEW",
+      );
     });
 
     it.each(["TODO", "IN_PROGRESS", "SUBMITTED"])(
@@ -1374,7 +1433,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(response.body.data.flow).toBe("ASSISTANT_TASK");
 
       const task = await StudioTaskModel.findOne({ id: fixture.taskId }).lean();
-      const submission = await SubmissionModel.findOne({ id: fixture.submissionId }).lean();
+      const submission = await SubmissionModel.findOne({
+        id: fixture.submissionId,
+      }).lean();
       expect((task as any).status).toBe("EDITOR_REVIEWING");
       expect((submission as any).reviewStage).toBe("EDITOR_REVIEW");
     });
@@ -1425,7 +1486,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
     it("blocks a chapter without an uploaded page image", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
-      const fixture = await createReviewFixture({ ownerId: mangaka.user.id, page: false });
+      const fixture = await createReviewFixture({
+        ownerId: mangaka.user.id,
+        page: false,
+      });
       const response = await request(createApp())
         .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -1477,8 +1541,12 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .set("Authorization", `Bearer ${editor.accessToken}`)
         .expect(200);
 
-      const approvedChapter = await ChapterModel.findOne({ id: approved.chapterId }).lean();
-      const approvedTask = await StudioTaskModel.findOne({ id: approved.taskId }).lean();
+      const approvedChapter = await ChapterModel.findOne({
+        id: approved.chapterId,
+      }).lean();
+      const approvedTask = await StudioTaskModel.findOne({
+        id: approved.taskId,
+      }).lean();
       const approvedSubmission = await SubmissionModel.findOne({
         id: approved.submissionId,
       }).lean();
@@ -1506,13 +1574,21 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         })
         .expect(200);
 
-      const revisedChapter = await ChapterModel.findOne({ id: revised.chapterId }).lean();
-      const revisedTask = await StudioTaskModel.findOne({ id: revised.taskId }).lean();
-      const revisedSubmission = await SubmissionModel.findOne({ id: revised.submissionId }).lean();
+      const revisedChapter = await ChapterModel.findOne({
+        id: revised.chapterId,
+      }).lean();
+      const revisedTask = await StudioTaskModel.findOne({
+        id: revised.taskId,
+      }).lean();
+      const revisedSubmission = await SubmissionModel.findOne({
+        id: revised.submissionId,
+      }).lean();
       expect((revisedChapter as any).status).toBe("IN_PRODUCTION");
       expect((revisedChapter as any).pages[0].status).toBe("REVISION_REQUIRED");
       expect((revisedTask as any).status).toBe("EDITOR_REVISION_REQUESTED");
-      expect((revisedSubmission as any).status).toBe("EDITOR_REVISION_REQUESTED");
+      expect((revisedSubmission as any).status).toBe(
+        "EDITOR_REVISION_REQUESTED",
+      );
     });
 
     it("writes only canonical statuses, never action or deprecated status names", async () => {
@@ -1523,7 +1599,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .expect(200);
 
-      const chapter = await ChapterModel.findOne({ id: fixture.chapterId }).lean();
+      const chapter = await ChapterModel.findOne({
+        id: fixture.chapterId,
+      }).lean();
       const written = [
         (chapter as any).status,
         ...(chapter as any).pages.map((page: any) => page.status),
@@ -1651,7 +1729,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(200);
 
       // The other author's ranking should not be present
-      expect(freshRes.body.data.some((r: any) => r.id === "rank-other")).toBe(false);
+      expect(freshRes.body.data.some((r: any) => r.id === "rank-other")).toBe(
+        false,
+      );
 
       // Let's try to query the other author's ranking directly using /api/series/:seriesId/rankings
       const directErrRes = await request(createApp())

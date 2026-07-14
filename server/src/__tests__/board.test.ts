@@ -353,7 +353,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       updatedAt: new Date(),
     });
 
-    const editor = await loginAs("editor@mangaflow.local");
+    const editor = await loginAs("nishida@beachread.jp");
     const res = await request(createApp())
       .post("/api/board/proposals/proposal-tie-test/tie-break")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -636,7 +636,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
 
   it("rejects Mangaka and non-Tantou Editor at-risk report submissions", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
-    const otherEditor = await loginAs("editor@mangaflow.local");
+    const otherEditor = await loginAs("nishida@beachread.jp");
 
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
@@ -677,7 +677,10 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     await request(createApp())
       .post("/api/series/s-berserk-prod/at-risk-reports")
       .set("Authorization", `Bearer ${tantou.accessToken}`)
-      .send({ rankingSummary: "Risk reviewed by the Board.", recommendation: "CONTINUE" })
+      .send({
+        rankingSummary: "Risk reviewed by the Board.",
+        recommendation: "CONTINUE",
+      })
       .expect(201);
 
     const res = await request(createApp())

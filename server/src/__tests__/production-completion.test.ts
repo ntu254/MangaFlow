@@ -28,13 +28,16 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  if (!mongoose.connection.db) throw new Error("Mongo connection is not ready.");
+  if (!mongoose.connection.db)
+    throw new Error("Mongo connection is not ready.");
   await mongoose.connection.db.dropDatabase();
   await seedDatabase();
 });
 
 async function loginAs(email: string) {
-  const res = await request(createApp()).post("/api/auth/login").send({ email, password: email });
+  const res = await request(createApp())
+    .post("/api/auth/login")
+    .send({ email, password: email });
   return res.body.data as { accessToken: string };
 }
 
@@ -90,7 +93,7 @@ describe("Production-first completion hardening", () => {
   });
 
   it("returns pagination metadata for proposal lists", async () => {
-    const editor = await loginAs("editor@mangaflow.local");
+    const editor = await loginAs("nishida@beachread.jp");
     const res = await request(createApp())
       .get("/api/proposals?page=1&pageSize=2")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -105,8 +108,12 @@ describe("Production-first completion hardening", () => {
     expect(res.body.meta).toMatchObject({
       sort: { field: "updatedAt", dir: "desc" },
     });
-    expect(res.body.meta.summary.total).toBeGreaterThanOrEqual(res.body.data.length);
-    expect(res.body.pagination.total).toBeGreaterThanOrEqual(res.body.data.length);
+    expect(res.body.meta.summary.total).toBeGreaterThanOrEqual(
+      res.body.data.length,
+    );
+    expect(res.body.pagination.total).toBeGreaterThanOrEqual(
+      res.body.data.length,
+    );
     expect(res.body.pagination.totalPages).toBeGreaterThanOrEqual(1);
   });
 
@@ -156,7 +163,7 @@ describe("Production-first completion hardening", () => {
       },
     ]);
 
-    const editor = await loginAs("editor@mangaflow.local");
+    const editor = await loginAs("nishida@beachread.jp");
     const filters = encodeURIComponent(
       JSON.stringify({ status: { type: "select", value: "PENDING_EDITOR" } }),
     );
@@ -175,11 +182,14 @@ describe("Production-first completion hardening", () => {
       hasNextPage: true,
     });
     expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
-    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PENDING_EDITOR" });
+    expect(res.body.meta.filters.status).toEqual({
+      type: "select",
+      value: "PENDING_EDITOR",
+    });
   });
 
   it("rejects unsupported proposal list sort fields", async () => {
-    const editor = await loginAs("editor@mangaflow.local");
+    const editor = await loginAs("nishida@beachread.jp");
     const res = await request(createApp())
       .get("/api/proposals?sortBy=actions")
       .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -259,7 +269,10 @@ describe("Production-first completion hardening", () => {
       hasNextPage: true,
     });
     expect(res.body.meta.sort).toEqual({ field: "title", dir: "asc" });
-    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "ONGOING" });
+    expect(res.body.meta.filters.status).toEqual({
+      type: "select",
+      value: "ONGOING",
+    });
   });
 
   it("rejects unsupported series list sort fields", async () => {
@@ -337,7 +350,10 @@ describe("Production-first completion hardening", () => {
       hasNextPage: true,
     });
     expect(res.body.meta.sort).toEqual({ field: "number", dir: "asc" });
-    expect(res.body.meta.filters.status).toEqual({ type: "select", value: "PLANNED" });
+    expect(res.body.meta.filters.status).toEqual({
+      type: "select",
+      value: "PLANNED",
+    });
   });
 
   it("rejects unsupported chapter list sort fields", async () => {
@@ -390,10 +406,14 @@ describe("Production-first completion hardening", () => {
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .expect(200);
 
-    expect(res.body.data.some((earning: any) => earning.id === "earning-assistant-live")).toBe(
-      true,
-    );
-    expect(res.body.data.every((earning: any) => earning.assistantId === "u-assist")).toBe(true);
+    expect(
+      res.body.data.some(
+        (earning: any) => earning.id === "earning-assistant-live",
+      ),
+    ).toBe(true);
+    expect(
+      res.body.data.every((earning: any) => earning.assistantId === "u-assist"),
+    ).toBe(true);
   });
 
   it("does not expose non-user-management admin summaries in the MVP API", async () => {
@@ -451,10 +471,10 @@ describe("Production-first completion hardening", () => {
       imported: 1,
       rowCount: 1,
     });
-    const imported = await RankingModel.findOne({
+    const imported = (await RankingModel.findOne({
       seriesId: "s-berserk-prod",
       period: "2026-W27",
-    }).lean() as any;
+    }).lean()) as any;
     expect(imported?.finalScore).toBe(9.7);
     expect(imported?.voteCount).toBe(1200);
 
