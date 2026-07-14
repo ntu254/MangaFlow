@@ -322,7 +322,6 @@ export const getSeriesActivity = asyncRoute(async (req: AuthedRequest, res) => {
       { entityType: "chapter", entityId: { $in: chapterIds } },
       { entityType: "studio_task", "metadata.seriesId": seriesId },
       { entityType: "submission", "metadata.seriesId": seriesId },
-      { entityType: "material", "metadata.seriesId": seriesId },
     ],
   })
     .sort({ createdAt: -1 })

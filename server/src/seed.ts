@@ -4,7 +4,6 @@ import {
   AuditEntryModel,
   EarningModel,
   EarningItemModel,
-  MaterialModel,
   NotificationModel,
   ProposalModel,
   ProposalVoteModel,
@@ -26,7 +25,6 @@ import {
   seedComments,
   seedEarnings,
   seedEarningItems,
-  seedMaterials,
   seedProposals,
   seedProposalVotes,
   seedRankings,
@@ -52,7 +50,6 @@ const seededModels = [
   StudioTaskModel,
   StudioCommentModel,
   SubmissionModel,
-  MaterialModel,
   RankingModel,
   RankingImportModel,
   EarningModel,
@@ -78,7 +75,6 @@ async function insertNonUserSeedData() {
   await StudioTaskModel.insertMany(seedStudioTasks);
   await StudioCommentModel.insertMany(seedComments);
   await SubmissionModel.insertMany(seedSubmissions);
-  await MaterialModel.insertMany(seedMaterials);
   await RankingModel.insertMany(seedRankings);
   await RankingImportModel.insertMany(seedRankingImports);
   await EarningModel.insertMany(seedEarnings);

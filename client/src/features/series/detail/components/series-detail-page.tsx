@@ -14,7 +14,6 @@ import { ChapterDetailWorkspace } from "./chapter-detail-workspace";
 import { ChapterKpiStrip } from "./chapter-kpi-strip";
 import { ChapterTable } from "./chapter-table";
 import { PublicationCalendar } from "./publication-calendar";
-import { SeriesMaterialsLibrary } from "./series-materials-library";
 import { EditTitleButton, SeriesHeaderActions, SeriesOverview } from "./series-overview";
 import { SeriesProposalTab } from "./series-proposal-tab";
 import { SeriesRankingsTab } from "./series-rankings-tab";
@@ -22,21 +21,12 @@ import { StudioTab } from "./studio-tab";
 import { TeamPanel } from "./team-panel";
 import { ResolvedImage } from "@/shared/ui";
 
-const TABS = [
-  "overview",
-  "proposal",
-  "chapters",
-  "materials",
-  "rankings",
-  "calendar",
-  "team",
-] as const;
+const TABS = ["overview", "proposal", "chapters", "rankings", "calendar", "team"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   overview: "Overview",
   proposal: "Proposal",
   chapters: "Chapters",
-  materials: "Materials",
   rankings: "Rankings",
   calendar: "Calendar",
   team: "Team",
@@ -267,8 +257,6 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
       {tab === "calendar" ? (
         <PublicationCalendar series={allSeries ?? []} chapters={chapters} seriesId={series.id} />
       ) : null}
-
-      {tab === "materials" ? <SeriesMaterialsLibrary series={series} chapters={chapters} /> : null}
 
       {tab === "rankings" ? <SeriesRankingsTab series={series} /> : null}
 

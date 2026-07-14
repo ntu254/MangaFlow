@@ -641,37 +641,6 @@ export const seedSubmissions = [
   }
 ];
 
-export const seedMaterials = [
-  {
-    id: "mat-001",
-    seriesId: "s-berserk-prod",
-    scope: "SERIES",
-    ownerType: "series",
-    ownerId: "s-berserk-prod",
-    title: "Chapter 5 reference board",
-    kind: "reference",
-    // type field deprecated, kind is source of truth
-    status: "APPROVED",
-    tags: ["reference", "chapter-5"],
-    currentVersion: 1,
-    versions: [
-      {
-        id: "mat-001-v1",
-        version: 1,
-        fileName: "chapter-5-reference.pdf",
-        fileUrl: "metadata://signed-url-not-issued",
-        fileType: "application/pdf",
-        sizeKB: 900,
-        uploadedById: "u-editor",
-        uploadedByName: "Tanaka Akira",
-        uploadedAt: ago(36)
-      }
-    ],
-    createdAt: ago(36),
-    updatedAt: ago(36)
-  }
-];
-
 export const seedRankings = [
   {
     id: "rank-001",

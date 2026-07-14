@@ -669,6 +669,7 @@ export type StudioTaskRecord = {
   blockedReason?: string;
   blockedBy?: string;
   instructions?: string;
+  referenceFiles?: Record<string, unknown>[];
   metadata?: Record<string, unknown>;
   // Lifecycle timestamps
   startedAt?: Date;
@@ -725,6 +726,7 @@ const studioTaskSchema = looseSchema({
   blockedReason: { type: String },
   blockedBy: { type: String },
   instructions: { type: String },
+  referenceFiles: [Schema.Types.Mixed],
   metadata: { type: Schema.Types.Mixed },
   startedAt: { type: Date },
   submittedAt: { type: Date },
@@ -907,85 +909,6 @@ const submissionSchema = looseSchema({
 submissionSchema.index({ taskId: 1, version: 1 }, { unique: true, sparse: true });
 submissionSchema.index({ taskId: 1, status: 1 });
 submissionSchema.index({ assistantId: 1, submittedAt: -1 });
-
-/* ------------------------------------------------------------------ */
-/*  Material                                                            */
-/* ------------------------------------------------------------------ */
-
-export type MaterialVersion = {
-  id: string;
-  version: number;
-  fileKey: string;
-  url: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  size?: number;
-  note?: string;
-  metadata?: Record<string, unknown>;
-  uploadedById: string;
-  uploadedByName: string;
-  uploadedAt: Date;
-};
-
-export type MaterialRecord = {
-  id: string;
-  seriesId?: string;
-  chapterId?: string;
-  pageId?: string;
-  proposalId?: string;
-  /** Structured scope of ownership */
-  scope?: "PROPOSAL" | "SERIES" | "CHAPTER" | "PAGE";
-  ownerType?: string;
-  ownerId?: string;
-  title: string;
-  /** Source of truth for material kind */
-  kind?: string;
-  /** @deprecated use kind */
-  type?: string;
-  category?: string;
-  description?: string;
-  status?: string;
-  tags?: string[];
-  fileKey?: string;
-  url?: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  metadata?: Record<string, unknown>;
-  currentVersion?: number;
-  versions: MaterialVersion[];
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const materialSchema = looseSchema({
-  seriesId: { type: String, index: true },
-  chapterId: { type: String, index: true },
-  pageId: { type: String },
-  proposalId: { type: String, index: true },
-  scope: { type: String, enum: ["PROPOSAL", "SERIES", "CHAPTER", "PAGE"] },
-  ownerType: { type: String },
-  ownerId: { type: String },
-  title: { type: String },
-  /** Source of truth */
-  kind: { type: String },
-  /** @deprecated use kind */
-  type: { type: String },
-  category: { type: String },
-  description: { type: String },
-  status: {
-    type: String,
-    enum: ["DRAFT", "ACTIVE", "IN_REVIEW", "APPROVED", "ARCHIVED"],
-    default: "DRAFT",
-  },
-  tags: [{ type: String }],
-  fileKey: { type: String },
-  url: { type: String },
-  thumbnailUrl: { type: String },
-  mimeType: { type: String },
-  metadata: { type: Schema.Types.Mixed },
-  currentVersion: { type: Number, default: 1 },
-  versions: [Schema.Types.Mixed],
-});
 
 /* ------------------------------------------------------------------ */
 /*  Ranking                                                             */
@@ -1268,7 +1191,6 @@ export const StudioRegionModel = mongoose.model<any>("StudioRegion", studioRegio
 export const StudioTaskModel = mongoose.model<any>("StudioTask", studioTaskSchema);
 export const StudioCommentModel = mongoose.model<any>("StudioComment", studioCommentSchema);
 export const SubmissionModel = mongoose.model<any>("Submission", submissionSchema);
-export const MaterialModel = mongoose.model<any>("Material", materialSchema);
 export const NotificationModel = mongoose.model<any>("Notification", notificationSchema);
 export const AuditEntryModel = mongoose.model<any>("AuditEntry", auditSchema);
 export const RankingModel = mongoose.model<any>("Ranking", rankingSchema);
@@ -1291,7 +1213,6 @@ export const allMutableModels = [
   StudioTaskModel,
   StudioCommentModel,
   SubmissionModel,
-  MaterialModel,
   NotificationModel,
   AuditEntryModel,
   RankingModel,

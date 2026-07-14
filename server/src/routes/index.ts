@@ -7,7 +7,6 @@ import proposalRoutes from "./proposal.routes.js";
 import seriesRoutes from "./series.routes.js";
 import studioRoutes from "./studio.routes.js";
 import submissionRoutes from "./submission.routes.js";
-import materialRoutes from "./material.routes.js";
 import adminRoutes from "./admin.routes.js";
 import publicationRoutes from "./publication.routes.js";
 import tantouRoutes from "./tantou.routes.js";
@@ -38,7 +37,6 @@ export function createApiRouter(options: ApiRouterOptions = {}) {
   router.use(seriesRoutes);
   router.use(studioRoutes);
   router.use(submissionRoutes);
-  router.use(materialRoutes);
   router.use(adminRoutes);
   router.use(publicationRoutes);
   router.use(tantouRoutes);

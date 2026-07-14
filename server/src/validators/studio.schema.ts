@@ -47,6 +47,7 @@ export const createStudioTaskSchema = z
     priority: z.string().optional(),
     dueAt: z.string().optional(),
     status: z.string().optional(),
+    referenceFiles: z.array(z.record(z.string(), z.unknown())).optional(),
     metadata: z.any().optional(),
   })
   .strict();
@@ -66,6 +67,7 @@ export const patchStudioTaskSchema = z
     priority: z.string().optional(),
     dueAt: z.string().optional(),
     status: z.string().optional(),
+    referenceFiles: z.array(z.record(z.string(), z.unknown())).optional(),
     metadata: z.any().optional(),
   })
   .strict();

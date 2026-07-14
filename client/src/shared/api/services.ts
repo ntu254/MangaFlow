@@ -88,24 +88,6 @@ export interface CreateSubmissionRequest {
   [key: string]: unknown;
 }
 
-export interface CreateMaterialRequest {
-  name: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface UpdateMaterialRequest {
-  name?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface CreateMaterialVersionRequest {
-  fileKey: string;
-  fileName?: string;
-  [key: string]: unknown;
-}
-
 export interface CastVoteRequest {
   decision: "APPROVE" | "REJECT" | "ABSTAIN";
   reason?: string;
@@ -373,15 +355,6 @@ export const assistantApi = {
     apiRequest(`/submissions/${id}/request-revision`, { method: "POST", body: { reviewerNote } }),
   editorApprove: (id: string, reviewerNote: string) =>
     apiRequest(`/submissions/${id}/editor-approve`, { method: "POST", body: { reviewerNote } }),
-};
-
-export const materialsApi = {
-  list: () => apiRequest("/materials"),
-  create: (body: CreateMaterialRequest) => apiRequest("/materials", { method: "POST", body }),
-  patch: (id: string, body: UpdateMaterialRequest) =>
-    apiRequest(`/materials/${id}`, { method: "PATCH", body }),
-  addVersion: (id: string, body: CreateMaterialVersionRequest) =>
-    apiRequest(`/materials/${id}/versions`, { method: "POST", body }),
 };
 
 export type PresignedUpload = {

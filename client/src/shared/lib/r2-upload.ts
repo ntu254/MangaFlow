@@ -8,7 +8,7 @@
 //   1. POST /files/presign-upload  -> { key, uploadUrl, downloadUrl, publicUrl, method, headers, persistent, storage }
 //   2. PUT the file bytes to uploadUrl (skipped for metadata-only fallback)
 //   3. Caller persists the returned canonical metadata via the relevant
-//      entity API (materials, submissions, chapter pages). There is no
+//      entity API (submissions, chapter pages, proposal assets). There is no
 //      separate backend "commit" endpoint.
 
 import { apiRequest } from "../api/client";
@@ -28,12 +28,7 @@ export type UploadedFileMetadata = {
   storage: "r2" | "metadata-only";
 };
 
-export type R2UploadTarget =
-  | "material.create"
-  | "material.version"
-  | "submission"
-  | "chapter-page"
-  | "generic";
+export type R2UploadTarget = "submission" | "chapter-page" | "generic";
 
 export interface PresignUploadResponse {
   key: string;
@@ -70,10 +65,6 @@ function defaultFolder(options: R2UploadOptions): string | undefined {
   if (!options.target) return undefined;
   const id = options.entityId ? `/${options.entityId}` : "";
   switch (options.target) {
-    case "material.create":
-      return `materials${id}`;
-    case "material.version":
-      return `materials${id}/versions`;
     case "submission":
       return `submissions${id}`;
     case "chapter-page":

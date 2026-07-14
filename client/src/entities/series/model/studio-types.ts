@@ -91,6 +91,17 @@ export type StudioTaskStatus =
   | "REJECTED"
   | "CANCELLED";
 
+export type TaskReferenceFile = {
+  id?: string;
+  title?: string;
+  name?: string;
+  fileName?: string;
+  fileKey?: string;
+  url?: string;
+  mimeType?: string;
+  kind?: string;
+};
+
 export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
   TODO: "bg-zinc-200 text-zinc-800 border-zinc-300",
   IN_PROGRESS: "bg-amber-100 text-amber-900 border-amber-300",
@@ -118,6 +129,7 @@ export type StudioTask = {
   dueAt: string;
   priority: "low" | "normal" | "high";
   instructions: string;
+  referenceFiles?: TaskReferenceFile[];
   status: StudioTaskStatus;
   createdAt: string;
   hidden?: boolean;

@@ -42,7 +42,7 @@ type ChapterReadiness = {
   items: Array<{ key: string; passed: boolean; reason: string }>;
 };
 
-type Tab = "overview" | "chapters" | "materials" | "calendar" | "team";
+type Tab = "overview" | "chapters" | "calendar" | "team";
 
 export function SeriesOverview({
   series,
@@ -781,8 +781,6 @@ function actionPhrase(action: string): string {
     SCHEDULE: "has schedule",
     PUBLISH: "has publish",
     REASSIGN: "changed assignee",
-    ADD_MATERIAL: "added material",
-    REMOVE_MATERIAL: "removed material",
     ADD_ASSISTANT: "added assistant",
     REMOVE_ASSISTANT: "removed assistant",
   };

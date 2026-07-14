@@ -7,7 +7,6 @@ import {
   Pencil,
   Layers,
   Users,
-  FileText,
   Newspaper,
   Flag,
 } from "lucide-react";
@@ -231,12 +230,6 @@ export function SeriesCard({
                 <SeriesLink slug={series.slug} tab="team">
                   <Users className="mr-2 size-3.5" />
                   Team
-                </SeriesLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <SeriesLink slug={series.slug} tab="materials">
-                  <FileText className="mr-2 size-3.5" />
-                  Materials
                 </SeriesLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
