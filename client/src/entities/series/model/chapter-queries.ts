@@ -63,7 +63,9 @@ export function useChaptersForSeriesQuery(seriesIds: string[]) {
     queryKey: seriesKeys.chaptersBundle(sortedIds),
     queryFn: async () => {
       const groups = await Promise.all(
-        sortedIds.map((seriesId) => apiRequest<Chapter[]>(`/series/${seriesId}/chapters?pageSize=100`)),
+        sortedIds.map((seriesId) =>
+          apiRequest<Chapter[]>(`/series/${seriesId}/chapters?pageSize=100`),
+        ),
       );
       return groups.flat();
     },

@@ -3,10 +3,15 @@ export * from "./model/series-types";
 export {
   rankingKeys,
   useRankingsListQuery,
+  useRankingsListContractQuery,
   useMySeriesQuery,
   useSeriesListQuery,
 } from "./model/ranking-queries";
-export { useCommentsListQuery, useCommentsQuery, useCreateCommentMutation } from "./model/comment-queries";
+export {
+  useCommentsListQuery,
+  useCommentsQuery,
+  useCreateCommentMutation,
+} from "./model/comment-queries";
 export {
   useMyChaptersQuery,
   useMyChaptersListQuery,

@@ -60,6 +60,7 @@ const DEFAULT_SERIES_TABLE_STATE: Partial<TableState> = {
   sortBy: "updatedAt",
   sortDir: "desc",
 };
+const EMPTY_PRODUCTION_SERIES: ProductionSeries[] = [];
 
 const STATUS_LABEL: Record<StatusFilter, string> = {
   ALL: "All",
@@ -171,7 +172,7 @@ export function SeriesListPage() {
   const isLoading = isSeriesLoading || isProposalsLoading;
 
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>(null);
-  const series = seriesList?.data ?? [];
+  const series = seriesList?.data ?? EMPTY_PRODUCTION_SERIES;
   const seriesPagination = seriesList?.pagination ?? {
     page: tableState.page,
     pageSize: tableState.pageSize,
@@ -304,50 +305,51 @@ export function SeriesListPage() {
 
   const items = useMemo(() => {
     const now = Date.now();
-    return activeProductionSeries
-      .filter((s) => {
-        if (!workflowFilter) return true;
-        const chs = chapterMap.get(s.id) ?? [];
-        const tks = taskMap.get(s.id) ?? [];
-        const subs = submissionMap.get(s.id) ?? [];
-        switch (workflowFilter) {
-          case "REVIEW_NEEDED":
-            return (
-              chs.some((c) => c.status === "EDITOR_REVIEW") ||
-              subs.some(
-                (s) =>
-                  s.status === "PENDING" ||
-                  s.status === "MANGAKA_REVISION_REQUESTED" ||
-                  s.status === "EDITOR_REVISION_REQUESTED",
-              )
-            );
-          case "OVERDUE":
-            return tks.some(
-              (t) =>
-                t.status !== "EDITOR_APPROVED" &&
-                t.status !== "REJECTED" &&
-                t.status !== "CANCELLED" &&
-                t.dueAt &&
-                new Date(t.dueAt).getTime() < now,
-            );
-          case "BLOCKED":
-            return tks.some(
-              (t) =>
-                t.blocked ||
-                t.status === "MANGAKA_REVISION_REQUESTED" ||
-                t.status === "EDITOR_REVISION_REQUESTED",
-            );
-          case "WAITING_EDITOR":
-            return chs.some((c) => c.status === "EDITOR_REVIEW");
-          default:
-            return true;
-        }
-      });
+    return activeProductionSeries.filter((s) => {
+      if (!workflowFilter) return true;
+      const chs = chapterMap.get(s.id) ?? [];
+      const tks = taskMap.get(s.id) ?? [];
+      const subs = submissionMap.get(s.id) ?? [];
+      switch (workflowFilter) {
+        case "REVIEW_NEEDED":
+          return (
+            chs.some((c) => c.status === "EDITOR_REVIEW") ||
+            subs.some(
+              (s) =>
+                s.status === "PENDING" ||
+                s.status === "MANGAKA_REVISION_REQUESTED" ||
+                s.status === "EDITOR_REVISION_REQUESTED",
+            )
+          );
+        case "OVERDUE":
+          return tks.some(
+            (t) =>
+              t.status !== "EDITOR_APPROVED" &&
+              t.status !== "REJECTED" &&
+              t.status !== "CANCELLED" &&
+              t.dueAt &&
+              new Date(t.dueAt).getTime() < now,
+          );
+        case "BLOCKED":
+          return tks.some(
+            (t) =>
+              t.blocked ||
+              t.status === "MANGAKA_REVISION_REQUESTED" ||
+              t.status === "EDITOR_REVISION_REQUESTED",
+          );
+        case "WAITING_EDITOR":
+          return chs.some((c) => c.status === "EDITOR_REVIEW");
+        default:
+          return true;
+      }
+    });
   }, [activeProductionSeries, workflowFilter, chapterMap, taskMap, submissionMap]);
 
   const filteredProposals = useMemo(() => {
     return pendingProposals
-      .filter((p) => !tableState.q.trim() || p.title.toLowerCase().includes(tableState.q.toLowerCase()))
+      .filter(
+        (p) => !tableState.q.trim() || p.title.toLowerCase().includes(tableState.q.toLowerCase()),
+      )
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [pendingProposals, tableState.q]);
 

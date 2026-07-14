@@ -14,9 +14,7 @@ const SHARED: NavItem[] = [
 ];
 
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
-  admin: [
-    { to: "/app/admin/users", label: "User Management", group: "Admin" },
-  ],
+  admin: [{ to: "/app/admin/users", label: "User Management", group: "Admin" }],
   mangaka: [
     ...SHARED,
     { to: "/app/series", label: "My Series", group: "Production" },

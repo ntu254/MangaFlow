@@ -17,7 +17,12 @@ import type {
   StudioRegion,
 } from "@/entities/series/model/studio-types";
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
-import { ApiRequestError, apiRequest, hasApiTokens, type ApiListEnvelope } from "@/shared/api/client";
+import {
+  ApiRequestError,
+  apiRequest,
+  hasApiTokens,
+  type ApiListEnvelope,
+} from "@/shared/api/client";
 import {
   assistantApi,
   seriesApi,
@@ -35,6 +40,7 @@ export {
   useMySeriesQuery,
   useSeriesListQuery,
   useRankingsListQuery,
+  useRankingsListContractQuery,
 } from "@/entities/series/model/ranking-queries";
 export {
   useCommentsQuery,

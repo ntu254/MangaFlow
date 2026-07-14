@@ -84,9 +84,7 @@ export function SubmissionsListPage() {
     total: 0,
   };
   const statusFilter =
-    tableState.filters.status?.type === "select"
-      ? String(tableState.filters.status.value)
-      : "ALL";
+    tableState.filters.status?.type === "select" ? String(tableState.filters.status.value) : "ALL";
   const editorScope =
     tableState.filters.assignedEditorId?.type === "select" &&
     tableState.filters.assignedEditorId.value === user.id
