@@ -11,11 +11,9 @@ export type PermissionAction =
   | "submit_work"
   | "manage_users"
   | "change_role"
-  | "admin_override"
   | "edit_creative_file"
   | "create_assistant_task"
-  | "ranking_import"
-  | "payroll_mark_paid";
+  | "ranking_import";
 
 export type PermissionEntity = {
   ownerId?: string;
@@ -68,22 +66,18 @@ export function canShowAction({
   }
 
   if (role === "admin") {
-    if (["admin_override", "manage_users", "change_role", "payroll_mark_paid"].includes(action)) {
-      return { allowed: true, requiresOverride: action !== "manage_users" };
+    if (["manage_users", "change_role"].includes(action)) {
+      return { allowed: true };
     }
-    return { allowed: false, reason: "ADMIN_OVERRIDE_REQUIRED", requiresOverride: true };
+    return { allowed: false, reason: "ROLE_FORBIDDEN" };
   }
 
   if (role === "board") {
     if (["vote", "finalize"].includes(action)) return { allowed: true };
     if (
-      [
-        "edit_creative_file",
-        "create_assistant_task",
-        "payroll_mark_paid",
-        "manage_users",
-        "ranking_import",
-      ].includes(action)
+      ["edit_creative_file", "create_assistant_task", "manage_users", "ranking_import"].includes(
+        action,
+      )
     ) {
       return { allowed: false, reason: "BOARD_REVIEW_ONLY" };
     }
@@ -95,7 +89,7 @@ export function canShowAction({
         return { allowed: false, reason: "NOT_ASSIGNED_EDITOR" };
       return { allowed: true };
     }
-    if (["vote", "manage_users", "payroll_mark_paid"].includes(action))
+    if (["vote", "manage_users"].includes(action))
       return { allowed: false, reason: "ROLE_FORBIDDEN" };
   }
 

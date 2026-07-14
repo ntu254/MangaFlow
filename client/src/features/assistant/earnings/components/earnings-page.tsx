@@ -43,7 +43,7 @@ export function EarningsPage() {
       <PageHeader
         eyebrow="Account"
         title="Earnings"
-        description="Read-only. Admin will confirm and mark paid."
+        description="Read-only monthly earnings generated after approved assistant tasks."
       />
 
       {mine.length === 0 ? (

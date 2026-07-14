@@ -226,7 +226,7 @@ function AppLayout() {
 function getNavIcon(label: string) {
   if (label === "Dashboard") return Gauge;
   if (label === "Users") return UserRound;
-  if (label === "Payroll" || label === "Earnings") return ReceiptText;
+  if (label === "Earnings") return ReceiptText;
   if (label === "Audit Logs") return FileText;
   if (label === "Settings") return Settings;
   if (label === "Task Board" || label === "My Tasks") return ClipboardList;

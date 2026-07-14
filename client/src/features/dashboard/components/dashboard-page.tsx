@@ -14,12 +14,6 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 const STATS: Record<string, { label: string; value: string; hint: string }[]> = {
-  admin: [
-    { label: "Active users", value: "248", hint: "+12 this week" },
-    { label: "Pending payroll", value: "32", hint: "Awaiting confirmation" },
-    { label: "Storage", value: "412 GB", hint: "In use" },
-    { label: "Audit entries", value: "1.2k", hint: "last 30 days" },
-  ],
   assistant: [
     { label: "Active tasks", value: "5", hint: "" },
     { label: "Pending submission", value: "2", hint: "" },
@@ -41,33 +35,12 @@ const STATS: Record<string, { label: string; value: string; hint: string }[]> = 
 };
 
 const QUEUE_TITLE: Record<string, string> = {
-  admin: "Recent audit log",
   assistant: "Your Tasks",
   editor: "Review queue",
   board: "Proposals awaiting vote",
 };
 
 const QUEUE: Record<string, { id: string; title: string; meta: string; status: string }[]> = {
-  admin: [
-    {
-      id: "a1",
-      title: "Earning EAR-2031 was confirmed",
-      meta: "by Tanaka Akira • 2h ago",
-      status: "approved",
-    },
-    {
-      id: "a2",
-      title: "User suzuki@... was suspended",
-      meta: "by system • 5h ago",
-      status: "cancelled",
-    },
-    {
-      id: "a3",
-      title: "Proposal PR-118 forwarded to board",
-      meta: "by Tanaka Akira • 1d ago",
-      status: "submitted",
-    },
-  ],
   assistant: [
     {
       id: "t1",
@@ -121,15 +94,10 @@ const QUEUE: Record<string, { id: string; title: string; meta: string; status: s
 };
 
 const UPCOMING: Record<string, string[]> = {
-  admin: [
-    "Payroll cycle close — thg 6/30",
-    "Quarterly audit review — thg 7/05",
-    "Storage reconcile job — Sunday",
-  ],
   assistant: [
     "Berserk Ch.378 submission — thg 6/26",
     "Vagabond revision — thg 6/24",
-    "Payroll cutoff — thg 6/30",
+    "Monthly earnings cutoff — thg 6/30",
   ],
   editor: [
     "Final review Vagabond Ch.327",
@@ -148,6 +116,24 @@ export function DashboardPage() {
 
   if (!user) return null;
   if (user.role === "mangaka") return <MangakaDashboard />;
+  if (user.role === "admin") {
+    return (
+      <div className="mx-auto max-w-3xl space-y-4">
+        <RoleBadge role={user.role} />
+        <h1 className="font-serif text-4xl">Admin User Management</h1>
+        <p className="text-sm text-muted-foreground">
+          Admin MVP scope is account creation, role assignment, account lock/unlock, and password
+          reset.
+        </p>
+        <Link
+          to="/app/admin/users"
+          className="inline-flex rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
+        >
+          Open User Management
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-10">
@@ -209,7 +195,7 @@ export function DashboardPage() {
       <Panel title="Phase 1 scope" contentClassName="text-sm text-[var(--admin-muted)]">
         Public reader + design system + role-aware shell with mock data. Phase 2 onward will build
         Series Proposal flow, Page Studio, Task assignment, two-step review, Publication, Ranking,
-        Payroll.
+        and At-risk governance.
       </Panel>
     </div>
   );
