@@ -76,7 +76,6 @@ export const CHAPTER_ACTIONS = [
   "SCHEDULE",
   "PUBLISH",
   "REASSIGN",
-  "ARCHIVE",
 ] as const;
 
 export const PROPOSAL_ACTIONS = [

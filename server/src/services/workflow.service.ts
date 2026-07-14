@@ -1287,7 +1287,6 @@ export async function applyChapterAction(
     POSTPONE: { from: ["READY_FOR_PUBLICATION"], editor: true },
     PUBLISH: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
     REASSIGN: { editor: true },
-    ARCHIVE: { editor: true },
   };
 
   const rule = transition[action];
@@ -1516,15 +1515,6 @@ export async function applyChapterAction(
     patch.assigneeId = payload.newAssigneeId;
     patch.assigneeName = payload.newAssigneeName;
   }
-  if (action === "ARCHIVE") {
-    if (!["PUBLISHED", "EDITOR_APPROVED"].includes(fromStatus)) {
-      // Only allow archive on terminal/stable states
-    }
-    patch.archivedAt = new Date();
-    patch.archivedById = actor.id;
-    patch.archiveReason = payload.reason ?? "";
-  }
-
   const event = {
     id: id("ce"),
     chapterId,

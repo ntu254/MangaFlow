@@ -9,7 +9,6 @@ import {
   ClipboardCheck,
   Calendar,
   RefreshCw,
-  Archive,
   Trash2,
   UserPlus,
   Download,
@@ -302,9 +301,6 @@ export function ChapterDetailWorkspace({
                 {allowedActions.length > 0 && <DropdownMenuSeparator />}
                 <DropdownMenuItem disabled>
                   <Download className="size-3.5" /> Download package
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled>
-                  <Archive className="size-3.5" /> Archive
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

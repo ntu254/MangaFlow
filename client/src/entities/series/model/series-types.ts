@@ -38,7 +38,6 @@ export type ChapterAction =
   | "POSTPONE"
   | "PUBLISH"
   | "REASSIGN"
-  | "ARCHIVE"
   // Legacy
   | "APPROVE";
 
@@ -182,7 +181,6 @@ export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
   POSTPONE: "Postpone",
   PUBLISH: "Publish now",
   REASSIGN: "Change assignee",
-  ARCHIVE: "Archive",
 };
 
 export const CADENCE_LABEL: Record<ChapterCadence, string> = {

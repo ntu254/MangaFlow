@@ -540,7 +540,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const editor = await loginAs("tanaka@beachread.jp");
 
       await request(createApp())
-        .post("/api/series/s-berserk-prod/actions/ARCHIVE")
+        .post("/api/series/s-berserk-prod/actions/HIATUS")
         .set("Authorization", `Bearer ${admin.accessToken}`)
         .send({})
         .expect(403);

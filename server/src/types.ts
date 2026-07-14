@@ -103,13 +103,12 @@ export type ChapterAction =
   | "SCHEDULE"
   | "POSTPONE"
   | "PUBLISH"
-  | "REASSIGN"
-  | "ARCHIVE";
+  | "REASSIGN";
 
 export const CHAPTER_ACTIONS: readonly ChapterAction[] = [
   "START_DRAFT", "START_ASSISTANT_WORK", "SUBMIT_REVIEW", "REQUEST_REVISION",
   "REJECT", "RESUBMIT", "EDITOR_APPROVE", "MARK_READY", "SCHEDULE", "POSTPONE",
-  "PUBLISH", "REASSIGN", "ARCHIVE",
+  "PUBLISH", "REASSIGN",
 ];
 
 // ---------------------------------------------------------------------------
