@@ -18,13 +18,13 @@ export async function requireAuth(req: AuthedRequest, _res: Response, next: Next
 export function requireRole(...roles: Role[]) {
   return (req: AuthedRequest, _res: Response, next: NextFunction) => {
     if (!req.actor) return next(new AppError(401, "Missing authenticated user.", "MISSING_AUTH"));
-    if (req.actor.role === "ADMIN" || roles.includes(req.actor.role)) return next();
+    if (roles.includes(req.actor.role)) return next();
     return next(new AppError(403, "You do not have permission for this action.", "FORBIDDEN"));
   };
 }
 
 export function requireBoardChair(req: AuthedRequest, _res: Response, next: NextFunction) {
   if (!req.actor) return next(new AppError(401, "Missing authenticated user.", "MISSING_AUTH"));
-  if (req.actor.role === "ADMIN" || (req.actor.role === "BOARD" && req.actor.isChair)) return next();
+  if (req.actor.role === "BOARD" && req.actor.isChair) return next();
   return next(new AppError(403, "Board chair permission is required.", "BOARD_CHAIR_REQUIRED"));
 }

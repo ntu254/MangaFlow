@@ -422,6 +422,17 @@ describe("Production-first completion hardening", () => {
       })
       .expect(403);
 
+    const admin = await loginAs("admin@beachread.jp");
+    await request(createApp())
+      .post("/api/rankings/import")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({
+        period: "2026-W27",
+        source: "SURVEY",
+        rows: [{ seriesId: "s-berserk-prod", score: 9.7, votes: 1200 }],
+      })
+      .expect(403);
+
     const board = await loginAs("board@beachread.jp");
     const res = await request(createApp())
       .post("/api/rankings/import")

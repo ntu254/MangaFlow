@@ -19,7 +19,7 @@ router.post("/notifications/:id/archive", archiveNotification);
 
 // Rankings (originally registered inside registerNotifications)
 router.get("/rankings", listRankings);
-router.post("/rankings/import", requireRole("BOARD", "ADMIN") as any, importRankings);
+router.post("/rankings/import", requireRole("BOARD") as any, importRankings);
 router.get("/series/:seriesId/rankings", listSeriesRankings);
 
 export default router;

@@ -536,7 +536,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     });
   });
 
-  it("POST /api/board/proposals/:id/finalization works for ADMIN", async () => {
+  it("POST /api/board/proposals/:id/finalization is Board-only and blocks ADMIN", async () => {
     await ProposalModel.create({
       id: "proposal-finalize-admin",
       title: "Finalize Admin Test",
@@ -552,9 +552,16 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     });
 
     const admin = await loginAs("admin@beachread.jp");
-    const res = await request(createApp())
+    await request(createApp())
       .post("/api/board/proposals/proposal-finalize-admin/finalization")
       .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ decision: "REJECTED" })
+      .expect(403);
+
+    const board = await loginAs("board@beachread.jp");
+    const res = await request(createApp())
+      .post("/api/board/proposals/proposal-finalize-admin/finalization")
+      .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ decision: "REJECTED" })
       .expect(200);
 
@@ -704,19 +711,19 @@ describe("MF-030A Board Queue Live Submission Review", () => {
   });
 
   it("POST /api/board/series/:id/at-risk-decisions rejects an invalid decision", async () => {
-    const admin = await loginAs("admin@beachread.jp");
+    const board = await loginAs("board@beachread.jp");
     await request(createApp())
       .post("/api/board/series/s-berserk-prod/at-risk-decisions")
-      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ decision: "WARNING" })
       .expect(400);
   });
 
   it("POST /api/board/series/:id/at-risk-decisions returns 404 for unknown series", async () => {
-    const admin = await loginAs("admin@beachread.jp");
+    const board = await loginAs("board@beachread.jp");
     await request(createApp())
       .post("/api/board/series/series-001/at-risk-decisions")
-      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ decision: "CONTINUE" })
       .expect(404);
   });
