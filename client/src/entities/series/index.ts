@@ -6,7 +6,7 @@ export {
   useMySeriesQuery,
   useSeriesListQuery,
 } from "./model/ranking-queries";
-export { useCommentsQuery, useCreateCommentMutation } from "./model/comment-queries";
+export { useCommentsListQuery, useCommentsQuery, useCreateCommentMutation } from "./model/comment-queries";
 export {
   useMyChaptersQuery,
   useMyChaptersListQuery,

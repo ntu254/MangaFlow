@@ -1,6 +1,8 @@
 import type { StudioComment } from "@/entities/series/model/studio-types";
 import { studioKeys } from "@/entities/series/model/series-types";
-import { apiRequest } from "@/shared/api/client";
+import { apiRequest, type ApiListEnvelope } from "@/shared/api/client";
+import { studioApi, type StudioCommentsListMeta } from "@/shared/api/services";
+import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useCommentsQuery(filters: {
@@ -16,10 +18,22 @@ export function useCommentsQuery(filters: {
   if (filters.pageId) params.set("pageId", filters.pageId);
   if (filters.regionId) params.set("regionId", filters.regionId);
   if (filters.taskId) params.set("taskId", filters.taskId);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<StudioComment[]>({
     queryKey: studioKeys.comments(filters),
     queryFn: () => apiRequest<StudioComment[]>(`/comments${qs ? `?${qs}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useCommentsListQuery(tableState: TableState) {
+  return useQuery<ApiListEnvelope<StudioComment, StudioCommentsListMeta>>({
+    queryKey: [...studioKeys.all, "commentsList", tableState] as const,
+    queryFn: () =>
+      studioApi.commentsList(tableState) as Promise<
+        ApiListEnvelope<StudioComment, StudioCommentsListMeta>
+      >,
     staleTime: 30000,
   });
 }
