@@ -8,7 +8,6 @@ import type { AssistantSubmission } from "@/entities/submission/model/assistant-
 export type ReviewKind =
   | "PROPOSAL_PACKAGE"
   | "PROPOSAL"
-  | "STORYBOARD"
   | "MANUSCRIPT"
   | "CHAPTER"
   | "PAGE"

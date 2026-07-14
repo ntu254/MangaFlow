@@ -7,7 +7,6 @@ import type { QueueAccent, QueueColumn } from "@/shared/ui";
 const KIND_LABEL: Record<ReviewItem["kind"], string> = {
   PROPOSAL_PACKAGE: "Proposal Package",
   PROPOSAL: "Proposal",
-  STORYBOARD: "Storyboard",
   MANUSCRIPT: "Manuscript",
   CHAPTER: "Chapter",
   PAGE: "Page",
@@ -52,11 +51,6 @@ function linkFor(item: ReviewItem) {
       return {
         to: "/app/editor/proposals/$proposalId" as const,
         params: { proposalId: item.proposalId ?? item.refId },
-      };
-    case "STORYBOARD":
-      return {
-        to: "/app/editor/storyboards/$storyboardId/review" as const,
-        params: { storyboardId: item.refId },
       };
     case "CHAPTER":
     case "PAGE":

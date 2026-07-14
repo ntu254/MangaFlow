@@ -63,7 +63,6 @@ import { Route as AppEditorReviewSubmissionIdRouteImport } from './routes/app.ed
 import { Route as AppEditorProposalsProposalIdRouteImport } from './routes/app.editor.proposals.$proposalId'
 import { Route as AppBoardRankingsImportRouteImport } from './routes/app.board.rankings.import'
 import { Route as AppBoardProposalsProposalIdRouteImport } from './routes/app.board.proposals.$proposalId'
-import { Route as AppEditorStoryboardsStoryboardIdReviewRouteImport } from './routes/app.editor.storyboards.$storyboardId.review'
 import { Route as AppEditorSeriesSeriesIdStudioRouteImport } from './routes/app.editor.series.$seriesId.studio'
 import { Route as AppEditorChaptersChapterIdReviewRouteImport } from './routes/app.editor.chapters.$chapterId.review'
 import { Route as AppEditorChaptersChapterIdAnnotateRouteImport } from './routes/app.editor.chapters.$chapterId.annotate'
@@ -344,12 +343,6 @@ const AppBoardProposalsProposalIdRoute =
     path: '/proposals/$proposalId',
     getParentRoute: () => AppBoardRoute,
   } as any)
-const AppEditorStoryboardsStoryboardIdReviewRoute =
-  AppEditorStoryboardsStoryboardIdReviewRouteImport.update({
-    id: '/storyboards/$storyboardId/review',
-    path: '/storyboards/$storyboardId/review',
-    getParentRoute: () => AppEditorRoute,
-  } as any)
 const AppEditorSeriesSeriesIdStudioRoute =
   AppEditorSeriesSeriesIdStudioRouteImport.update({
     id: '/$seriesId/studio',
@@ -441,7 +434,6 @@ export interface FileRoutesByFullPath {
   '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
-  '/app/editor/storyboards/$storyboardId/review': typeof AppEditorStoryboardsStoryboardIdReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -494,7 +486,6 @@ export interface FileRoutesByTo {
   '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
-  '/app/editor/storyboards/$storyboardId/review': typeof AppEditorStoryboardsStoryboardIdReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -557,7 +548,6 @@ export interface FileRoutesById {
   '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
-  '/app/editor/storyboards/$storyboardId/review': typeof AppEditorStoryboardsStoryboardIdReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -621,7 +611,6 @@ export interface FileRouteTypes {
     | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
-    | '/app/editor/storyboards/$storyboardId/review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -674,7 +663,6 @@ export interface FileRouteTypes {
     | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
-    | '/app/editor/storyboards/$storyboardId/review'
   id:
     | '__root__'
     | '/'
@@ -736,7 +724,6 @@ export interface FileRouteTypes {
     | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
-    | '/app/editor/storyboards/$storyboardId/review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1126,13 +1113,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBoardProposalsProposalIdRouteImport
       parentRoute: typeof AppBoardRoute
     }
-    '/app/editor/storyboards/$storyboardId/review': {
-      id: '/app/editor/storyboards/$storyboardId/review'
-      path: '/storyboards/$storyboardId/review'
-      fullPath: '/app/editor/storyboards/$storyboardId/review'
-      preLoaderRoute: typeof AppEditorStoryboardsStoryboardIdReviewRouteImport
-      parentRoute: typeof AppEditorRoute
-    }
     '/app/editor/series/$seriesId/studio': {
       id: '/app/editor/series/$seriesId/studio'
       path: '/$seriesId/studio'
@@ -1293,7 +1273,6 @@ interface AppEditorRouteChildren {
   AppEditorProposalsProposalIdRoute: typeof AppEditorProposalsProposalIdRoute
   AppEditorChaptersChapterIdAnnotateRoute: typeof AppEditorChaptersChapterIdAnnotateRoute
   AppEditorChaptersChapterIdReviewRoute: typeof AppEditorChaptersChapterIdReviewRoute
-  AppEditorStoryboardsStoryboardIdReviewRoute: typeof AppEditorStoryboardsStoryboardIdReviewRoute
 }
 
 const AppEditorRouteChildren: AppEditorRouteChildren = {
@@ -1307,8 +1286,6 @@ const AppEditorRouteChildren: AppEditorRouteChildren = {
   AppEditorChaptersChapterIdAnnotateRoute:
     AppEditorChaptersChapterIdAnnotateRoute,
   AppEditorChaptersChapterIdReviewRoute: AppEditorChaptersChapterIdReviewRoute,
-  AppEditorStoryboardsStoryboardIdReviewRoute:
-    AppEditorStoryboardsStoryboardIdReviewRoute,
 }
 
 const AppEditorRouteWithChildren = AppEditorRoute._addFileChildren(

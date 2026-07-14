@@ -12,7 +12,6 @@ import {
   CalendarClock,
   Check,
   FileText,
-  Image,
   MessageSquare,
   Send,
   Sparkles,
@@ -59,12 +58,11 @@ export function EditorDashboard() {
     const pendingProposal = allItems.filter(
       (q) => q.kind === "PROPOSAL_PACKAGE" || q.kind === "PROPOSAL",
     ).length;
-    const storyboard = allItems.filter((q) => q.kind === "STORYBOARD").length;
     const chapter = allItems.filter((q) => q.kind === "CHAPTER").length;
     const submission = submissionItems.length;
     const deadlineRisk = myChapters.filter((c) => getDeadlineRisk(c).tone === "rose").length;
     const ready = myChapters.filter((c) => getPublicationReadiness(c, comments).ready).length;
-    return { pendingProposal, storyboard, chapter, submission, deadlineRisk, ready };
+    return { pendingProposal, chapter, submission, deadlineRisk, ready };
   }, [allItems, submissionItems, myChapters, comments]);
 
   const myNotifs = useMemo(
@@ -151,12 +149,6 @@ export function EditorDashboard() {
           tone="amber"
           label="Proposal packages"
           value={counts.pendingProposal}
-        />
-        <StatCard
-          icon={<Image className="size-4" />}
-          tone="violet"
-          label="Storyboard"
-          value={counts.storyboard}
         />
         <StatCard
           icon={<MessageSquare className="size-4" />}
