@@ -331,7 +331,7 @@ export function useTaskSubmissionsQuery(taskId: string) {
 }
 
 export function useSubmissionsQuery(filters: SubmissionFilters) {
-  const qs = buildQuery(filters);
+  const qs = buildQuery({ ...filters, pageSize: "100" });
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.list(filters),
     queryFn: async () => {

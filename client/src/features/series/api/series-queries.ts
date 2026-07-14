@@ -18,7 +18,13 @@ import type {
 } from "@/entities/series/model/studio-types";
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
 import { ApiRequestError, apiRequest, hasApiTokens, type ApiListEnvelope } from "@/shared/api/client";
-import { seriesApi, studioApi, type StudioTasksListMeta } from "@/shared/api/services";
+import {
+  assistantApi,
+  seriesApi,
+  studioApi,
+  type StudioTasksListMeta,
+  type SubmissionsListMeta,
+} from "@/shared/api/services";
 import { useAuth } from "@/shared/auth";
 import type { TableState } from "@/shared/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -933,6 +939,7 @@ export function useSubmissionsQuery(filters: {
   if (filters.assistantId) params.set("assistantId", filters.assistantId);
   if (filters.taskId) params.set("taskId", filters.taskId);
   if (filters.status) params.set("status", filters.status);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.list(filters),
@@ -940,6 +947,17 @@ export function useSubmissionsQuery(filters: {
       const raw = await apiRequest<Record<string, unknown>[]>(`/submissions${qs ? `?${qs}` : ""}`);
       return raw.map(mapSubmissionRecord);
     },
+    staleTime: 30000,
+  });
+}
+
+export function useSubmissionsListQuery(tableState: TableState) {
+  return useQuery<ApiListEnvelope<AssistantSubmission, SubmissionsListMeta>>({
+    queryKey: [...submissionKeys.all, "listContract", tableState] as const,
+    queryFn: () =>
+      assistantApi.submissionsList(tableState) as Promise<
+        ApiListEnvelope<AssistantSubmission, SubmissionsListMeta>
+      >,
     staleTime: 30000,
   });
 }
@@ -990,6 +1008,7 @@ export function useMangakaReviewQueueQuery(filters?: { assistantId?: string; tas
   params.set("status", "PENDING");
   if (filters?.assistantId) params.set("assistantId", filters.assistantId);
   if (filters?.taskId) params.set("taskId", filters.taskId);
+  params.set("pageSize", "100");
   const qs = params.toString();
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.mangakaReviewQueue(filters),
@@ -1021,7 +1040,9 @@ export function useEditorReviewQueueQuery(options: { enabled?: boolean } = {}) {
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.editorReviewQueue(),
     queryFn: async () => {
-      const raw = await apiRequest<Record<string, unknown>[]>("/submissions/review-queue");
+      const raw = await apiRequest<Record<string, unknown>[]>(
+        "/submissions/review-queue?pageSize=100",
+      );
       return raw.map(mapSubmissionRecord);
     },
     enabled: options.enabled ?? true,

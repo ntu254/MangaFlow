@@ -269,6 +269,16 @@ export type StudioTasksListMeta = {
   };
 };
 
+export type SubmissionsListMeta = {
+  q?: string;
+  sort?: { field: string; dir: "asc" | "desc" };
+  filters: Record<string, unknown>;
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+};
+
 function tableStateQuery(state?: TableState) {
   if (!state) return "";
   const params = new URLSearchParams();
@@ -361,7 +371,9 @@ export const studioApi = {
 };
 
 export const assistantApi = {
-  submissions: () => apiRequest("/submissions"),
+  submissions: () => apiRequest("/submissions?pageSize=100"),
+  submissionsList: (state?: TableState) =>
+    apiListRequest<unknown, SubmissionsListMeta>(`/submissions${tableStateQuery(state)}`),
   createSubmission: (body: CreateSubmissionRequest) =>
     apiRequest("/submissions", { method: "POST", body }),
   requestRevision: (id: string, reviewerNote: string) =>
