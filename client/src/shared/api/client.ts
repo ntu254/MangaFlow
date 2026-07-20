@@ -99,7 +99,11 @@ export const WEB_ROLE_TO_API: Record<WebRole, ApiRole> = {
 };
 
 export function apiBaseUrl() {
-  return import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001/api";
+  return (
+    import.meta.env?.VITE_API_BASE_URL ??
+    (typeof process !== "undefined" ? process.env?.VITE_API_BASE_URL : undefined) ??
+    "http://localhost:3001/api"
+  );
 }
 
 export function mapApiUser(user: ApiUser): WebUser {

@@ -8,26 +8,34 @@ import {
   type WebUser,
 } from "./client";
 
+const getEnv = (key: string, fallback: string): string => {
+  return (
+    import.meta.env?.[key] ??
+    (typeof process !== "undefined" ? process.env?.[key] : undefined) ??
+    fallback
+  );
+};
+
 export const DEMO_CREDENTIALS: Record<WebRole, { email: string; password: string }> = {
   admin: {
-    email: import.meta.env.VITE_DEMO_ADMIN_EMAIL ?? "admin@beachread.jp",
-    password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD ?? "admin@beachread.jp",
+    email: getEnv("VITE_DEMO_ADMIN_EMAIL", "admin@beachread.jp"),
+    password: getEnv("VITE_DEMO_ADMIN_PASSWORD", "admin@beachread.jp"),
   },
   mangaka: {
-    email: import.meta.env.VITE_DEMO_MANGAKA_EMAIL ?? "inoue@beachread.jp",
-    password: import.meta.env.VITE_DEMO_MANGAKA_PASSWORD ?? "inoue@beachread.jp",
+    email: getEnv("VITE_DEMO_MANGAKA_EMAIL", "inoue@beachread.jp"),
+    password: getEnv("VITE_DEMO_MANGAKA_PASSWORD", "inoue@beachread.jp"),
   },
   assistant: {
-    email: import.meta.env.VITE_DEMO_ASSISTANT_EMAIL ?? "jun@beachread.jp",
-    password: import.meta.env.VITE_DEMO_ASSISTANT_PASSWORD ?? "jun@beachread.jp",
+    email: getEnv("VITE_DEMO_ASSISTANT_EMAIL", "jun@beachread.jp"),
+    password: getEnv("VITE_DEMO_ASSISTANT_PASSWORD", "jun@beachread.jp"),
   },
   editor: {
-    email: import.meta.env.VITE_DEMO_EDITOR_EMAIL ?? "tanaka@beachread.jp",
-    password: import.meta.env.VITE_DEMO_EDITOR_PASSWORD ?? "tanaka@beachread.jp",
+    email: getEnv("VITE_DEMO_EDITOR_EMAIL", "tanaka@beachread.jp"),
+    password: getEnv("VITE_DEMO_EDITOR_PASSWORD", "tanaka@beachread.jp"),
   },
   board: {
-    email: import.meta.env.VITE_DEMO_BOARD_EMAIL ?? "board@beachread.jp",
-    password: import.meta.env.VITE_DEMO_BOARD_PASSWORD ?? "board@beachread.jp",
+    email: getEnv("VITE_DEMO_BOARD_EMAIL", "board@beachread.jp"),
+    password: getEnv("VITE_DEMO_BOARD_PASSWORD", "board@beachread.jp"),
   },
 };
 
