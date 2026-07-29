@@ -58,7 +58,7 @@ mobile/src/screens/
 
 - Home: action cards, queues, priority readiness summary, recent activity.
 - Manuscript review: proposal queue, selected proposal preview, mock actions `request-revision`, `reject`, `forward-to-board`.
-- Final approval: submissions already `MANGAKA_APPROVED`, comparison preview, linked comments, mock actions `request-revision`, `add-comment`, `editor-approve`.
+- Final approval: consolidated Chapter review only; Assistant submissions are read-only reference context.
 - Comments: lifecycle `OPEN -> FIXED_BY_ASSISTANT -> VERIFIED_BY_MANGAKA -> RESOLVED_BY_EDITOR`.
 - Readiness: displays mock `PublicationReadinessService` output with item-level pass/fail reasons.
 

@@ -64,6 +64,10 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   )
 
   useEffect(() => {
+    // Wait for the live manuscript queue to load. The initial mock manuscripts
+    // carry placeholder ids (e.g. "neon-manuscript") that 404 against
+    // /series/:id/summary.
+    if (loading) return
     const seriesId = selectedManuscript?.id
     if (!seriesId) {
       setSelectedProposalSummary(null)
@@ -86,7 +90,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     return () => {
       cancelled = true
     }
-  }, [dataSource, selectedManuscript?.id])
+  }, [dataSource, loading, selectedManuscript?.id])
 
   const selectedSubmission = useMemo(
     () => submissionItems.find((item) => item.id === selectedSubmissionId) ?? submissionItems[0],
@@ -169,11 +173,11 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     if (!action || !target) return
 
     const note = finalApprovalNote.trim()
-    if ((action === "request-revision" || action === "add-comment") && !note) {
-      setActionError(action === "add-comment" ? "Please enter the comment body before submitting." : "Please enter a reviewer note before requesting revision.")
+    if (!note) {
+      setActionError("Please enter the comment body before submitting.")
       return
     }
-    if (action === "add-comment" && (!target.seriesId || !target.taskId)) {
+    if (!target.seriesId || !target.taskId) {
       setActionError("This submission is missing series/task context for the comment API.")
       return
     }
@@ -181,21 +185,15 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     setActionBusy(true)
     setActionError(null)
     try {
-      if (action === "request-revision") {
-        await dataSource.requestEditorSubmissionRevision(target.id, note)
-      } else if (action === "add-comment") {
-        await dataSource.createEditorComment({
-          seriesId: target.seriesId as string,
-          chapterId: target.chapterId,
-          pageId: target.pageId,
-          taskId: target.taskId,
-          submissionId: target.id,
-          body: note,
-          isBlocking: true,
-        })
-      } else {
-        await dataSource.editorApproveSubmission(target.id, note || "Approved for production.")
-      }
+      await dataSource.createEditorComment({
+        seriesId: target.seriesId as string,
+        chapterId: target.chapterId,
+        pageId: target.pageId,
+        taskId: target.taskId,
+        submissionId: target.id,
+        body: note,
+        isBlocking: true,
+      })
       setLastMockAction(`Submission ${action} sent for ${target.title}.`)
       setPendingFinalApprovalAction(null)
       setFinalApprovalNote("")

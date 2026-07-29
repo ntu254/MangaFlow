@@ -1,0 +1,163 @@
+import { asyncRoute, created, ok, AppError } from "../lib/http.js";
+import { MaterialModel } from "../db/models.js";
+import { id, nowIso } from "../domain/ids.js";
+import { audit } from "../services/audit.service.js";
+import {
+  assertCanMutateMaterialById,
+  assertCanMutateMaterialTarget,
+  assertCanTransitionMaterialAsOwnerOrTantou,
+  assertCanTransitionMaterialToApproved,
+  materialScopeFilter,
+  mergeScope,
+} from "../services/authorization.service.js";
+import { filterFromQuery, paginated, patchById, requireActor, stripMongo } from "./helpers.js";
+import { parseBody, rejectProtectedFields, sanitizePatch } from "../validators/common.js";
+import {
+  createMaterialSchema,
+  patchMaterialSchema,
+  addMaterialVersionSchema,
+} from "../validators/material.schema.js";
+import type { AuthedRequest } from "../types.js";
+import {
+  assertMaterialStatus,
+  isMaterialTransitionAllowed,
+} from "../services/material-status.service.js";
+
+export const listMaterials = asyncRoute(async (req: AuthedRequest, res) =>
+  paginated(
+    req,
+    res,
+    MaterialModel,
+    mergeScope(filterFromQuery(req), await materialScopeFilter(requireActor(req), "read")),
+    { updatedAt: -1 },
+  ),
+);
+export const createMaterial = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
+  const body = parseBody(createMaterialSchema, req);
+  rejectProtectedFields(body as Record<string, unknown>);
+  await assertCanMutateMaterialTarget(actor, body);
+  const materialId = id("material");
+  const hasFile = body.fileKey || body.url;
+  const version = hasFile
+    ? {
+        id: id("matv"),
+        version: 1,
+        fileKey: body.fileKey,
+        url: body.url,
+        thumbnailUrl: body.thumbnailUrl,
+        mimeType: body.mimeType,
+        size: body.size,
+        metadata: body.metadata,
+        uploadedById: req.actor?.id,
+        uploadedByName: req.actor?.name,
+        uploadedAt: nowIso(),
+      }
+    : undefined;
+  const item = await MaterialModel.create({
+    id: materialId,
+    ...body,
+    currentVersion: version ? 1 : undefined,
+    versions: version ? [version] : [],
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  });
+  await audit(req, "material.create", "material", item.id);
+  created(res, item);
+});
+export const patchMaterial = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
+  const body = parseBody(patchMaterialSchema, req);
+  const allowedFields = [
+    "title",
+    "kind",
+    "chapterId",
+    "type",
+    "category",
+    "description",
+    "status",
+    "fileKey",
+    "url",
+    "thumbnailUrl",
+    "mimeType",
+    "size",
+    "tags",
+    "metadata",
+  ];
+  const patch = sanitizePatch(body as Record<string, unknown>, allowedFields, {
+    rejectStatus: false,
+  });
+  const existing = (await MaterialModel.findOne({ id: String(req.params.id) }).lean()) as any;
+  if (!existing) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
+  if (patch.status !== undefined) {
+    const targetStatus = assertMaterialStatus(patch.status);
+    patch.status = targetStatus;
+    const currentStatus = assertMaterialStatus(existing.status);
+    if (targetStatus === currentStatus) {
+      delete patch.status;
+    } else if (!isMaterialTransitionAllowed(currentStatus, targetStatus)) {
+      throw new AppError(
+        409,
+        `Material cannot transition from ${currentStatus} to ${targetStatus}.`,
+        "INVALID_TRANSITION",
+      );
+    } else if (targetStatus === "APPROVED") {
+      await assertCanTransitionMaterialToApproved(actor, existing);
+    } else if (["ACTIVE", "IN_REVIEW", "ARCHIVED"].includes(targetStatus)) {
+      await assertCanTransitionMaterialAsOwnerOrTantou(actor, existing);
+    }
+  }
+  await assertCanMutateMaterialById(actor, String(req.params.id));
+  if (body.chapterId) {
+    await assertCanMutateMaterialTarget(actor, { chapterId: body.chapterId });
+  }
+  ok(res, await patchById(req, MaterialModel, String(req.params.id), "material.update", patch));
+});
+
+export const addMaterialVersion = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertCanMutateMaterialById(requireActor(req), String(req.params.id));
+  const body = parseBody(addMaterialVersionSchema, req);
+  rejectProtectedFields(body as Record<string, unknown>);
+  const material = await MaterialModel.findOne({ id: String(req.params.id) });
+  if (!material) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
+  if (String((material as any).status) === "APPROVED") {
+    throw new AppError(
+      409,
+      "Approved Material versions are immutable; create a new DRAFT material for replacement work.",
+      "APPROVED_MATERIAL_IMMUTABLE",
+    );
+  }
+  const nextVersion = Number((material as any).currentVersion ?? 0) + 1;
+  const version = {
+    id: id("matv"),
+    version: nextVersion,
+    ...body,
+    uploadedById: req.actor?.id,
+    uploadedByName: req.actor?.name,
+    uploadedAt: nowIso(),
+  };
+  (material as any).versions = [...((material as any).versions ?? []), version];
+  (material as any).currentVersion = nextVersion;
+  (material as any).updatedAt = nowIso();
+  await material.save();
+  await audit(req, "material.version", "material", String(req.params.id));
+  ok(res, stripMongo(material));
+});
+
+export const deleteMaterial = asyncRoute(async (req: AuthedRequest, res) => {
+  await assertCanMutateMaterialById(requireActor(req), String(req.params.id));
+  const materialId = String(req.params.id);
+  const existing = await MaterialModel.findOne({ id: materialId });
+  if (!existing) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
+  if (String((existing as any).status) === "APPROVED") {
+    throw new AppError(
+      409,
+      "Approved Materials are immutable and cannot be deleted; archive the approved record instead.",
+      "APPROVED_MATERIAL_IMMUTABLE",
+    );
+  }
+  await MaterialModel.deleteOne({ id: materialId });
+  await audit(req, "material.delete", "material", materialId);
+  ok(res, { id: materialId });
+});
+

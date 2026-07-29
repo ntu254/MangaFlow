@@ -1,5 +1,9 @@
 # Manga Bubble AI Service
 
+## Training
+
+The reproducible Google Colab workflow is in [training/README.md](training/README.md).
+
 Python FastAPI service xử lý ảnh manga: detect bubble → refine mask → xoá chữ.
 
 ## Cấu trúc

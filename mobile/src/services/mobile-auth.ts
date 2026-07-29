@@ -32,8 +32,8 @@ interface AuthPayload {
 export const mobileDemoAccounts: Record<MobileAuthRole, { label: string; email: string; password: string; roleTitle: string }> = {
   board: {
     label: "Board Demo",
-    email: process.env.EXPO_PUBLIC_BOARD_EMAIL ?? "board@mangaflow.local",
-    password: process.env.EXPO_PUBLIC_BOARD_PASSWORD ?? "board@mangaflow.local",
+    email: process.env.EXPO_PUBLIC_BOARD_EMAIL ?? "board@beachread.jp",
+    password: process.env.EXPO_PUBLIC_BOARD_PASSWORD ?? "board@beachread.jp",
     roleTitle: "Board Chair",
   },
   editor: {

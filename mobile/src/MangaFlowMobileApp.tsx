@@ -278,7 +278,7 @@ function RoleProfile({ role, name, onLogout, isLoggingOut }: { role: "BOARD" | "
       <MFDetailList items={[
         { id: "scope", label: "Mobile scope", value: isBoard ? "Board and Board Chair surfaces only. No Admin override is represented." : "Tantou Editor surfaces only. Proposal review and final approval stay visually separate.", tone: "primary", icon: isBoard ? "scale-balance" : "shield-check" },
         { id: "data", label: "Data boundary", value: "Live API data-source attempts read calls first, then falls back to local reference data so screen ownership stays stable.", tone: "neutral", icon: "file-check" },
-        { id: "security", label: "Backend-owned", value: "Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and payroll remain backend-owned.", tone: "danger", icon: "lock" },
+        { id: "security", label: "Backend-owned", value: "Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and earnings tracking remain backend-owned.", tone: "danger", icon: "lock" },
       ]} />
       <MFTimeline items={[
         { id: "current", title: isBoard ? "Review Board queues" : "Review Editor queues", subtitle: isBoard ? "Votes, finalize, tie-break, ranking, and at-risk cases are routed through backend-owned workflows." : "Proposal review, final approval, comments, and readiness read live APIs with fallback reference states.", tone: "primary", icon: "file-text" },

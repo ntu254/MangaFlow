@@ -1,0 +1,393 @@
+{
+  "info": {
+    "_postman_id": "2f2d2ef7-2df5-4e80-9c61-mangaflow-api",
+    "name": "MangaFlow API - Complete Workflow",
+    "description": "Complete Postman collection generated from the mounted backend routes.\n\nSetup:\n1. Start the backend on http://localhost:3001.\n2. Import this collection and MangaFlow-Local.postman_environment.json.\n3. Run one role login under Auth, then use Canonical Happy Path actor switches to select activeAccessToken.\n4. Run create requests in order; the collection-level test captures workflow IDs for later requests.\n\nCanonical rules included by this collection:\n- Proposal authoring is Mangaka-only; Editor reviews and acts but does not create proposals.\n- Material status is a top-level field. APPROVED requires the assigned Tantou; rate data is server-resolved and snapshotted.\n- Chapter readiness is read from the canonical readiness endpoint.\n- Comment resolve/reopen use workflow endpoints, not PATCH status, and require the assigned Tantou.\n- Rate table management is Admin-only; Mangaka/Editor can only read active rate options.\n\nRequest descriptions identify the expected actor role. Negative Authorization & State and Deprecated Compatibility folders are intentionally executable checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{activeAccessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "activeActorRole", "value": "ADMIN" },
+    { "key": "activeAccessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "boardAccessToken", "value": "" },
+    { "key": "editorAccessToken", "value": "" },
+    { "key": "mangakaAccessToken", "value": "" },
+    { "key": "assistantAccessToken", "value": "" },
+    { "key": "adminRefreshToken", "value": "" },
+    { "key": "boardRefreshToken", "value": "" },
+    { "key": "editorRefreshToken", "value": "" },
+    { "key": "mangakaRefreshToken", "value": "" },
+    { "key": "assistantRefreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "editorId", "value": "" },
+    { "key": "assistantId", "value": "" },
+    { "key": "seriesId", "value": "" },
+    { "key": "proposalId", "value": "" },
+    { "key": "versionId", "value": "" },
+    { "key": "chapterId", "value": "" },
+    { "key": "pageId", "value": "" },
+    { "key": "regionId", "value": "" },
+    { "key": "taskId", "value": "" },
+    { "key": "submissionId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "memberId", "value": "" },
+    { "key": "materialId", "value": "" },
+    { "key": "rateId", "value": "" },
+    { "key": "sessionId", "value": "" },
+    { "key": "noteId", "value": "" },
+    { "key": "earningId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "rankingId", "value": "" },
+    { "key": "uploadToken", "value": "" },
+    { "key": "displayToken", "value": "" },
+    { "key": "uploadFilePath", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const json = pm.response.json();",
+          "const data = json.data ?? json;",
+          "const entity = data.entity ?? data.item ?? data;",
+          "const id = entity.id ?? entity._id ?? data.id ?? data._id;",
+          "const path = pm.request.url.toString();",
+          "const capture = (key) => { if (id) pm.collectionVariables.set(key, id); };",
+          "if (path.includes('/proposals')) capture('proposalId');",
+          "if (path.includes('/voting-sessions')) capture('sessionId');",
+          "if (path.includes('/series')) capture('seriesId');",
+          "if (path.includes('/chapters')) capture('chapterId');",
+          "if (path.includes('/pages')) capture('pageId');",
+          "if (path.includes('/regions')) capture('regionId');",
+          "if (path.includes('/tasks')) capture('taskId');",
+          "if (path.includes('/submissions')) capture('submissionId');",
+          "if (path.includes('/comments')) capture('commentId');",
+          "if (path.includes('/members')) capture('memberId');",
+          "if (path.includes('/materials')) capture('materialId');",
+          "if (path.includes('/rates')) capture('rateId');",
+          "if (path.includes('/notes')) capture('noteId');",
+          "if (path.includes('/payroll') || path.includes('/earnings')) capture('earningId');",
+          "if (path.includes('/notifications')) capture('notificationId');",
+          "if (path.includes('/rankings')) capture('rankingId');"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Canonical Happy Path",
+      "description": "Use the role switchers before each actor-owned step in the seeded workflow.",
+      "item": [
+        { "name": "Use ADMIN actor", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me", "description": "Pre-request: set activeAccessToken to adminAccessToken." }, "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('activeActorRole', 'ADMIN');", "pm.collectionVariables.set('activeAccessToken', pm.collectionVariables.get('adminAccessToken') || '');"] } }] },
+        { "name": "Use BOARD actor", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me", "description": "Pre-request: set activeAccessToken to boardAccessToken." }, "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('activeActorRole', 'BOARD');", "pm.collectionVariables.set('activeAccessToken', pm.collectionVariables.get('boardAccessToken') || '');"] } }] },
+        { "name": "Use EDITOR actor", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me", "description": "Pre-request: set activeAccessToken to editorAccessToken." }, "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('activeActorRole', 'EDITOR');", "pm.collectionVariables.set('activeAccessToken', pm.collectionVariables.get('editorAccessToken') || '');"] } }] },
+        { "name": "Use MANGAKA actor", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me", "description": "Pre-request: set activeAccessToken to mangakaAccessToken." }, "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('activeActorRole', 'MANGAKA');", "pm.collectionVariables.set('activeAccessToken', pm.collectionVariables.get('mangakaAccessToken') || '');"] } }] },
+        { "name": "Use ASSISTANT actor", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me", "description": "Pre-request: set activeAccessToken to assistantAccessToken." }, "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('activeActorRole', 'ASSISTANT');", "pm.collectionVariables.set('activeAccessToken', pm.collectionVariables.get('assistantAccessToken') || '');"] } }] }
+      ]
+    },
+    {
+      "name": "Negative Authorization & State",
+      "description": "Executable negative checks. Set the matching role token and IDs before running.",
+      "item": [
+        { "name": "Assistant resolve comment (403)", "request": { "method": "POST", "url": "{{baseUrl}}/api/comments/{{commentId}}/resolve", "description": "Run with activeActorRole=ASSISTANT. Expected 403." }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Assistant cannot resolve comment', () => pm.expect(pm.response.code).to.equal(403));"] } }] },
+        { "name": "Mangaka approve Material (403)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"APPROVED\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/materials/{{materialId}}", "description": "Run with activeActorRole=MANGAKA on an ACTIVE/IN_REVIEW Material. Expected 403 TANTOU_ASSIGNMENT_REQUIRED." } },
+        { "name": "Direct proposal FORCE_STATUS (410)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"FORCE_STATUS\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/proposals/{{proposalId}}/actions/FORCE_STATUS", "description": "Expected 410 WORKFLOW_REMOVED; approval must use VotingSession." } },
+        { "name": "Generic submission create (410)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"taskId\": \"{{taskId}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/submissions", "description": "Expected 410 ENDPOINT_DEPRECATED; use POST /api/tasks/:taskId/submit." } },
+        { "name": "DRAFT approve Material (409)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"APPROVED\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/materials/{{materialId}}", "description": "Expected 409 INVALID_TRANSITION." } }
+      ]
+    },
+    {
+      "name": "Deprecated Compatibility",
+      "description": "Mounted compatibility endpoints retained for migration visibility. Do not use for canonical workflow execution.",
+      "item": [
+        { "name": "Deprecated generic submission endpoint", "request": { "method": "POST", "url": "{{baseUrl}}/api/submissions", "description": "Deprecated; expected 410 ENDPOINT_DEPRECATED." } },
+        { "name": "Removed Proposal force status", "request": { "method": "POST", "url": "{{baseUrl}}/api/proposals/{{proposalId}}/actions/FORCE_STATUS", "description": "Removed bypass; expected 410 WORKFLOW_REMOVED." } }
+      ]
+    },
+    {
+      "name": "00 Health",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/health", "description": "Public liveness check." } },
+        { "name": "Readiness", "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/ready", "description": "Public readiness check. Returns 503 when MongoDB is not connected." } }
+      ]
+    },
+    {
+      "name": "01 Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@beachread.jp\",\n  \"password\": \"admin@beachread.jp\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Public ADMIN login. Stores adminAccessToken/adminRefreshToken and selects ADMIN as activeActorRole."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "const data = json.data ?? json;", "pm.test('login returns tokens', () => pm.expect(data.accessToken).to.be.a('string'));", "if (data.accessToken) { pm.collectionVariables.set('adminAccessToken', data.accessToken); pm.collectionVariables.set('activeAccessToken', data.accessToken); }", "if (data.refreshToken) { pm.collectionVariables.set('adminRefreshToken', data.refreshToken); pm.collectionVariables.set('refreshToken', data.refreshToken); }", "pm.collectionVariables.set('activeActorRole', 'ADMIN');", "if (data.user?.id) pm.collectionVariables.set('userId', data.user.id);", "if (data.user?._id) pm.collectionVariables.set('userId', data.user._id);"] } }]
+        },
+        {
+          "name": "Login BOARD",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"board@beachread.jp\",\n  \"password\": \"board@beachread.jp\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login", "description": "Stores boardAccessToken and selects BOARD as activeActorRole." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const data = (pm.response.json().data ?? pm.response.json());", "pm.test('BOARD login returns tokens', () => pm.expect(data.accessToken).to.be.a('string'));", "pm.collectionVariables.set('boardAccessToken', data.accessToken);", "pm.collectionVariables.set('boardRefreshToken', data.refreshToken ?? '');", "pm.collectionVariables.set('activeAccessToken', data.accessToken);", "pm.collectionVariables.set('activeActorRole', 'BOARD');"] } }]
+        },
+        {
+          "name": "Login EDITOR",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"tanaka@beachread.jp\",\n  \"password\": \"tanaka@beachread.jp\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login", "description": "Stores editorAccessToken and selects EDITOR as activeActorRole." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const data = (pm.response.json().data ?? pm.response.json());", "pm.test('EDITOR login returns tokens', () => pm.expect(data.accessToken).to.be.a('string'));", "pm.collectionVariables.set('editorAccessToken', data.accessToken);", "pm.collectionVariables.set('editorRefreshToken', data.refreshToken ?? '');", "pm.collectionVariables.set('activeAccessToken', data.accessToken);", "pm.collectionVariables.set('activeActorRole', 'EDITOR');"] } }]
+        },
+        {
+          "name": "Login MANGAKA",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"inoue@beachread.jp\",\n  \"password\": \"inoue@beachread.jp\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login", "description": "Stores mangakaAccessToken and selects MANGAKA as activeActorRole." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const data = (pm.response.json().data ?? pm.response.json());", "pm.test('MANGAKA login returns tokens', () => pm.expect(data.accessToken).to.be.a('string'));", "pm.collectionVariables.set('mangakaAccessToken', data.accessToken);", "pm.collectionVariables.set('mangakaRefreshToken', data.refreshToken ?? '');", "pm.collectionVariables.set('activeAccessToken', data.accessToken);", "pm.collectionVariables.set('activeActorRole', 'MANGAKA');"] } }]
+        },
+        {
+          "name": "Login ASSISTANT",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"jun@beachread.jp\",\n  \"password\": \"jun@beachread.jp\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login", "description": "Stores assistantAccessToken and selects ASSISTANT as activeActorRole." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const data = (pm.response.json().data ?? pm.response.json());", "pm.test('ASSISTANT login returns tokens', () => pm.expect(data.accessToken).to.be.a('string'));", "pm.collectionVariables.set('assistantAccessToken', data.accessToken);", "pm.collectionVariables.set('assistantRefreshToken', data.refreshToken ?? '');", "pm.collectionVariables.set('activeAccessToken', data.accessToken);", "pm.collectionVariables.set('activeActorRole', 'ASSISTANT');"] } }]
+        },
+        { "name": "Refresh", "request": { "method": "POST", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/refresh", "description": "Public token rotation endpoint." } },
+        { "name": "Current user", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me", "description": "Authenticated actor profile." } },
+        { "name": "Logout", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/logout", "description": "Authenticated session revocation." } }
+      ]
+    },
+    {
+      "name": "02 Bootstrap & Dashboards",
+      "item": [
+        { "name": "My bootstrap", "request": { "method": "GET", "url": "{{baseUrl}}/api/me/bootstrap", "description": "Authenticated startup payload for the current actor." } },
+        { "name": "Dashboard summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/{{dashboardRole}}/summary", "description": "Authenticated dashboard summary. Set dashboardRole to the current role (ADMIN, BOARD, EDITOR, MANGAKA, or ASSISTANT)." } }
+      ]
+    },
+    {
+      "name": "03 Proposals",
+      "item": [
+        { "name": "List proposals", "request": { "method": "GET", "url": "{{baseUrl}}/api/proposals", "description": "List proposals visible to the current actor." } },
+        {
+          "name": "Create proposal (MANGAKA)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Sample Manga\",\n  \"slug\": \"sample-manga\",\n  \"synopsis\": \"A sample synopsis for workflow testing.\",\n  \"logline\": \"A concise hook for the editorial board.\",\n  \"genres\": [\"ACTION\", \"DRAMA\"],\n  \"requestedPublicationType\": \"WEEKLY\",\n  \"chaptersPlanned\": 12,\n  \"originalWorkConfirmed\": true\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/proposals", "description": "MANGAKA only. Creates a proposal in DRAFT. Captures proposalId when returned." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "const data = json.data ?? json;", "const id = data.id ?? data._id ?? data.proposal?.id ?? data.proposal?._id;", "if (id) pm.collectionVariables.set('proposalId', id);"] } }]
+        },
+        { "name": "Get proposal", "request": { "method": "GET", "url": "{{baseUrl}}/api/proposals/{{proposalId}}", "description": "Read proposal details." } },
+        { "name": "List proposal versions", "request": { "method": "GET", "url": "{{baseUrl}}/api/proposals/{{proposalId}}/versions", "description": "ADMIN, BOARD, EDITOR, or MANGAKA. Read immutable proposal version history." } },
+        { "name": "Get proposal version", "request": { "method": "GET", "url": "{{baseUrl}}/api/proposals/{{proposalId}}/versions/{{versionId}}", "description": "ADMIN, BOARD, EDITOR, or MANGAKA. Read one proposal version." } },
+        { "name": "Patch proposal", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"synopsis\": \"Updated synopsis for the current editable version.\",\n  \"submissionNote\": \"Updated note\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/proposals/{{proposalId}}", "description": "Edit fields permitted by the proposal lifecycle." } },
+        { "name": "Delete proposal", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/proposals/{{proposalId}}", "description": "MANGAKA or EDITOR. Lifecycle-aware delete/archive behavior." } },
+        { "name": "Proposal action", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"{{proposalAction}}\",\n  \"comment\": \"Workflow note\",\n  \"reason\": \"Business reason\",\n  \"voteDecision\": \"APPROVE\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/proposals/{{proposalId}}/actions/{{proposalAction}}", "description": "Use only the actor/action pairs documented in the proposal lifecycle. Supported normal actions: SUBMIT, WITHDRAW, EDIT, CLAIM, RELEASE_CLAIM, REASSIGN_CLAIM, REQUEST_CHANGES, RESUBMIT, FORWARD, REJECT, RECALL, VOTE, ARCHIVE. Proposal approval is finalized by VotingSession; FORCE_STATUS is removed from this endpoint and returns 410 WORKFLOW_REMOVED. EIC-only tie-break uses the dedicated VotingSession endpoint." } }
+      ]
+    },
+    {
+      "name": "04 Board & Voting",
+      "item": [
+        { "name": "Decision history", "request": { "method": "GET", "url": "{{baseUrl}}/api/board/decisions/history", "description": "BOARD or EDITOR." } },
+        { "name": "List voting sessions", "request": { "method": "GET", "url": "{{baseUrl}}/api/voting-sessions", "description": "BOARD or EDITOR." } },
+        { "name": "Get voting session", "request": { "method": "GET", "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}", "description": "BOARD or EDITOR." } },
+        {
+          "name": "Create voting session (CHAIR)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"August board review\",\n  \"mode\": \"MAJORITY\",\n  \"proposalId\": \"{{proposalId}}\",\n  \"closesAt\": \"2026-08-01T00:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions", "description": "Board Chair only. Creates a voting session." }
+        },
+        { "name": "Patch voting session (CHAIR)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"closesAt\": \"2026-08-02T00:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}", "description": "Board Chair only." } },
+        { "name": "Close voting session (CHAIR)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"note\": \"Session closed after quorum.\",\n  \"publicationType\": \"WEEKLY\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}/close", "description": "Board Chair only. Finalizes the session using the canonical close workflow." } },
+        { "name": "Cancel voting session (CHAIR)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Cancelled by board.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}/cancel", "description": "Board Chair only." } },
+        { "name": "Tie-break (EIC)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"proposalId\": \"{{proposalId}}\",\n  \"decision\": \"APPROVE\",\n  \"reason\": \"Tie-break rationale\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}/tie-break", "description": "EDITOR with isEditorInChief=true only. A regular Editor receives 403." } },
+        { "name": "Add session note", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"text\": \"Board discussion note\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}/notes", "description": "EDITOR or BOARD." } },
+        { "name": "Patch session note", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"text\": \"Updated board discussion note\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}/notes/{{noteId}}", "description": "EDITOR or BOARD." } },
+        { "name": "Delete session note", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/voting-sessions/{{sessionId}}/notes/{{noteId}}", "description": "EDITOR or BOARD." } }
+      ]
+    },
+    {
+      "name": "05 Series",
+      "item": [
+        { "name": "List series", "request": { "method": "GET", "url": "{{baseUrl}}/api/series", "description": "List series visible to the current actor." } },
+        { "name": "Get series", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}" } },
+        { "name": "Patch series", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"synopsis\": \"Updated series synopsis\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}", "description": "EDITOR or owning MANGAKA." } },
+        { "name": "Series lifecycle action", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"{{seriesAction}}\",\n  \"reason\": \"Workflow reason\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}/actions/{{seriesAction}}", "description": "Assigned Tantou or owning MANGAKA, according to the lifecycle matrix." } },
+        { "name": "Delete series", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/series/{{seriesId}}", "description": "Owning MANGAKA only, subject to related-data guards." } },
+        { "name": "List series chapters", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}/chapters" } },
+        {
+          "name": "Create chapter",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"number\": 1,\n  \"title\": \"Chapter 1\",\n  \"plannedAt\": \"2026-08-01T00:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}/chapters", "description": "Owning MANGAKA only." }
+        },
+        { "name": "Series summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}/summary" } },
+        { "name": "Series activity", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}/activity" } }
+      ]
+    },
+    {
+      "name": "06 Members & Tantou",
+      "item": [
+        { "name": "List members", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}/members" } },
+        { "name": "Add member (EDITOR/MANGAKA)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{assistantId}}\",\n  \"role\": \"ASSISTANT\",\n  \"scope\": \"Task only\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}/members", "description": "EDITOR or owning MANGAKA." } },
+        { "name": "Update member", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"ACTIVE\",\n  \"scope\": \"Full chapter\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}/members/{{memberId}}", "description": "EDITOR or owning MANGAKA." } },
+        { "name": "Remove member", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/series/{{seriesId}}/members/{{memberId}}", "description": "EDITOR or owning MANGAKA." } },
+        { "name": "Invite assistant", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"assistant@example.com\",\n  \"scope\": \"Task only\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}/invites", "description": "Assigned Tantou or owning MANGAKA." } },
+        { "name": "Get assigned Tantou", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}/editor", "description": "Authenticated read." } },
+        { "name": "Assign Tantou", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"editorId\": \"{{editorId}}\",\n  \"editorName\": \"Assigned Tantou\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/series/{{seriesId}}/editor", "description": "EDITOR with isEditorInChief=true only." } },
+        { "name": "Remove Tantou", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/series/{{seriesId}}/editor", "description": "EDITOR with isEditorInChief=true only." } }
+      ]
+    },
+    {
+      "name": "07 Chapters, Pages & Files",
+      "item": [
+        { "name": "List chapters", "request": { "method": "GET", "url": "{{baseUrl}}/api/chapters?seriesId={{seriesId}}", "description": "Scoped EDITOR, MANGAKA, or ASSISTANT." } },
+        { "name": "Get chapter", "request": { "method": "GET", "url": "{{baseUrl}}/api/chapters/{{chapterId}}" } },
+        { "name": "Patch chapter", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated chapter title\",\n  \"draftDueAt\": \"2026-08-05T00:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/chapters/{{chapterId}}", "description": "Owning MANGAKA only. reviewNotes are legacy metadata and do not define readiness." } },
+        { "name": "Chapter action", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"{{chapterAction}}\",\n  \"reason\": \"Workflow reason\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/chapters/{{chapterId}}/actions/{{chapterAction}}", "description": "Role and state scoped. Supported actions: START_DRAFT, START_ASSISTANT_WORK, SUBMIT_REVIEW, REQUEST_REVISION, REJECT, RESUBMIT, EDITOR_APPROVE, SCHEDULE, POSTPONE, PUBLISH, REASSIGN, ARCHIVE." } },
+        { "name": "List chapter pages", "request": { "method": "GET", "url": "{{baseUrl}}/api/chapters/{{chapterId}}/pages" } },
+        { "name": "Chapter readiness", "request": { "method": "GET", "url": "{{baseUrl}}/api/chapters/{{chapterId}}/readiness", "description": "Canonical readiness contract. The frontend must use this response rather than deriving blockers from deadline, assignee, or reviewNotes." } },
+        { "name": "Chapter reviews", "request": { "method": "GET", "url": "{{baseUrl}}/api/chapters/{{chapterId}}/reviews", "description": "Scoped EDITOR or MANGAKA." } },
+        { "name": "Create page", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"pageNumber\": 1,\n  \"imageUrl\": \"https://cdn.example.com/page-001.png\",\n  \"fileName\": \"page-001.png\",\n  \"mimeType\": \"image/png\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/chapters/{{chapterId}}/pages", "description": "Owning MANGAKA only." } },
+        { "name": "Patch page", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"imageUrl\": \"https://cdn.example.com/page-001-v2.png\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/pages/{{pageId}}", "description": "Owning MANGAKA only." } },
+        { "name": "Delete page", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/pages/{{pageId}}", "description": "Owning MANGAKA only." } },
+        { "name": "Presign upload", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fileName\": \"page-001.png\",\n  \"contentType\": \"image/png\",\n  \"folder\": \"series/{{seriesId}}/chapters/{{chapterId}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/files/presign-upload", "description": "EDITOR, MANGAKA, or ASSISTANT. Captures uploadToken if the response exposes one." } },
+        { "name": "Presign download", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"key\": \"series/{{seriesId}}/chapters/{{chapterId}}/page-001.png\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/files/presign-download", "description": "Resource-scoped BOARD, EDITOR, MANGAKA, or ASSISTANT." } },
+        { "name": "Display URL", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"key\": \"series/{{seriesId}}/chapters/{{chapterId}}/page-001.png\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/files/display-url", "description": "EDITOR, MANGAKA, or ASSISTANT." } }
+      ]
+    },
+    {
+      "name": "08 Studio Regions & Tasks",
+      "item": [
+        { "name": "Send chapter to Editor review", "request": { "method": "POST", "url": "{{baseUrl}}/api/studio/chapters/{{chapterId}}/send-editor-review", "description": "MANGAKA only. Canonical chapter review handoff." } },
+        { "name": "List regions", "request": { "method": "GET", "url": "{{baseUrl}}/api/studio/regions?pageId={{pageId}}" } },
+        { "name": "Create region", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"pageId\": \"{{pageId}}\",\n  \"chapterId\": \"{{chapterId}}\",\n  \"type\": \"SPEECH_BUBBLE\",\n  \"x\": 0.2,\n  \"y\": 0.2,\n  \"width\": 0.25,\n  \"height\": 0.15,\n  \"label\": \"Bubble 1\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/regions", "description": "MANGAKA only." } },
+        { "name": "Patch regions batch", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"regionId\": \"{{regionId}}\",\n  \"status\": \"ACTIVE\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/regions", "description": "MANGAKA only. Legacy-compatible batch patch shape." } },
+        { "name": "Patch region", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"label\": \"Updated bubble label\",\n  \"status\": \"ACTIVE\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/regions/{{regionId}}", "description": "MANGAKA only." } },
+        { "name": "Delete region", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/studio/regions/{{regionId}}", "description": "MANGAKA only." } },
+        { "name": "List tasks", "request": { "method": "GET", "url": "{{baseUrl}}/api/studio/tasks?seriesId={{seriesId}}" } },
+        {
+          "name": "Create task (MANGAKA)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"seriesId\": \"{{seriesId}}\",\n  \"chapterId\": \"{{chapterId}}\",\n  \"pageId\": \"{{pageId}}\",\n  \"regionId\": \"{{regionId}}\",\n  \"assigneeId\": \"{{assistantId}}\",\n  \"title\": \"Letter speech bubble\",\n  \"description\": \"Letter and clean the bubble.\",\n  \"type\": \"LETTERING\",\n  \"priority\": \"NORMAL\",\n  \"isRequired\": true,\n  \"rateCode\": \"SPEECH_BUBBLE\",\n  \"quantity\": 2,\n  \"currency\": \"JPY\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/tasks", "description": "MANGAKA only. rateCode and quantity are the public earnings inputs; estimatedAmount/rateSnapshot are server-owned. Captures taskId." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "const data = json.data ?? json;", "const id = data.id ?? data._id ?? data.task?.id ?? data.task?._id;", "if (id) pm.collectionVariables.set('taskId', id);"] } }]
+        },
+        { "name": "Patch tasks batch", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{taskId}}\",\n  \"priority\": \"HIGH\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/tasks", "description": "MANGAKA only. Legacy-compatible batch patch shape." } },
+        { "name": "Patch task", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated task title\",\n  \"quantity\": 3,\n  \"rateCode\": \"SPEECH_BUBBLE\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/tasks/{{taskId}}", "description": "MANGAKA only. Repricing remains server-controlled." } },
+        { "name": "Get task", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/{{taskId}}" } },
+        { "name": "Get task (studio alias)", "request": { "method": "GET", "url": "{{baseUrl}}/api/studio/tasks/{{taskId}}", "description": "Compatibility alias for task detail." } },
+        { "name": "Task action", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"action\": \"{{taskAction}}\",\n  \"reason\": \"Workflow reason\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/tasks/{{taskId}}/actions/{{taskAction}}", "description": "EDITOR, MANGAKA, or ASSISTANT. Use the documented task action for the current status." } }
+      ]
+    },
+    {
+      "name": "09 Submissions",
+      "item": [
+        { "name": "List submissions", "request": { "method": "GET", "url": "{{baseUrl}}/api/submissions?taskId={{taskId}}" } },
+        { "name": "Create submission", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"taskId\": \"{{taskId}}\",\n  \"seriesId\": \"{{seriesId}}\",\n  \"chapterId\": \"{{chapterId}}\",\n  \"pageId\": \"{{pageId}}\",\n  \"intent\": \"SUBMIT\",\n  \"fileKey\": \"series/{{seriesId}}/tasks/{{taskId}}/submission-001.png\",\n  \"fileName\": \"submission-001.png\",\n  \"fileSizeKB\": 240,\n  \"mimeType\": \"image/png\",\n  \"notes\": \"Ready for review.\",\n  \"reviewStage\": \"MANGAKA_REVIEW\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/submissions", "description": "ASSISTANT, MANGAKA, or EDITOR. Use intent DRAFT for draft persistence or SUBMIT for workflow submission." } },
+        { "name": "Submit task (ASSISTANT)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }], "body": { "mode": "raw", "raw": "{\n  \"expectedCurrentSubmissionId\": null,\n  \"fileKey\": \"series/{{seriesId}}/tasks/{{taskId}}/submission-001.png\",\n  \"fileName\": \"submission-001.png\",\n  \"notes\": \"Assistant submission\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/tasks/{{taskId}}/submit", "description": "ASSISTANT only. Idempotency-Key and expectedCurrentSubmissionId are required for safe retries; replace null after reading the current task." } },
+        { "name": "Reopen task (ASSISTANT)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Need to correct the submitted asset.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/tasks/{{taskId}}/reopen", "description": "ASSISTANT only." } },
+        { "name": "Review queue (EDITOR)", "request": { "method": "GET", "url": "{{baseUrl}}/api/submissions/review-queue", "description": "EDITOR only." } },
+        { "name": "Get submission", "request": { "method": "GET", "url": "{{baseUrl}}/api/submissions/{{submissionId}}" } },
+        { "name": "List task submissions", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/{{taskId}}/submissions" } },
+        { "name": "Approve submission (MANGAKA)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"mangakaNote\": \"Approved for editor review.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/submissions/{{submissionId}}/approve", "description": "MANGAKA only." } },
+        { "name": "Reject submission (MANGAKA)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Asset does not match the brief.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/submissions/{{submissionId}}/reject", "description": "MANGAKA only." } },
+        { "name": "Request revision (MANGAKA)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"requestedChanges\": \"Fix the text alignment.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/submissions/{{submissionId}}/request-revision", "description": "MANGAKA only." } },
+        { "name": "Approve submission (EDITOR)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"editorNote\": \"Final quality approved.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/submissions/{{submissionId}}/editor-approve", "description": "EDITOR only." } }
+      ]
+    },
+    {
+      "name": "10 Comments",
+      "item": [
+        { "name": "List comments", "request": { "method": "GET", "url": "{{baseUrl}}/api/comments?chapterId={{chapterId}}" } },
+        { "name": "Create comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"chapterId\": \"{{chapterId}}\",\n  \"pageId\": \"{{pageId}}\",\n  \"targetType\": \"PAGE\",\n  \"targetId\": \"{{pageId}}\",\n  \"body\": \"Please check the bubble alignment.\",\n  \"isBlocking\": true\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/comments", "description": "EDITOR, MANGAKA, or ASSISTANT. StudioComment is the authoritative blocking review source." } },
+        { "name": "Patch comment content", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"body\": \"Updated review note\",\n  \"isBlocking\": true\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/comments/{{commentId}}", "description": "EDITOR or MANGAKA. Use resolve/reopen endpoints for lifecycle changes." } },
+        { "name": "Address comment (MANGAKA)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"note\": \"Updated the artwork and lettering.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/comments/{{commentId}}/address", "description": "MANGAKA only." } },
+        { "name": "Resolve comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"note\": \"Verified and resolved.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/comments/{{commentId}}/resolve", "description": "Assigned Tantou/editor, owning MANGAKA, or permitted ASSISTANT according to backend authorization. Canonical resolve endpoint." } },
+        { "name": "Reopen comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"The issue is still present after verification.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/comments/{{commentId}}/reopen", "description": "EDITOR or MANGAKA. Canonical reopen endpoint." } },
+        { "name": "List task comments", "request": { "method": "GET", "url": "{{baseUrl}}/api/comments/task/{{taskId}}" } }
+      ]
+    },
+    {
+      "name": "11 Materials",
+      "item": [
+        { "name": "List materials", "request": { "method": "GET", "url": "{{baseUrl}}/api/materials?seriesId={{seriesId}}", "description": "Read materials. Canonical API status is top-level: DRAFT, ACTIVE, IN_REVIEW, APPROVED, ARCHIVED." } },
+        { "name": "Create material (EDITOR/MANGAKA)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"seriesId\": \"{{seriesId}}\",\n  \"title\": \"Character reference\",\n  \"type\": \"IMAGE\",\n  \"fileKey\": \"series/{{seriesId}}/materials/reference.png\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/materials", "description": "EDITOR or MANGAKA. Captures materialId. Creation defaults to DRAFT; change status later through the top-level status PATCH. Do not send metadata.status." } },
+        { "name": "Patch material status/workflow", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"{{materialStatus}}\",\n  \"note\": \"Workflow status update\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/materials/{{materialId}}", "description": "EDITOR or MANGAKA subject to ownership/assignment. APPROVED is Tantou-only; ARCHIVED is owner or assigned Tantou. Send top-level status only." } },
+        { "name": "Add material version", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fileKey\": \"series/{{seriesId}}/materials/reference-v2.png\",\n  \"fileName\": \"reference-v2.png\",\n  \"mimeType\": \"image/png\",\n  \"note\": \"Updated reference\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/materials/{{materialId}}/versions", "description": "EDITOR or MANGAKA." } },
+        { "name": "Delete material", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/materials/{{materialId}}", "description": "EDITOR or MANGAKA under material authorization rules." } }
+      ]
+    },
+    {
+      "name": "12 Rate Table",
+      "item": [
+        { "name": "List active rate options", "request": { "method": "GET", "url": "{{baseUrl}}/api/rates/active", "description": "ADMIN, MANGAKA, or EDITOR. Read-only options for task creation." } },
+        { "name": "List rate table (ADMIN)", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/rates", "description": "ADMIN only." } },
+        { "name": "Create rate (ADMIN)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"code\": \"SPEECH_BUBBLE\",\n  \"label\": \"Speech bubble\",\n  \"workUnitType\": \"BUBBLE\",\n  \"amount\": 25,\n  \"currency\": \"JPY\",\n  \"effectiveFrom\": \"2026-07-27T00:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/rates", "description": "ADMIN only. Admin owns rate policy; Mangaka does not configure prices." } },
+        { "name": "Patch rate (ADMIN)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"label\": \"Speech bubble - revised\",\n  \"status\": \"ACTIVE\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/rates/{{rateId}}", "description": "ADMIN only. Existing tasks retain their rate snapshot." } }
+      ]
+    },
+    {
+      "name": "13 Admin",
+      "item": [
+        { "name": "List users", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users", "description": "ADMIN only." } },
+        { "name": "Create user", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"new-user@example.com\",\n  \"name\": \"New User\",\n  \"role\": \"ASSISTANT\",\n  \"password\": \"ChangeMe123!\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/users", "description": "ADMIN only." } },
+        { "name": "Get user", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{userId}}", "description": "ADMIN only." } },
+        { "name": "Update user", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated User\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/users/{{userId}}", "description": "ADMIN only." } },
+        { "name": "Deactivate user", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Account deactivated by administrator.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/users/{{userId}}/deactivate", "description": "ADMIN only." } },
+        { "name": "Delete user", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{userId}}", "description": "ADMIN only; destructive operation." } },
+        { "name": "List managed notifications", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/notifications", "description": "ADMIN only." } },
+        { "name": "Create managed notification", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Workflow notice\",\n  \"message\": \"System maintenance window.\",\n  \"targetRole\": \"MANGAKA\",\n  \"status\": \"SCHEDULED\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/notifications", "description": "ADMIN only." } },
+        { "name": "Patch managed notification", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"message\": \"Updated workflow notice.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/admin/notifications/{{notificationId}}", "description": "ADMIN only." } },
+        { "name": "Delete managed notification", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/notifications/{{notificationId}}", "description": "ADMIN only." } },
+        { "name": "Workflow summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/workflow-summary", "description": "ADMIN only." } },
+        { "name": "Storage summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/storage-summary", "description": "ADMIN only." } },
+        { "name": "Reset demo data", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/demo/reset", "description": "ADMIN only. Destructive demo/test operation." } },
+        { "name": "Clear demo data", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/demo/clear", "description": "ADMIN only. Destructive demo/test operation." } },
+        { "name": "Assistant earnings", "request": { "method": "GET", "url": "{{baseUrl}}/api/assistant/earnings", "description": "ASSISTANT only. Read earnings generated from server-owned rate snapshots." } }
+      ]
+    },
+    {
+      "name": "14 Notifications & Rankings",
+      "item": [
+        { "name": "List my notifications", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications" } },
+        { "name": "Mark notification read", "request": { "method": "POST", "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read" } },
+        { "name": "Archive notification", "request": { "method": "POST", "url": "{{baseUrl}}/api/notifications/{{notificationId}}/archive" } },
+        { "name": "List rankings", "request": { "method": "GET", "url": "{{baseUrl}}/api/rankings" } },
+        { "name": "Import rankings (BOARD/ADMIN)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"rankingId\": \"{{rankingId}}\",\n  \"rows\": []\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/rankings/import", "description": "BOARD or ADMIN. Supply the ranking payload required by the import source." } },
+        { "name": "List series rankings", "request": { "method": "GET", "url": "{{baseUrl}}/api/series/{{seriesId}}/rankings" } }
+      ]
+    },
+    {
+      "name": "15 Mobile Compatibility",
+      "item": [
+        { "name": "Editor review queue", "request": { "method": "GET", "url": "{{baseUrl}}/api/editor/manuscripts/review-queue", "description": "EDITOR only. Mobile alias." } },
+        { "name": "Start review", "request": { "method": "POST", "url": "{{baseUrl}}/api/editor/series/{{seriesId}}/start-review", "description": "EDITOR only. Mobile alias for proposal claim/start review." } },
+        { "name": "Request revision", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"comment\": \"Please revise the proposal.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/editor/series/{{seriesId}}/request-revision", "description": "EDITOR only. Mobile alias." } },
+        { "name": "Reject series", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"rejectReason\": \"Does not meet the current brief.\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/editor/series/{{seriesId}}/reject", "description": "EDITOR only. Mobile alias." } },
+        { "name": "Forward to board", "request": { "method": "POST", "url": "{{baseUrl}}/api/editor/series/{{seriesId}}/forward-to-board", "description": "EDITOR only. Mobile alias." } },
+        { "name": "Board queue", "request": { "method": "GET", "url": "{{baseUrl}}/api/board/queue", "description": "BOARD or EDITOR. Mobile alias." } },
+        { "name": "Board votes", "request": { "method": "GET", "url": "{{baseUrl}}/api/board/series/{{seriesId}}/votes", "description": "BOARD or EDITOR. Mobile alias." } },
+        { "name": "Cast board vote", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"value\": \"APPROVE\",\n  \"note\": \"Board vote rationale\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/board/series/{{seriesId}}/votes", "description": "BOARD only. Canonical vote values: APPROVE, REJECT, ABSTAIN." } },
+        { "name": "Finalize board decision", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"note\": \"Final board decision\",\n  \"publicationType\": \"WEEKLY\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/board/series/{{seriesId}}/decisions/finalize", "description": "Board Chair only." } },
+        { "name": "Tie-break board decision (EIC)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"decision\": \"APPROVE\",\n  \"reason\": \"Tie-break rationale\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/board/series/{{seriesId}}/decisions/tie-break", "description": "EDITOR with isEditorInChief=true only." } },
+        { "name": "At-risk decision", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"rankingId\": \"{{rankingId}}\",\n  \"decision\": \"APPROVE\",\n  \"note\": \"At-risk decision rationale\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/board/series/{{seriesId}}/at-risk-decisions", "description": "Board Chair only." } }
+      ]
+    },
+    {
+      "name": "16 AI",
+      "item": [
+        { "name": "AI health", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/health", "description": "Requires AI_SERVICE_URL to be configured in the backend." } },
+        { "name": "Detect bubbles from file", "request": { "method": "POST", "header": [], "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "{{uploadFilePath}}" }] }, "url": "{{baseUrl}}/api/ai/bubbles/detect", "description": "EDITOR or MANGAKA. Select an image file." } },
+        { "name": "Process bubbles from file", "request": { "method": "POST", "header": [], "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "{{uploadFilePath}}" }] }, "url": "{{baseUrl}}/api/ai/bubbles/process", "description": "EDITOR or MANGAKA. Select an image file." } },
+        { "name": "Detect bubbles on page", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"expectedProcessingId\": \"\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/pages/{{pageId}}/ai/detect-bubbles", "description": "EDITOR or MANGAKA. Uses the canonical page AI endpoint." } },
+        { "name": "Whiten bubbles on page", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"expectedProcessingId\": \"\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/studio/pages/{{pageId}}/ai/whiten-bubbles", "description": "EDITOR or MANGAKA. Uses the canonical page AI endpoint." } }
+      ]
+    },
+    {
+      "name": "17 File Tokens",
+      "item": [
+        { "name": "Local upload by token", "request": { "method": "PUT", "auth": { "type": "noauth" }, "header": [{ "key": "Content-Type", "value": "application/octet-stream" }], "body": { "mode": "file", "file": { "src": "{{uploadFilePath}}" } }, "url": "{{baseUrl}}/api/files/local-upload/{{uploadToken}}", "description": "Public tokenized upload. Select a file and use only with a valid presigned local-upload token." } },
+        { "name": "Display file by token", "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/files/display/{{displayToken}}", "description": "Public tokenized file display." } }
+      ]
+    }
+  ]
+}

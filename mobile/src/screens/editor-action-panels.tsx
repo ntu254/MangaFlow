@@ -101,20 +101,22 @@ export function EditorFinalApprovalDecisionPanel({
   busy?: boolean
   errorText?: string | null
 }) {
-  const isLiveAction = pendingAction === "request-revision" || pendingAction === "add-comment" || pendingAction === "editor-approve"
-
   return (
     <>
       <SectionTitle title="Decision panel" />
       <MFCard style={styles.noteBox}>
         <Text style={styles.link}>Editor final approval boundary</Text>
-        <Text style={styles.body}>This action is separate from proposal review and is the only approval path that can later trigger payroll.</Text>
+        <Text style={styles.body}>Tantou comments are separate from proposal review and never approve Assistant submissions directly.</Text>
       </MFCard>
       <View style={styles.buttonRow}>
-        <MFButton tone="warning" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("request-revision")}>Request revision</MFButton>
         <MFButton tone="primary" variant="soft" style={styles.actionButtonHalf} onPress={() => onStartAction("add-comment")}>Add comment</MFButton>
       </View>
-      <MFButton tone="success" style={styles.actionButtonFull} onPress={() => onStartAction("editor-approve")}>Final approve</MFButton>
+      <MFCard style={styles.noteBox}>
+        <Text style={styles.body}>
+          Tantou reviews the consolidated Chapter/Page snapshot. Assistant submissions are reference
+          only and cannot be approved or revisioned directly.
+        </Text>
+      </MFCard>
       {pendingAction ? (
         <MFConfirmationPanel
           title={finalApprovalActionTitle(pendingAction)}
@@ -130,7 +132,7 @@ export function EditorFinalApprovalDecisionPanel({
           notePlaceholder={finalApprovalActionNotePlaceholder(pendingAction)}
           errorText={errorText}
           busy={busy}
-          confirmDisabled={(pendingAction === "request-revision" || pendingAction === "add-comment") && noteValue.trim().length === 0}
+          confirmDisabled={pendingAction === "add-comment" && noteValue.trim().length === 0}
         />
       ) : null}
     </>
@@ -187,39 +189,27 @@ function proposalActionNotePlaceholder(action: EditorProposalAction) {
 }
 
 function finalApprovalActionTitle(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Final approve submission"
-  if (action === "add-comment") return "Add editor comment"
-  return "Request production revision"
+  return "Add editor comment"
 }
 
 function finalApprovalActionLabel(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Final approve this submission"
-  if (action === "add-comment") return "Add an editor comment to this task"
-  return "Request a production revision"
+  return "Add an editor comment to this task"
 }
 
 function finalApprovalActionTone(action: EditorFinalApprovalAction): Tone {
-  if (action === "editor-approve") return "success"
-  if (action === "request-revision") return "warning"
   return "primary"
 }
 
 function finalApprovalActionEndpoint(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Live endpoint: POST /api/submissions/:submissionId/editor-approve"
-  if (action === "add-comment") return "Live endpoint: POST /api/comments"
-  return "Live endpoint: POST /api/submissions/:submissionId/request-revision"
+  return "Live endpoint: POST /api/comments"
 }
 
 function finalApprovalActionNoteLabel(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Approval note"
-  if (action === "add-comment") return "Comment body"
-  return "Revision feedback"
+  return "Comment body"
 }
 
 function finalApprovalActionNotePlaceholder(action: EditorFinalApprovalAction) {
-  if (action === "editor-approve") return "Optional note for the final approval record."
-  if (action === "add-comment") return "Describe the production issue. Mobile submits it as a blocking editor comment."
-  return "Explain what the assistant needs to fix before resubmission."
+  return "Describe the production issue. Mobile submits it as a blocking editor comment."
 }
 
 const styles = StyleSheet.create({
