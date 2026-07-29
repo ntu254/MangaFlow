@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { env } from "./config/env.js";
-import { connectMongo } from "./db/connection.js";
+import { connectMongo, syncMongoIndexes } from "./db/connection.js";
 import { disconnectMongo } from "./db/connection.js";
 import { createApp } from "./app.js";
 import { ensureSeedDatabase } from "./seed.js";
@@ -11,6 +11,7 @@ import { deliverOutboxEvent } from "./services/outbox-delivery.service.js";
 async function start() {
   try {
     await connectMongo();
+    await syncMongoIndexes();
     const seedResult = await ensureSeedDatabase();
     logger.info("seed_check_complete", seedResult);
   } catch (error) {

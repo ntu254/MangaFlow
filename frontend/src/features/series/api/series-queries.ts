@@ -441,6 +441,7 @@ export function useSubmissionReviewMutation() {
       reviewerNote?: string;
       chapterId?: string;
       taskId?: string;
+      seriesId?: string;
     }
   >({
     mutationFn: ({ submissionId, action, reviewerNote }) => {
@@ -450,24 +451,23 @@ export function useSubmissionReviewMutation() {
       });
     },
     onSuccess: (_data, variables) => {
+      // Approving promotes the submission artwork onto the chapter page, so every
+      // cache holding a page image has to go, not just the submission itself.
+      // These are prefix invalidations — each one covers the keys derived from it.
       queryClient.invalidateQueries({ queryKey: submissionKeys.all });
-      if (variables.submissionId) {
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.detail(variables.submissionId),
-        });
-      }
-      if (variables.taskId) {
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.byTask(variables.taskId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.task(variables.taskId),
-        });
-        queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
-        queryClient.invalidateQueries({ queryKey: ["studio-tasks"] });
-      }
-      if (variables.chapterId) {
-        queryClient.invalidateQueries({ queryKey: chapterKeys.readiness(variables.chapterId) });
+      // studioKeys.task(id) is the key the task-detail query actually uses; the
+      // regions/tasks/comments keys embed a filter object, so only the prefix matches.
+      queryClient.invalidateQueries({ queryKey: studioKeys.all });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
+      // chapterKeys.detail / .pages / .readiness / .reviews plus useMyChaptersQuery.
+      queryClient.invalidateQueries({ queryKey: chapterKeys.all });
+      // The studio canvas reads chapters through seriesKeys.chaptersBundle([ids]),
+      // whose key embeds a sorted id array — invalidate the namespace by prefix.
+      queryClient.invalidateQueries({ queryKey: [...seriesKeys.all, "chaptersBundle"] });
+      if (variables.seriesId) {
+        queryClient.invalidateQueries({ queryKey: seriesKeys.chapters(variables.seriesId) });
+      } else {
+        queryClient.invalidateQueries({ queryKey: seriesKeys.all });
       }
     },
   });

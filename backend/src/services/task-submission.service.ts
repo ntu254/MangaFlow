@@ -15,6 +15,7 @@ import type { AuthedRequest, RequestActor } from "../types.js";
 import { audit } from "./audit.service.js";
 import { assertCanMutateTask, assertCanReadTask } from "./authorization.service.js";
 import { recordTaskEarning } from "./earning.service.js";
+import { promoteApprovedSubmissionToPage } from "./page-promotion.service.js";
 import {
   createAuditEntry,
   createOutboxEvent,
@@ -645,6 +646,10 @@ export async function submissionDecision(
         { submissionId },
         session,
       );
+      // The approved artwork becomes the page's current image; the outgoing one
+      // is archived into page.versions[]. Skips silently when the task has no
+      // resolvable page target.
+      await promoteApprovedSubmissionToPage(req, task, updated, session);
       if (task?.regionId) {
         await StudioRegionModel.updateOne(
           { id: task.regionId, lockedByTaskId: submission.taskId },

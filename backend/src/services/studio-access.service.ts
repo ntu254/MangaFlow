@@ -97,12 +97,25 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
   }
 
   const chapter = await ChapterModel.findOne({
-    pages: { $elemMatch: { $or: [{ fileKey: key }, { "metadata.aiWhitened.fileKey": key }] } },
+    pages: {
+      $elemMatch: {
+        // `versions.fileKey` keeps superseded page art reachable after an approved
+        // submission is promoted over it — same shape as the Material lookup below.
+        $or: [
+          { fileKey: key },
+          { "metadata.aiWhitened.fileKey": key },
+          { "versions.fileKey": key },
+        ],
+      },
+    },
   }).lean();
   if (chapter) {
     const pages = ((chapter as any).pages ?? []) as any[];
     const page = pages.find(
-      (item) => item.fileKey === key || item.metadata?.aiWhitened?.fileKey === key,
+      (item) =>
+        item.fileKey === key ||
+        item.metadata?.aiWhitened?.fileKey === key ||
+        (item.versions ?? []).some((version: any) => version?.fileKey === key),
     );
     if (page) return assertCanReadStudioPage(actor, page.id);
   }

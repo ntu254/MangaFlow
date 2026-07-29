@@ -58,12 +58,21 @@ export function errorHandler(err: unknown, req: AuthedRequest, res: Response, _n
         : new AppError(500, "Unexpected server error", "INTERNAL_ERROR");
 
   if (appError.status >= 500) {
+    // The response body deliberately hides the cause from clients, so the log
+    // is the only place it survives — keep the original error, not just its
+    // message (driver errors carry the code/keyPattern that explain the fault).
+    const cause = err instanceof Error ? err : undefined;
     logger.error("unhandled_error", {
       requestId: req.requestId,
       code: appError.code,
       message: appError.message,
       path: req.originalUrl,
       method: req.method,
+      errorName: cause?.name,
+      driverCode: (err as { code?: unknown })?.code,
+      keyPattern: (err as { keyPattern?: unknown })?.keyPattern,
+      keyValue: (err as { keyValue?: unknown })?.keyValue,
+      stack: cause?.stack,
     });
   }
 
