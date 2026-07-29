@@ -10,7 +10,7 @@
 
 MangaFlow mobile will support the essential decision workflows for two authenticated audiences:
 
-- Tantou Editor, including Editor-in-Chief capabilities when the authenticated user has that designation.
+- Tantou Editor.
 - Board member, including Board Chair capabilities when the authenticated user has that designation.
 
 The mobile experience will not copy the complete web application. It will use a queue-first information architecture optimized for fast review and auditable decisions. Business status, permissions, readiness, quorum, vote results, transition eligibility, and side effects remain backend-owned and must match the same workflow services used by the web application.
@@ -20,7 +20,7 @@ The mobile experience will not copy the complete web application. It will use a 
 The current mobile implementation has grown from a mock-oriented shell into a partially live client. It now calls real endpoints, but it still has several alignment risks:
 
 - Mobile-specific mapping code uses loosely typed payloads and reconstructs presentation state from ad hoc fields.
-- Some mobile copy and screen ownership do not reflect canonical role boundaries. In particular, tie-break authority belongs to an Editor-in-Chief, not a Board Chair.
+- Some mobile copy and screen ownership do not reflect canonical governance. New ties no longer expose an Editor-in-Chief action; closing a tied round atomically opens a fresh Board re-vote.
 - Several source-based tests assert strings and endpoint hints rather than executable behavior.
 - The app can present fallback reference data near live data, which risks making unavailable or stale workflows look actionable.
 - The current dashboard-first structure gives equal visual weight to summaries and actions, while the primary mobile need is resolving the next important decision.
@@ -90,7 +90,6 @@ Actions include the current entity/session version where applicable. A conflict 
 | Tantou Editor | Consolidated chapter review; page/readiness/blocker evidence; request revision; reject; Editor approve |
 | Assigned Tantou | Create/reply to comments; resolve or reopen eligible blocking comments |
 | Tantou Editor | Publication queue; schedule, postpone, or publish when the backend permits the action |
-| Editor-in-Chief | View relevant Board session history and perform an eligible tie-break |
 | Board member | View open voting sessions and proposal evidence; cast `APPROVE`, `REJECT`, or `NEEDS_REVISION` votes |
 | Board Chair | Create, update, close, cancel, and finalize eligible voting sessions |
 | Board Chair | Record manual at-risk decisions |
@@ -99,7 +98,7 @@ Actions include the current entity/session version where applicable. A conflict 
 Explicit boundaries:
 
 - Assistant submissions are supporting evidence for Editor chapter review. Editor mobile does not replace Mangaka submission approval.
-- Tie-break is an Editor-in-Chief capability, even when accessed from governance-related content.
+- New tie-break actions are retired. A tied session is immutable history and the backend opens a fresh empty Board re-vote using the same proposal snapshot, electorate, and quorum.
 - Only a Board Chair sees Chair session and at-risk actions.
 - Ranking import remains web-only.
 - The backend may remove an action between load and submit; mobile must handle that as a normal permission or conflict response.
@@ -122,7 +121,7 @@ The authenticated user sees:
 | Today | Cross-workflow priority queue for proposals, chapters, comments, and publication actions |
 | Reviews | Proposal and chapter queues with filters and search |
 | Publish | Readiness, scheduled, postponed, and ready-to-publish chapters |
-| History | Completed decisions, comments, publication actions, and EIC tie-break records when applicable |
+| History | Completed decisions, comments, and publication actions |
 
 ### Board navigation
 
@@ -271,18 +270,9 @@ Supported actions:
 
 Publication actions use high-friction confirmation. The client never changes readiness or publication status optimistically.
 
-### Editor-in-Chief tie-break
+### Historical tied sessions
 
-Tie-break items appear only for an authenticated Editor-in-Chief. They live in Editor Today/History with governance context, not as a Board Chair capability.
-
-Detail includes:
-
-- Voting session and proposal version.
-- Backend tally and tie-break requirement.
-- Prior votes without implying that the client calculated the result.
-- Decision effect and audit notice.
-
-Submission includes the expected session version.
+Editors may read governance history where the canonical authorization contract permits it, but mobile exposes no new tie-break mutation. Legacy `TIE_BREAK_REQUIRED` records are labeled historical. Current tied rounds are displayed as terminal `TIED` records linked to the fresh `OPEN` Board re-vote created by the backend.
 
 ## Board Workflows
 
@@ -365,7 +355,7 @@ type MobileWorkItem = {
     | "PUBLICATION"
     | "BOARD_VOTE"
     | "SESSION_FINALIZE"
-    | "TIE_BREAK"
+    | "BOARD_REVOTE"
     | "AT_RISK";
   entityType: "PROPOSAL" | "CHAPTER" | "COMMENT" | "VOTING_SESSION" | "RANKING";
   entityId: string;
@@ -537,7 +527,7 @@ They do not substitute mock content.
 - Mobile projections apply the same authorization and workflow-service results as canonical endpoints.
 - Editor assignment and self-review guards.
 - Board member versus Board Chair capabilities.
-- Editor-in-Chief tie-break capability.
+- Tied-session history and fresh Board re-vote lineage.
 - Readiness and quorum values are returned, not client-derived.
 - Conflict responses for stale versions.
 
@@ -555,7 +545,7 @@ They do not substitute mock content.
 3. Editor schedules an eligible publication item.
 4. Board member opens a session and casts one vote.
 5. Board Chair closes/finalizes an eligible session.
-6. Editor-in-Chief completes a required tie-break.
+6. Board closes a tied round, sees the immutable `TIED` history, and votes in the linked fresh re-vote.
 7. Board Chair records an at-risk decision.
 8. A stale action returns a conflict and refreshes without overwriting server state.
 
@@ -563,7 +553,7 @@ They do not substitute mock content.
 
 1. **Contract foundation:** typed API errors, runtime schemas, authenticated identity/designations, explicit mock policy.
 2. **Shared Queue-first shell:** role-specific navigation, inbox projection, cards, detail shell, confirmation sheet, common states.
-3. **Editor workflows:** proposals, chapters, comments, publication, and EIC tie-break.
+3. **Editor workflows:** proposals, chapters, comments, and publication.
 4. **Board workflows:** voting, Chair session management/finalization, at-risk decisions, ranking, and history.
 5. **Hardening:** contract parity tests, critical E2E paths, accessibility, narrow-width and stale-state QA.
 
@@ -574,7 +564,7 @@ Each slice must keep the app buildable and must not enable an action until its c
 - Authenticated Editor and Board users land on different Queue-first Today screens.
 - Navigation and actions follow backend role/designation data; there is no manual role switch.
 - Editor and Board mobile actions match canonical web/backend transitions and authorization.
-- Editor-in-Chief tie-break is not represented as a Board Chair action.
+- No new tie-break action is represented; tied rounds link to a fresh Board re-vote.
 - Assistant submission approval is not offered to Editor mobile.
 - Ranking import and studio-intensive functionality are absent.
 - Every consequential action has detail evidence and confirmation.
@@ -587,7 +577,7 @@ Each slice must keep the app buildable and must not enable an action until its c
 
 ## Approved Design Decisions
 
-- Audience: Editor, Editor-in-Chief, Board member, and Board Chair only.
+- Audience: Editor, Board member, and Board Chair only.
 - Product shape: focused mobile companion, not full web parity.
 - Information architecture: Queue-first.
 - Editor tabs: Today, Reviews, Publish, History.
