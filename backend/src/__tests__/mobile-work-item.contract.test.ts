@@ -66,7 +66,20 @@ describe("mobile work item contract", () => {
   });
 
   it("accepts a backend-owned proposal work item", () => {
-    expect(mobileWorkItemSchema.parse(validProposalItem()).entityId).toBe("p-001");
+    const item = mobileWorkItemSchema.parse(validProposalItem());
+    expect(item.entityId).toBe("p-001");
+    expect(item.version).toBe(3);
+  });
+
+  it.each([3.5, -1])("rejects an invalid item version of %s", (version) => {
+    const invalid = validProposalItem();
+    invalid.version = version;
+    expect(() => mobileWorkItemSchema.parse(invalid)).toThrow();
+  });
+
+  it("accepts a null version for work with no versioned entity", () => {
+    const item = mobileWorkItemSchema.parse({ ...validProposalItem(), version: null });
+    expect(item.version).toBeNull();
   });
 
   it("rejects an enabled action that also has a disabled reason", () => {

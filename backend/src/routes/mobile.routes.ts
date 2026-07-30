@@ -3,6 +3,8 @@ import { requireExactBoardChair, requireExactRole } from "../middleware/auth.js"
 import {
   editorReviewQueueHandler,
   boardQueueHandler,
+  editorInboxHandler,
+  boardInboxHandler,
   getBoardVotes,
   startReview,
   requestRevision,
@@ -15,6 +17,10 @@ import {
 } from "../controllers/mobile.controller.js";
 
 const router = Router();
+
+// Queue-first mobile inbox (foundation)
+router.get("/editor/inbox", requireExactRole("EDITOR") as any, editorInboxHandler);
+router.get("/board/inbox", requireExactRole("BOARD") as any, boardInboxHandler);
 
 // Editor mobile aliases
 router.get("/editor/manuscripts/review-queue", requireExactRole("EDITOR") as any, editorReviewQueueHandler);

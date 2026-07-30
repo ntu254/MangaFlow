@@ -21,6 +21,10 @@ import {
 } from "../services/board-governance.service.js";
 import { requireActor } from "./helpers.js";
 import { requireRole, requireBoardChair } from "../middleware/auth.js";
+import {
+  getEditorMobileInbox,
+  getBoardMobileInbox,
+} from "../services/mobile-inbox.service.js";
 import type { AuthedRequest } from "../types.js";
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
@@ -28,6 +32,13 @@ export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, r
 );
 export const boardQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
   ok(res, await boardQueue()),
+);
+
+export const editorInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getEditorMobileInbox(requireActor(req))),
+);
+export const boardInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getBoardMobileInbox(requireActor(req))),
 );
 
 export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
