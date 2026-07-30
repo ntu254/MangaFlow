@@ -79,3 +79,56 @@ export function forwardEditorProposal(
 ): Promise<void> {
   return proposalAction(proposalId, "FORWARD", input)
 }
+
+// ---------------------------------------------------------------------------
+// Chapter review
+// ---------------------------------------------------------------------------
+
+export interface EditorReadiness {
+  ready: boolean
+  items: Array<{ key: string; passed: boolean; reason: string }>
+}
+
+export interface EditorChapterDetail {
+  chapter: {
+    id: string
+    seriesId: string
+    title: string
+    number: number
+    status: string
+    version: number | null
+  }
+  series: { id: string; title: string; editorId: string | null }
+  pages: Array<{ id: string; pageNumber: number | null; status: string; thumbnailFileKey?: string }>
+  readiness: EditorReadiness
+  blockers: Array<{ id: string; status: string; body: string; targetType: string; targetId: string }>
+  evidence: { taskCount: number; currentSubmissionCount: number }
+  publication: { status: string; scheduledAt: string | null } | null
+  actions: EditorProposalActionDescriptor[]
+}
+
+export function getEditorChapterDetail(chapterId: string): Promise<EditorChapterDetail> {
+  return mobileApi.request<EditorChapterDetail>(`/editor/chapters/${chapterId}/detail`)
+}
+
+function chapterAction(chapterId: string, action: string, body?: unknown): Promise<void> {
+  return mobileApi.request<void>(`/chapters/${chapterId}/actions/${action}`, {
+    method: "POST",
+    body: JSON.stringify(body ?? {}),
+  })
+}
+
+export function requestChapterRevision(
+  chapterId: string,
+  input: { comment: string },
+): Promise<void> {
+  return chapterAction(chapterId, "REQUEST_REVISION", input)
+}
+
+export function rejectChapter(chapterId: string, input: { comment: string }): Promise<void> {
+  return chapterAction(chapterId, "REJECT", input)
+}
+
+export function approveChapter(chapterId: string): Promise<void> {
+  return chapterAction(chapterId, "EDITOR_APPROVE")
+}
