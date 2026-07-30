@@ -2,10 +2,8 @@ import { asyncRoute, ok, AppError } from "../lib/http.js";
 import {
   ProposalModel,
   ProposalVoteModel,
-  RankingModel,
   VotingSessionModel,
 } from "../db/models.js";
-import { audit, notify } from "../services/audit.service.js";
 import { assertCanReadProposal } from "../services/authorization.service.js";
 import {
   editorReviewQueue,
@@ -20,7 +18,6 @@ import {
   normalizeBoardVote,
 } from "../services/board-governance.service.js";
 import { requireActor } from "./helpers.js";
-import { requireRole, requireBoardChair } from "../middleware/auth.js";
 import {
   getEditorMobileInbox,
   getBoardMobileInbox,
@@ -33,6 +30,7 @@ import {
   getBoardSessionDetail,
   getBoardRankings,
 } from "../services/mobile-board-detail.service.js";
+import { recordAtRiskDecision } from "../services/at-risk-decision.service.js";
 import type { AuthedRequest } from "../types.js";
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
@@ -142,41 +140,16 @@ export const tieBreakDecision = asyncRoute(async (_req: AuthedRequest, _res) => 
 });
 
 export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) => {
-  const seriesId = String(req.params.seriesId);
-  const rankingId = String(req.body?.rankingId ?? "").trim();
-  const decision = String(req.body?.decision ?? "").trim();
-  if (!rankingId || !decision) {
-    throw new AppError(400, "rankingId and decision are required.", "VALIDATION_ERROR");
+  const seriesId = String(req.params.seriesId ?? "").trim();
+  if (!seriesId) {
+    throw new AppError(400, "seriesId is required.", "VALIDATION_ERROR");
   }
-  const ranking = await RankingModel.findOne({ id: rankingId });
-  if (!ranking) throw new AppError(404, "Ranking not found.", "RANKING_NOT_FOUND");
-  if (ranking.seriesId !== seriesId) {
-    throw new AppError(409, "Ranking does not belong to this series.", "RANKING_SERIES_MISMATCH");
-  }
-  if (ranking.atRisk !== true && ranking.status !== "AT_RISK") {
-    throw new AppError(409, "Ranking is not at risk.", "RANKING_NOT_AT_RISK");
-  }
-  const actor = requireActor(req);
-  const atRiskDecision = {
-    decision,
-    note: req.body?.note,
-    decidedById: actor.id,
-    decidedByName: actor.name,
-    decidedAt: new Date(),
-  };
-  await RankingModel.updateOne(
-    { id: rankingId },
-    { $set: { "metadata.atRiskDecision": atRiskDecision } },
+  ok(
+    res,
+    await recordAtRiskDecision(req, seriesId, {
+      rankingId: req.body?.rankingId,
+      decision: req.body?.decision,
+      note: req.body?.note,
+    }),
   );
-  await audit(req, "ranking.at_risk_decision", "series", seriesId, {
-    rankingId,
-    decision,
-    note: req.body?.note,
-  });
-  await notify(
-    "u-editor",
-    "ranking.at_risk_decision",
-    `Board recorded ${decision} for ${seriesId}.`,
-  );
-  ok(res, { seriesId, rankingId, decision });
 });

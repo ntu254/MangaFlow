@@ -113,7 +113,11 @@ export type BoardDecisionStatus =
 
 export type RankingStatus = "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "WARNING" | "AT_RISK";
 
-export type AtRiskDecision = "CONTINUE" | "WARNING" | "CANCEL" | "COMPLETE";
+export type AtRiskDecision =
+  | "CONTINUE"
+  | "WARNING"
+  | "REQUEST_IMPROVEMENT_PLAN"
+  | "CANCEL";
 
 export type EditorProposalAction =
   | "start-review"

@@ -1,4 +1,5 @@
 import { mobileApi } from "@/services/mobile-api-client"
+import type { AtRiskDecision } from "@/domain/workflow"
 
 // Board detail reads and canonical vote command. Mobile sends expectedVersion
 // for optimistic concurrency; it never computes tally/quorum/result.
@@ -79,6 +80,18 @@ export function createBoardSession(input: {
   closesAt?: string
 }): Promise<{ id?: string }> {
   return mobileApi.request<{ id?: string }>(`/voting-sessions`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export type AtRiskDecisionValue = AtRiskDecision
+
+export function decideAtRisk(
+  seriesId: string,
+  input: { rankingId: string; decision: AtRiskDecisionValue; note?: string },
+): Promise<void> {
+  return mobileApi.request<void>(`/board/series/${seriesId}/at-risk-decisions`, {
     method: "POST",
     body: JSON.stringify(input),
   })
