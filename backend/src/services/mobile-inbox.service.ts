@@ -94,36 +94,41 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
   };
 }
 
+// A vote item is votable only when an active voting session backs it. Board
+// proposals with no open session (or a tie-break awaiting a fresh re-vote) are
+// not surfaced as votable work here, so every emitted item carries the session
+// version used for optimistic concurrency.
 function isProposalVoteItem(item: any): boolean {
-  return item.seriesStatus !== "AT_RISK" && item.voteSummary != null;
+  return (
+    item.seriesStatus !== "AT_RISK" &&
+    item.voteSummary != null &&
+    item.votingSessionId != null &&
+    typeof item.expectedVersion === "number" &&
+    item.decisionStatus !== "TIE_BREAK_REQUIRED"
+  );
 }
 
 function boardVoteWorkItem(_actor: RequestActor, item: any): MobileWorkItem {
-  const hasOpenSession = item.votingSessionId != null;
   const summary = item.voteSummary ?? {};
   return {
     id: `BOARD_VOTE:${item.id}`,
     kind: "BOARD_VOTE",
     entityType: "VOTING_SESSION",
-    entityId: String(item.votingSessionId ?? item.seriesId ?? item.id),
+    entityId: String(item.votingSessionId),
     status: String(item.decisionStatus ?? "PENDING"),
-    version: item.expectedVersion ?? null,
+    version: item.expectedVersion,
     title: String(item.seriesTitle ?? item.title ?? item.id),
     subtitle: `Approve ${summary.approve ?? 0} · Reject ${summary.reject ?? 0} of ${summary.eligible ?? item.eligibleBoardCount ?? 0}`,
     priority: {
-      level: item.decisionStatus === "TIE_BREAK_REQUIRED" ? "URGENT" : "HIGH",
-      reason:
-        item.decisionStatus === "TIE_BREAK_REQUIRED"
-          ? "Tie awaiting re-vote"
-          : "Board vote pending",
+      level: "HIGH",
+      reason: "Board vote pending",
       dueAt: null,
     },
     blockers: [],
     actions: [
       action({
         action: "VOTE",
-        enabled: hasOpenSession,
-        disabledReason: hasOpenSession ? null : "Voting is not open for this proposal.",
+        enabled: true,
         requiresConfirmation: true,
         requiresReason: false,
       }),

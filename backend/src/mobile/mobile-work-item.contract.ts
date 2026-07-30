@@ -55,7 +55,7 @@ export const mobileWorkItemSchema = z.object({
   entityType: z.enum(["PROPOSAL", "CHAPTER", "COMMENT", "VOTING_SESSION", "RANKING"]),
   entityId: z.string(),
   status: z.string(),
-  version: z.number().int().nonnegative().nullable(),
+  version: z.number().int().nonnegative(),
   title: z.string(),
   subtitle: z.string(),
   priority: z.object({

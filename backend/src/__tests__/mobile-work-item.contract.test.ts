@@ -71,15 +71,10 @@ describe("mobile work item contract", () => {
     expect(item.version).toBe(3);
   });
 
-  it.each([3.5, -1])("rejects an invalid item version of %s", (version) => {
+  it.each([null, 3.5, -1])("rejects an invalid item version of %s", (version) => {
     const invalid = validProposalItem();
     invalid.version = version;
     expect(() => mobileWorkItemSchema.parse(invalid)).toThrow();
-  });
-
-  it("accepts a null version for work with no versioned entity", () => {
-    const item = mobileWorkItemSchema.parse({ ...validProposalItem(), version: null });
-    expect(item.version).toBeNull();
   });
 
   it("rejects an enabled action that also has a disabled reason", () => {

@@ -30,15 +30,10 @@ describe("mobile work item contract", () => {
     expect(item.version).toBe(3);
   });
 
-  it.each([3.5, -1])("rejects an invalid item version of %s", (version) => {
+  it.each([null, 3.5, -1])("rejects an invalid item version of %s", (version) => {
     const value = validProposalItem();
     value.version = version;
     expect(() => mobileWorkItemSchema.parse(value)).toThrow();
-  });
-
-  it("accepts a null version for work with no versioned entity", () => {
-    const item = mobileWorkItemSchema.parse({ ...validProposalItem(), version: null });
-    expect(item.version).toBeNull();
   });
 
   it("fails closed on an unknown backend action", () => {
