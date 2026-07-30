@@ -132,3 +132,33 @@ export function rejectChapter(chapterId: string, input: { comment: string }): Pr
 export function approveChapter(chapterId: string): Promise<void> {
   return chapterAction(chapterId, "EDITOR_APPROVE")
 }
+
+// ---------------------------------------------------------------------------
+// Editorial comments
+// ---------------------------------------------------------------------------
+
+export interface CreateEditorCommentInput {
+  targetType: "CHAPTER" | "PAGE" | "REGION" | "TASK" | "SUBMISSION"
+  targetId: string
+  body: string
+  isBlocking?: boolean
+}
+
+export function createEditorComment(input: CreateEditorCommentInput): Promise<void> {
+  return mobileApi.request<void>("/comments", { method: "POST", body: JSON.stringify(input) })
+}
+
+export function replyEditorComment(commentId: string, input: { body: string }): Promise<void> {
+  return mobileApi.request<void>(`/comments/${commentId}/replies`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export function resolveEditorComment(commentId: string): Promise<void> {
+  return mobileApi.request<void>(`/comments/${commentId}/resolve`, { method: "POST", body: "{}" })
+}
+
+export function reopenEditorComment(commentId: string): Promise<void> {
+  return mobileApi.request<void>(`/comments/${commentId}/reopen`, { method: "POST", body: "{}" })
+}

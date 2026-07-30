@@ -9,7 +9,9 @@ import {
 import { WorkflowConfirmationSheet } from "@/components/workflow-confirmation-sheet"
 import { WorkflowState } from "@/components/workflow-state"
 import { ReadinessEvidence } from "@/components/readiness-evidence"
+import { CommentThread, type MobileComment } from "@/components/comment-thread"
 import { useEditorChapter } from "@/hooks/use-editor-chapter"
+import { useEditorComments } from "@/hooks/use-editor-comments"
 import type { EditorChapterDetail } from "@/services/editor-mobile-data-source"
 import { MobileApiError } from "@/services/mobile-api-error"
 import { colors, radius, spacing, typography } from "@/design/tokens"
@@ -20,6 +22,35 @@ function errorMessage(error: unknown): string {
   return "Something went wrong. Please try again."
 }
 
+// Blocker status drives which lifecycle action the Tantou can take: an
+// ADDRESSED comment can be resolved; a RESOLVED one can be reopened.
+function toMobileComment(blocker: EditorChapterDetail["blockers"][number]): MobileComment {
+  return {
+    id: blocker.id,
+    author: "You",
+    status: blocker.status,
+    isBlocking: true,
+    targetLabel: `${blocker.targetType} ${blocker.targetId}`,
+    body: blocker.body,
+    actions: [
+      {
+        action: "COMMENT_RESOLVE",
+        enabled: blocker.status === "ADDRESSED",
+        disabledReason: blocker.status === "ADDRESSED" ? null : "Comment is not awaiting resolution.",
+        requiresConfirmation: true,
+        requiresReason: false,
+      },
+      {
+        action: "COMMENT_REOPEN",
+        enabled: blocker.status === "RESOLVED",
+        disabledReason: blocker.status === "RESOLVED" ? null : "Only a resolved comment can be reopened.",
+        requiresConfirmation: true,
+        requiresReason: false,
+      },
+    ],
+  }
+}
+
 export function EditorChapterDetailScreen({
   chapterId,
   getDetail,
@@ -28,6 +59,7 @@ export function EditorChapterDetailScreen({
   getDetail?: (id: string) => Promise<EditorChapterDetail>
 }) {
   const { detail, requestRevision, reject, approve } = useEditorChapter(chapterId, getDetail)
+  const comments = useEditorComments(chapterId)
   const [pending, setPending] = useState<WorkflowActionDescriptor | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
 
@@ -87,16 +119,17 @@ export function EditorChapterDetailScreen({
         </View>
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Blocking comments</Text>
-          {data.blockers.length === 0 ? (
-            <Text style={styles.body}>None.</Text>
-          ) : (
-            data.blockers.map((blocker) => (
-              <Text key={blocker.id} style={styles.body}>
-                [{blocker.status}] {blocker.body || blocker.targetType}
-              </Text>
-            ))
-          )}
+          {data.blockers.length === 0 ? <Text style={styles.body}>None.</Text> : null}
         </View>
+        {data.blockers.map((blocker) => (
+          <CommentThread
+            key={blocker.id}
+            comment={toMobileComment(blocker)}
+            onResolve={(id) => comments.resolve.mutate(id)}
+            onReopen={(id) => comments.reopen.mutate(id)}
+            onReply={(id, body) => comments.reply.mutateAsync({ commentId: id, body })}
+          />
+        ))}
       </WorkflowDetailLayout>
 
       <WorkflowConfirmationSheet
