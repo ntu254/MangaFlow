@@ -136,7 +136,7 @@ export function chapterPublicationActions(
       enabled: assigned && scheduled,
       disabledReason: !assigned ? notAssigned : "Nothing is scheduled to postpone.",
       requiresConfirmation: true,
-      requiresReason: true,
+      requiresReason: false,
     }),
     describeAction({
       action: "PUBLISH",

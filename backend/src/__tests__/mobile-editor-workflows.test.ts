@@ -89,6 +89,26 @@ describe("mobile editor workflows", () => {
     );
   });
 
+  it("exposes publication capability to the assigned Tantou", async () => {
+    // Tanaka is the assigned editor for the seeded production series, so their
+    // inbox includes chapter/publication work.
+    const editor = await loginAs("tanaka@beachread.jp");
+    const inbox = await editorInbox(editor.accessToken);
+    const publication = inbox.items.find((item: any) => item.kind === "PUBLICATION");
+    if (publication) {
+      const schedule = publication.actions.find((a: any) => a.action === "SCHEDULE");
+      expect(schedule).toMatchObject({ enabled: true, requiresConfirmation: true, requiresReason: false });
+    }
+    const chapterReview = inbox.items.find((item: any) => item.kind === "CHAPTER_REVIEW");
+    if (chapterReview) {
+      expect(chapterReview.actions.map((a: any) => a.action)).toEqual(
+        expect.arrayContaining(["REQUEST_REVISION", "REJECT", "EDITOR_APPROVE"]),
+      );
+    }
+    // At least one of chapter/publication work must exist for the assigned editor.
+    expect(Boolean(publication) || Boolean(chapterReview)).toBe(true);
+  });
+
   it("denies proposal/chapter detail to a non-editor role", async () => {
     const board = await loginAs("sato@beachread.jp");
     await request(createApp())

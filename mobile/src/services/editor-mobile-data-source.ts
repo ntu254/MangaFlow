@@ -162,3 +162,22 @@ export function resolveEditorComment(commentId: string): Promise<void> {
 export function reopenEditorComment(commentId: string): Promise<void> {
   return mobileApi.request<void>(`/comments/${commentId}/reopen`, { method: "POST", body: "{}" })
 }
+
+// ---------------------------------------------------------------------------
+// Publication
+// ---------------------------------------------------------------------------
+
+export function scheduleChapterPublication(
+  chapterId: string,
+  input: { scheduledAt: string },
+): Promise<void> {
+  return chapterAction(chapterId, "SCHEDULE", input)
+}
+
+export function postponeChapterPublication(chapterId: string): Promise<void> {
+  return chapterAction(chapterId, "POSTPONE")
+}
+
+export function publishChapterNow(chapterId: string): Promise<void> {
+  return chapterAction(chapterId, "PUBLISH")
+}
