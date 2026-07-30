@@ -6,12 +6,14 @@ import {
   type MobileWorkItem,
   type MobileWorkflowActionDescriptor,
 } from "../mobile/mobile-work-item.contract.js";
-import { editorReviewQueue, boardQueue } from "./workflow.service.js";
+import { editorReviewQueue } from "./workflow.service.js";
 import {
   ChapterModel,
   PublicationModel,
+  RankingModel,
   SeriesModel,
   StudioCommentModel,
+  VotingSessionModel,
 } from "../db/models.js";
 import {
   chapterPublicationActions,
@@ -19,6 +21,12 @@ import {
   loadEditorChapterContext,
   readinessBlockers,
 } from "./mobile-editor-detail.service.js";
+import {
+  boardChairActions,
+  boardVoteActions,
+  loadBoardSessionContext,
+  type BoardSessionContext,
+} from "./mobile-board-detail.service.js";
 
 // Foundation slice: Editor Today shows proposal review work; Board Today shows
 // vote work. Later plans extend these projections with chapter/comment/publication
@@ -110,45 +118,78 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
 // proposals with no open session (or a tie-break awaiting a fresh re-vote) are
 // not surfaced as votable work here, so every emitted item carries the session
 // version used for optimistic concurrency.
-function isProposalVoteItem(item: any): boolean {
-  return (
-    item.seriesStatus !== "AT_RISK" &&
-    item.voteSummary != null &&
-    item.votingSessionId != null &&
-    typeof item.expectedVersion === "number" &&
-    item.decisionStatus !== "TIE_BREAK_REQUIRED"
-  );
-}
-
-function boardVoteWorkItem(_actor: RequestActor, item: any): MobileWorkItem {
-  const summary = item.voteSummary ?? {};
+function boardVoteWorkItem(
+  actor: RequestActor,
+  session: any,
+  ctx: BoardSessionContext,
+): MobileWorkItem {
+  const isReVote = Boolean(session.reVoteOfSessionId);
   return {
-    id: `BOARD_VOTE:${item.id}`,
-    kind: "BOARD_VOTE",
+    id: `${isReVote ? "BOARD_REVOTE" : "BOARD_VOTE"}:${session.id}`,
+    kind: isReVote ? "BOARD_REVOTE" : "BOARD_VOTE",
     entityType: "VOTING_SESSION",
-    entityId: String(item.votingSessionId),
-    status: String(item.decisionStatus ?? "PENDING"),
-    version: item.expectedVersion,
-    title: String(item.seriesTitle ?? item.title ?? item.id),
-    subtitle: `Approve ${summary.approve ?? 0} · Reject ${summary.reject ?? 0} of ${summary.eligible ?? item.eligibleBoardCount ?? 0}`,
+    entityId: String(session.id),
+    status: String(session.status),
+    version: typeof session.version === "number" ? session.version : null,
+    title: String(session.title ?? session.proposalId ?? session.id),
+    subtitle: `Approve ${ctx.tally.approve} · Reject ${ctx.tally.reject} of ${ctx.eligibleVoterIds.length}`,
     priority: {
-      level: "HIGH",
-      reason: "Board vote pending",
+      level: isReVote ? "URGENT" : "HIGH",
+      reason: isReVote ? "Fresh re-vote after a tie" : "Board vote pending",
       dueAt: null,
     },
     blockers: [],
+    actions: boardVoteActions(actor, ctx),
+    summary: { quorum: ctx.quorum, eligible: ctx.eligibleVoterIds.length, isReVote },
+  };
+}
+
+function sessionFinalizeWorkItem(
+  actor: RequestActor,
+  session: any,
+  ctx: BoardSessionContext,
+): MobileWorkItem {
+  return {
+    id: `SESSION_FINALIZE:${session.id}`,
+    kind: "SESSION_FINALIZE",
+    entityType: "VOTING_SESSION",
+    entityId: String(session.id),
+    status: String(session.status),
+    version: typeof session.version === "number" ? session.version : null,
+    title: String(session.title ?? session.proposalId ?? session.id),
+    subtitle: ctx.canFinalize ? "Ready to finalize" : "Awaiting quorum",
+    priority: {
+      level: ctx.canFinalize ? "HIGH" : "NORMAL",
+      reason: ctx.canFinalize ? "Decision ready to finalize" : "Awaiting votes",
+      dueAt: null,
+    },
+    blockers: [],
+    actions: boardChairActions(actor, ctx),
+    summary: { canFinalize: ctx.canFinalize },
+  };
+}
+
+function atRiskWorkItem(_actor: RequestActor, ranking: any): MobileWorkItem {
+  return {
+    id: `AT_RISK:${ranking.id}`,
+    kind: "AT_RISK",
+    entityType: "RANKING",
+    entityId: String(ranking.id),
+    status: String(ranking.status ?? "AT_RISK"),
+    version: null,
+    title: String(ranking.seriesTitle ?? ranking.seriesId ?? ranking.id),
+    subtitle: `Rank ${ranking.rank ?? "?"} · score ${ranking.finalScore ?? ranking.readerScore ?? "?"}`,
+    priority: { level: "URGENT", reason: "At-risk series needs a Board decision", dueAt: null },
+    blockers: [],
     actions: [
       action({
-        action: "VOTE",
+        action: "AT_RISK_DECIDE",
         enabled: true,
         requiresConfirmation: true,
-        requiresReason: false,
+        requiresReason: true,
       }),
     ],
-    summary: {
-      quorum: summary.quorum ?? item.quorum ?? null,
-      eligible: summary.eligible ?? item.eligibleBoardCount ?? null,
-    },
+    summary: { seriesId: ranking.seriesId ?? null },
   };
 }
 
@@ -288,10 +329,39 @@ export async function getBoardMobileInbox(actor: RequestActor): Promise<MobileIn
   if (actor.role !== "BOARD") {
     throw new AppError(403, "Board permission is required.", "FORBIDDEN");
   }
-  const items = await boardQueue();
+  const chair = actor.isChair === true;
+
+  // Active voting work comes from VotingSession (source of truth), not the
+  // proposal projection: OPEN sessions accept votes; TIED sessions are a closed
+  // round whose fresh re-vote is a separate OPEN session.
+  const sessions = await VotingSessionModel.find({
+    targetType: "PROPOSAL",
+    status: "OPEN",
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const items: MobileWorkItem[] = [];
+  for (const session of sessions) {
+    const ctx = await loadBoardSessionContext(actor, session);
+    items.push(boardVoteWorkItem(actor, session, ctx));
+    // Chair also sees a finalization item for the same session.
+    if (chair) items.push(sessionFinalizeWorkItem(actor, session, ctx));
+  }
+
+  // At-risk decisions are a manual Chair responsibility.
+  if (chair) {
+    const atRisk = await RankingModel.find({
+      $or: [{ atRisk: true }, { status: "AT_RISK" }],
+    })
+      .sort({ updatedAt: -1 })
+      .lean();
+    for (const ranking of atRisk) items.push(atRiskWorkItem(actor, ranking));
+  }
+
   return mobileInboxSchema.parse({
     role: "BOARD",
     generatedAt: new Date().toISOString(),
-    items: items.filter(isProposalVoteItem).map((item) => boardVoteWorkItem(actor, item)),
+    items,
   });
 }

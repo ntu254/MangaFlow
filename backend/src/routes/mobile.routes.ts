@@ -7,6 +7,8 @@ import {
   boardInboxHandler,
   editorProposalDetailHandler,
   editorChapterDetailHandler,
+  boardSessionDetailHandler,
+  boardRankingsHandler,
   getBoardVotes,
   startReview,
   requestRevision,
@@ -35,6 +37,14 @@ router.get(
   requireExactRole("EDITOR") as any,
   editorChapterDetailHandler,
 );
+
+// Board detail projections (read-only)
+router.get(
+  "/board/sessions/:sessionId/detail",
+  requireExactRole("BOARD") as any,
+  boardSessionDetailHandler,
+);
+router.get("/board/rankings", requireExactRole("BOARD") as any, boardRankingsHandler);
 
 // Editor mobile aliases
 router.get("/editor/manuscripts/review-queue", requireExactRole("EDITOR") as any, editorReviewQueueHandler);

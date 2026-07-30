@@ -29,6 +29,10 @@ import {
   getEditorProposalDetail,
   getEditorChapterDetail,
 } from "../services/mobile-editor-detail.service.js";
+import {
+  getBoardSessionDetail,
+  getBoardRankings,
+} from "../services/mobile-board-detail.service.js";
 import type { AuthedRequest } from "../types.js";
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
@@ -50,6 +54,13 @@ export const editorProposalDetailHandler = asyncRoute(async (req: AuthedRequest,
 );
 export const editorChapterDetailHandler = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await getEditorChapterDetail(requireActor(req), String(req.params.chapterId))),
+);
+
+export const boardSessionDetailHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getBoardSessionDetail(requireActor(req), String(req.params.sessionId))),
+);
+export const boardRankingsHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getBoardRankings(requireActor(req))),
 );
 
 export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
