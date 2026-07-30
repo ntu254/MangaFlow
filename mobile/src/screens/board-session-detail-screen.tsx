@@ -24,8 +24,9 @@ export function BoardSessionDetailScreen({
   sessionId: string
   getDetail?: (id: string) => Promise<BoardSessionDetail>
 }) {
-  const { detail, vote } = useBoardSession(sessionId, getDetail)
+  const { detail, vote, finalize, cancel } = useBoardSession(sessionId, getDetail)
   const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null)
+  const [pendingChair, setPendingChair] = useState<"SESSION_FINALIZE" | "SESSION_CANCEL" | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
 
   if (detail.isLoading && !detail.data) return <WorkflowState kind="loading" />
@@ -37,6 +38,22 @@ export function BoardSessionDetailScreen({
 
   const voteAction = data.actions.find((action) => action.action === "VOTE")
   const canVote = voteAction?.enabled ?? false
+  const finalizeAction = data.actions.find((action) => action.action === "SESSION_FINALIZE")
+  const cancelAction = data.actions.find((action) => action.action === "SESSION_CANCEL")
+  const chairSubmitting = finalize.isPending || cancel.isPending
+
+  const confirmChair = () => {
+    if (!pendingChair) return
+    const handlers = {
+      onError: (error: unknown) => setSheetError(errorMessage(error)),
+      onSuccess: () => {
+        setPendingChair(null)
+        setSheetError(null)
+      },
+    }
+    if (pendingChair === "SESSION_FINALIZE") finalize.mutate({}, handlers)
+    else cancel.mutate(undefined, handlers)
+  }
 
   const confirmVote = () => {
     if (!pendingVote || !data.session.proposalId) return
@@ -93,6 +110,47 @@ export function BoardSessionDetailScreen({
             <Text style={styles.reason}>{voteAction?.disabledReason ?? "Voting is not available."}</Text>
           )}
         </View>
+
+        {finalizeAction || cancelAction ? (
+          <View style={styles.voteCard}>
+            <Text style={styles.sectionLabel}>Chair actions</Text>
+            {finalizeAction ? (
+              <View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Finalize session"
+                  accessibilityState={{ disabled: !finalizeAction.enabled }}
+                  disabled={!finalizeAction.enabled}
+                  onPress={() => {
+                    setSheetError(null)
+                    setPendingChair("SESSION_FINALIZE")
+                  }}
+                  style={[styles.chairButton, !finalizeAction.enabled && styles.chairDisabled]}
+                >
+                  <Text style={styles.chairText}>Finalize session</Text>
+                </Pressable>
+                {!finalizeAction.enabled && finalizeAction.disabledReason ? (
+                  <Text style={styles.reason}>{finalizeAction.disabledReason}</Text>
+                ) : null}
+              </View>
+            ) : null}
+            {cancelAction ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel session"
+                accessibilityState={{ disabled: !cancelAction.enabled }}
+                disabled={!cancelAction.enabled}
+                onPress={() => {
+                  setSheetError(null)
+                  setPendingChair("SESSION_CANCEL")
+                }}
+                style={[styles.chairButton, styles.chairCancel, !cancelAction.enabled && styles.chairDisabled]}
+              >
+                <Text style={styles.chairText}>Cancel session</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </WorkflowDetailLayout>
 
       <WorkflowConfirmationSheet
@@ -107,6 +165,24 @@ export function BoardSessionDetailScreen({
           setSheetError(null)
         }}
         onConfirm={confirmVote}
+      />
+
+      <WorkflowConfirmationSheet
+        visible={pendingChair !== null}
+        title={pendingChair === "SESSION_FINALIZE" ? "Finalize this session?" : "Cancel this session?"}
+        effect={
+          pendingChair === "SESSION_FINALIZE"
+            ? "Closing records the Board decision. A tied round is closed and a fresh re-vote opens automatically."
+            : "Cancelling ends this session without a decision."
+        }
+        confirmLabel={pendingChair === "SESSION_FINALIZE" ? "Confirm finalize" : "Confirm cancel"}
+        submitting={chairSubmitting}
+        errorMessage={sheetError}
+        onCancel={() => {
+          setPendingChair(null)
+          setSheetError(null)
+        }}
+        onConfirm={confirmChair}
       />
     </>
   )
@@ -134,4 +210,14 @@ const styles = StyleSheet.create({
   },
   choiceText: { color: colors.primary, fontWeight: "800", fontSize: typography.body },
   reason: { fontSize: typography.body, color: colors.textMuted },
+  chairButton: {
+    minHeight: 44,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chairCancel: { backgroundColor: colors.dangerSoft },
+  chairDisabled: { backgroundColor: colors.surfaceContainer },
+  chairText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
 })

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  cancelBoardSession,
   castBoardVote,
+  finalizeBoardSession,
   getBoardSessionDetail,
   type BoardSessionDetail,
   type BoardVoteValue,
@@ -32,6 +34,15 @@ export function useBoardSession(
       castBoardVote({ ...input, sessionId }),
     onSuccess: invalidate,
   })
+  const finalize = useMutation({
+    mutationFn: (input: { note?: string; publicationType?: "WEEKLY" | "MONTHLY" } = {}) =>
+      finalizeBoardSession(sessionId, input),
+    onSuccess: invalidate,
+  })
+  const cancel = useMutation({
+    mutationFn: () => cancelBoardSession(sessionId),
+    onSuccess: invalidate,
+  })
 
-  return { detail, vote }
+  return { detail, vote, finalize, cancel }
 }

@@ -7,6 +7,9 @@ import type { BoardSessionDetail } from "@/services/board-mobile-data-source"
 jest.mock("@/services/board-mobile-data-source", () => ({
   getBoardSessionDetail: jest.fn(),
   castBoardVote: jest.fn(),
+  finalizeBoardSession: jest.fn(),
+  cancelBoardSession: jest.fn(),
+  createBoardSession: jest.fn(),
   getBoardRankings: jest.fn(),
 }))
 
@@ -68,5 +71,33 @@ describe("BoardSessionDetailScreen", () => {
       session: { ...votableSession.session, id: "vs-2", reVoteOfSessionId: "vs-1", isReVote: true },
     })
     expect(await screen.findByText("Fresh re-vote")).toBeVisible()
+  })
+
+  it("lets the Chair finalize when the tally is decisive", async () => {
+    mocked.finalizeBoardSession.mockResolvedValue(undefined)
+    renderScreen({
+      ...votableSession,
+      tally: { ...votableSession.tally, approve: 3, canFinalize: true },
+      actions: [
+        { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_FINALIZE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_CANCEL", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+      ],
+    })
+    fireEvent.press(await screen.findByRole("button", { name: "Finalize session" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm finalize" }))
+    await waitFor(() => expect(mocked.finalizeBoardSession).toHaveBeenCalledWith("vs-1", {}))
+  })
+
+  it("keeps finalize disabled with the backend reason before quorum", async () => {
+    renderScreen({
+      ...votableSession,
+      actions: [
+        { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_FINALIZE", enabled: false, disabledReason: "Quorum or a decisive tally has not been reached yet.", requiresConfirmation: true, requiresReason: false },
+      ],
+    })
+    expect(await screen.findByRole("button", { name: "Finalize session" })).toBeDisabled()
+    expect(screen.getByText("Quorum or a decisive tally has not been reached yet.")).toBeVisible()
   })
 })

@@ -56,6 +56,34 @@ export function castBoardVote(input: {
   })
 }
 
+export function finalizeBoardSession(
+  sessionId: string,
+  input: { note?: string; publicationType?: "WEEKLY" | "MONTHLY" } = {},
+): Promise<void> {
+  return mobileApi.request<void>(`/voting-sessions/${sessionId}/close`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export function cancelBoardSession(sessionId: string): Promise<void> {
+  return mobileApi.request<void>(`/voting-sessions/${sessionId}/cancel`, {
+    method: "POST",
+    body: "{}",
+  })
+}
+
+export function createBoardSession(input: {
+  proposalId: string
+  title?: string
+  closesAt?: string
+}): Promise<{ id?: string }> {
+  return mobileApi.request<{ id?: string }>(`/voting-sessions`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
 export interface BoardRankingItem {
   id: string
   seriesId: string

@@ -122,7 +122,7 @@ export function boardChairActions(
       enabled: open,
       disabledReason: "Only an open session can be cancelled.",
       requiresConfirmation: true,
-      requiresReason: true,
+      requiresReason: false,
     }),
   ];
 }
