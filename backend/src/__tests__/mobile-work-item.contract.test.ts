@@ -1,0 +1,91 @@
+import { describe, expect, it } from "vitest";
+import {
+  mobileInboxSchema,
+  mobileWorkflowActionSchema,
+  mobileWorkItemKindSchema,
+  mobileWorkItemSchema,
+} from "../mobile/mobile-work-item.contract.js";
+
+function validProposalItem(): any {
+  return {
+    id: "PROPOSAL_REVIEW:p-001",
+    kind: "PROPOSAL_REVIEW",
+    entityType: "PROPOSAL",
+    entityId: "p-001",
+    status: "PENDING_EDITOR",
+    version: 3,
+    title: "Neon District",
+    subtitle: "Revision 2",
+    priority: { level: "HIGH", reason: "Revision received", dueAt: null },
+    blockers: [],
+    actions: [{
+      action: "CLAIM",
+      enabled: true,
+      disabledReason: null,
+      requiresConfirmation: true,
+      requiresReason: false,
+    }],
+    summary: {},
+  };
+}
+
+describe("mobile work item contract", () => {
+  it("defines the supported work-item kinds and workflow actions exactly", () => {
+    expect(mobileWorkItemKindSchema.options).toEqual([
+      "PROPOSAL_REVIEW",
+      "CHAPTER_REVIEW",
+      "COMMENT_REVIEW",
+      "PUBLICATION",
+      "BOARD_VOTE",
+      "SESSION_FINALIZE",
+      "BOARD_REVOTE",
+      "AT_RISK",
+    ]);
+    expect(mobileWorkflowActionSchema.options).toEqual([
+      "CLAIM",
+      "REQUEST_CHANGES",
+      "REJECT",
+      "FORWARD",
+      "REQUEST_REVISION",
+      "EDITOR_APPROVE",
+      "COMMENT_CREATE",
+      "COMMENT_REPLY",
+      "COMMENT_RESOLVE",
+      "COMMENT_REOPEN",
+      "SCHEDULE",
+      "POSTPONE",
+      "PUBLISH",
+      "VOTE",
+      "SESSION_CREATE",
+      "SESSION_UPDATE",
+      "SESSION_CLOSE",
+      "SESSION_CANCEL",
+      "SESSION_FINALIZE",
+      "AT_RISK_DECIDE",
+    ]);
+  });
+
+  it("accepts a backend-owned proposal work item", () => {
+    expect(mobileWorkItemSchema.parse(validProposalItem()).entityId).toBe("p-001");
+  });
+
+  it("rejects an enabled action that also has a disabled reason", () => {
+    const invalid = validProposalItem();
+    invalid.actions[0] = { ...invalid.actions[0], enabled: true, disabledReason: "Not assigned" };
+    expect(() => mobileWorkItemSchema.parse(invalid)).toThrow();
+  });
+
+  it("requires a non-empty reason for disabled actions", () => {
+    const invalid = validProposalItem();
+    invalid.actions[0] = { ...invalid.actions[0], enabled: false, disabledReason: "" };
+    expect(() => mobileWorkItemSchema.parse(invalid)).toThrow();
+  });
+
+  it("validates a versioned Editor inbox", () => {
+    expect(mobileInboxSchema.parse({
+      role: "EDITOR",
+      generatedAt: "2026-07-30T00:00:00.000Z",
+      items: [validProposalItem()],
+    }).items).toHaveLength(1);
+  });
+});
