@@ -86,8 +86,8 @@ test("mobile mock data covers board and editor reference screens", () => {
 });
 
 test("mobile app exposes the Queue-first authenticated shell", () => {
-  // Live Today screens replace the legacy per-tab mock screens.
-  assert.match(appSource, /EditorTodayScreen/);
+  // Live Today screens / workspace replace the legacy per-tab mock screens.
+  assert.match(appSource, /EditorWorkspace/);
   assert.match(appSource, /BoardTodayScreen/);
   assert.match(appSource, /useMobileInbox/);
   // Canonical tab sets.

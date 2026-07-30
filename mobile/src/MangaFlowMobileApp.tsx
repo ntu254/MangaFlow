@@ -7,8 +7,8 @@ import { MFIcon } from "@/design/icons"
 import { colors, radius, shadow, spacing } from "@/design/tokens"
 import { MobileQueryProvider } from "@/providers/mobile-query-provider"
 import { useMobileInbox } from "@/hooks/use-mobile-inbox"
-import { EditorTodayScreen } from "@/screens/editor-today-screen"
 import { BoardTodayScreen } from "@/screens/board-today-screen"
+import { EditorWorkspace } from "@/screens/editor-workspace"
 import { WorkflowState } from "@/components/workflow-state"
 import { mobileEnv } from "@/config/mobile-env"
 import type { MobileInbox } from "@/domain/mobile-work-item"
@@ -129,6 +129,12 @@ function AuthenticatedShell({
   )
 
   const body = useMemo(() => {
+    // Editor tabs (Today/Reviews/Publish/History) all navigate the same inbox
+    // and open canonical detail screens.
+    if (role === "editor") {
+      return <EditorWorkspace tab={tab} inbox={inbox} />
+    }
+    // Board: Today is live; other tabs land in later slices.
     if (tab !== "today") {
       return (
         <WorkflowState
@@ -138,16 +144,16 @@ function AuthenticatedShell({
         />
       )
     }
-    const props = {
-      inbox: demoMode ? demoInbox(role) : inbox.data,
-      isLoading: inbox.isLoading,
-      error: demoMode ? null : (inbox.error as Error | null),
-      onRetry: () => void inbox.refetch(),
-      onRefresh: () => void inbox.refetch(),
-      refreshing: inbox.isRefetching,
-      // The shell owns the persistent Demo data label, so the queue omits its own.
-    }
-    return role === "board" ? <BoardTodayScreen {...props} /> : <EditorTodayScreen {...props} />
+    return (
+      <BoardTodayScreen
+        inbox={demoMode ? demoInbox(role) : inbox.data}
+        isLoading={inbox.isLoading}
+        error={demoMode ? null : (inbox.error as Error | null)}
+        onRetry={() => void inbox.refetch()}
+        onRefresh={() => void inbox.refetch()}
+        refreshing={inbox.isRefetching}
+      />
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoMode, inbox.data, inbox.error, inbox.isLoading, inbox.isRefetching, role, tab])
 
