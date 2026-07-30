@@ -130,9 +130,16 @@ export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) => {
   }
   ok(res, await closeVotingSession(req, sessionId, req.body?.note, req.body?.publicationType));
 });
-export const tieBreakDecision = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(res, await applyProposalAction(req, String(req.params.seriesId), "VOTE", req.body)),
-);
+// Retired: Editor-in-Chief tie-break voting no longer exists. A tied session
+// closes to a TIED round and opens a fresh re-vote automatically. The endpoint
+// is kept only to return a clear 410 for any stale client.
+export const tieBreakDecision = asyncRoute(async (_req: AuthedRequest, _res) => {
+  throw new AppError(
+    410,
+    "Editor-in-chief tie-break voting has been retired; tied sessions now open a re-vote.",
+    "TIE_BREAK_RETIRED",
+  );
+});
 
 export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
