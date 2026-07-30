@@ -6,6 +6,7 @@ import {
   boardSeries,
 } from "@/data/board";
 import { getMobileApiBaseUrl } from "@/services/mobile-api-config";
+import { mobileEnv, requireMobileEnv } from "@/config/mobile-env";
 import {
   commentActivity,
   commentMetrics,
@@ -140,11 +141,6 @@ interface ApiEnvelope<T> {
 }
 
 export type MobileApiRole = "editor" | "board";
-
-const EDITOR_EMAIL = process.env.EXPO_PUBLIC_EDITOR_EMAIL ?? "editor@mangaflow.local";
-const EDITOR_PASSWORD = process.env.EXPO_PUBLIC_EDITOR_PASSWORD ?? "editor@mangaflow.local";
-const BOARD_EMAIL = process.env.EXPO_PUBLIC_BOARD_EMAIL ?? "board@beachread.jp";
-const BOARD_PASSWORD = process.env.EXPO_PUBLIC_BOARD_PASSWORD ?? "board@beachread.jp";
 
 const tokenCache: Partial<Record<MobileApiRole, string>> = {};
 
@@ -401,8 +397,14 @@ async function apiRequest<T>(path: string, role: MobileApiRole, init?: RequestIn
 async function getToken(role: MobileApiRole): Promise<string> {
   if (tokenCache[role]) return tokenCache[role] as string;
 
-  const email = role === "editor" ? EDITOR_EMAIL : BOARD_EMAIL;
-  const password = role === "editor" ? EDITOR_PASSWORD : BOARD_PASSWORD;
+  const email = requireMobileEnv(
+    role === "editor" ? mobileEnv.editorEmail : mobileEnv.boardEmail,
+    role === "editor" ? "EXPO_PUBLIC_EDITOR_EMAIL" : "EXPO_PUBLIC_BOARD_EMAIL",
+  );
+  const password = requireMobileEnv(
+    role === "editor" ? mobileEnv.editorPassword : mobileEnv.boardPassword,
+    role === "editor" ? "EXPO_PUBLIC_EDITOR_PASSWORD" : "EXPO_PUBLIC_BOARD_PASSWORD",
+  );
   const response = await fetch(`${getMobileApiBaseUrl()}/auth/login`, {
     method: "POST",
     headers: {
@@ -425,9 +427,9 @@ function fallbackDataSource(
   primary: MobileWorkflowDataSource,
   fallback: MobileWorkflowDataSource,
 ): MobileWorkflowDataSource {
-  const allowFallback =
-    process.env.EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK === "true" ||
-    process.env.NODE_ENV !== "production";
+  // Mock data is used only when explicitly enabled. A live read failure throws
+  // a real error instead of silently degrading to reference data.
+  const allowFallback = mobileEnv.enableMockFallback;
   const read = <T>(loader: () => Promise<T>, fallbackLoader: () => Promise<T>) =>
     loader().catch((error) => {
       if (allowFallback) return fallbackLoader();

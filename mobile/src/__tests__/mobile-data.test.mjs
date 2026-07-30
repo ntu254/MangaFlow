@@ -80,16 +80,20 @@ test("mobile mock data covers board and editor reference screens", () => {
   }
 });
 
-test("mobile app exposes Board and Tantou Editor role shells", () => {
-  assert.match(appSource, /BoardHomeScreen/);
-  assert.match(appSource, /BoardReviewsScreen/);
-  assert.match(appSource, /BoardTieBreakScreen/);
-  assert.match(appSource, /BoardAtRiskScreen/);
-  assert.match(appSource, /EditorHomeScreen/);
-  assert.match(appSource, /EditorManuscriptsScreen/);
-  assert.match(appSource, /EditorCommentsScreen/);
-  assert.match(appSource, /EditorReadinessScreen/);
-  assert.match(appSource, /BoardRankingScreen/);
+test("mobile app exposes the Queue-first authenticated shell", () => {
+  // Live Today screens replace the legacy per-tab mock screens.
+  assert.match(appSource, /EditorTodayScreen/);
+  assert.match(appSource, /BoardTodayScreen/);
+  assert.match(appSource, /useMobileInbox/);
+  // Canonical tab sets.
+  for (const label of ["Today", "Reviews", "Publish", "History", "Sessions", "Ranking"]) {
+    assert.match(appSource, new RegExp(`label: "${label}"`));
+  }
+  // Explicit demo gating, identity-driven (no manual role switch), no tie-break UI.
+  assert.match(appSource, /Demo data/);
+  assert.match(appSource, /forceDemoMode/);
+  assert.doesNotMatch(appSource, /switch role/i);
+  assert.doesNotMatch(appSource, /tie-?break/i);
 });
 
 test("mobile data source exposes API-ready role methods", () => {
@@ -127,7 +131,7 @@ test("mobile auth flow calls live auth API before role screens", () => {
   assert.match(authSource, /setMobileWorkflowAuthToken/);
   assert.match(authSource, /getMobileApiBaseUrl/);
   assert.match(authSource, /mobileDemoAccounts/);
-  assert.match(apiConfigSource, /localhost:3001/);
+  assert.match(apiConfigSource, /EXPO_PUBLIC_API_BASE_URL/);
   assert.match(apiConfigSource, /10\.0\.2\.2/);
   assert.doesNotMatch(`${authSource}\n${dataBoundarySource}`, /localhost:3002/);
   assert.match(dataBoundarySource, /setMobileWorkflowAuthToken/);
@@ -137,7 +141,7 @@ test("mobile auth flow calls live auth API before role screens", () => {
   assert.doesNotMatch(appSource, /Logout from mobile/);
   assert.doesNotMatch(appSource, /Logout Board session/);
   assert.doesNotMatch(appSource, /Logout Editor session/);
-  assert.match(appSource, /Live API login/);
+  assert.match(appSource, /live auth API/i);
   assert.match(appSource, /Mobile registration is disabled/);
   assert.doesNotMatch(appSource, /Sign up/);
   assert.doesNotMatch(appSource, /Register/);
@@ -462,23 +466,19 @@ test("mobile action panels are componentized out of role screen files", () => {
   assert.doesNotMatch(boardSource, /function atRiskDecisionTitle/);
 });
 
-test("mobile role handoff and profile polish explains scope without adding roles", () => {
-  assert.match(appSource, /RoleHandoffSummary/);
-  assert.match(appSource, /Editor handoff to Board review/);
-  assert.match(appSource, /Board handoff from Editor review/);
-  assert.match(appSource, /backend owns transitions and audit/);
-  assert.match(
-    appSource,
-    /Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and earnings tracking remain backend-owned/,
-  );
-  assert.match(appSource, /Read fallback stays available/);
-  assert.match(appSource, /Tantou Editor surfaces only/);
-  assert.match(appSource, /Board and Board Chair surfaces only/);
-  assert.match(appSource, /No Admin override is represented/);
-  assert.match(
-    appSource,
-    /Publication scheduling, signed file previews, and Board decision history remain separate follow-up slices/,
-  );
+test("mobile shell is identity-driven with an avatar profile menu", () => {
+  // Designation copy comes from the authenticated user, not a role switch.
+  assert.match(appSource, /Tantou Editor/);
+  assert.match(appSource, /Board Chair/);
+  assert.match(appSource, /Board Member/);
+  // Profile/logout live behind the avatar menu.
+  assert.match(appSource, /Account menu/);
+  assert.match(appSource, /"Logout"/);
+  // Non-Today tabs are explicit placeholders until later slices land.
+  assert.match(appSource, /Coming soon/);
+  // Legacy handoff/profile prose and extra roles are gone.
+  assert.doesNotMatch(appSource, /RoleHandoffSummary/);
+  assert.doesNotMatch(appSource, /Read fallback stays available/);
   assert.doesNotMatch(appSource, /confirmed mock UI/);
   assert.doesNotMatch(appSource, /Mangaka companion/);
   assert.doesNotMatch(appSource, /Assistant companion/);
