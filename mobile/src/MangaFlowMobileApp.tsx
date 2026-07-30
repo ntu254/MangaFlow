@@ -121,7 +121,12 @@ function AuthenticatedShell({
   const tabs = role === "board" ? boardTabs : editorTabs
   const designation = designationFor(session)
 
-  const inbox = useMobileInbox(role)
+  // Demo mode must not even start a live read: it selects its small local
+  // reference queue directly and keeps the shell's persistent label visible.
+  const inbox = useMobileInbox(
+    role,
+    demoMode ? async () => demoInbox(role) : undefined,
+  )
 
   const body = useMemo(() => {
     if (tab !== "today") {
@@ -136,7 +141,7 @@ function AuthenticatedShell({
     const props = {
       inbox: demoMode ? demoInbox(role) : inbox.data,
       isLoading: inbox.isLoading,
-      error: inbox.error as Error | null,
+      error: demoMode ? null : (inbox.error as Error | null),
       onRetry: () => void inbox.refetch(),
       onRefresh: () => void inbox.refetch(),
       refreshing: inbox.isRefetching,

@@ -7,6 +7,18 @@ import {
   type MobileWorkflowActionDescriptor,
 } from "../mobile/mobile-work-item.contract.js";
 import { editorReviewQueue, boardQueue } from "./workflow.service.js";
+import {
+  ChapterModel,
+  PublicationModel,
+  SeriesModel,
+  StudioCommentModel,
+} from "../db/models.js";
+import {
+  chapterPublicationActions,
+  chapterReviewActions,
+  loadEditorChapterContext,
+  readinessBlockers,
+} from "./mobile-editor-detail.service.js";
 
 // Foundation slice: Editor Today shows proposal review work; Board Today shows
 // vote work. Later plans extend these projections with chapter/comment/publication
@@ -140,15 +152,135 @@ function boardVoteWorkItem(_actor: RequestActor, item: any): MobileWorkItem {
   };
 }
 
+async function chapterReviewWorkItem(actor: RequestActor, chapter: any): Promise<MobileWorkItem> {
+  const context = await loadEditorChapterContext(chapter);
+  return {
+    id: `CHAPTER_REVIEW:${chapter.id}`,
+    kind: "CHAPTER_REVIEW",
+    entityType: "CHAPTER",
+    entityId: String(chapter.id),
+    status: String(chapter.status),
+    version: typeof chapter.number === "number" ? chapter.number : null,
+    title: chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`,
+    subtitle: context.readiness.ready ? "Ready to approve" : "Blocked",
+    priority: {
+      level: context.readiness.ready ? "HIGH" : "NORMAL",
+      reason: context.readiness.ready ? "Ready for your approval" : "Awaiting readiness",
+      dueAt: null,
+    },
+    blockers: readinessBlockers(context.readiness),
+    actions: chapterReviewActions(actor, context),
+    summary: { seriesId: chapter.seriesId, ready: context.readiness.ready },
+  };
+}
+
+async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<MobileWorkItem> {
+  const [series, publication] = await Promise.all([
+    SeriesModel.findOne({ id: chapter.seriesId }).lean(),
+    PublicationModel.findOne({ chapterId: chapter.id }).lean(),
+  ]);
+  const status = (publication as any)?.status ?? "DRAFT";
+  return {
+    id: `PUBLICATION:${chapter.id}`,
+    kind: "PUBLICATION",
+    entityType: "CHAPTER",
+    entityId: String(chapter.id),
+    status: String(status),
+    version: typeof chapter.number === "number" ? chapter.number : null,
+    title: chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`,
+    subtitle: status === "SCHEDULED" ? "Scheduled" : "Ready to schedule",
+    priority: { level: "NORMAL", reason: "Publication decision", dueAt: null },
+    blockers: [],
+    actions: chapterPublicationActions(actor, series, publication),
+    summary: {
+      scheduledAt: (publication as any)?.scheduledAt
+        ? new Date((publication as any).scheduledAt).toISOString()
+        : null,
+    },
+  };
+}
+
+function commentReviewWorkItem(_actor: RequestActor, comment: any): MobileWorkItem {
+  const canResolve = comment.status === "ADDRESSED";
+  const canReopen = comment.status === "RESOLVED";
+  return {
+    id: `COMMENT_REVIEW:${comment.id}`,
+    kind: "COMMENT_REVIEW",
+    entityType: "COMMENT",
+    entityId: String(comment.id),
+    status: String(comment.status),
+    version: null,
+    title: "Blocking comment",
+    subtitle: (comment.body ?? "").slice(0, 80) || "Blocking comment",
+    priority: { level: "HIGH", reason: "Blocking comment needs verification", dueAt: null },
+    blockers: [],
+    actions: [
+      {
+        action: "COMMENT_RESOLVE",
+        enabled: canResolve,
+        disabledReason: canResolve ? null : "Comment is not awaiting resolution.",
+        requiresConfirmation: true,
+        requiresReason: false,
+      },
+      {
+        action: "COMMENT_REOPEN",
+        enabled: canReopen,
+        disabledReason: canReopen ? null : "Only a resolved comment can be reopened.",
+        requiresConfirmation: true,
+        requiresReason: false,
+      },
+    ],
+    summary: { targetType: comment.targetType ?? "CHAPTER" },
+  };
+}
+
 export async function getEditorMobileInbox(actor: RequestActor): Promise<MobileInbox> {
   if (actor.role !== "EDITOR") {
     throw new AppError(403, "Editor permission is required.", "FORBIDDEN");
   }
   const proposals = await editorReviewQueue();
+
+  // Chapters for series this Editor is the assigned Tantou on.
+  const editorSeries = await SeriesModel.find({ editorId: actor.id }).select({ id: 1 }).lean();
+  const seriesIds = editorSeries.map((series: any) => series.id);
+  const chapters = seriesIds.length
+    ? await ChapterModel.find({
+        seriesId: { $in: seriesIds },
+        status: { $in: ["TANTOU_REVIEW", "READY_FOR_PUBLICATION"] },
+      })
+        .sort({ updatedAt: -1 })
+        .lean()
+    : [];
+  const reviewChapters = chapters.filter((chapter: any) => chapter.status === "TANTOU_REVIEW");
+  const publishChapters = chapters.filter(
+    (chapter: any) => chapter.status === "READY_FOR_PUBLICATION",
+  );
+
+  // Unresolved blocking comments this Editor authored that await verification.
+  const blockingComments = await StudioCommentModel.find({
+    authorId: actor.id,
+    $or: [{ isBlocking: true }, { blocking: true }],
+    status: { $in: ["ADDRESSED", "RESOLVED"] },
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const [chapterItems, publicationItems] = await Promise.all([
+    Promise.all(reviewChapters.map((chapter: any) => chapterReviewWorkItem(actor, chapter))),
+    Promise.all(publishChapters.map((chapter: any) => publicationWorkItem(actor, chapter))),
+  ]);
+
+  const items: MobileWorkItem[] = [
+    ...proposals.map((proposal) => proposalWorkItem(actor, proposal)),
+    ...chapterItems,
+    ...blockingComments.map((comment: any) => commentReviewWorkItem(actor, comment)),
+    ...publicationItems,
+  ];
+
   return mobileInboxSchema.parse({
     role: "EDITOR",
     generatedAt: new Date().toISOString(),
-    items: proposals.map((proposal) => proposalWorkItem(actor, proposal)),
+    items,
   });
 }
 

@@ -6,6 +6,11 @@ const dataSource = readFileSync(new URL("../data/mobile-data.ts", import.meta.ur
 const editorDataSource = readFileSync(new URL("../data/editor.ts", import.meta.url), "utf8");
 const boardDataSource = readFileSync(new URL("../data/board.ts", import.meta.url), "utf8");
 const domainSource = readFileSync(new URL("../domain/workflow.ts", import.meta.url), "utf8");
+const mobileWorkItemSource = readFileSync(
+  new URL("../domain/mobile-work-item.ts", import.meta.url),
+  "utf8",
+);
+const mobileEnvSource = readFileSync(new URL("../config/mobile-env.ts", import.meta.url), "utf8");
 const dataBoundarySource = readFileSync(
   new URL("../services/mobile-workflow-data-source.ts", import.meta.url),
   "utf8",
@@ -89,14 +94,15 @@ test("mobile app exposes the Queue-first authenticated shell", () => {
   for (const label of ["Today", "Reviews", "Publish", "History", "Sessions", "Ranking"]) {
     assert.match(appSource, new RegExp(`label: "${label}"`));
   }
-  // Explicit demo gating, identity-driven (no manual role switch), no tie-break UI.
+  // Explicit demo gating, identity-driven (no manual role switch), no active tie-break UI.
   assert.match(appSource, /Demo data/);
   assert.match(appSource, /forceDemoMode/);
+  assert.match(appSource, /demoMode \? async \(\) => demoInbox\(role\) : undefined/);
   assert.doesNotMatch(appSource, /switch role/i);
   assert.doesNotMatch(appSource, /tie-?break/i);
 });
 
-test("mobile data source exposes API-ready role methods", () => {
+test("mobile data source exposes API-ready role methods and explicit demo selection", () => {
   for (const method of [
     "getEditorHome",
     "getEditorManuscripts",
@@ -105,7 +111,6 @@ test("mobile data source exposes API-ready role methods", () => {
     "getEditorReadiness",
     "getBoardHome",
     "getBoardSeriesReviews",
-    "getBoardTieBreaks",
     "getBoardRankings",
     "getBoardAtRiskCases",
     "getBoardDecisionHistory",
@@ -114,6 +119,13 @@ test("mobile data source exposes API-ready role methods", () => {
   }
 
   assert.match(dataBoundarySource, /mockMobileWorkflowDataSource/);
+  assert.match(mobileEnvSource, /enableMockFallback: readPublicEnv\("EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK"\) === "true"/);
+  assert.match(
+    dataBoundarySource,
+    /mobileEnv\.enableMockFallback\s*\?\s*mockMobileWorkflowDataSource\s*:\s*apiMobileWorkflowDataSource/,
+  );
+  assert.match(dataBoundarySource, /MobileApiError/);
+  assert.doesNotMatch(dataBoundarySource, /fallbackDataSource/);
   assert.match(editorHookSource, /useEditorMobileFlow/);
   assert.match(boardHookSource, /useBoardMobileFlow/);
   assert.match(dataBoundarySource, /\/comments\/task\/\$\{firstTaskId\}/);
@@ -279,7 +291,7 @@ test("mobile series covers use provided manga artwork assets", () => {
   assert.ok(existsSync(new URL("../../assets/images/biatruyen1.jpg", import.meta.url)));
 });
 
-test("mobile decision actions require confirmation detail before mock recording", () => {
+test("legacy role-flow actions retain confirmation detail while Today remains Queue-first", () => {
   assert.match(mfSource, /MFConfirmationPanel/);
   assert.match(mfSource, /Confirmation required/);
   assert.match(mfSource, /noteValue/);
@@ -313,9 +325,7 @@ test("mobile decision actions require confirmation detail before mock recording"
   assert.match(boardHookSource, /pendingAtRiskDecision/);
   assert.match(dataBoundarySource, /castBoardVote/);
   assert.match(dataBoundarySource, /finalizeBoardDecision/);
-  assert.match(dataBoundarySource, /tieBreakBoardDecision/);
   assert.match(dataBoundarySource, /createBoardAtRiskDecision/);
-  assert.match(boardHookSource, /startTieBreakVote/);
   assert.match(boardHookSource, /confirmFinalizeDecision/);
   assert.match(boardHookSource, /actionBusy/);
   assert.match(
@@ -330,15 +340,14 @@ test("mobile decision actions require confirmation detail before mock recording"
   assert.match(dataBoundarySource, /\/voting-sessions\/\$\{input\.sessionId\}\/close/);
   assert.match(
     boardActionPanelsSource,
-    /Live endpoint: POST \/api\/board\/series\/:seriesId\/decisions\/tie-break/,
-  );
-  assert.match(
-    boardActionPanelsSource,
     /Live endpoint: POST \/api\/board\/series\/:seriesId\/at-risk-decisions/,
   );
   assert.match(boardActionPanelsSource, /Backend verifies quorum and vote result/);
   assert.match(boardActionPanelsSource, /Board action remains auditable on the backend/);
   assert.match(boardActionPanelsSource, /Series is never auto-cancelled/);
+  // Ties are backend-created re-vote work, not an active Board Chair control.
+  assert.match(mobileWorkItemSource, /"BOARD_REVOTE"/);
+  assert.doesNotMatch(appSource, /tie-?break/i);
 });
 
 test("mobile queues expose selectable rows that drive detail panels", () => {
@@ -370,7 +379,7 @@ test("mobile screens expose reusable loading error and empty states", () => {
   assert.match(editorSource, /Publication scheduling boundary/);
   assert.doesNotMatch(editorSource, /Schedule publication mock/);
   assert.match(boardSource, /No Board reviews/);
-  assert.match(boardSource, /No tie-break decisions/);
+  assert.match(mobileWorkItemSource, /"BOARD_REVOTE"/);
   assert.match(boardSource, /No ranking import/);
   assert.match(boardSource, /No at-risk cases/);
   assert.doesNotMatch(editorSource, /function StateBanner/);

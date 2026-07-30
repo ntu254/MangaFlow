@@ -5,6 +5,8 @@ import {
   boardQueueHandler,
   editorInboxHandler,
   boardInboxHandler,
+  editorProposalDetailHandler,
+  editorChapterDetailHandler,
   getBoardVotes,
   startReview,
   requestRevision,
@@ -21,6 +23,18 @@ const router = Router();
 // Queue-first mobile inbox (foundation)
 router.get("/editor/inbox", requireExactRole("EDITOR") as any, editorInboxHandler);
 router.get("/board/inbox", requireExactRole("BOARD") as any, boardInboxHandler);
+
+// Editor detail projections
+router.get(
+  "/editor/proposals/:proposalId/detail",
+  requireExactRole("EDITOR") as any,
+  editorProposalDetailHandler,
+);
+router.get(
+  "/editor/chapters/:chapterId/detail",
+  requireExactRole("EDITOR") as any,
+  editorChapterDetailHandler,
+);
 
 // Editor mobile aliases
 router.get("/editor/manuscripts/review-queue", requireExactRole("EDITOR") as any, editorReviewQueueHandler);

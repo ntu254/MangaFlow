@@ -25,6 +25,10 @@ import {
   getEditorMobileInbox,
   getBoardMobileInbox,
 } from "../services/mobile-inbox.service.js";
+import {
+  getEditorProposalDetail,
+  getEditorChapterDetail,
+} from "../services/mobile-editor-detail.service.js";
 import type { AuthedRequest } from "../types.js";
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
@@ -39,6 +43,13 @@ export const editorInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
 );
 export const boardInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await getBoardMobileInbox(requireActor(req))),
+);
+
+export const editorProposalDetailHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getEditorProposalDetail(requireActor(req), String(req.params.proposalId))),
+);
+export const editorChapterDetailHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getEditorChapterDetail(requireActor(req), String(req.params.chapterId))),
 );
 
 export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
