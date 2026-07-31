@@ -1,4 +1,5 @@
 import { mobileApi } from "@/services/mobile-api-client"
+import { z } from "zod"
 
 // Editor detail reads and canonical proposal decisions. Detail shapes mirror
 // the backend mobile-editor-detail projections; mutations call the canonical
@@ -180,4 +181,32 @@ export function postponeChapterPublication(chapterId: string): Promise<void> {
 
 export function publishChapterNow(chapterId: string): Promise<void> {
   return chapterAction(chapterId, "PUBLISH")
+}
+
+// ---------------------------------------------------------------------------
+// Read-only activity history
+// ---------------------------------------------------------------------------
+
+export interface EditorHistoryItem {
+  id: string
+  label: string
+  createdAt: string | null
+}
+
+const editorSummarySchema = z.object({
+  recentActivity: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    createdAt: z.union([z.string(), z.date()]).nullable().optional().transform((value) => {
+      if (!value) return null
+      return value instanceof Date ? value.toISOString() : value
+    }),
+  })),
+})
+
+export async function getEditorHistory(): Promise<EditorHistoryItem[]> {
+  const summary = editorSummarySchema.parse(
+    await mobileApi.request(`/dashboard/editor/summary`),
+  )
+  return summary.recentActivity
 }

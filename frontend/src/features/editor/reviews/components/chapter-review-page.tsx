@@ -10,7 +10,13 @@ import {
   useCommentsQuery,
   useSeriesDetailQuery,
 } from "@/entities/series";
-import { useStudioRegionsQuery, useStudioTasksQuery } from "@/features/series";
+import {
+  mapApiError,
+  useReopenCommentMutation,
+  useResolveCommentMutation,
+  useStudioRegionsQuery,
+  useStudioTasksQuery,
+} from "@/features/series";
 import { getDeadlineRisk, getPublicationReadiness } from "../../model/editor-access";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ReviewPagesSidebar } from "./review-pages-sidebar";
@@ -29,6 +35,8 @@ export function ChapterReviewPage() {
   const { data: regions = [] } = useStudioRegionsQuery({ chapterId });
   const { data: tasks = [] } = useStudioTasksQuery({ chapterId });
   const chapterAction = useChapterActionMutation(chapterId, chapter?.seriesId);
+  const resolveCommentMutation = useResolveCommentMutation();
+  const reopenCommentMutation = useReopenCommentMutation();
 
   const [selectedPageId, setSelectedPageId] = useState("");
   const [showAnnotations, setShowAnnotations] = useState(true);
@@ -99,6 +107,40 @@ export function ChapterReviewPage() {
   const isTantouReview = chapter.status === "TANTOU_REVIEW";
   const canApprove = isTantouReview && blockingCount === 0;
   const canRevise = isTantouReview;
+  const canVerifyBlockingComments = user?.role === "editor" && series.editorId === user.id;
+  const isCommentActionPending =
+    resolveCommentMutation.isPending || reopenCommentMutation.isPending;
+
+  function commentVariables(comment: (typeof comments)[number]) {
+    return {
+      commentId: comment.id,
+      chapterId: comment.chapterId,
+      pageId: comment.pageId,
+      taskId: comment.taskId,
+    };
+  }
+
+  function resolveComment(comment: (typeof comments)[number]) {
+    if (!canVerifyBlockingComments) {
+      toast.error("Only the assigned Tantou can verify comments.");
+      return;
+    }
+    resolveCommentMutation.mutate(commentVariables(comment), {
+      onSuccess: () => toast.success("Comment verified as RESOLVED."),
+      onError: (error) => toast.error(mapApiError(error)),
+    });
+  }
+
+  function reopenComment(comment: (typeof comments)[number]) {
+    if (!canVerifyBlockingComments) {
+      toast.error("Only the assigned Tantou can reopen comments.");
+      return;
+    }
+    reopenCommentMutation.mutate(commentVariables(comment), {
+      onSuccess: () => toast.success("Comment reopened."),
+      onError: (error) => toast.error(mapApiError(error)),
+    });
+  }
 
   function runAction(
     action: "EDITOR_APPROVE" | "REQUEST_REVISION" | "REJECT",
@@ -162,13 +204,17 @@ export function ChapterReviewPage() {
             pageComments={pageComments}
             chapterReviews={chapterReviews}
             regionLabel={(regionId) => (regionId ? regionLabelMap.get(regionId) : undefined)}
-            chapterId={chapter.id}
             canApprove={canApprove && !!user}
             canRevise={canRevise && !!user}
             isPending={chapterAction.isPending}
+            canVerifyBlockingComments={canVerifyBlockingComments}
+            isCommentActionPending={isCommentActionPending}
             onApprove={() => runAction("EDITOR_APPROVE")}
             onRequestRevision={(payload) => runAction("REQUEST_REVISION", payload)}
             onReject={(payload) => runAction("REJECT", payload)}
+            onResolveComment={resolveComment}
+            onReopenComment={reopenComment}
+            assignedEditorId={series.editorId}
           />
         </aside>
       </div>

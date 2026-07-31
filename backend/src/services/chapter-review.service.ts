@@ -163,8 +163,14 @@ export async function sendChapterToEditorReview(
       "REVIEW_MATERIAL_NOT_ACTIVE",
     );
   }
+  // CANCELLED and REJECTED tasks are terminal dead-ends (a rejected task cannot
+  // be reopened; the region is freed for a replacement task), so they must not
+  // block editor review.
   const relevantTasks = tasks.filter(
-    (task: any) => task.status !== "CANCELLED" && task.isRequired !== false,
+    (task: any) =>
+      task.status !== "CANCELLED" &&
+      task.status !== "REJECTED" &&
+      task.isRequired !== false,
   );
   if (relevantTasks.some((task: any) => !APPROVED_TASK_STATUSES.includes(String(task.status)))) {
     throw new AppError(

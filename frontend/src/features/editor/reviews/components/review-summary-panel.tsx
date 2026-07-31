@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { AlertOctagon, CheckCircle2, MessageSquare } from "lucide-react";
 import type { StudioComment } from "@/entities/series/model/studio-types";
 import type { StudioTask } from "@/entities/series/model/studio-types";
@@ -13,6 +12,7 @@ import {
   commentText,
   commentTone,
   isBlocking,
+  isTantouBlocking,
   TONE_DOT,
   TONE_PILL,
   type CommentStats,
@@ -42,13 +42,17 @@ export function ReviewSummaryPanel({
   pageComments,
   chapterReviews,
   regionLabel,
-  chapterId,
   canApprove,
   canRevise,
   isPending,
+  canVerifyBlockingComments,
+  isCommentActionPending,
   onApprove,
   onRequestRevision,
   onReject,
+  onResolveComment,
+  onReopenComment,
+  assignedEditorId,
 }: {
   stats: CommentStats;
   readiness: PublicationReadiness | null;
@@ -57,13 +61,17 @@ export function ReviewSummaryPanel({
   pageComments: StudioComment[];
   chapterReviews: ChapterReview[];
   regionLabel: (regionId?: string) => string | undefined;
-  chapterId: string;
   canApprove: boolean;
   canRevise: boolean;
   isPending: boolean;
+  canVerifyBlockingComments: boolean;
+  isCommentActionPending: boolean;
   onApprove: () => void;
   onRequestRevision: (payload: Record<string, unknown>) => void;
   onReject: (payload: Record<string, unknown>) => void;
+  onResolveComment: (comment: StudioComment) => void;
+  onReopenComment: (comment: StudioComment) => void;
+  assignedEditorId: string;
 }) {
   const [checklist, setChecklist] = useState<Record<string, boolean>>(() => ({
     "File quality": Boolean(readiness && readiness.pagesUploaded > 0),
@@ -151,9 +159,7 @@ export function ReviewSummaryPanel({
         {latestReview ? (
           <div className="space-y-2 text-[12px] text-[var(--admin-muted)]">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-[var(--admin-ink)]">
-                Chapter version {latestReview.chapterVersionId}
-              </span>
+              <span className="font-semibold text-[var(--admin-ink)]">Frozen review set</span>
               <span className="rounded bg-[var(--admin-hover)] px-1.5 py-0.5 text-[10px] font-semibold">
                 {latestReview.status}
               </span>
@@ -173,15 +179,6 @@ export function ReviewSummaryPanel({
 
       <Panel
         title={`Comments (${pageComments.length})`}
-        action={
-          <Link
-            to="/app/editor/chapters/$chapterId/annotate"
-            params={{ chapterId }}
-            className="text-[11px] font-semibold text-[var(--admin-muted)] hover:text-[var(--admin-ink)]"
-          >
-            View all
-          </Link>
-        }
         contentClassName="p-0"
       >
         {pageComments.length === 0 ? (
@@ -193,6 +190,7 @@ export function ReviewSummaryPanel({
             {pageComments.map((c, i) => {
               const tone = commentTone(c);
               const region = regionLabel(c.regionId);
+              const canVerify = canVerifyBlockingComments && isTantouBlocking(c, assignedEditorId);
               return (
                 <li key={c.id} className="flex gap-2.5 px-4 py-2.5">
                   <span
@@ -216,6 +214,32 @@ export function ReviewSummaryPanel({
                       {c.authorName} · {formatDateTime(c.createdAt)}
                     </p>
                     <p className="mt-0.5 text-[12px] text-[var(--admin-muted)]">{commentText(c)}</p>
+                    {canVerify ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {c.status !== "RESOLVED" ? (
+                          <button
+                            type="button"
+                            disabled={isCommentActionPending}
+                            onClick={() => onResolveComment(c)}
+                            className="rounded-[5px] bg-[var(--admin-navy)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-40"
+                          >
+                            {c.status === "ADDRESSED" ? "Verify RESOLVED" : "Mark RESOLVED"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isCommentActionPending}
+                            onClick={() => onReopenComment(c)}
+                            className="rounded-[5px] border border-[var(--admin-border)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)] disabled:opacity-40"
+                          >
+                            Reopen
+                          </button>
+                        )}
+                        <span className="text-[10px] text-[var(--admin-faint)]">
+                          Tantou verification
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                 </li>
               );

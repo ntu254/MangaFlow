@@ -32,6 +32,15 @@ type ViewerItem =
       fileKey?: string;
       fileType: string;
       materialKind: SupportingMaterialKind;
+    }
+  | {
+      kind: "sample";
+      id: string;
+      title: string;
+      subtitle: string;
+      url: string;
+      fileKey?: string;
+      fileType: string;
     };
 
 function toItems(p: SeriesProposal): ViewerItem[] {
@@ -56,13 +65,38 @@ function toItems(p: SeriesProposal): ViewerItem[] {
     fileType: mt.fileType,
     materialKind: mt.kind,
   }));
-  return [...m, ...mat];
+  const latestManuscript = [...p.manuscripts].sort((a, b) => b.version - a.version)[0];
+  const sampleIsAlreadyListed = p.manuscripts.some((mv) => mv.fileUrl === p.sampleChapterUrl);
+  const sample: ViewerItem[] =
+    p.sampleChapterUrl && !sampleIsAlreadyListed
+      ? [
+          {
+            kind: "sample",
+            id: `sample-${p.id}`,
+            title: "Sample pages",
+            subtitle: "Submitted sample chapter",
+            url: p.sampleChapterUrl,
+            fileType: latestManuscript?.fileType ?? inferFileType(p.sampleChapterUrl),
+          },
+        ]
+      : [];
+  return [...m, ...sample, ...mat];
 }
 
-export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; user: User }) {
+export function MaterialsViewer({
+  proposal,
+  user,
+  annotationLabel = "Board annotations",
+}: {
+  proposal: SeriesProposal;
+  user: User;
+  annotationLabel?: string;
+}) {
   const items = useMemo(() => toItems(proposal), [proposal]);
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
-  const [filter, setFilter] = useState<"all" | "manuscript" | SupportingMaterialKind>("all");
+  const [filter, setFilter] = useState<
+    "all" | "manuscript" | "sample" | SupportingMaterialKind
+  >("all");
   const annotations = useMaterialAnnotations((s) => s.annotations);
   const addAnnotation = useMaterialAnnotations((s) => s.add);
   const removeAnnotation = useMaterialAnnotations((s) => s.remove);
@@ -72,6 +106,7 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
   const filtered = useMemo(() => {
     if (filter === "all") return items;
     if (filter === "manuscript") return items.filter((i) => i.kind === "manuscript");
+    if (filter === "sample") return items.filter((i) => i.kind === "sample");
     return items.filter((i) => i.kind === "material" && i.materialKind === filter);
   }, [items, filter]);
 
@@ -109,15 +144,17 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
     <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
       <aside className="space-y-3">
         <div className="flex flex-wrap gap-1">
-          {(["all", "manuscript", "character", "world", "reference", "other"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${filter === f ? "border-foreground bg-foreground text-background" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}
-            >
-              {f === "all" ? "All" : f === "manuscript" ? "Manuscript" : MATERIAL_KIND_LABEL[f]}
-            </button>
-          ))}
+          {(["all", "manuscript", "sample", "character", "world", "reference", "other"] as const).map(
+            (f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${filter === f ? "border-foreground bg-foreground text-background" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                {filterLabel(f)}
+              </button>
+            ),
+          )}
         </div>
         <ul className="space-y-1">
           {filtered.map((it) => {
@@ -167,7 +204,7 @@ export function MaterialsViewer({ proposal, user }: { proposal: SeriesProposal; 
 
             <div className="rounded border border-border bg-card/40 p-3">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Board annotations ({itemAnnotations.length})
+                {annotationLabel} ({itemAnnotations.length})
               </p>
               {itemAnnotations.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
@@ -247,6 +284,22 @@ function AssetPreview({ item }: { item: ViewerItem }) {
       )}
     </div>
   );
+}
+
+function filterLabel(
+  filter: "all" | "manuscript" | "sample" | SupportingMaterialKind,
+) {
+  if (filter === "all") return "All";
+  if (filter === "manuscript") return "Manuscript";
+  if (filter === "sample") return "Sample pages";
+  return MATERIAL_KIND_LABEL[filter];
+}
+
+function inferFileType(url: string) {
+  const path = url.split(/[?#]/, 1)[0].toLowerCase();
+  if (/\.(?:png|jpe?g|webp|gif)$/.test(path)) return "image/*";
+  if (path.endsWith(".pdf")) return "application/pdf";
+  return "application/octet-stream";
 }
 
 export type { ManuscriptVersion, SupportingMaterial };

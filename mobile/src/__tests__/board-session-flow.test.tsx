@@ -7,10 +7,12 @@ import type { BoardSessionDetail } from "@/services/board-mobile-data-source"
 jest.mock("@/services/board-mobile-data-source", () => ({
   getBoardSessionDetail: jest.fn(),
   castBoardVote: jest.fn(),
-  finalizeBoardSession: jest.fn(),
+  closeBoardSession: jest.fn(),
   cancelBoardSession: jest.fn(),
   createBoardSession: jest.fn(),
+  updateBoardSession: jest.fn(),
   getBoardRankings: jest.fn(),
+  getBoardDecisionHistory: jest.fn(),
 }))
 
 const mocked = dataSource as jest.Mocked<typeof dataSource>
@@ -40,9 +42,9 @@ describe("BoardSessionDetailScreen", () => {
   it("shows the backend tally and casts a vote with expectedVersion", async () => {
     mocked.castBoardVote.mockResolvedValue(undefined)
     renderScreen()
-    expect(await screen.findByText("Approve 2 · Reject 0 · Quorum 3 of 5")).toBeVisible()
+    expect(await screen.findByText("Approve 2 · Reject 0 · Abstain 0 · Quorum 3 of 5")).toBeVisible()
     fireEvent.press(screen.getByRole("button", { name: "Approve" }))
-    fireEvent.press(await screen.findByRole("button", { name: "Confirm vote" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm approve" }))
     await waitFor(() =>
       expect(mocked.castBoardVote).toHaveBeenCalledWith({
         proposalId: "p-004",
@@ -70,11 +72,15 @@ describe("BoardSessionDetailScreen", () => {
       ...votableSession,
       session: { ...votableSession.session, id: "vs-2", reVoteOfSessionId: "vs-1", isReVote: true },
     })
-    expect(await screen.findByText("Fresh re-vote")).toBeVisible()
+    expect(await screen.findByText("Fresh re-vote is open")).toBeVisible()
   })
 
   it("lets the Chair finalize when the tally is decisive", async () => {
-    mocked.finalizeBoardSession.mockResolvedValue(undefined)
+    mocked.closeBoardSession.mockResolvedValue({
+      id: "vs-1",
+      title: "Weekly slate",
+      status: "FINALIZED",
+    })
     renderScreen({
       ...votableSession,
       tally: { ...votableSession.tally, approve: 3, canFinalize: true },
@@ -84,9 +90,11 @@ describe("BoardSessionDetailScreen", () => {
         { action: "SESSION_CANCEL", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
       ],
     })
-    fireEvent.press(await screen.findByRole("button", { name: "Finalize session" }))
-    fireEvent.press(await screen.findByRole("button", { name: "Confirm finalize" }))
-    await waitFor(() => expect(mocked.finalizeBoardSession).toHaveBeenCalledWith("vs-1", {}))
+    fireEvent.press(await screen.findByRole("button", { name: "Close voting" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm close" }))
+    await waitFor(() =>
+      expect(mocked.closeBoardSession).toHaveBeenCalledWith("vs-1", { expectedVersion: 3 }),
+    )
   })
 
   it("keeps finalize disabled with the backend reason before quorum", async () => {
@@ -97,7 +105,7 @@ describe("BoardSessionDetailScreen", () => {
         { action: "SESSION_FINALIZE", enabled: false, disabledReason: "Quorum or a decisive tally has not been reached yet.", requiresConfirmation: true, requiresReason: false },
       ],
     })
-    expect(await screen.findByRole("button", { name: "Finalize session" })).toBeDisabled()
+    expect(await screen.findByRole("button", { name: "Close voting" })).toBeDisabled()
     expect(screen.getByText("Quorum or a decisive tally has not been reached yet.")).toBeVisible()
   })
 })

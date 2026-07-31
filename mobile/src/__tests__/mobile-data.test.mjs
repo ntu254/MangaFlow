@@ -88,7 +88,7 @@ test("mobile mock data covers board and editor reference screens", () => {
 test("mobile app exposes the Queue-first authenticated shell", () => {
   // Live Today screens / workspace replace the legacy per-tab mock screens.
   assert.match(appSource, /EditorWorkspace/);
-  assert.match(appSource, /BoardTodayScreen/);
+  assert.match(appSource, /BoardWorkspace/);
   assert.match(appSource, /useMobileInbox/);
   // Canonical tab sets.
   for (const label of ["Today", "Reviews", "Publish", "History", "Sessions", "Ranking"]) {
@@ -175,7 +175,7 @@ test("mobile domain uses canonical workflow values from contracts", () => {
     "CONTINUE",
     "WARNING",
     "CANCEL",
-    "COMPLETE",
+    "REQUEST_IMPROVEMENT_PLAN",
   ]) {
     assert.match(domainSource, new RegExp(`"${value}"`));
   }
@@ -197,7 +197,7 @@ test("board mock covers ranking and manual at-risk decisions", () => {
   assert.match(boardDataSource, /readerScore: 6\.1/);
   assert.match(boardDataSource, /readerScore: 6\.3/);
   assert.match(boardDataSource, /readerScore: 6\.4/);
-  assert.match(boardDataSource, /"COMPLETE"/);
+  assert.match(boardDataSource, /"REQUEST_IMPROVEMENT_PLAN"/);
   assert.match(boardDataSource, /requiresConfirmation: true/);
   assert.match(boardActionPanelsSource, /Series is not auto-cancelled/);
 });
@@ -483,8 +483,8 @@ test("mobile shell is identity-driven with an avatar profile menu", () => {
   // Profile/logout live behind the avatar menu.
   assert.match(appSource, /Account menu/);
   assert.match(appSource, /"Logout"/);
-  // Non-Today tabs are explicit placeholders until later slices land.
-  assert.match(appSource, /Coming soon/);
+  // All four role tabs are implemented; no placeholder surface remains.
+  assert.doesNotMatch(appSource, /Coming soon/);
   // Legacy handoff/profile prose and extra roles are gone.
   assert.doesNotMatch(appSource, /RoleHandoffSummary/);
   assert.doesNotMatch(appSource, /Read fallback stays available/);

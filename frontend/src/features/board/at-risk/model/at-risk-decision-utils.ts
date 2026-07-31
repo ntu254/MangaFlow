@@ -1,58 +1,44 @@
-import type { AtRiskDecisionKind } from "@/entities/board/model/board-types";
+import {
+  AT_RISK_DECISION_LABEL,
+  type AtRiskDecisionKind,
+} from "@/entities/board/model/board-types";
 
-export type VisualAtRiskDecision = AtRiskDecisionKind | "REVISION_PLAN" | "MOVE_TO_MONTHLY";
+export type VisualAtRiskDecision =
+  | Extract<AtRiskDecisionKind, "CONTINUE" | "WARNING" | "CANCEL">
+  | "REQUEST_IMPROVEMENT_PLAN";
 
 export const VISUAL_AT_RISK_DECISIONS: VisualAtRiskDecision[] = [
   "CONTINUE",
   "WARNING",
-  "REVISION_PLAN",
-  "HIATUS",
-  "CHANGE_FORMAT",
-  "MOVE_TO_MONTHLY",
-  "COMPLETE",
+  "REQUEST_IMPROVEMENT_PLAN",
   "CANCEL",
 ];
 
 export function getAtRiskDecisionLabel(decision: VisualAtRiskDecision): string {
-  return decision.replace(/_/g, " ");
+  return decision === "REQUEST_IMPROVEMENT_PLAN"
+    ? "Request improvement plan"
+    : AT_RISK_DECISION_LABEL[decision];
 }
 
 export function getAtRiskDecisionEffect(decision: VisualAtRiskDecision): string {
   switch (decision) {
     case "CONTINUE":
-      return "CONTINUE -> Series remains ONGOING.";
+      return "Series remains active; the decision is recorded for audit.";
     case "WARNING":
-      return "WARNING -> Series is marked AT_RISK.";
-    case "COMPLETE":
-      return "COMPLETE -> Series moves to COMPLETED.";
+      return "Records a warning for the flagged series; no automatic status change is made.";
+    case "REQUEST_IMPROVEMENT_PLAN":
+      return "Records a request for an improvement plan from the series team.";
     case "CANCEL":
-      return "CANCEL -> Series moves to CANCELLED.";
-    case "HIATUS":
-      return "HIATUS -> Series moves to HIATUS if supported.";
-    case "CHANGE_FORMAT":
-      return "CHANGE_FORMAT -> Format change is recorded if supported.";
-    case "MOVE_TO_MONTHLY":
-      return "MOVE_TO_MONTHLY -> Publication cadence changes if supported.";
-    case "REVISION_PLAN":
-      return "REVISION_PLAN -> Recovery plan is requested if supported.";
+      return "Records a cancellation decision for follow-up; a reason is required.";
   }
 }
 
 export function isAtRiskDecisionSupported(
-  decision: VisualAtRiskDecision,
-): decision is AtRiskDecisionKind {
-  return ["CONTINUE", "WARNING", "CANCEL", "COMPLETE", "CHANGE_FORMAT", "HIATUS"].includes(
-    decision,
-  );
+  decision: AtRiskDecisionKind | VisualAtRiskDecision | undefined,
+): decision is VisualAtRiskDecision {
+  return Boolean(decision && VISUAL_AT_RISK_DECISIONS.includes(decision as VisualAtRiskDecision));
 }
 
 export function requiresAtRiskDecisionReason(decision: VisualAtRiskDecision): boolean {
-  return [
-    "WARNING",
-    "REVISION_PLAN",
-    "HIATUS",
-    "CHANGE_FORMAT",
-    "MOVE_TO_MONTHLY",
-    "CANCEL",
-  ].includes(decision);
+  return ["WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"].includes(decision);
 }

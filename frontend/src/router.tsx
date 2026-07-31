@@ -3,7 +3,12 @@ import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  // refetchOnWindowFocus: "always" refetches active queries whenever the tab
+  // regains focus, even within their staleTime window — so another user's
+  // approvals/status changes show up on tab focus instead of needing a reload.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { refetchOnWindowFocus: "always" } },
+  });
 
   const router = createRouter({
     routeTree,

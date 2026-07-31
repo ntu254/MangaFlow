@@ -132,13 +132,6 @@ export function ChapterPublicationDetailSheet({
         {chapter ? (
           <SheetFooter className="border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
             <Link
-              to="/app/editor/chapters/$chapterId/annotate"
-              params={{ chapterId: chapter.id }}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
-            >
-              Annotation Studio <ExternalLink className="size-3.5" />
-            </Link>
-            <Link
               to="/app/editor/chapters/$chapterId/review"
               params={{ chapterId: chapter.id }}
               className="inline-flex items-center justify-center gap-1.5 rounded-md bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90"

@@ -86,7 +86,6 @@ export function RankingImportPanel() {
     }
     try {
       const result = await importRankings.mutateAsync({
-        csvData: csvText,
         period: periodId,
         source,
         fileName: fileName ?? "manual-ranking.csv",

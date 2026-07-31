@@ -216,7 +216,9 @@ export const seedProposals = [
     chaptersPlanned: 32,
     coverUrl: "/assets/covers/gachiakuta.jpg",
     sampleChapterUrl: "metadata://sample",
-    status: "TIE_BREAK",
+    status: "BOARD_REVIEW",
+    activeVotingSessionId: "vs-003",
+    activeProposalVersionId: "1",
     assignedEditorId: "u-editor",
     assignedEditorName: "Tanaka Akira",
     // @deprecated cache
@@ -231,7 +233,7 @@ export const seedProposals = [
     requestedChanges: [],
     revisionRound: 0,
     submittedAt: ago(100),
-    history: [{ id: "p-009-e1", proposalId: "p-009", actorId: "system", actorName: "System", actorRole: "admin", type: "TIE_BREAK", fromStatus: "PENDING_BOARD", toStatus: "TIE_BREAK", comment: "Split board vote.", createdAt: ago(14) }],
+    history: [{ id: "p-009-e1", proposalId: "p-009", actorId: "system", actorName: "System", actorRole: "admin", type: "BOARD_REVOTE", fromStatus: "BOARD_REVIEW", toStatus: "BOARD_REVIEW", comment: "The prior Board round tied; a fresh re-vote is open.", createdAt: ago(14) }],
     createdAt: ago(300),
     updatedAt: ago(14)
   },
@@ -297,10 +299,10 @@ export const seedProposalVotes = [
     createdAt: ago(12),
     updatedAt: ago(12)
   },
-  // p-009 Ember Engine — TIE_BREAK
+  // p-009 Ember Engine — prior tied round (2 approve, 2 reject, 1 abstain)
   {
     id: "pv-003",
-    sessionId: null,
+    sessionId: "vs-002",
     proposalId: "p-009",
     voterId: "u-board-2",
     voterName: "Sato Eriko",
@@ -314,7 +316,7 @@ export const seedProposalVotes = [
   },
   {
     id: "pv-004",
-    sessionId: null,
+    sessionId: "vs-002",
     proposalId: "p-009",
     voterId: "u-board-3",
     voterName: "Kobayashi Ren",
@@ -328,7 +330,7 @@ export const seedProposalVotes = [
   },
   {
     id: "pv-005",
-    sessionId: null,
+    sessionId: "vs-002",
     proposalId: "p-009",
     voterId: "u-board-4",
     voterName: "Watanabe Kaoru",
@@ -342,7 +344,7 @@ export const seedProposalVotes = [
   },
   {
     id: "pv-006",
-    sessionId: null,
+    sessionId: "vs-002",
     proposalId: "p-009",
     voterId: "u-board-5",
     voterName: "Mori Haruto",
@@ -353,6 +355,20 @@ export const seedProposalVotes = [
     weight: 1,
     createdAt: ago(14),
     updatedAt: ago(14)
+  },
+  {
+    id: "pv-007",
+    sessionId: "vs-002",
+    proposalId: "p-009",
+    voterId: "u-board",
+    voterName: "Yamamoto Director",
+    voterRole: "BOARD",
+    decision: "ABSTAIN",
+    comment: "Abstained after the discussion.",
+    votedAt: ago(13),
+    weight: 1,
+    createdAt: ago(13),
+    updatedAt: ago(13)
   }
 ];
 
@@ -649,6 +665,7 @@ export const seedComments = [
     targetId: "tsk-001",
     authorId: "u-editor",
     authorName: "Tanaka Akira",
+    authorRole: "EDITOR",
     body: "The first bubble is too close to the character face.",
     /** @deprecated use body */
     text: "The first bubble is too close to the character face.",
@@ -780,6 +797,77 @@ export const seedVotingSessions = [
       }
     ],
     notes: []
+  },
+  {
+    id: "vs-002",
+    title: "Board review - Ember Engine",
+    mode: "SCHEDULED",
+    targetType: "PROPOSAL",
+    proposalId: "p-009",
+    proposalVersionId: "1",
+    status: "TIED",
+    version: 2,
+    scheduledFor: ago(16),
+    closesAt: ago(13),
+    closedAt: ago(13),
+    proposalIds: ["p-009"],
+    eligibleVoterIds: ["u-board", "u-board-2", "u-board-3", "u-board-4", "u-board-5"],
+    quorum: 3,
+    chairId: "u-board",
+    rules: {
+      approveThreshold: 3,
+      rejectThreshold: 3,
+      allowAbstain: true
+    },
+    createdById: "u-editor",
+    createdByName: "Tanaka Akira",
+    openedAt: ago(50),
+    outcomes: [
+      {
+        proposalId: "p-009",
+        decision: "TIED",
+        approveCount: 2,
+        rejectCount: 2,
+        abstainCount: 1,
+        finalReason: "All eligible Board members voted and the round ended in a tie."
+      }
+    ],
+    notes: []
+  },
+  {
+    id: "vs-003",
+    title: "Board review - Ember Engine (re-vote)",
+    mode: "SCHEDULED",
+    targetType: "PROPOSAL",
+    proposalId: "p-009",
+    proposalVersionId: "1",
+    reVoteOfSessionId: "vs-002",
+    status: "OPEN",
+    version: 1,
+    scheduledFor: ago(12),
+    closesAt: ahead(1),
+    proposalIds: ["p-009"],
+    eligibleVoterIds: ["u-board", "u-board-2", "u-board-3", "u-board-4", "u-board-5"],
+    quorum: 3,
+    chairId: "u-board",
+    rules: {
+      approveThreshold: 3,
+      rejectThreshold: 3,
+      allowAbstain: true
+    },
+    createdById: "u-board",
+    createdByName: "Yamamoto Director",
+    openedAt: ago(12),
+    outcomes: [],
+    notes: [
+      {
+        id: "vsn-003",
+        authorId: "u-board",
+        authorName: "Yamamoto Director",
+        text: "Fresh re-vote opened after the prior round tied.",
+        createdAt: ago(12)
+      }
+    ]
   }
 ];
 

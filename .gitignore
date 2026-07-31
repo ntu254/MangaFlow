@@ -58,3 +58,7 @@ artifacts
 test-results
 .superdesign/tmp/
 .agents
+.superdesign
+
+# codegraph local index
+.codegraph/

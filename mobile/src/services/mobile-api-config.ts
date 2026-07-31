@@ -1,6 +1,6 @@
 import { Platform } from "react-native"
+import { mobileEnv, requireMobileEnv } from "@/config/mobile-env"
 
-const DEFAULT_API_BASE_URL = "http://localhost:3001/api"
 const ANDROID_EMULATOR_HOST = "10.0.2.2"
 const LOCALHOST_PATTERN = /\/\/(localhost|127\.0\.0\.1):/i
 
@@ -9,7 +9,7 @@ function trimTrailingSlash(url: string) {
 }
 
 export function getMobileApiBaseUrl() {
-  const configuredUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL
+  const configuredUrl = requireMobileEnv(mobileEnv.apiBaseUrl, "EXPO_PUBLIC_API_BASE_URL")
   const normalizedUrl = trimTrailingSlash(configuredUrl)
 
   if (Platform.OS === "web" && normalizedUrl.includes(ANDROID_EMULATOR_HOST)) {

@@ -1,6 +1,10 @@
-import { SESSION_MODE_LABEL, SESSION_STATUS_LABEL } from "@/entities/board/model/voting-types";
+import {
+  SESSION_MODE_LABEL,
+  SESSION_STATUS_HELP,
+  SESSION_STATUS_LABEL,
+} from "@/entities/board/model/voting-types";
 import { useProposalsQuery } from "@/features/proposals";
-import { isEditorInChief, useAuth } from "@/shared/auth";
+import { isBoardChair, useAuth } from "@/shared/auth";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -8,11 +12,11 @@ import { toast } from "sonner";
 import {
   useCancelVotingSessionMutation,
   useCloseVotingSessionMutation,
+  useVotingSessionsQuery,
   useVotingSessionQuery,
 } from "../api/sessions.queries";
 import { SessionNotes } from "./session-notes";
 import { SessionProposalRow } from "./session-proposal-row";
-import { TieBreakPanel } from "./tie-break-panel";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 
 interface SessionDetailPageProps {
@@ -22,6 +26,7 @@ interface SessionDetailPageProps {
 export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
   const user = useAuth((s) => s.user);
   const { data: session, isLoading, isError } = useVotingSessionQuery(sid);
+  const { data: allSessions = [] } = useVotingSessionsQuery();
   const { data: proposals = [] } = useProposalsQuery({
     status: "PENDING_BOARD,BOARD_REVIEW,TIE_BREAK,APPROVED,REJECTED",
   });
@@ -51,8 +56,11 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
       />
     );
 
-  const isModerator = user.role === "editor" || user.role === "board";
-  const isEiC = user.role === "editor" && isEditorInChief(user);
+  const isChair = user.role === "board" && isBoardChair(user.id);
+  const statusHelp = SESSION_STATUS_HELP[session.status];
+  const openReVote = allSessions.find(
+    (candidate) => candidate.reVoteOfSessionId === session.id && candidate.status === "OPEN",
+  );
   const tieCount = session.outcomes.filter(
     (o) => session.status === "TIE_BREAK_REQUIRED" && o.decision === "TIE_BREAK_REQUIRED",
   ).length;
@@ -84,7 +92,7 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
             ) : null}
           </div>
         </div>
-        {session.status === "OPEN" && isModerator ? (
+        {session.status === "OPEN" && isChair ? (
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={async () => {
@@ -109,10 +117,51 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
             </button>
           </div>
         ) : null}
+        {openReVote ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-950">
+            <span>A fresh Board re-vote is open for this tied round.</span>
+            <Link
+              to="/app/board/sessions/$sid"
+              params={{ sid: openReVote.id }}
+              className="rounded bg-foreground px-3 py-1.5 font-semibold text-background hover:bg-foreground/90"
+            >
+              Open re-vote
+            </Link>
+          </div>
+        ) : null}
       </header>
 
+      <section className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Workflow status
+            </p>
+            <h2 className="mt-1 font-serif text-2xl">{SESSION_STATUS_LABEL[session.status]}</h2>
+          </div>
+          <span className="rounded-full border border-border bg-card px-3 py-1 text-[11px] font-semibold">
+            {session.reVoteOfSessionId ? "Re-vote round" : "Original round"}
+          </span>
+        </div>
+        <p className="mt-2 text-sm text-foreground/80">{statusHelp.description}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">Next step:</span> {statusHelp.nextStep}
+        </p>
+        {session.status === "OPEN" ? (
+          <p className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            Board members can vote from the proposal detail. Only the Board Chair can close or
+            cancel this session.
+          </p>
+        ) : null}
+      </section>
+
       <section className="space-y-3">
-        <h2 className="font-serif text-xl">Proposals in session ({session.proposalIds.length})</h2>
+        <div>
+          <h2 className="font-serif text-xl">Proposals in this round ({session.proposalIds.length})</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Each proposal shows the current tally, round outcome, and link to its evidence.
+          </p>
+        </div>
         <ul className="space-y-3">
           {session.proposalIds.map((pid) => {
             const proposal = proposals.find((p) => p.id === pid);
@@ -127,19 +176,14 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
         </ul>
       </section>
 
-      {isEiC && tieCount > 0 ? (
+      {tieCount > 0 ? (
         <section className="space-y-3 rounded-lg border border-fuchsia-300 bg-fuchsia-50/40 p-4">
-          <h2 className="font-serif text-xl text-fuchsia-950">Tie-break panel (Editor-in-chief)</h2>
+          <h2 className="font-serif text-xl text-fuchsia-950">Historical tie-break record</h2>
           <p className="text-xs text-fuchsia-950/80">
-            {tieCount} proposals need a tie-break. Your vote carries weight 2; the Board Chair must
-            close the session again to finalize the outcome.
+            {tieCount} tied proposal{tieCount === 1 ? "" : "s"} remain{tieCount === 1 ? "s" : ""} in
+            this historical session. EIC tie-break voting is retired; new ties automatically open
+            a fresh Board re-vote.
           </p>
-          {session.proposalIds.map((pid) => {
-            const proposal = proposals.find((p) => p.id === pid);
-            const outcome = session.outcomes.find((o) => o.proposalId === pid);
-            if (!proposal || !outcome || outcome.decision !== "TIE_BREAK_REQUIRED") return null;
-            return <TieBreakPanel key={pid} session={session} proposal={proposal} user={user} />;
-          })}
         </section>
       ) : null}
 

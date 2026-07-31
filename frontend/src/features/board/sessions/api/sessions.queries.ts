@@ -69,8 +69,10 @@ export function useCloseVotingSessionMutation() {
   const queryClient = useQueryClient();
   return useMutation<VotingSession, Error, string>({
     mutationFn: (sessionId) => boardApi.closeSession(sessionId) as Promise<VotingSession>,
-    onSuccess: () => {
+    onSuccess: (_data, sessionId) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
+      queryClient.invalidateQueries({ queryKey: [...boardKeys.all, "session", sessionId] });
+      queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
     },
   });
 }

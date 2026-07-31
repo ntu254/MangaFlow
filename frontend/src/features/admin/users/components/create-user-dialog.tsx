@@ -71,7 +71,7 @@ export function CreateUserDialog({
             Create New User
           </DialogTitle>
           <DialogDescription>
-            Add a new user to the system. They will receive an email to set their password.
+            Add a new user to the system and set their initial password.
           </DialogDescription>
         </DialogHeader>
 

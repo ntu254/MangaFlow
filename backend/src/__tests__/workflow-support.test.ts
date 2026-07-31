@@ -11,7 +11,7 @@ describe("runWorkflowTransaction", () => {
       { originalError: new Error("Transaction numbers are only allowed on a replica set member or mongos") },
     );
     vi.spyOn(mongoose, "startSession").mockResolvedValue({
-      withTransaction: async (fn) => fn(),
+      withTransaction: async (fn: () => unknown) => fn(),
       endSession: async () => undefined,
     } as any);
 

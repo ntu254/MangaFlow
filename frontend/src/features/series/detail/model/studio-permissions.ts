@@ -328,10 +328,14 @@ export function filterStudioCommentsForRole(
 export function canResolveStudioComment(
   comment: StudioComment,
   permissions: StudioPermissionSet,
-  _userId: string,
+  userId: string,
 ) {
   if (!permissions.canResolveComment) return false;
   if (permissions.mode !== "editor") return false;
-  if (comment.authorRole?.toUpperCase() !== "EDITOR" || !comment.isBlocking) return false;
+  if (
+    !comment.isBlocking ||
+    (comment.authorRole?.toUpperCase() !== "EDITOR" && comment.authorId !== userId)
+  )
+    return false;
   return true;
 }

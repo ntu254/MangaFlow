@@ -176,8 +176,12 @@ function isBlockingComment(comment: any) {
   return Boolean(comment.isBlocking || comment.blocking);
 }
 
-function isTantouBlockingComment(comment: any) {
-  return isBlockingComment(comment) && String(comment.authorRole ?? "").toUpperCase() === "EDITOR";
+function isTantouBlockingComment(comment: any, series?: any) {
+  return (
+    isBlockingComment(comment) &&
+    (String(comment.authorRole ?? "").toUpperCase() === "EDITOR" ||
+      (series?.editorId && String(series.editorId) === String(comment.authorId)))
+  );
 }
 
 async function assertAssignedTantouCanManageBlockingComment(req: AuthedRequest, comment: any) {
@@ -208,10 +212,10 @@ async function assertMangakaCanAddressComment(req: AuthedRequest, comment: any) 
       "FORBIDDEN",
     );
   }
-  if (!isTantouBlockingComment(comment)) {
+  const series = (await resolveCommentSeries(comment)) as any;
+  if (!isTantouBlockingComment(comment, series)) {
     throw new AppError(403, "Only Tantou blocking comments can be marked addressed.", "FORBIDDEN");
   }
-  const series = (await resolveCommentSeries(comment)) as any;
   if (!series || series.authorId !== actor.id) {
     throw new AppError(
       403,
@@ -226,7 +230,8 @@ async function assertEditorCanManageComment(req: AuthedRequest, comment: any) {
   if (actor.role !== "EDITOR") {
     throw new AppError(403, "Only Tantou can resolve or reopen blocking comments.", "FORBIDDEN");
   }
-  if (!isTantouBlockingComment(comment)) {
+  const series = (await resolveCommentSeries(comment)) as any;
+  if (!isTantouBlockingComment(comment, series)) {
     throw new AppError(
       403,
       "Only Tantou blocking comments can be resolved or reopened here.",

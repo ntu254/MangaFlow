@@ -1109,7 +1109,12 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
             coverTone: index % 2 === 0 ? "dark" : "red",
             seriesStatus: "AT_RISK",
             rankingStatus: "AT_RISK",
-            availableDecisions: ["CONTINUE", "WARNING", "CANCEL", "COMPLETE"],
+            availableDecisions: [
+              "CONTINUE",
+              "WARNING",
+              "REQUEST_IMPROVEMENT_PLAN",
+              "CANCEL",
+            ],
             supportNote: "Backend marks this title at risk; mobile does not auto-cancel.",
             requiresConfirmation: true,
           }) satisfies BoardAtRiskCase,

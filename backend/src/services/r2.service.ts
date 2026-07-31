@@ -11,6 +11,7 @@ type PresignUploadInput = {
 
 function hasR2Config() {
   return Boolean(
+    env.FILE_STORAGE_MODE !== "local" &&
     env.R2_ENDPOINT &&
       env.R2_ACCESS_KEY_ID &&
       env.R2_SECRET_ACCESS_KEY &&
@@ -19,7 +20,7 @@ function hasR2Config() {
 }
 
 export function isR2Configured() {
-  return hasR2Config();
+  return env.FILE_STORAGE_MODE !== "local" && hasR2Config();
 }
 
 function publicUrlForKey(key: string) {

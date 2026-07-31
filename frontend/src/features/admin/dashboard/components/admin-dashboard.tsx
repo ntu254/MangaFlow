@@ -52,7 +52,7 @@ const ROLE_META: Array<{ key: string; label: string; color: string }> = [
 const roleLabel = (role: string) =>
   ROLE_META.find((meta) => meta.key === role.toUpperCase())?.label ?? role;
 
-const changedAt = (user: AdminUser) => user.updatedAt ?? user.createdAt;
+const changedAt = (user?: AdminUser) => user?.updatedAt ?? user?.createdAt;
 
 function formatRelative(value?: string) {
   if (!value) return "—";

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
@@ -34,6 +34,13 @@ export function WorkflowConfirmationSheet({
   const [reason, setReason] = useState("")
   const [localError, setLocalError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!visible) {
+      setReason("")
+      setLocalError(null)
+    }
+  }, [visible, title])
+
   const handleConfirm = () => {
     if (requireReason && reason.trim().length === 0) {
       setLocalError("Reason is required.")
@@ -44,9 +51,16 @@ export function WorkflowConfirmationSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!submitting) onCancel()
+      }}
+    >
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        <View style={styles.sheet} accessibilityViewIsModal>
           <Text accessibilityRole="header" style={styles.title}>
             {title}
           </Text>
@@ -62,20 +76,25 @@ export function WorkflowConfirmationSheet({
             />
           ) : null}
           {localError || errorMessage ? (
-            <Text style={styles.error}>{localError ?? errorMessage}</Text>
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+              {localError ?? errorMessage}
+            </Text>
           ) : null}
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Cancel"
+              accessibilityState={{ disabled: submitting }}
+              disabled={submitting}
               onPress={onCancel}
-              style={[styles.button, styles.cancel]}
+              style={[styles.button, styles.cancel, submitting && styles.disabled]}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={confirmLabel}
+              accessibilityState={{ disabled: submitting, busy: submitting }}
               disabled={submitting}
               onPress={handleConfirm}
               style={[styles.button, styles.confirm, submitting && styles.disabled]}

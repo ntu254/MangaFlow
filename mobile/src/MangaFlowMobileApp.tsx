@@ -7,9 +7,8 @@ import { MFIcon } from "@/design/icons"
 import { colors, radius, shadow, spacing } from "@/design/tokens"
 import { MobileQueryProvider } from "@/providers/mobile-query-provider"
 import { useMobileInbox } from "@/hooks/use-mobile-inbox"
-import { BoardTodayScreen } from "@/screens/board-today-screen"
+import { BoardWorkspace } from "@/screens/board-workspace"
 import { EditorWorkspace } from "@/screens/editor-workspace"
-import { WorkflowState } from "@/components/workflow-state"
 import { mobileEnv } from "@/config/mobile-env"
 import type { MobileInbox } from "@/domain/mobile-work-item"
 import {
@@ -20,8 +19,8 @@ import {
   type MobileAuthSession,
 } from "@/services/mobile-auth"
 
-// Canonical Queue-first tabs. Later plans complete Reviews/Publish/History
-// (Editor) and Sessions/Ranking/History (Board); Today is live in this slice.
+// Canonical Queue-first tabs. Role and designation come from the authenticated
+// backend identity; mobile does not expose a manual role switch.
 const editorTabs: TabItem[] = [
   { id: "today", label: "Today", icon: "home" },
   { id: "reviews", label: "Reviews", icon: "file-text" },
@@ -132,30 +131,18 @@ function AuthenticatedShell({
     // Editor tabs (Today/Reviews/Publish/History) all navigate the same inbox
     // and open canonical detail screens.
     if (role === "editor") {
-      return <EditorWorkspace tab={tab} inbox={inbox} />
-    }
-    // Board: Today is live; other tabs land in later slices.
-    if (tab !== "today") {
-      return (
-        <WorkflowState
-          kind="empty"
-          title="Coming soon"
-          description="This workflow arrives in the next mobile slice."
-        />
-      )
+      return <EditorWorkspace tab={tab} inbox={inbox} demoMode={demoMode} />
     }
     return (
-      <BoardTodayScreen
-        inbox={demoMode ? demoInbox(role) : inbox.data}
-        isLoading={inbox.isLoading}
-        error={demoMode ? null : (inbox.error as Error | null)}
-        onRetry={() => void inbox.refetch()}
-        onRefresh={() => void inbox.refetch()}
-        refreshing={inbox.isRefetching}
+      <BoardWorkspace
+        tab={tab}
+        inbox={inbox}
+        isChair={session.user.isChair === true}
+        demoMode={demoMode}
       />
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMode, inbox.data, inbox.error, inbox.isLoading, inbox.isRefetching, role, tab])
+  }, [demoMode, inbox, role, session.user.isChair, tab])
 
   return (
     <MFScreen tabs={tabs} activeTab={tab} onTabChange={onTabChange} role={role}>

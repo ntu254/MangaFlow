@@ -148,6 +148,7 @@ export function useProposalActionMutation(proposalId?: string, seriesId?: string
         queryClient.invalidateQueries({ queryKey: proposalKeys.detail(activeId) });
       }
       queryClient.invalidateQueries({ queryKey: proposalKeys.all });
+      queryClient.invalidateQueries({ queryKey: seriesQueryKeys.mine });
       queryClient.invalidateQueries({ queryKey: submissionQueryKeys.editorReviewQueue });
       if (variables.action === "FORWARD") {
         queryClient.invalidateQueries({ queryKey: ["board", "queue"] });

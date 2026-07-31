@@ -1,5 +1,5 @@
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
-import { BOARD_TOTAL, EIC_TIEBREAK_WEIGHT } from "@/entities/proposal/model/proposal-types";
+import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 import { useMemo } from "react";
 
@@ -28,8 +28,8 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
           </li>
           <li>If neither side reaches quorum, closing the session records NO_QUORUM.</li>
           <li>
-            Exact tie {"->"} status TIE_BREAK. Editor-in-Chief has a deciding vote with weight{" "}
-            {EIC_TIEBREAK_WEIGHT}.
+            Exact tie {"->"} close the round as TIED and open a fresh Board re-vote. The old round
+            remains read-only for audit.
           </li>
         </ul>
       </div>

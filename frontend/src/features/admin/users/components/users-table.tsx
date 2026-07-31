@@ -24,7 +24,7 @@ import { Check, ChevronDown, MoreHorizontal } from "lucide-react";
 import type { AdminUser } from "../../api/admin-queries";
 import { ALL_ROLES } from "../../_shared/model/admin-constants";
 import { EmptyUserFilters } from "./empty-user-filters";
-import { formatUserDate, isLastAdmin, privilegeLabel } from "./user-utils";
+import { formatUserDateTime, isLastAdmin, privilegeLabel } from "./user-utils";
 
 export function UsersTable({
   users,
@@ -190,10 +190,10 @@ export function UsersTable({
                     {privilegeLabel(user)}
                   </TableCell>
                   <TableCell className="text-[14px] text-[var(--admin-muted)]">
-                    {formatUserDate(user.createdAt)}
+                    {formatUserDateTime(user.createdAt)}
                   </TableCell>
                   <TableCell className="text-[14px] text-[var(--admin-muted)]">
-                    {formatUserDate(user.updatedAt)}
+                    {formatUserDateTime(user.updatedAt)}
                   </TableCell>
                   <TableCell className="pr-5 text-center">
                     <DropdownMenu>

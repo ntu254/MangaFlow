@@ -61,7 +61,7 @@ export const seedVotingSessions: VotingSession[] = [
   },
   {
     id: "vs-003",
-    title: "Special Session — Ember Engine (tie-break)",
+    title: "Board Re-vote — Ember Engine",
     mode: "SCHEDULED",
     status: "OPEN",
     scheduledFor: ago(12),
@@ -77,7 +77,7 @@ export const seedVotingSessions: VotingSession[] = [
         approve: 2,
         reject: 2,
         abstain: 0,
-        reason: "Tied 2-2. Awaiting Editor-in-Chief tie-break.",
+        reason: "Prior round tied 2-2. A fresh Board re-vote is open.",
       },
     ],
     notes: [
@@ -85,7 +85,7 @@ export const seedVotingSessions: VotingSession[] = [
         id: "sn-003",
         authorId: "u-board",
         authorName: "Yamamoto Director",
-        text: "Recommending Editor-in-Chief makes the final decision — chapter 2 pacing needs reassessment.",
+        text: "Fresh Board re-vote opened — chapter 2 pacing needs reassessment.",
         createdAt: ago(13),
       },
     ],

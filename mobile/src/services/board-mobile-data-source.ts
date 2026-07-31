@@ -1,5 +1,6 @@
 import { mobileApi } from "@/services/mobile-api-client"
 import type { AtRiskDecision } from "@/domain/workflow"
+import { z } from "zod"
 
 // Board detail reads and canonical vote command. Mobile sends expectedVersion
 // for optimistic concurrency; it never computes tally/quorum/result.
@@ -19,33 +20,96 @@ export interface BoardSessionDetail {
     status: string
     version: number | null
     proposalId: string | null
+    proposalVersionId?: string | null
     reVoteOfSessionId: string | null
     isReVote: boolean
+    scheduledFor?: string | null
+    closesAt?: string | null
   }
-  proposal: { id: string; title: string; status: string } | null
+  proposal: {
+    id: string
+    title: string
+    status: string
+    version?: string | number | null
+    editorRecommendation?: string | null
+    requestedPublicationType?: string | null
+  } | null
   tally: {
     approve: number
     reject: number
+    abstain?: number
     total: number
     quorum: number
     eligible: number
     canFinalize: boolean
   }
   myVote: { decision: string | null } | null
+  currentUserVote?: { decision: string | null; note?: string | null } | null
+  previousRound?: {
+    id: string
+    status: string
+    proposalVersionId?: string | null
+  } | null
+  notes?: Array<{ id: string; authorName?: string; text: string; createdAt?: string }>
   actions: BoardActionDescriptor[]
 }
 
 export type BoardVoteValue = "APPROVE" | "REJECT" | "ABSTAIN"
 
-export function getBoardSessionDetail(sessionId: string): Promise<BoardSessionDetail> {
-  return mobileApi.request<BoardSessionDetail>(`/board/sessions/${sessionId}/detail`)
+const rawBoardSessionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: z.string(),
+  version: z.number().nullable().optional(),
+  proposalId: z.string().nullable().optional(),
+  proposalVersionId: z.string().nullable().optional(),
+  reVoteOfSessionId: z.string().nullable().optional(),
+  scheduledFor: z.string().nullable().optional(),
+  closesAt: z.string().nullable().optional(),
+  openedAt: z.string().nullable().optional(),
+  closedAt: z.string().nullable().optional(),
+  result: z.string().nullable().optional(),
+  notes: z.array(z.object({
+    id: z.string(),
+    authorName: z.string().optional(),
+    text: z.string().optional(),
+    body: z.string().optional(),
+    createdAt: z.string().optional(),
+  })).optional(),
+})
+
+export type BoardSessionSummary = z.infer<typeof rawBoardSessionSchema>
+
+export async function getBoardSessionDetail(sessionId: string): Promise<BoardSessionDetail> {
+  const [detail, rawSession] = await Promise.all([
+    mobileApi.request<BoardSessionDetail>(`/board/sessions/${sessionId}/detail`),
+    mobileApi.request(`/voting-sessions/${sessionId}`).then((value) => rawBoardSessionSchema.parse(value)),
+  ])
+  return {
+    ...detail,
+    session: {
+      ...detail.session,
+      proposalVersionId: rawSession.proposalVersionId ?? null,
+      scheduledFor: rawSession.scheduledFor ?? null,
+      closesAt: rawSession.closesAt ?? null,
+    },
+    notes: rawSession.notes?.flatMap((note) => {
+      const text = note.text ?? note.body
+      return text ? [{ id: note.id, authorName: note.authorName, text, createdAt: note.createdAt }] : []
+    }),
+  }
+}
+
+export async function getBoardSessions(): Promise<BoardSessionSummary[]> {
+  return z.array(rawBoardSessionSchema).parse(await mobileApi.request(`/voting-sessions`))
 }
 
 export function castBoardVote(input: {
   proposalId: string
   sessionId: string
   value: BoardVoteValue
-  expectedVersion: number | null
+  expectedVersion: number
+  note?: string
 }): Promise<void> {
   return mobileApi.request<void>(`/board/series/${input.proposalId}/votes`, {
     method: "POST",
@@ -53,21 +117,26 @@ export function castBoardVote(input: {
       value: input.value,
       sessionId: input.sessionId,
       expectedVersion: input.expectedVersion,
+      note: input.note,
     }),
   })
 }
 
-export function finalizeBoardSession(
+export function closeBoardSession(
   sessionId: string,
-  input: { note?: string; publicationType?: "WEEKLY" | "MONTHLY" } = {},
-): Promise<void> {
-  return mobileApi.request<void>(`/voting-sessions/${sessionId}/close`, {
+  input: {
+    expectedVersion: number
+    note?: string
+    publicationType?: "WEEKLY" | "MONTHLY"
+  },
+): Promise<BoardSessionSummary> {
+  return mobileApi.request<BoardSessionSummary>(`/voting-sessions/${sessionId}/close`, {
     method: "POST",
     body: JSON.stringify(input),
-  })
+  }).then((value) => rawBoardSessionSchema.parse(value))
 }
 
-export function cancelBoardSession(sessionId: string): Promise<void> {
+export function cancelBoardSession(sessionId: string): Promise<unknown> {
   return mobileApi.request<void>(`/voting-sessions/${sessionId}/cancel`, {
     method: "POST",
     body: "{}",
@@ -77,10 +146,57 @@ export function cancelBoardSession(sessionId: string): Promise<void> {
 export function createBoardSession(input: {
   proposalId: string
   title?: string
+  scheduledFor?: string
   closesAt?: string
 }): Promise<{ id?: string }> {
   return mobileApi.request<{ id?: string }>(`/voting-sessions`, {
     method: "POST",
+    body: JSON.stringify(input),
+  })
+}
+
+export interface BoardPendingProposal {
+  id: string
+  title: string
+  authorName: string | null
+  requestedPublicationType: "WEEKLY" | "MONTHLY" | null
+  currentVersion: string | number | null
+}
+
+const pendingProposalSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  authorName: z.string().nullable().optional(),
+  requestedPublicationType: z.enum(["WEEKLY", "MONTHLY"]).nullable().optional(),
+  currentVersionId: z.union([z.string(), z.number()]).nullable().optional(),
+  currentVersion: z.union([z.string(), z.number()]).nullable().optional(),
+  version: z.union([z.string(), z.number()]).nullable().optional(),
+})
+
+export async function getBoardPendingProposals(): Promise<BoardPendingProposal[]> {
+  const rows = z.array(pendingProposalSchema).parse(
+    await mobileApi.request(`/proposals?status=PENDING_BOARD&limit=100`),
+  )
+  return rows.map((proposal) => ({
+    id: proposal.id,
+    title: proposal.title,
+    authorName: proposal.authorName ?? null,
+    requestedPublicationType: proposal.requestedPublicationType ?? null,
+    currentVersion: proposal.currentVersionId ?? proposal.currentVersion ?? proposal.version ?? null,
+  }))
+}
+
+export function updateBoardSession(
+  sessionId: string,
+  input: {
+    expectedVersion: number
+    title?: string
+    scheduledFor?: string | null
+    closesAt?: string | null
+  },
+): Promise<unknown> {
+  return mobileApi.request<unknown>(`/voting-sessions/${sessionId}`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   })
 }
@@ -109,6 +225,69 @@ export interface BoardRankingItem {
   atRisk: boolean
 }
 
-export function getBoardRankings(): Promise<{ generatedAt: string; items: BoardRankingItem[] }> {
-  return mobileApi.request(`/board/rankings`)
+const boardRankingResponseSchema = z.object({
+  generatedAt: z.string(),
+  items: z.array(z.object({
+    id: z.string(),
+    seriesId: z.string(),
+    seriesTitle: z.string(),
+    rank: z.number().nullable(),
+    previousRank: z.number().nullable(),
+    finalScore: z.number().nullable(),
+    readerScore: z.number().nullable(),
+    status: z.string().nullable(),
+    atRisk: z.boolean(),
+  })),
+})
+
+export async function getBoardRankings(): Promise<{
+  generatedAt: string
+  items: BoardRankingItem[]
+}> {
+  return boardRankingResponseSchema.parse(await mobileApi.request(`/board/rankings`))
+}
+
+export interface BoardDecisionHistoryRow {
+  id: string
+  type: string
+  title: string
+  status: string
+  date: string | null
+  entityId: string | null
+  entityType: string | null
+  metadata?: Record<string, unknown>
+}
+
+const boardDecisionHistorySchema = z.array(z.object({
+  id: z.string(),
+  type: z.string(),
+  title: z.string(),
+  status: z.string(),
+  date: z.union([z.string(), z.date()]).nullable().optional().transform((value) => {
+    if (!value) return null
+    return value instanceof Date ? value.toISOString() : value
+  }),
+  entityId: z.string().nullable().optional().transform((value) => value ?? null),
+  entityType: z.string().nullable().optional().transform((value) => value ?? null),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+}))
+
+export async function getBoardDecisionHistory(): Promise<BoardDecisionHistoryRow[]> {
+  const [history, sessions] = await Promise.all([
+    mobileApi.request(`/board/decisions/history`).then((value) => boardDecisionHistorySchema.parse(value)),
+    getBoardSessions(),
+  ])
+  const sessionById = new Map(sessions.map((session) => [session.id, session]))
+  return history.map((row) => {
+    if (row.entityType !== "voting_session" || !row.entityId) return row
+    const session = sessionById.get(row.entityId)
+    if (!session?.reVoteOfSessionId) return row
+    return {
+      ...row,
+      metadata: {
+        ...row.metadata,
+        reVoteOfSessionId: session.reVoteOfSessionId,
+      },
+    }
+  })
 }

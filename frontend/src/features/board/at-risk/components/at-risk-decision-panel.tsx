@@ -1,6 +1,5 @@
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { AtRiskReview } from "@/entities/board/model/board-types";
+import { AT_RISK_DECISION_LABEL, type AtRiskReview } from "@/entities/board/model/board-types";
 import { ActionButton, Panel, StateBlock } from "@/shared/ui";
 import { useAtRiskDecisionMutation } from "../../api/board-queries";
 import {
@@ -11,13 +10,20 @@ import {
   requiresAtRiskDecisionReason,
   type VisualAtRiskDecision,
 } from "../model/at-risk-decision-utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
 export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
   const decideMutation = useAtRiskDecisionMutation();
-  const [decision, setDecision] = useState<VisualAtRiskDecision | undefined>(review.decision);
+  const [decision, setDecision] = useState<VisualAtRiskDecision | undefined>(
+    isAtRiskDecisionSupported(review.decision) ? review.decision : undefined,
+  );
   const [reason, setReason] = useState(review.decisionReason ?? "");
+  useEffect(() => {
+    setDecision(isAtRiskDecisionSupported(review.decision) ? review.decision : undefined);
+    setReason(review.decisionReason ?? "");
+  }, [review.id, review.decision, review.decisionReason]);
   const disabled = review.status === "DECIDED";
   const reasonRequired = decision ? requiresAtRiskDecisionReason(decision) : false;
   const canSubmit =
@@ -26,45 +32,77 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
     isAtRiskDecisionSupported(decision) &&
     (!reasonRequired || reason.trim().length > 0);
 
+  if (disabled && review.decision) {
+    return (
+      <Panel
+        title="Decision recorded"
+        description="This at-risk review is complete."
+        contentClassName="space-y-4"
+      >
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950">
+          <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Decision</p>
+          <p className="mt-1 font-semibold">
+            {AT_RISK_DECISION_LABEL[review.decision] ?? review.decision}
+          </p>
+        </div>
+        <dl className="space-y-2 text-xs">
+          {review.decisionReason ? (
+            <div>
+              <dt className="font-semibold text-[var(--admin-muted)]">Reason</dt>
+              <dd className="mt-0.5 text-[var(--admin-ink)]">{review.decisionReason}</dd>
+            </div>
+          ) : null}
+          {review.decidedByName ? (
+            <div>
+              <dt className="font-semibold text-[var(--admin-muted)]">Recorded by</dt>
+              <dd className="mt-0.5 text-[var(--admin-ink)]">{review.decidedByName}</dd>
+            </div>
+          ) : null}
+          {review.decidedAt ? (
+            <div>
+              <dt className="font-semibold text-[var(--admin-muted)]">Recorded at</dt>
+              <dd className="mt-0.5 text-[var(--admin-ink)]">
+                {new Date(review.decidedAt).toLocaleString("en-US")}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+        <p className="text-xs text-[var(--admin-muted)]">
+          The decision is saved in the governance record. It does not automatically change the
+          series status.
+        </p>
+        <Link to="/app/board/decisions" className="text-xs font-semibold underline">
+          View decision history
+        </Link>
+      </Panel>
+    );
+  }
+
   return (
     <Panel
       title="At-risk decision"
-      description="Decisions that change a series status"
+      description="Manual response for a flagged series"
       contentClassName="space-y-4"
     >
       <div className="grid grid-cols-2 gap-2">
         {VISUAL_AT_RISK_DECISIONS.map((item) => {
-          const supported = isAtRiskDecisionSupported(item);
           const active = decision === item;
-          const button = (
-            <button
-              type="button"
-              disabled={disabled || !supported}
-              onClick={() => setDecision(item)}
-              className={`h-10 w-full rounded-[5px] border px-3 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                active
-                  ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)]"
-                  : "border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-ink)] hover:bg-[var(--admin-hover)]"
-              }`}
-            >
-              {getAtRiskDecisionLabel(item)}
-            </button>
+          return (
+            <div key={item}>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => setDecision(item)}
+                className={`h-10 w-full rounded-[5px] border px-3 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  active
+                    ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)]"
+                    : "border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-ink)] hover:bg-[var(--admin-hover)]"
+                }`}
+              >
+                {getAtRiskDecisionLabel(item)}
+              </button>
+            </div>
           );
-
-          if (!supported) {
-            return (
-              <TooltipProvider key={item}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="block w-full cursor-not-allowed">{button}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>Not supported in MVP</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          }
-
-          return <div key={item}>{button}</div>;
         })}
       </div>
 
@@ -81,9 +119,7 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder={
-            reasonRequired
-              ? "A reason is required for warning or cancellation decisions..."
-              : "Decision notes..."
+            reasonRequired ? "A reason is required for this decision..." : "Decision notes..."
           }
         />
       </div>

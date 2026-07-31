@@ -257,7 +257,7 @@ export const STATUS_LABEL: Record<ProposalStatus, string> = {
   BOARD_REVIEW: "Board Review",
   PENDING_BOARD: "Pending Board",
   BOARD_VOTING: "Board Voting",
-  TIE_BREAK: "Tie Break",
+  TIE_BREAK: "Historical Tie",
   APPROVED: "Approved",
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",

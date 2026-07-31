@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { WorkflowDetailLayout } from "@/components/workflow-detail-layout"
 import {
@@ -184,6 +184,15 @@ function ForwardSheet({
   const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">(defaultPublicationType)
   const [localError, setLocalError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!visible) {
+      setRecommendation("")
+      setFeasibility("")
+      setPublicationType(defaultPublicationType)
+      setLocalError(null)
+    }
+  }, [defaultPublicationType, visible])
+
   const confirm = () => {
     if (recommendation.trim().length === 0) {
       setLocalError("Editor recommendation is required.")
@@ -198,9 +207,16 @@ function ForwardSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!submitting) onCancel()
+      }}
+    >
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        <View style={styles.sheet} accessibilityViewIsModal>
           <Text accessibilityRole="header" style={styles.sheetTitle}>
             Forward {proposalTitle} to Board
           </Text>
@@ -246,20 +262,25 @@ function ForwardSheet({
             ))}
           </View>
           {localError || externalError ? (
-            <Text style={styles.error}>{localError ?? externalError}</Text>
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+              {localError ?? externalError}
+            </Text>
           ) : null}
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Cancel"
+              accessibilityState={{ disabled: submitting }}
+              disabled={submitting}
               onPress={onCancel}
-              style={[styles.sheetButton, styles.cancel]}
+              style={[styles.sheetButton, styles.cancel, submitting && styles.disabled]}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Confirm forward"
+              accessibilityState={{ disabled: submitting, busy: submitting }}
               disabled={submitting}
               onPress={confirm}
               style={[styles.sheetButton, styles.confirm, submitting && styles.disabled]}

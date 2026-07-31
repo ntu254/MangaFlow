@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAuth, MANGAKAS, ASSISTANTS, findUserById } from "@/shared/auth";
+import { useAuth } from "@/shared/auth";
 import { useCreateChapterMutation, mapApiError } from "../../api/series-queries";
 import { fromDateInputValue } from "@/shared/lib/format-date";
 import type { ProductionSeries } from "@/entities/series/model/series-types";
@@ -30,16 +30,8 @@ export function ChapterFormDialog({
   const createChapterMutation = useCreateChapterMutation(series.id);
   const [number, setNumber] = useState(nextNumber);
   const [title, setTitle] = useState("");
-  const [assigneeId, setAssigneeId] = useState(series.authorId);
   const [draftDue, setDraftDue] = useState("");
   const [reviewDue, setReviewDue] = useState("");
-
-  const candidates = [
-    findUserById(series.authorId),
-    ...series.assistantIds.map((id) => findUserById(id)),
-    ...MANGAKAS.filter((m) => m.id !== series.authorId),
-    ...ASSISTANTS.filter((a) => !series.assistantIds.includes(a.id)),
-  ].filter(Boolean);
 
   const submit = () => {
     if (!user) return;
@@ -47,18 +39,14 @@ export function ChapterFormDialog({
       toast.error("Title is required.");
       return;
     }
-    const assignee = findUserById(assigneeId);
-    if (!assignee) {
-      toast.error("No assignee selected.");
-      return;
-    }
-
     createChapterMutation.mutate(
       {
         number,
         title: title.trim(),
-        assigneeId: assignee.id,
-        assigneeName: assignee.name,
+        // Chapter ownership stays with the Mangaka. Assistant assignment is
+        // created separately per page/region in Studio.
+        assigneeId: series.authorId,
+        assigneeName: series.authorName,
         draftDueAt: draftDue ? fromDateInputValue(draftDue) : undefined,
         reviewDueAt: reviewDue ? fromDateInputValue(reviewDue) : undefined,
         plannedAt: new Date().toISOString(),
@@ -83,36 +71,20 @@ export function ChapterFormDialog({
         <DialogHeader>
           <DialogTitle>Create new chapter — {series.title}</DialogTitle>
           <DialogDescription>
-            Set up chapter, assignee, and initial deadlines for the production workspace.
+            Set up the chapter and initial production deadlines. Assign assistants later from
+            Studio tasks.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="ch-num">Chapter #</Label>
-              <Input
-                id="ch-num"
-                type="number"
-                value={number}
-                min={1}
-                onChange={(e) => setNumber(parseInt(e.target.value, 10) || 1)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="ch-assignee">Assignee</Label>
-              <select
-                id="ch-assignee"
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-              >
-                {candidates.map((u) => (
-                  <option key={u!.id} value={u!.id}>
-                    {u!.name} ({u!.role})
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <Label htmlFor="ch-num">Chapter #</Label>
+            <Input
+              id="ch-num"
+              type="number"
+              value={number}
+              min={1}
+              onChange={(e) => setNumber(parseInt(e.target.value, 10) || 1)}
+            />
           </div>
           <div>
             <Label htmlFor="ch-title">Title</Label>

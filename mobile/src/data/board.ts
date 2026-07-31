@@ -212,7 +212,12 @@ export const boardRankings: BoardRankingItem[] = [
   },
 ];
 
-const atRiskDecisions: AtRiskDecision[] = ["CONTINUE", "WARNING", "CANCEL", "COMPLETE"];
+const atRiskDecisions: AtRiskDecision[] = [
+  "CONTINUE",
+  "WARNING",
+  "REQUEST_IMPROVEMENT_PLAN",
+  "CANCEL",
+];
 
 export const atRiskTitles: BoardAtRiskCase[] = [
   {
@@ -254,7 +259,7 @@ export const atRiskTitles: BoardAtRiskCase[] = [
     coverTone: "blue",
     seriesStatus: "AT_RISK",
     rankingStatus: "WARNING",
-    availableDecisions: ["CONTINUE", "WARNING", "COMPLETE"],
+    availableDecisions: ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN"],
     supportNote: "Soft warning recommended; cancellation is not suggested in this mock case.",
     requiresConfirmation: true,
   },

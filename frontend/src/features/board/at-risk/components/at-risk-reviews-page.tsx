@@ -12,10 +12,19 @@ import {
   type QueueColumn,
 } from "@/shared/ui";
 import type { AtRiskReview } from "@/entities/board/model/board-types";
-import { useAtRiskReviews } from "../model/at-risk-store";
+import { useRankingsListQuery } from "@/entities/series";
+import { isRankingAtRisk, mapRankingToAtRiskReview } from "../model/at-risk-review-adapter";
 
 export function AtRiskReviewsPage() {
-  const reviews = useAtRiskReviews((state) => state.reviews);
+  const { data: rankings = [] } = useRankingsListQuery();
+  const reviews = useMemo(
+    () =>
+      rankings
+        .filter(isRankingAtRisk)
+        .map(mapRankingToAtRiskReview)
+        .sort((a, b) => (b.finalScore ?? 0) - (a.finalScore ?? 0)),
+    [rankings],
+  );
   const [selectedId, setSelectedId] = useState(reviews[0]?.id);
   const selected = reviews.find((review) => review.id === selectedId) ?? reviews[0];
 
@@ -46,19 +55,26 @@ export function AtRiskReviewsPage() {
       ),
     },
     {
+      key: "period",
+      header: "Period",
+      render: (review) => <span className="text-[var(--admin-muted)]">{review.period ?? "-"}</span>,
+    },
+    {
       key: "score",
       header: "Score",
       render: (review) => (
         <span className="tabular-nums text-[var(--admin-muted)]">
-          {review.readerScore.toFixed(1)}
+          {(review.finalScore ?? review.readerScore).toFixed(1)}
         </span>
       ),
     },
     {
-      key: "drop",
-      header: "Vote Drop",
+      key: "votes",
+      header: "Votes",
       render: (review) => (
-        <span className="tabular-nums text-[var(--admin-muted)]">{review.voteDropPct}%</span>
+        <span className="tabular-nums text-[var(--admin-muted)]">
+          {(review.voteCount ?? 0).toLocaleString()}
+        </span>
       ),
     },
     {
@@ -72,7 +88,7 @@ export function AtRiskReviewsPage() {
     <QueuePage
       eyebrow="Governance"
       title="At-risk Reviews"
-      description="Manual continuation, warning, cancel, or complete decisions."
+      description="Review flagged series and record a manual governance decision."
       stats={
         <>
           <StatCard

@@ -1,7 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { EditorAnnotationStudio } from "@/features/editor/annotation-studio";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/editor/chapters/$chapterId/annotate")({
-  head: () => ({ meta: [{ title: "Annotation Studio — MangaFlow Studio" }] }),
-  component: EditorAnnotationStudio,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/app/editor/chapters/$chapterId/review",
+      params: { chapterId: params.chapterId },
+    });
+  },
 });

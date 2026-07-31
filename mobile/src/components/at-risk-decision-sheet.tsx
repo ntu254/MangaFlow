@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import type { AtRiskDecisionValue } from "@/services/board-mobile-data-source"
 import { colors, radius, spacing, typography } from "@/design/tokens"
@@ -37,6 +37,14 @@ export function AtRiskDecisionSheet({
   const [note, setNote] = useState("")
   const [localError, setLocalError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!visible) {
+      setDecision(null)
+      setNote("")
+      setLocalError(null)
+    }
+  }, [visible, seriesTitle])
+
   const confirm = () => {
     if (!decision) {
       setLocalError("Choose a decision.")
@@ -51,9 +59,16 @@ export function AtRiskDecisionSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!submitting) onCancel()
+      }}
+    >
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        <View style={styles.sheet} accessibilityViewIsModal>
           <Text accessibilityRole="header" style={styles.title}>
             At-risk decision: {seriesTitle}
           </Text>
@@ -97,15 +112,25 @@ export function AtRiskDecisionSheet({
                 style={styles.input}
               />
               {localError || errorMessage ? (
-                <Text style={styles.error}>{localError ?? errorMessage}</Text>
+                <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+                  {localError ?? errorMessage}
+                </Text>
               ) : null}
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" accessibilityLabel="Cancel" onPress={onCancel} style={[styles.button, styles.cancel]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel"
+                  accessibilityState={{ disabled: submitting }}
+                  disabled={submitting}
+                  onPress={onCancel}
+                  style={[styles.button, styles.cancel, submitting && styles.disabled]}
+                >
                   <Text style={styles.cancelText}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={decision === "CANCEL" ? "Confirm cancellation" : "Confirm decision"}
+                  accessibilityState={{ disabled: submitting, busy: submitting }}
                   disabled={submitting}
                   onPress={confirm}
                   style={[styles.button, decision === "CANCEL" ? styles.confirmDanger : styles.confirm, submitting && styles.disabled]}

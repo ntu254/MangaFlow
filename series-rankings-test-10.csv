@@ -1,0 +1,11 @@
+seriesId,seriesTitle,score,finalScore,readerScore,votes,voteCount,status,atRisk
+,Moonlit Atelier,8.9,8.8,8.9,1840,1840,ACTIVE,false
+,Neon Tides,8.3,8.1,8.3,1520,1520,ACTIVE,false
+,The Last Paper Crane,7.7,7.6,7.7,1215,1215,ACTIVE,false
+,Garden of Small Gods,6.9,6.8,6.9,980,980,ACTIVE,false
+,Iron Coast,5.8,5.7,5.8,760,760,ACTIVE,false
+,Winter Signal,4.9,4.8,4.9,642,642,AT_RISK,true
+,Blue Hour Detectives,4.4,4.3,4.4,515,515,AT_RISK,true
+,Ashes Under Snow,3.8,3.7,3.8,402,402,AT_RISK,true
+,Paper Moon Runners,2.9,2.8,2.9,276,276,AT_RISK,true
+,Harbor of Echoes,1.8,1.7,1.8,143,143,AT_RISK,true

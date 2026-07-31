@@ -6,6 +6,7 @@ import { WorkflowState } from "@/components/workflow-state"
 import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-screen"
 import { EditorChapterDetailScreen } from "@/screens/editor-chapter-detail-screen"
 import { EditorPublishScreen } from "@/screens/editor-publish-screen"
+import { EditorHistoryScreen } from "@/screens/editor-history-screen"
 import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item"
 import { colors, spacing, typography } from "@/design/tokens"
 
@@ -15,9 +16,11 @@ import { colors, spacing, typography } from "@/design/tokens"
 export function EditorWorkspace({
   tab,
   inbox,
+  demoMode = false,
 }: {
   tab: string
   inbox: UseQueryResult<MobileInbox, Error>
+  demoMode?: boolean
 }) {
   const [selected, setSelected] = useState<MobileWorkItem | null>(null)
 
@@ -26,13 +29,13 @@ export function EditorWorkspace({
   }
 
   if (tab === "history") {
-    return (
+    return demoMode ? (
       <WorkflowState
         kind="empty"
-        title="History"
-        description="Completed proposal, chapter, and publication decisions are read-only and appear here."
+        title="Demo history"
+        description="Demo mode does not read live Editor activity."
       />
-    )
+    ) : <EditorHistoryScreen />
   }
 
   const filter = (item: MobileWorkItem): boolean => {
