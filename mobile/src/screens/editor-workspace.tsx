@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Pressable, StyleSheet, Text, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import type { UseQueryResult } from "@tanstack/react-query"
 import { TodayQueue } from "@/components/today-queue"
 import { WorkflowState } from "@/components/workflow-state"
@@ -7,8 +7,10 @@ import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-scr
 import { EditorChapterDetailScreen } from "@/screens/editor-chapter-detail-screen"
 import { EditorPublishScreen } from "@/screens/editor-publish-screen"
 import { EditorHistoryScreen } from "@/screens/editor-history-screen"
+import { EditorHomeScreen } from "@/screens/editor-screens"
 import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item"
 import { colors, spacing, typography } from "@/design/tokens"
+
 
 // Editor navigation lives inside the tab shell: each tab filters the same
 // backend inbox (no re-sorting), and selecting an item opens the matching
@@ -17,10 +19,12 @@ export function EditorWorkspace({
   tab,
   inbox,
   demoMode = false,
+  onTabChange,
 }: {
   tab: string
   inbox: UseQueryResult<MobileInbox, Error>
   demoMode?: boolean
+  onTabChange?: (tab: string) => void
 }) {
   const [selected, setSelected] = useState<MobileWorkItem | null>(null)
 
@@ -55,6 +59,31 @@ export function EditorWorkspace({
   }
   const empty = emptyByTab[tab] ?? emptyByTab.today
 
+  if (tab === "today") {
+    return (
+      <TodayQueue
+        inbox={filteredInbox}
+        isLoading={inbox.isLoading}
+        error={inbox.error}
+        onRetry={() => void inbox.refetch()}
+        onRefresh={() => void inbox.refetch()}
+        refreshing={inbox.isRefetching}
+        onSelect={setSelected}
+        emptyTitle={empty.title}
+        emptyDescription={empty.description}
+        header={
+          <EditorHomeScreen
+            onNavigateTab={onTabChange}
+            inbox={filteredInbox}
+            onSelect={setSelected}
+          />
+        }
+        hideItems
+      />
+    )
+  }
+
+
   return (
     <TodayQueue
       inbox={filteredInbox}
@@ -69,6 +98,7 @@ export function EditorWorkspace({
     />
   )
 }
+
 
 function EditorDetail({ item, onBack }: { item: MobileWorkItem; onBack: () => void }) {
   return (
@@ -97,7 +127,9 @@ function EditorDetail({ item, onBack }: { item: MobileWorkItem; onBack: () => vo
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  todayContent: { padding: spacing.md, gap: spacing.md },
   back: { minHeight: 44, justifyContent: "center", paddingHorizontal: spacing.md },
   backText: { color: colors.primary, fontSize: typography.body, fontWeight: "700" },
   detail: { flex: 1 },
 })
+

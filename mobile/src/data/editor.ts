@@ -86,6 +86,22 @@ export const editorQueues: QueueItem[] = [
 
 export const manuscripts: EditorManuscriptReviewItem[] = [
   {
+    id: "test-mobile",
+    title: "test mobile",
+    subtitle: "Action / Shonen / Mobile Test",
+    meta: "Version 1.0, submitted just now",
+    status: "Waiting Review",
+    tone: "primary",
+    coverTone: "red",
+    tags: ["Action", "Shonen", "Test"],
+    manuscriptStatus: "SUBMITTED",
+    seriesStatus: "EDITOR_REVIEW",
+    version: "1.0",
+    requestedPublicationType: "WEEKLY",
+    editorRecommendation: "New test mobile proposal for Editor Review queue testing.",
+    decisionActions: ["request-revision", "reject", "forward-to-board"],
+  },
+  {
     id: "eclipse",
     title: "Eclipse of Eternity",
     subtitle: "Fantasy / Dark / Action",

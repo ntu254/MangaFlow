@@ -1,3 +1,4 @@
+import type { PropsWithChildren, ReactNode } from "react"
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 import type { MobileApiError } from "@/services/mobile-api-error"
 import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item"
@@ -16,6 +17,8 @@ export interface TodayQueueProps {
   demoMode?: boolean
   emptyTitle: string
   emptyDescription: string
+  header?: ReactNode
+  hideItems?: boolean
 }
 
 // Renders the backend queue order verbatim; mobile never re-sorts work.
@@ -30,6 +33,8 @@ export function TodayQueue({
   demoMode = false,
   emptyTitle,
   emptyDescription,
+  header,
+  hideItems = false,
 }: TodayQueueProps) {
   if (isLoading && !inbox) return <WorkflowState kind="loading" />
   if (error && !inbox) return <WorkflowState kind="error" error={error} onRetry={onRetry ?? (() => {})} />
@@ -48,16 +53,19 @@ export function TodayQueue({
           <Text style={styles.demoText}>Demo data</Text>
         </View>
       ) : null}
-      {items.length === 0 ? (
-        <WorkflowState kind="empty" title={emptyTitle} description={emptyDescription} />
-      ) : (
-        items.map((item) => (
-          <WorkItemCard key={item.id} item={item} onSelect={onSelect ?? (() => {})} />
-        ))
-      )}
+      {header}
+      {!hideItems &&
+        (items.length === 0 ? (
+          <WorkflowState kind="empty" title={emptyTitle} description={emptyDescription} />
+        ) : (
+          items.map((item) => (
+            <WorkItemCard key={item.id} item={item} onSelect={onSelect ?? (() => {})} />
+          ))
+        ))}
     </ScrollView>
   )
 }
+
 
 const styles = StyleSheet.create({
   content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },

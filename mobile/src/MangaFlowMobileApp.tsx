@@ -131,7 +131,14 @@ function AuthenticatedShell({
     // Editor tabs (Today/Reviews/Publish/History) all navigate the same inbox
     // and open canonical detail screens.
     if (role === "editor") {
-      return <EditorWorkspace tab={tab} inbox={inbox} demoMode={demoMode} />
+      return (
+        <EditorWorkspace
+          tab={tab}
+          inbox={inbox}
+          demoMode={demoMode}
+          onTabChange={onTabChange}
+        />
+      )
     }
     return (
       <BoardWorkspace
@@ -142,7 +149,7 @@ function AuthenticatedShell({
       />
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMode, inbox, role, session.user.isChair, tab])
+  }, [demoMode, inbox, onTabChange, role, session.user.isChair, tab])
 
   return (
     <MFScreen tabs={tabs} activeTab={tab} onTabChange={onTabChange} role={role}>

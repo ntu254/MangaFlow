@@ -532,11 +532,36 @@ export function MFSeriesRow({
   )
 }
 
-export function SectionTitle({ title, action }: { title: string; action?: string }) {
+export function SectionTitle({
+  title,
+  action,
+  onAction,
+}: {
+  title: string
+  action?: string
+  onAction?: () => void
+}) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {action ? <Text style={styles.sectionAction} numberOfLines={1}>{action}</Text> : null}
+      {action ? (
+        onAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${action} ${title}`}
+            onPress={onAction}
+            hitSlop={8}
+          >
+            <Text style={styles.sectionAction} numberOfLines={1}>
+              {action}
+            </Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.sectionAction} numberOfLines={1}>
+            {action}
+          </Text>
+        )
+      ) : null}
     </View>
   )
 }
