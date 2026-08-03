@@ -107,7 +107,7 @@ router.post(
 );
 router.post(
   "/files/display-url",
-  requireExactRole("EDITOR", "MANGAKA", "ASSISTANT") as any,
+  requireExactRole("BOARD", "EDITOR", "MANGAKA", "ASSISTANT") as any,
   displayUrl,
 );
 

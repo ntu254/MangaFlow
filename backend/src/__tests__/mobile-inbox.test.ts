@@ -47,7 +47,7 @@ describe("mobile inbox projections", () => {
     expect(actions.every((action: any) => action.action !== "EDITOR_APPROVE")).toBe(true);
   });
 
-  it("returns only Board vote work with a VOTE action in the foundation slice", async () => {
+  it("returns only Board voting work with a VOTE action", async () => {
     const board = await loginAs("sato@beachread.jp");
     const response = await request(createApp())
       .get("/api/board/inbox")
@@ -56,7 +56,11 @@ describe("mobile inbox projections", () => {
 
     expect(response.body.data.role).toBe("BOARD");
     expect(response.body.data.items.length).toBeGreaterThan(0);
-    expect(response.body.data.items.every((item: any) => item.kind === "BOARD_VOTE")).toBe(true);
+    expect(
+      response.body.data.items.every((item: any) =>
+        ["BOARD_VOTE", "BOARD_REVOTE"].includes(item.kind),
+      ),
+    ).toBe(true);
     expect(() => mobileInboxSchema.parse(response.body.data)).not.toThrow();
     const actions = response.body.data.items.flatMap((item: any) => item.actions);
     expect(actions.some((action: any) => action.action === "VOTE")).toBe(true);

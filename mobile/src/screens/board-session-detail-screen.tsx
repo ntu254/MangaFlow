@@ -5,6 +5,7 @@ import { WorkflowConfirmationSheet } from "@/components/workflow-confirmation-sh
 import { WorkflowState } from "@/components/workflow-state"
 import { VoteProgress } from "@/components/vote-progress"
 import { RevoteBanner } from "@/components/revote-banner"
+import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import { useBoardSession } from "@/hooks/use-board-session"
 import type { BoardSessionDetail, BoardVoteValue } from "@/services/board-mobile-data-source"
 import { MobileApiError } from "@/services/mobile-api-error"
@@ -24,7 +25,7 @@ export function BoardSessionDetailScreen({
   sessionId: string
   getDetail?: (id: string) => Promise<BoardSessionDetail>
 }) {
-  const { detail, vote, close, cancel } = useBoardSession(sessionId, getDetail)
+  const { detail, vote, close, cancel, reviewFiles } = useBoardSession(sessionId, getDetail)
   const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null)
   const [pendingChair, setPendingChair] = useState<"SESSION_FINALIZE" | "SESSION_CANCEL" | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
@@ -141,6 +142,12 @@ export function BoardSessionDetailScreen({
             <Text style={styles.evidenceText}>Closes {new Date(data.session.closesAt).toLocaleString()}</Text>
           ) : null}
         </View>
+
+        <SubmittedFilesPanel
+          files={reviewFiles.data ?? []}
+          loading={reviewFiles.isLoading}
+          errorText={reviewFiles.error ? "Could not load submitted files." : null}
+        />
 
         <VoteProgress
           approve={data.tally.approve}

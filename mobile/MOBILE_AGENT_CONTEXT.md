@@ -14,9 +14,9 @@ Do not add Admin, Mangaka, or Assistant mobile surfaces unless a new story and c
 Read these before changing mobile:
 
 - `mobile/README.md`
-- `docs/business-flows/INDEX.md` and the relevant flow docs, especially `docs/business-flows/02-proposal-lifecycle.md`, `docs/business-flows/04-chapter-workflow.md`, `docs/business-flows/06-board-governance.md`, `docs/business-flows/09-rankings.md`, `docs/business-flows/12-comments.md`
+- `docs/business-flows/INDEX.md` and the relevant flow docs, especially `docs/business-flows/02-proposal-lifecycle.md`, `docs/business-flows/04-chapter-workflow.md`, `docs/business-flows/06-board-governance.md`, `docs/business-flows/09-rankings.md`, `docs/business-flows/11-file-management.md`, `docs/business-flows/12-comments.md`
 - `backend/src/mobile/mobile-work-item.contract.ts` — the canonical zod contract mirrored by `mobile/src/domain/mobile-work-item.ts`
-- `backend/src/routes/mobile.routes.ts`, `backend/src/routes/voting.routes.ts`, `backend/src/routes/series.routes.ts`, `backend/src/routes/studio.routes.ts` — the endpoints the mobile data sources call
+- `backend/src/routes/mobile.routes.ts`, `backend/src/routes/voting.routes.ts`, `backend/src/routes/series.routes.ts`, `backend/src/routes/studio.routes.ts`, `backend/src/routes/review-file.routes.ts` — the endpoints the mobile data sources call
 - Recent implementation plans/specs under `docs/superpowers/plans/` and `docs/superpowers/specs/` for in-flight mobile work
 
 ## Mobile Architecture
@@ -68,7 +68,9 @@ mobile/src/components/
   workflow-detail-layout.tsx, workflow-action-bar.tsx,
   workflow-confirmation-sheet.tsx, comment-thread.tsx, vote-progress.tsx,
   revote-banner.tsx, readiness-evidence.tsx, at-risk-decision-sheet.tsx,
-  publication-confirmation.tsx.
+  publication-confirmation.tsx, submitted-files-panel.tsx,
+  review-file-viewer.tsx (role-scoped submitted-file list and short-lived
+  preview UI, mounted from the detail screens above).
 ```
 
 There is no separate mock-data layer anymore. `mobile/src/data/` does not exist;
@@ -91,6 +93,10 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
   workflow-status transitions client-side.
 - Do not implement backend permissions, workflow transitions, readiness
   calculation, ranking formula, payroll, or signed URL access in mobile.
+- Review-file metadata is safe to keep in view state, but a display URL is
+  obtained lazily (only when a user opens a file), stays only in memory, is
+  refreshed 30 seconds before its 900-second lifetime, and is never mocked or
+  persisted to AsyncStorage/logs.
 
 ## Role Flows
 
@@ -100,9 +106,13 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
   reviews, blocking comments awaiting verification, and publication items.
 - **Reviews**: same inbox filtered to `PROPOSAL_REVIEW` and `CHAPTER_REVIEW`.
   - Proposal detail (`editor-proposal-detail-screen.tsx`): claim, request
-    changes, reject, forward-to-board (with recommendation + cadence).
+    changes, reject, forward-to-board (with recommendation + cadence);
+    a `SubmittedFilesPanel` lists the current proposal manuscript and
+    proposal attachments visible to the assigned Editor.
   - Chapter detail (`editor-chapter-detail-screen.tsx`): readiness evidence,
-    blocking comment thread, request-revision, reject, editor-approve.
+    blocking comment thread, request-revision, reject, editor-approve; a
+    `SubmittedFilesPanel` lists the frozen chapter-review file context and
+    visible page/submission attachments.
 - **Publish**: inbox filtered to `PUBLICATION` — schedule, postpone, publish
   now, from `editor-publish-screen.tsx`.
 - **History**: read-only recent activity (`GET /dashboard/editor/summary`).
@@ -119,9 +129,12 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
   - Session detail (`board-session-detail-screen.tsx`): vote `APPROVE` /
     `REJECT` / `ABSTAIN` against the session's optimistic-concurrency
     `version`; Chair-only close/cancel. A tied round shows the prior round via
-    `revote-banner.tsx` and is read-only.
+    `revote-banner.tsx` and is read-only. A `SubmittedFilesPanel` lists the
+    frozen proposal manuscript and proposal attachments only — Board never
+    receives Chapter, Page, Task, Submission, or production Material files.
 - **Ranking**: imported ranking snapshot (`GET /board/rankings`); Chair can
-  open an at-risk decision sheet directly from a ranked row.
+  open an at-risk decision sheet directly from a ranked row. Rankings and
+  at-risk screens expose no proposal or production files.
 - **At-risk decision**: manual Chair-only decisions `CONTINUE`, `WARNING`,
   `REQUEST_IMPROVEMENT_PLAN`, `CANCEL` via `at-risk-decision-sheet.tsx`;
   cancellation is never automatic.
@@ -143,6 +156,18 @@ Board vote values are `APPROVE | REJECT | ABSTAIN`
 (`BoardVoteValue` in `board-mobile-data-source.ts`). There is no
 `NEEDS_REVISION` vote value on mobile — the backend normalizes any legacy
 `NEEDS_REVISION` vote payload to `REJECT`.
+
+## Submitted-file review
+
+Board Proposal reviews and assigned Editor Proposal/Chapter reviews list
+submitted files via a `SubmittedFilesPanel`/`ReviewFileViewer` pair
+(`mobile/src/domain/review-files.ts`, `mobile/src/services/mobile-file-review.ts`).
+File metadata never carries a URL; a display URL is requested only when a
+user opens a file (`POST /api/files/display-url`), kept only in memory, and
+refreshed 30 seconds before its 900-second server lifetime. A `403` clears
+the viewer and returns to the review surface; a `404` shows unavailable.
+See `docs/business-flows/11-file-management.md` for the full role/context
+matrix.
 
 ## Forbidden Shortcuts
 

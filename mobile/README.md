@@ -9,7 +9,8 @@ This mobile app is a Queue-first workflow console for Board and Tantou Editor ac
 - **Demo mode is explicit and labelled.** Set `EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true` to use local reference data; the shell then shows a persistent `Demo data` label.
 - **All four tabs are live** for both roles: Editor (Today/Reviews/Publish/History) and Board (Today/Sessions/Ranking/History) read and act through the backend mobile API; there is no remaining mock UI to complete.
 
-For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile.
+For future agent context, read `MOBILE_AGENT_CONTEXT.md` and the maintained
+`../docs/business-flows/` documents before changing mobile.
 
 ## Scripts
 
@@ -64,3 +65,12 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Session/auth boundary under `src/services/mobile-auth.ts`, `mobile-api-client.ts`, and `mobile-auth-storage.ts`; capabilities always come from the backend `actions[]` descriptor, never recomputed client-side.
 - Explicit, labelled demo mode only (`EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true`): a small empty-items inbox, not a full mock UI layer. There is no live-to-mock fallback on request failure.
 - Confirmation sheets, empty/loading/error states, readiness evidence, vote progress, and comment threads shared across Editor and Board detail screens.
+- Submitted-file review for Board Proposal reviews and assigned Editor Proposal/Chapter reviews, mounted from `editor-proposal-detail-screen.tsx`, `editor-chapter-detail-screen.tsx`, and `board-session-detail-screen.tsx`. Metadata is loaded from `/api/review-files`; a display URL is requested only when a file is opened.
+
+## Submitted-file review
+
+- Board can review **Proposal files only**. It never requests Chapter, Page, Task, Submission, or production Material files.
+- An Editor can review files for its permitted Proposal and Chapter contexts; the backend remains the authorization source for every request.
+- File metadata contains no display URL. The app POSTs `/api/files/display-url` only after the user selects a file, keeps the URL only in memory, and never fabricates a mock URL.
+- A URL is treated as expired at the server `expiresAt`, or after an eight-minute fallback lease. The viewer refreshes 30 seconds before a 900-second URL expires, retries one failed preview with a new URL, and then offers manual Retry.
+- A `403` clears the viewer and returns to the review surface; a `404` is shown as unavailable. Image/PDF files preview in-app; unsupported types open through the device handler.

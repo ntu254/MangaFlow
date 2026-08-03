@@ -7,9 +7,11 @@ import {
   type EditorChapterDetail,
 } from "@/services/editor-mobile-data-source"
 import { mobileInboxKeys } from "@/services/mobile-inbox-data-source"
+import { getReviewFiles } from "@/services/mobile-file-review"
 
 export const editorChapterKeys = {
   detail: (id: string) => ["editor", "chapter", id] as const,
+  reviewFiles: (id: string) => ["editor", "chapter", id, "review-files"] as const,
 }
 
 export function useEditorChapter(
@@ -21,6 +23,13 @@ export function useEditorChapter(
   const detail = useQuery({
     queryKey: editorChapterKeys.detail(chapterId),
     queryFn: () => getDetail(chapterId),
+  })
+
+  // The frozen chapter-review file context and visible page/submission
+  // attachments for the assigned Tantou only.
+  const reviewFiles = useQuery({
+    queryKey: editorChapterKeys.reviewFiles(chapterId),
+    queryFn: () => getReviewFiles("chapter", chapterId),
   })
 
   // No optimistic status change; refresh chapter, inbox, and readiness from
@@ -43,5 +52,5 @@ export function useEditorChapter(
     onSuccess: invalidate,
   })
 
-  return { detail, requestRevision, reject, approve }
+  return { detail, requestRevision, reject, approve, reviewFiles }
 }

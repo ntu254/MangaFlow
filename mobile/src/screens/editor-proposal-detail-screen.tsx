@@ -8,6 +8,7 @@ import {
 } from "@/components/workflow-action-bar"
 import { WorkflowConfirmationSheet } from "@/components/workflow-confirmation-sheet"
 import { WorkflowState } from "@/components/workflow-state"
+import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import { useEditorProposal } from "@/hooks/use-editor-proposal"
 import type { EditorProposalDetail } from "@/services/editor-mobile-data-source"
 import { MobileApiError } from "@/services/mobile-api-error"
@@ -26,7 +27,10 @@ export function EditorProposalDetailScreen({
   proposalId: string
   getDetail?: (id: string) => Promise<EditorProposalDetail>
 }) {
-  const { detail, claim, requestChanges, reject, forward } = useEditorProposal(proposalId, getDetail)
+  const { detail, claim, requestChanges, reject, forward, reviewFiles } = useEditorProposal(
+    proposalId,
+    getDetail,
+  )
   const [pending, setPending] = useState<WorkflowActionDescriptor | null>(null)
   const [forwardOpen, setForwardOpen] = useState(false)
   const [sheetError, setSheetError] = useState<string | null>(null)
@@ -110,6 +114,11 @@ export function EditorProposalDetailScreen({
             ))
           )}
         </View>
+        <SubmittedFilesPanel
+          files={reviewFiles.data ?? []}
+          loading={reviewFiles.isLoading}
+          errorText={reviewFiles.error ? "Could not load submitted files." : null}
+        />
       </WorkflowDetailLayout>
 
       <WorkflowConfirmationSheet

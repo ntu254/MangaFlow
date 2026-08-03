@@ -30,7 +30,7 @@
 - mobile/src/services/mobile-file-review.ts: authenticated metadata and display URL reads without mock URL fallback.
 - mobile/src/components/submitted-files-panel.tsx, mobile/src/components/review-file-viewer.tsx: list and viewer.
 - mobile/src/screens/editor-proposal-detail-screen.tsx, mobile/src/screens/editor-chapter-detail-screen.tsx, mobile/src/screens/board-session-detail-screen.tsx: placement in the live detail screens. mobile/src/hooks/use-editor-proposal.ts, mobile/src/hooks/use-editor-chapter.ts, mobile/src/hooks/use-board-session.ts: per-detail review-file state.
-- mobile/src/__tests__/mobile-file-review.test.ts: mobile contract/lifecycle tests.
+- mobile/src/__tests__/mobile-file-review.test.tsx: mobile contract/lifecycle tests.
 - mobile/README.md, mobile/MOBILE_AGENT_CONTEXT.md, docs/business-flows/11-file-management.md, docs/business-flows/INDEX.md: maintained documentation.
 
 ### Task 1: Add a role-scoped backend review-file metadata contract
@@ -111,18 +111,19 @@ git add backend/src/services/review-file.service.ts backend/src/controllers/revi
 git commit -m "feat: expose scoped review file metadata"
 ~~~
 
-### Task 2: Permit Board display URLs only through existing key visibility checks
+### Task 2: Restrict Board display URLs to Board-review Proposal keys
 
 **Files:**
 - Modify: backend/src/routes/series.routes.ts:101-112
+- Modify: backend/src/services/studio-access.service.ts
 - Test: backend/src/__tests__/file-key-visibility.test.ts
 
-**Interfaces:** consumes Task 1 ReviewFile.key; keeps assertFileKeyVisible as enforcement.
+**Interfaces:** consumes Task 1 ReviewFile.key. `assertFileKeyVisible` remains the enforcement point, but gains a Board-specific branch that authorizes only Proposal file keys belonging to a Proposal visible to Board. It must never use generic Board series scope for a display URL.
 
 - [ ] **Step 1: Write the failing route-authorization test**
 
 ~~~
-it("allows a Board user to resolve a visible review file but not a draft file", async () => {
+it("allows a Board user to resolve a Board-review proposal file but not a draft file", async () => {
   const board = await loginAs("board@beachread.jp");
   await request(createApp()).post("/api/files/display-url")
     .set("Authorization", "Bearer " + board.accessToken)
@@ -131,34 +132,39 @@ it("allows a Board user to resolve a visible review file but not a draft file", 
     .set("Authorization", "Bearer " + board.accessToken)
     .send({ key: "proposals/p-001/cover.png", fileName: "cover.png" }).expect(403);
 });
+it.each(["chapters/ch-1/pages/p-1.png", "series/s-1/cover.png", "materials/ch-1/reference.pdf", "submissions/sub-1/work.png"])("blocks Board display URL for production key %s", async (key) => {
+  const board = await loginAs("board@beachread.jp");
+  await request(createApp()).post("/api/files/display-url")
+    .set("Authorization", "Bearer " + board.accessToken).send({ key }).expect(403);
+});
 ~~~
 
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: npm test --prefix backend -- file-key-visibility.test.ts
 
-Expected: FAIL on the first request because the route excludes BOARD.
+Expected: FAIL on the allowed request because the route excludes BOARD. After adding the route gate, production-key tests must fail until the Board-specific guard exists.
 
-- [ ] **Step 3: Change only the route gate**
+- [ ] **Step 3: Add a Board-specific Proposal-key guard and route gate**
 
 ~~~
 router.post("/files/display-url",
   requireExactRole("BOARD", "EDITOR", "MANGAKA", "ASSISTANT") as any, displayUrl);
 ~~~
 
-Do not alter displayUrl or assertFileKeyVisible.
+Before generic key checks, `assertFileKeyVisible` must branch on `actor.role === "BOARD"`, resolve only a Proposal record containing the requested key, and authorize it through Proposal visibility for Board-review states. It must throw `FORBIDDEN` for every non-Proposal key without evaluating generic series scope. Keep `displayUrl` unchanged.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: npm test --prefix backend -- file-key-visibility.test.ts
 
-Expected: PASS; visible key works and draft key remains blocked.
+Expected: PASS; Board-review Proposal key works while draft, series, chapter, page, task, submission, and material keys remain blocked.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add backend/src/routes/series.routes.ts backend/src/__tests__/file-key-visibility.test.ts
-git commit -m "fix: permit scoped Board file display URLs"
+git add backend/src/routes/series.routes.ts backend/src/services/studio-access.service.ts backend/src/__tests__/file-key-visibility.test.ts
+git commit -m "fix: restrict Board display URLs to proposals"
 ~~~
 
 ### Task 3: Add mobile DTOs and the expiring URL lease manager
@@ -166,7 +172,7 @@ git commit -m "fix: permit scoped Board file display URLs"
 **Files:**
 - Create: mobile/src/domain/review-files.ts
 - Create: mobile/src/services/mobile-file-review.ts
-- Test: mobile/src/__tests__/mobile-file-review.test.ts
+- Test: mobile/src/__tests__/mobile-file-review.test.tsx
 
 **Interfaces:**
 
@@ -193,7 +199,7 @@ test("file URLs are acquired only when a user opens a file", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: FAIL because the domain/service modules do not exist.
 
@@ -211,14 +217,14 @@ openReviewFile posts key and name to /files/display-url, uses server expiresAt w
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: PASS; 870 seconds refreshes a 900-second lease and acquisition is lazy.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/src/domain/review-files.ts mobile/src/services/mobile-file-review.ts mobile/src/__tests__/mobile-file-review.test.ts
+git add mobile/src/domain/review-files.ts mobile/src/services/mobile-file-review.ts mobile/src/__tests__/mobile-file-review.test.tsx
 git commit -m "feat: add expiring mobile review file leases"
 ~~~
 
@@ -228,7 +234,7 @@ git commit -m "feat: add expiring mobile review file leases"
 - Create: mobile/src/components/submitted-files-panel.tsx
 - Create: mobile/src/components/review-file-viewer.tsx
 - Modify: mobile/package.json, mobile/src/design/icons.tsx
-- Test: mobile/src/__tests__/mobile-file-review.test.ts
+- Test: mobile/src/__tests__/mobile-file-review.test.tsx
 
 **Interfaces:** consumes Task 3 types/functions and produces SubmittedFilesPanel plus ReviewFileViewer.
 
@@ -249,7 +255,7 @@ test("viewer refreshes one expired URL before showing Retry", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: FAIL because panel and viewer do not exist.
 
@@ -261,14 +267,14 @@ Render images with expo-image; render PDFs in a WebView only with a fresh in-mem
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: PASS; metadata, one automatic retry, and manual recovery are present.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/package.json mobile/package-lock.json mobile/src/design/icons.tsx mobile/src/components/submitted-files-panel.tsx mobile/src/components/review-file-viewer.tsx mobile/src/__tests__/mobile-file-review.test.ts
+git add mobile/package.json mobile/package-lock.json mobile/src/design/icons.tsx mobile/src/components/submitted-files-panel.tsx mobile/src/components/review-file-viewer.tsx mobile/src/__tests__/mobile-file-review.test.tsx
 git commit -m "feat: add mobile submitted file preview"
 ~~~
 
@@ -283,7 +289,7 @@ git commit -m "feat: add mobile submitted file preview"
 - Modify: mobile/src/hooks/use-board-session.ts
 - Modify: mobile/src/services/editor-mobile-data-source.ts
 - Modify: mobile/src/services/board-mobile-data-source.ts
-- Test: mobile/src/__tests__/mobile-file-review.test.ts
+- Test: mobile/src/__tests__/mobile-file-review.test.tsx
 
 **Interfaces:** consumes Task 3 getReviewFiles and Task 4 SubmittedFilesPanel. There is no `series-proposal-summary-panel.tsx`, `editor-panels.tsx`, `use-editor-mobile-flow.ts`, `use-board-mobile-flow.ts`, or `mobile-workflow-data-source.ts` in this codebase — those were an earlier mock-era screen layer removed because nothing imported them; the live Editor/Board detail screens and their per-detail hooks (listed above) are the only mount points. Board's review context is the session's proposal (`data.session.proposalId` from `BoardSessionDetail`), not a `selectedSeries` — the Board session detail screen has no such field.
 
@@ -303,7 +309,7 @@ test("Editor proposal and chapter detail screens mount the submitted-file panel"
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: FAIL because none of the three live detail screens load review-file metadata yet.
 
@@ -313,14 +319,14 @@ Add `getReviewFiles` to `editor-mobile-data-source.ts` (proposal and chapter con
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: PASS; Board is proposal-only and Editor gets both allowed contexts.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/src/screens/editor-proposal-detail-screen.tsx mobile/src/screens/editor-chapter-detail-screen.tsx mobile/src/screens/board-session-detail-screen.tsx mobile/src/hooks/use-editor-proposal.ts mobile/src/hooks/use-editor-chapter.ts mobile/src/hooks/use-board-session.ts mobile/src/services/editor-mobile-data-source.ts mobile/src/services/board-mobile-data-source.ts mobile/src/__tests__/mobile-file-review.test.ts
+git add mobile/src/screens/editor-proposal-detail-screen.tsx mobile/src/screens/editor-chapter-detail-screen.tsx mobile/src/screens/board-session-detail-screen.tsx mobile/src/hooks/use-editor-proposal.ts mobile/src/hooks/use-editor-chapter.ts mobile/src/hooks/use-board-session.ts mobile/src/services/editor-mobile-data-source.ts mobile/src/services/board-mobile-data-source.ts mobile/src/__tests__/mobile-file-review.test.tsx
 git commit -m "feat: show submitted files in mobile review flows"
 ~~~
 
@@ -329,7 +335,7 @@ git commit -m "feat: show submitted files in mobile review flows"
 **Files:**
 - Modify: mobile/README.md, mobile/MOBILE_AGENT_CONTEXT.md
 - Modify: docs/business-flows/11-file-management.md, docs/business-flows/INDEX.md
-- Test: mobile/src/__tests__/mobile-file-review.test.ts
+- Test: mobile/src/__tests__/mobile-file-review.test.tsx
 
 - [ ] **Step 1: Write the failing documentation-contract test**
 
@@ -343,7 +349,7 @@ test("mobile documentation records URL refresh and role boundaries", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.ts
+Run: npm test --prefix mobile -- mobile-file-review.test.tsx
 
 Expected: FAIL because the maintained docs do not yet describe the feature.
 
@@ -366,7 +372,7 @@ Expected: every command exits 0; backend role/key tests and mobile lifecycle tes
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/README.md mobile/MOBILE_AGENT_CONTEXT.md docs/business-flows/11-file-management.md docs/business-flows/INDEX.md mobile/src/__tests__/mobile-file-review.test.ts
+git add mobile/README.md mobile/MOBILE_AGENT_CONTEXT.md docs/business-flows/11-file-management.md docs/business-flows/INDEX.md mobile/src/__tests__/mobile-file-review.test.tsx
 git commit -m "docs: document mobile file review lifecycle"
 ~~~
 

@@ -6,6 +6,8 @@ import { env } from "./config/env.js";
 import { errorHandler, notFound, ok, requestId } from "./lib/http.js";
 import { logger } from "./lib/logger.js";
 import { createApiRouter } from "./routes/index.js";
+import reviewFileRoutes from "./routes/review-file.routes.js";
+import { requireAuth } from "./middleware/auth.js";
 import mongoose from "mongoose";
 
 export type AppOptions = {
@@ -94,6 +96,7 @@ export function createApp(options: AppOptions = {}) {
     "/api",
     createApiRouter({ aiServiceUrl: options.aiServiceUrl ?? env.AI_SERVICE_URL })
   );
+  app.use("/api", requireAuth as any, reviewFileRoutes);
 
   app.use(notFound as express.RequestHandler);
   app.use(errorHandler as express.ErrorRequestHandler);
