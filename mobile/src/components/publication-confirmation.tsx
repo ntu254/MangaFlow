@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native"
+import { useEffect, useRef, useState } from "react"
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent, type ViewStyle } from "react-native"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 import { formatSelectedSchedule, monthCalendarDates, toScheduledAt } from "@/domain/publication-schedule"
 
@@ -15,9 +15,95 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
 const MINUTES = Array.from({ length: 60 }, (_, minute) => minute)
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const WHEEL_ITEM_HEIGHT = 44
+const WEB_SCROLL_SETTLE_MS = 120
+const webWheelStyle = { scrollSnapType: "y mandatory" } as unknown as ViewStyle
+const webWheelOptionStyle = { scrollSnapAlign: "center" } as unknown as ViewStyle
 
 function dayLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+}
+
+function TimeWheel({
+  label,
+  values,
+  selectedValue,
+  onSelect,
+}: {
+  label: "Hour" | "Minute"
+  values: number[]
+  selectedValue: number
+  onSelect: (value: number) => void
+}) {
+  const scrollRef = useRef<ScrollView>(null)
+  const webSettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const selectedIndex = values.indexOf(selectedValue)
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      scrollRef.current?.scrollTo({ y: selectedIndex * WHEEL_ITEM_HEIGHT, animated: false })
+    }
+  }, [selectedIndex])
+
+  useEffect(
+    () => () => {
+      if (webSettleTimer.current) clearTimeout(webSettleTimer.current)
+    },
+    [],
+  )
+
+  const selectOffset = (offsetY: number) => {
+    const index = Math.min(values.length - 1, Math.max(0, Math.round(offsetY / WHEEL_ITEM_HEIGHT)))
+    onSelect(values[index])
+    return index
+  }
+
+  const settleWebScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y
+    if (webSettleTimer.current) clearTimeout(webSettleTimer.current)
+    webSettleTimer.current = setTimeout(() => {
+      const index = selectOffset(offsetY)
+      scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated: false })
+    }, WEB_SCROLL_SETTLE_MS)
+  }
+
+  return (
+    <View style={styles.wheelGroup}>
+      <Text style={styles.pickerLabel}>{label}</Text>
+      <ScrollView
+        ref={scrollRef}
+        testID={`publication-${label.toLowerCase()}-picker`}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+        style={[styles.wheel, Platform.OS === "web" && webWheelStyle]}
+        contentOffset={Platform.OS === "web" ? undefined : { x: 0, y: selectedIndex * WHEEL_ITEM_HEIGHT }}
+        snapToInterval={Platform.OS === "web" ? undefined : WHEEL_ITEM_HEIGHT}
+        snapToAlignment={Platform.OS === "web" ? undefined : "center"}
+        decelerationRate={Platform.OS === "web" ? undefined : "fast"}
+        scrollEventThrottle={Platform.OS === "web" ? 16 : undefined}
+        onScroll={Platform.OS === "web" ? settleWebScroll : undefined}
+        onMomentumScrollEnd={
+          Platform.OS === "web"
+            ? undefined
+            : (event: NativeSyntheticEvent<NativeScrollEvent>) => selectOffset(event.nativeEvent.contentOffset.y)
+        }
+      >
+        <View style={styles.wheelPaddingRow} />
+        {values.map((value) => (
+          <Pressable
+            key={value}
+            accessibilityRole="button"
+            accessibilityLabel={`${label} ${value}`}
+            accessibilityState={{ selected: selectedValue === value }}
+            onPress={() => onSelect(value)}
+            style={[styles.option, Platform.OS === "web" && webWheelOptionStyle, selectedValue === value && styles.selectedOption]}
+          >
+            <Text style={[styles.optionText, selectedValue === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
+          </Pressable>
+        ))}
+        <View style={styles.wheelPaddingRow} />
+      </ScrollView>
+    </View>
+  )
 }
 
 // High-friction publication confirmation. SCHEDULE requires a future date and
@@ -133,70 +219,8 @@ export function PublicationConfirmation({
                 </View>
               </ScrollView>
               <View style={styles.timePickerRow}>
-                <View style={styles.wheelGroup}>
-                  <Text style={styles.pickerLabel}>Hour</Text>
-                  <ScrollView
-                    testID="publication-hour-picker"
-                    nestedScrollEnabled
-                    showsVerticalScrollIndicator={false}
-                    style={styles.wheel}
-                    contentOffset={{ x: 0, y: hour * WHEEL_ITEM_HEIGHT }}
-                    snapToInterval={WHEEL_ITEM_HEIGHT}
-                    snapToAlignment="center"
-                    decelerationRate="fast"
-                    onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
-                      const value = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT)
-                      setHour(Math.min(HOURS.length - 1, Math.max(0, value)))
-                    }}
-                  >
-                    <View style={styles.wheelPaddingRow} />
-                    {HOURS.map((value) => (
-                      <Pressable
-                        key={value}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Hour ${value}`}
-                        accessibilityState={{ selected: hour === value }}
-                        onPress={() => setHour(value)}
-                        style={[styles.option, hour === value && styles.selectedOption]}
-                      >
-                        <Text style={[styles.optionText, hour === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
-                      </Pressable>
-                    ))}
-                    <View style={styles.wheelPaddingRow} />
-                  </ScrollView>
-                </View>
-                <View style={styles.wheelGroup}>
-                  <Text style={styles.pickerLabel}>Minute</Text>
-                  <ScrollView
-                    testID="publication-minute-picker"
-                    nestedScrollEnabled
-                    showsVerticalScrollIndicator={false}
-                    style={styles.wheel}
-                    contentOffset={{ x: 0, y: minute * WHEEL_ITEM_HEIGHT }}
-                    snapToInterval={WHEEL_ITEM_HEIGHT}
-                    snapToAlignment="center"
-                    decelerationRate="fast"
-                    onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
-                      const value = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT)
-                      setMinute(Math.min(MINUTES.length - 1, Math.max(0, value)))
-                    }}
-                  >
-                    <View style={styles.wheelPaddingRow} />
-                    {MINUTES.map((value) => (
-                      <Pressable
-                        key={value}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Minute ${value}`}
-                        accessibilityState={{ selected: minute === value }}
-                        onPress={() => setMinute(value)}
-                        style={[styles.option, minute === value && styles.selectedOption]}
-                      >
-                        <Text style={[styles.optionText, minute === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
-                      </Pressable>
-                    ))}
-                    <View style={styles.wheelPaddingRow} />
-                  </ScrollView>
-                </View>
+                <TimeWheel label="Hour" values={HOURS} selectedValue={hour} onSelect={setHour} />
+                <TimeWheel label="Minute" values={MINUTES} selectedValue={minute} onSelect={setMinute} />
               </View>
               <Text accessibilityLabel="Selected publication time" style={styles.selectedTimestamp}>
                 {selectedSchedule}

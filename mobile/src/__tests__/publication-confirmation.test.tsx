@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import { act, fireEvent, render, screen } from "@testing-library/react-native"
+import { Platform, ScrollView, StyleSheet } from "react-native"
 import { PublicationConfirmation } from "@/components/publication-confirmation"
 import { formatSelectedSchedule, monthCalendarDates, toScheduledAt } from "@/domain/publication-schedule"
 import { colors } from "@/design/tokens"
@@ -39,8 +40,14 @@ describe("toScheduledAt", () => {
 })
 
 describe("PublicationConfirmation", () => {
+  const originalOS = Platform.OS
+
   beforeEach(() => jest.useFakeTimers().setSystemTime(new Date(2026, 7, 12, 14, 34)))
-  afterEach(() => jest.useRealTimers())
+  afterEach(() => {
+    Object.defineProperty(Platform, "OS", { value: originalOS, configurable: true })
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+  })
 
   it("selects a calendar day and time with picker controls before scheduling", () => {
     const onConfirm = jest.fn()
@@ -134,6 +141,64 @@ describe("PublicationConfirmation", () => {
     fireEvent(screen.getByTestId("publication-minute-picker"), "momentumScrollEnd", {
       nativeEvent: { contentOffset: { y: 44 * 35 } },
     })
+
+    expect(screen.getByRole("button", { name: "Hour 14" })).toHaveProp("accessibilityState", { selected: true })
+    expect(screen.getByRole("button", { name: "Minute 35" })).toHaveProp("accessibilityState", { selected: true })
+    expect(screen.getByLabelText("Selected publication time")).toHaveTextContent("Wed, Aug 12 · 14:35")
+  })
+
+  it("positions selected values in CSS-snapping web wheels", () => {
+    Object.defineProperty(Platform, "OS", { value: "web", configurable: true })
+    jest.setSystemTime(new Date(2026, 7, 12, 9, 5))
+    const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo").mockImplementation(() => undefined)
+
+    render(
+      <PublicationConfirmation
+        visible
+        action="SCHEDULE"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    expect(StyleSheet.flatten(screen.getByTestId("publication-hour-picker").props.style)).toMatchObject({
+      scrollSnapType: "y mandatory",
+    })
+    expect(StyleSheet.flatten(screen.getByRole("button", { name: "Hour 9" }).props.style)).toMatchObject({
+      scrollSnapAlign: "center",
+    })
+    expect(scrollTo).toHaveBeenCalledWith({ y: 44 * 9, animated: false })
+    expect(scrollTo).toHaveBeenCalledWith({ y: 44 * 5, animated: false })
+  })
+
+  it("settles web scroll events to the nearest selected values", () => {
+    Object.defineProperty(Platform, "OS", { value: "web", configurable: true })
+    jest.setSystemTime(new Date(2026, 7, 12, 9, 5))
+    jest.spyOn(ScrollView.prototype, "scrollTo").mockImplementation(() => undefined)
+
+    render(
+      <PublicationConfirmation
+        visible
+        action="SCHEDULE"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    const hourPicker = screen.getByTestId("publication-hour-picker")
+    const minutePicker = screen.getByTestId("publication-minute-picker")
+    expect(hourPicker).toHaveProp("onScroll", expect.any(Function))
+    expect(minutePicker).toHaveProp("onScroll", expect.any(Function))
+
+    fireEvent.scroll(hourPicker, { nativeEvent: { contentOffset: { y: 44 * 14.1 } } })
+    fireEvent.scroll(minutePicker, { nativeEvent: { contentOffset: { y: 44 * 34.8 } } })
+    expect(screen.getByRole("button", { name: "Hour 9" })).toHaveProp("accessibilityState", { selected: true })
+
+    act(() => jest.advanceTimersByTime(150))
 
     expect(screen.getByRole("button", { name: "Hour 14" })).toHaveProp("accessibilityState", { selected: true })
     expect(screen.getByRole("button", { name: "Minute 35" })).toHaveProp("accessibilityState", { selected: true })
