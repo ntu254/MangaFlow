@@ -76,7 +76,7 @@ type FileDisplayUrl = {
 };
 ```
 
-The endpoint must re-run authorization for every request. The client must not reuse a display URL after its local expiry or after a `403`/`404` response.
+The endpoint must re-run authorization for every request. For a Board actor, that authorization is proposal-key-only: it permits a key attached to a Proposal visible in an active Board review state, and rejects every series, chapter, page, task, submission, and material key. The client must not reuse a display URL after its local expiry or after a `403`/`404` response.
 
 ## Error handling
 
