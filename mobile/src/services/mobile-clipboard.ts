@@ -1,6 +1,8 @@
-// Minimal clipboard adapter. Mobile has no native clipboard dependency, so the
-// one-tap copy is offered only where the platform provides it and the calling
-// surface always keeps the same text selectable as a fallback.
+import * as Clipboard from "expo-clipboard"
+import { Platform } from "react-native"
+
+// Minimal clipboard adapter. Native builds use Expo Clipboard; web uses the
+// browser clipboard when available. Callers retain selectable text as fallback.
 function webClipboard(): { writeText: (text: string) => Promise<void> } | null {
   const candidate = (globalThis as { navigator?: { clipboard?: { writeText?: unknown } } }).navigator
     ?.clipboard
@@ -11,13 +13,17 @@ function webClipboard(): { writeText: (text: string) => Promise<void> } | null {
 }
 
 export function canCopyToClipboard(): boolean {
-  return webClipboard() !== null
+  return Platform.OS !== "web" || webClipboard() !== null
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
-  const clipboard = webClipboard()
-  if (!clipboard) return false
   try {
+    if (Platform.OS !== "web") {
+      await Clipboard.setStringAsync(text)
+      return true
+    }
+    const clipboard = webClipboard()
+    if (!clipboard) return false
     await clipboard.writeText(text)
     return true
   } catch {

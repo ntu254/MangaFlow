@@ -118,7 +118,7 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 
 ### Tantou Editor (`editor-workspace.tsx`, 5 tabs)
 
-- **Today**: full inbox (`GET /editor/inbox`) — proposal reviews, chapter
+- **Priority**: full inbox (`GET /editor/inbox`) — proposal reviews, chapter
   reviews, blocking comments awaiting verification, and publication items.
 - **Reviews**: same inbox filtered to `PROPOSAL_REVIEW` and `CHAPTER_REVIEW`.
   - Proposal detail (`editor-proposal-detail-screen.tsx`): claim, request
@@ -132,7 +132,7 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 - **Publish**: inbox filtered to `PUBLICATION` — schedule, postpone, publish
   now, from `editor-publish-screen.tsx`.
 - **History — "My Editorial Activity"**: read-only personal activity
-  (`GET /dashboard/editor/summary`) mapped through `editor-activity.ts`.
+  (`GET /editor/activity`) mapped through `editor-activity.ts`.
 - **Notifications**: fifth tab, `GET /notifications`, unread badge on the tab.
 - Proposal detail keeps `savedChecklist` (backend value / last successful save)
   separate from `draftChecklist`. Forward to Board is disabled client-side until

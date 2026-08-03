@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 import { formatSelectedSchedule, monthCalendarDates, toScheduledAt } from "@/domain/publication-schedule"
 
@@ -14,6 +14,7 @@ const TITLES: Record<PublicationAction, string> = {
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
 const MINUTES = Array.from({ length: 60 }, (_, minute) => minute)
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const WHEEL_ITEM_HEIGHT = 44
 
 function dayLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -131,36 +132,72 @@ export function PublicationConfirmation({
                   </View>
                 </View>
               </ScrollView>
-              <Text style={styles.pickerLabel}>Hour</Text>
-              <ScrollView testID="publication-hour-picker" horizontal nestedScrollEnabled showsHorizontalScrollIndicator contentContainerStyle={styles.optionRow}>
-                {HOURS.map((value) => (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Hour ${value}`}
-                    accessibilityState={{ selected: hour === value }}
-                    onPress={() => setHour(value)}
-                    style={[styles.option, hour === value && styles.selectedOption]}
+              <View style={styles.timePickerRow}>
+                <View style={styles.wheelGroup}>
+                  <Text style={styles.pickerLabel}>Hour</Text>
+                  <ScrollView
+                    testID="publication-hour-picker"
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                    style={styles.wheel}
+                    contentOffset={{ x: 0, y: hour * WHEEL_ITEM_HEIGHT }}
+                    snapToInterval={WHEEL_ITEM_HEIGHT}
+                    snapToAlignment="center"
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+                      const value = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT)
+                      setHour(Math.min(HOURS.length - 1, Math.max(0, value)))
+                    }}
                   >
-                    <Text style={[styles.optionText, hour === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              <Text style={styles.pickerLabel}>Minute</Text>
-              <ScrollView testID="publication-minute-picker" horizontal nestedScrollEnabled showsHorizontalScrollIndicator contentContainerStyle={styles.optionRow}>
-                {MINUTES.map((value) => (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Minute ${value}`}
-                    accessibilityState={{ selected: minute === value }}
-                    onPress={() => setMinute(value)}
-                    style={[styles.option, minute === value && styles.selectedOption]}
+                    <View style={styles.wheelPaddingRow} />
+                    {HOURS.map((value) => (
+                      <Pressable
+                        key={value}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Hour ${value}`}
+                        accessibilityState={{ selected: hour === value }}
+                        onPress={() => setHour(value)}
+                        style={[styles.option, hour === value && styles.selectedOption]}
+                      >
+                        <Text style={[styles.optionText, hour === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
+                      </Pressable>
+                    ))}
+                    <View style={styles.wheelPaddingRow} />
+                  </ScrollView>
+                </View>
+                <View style={styles.wheelGroup}>
+                  <Text style={styles.pickerLabel}>Minute</Text>
+                  <ScrollView
+                    testID="publication-minute-picker"
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                    style={styles.wheel}
+                    contentOffset={{ x: 0, y: minute * WHEEL_ITEM_HEIGHT }}
+                    snapToInterval={WHEEL_ITEM_HEIGHT}
+                    snapToAlignment="center"
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+                      const value = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT)
+                      setMinute(Math.min(MINUTES.length - 1, Math.max(0, value)))
+                    }}
                   >
-                    <Text style={[styles.optionText, minute === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+                    <View style={styles.wheelPaddingRow} />
+                    {MINUTES.map((value) => (
+                      <Pressable
+                        key={value}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Minute ${value}`}
+                        accessibilityState={{ selected: minute === value }}
+                        onPress={() => setMinute(value)}
+                        style={[styles.option, minute === value && styles.selectedOption]}
+                      >
+                        <Text style={[styles.optionText, minute === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
+                      </Pressable>
+                    ))}
+                    <View style={styles.wheelPaddingRow} />
+                  </ScrollView>
+                </View>
+              </View>
               <Text accessibilityLabel="Selected publication time" style={styles.selectedTimestamp}>
                 {selectedSchedule}
               </Text>
@@ -225,8 +262,11 @@ const styles = StyleSheet.create({
   day: { width: 44, minWidth: 44, minHeight: 44, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   dayText: { color: colors.text, fontSize: typography.body },
   pickerLabel: { color: colors.textMuted, fontSize: typography.body, fontWeight: "600" },
-  optionRow: { flexDirection: "row", gap: spacing.xs, paddingBottom: spacing.xs },
-  option: { minWidth: 44, minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  timePickerRow: { flexDirection: "row", gap: spacing.md },
+  wheelGroup: { flex: 1, alignItems: "center", gap: spacing.xs },
+  wheel: { height: WHEEL_ITEM_HEIGHT * 3, width: 72 },
+  wheelPaddingRow: { height: WHEEL_ITEM_HEIGHT },
+  option: { minWidth: 44, minHeight: 44, height: WHEEL_ITEM_HEIGHT, paddingHorizontal: spacing.sm, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   optionText: { color: colors.text, fontSize: typography.body },
   selectedOption: { backgroundColor: colors.primary },
   selectedOptionText: { color: colors.surface, fontWeight: "700" },

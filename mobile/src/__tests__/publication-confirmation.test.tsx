@@ -91,6 +91,55 @@ describe("PublicationConfirmation", () => {
     expect(screen.getByRole("button", { name: "Minute 35" })).toHaveStyle({ minWidth: 44, minHeight: 44 })
   })
 
+  it("renders three-row snapping wheels with the centered values selected", () => {
+    render(
+      <PublicationConfirmation
+        visible
+        action="SCHEDULE"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId("publication-hour-picker")).toHaveProp("snapToInterval", 44)
+    expect(screen.getByTestId("publication-hour-picker")).toHaveProp("snapToAlignment", "center")
+    expect(screen.getByTestId("publication-hour-picker")).toHaveProp("decelerationRate", "fast")
+    expect(screen.getByTestId("publication-hour-picker")).toHaveStyle({ height: 44 * 3 })
+    expect(screen.getByTestId("publication-minute-picker")).toHaveProp("snapToInterval", 44)
+    expect(screen.getByTestId("publication-minute-picker")).toHaveProp("snapToAlignment", "center")
+    expect(screen.getByTestId("publication-minute-picker")).toHaveProp("decelerationRate", "fast")
+    expect(screen.getByTestId("publication-minute-picker")).toHaveStyle({ height: 44 * 3 })
+    expect(screen.getByRole("button", { name: "Hour 14" })).toHaveProp("accessibilityState", { selected: true })
+    expect(screen.getByRole("button", { name: "Minute 34" })).toHaveProp("accessibilityState", { selected: true })
+  })
+
+  it("selects hour and minute values from settled wheel offsets", () => {
+    jest.setSystemTime(new Date(2026, 7, 12, 9, 5))
+    render(
+      <PublicationConfirmation
+        visible
+        action="SCHEDULE"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    fireEvent(screen.getByTestId("publication-hour-picker"), "momentumScrollEnd", {
+      nativeEvent: { contentOffset: { y: 44 * 14 } },
+    })
+    fireEvent(screen.getByTestId("publication-minute-picker"), "momentumScrollEnd", {
+      nativeEvent: { contentOffset: { y: 44 * 35 } },
+    })
+
+    expect(screen.getByRole("button", { name: "Hour 14" })).toHaveProp("accessibilityState", { selected: true })
+    expect(screen.getByRole("button", { name: "Minute 35" })).toHaveProp("accessibilityState", { selected: true })
+    expect(screen.getByLabelText("Selected publication time")).toHaveTextContent("Wed, Aug 12 · 14:35")
+  })
+
   it("disables scheduling for the current minute", () => {
     render(
       <PublicationConfirmation
