@@ -13,6 +13,9 @@ mobile work cards and action buttons easier to scan and operate.
   complete selected value before submitting, for example `Tue, 12 Aug · 14:35`.
 - A past or invalid selection cannot submit. The existing API still receives
   ISO `scheduledAt` and remains authoritative.
+- **Publish now** is a separate action. Its confirmation names the chapter and
+  clearly states that it becomes publicly visible immediately. Schedule remains
+  the primary planning action; Postpone remains a quiet tertiary action.
 - Schedule confirmation uses compact 44px actions with 14–15px semibold,
   one-line labels; secondary Cancel is visually quieter than the violet primary
   confirmation action.
@@ -32,6 +35,6 @@ mobile work cards and action buttons easier to scan and operate.
 - Replace only the free-text schedule input; do not alter postpone/publish
   authorization or backend publication rules.
 - Unit-test future-minute validation and ISO payload conversion; screen-test
-  calendar/wheel selection, disabled past submit, labels, and compact button
-  sizing semantics.
+  calendar/wheel selection, disabled past submit, Publish now confirmation,
+  labels, and compact button sizing semantics.
 - Run mobile tests, lint, Expo web build, and `git diff --check`.
