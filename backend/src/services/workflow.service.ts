@@ -885,6 +885,9 @@ export async function applyChapterAction(
   const chapter = doc.toObject() as any;
   const series = await SeriesModel.findOne({ id: chapter.seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
+  if (String((series as any).status) === "ARCHIVED") {
+    throw new AppError(409, "Series is archived and its chapters are read-only.", "SERIES_ARCHIVED");
+  }
 
   const isChapterAssignee =
     (actor.role === "MANGAKA" &&
@@ -1065,7 +1068,7 @@ export async function applyChapterAction(
         "PUBLICATION_TYPE_REQUIRED",
       );
     }
-    if (["CANCELLED", "COMPLETED"].includes(String((series as any).status))) {
+    if (["CANCELLED", "COMPLETED", "ARCHIVED"].includes(String((series as any).status))) {
       throw new AppError(409, "Series is not publishable.", "SERIES_NOT_PUBLISHABLE");
     }
     patch.readyForPublicationAt = new Date();
@@ -1406,7 +1409,10 @@ export async function boardQueue() {
     };
   });
 
-  const atRisk = await RankingModel.find({ $or: [{ atRisk: true }, { status: "AT_RISK" }] }).lean();
+  const atRisk = await RankingModel.find({
+    $or: [{ atRisk: true }, { status: "AT_RISK" }],
+    "metadata.atRiskDecision": { $exists: false },
+  }).lean();
   return [
     ...proposalItems,
     ...atRisk.map((rank: any) => ({

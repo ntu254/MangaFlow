@@ -78,7 +78,7 @@ export const createProposal = asyncRoute(async (req: AuthedRequest, res) => {
   rejectProtectedFields(body as Record<string, unknown>);
   const proposalId = id("p");
   const slugBase = slugify(body.slug?.trim() || body.title || "proposal") || "proposal";
-  const proposal = await ProposalModel.create({
+  const proposal = await (ProposalModel as any).create({
     id: proposalId,
     // Proposal slugs are identifiers, not title-only labels. Including the
     // generated id prevents duplicate titles and empty client slugs from

@@ -6,7 +6,7 @@ import { colors, radius, spacing, typography } from "@/design/tokens"
 const DECISIONS: { value: AtRiskDecisionValue; label: string }[] = [
   { value: "CONTINUE", label: "Continue" },
   { value: "WARNING", label: "Warning" },
-  { value: "REQUEST_IMPROVEMENT_PLAN", label: "Request improvement plan" },
+  { value: "CHANGE_FORMAT", label: "Change format" },
   { value: "CANCEL", label: "Cancel series" },
 ]
 
@@ -31,10 +31,15 @@ export function AtRiskDecisionSheet({
   submitting?: boolean
   errorMessage?: string | null
   onCancel: () => void
-  onConfirm: (input: { decision: AtRiskDecisionValue; note?: string }) => void
+  onConfirm: (input: {
+    decision: AtRiskDecisionValue
+    note?: string
+    publicationType?: "WEEKLY" | "MONTHLY"
+  }) => void
 }) {
   const [decision, setDecision] = useState<AtRiskDecisionValue | null>(null)
   const [note, setNote] = useState("")
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY")
   const [localError, setLocalError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -55,7 +60,11 @@ export function AtRiskDecisionSheet({
       return
     }
     setLocalError(null)
-    onConfirm({ decision, note: note.trim() || undefined })
+    onConfirm({
+      decision,
+      note: note.trim() || undefined,
+      ...(decision === "CHANGE_FORMAT" ? { publicationType } : {}),
+    })
   }
 
   return (
@@ -102,6 +111,24 @@ export function AtRiskDecisionSheet({
               </View>
               {decision === "CANCEL" ? (
                 <Text style={styles.manualNotice}>Cancellation is a manual Chair decision; it is never automatic.</Text>
+              ) : null}
+              {decision === "CHANGE_FORMAT" ? (
+                <View style={styles.choices}>
+                  {(["WEEKLY", "MONTHLY"] as const).map((value) => (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Set ${value.toLowerCase()} cadence`}
+                      accessibilityState={{ selected: publicationType === value }}
+                      onPress={() => setPublicationType(value)}
+                      style={[styles.choice, publicationType === value && styles.choiceActive]}
+                    >
+                      <Text style={[styles.choiceText, publicationType === value && styles.choiceTextActive]}>
+                        {value === "WEEKLY" ? "Weekly" : "Monthly"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               ) : null}
               <TextInput
                 accessibilityLabel="Reason"

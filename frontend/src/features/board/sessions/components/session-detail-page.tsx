@@ -7,7 +7,7 @@ import { useProposalsQuery } from "@/features/proposals";
 import { isBoardChair, useAuth } from "@/shared/auth";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   useCancelVotingSessionMutation,
@@ -39,6 +39,15 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [tieDecision, setTieDecision] = useState<"APPROVED" | "REJECTED" | null>(null);
   const [tieNote, setTieNote] = useState("");
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
+  const sessionProposal = session
+    ? proposals.find((proposal) => session.proposalIds.includes(proposal.id))
+    : undefined;
+  useEffect(() => {
+    if (sessionProposal?.requestedPublicationType) {
+      setPublicationType(sessionProposal.requestedPublicationType);
+    }
+  }, [sessionProposal?.id, sessionProposal?.requestedPublicationType]);
 
   if (!user) return null;
   if (isLoading) {
@@ -101,13 +110,29 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
           </div>
         </div>
         {session.status === "OPEN" && isChair ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-end gap-2">
+            <label className="grid gap-1 text-[11px] font-semibold">
+              Approved cadence
+              <select
+                value={publicationType}
+                onChange={(event) =>
+                  setPublicationType(event.target.value as "WEEKLY" | "MONTHLY")
+                }
+                className="rounded border border-border bg-background px-2 py-1.5 text-xs font-normal"
+              >
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+              </select>
+            </label>
             <button
               onClick={async () => {
                 try {
                   await closeSessionMutation.mutateAsync({
                     sessionId: session.id,
-                    body: session.version ? { expectedVersion: session.version } : {},
+                    body: {
+                      ...(session.version ? { expectedVersion: session.version } : {}),
+                      publicationType,
+                    },
                   });
                   toast.success("Session closed.");
                 } catch (e) {

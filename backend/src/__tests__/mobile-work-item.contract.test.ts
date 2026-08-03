@@ -62,6 +62,7 @@ describe("mobile work item contract", () => {
       "SESSION_CLOSE",
       "SESSION_CANCEL",
       "SESSION_FINALIZE",
+      "TIE_RESOLVE",
       "AT_RISK_DECIDE",
     ]);
   });

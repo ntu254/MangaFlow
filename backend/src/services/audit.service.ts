@@ -87,7 +87,7 @@ export async function broadcastNotification(opts: {
     recipientIds = [opts.targetUserId];
   } else if (opts.audienceType === "ROLE" && opts.audienceRole) {
     const roleUpper = opts.audienceRole.toUpperCase();
-    const users = await UserModel.find({ role: roleUpper, active: true }).select("id").lean();
+    const users = await UserModel.find({ role: roleUpper as any, active: true }).select("id").lean();
     recipientIds = users.map((u: any) => String(u.id));
   } else if (opts.audienceType === "ALL") {
     const users = await UserModel.find({ active: true }).select("id").lean();

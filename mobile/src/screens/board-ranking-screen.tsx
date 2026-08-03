@@ -130,15 +130,21 @@ export function BoardRankingScreen({
             },
             {
               id: "risk",
-              title: selected.atRisk ? "Manual Board review required" : "No at-risk action",
+              title: selected.atRisk
+                ? selected.decisionStatus === "DECIDED"
+                  ? "Board decision recorded"
+                  : "Manual Board review required"
+                : "No at-risk action",
               subtitle: selected.atRisk
-                ? "Cancellation is never automatic. The Board Chair must confirm a backend action."
+                ? selected.decisionStatus === "DECIDED"
+                  ? `Decision: ${selected.decision ?? "recorded"}.`
+                  : "Cancellation is never automatic. The Board Chair must confirm a backend action."
                 : "This row is read-only on mobile.",
               tone: selected.atRisk ? "danger" : "success",
               icon: selected.atRisk ? "alert-triangle" : "check-circle",
             },
           ]} />
-          {selected.atRisk && onOpenAtRisk ? (
+          {selected.atRisk && selected.decisionStatus !== "DECIDED" && onOpenAtRisk ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Review at-risk decision for ${selected.seriesTitle}`}

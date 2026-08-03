@@ -117,7 +117,7 @@ export async function createUser(req: AuthedRequest, body: Record<string, unknow
   const user = await runWorkflowTransaction(async (session) => {
     await assertBoardCapacity(state, session);
     await clearPreviousDesignationHolders(state, userId, session);
-    const [createdUser] = await UserModel.create(
+    const [createdUser] = await (UserModel as any).create(
       [
         {
           id: userId,
@@ -133,7 +133,7 @@ export async function createUser(req: AuthedRequest, body: Record<string, unknow
       ],
       { session },
     );
-    return createdUser.toObject();
+    return (createdUser as any).toObject();
   });
   await audit(req, "user.create", "user", (user as any).id, {
     role: state.role,
@@ -371,7 +371,7 @@ export async function workflowSummary() {
     ChapterModel.countDocuments({ status: "REVISION_REQUIRED" }),
     StudioCommentModel.countDocuments({ status: { $ne: "RESOLVED" } }),
     SubmissionModel.countDocuments({
-      status: { $in: ["PENDING", "SUBMITTED", "MANGAKA_APPROVED"] },
+      status: { $in: ["PENDING", "REVISION_REQUESTED", "MANGAKA_APPROVED"] },
     }),
     RankingModel.countDocuments({ $or: [{ atRisk: true }, { status: "AT_RISK" }] }),
   ]);

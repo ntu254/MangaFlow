@@ -16,6 +16,7 @@ const rawEnv = z
     OUTBOX_INTERVAL_MS: z.coerce.number().int().positive().default(5000),
     OUTBOX_BATCH_SIZE: z.coerce.number().int().positive().max(250).default(25),
     OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().max(20).default(5),
+    PUBLICATION_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(10_000).default(20),
     R2_REGION: z.string().optional().default("auto"),

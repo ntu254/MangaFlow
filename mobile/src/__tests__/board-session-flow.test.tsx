@@ -111,7 +111,11 @@ describe("BoardSessionDetailScreen", () => {
     fireEvent.press(await screen.findByRole("button", { name: "Close voting" }))
     fireEvent.press(await screen.findByRole("button", { name: "Confirm close" }))
     await waitFor(() =>
-      expect(mocked.closeBoardSession).toHaveBeenCalledWith("vs-1", { expectedVersion: 3 }),
+      expect(mocked.closeBoardSession).toHaveBeenCalledWith("vs-1", {
+        expectedVersion: 3,
+        note: undefined,
+        publicationType: "MONTHLY",
+      }),
     )
   })
 

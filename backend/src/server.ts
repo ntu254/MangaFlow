@@ -7,6 +7,7 @@ import { ensureSeedDatabase } from "./seed.js";
 import { logger } from "./lib/logger.js";
 import { createOutboxRunner } from "./jobs/outbox-runner.js";
 import { deliverOutboxEvent } from "./services/outbox-delivery.service.js";
+import { createPublicationRunner } from "./jobs/publication-runner.js";
 
 async function start() {
   try {
@@ -28,14 +29,17 @@ async function start() {
     batchSize: env.OUTBOX_BATCH_SIZE,
     maxAttempts: env.OUTBOX_MAX_ATTEMPTS,
   });
+  const publicationRunner = createPublicationRunner(env.PUBLICATION_INTERVAL_MS);
   const server = app.listen(env.PORT, () => {
     outboxRunner.start();
+    publicationRunner.start();
     logger.info("server_started", { port: env.PORT, nodeEnv: env.NODE_ENV });
   });
 
   async function shutdown(signal: string) {
     logger.info("server_shutdown_started", { signal });
     outboxRunner.stop();
+    publicationRunner.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     await disconnectMongo();
   }

@@ -24,6 +24,7 @@ import {
 import { seedDatabase } from "../seed.js";
 import { processOutboxBatch } from "../services/outbox.service.js";
 import { startOutboxRunner } from "../services/outbox-runner.service.js";
+import { publishDuePublications } from "../services/publication.service.js";
 
 let mongo: MongoMemoryReplSet;
 
@@ -1873,6 +1874,53 @@ describe("P0 canonical task submission workflow", () => {
       .expect((res) => {
         expect(res.body.data.status).toBe("PUBLISHED");
       });
+  });
+
+  it("automatically publishes due scheduled publications", async () => {
+    const now = new Date();
+    await SeriesModel.create({
+      id: "series-p0-auto-publication",
+      title: "Automatic Publication",
+      authorId: "u-mangaka",
+      authorName: "Mangaka",
+      status: "ONGOING",
+      publicationType: "WEEKLY",
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ChapterModel.create({
+      id: "chapter-p0-auto-publication",
+      seriesId: "series-p0-auto-publication",
+      number: 1,
+      title: "Due chapter",
+      status: "READY_FOR_PUBLICATION",
+      pages: [],
+      history: [],
+      createdAt: now,
+      updatedAt: now,
+    });
+    await PublicationModel.create({
+      id: "pub-p0-auto-publication",
+      seriesId: "series-p0-auto-publication",
+      chapterId: "chapter-p0-auto-publication",
+      status: "SCHEDULED",
+      scheduledAt: new Date(now.getTime() - 60_000),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await expect(publishDuePublications(now)).resolves.toMatchObject({
+      published: expect.any(Number),
+      checked: expect.any(Number),
+    });
+    await expect(ChapterModel.findOne({ id: "chapter-p0-auto-publication" }).lean()).resolves.toMatchObject({
+      status: "PUBLISHED",
+      publishedById: "system",
+    });
+    await expect(PublicationModel.findOne({ id: "pub-p0-auto-publication" }).lean()).resolves.toMatchObject({
+      status: "PUBLISHED",
+      publishedById: "system",
+    });
   });
 
   it("rejects Tantou approval when the review snapshot is stale", async () => {

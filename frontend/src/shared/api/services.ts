@@ -160,6 +160,7 @@ export interface AtRiskDecisionRequest {
   rankingId: string;
   decision: string;
   note?: string;
+  publicationType?: "WEEKLY" | "MONTHLY";
   [key: string]: unknown;
 }
 

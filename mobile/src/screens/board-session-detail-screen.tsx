@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 import { WorkflowDetailLayout } from "@/components/workflow-detail-layout"
 import { WorkflowConfirmationSheet } from "@/components/workflow-confirmation-sheet"
@@ -32,6 +32,13 @@ export function BoardSessionDetailScreen({
   const [pendingTie, setPendingTie] = useState<"APPROVED" | "REJECTED" | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY")
+
+  useEffect(() => {
+    if (detail.data?.proposal?.requestedPublicationType === "WEEKLY" || detail.data?.proposal?.requestedPublicationType === "MONTHLY") {
+      setPublicationType(detail.data.proposal.requestedPublicationType)
+    }
+  }, [detail.data?.proposal?.requestedPublicationType])
 
   if (detail.isLoading && !detail.data) return <WorkflowState kind="loading" />;
   if (detail.error && !detail.data) {
@@ -93,6 +100,7 @@ export function BoardSessionDetailScreen({
         {
           expectedVersion: data.session.version as number,
           note: note || undefined,
+          publicationType,
         },
         {
           onError: handleMutationError,
@@ -267,6 +275,23 @@ export function BoardSessionDetailScreen({
             <Text style={styles.sectionLabel}>Chair actions</Text>
             {closeAction ? (
               <View>
+                <Text style={styles.reason}>Publication cadence for approval</Text>
+                <View style={styles.choices}>
+                  {(["WEEKLY", "MONTHLY"] as const).map((value) => (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Set ${value.toLowerCase()} cadence`}
+                      accessibilityState={{ selected: publicationType === value }}
+                      onPress={() => setPublicationType(value)}
+                      style={[styles.choice, publicationType === value && styles.choiceActive]}
+                    >
+                      <Text style={[styles.choiceText, publicationType === value && styles.choiceTextActive]}>
+                        {value === "WEEKLY" ? "Weekly" : "Monthly"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close voting"
@@ -505,11 +530,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  choiceActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   choiceText: {
     color: colors.primary,
     fontWeight: "800",
     fontSize: typography.body,
   },
+  choiceTextActive: { color: colors.primary },
   reason: { fontSize: typography.body, color: colors.textMuted },
   chairButton: {
     minHeight: 44,

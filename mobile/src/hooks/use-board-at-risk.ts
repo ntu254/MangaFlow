@@ -7,7 +7,12 @@ import { mobileInboxKeys } from "@/services/mobile-inbox-data-source"
 export function useBoardAtRisk(seriesId: string) {
   const queryClient = useQueryClient()
   const decide = useMutation({
-    mutationFn: (input: { rankingId: string; decision: AtRiskDecisionValue; note?: string }) =>
+    mutationFn: (input: {
+      rankingId: string;
+      decision: AtRiskDecisionValue;
+      note?: string;
+      publicationType?: "WEEKLY" | "MONTHLY";
+    }) =>
       decideAtRisk(seriesId, input),
     onSuccess: async () => {
       await Promise.all([

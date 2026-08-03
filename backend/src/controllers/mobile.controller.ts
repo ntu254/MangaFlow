@@ -1,4 +1,6 @@
 import { asyncRoute, ok, AppError } from "../lib/http.js";
+import { parseBody } from "../validators/common.js";
+import { z } from "zod";
 import {
   ProposalModel,
   ProposalVoteModel,
@@ -31,6 +33,24 @@ import {
 } from "../services/mobile-board-detail.service.js";
 import { recordAtRiskDecision } from "../services/at-risk-decision.service.js";
 import type { AuthedRequest } from "../types.js";
+
+const atRiskDecisionSchema = z
+  .object({
+    rankingId: z.string().min(1),
+    decision: z.enum(["CONTINUE", "WARNING", "CHANGE_FORMAT", "CANCEL"]),
+    note: z.string().optional(),
+    publicationType: z.enum(["WEEKLY", "MONTHLY"]).optional(),
+  })
+  .strict();
+
+const finalizeDecisionSchema = z
+  .object({
+    sessionId: z.string().min(1),
+    note: z.string().max(2000).optional(),
+    publicationType: z.enum(["WEEKLY", "MONTHLY"]).optional(),
+    expectedVersion: z.number().int().positive().optional(),
+  })
+  .strict();
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
   ok(res, await editorReviewQueue()),
@@ -116,27 +136,14 @@ export const castVote = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await applyProposalAction(req, String(req.params.seriesId), "VOTE", req.body)),
 );
 export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) => {
-  const sessionId = String(req.body?.sessionId ?? "");
-  if (!sessionId) {
-    throw new AppError(
-      400,
-      "sessionId is required to finalize a Board decision.",
-      "VALIDATION_ERROR",
-    );
-  }
-  ok(res, await closeVotingSession(req, sessionId, req.body?.note, req.body?.publicationType));
+  const body = parseBody(finalizeDecisionSchema, req);
+  ok(res, await closeVotingSession(req, body.sessionId, body.note, body.publicationType));
 });
 export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId ?? "").trim();
   if (!seriesId) {
     throw new AppError(400, "seriesId is required.", "VALIDATION_ERROR");
   }
-  ok(
-    res,
-    await recordAtRiskDecision(req, seriesId, {
-      rankingId: req.body?.rankingId,
-      decision: req.body?.decision,
-      note: req.body?.note,
-    }),
-  );
+  const body = parseBody(atRiskDecisionSchema, req);
+  ok(res, await recordAtRiskDecision(req, seriesId, body));
 });

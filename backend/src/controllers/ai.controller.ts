@@ -50,7 +50,7 @@ async function proxyAiFile(req: AuthedRequest, url: string, action: string) {
   }
 
   const normalized = sanitizeAiPayload(payload);
-  await AiProcessingModel.create({
+  await (AiProcessingModel as any).create({
     id: id("ai"),
     action,
     actorId: req.actor?.id,
@@ -140,7 +140,7 @@ async function createProcessingRecord(input: {
   upstreamStatus: number;
   metadata: unknown;
 }) {
-  const processing = await AiProcessingModel.create({
+  const processing = await (AiProcessingModel as any).create({
     id: id("ai"),
     action: input.action,
     actorId: input.req.actor?.id,

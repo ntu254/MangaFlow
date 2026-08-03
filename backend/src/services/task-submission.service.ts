@@ -3,6 +3,7 @@ import {
   ChapterModel,
   SeriesMemberModel,
   SeriesModel,
+  StudioRegionModel,
   StudioTaskModel,
   SubmissionModel,
   UserModel,
@@ -32,6 +33,19 @@ function ensureActor(req: AuthedRequest) {
 
 function isAssignedAssistant(actor: RequestActor, task: any) {
   return actor.role === "ASSISTANT" && task.assigneeId === actor.id;
+}
+
+async function assertTaskSeriesActive(task: any) {
+  const series = task.seriesId
+    ? await SeriesModel.findOne({ id: task.seriesId }).lean()
+    : task.chapterId
+      ? await ChapterModel.findOne({ id: task.chapterId }).lean().then((chapter: any) =>
+          chapter ? SeriesModel.findOne({ id: chapter.seriesId }).lean() : null,
+        )
+      : null;
+  if (series?.status === "ARCHIVED") {
+    throw new AppError(409, "Series is archived and its tasks are read-only.", "SERIES_ARCHIVED");
+  }
 }
 
 function isTaskAssignmentAccepted(task: any) {
@@ -308,6 +322,7 @@ export async function applyTaskAction(
   const doc = await StudioTaskModel.findOne({ id: taskId });
   if (!doc) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   const task = doc.toObject() as any;
+  await assertTaskSeriesActive(task);
   const normalizedAction = action.toUpperCase();
   assertTaskActionAllowed(actor, task, action);
   if (actor.role !== "ASSISTANT") await assertCanMutateTask(actor, task);
@@ -444,6 +459,26 @@ export async function applyTaskAction(
     );
     if (updatedTask.modifiedCount !== 1) {
       throw new AppError(409, "Task changed while applying action.", "CONFLICT");
+    }
+    if (normalizedAction === "CANCEL") {
+      await StudioRegionModel.updateMany(
+        {
+          $or: [
+            { taskId },
+            { activeTaskId: taskId },
+            { lockedByTaskId: taskId },
+          ],
+        } as any,
+        {
+          $set: {
+            activeTaskId: null,
+            lockedByTaskId: null,
+            lockStatus: "UNLOCKED",
+            updatedAt: nowIso(),
+          },
+        },
+        { session },
+      );
     }
     if (normalizedAction === "REASSIGN") {
       await audit(req, "TASK_ASSIGNED", "task", taskId, {
@@ -671,7 +706,7 @@ export async function submitTaskWork(
       ...currentSubmissionMatch(currentSubmissionId),
     };
     const claim = await StudioTaskModel.updateOne(
-      taskMatch,
+      taskMatch as any,
       { $set: { updatedAt: now } },
       { session },
     );
@@ -686,7 +721,7 @@ export async function submitTaskWork(
       { $set: { status: "SUPERSEDED", updatedAt: now } },
       { session },
     );
-    const [submission] = await SubmissionModel.create(
+    const [submission] = await (SubmissionModel as any).create(
       [
         {
           id: id("sub"),
@@ -720,7 +755,7 @@ export async function submitTaskWork(
       { session },
     );
     const taskUpdate = await StudioTaskModel.updateOne(
-      taskMatch,
+      taskMatch as any,
       {
         $set: {
           status: "SUBMITTED",

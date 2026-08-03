@@ -197,21 +197,26 @@ function sessionFinalizeWorkItem(
 }
 
 function atRiskWorkItem(_actor: RequestActor, ranking: any): MobileWorkItem {
+  const decided = Boolean(ranking.metadata?.atRiskDecision?.decision);
   return {
     id: `AT_RISK:${ranking.id}`,
     kind: "AT_RISK",
     entityType: "RANKING",
     entityId: String(ranking.id),
-    status: String(ranking.status ?? "AT_RISK"),
+    status: decided ? "DECIDED" : String(ranking.status ?? "AT_RISK"),
     version: null,
     title: String(ranking.seriesTitle ?? ranking.seriesId ?? ranking.id),
     subtitle: `Rank ${ranking.rank ?? "?"} · score ${ranking.finalScore ?? ranking.readerScore ?? "?"}`,
-    priority: { level: "URGENT", reason: "At-risk series needs a Board decision", dueAt: null },
+    priority: {
+      level: decided ? "NORMAL" : "URGENT",
+      reason: decided ? "At-risk series decision recorded" : "At-risk series needs a Board decision",
+      dueAt: null,
+    },
     blockers: [],
     actions: [
       action({
         action: "AT_RISK_DECIDE",
-        enabled: true,
+        enabled: !decided,
         requiresConfirmation: true,
         requiresReason: true,
       }),
@@ -458,6 +463,7 @@ export async function getBoardMobileInbox(actor: RequestActor): Promise<MobileIn
   if (chair) {
     const atRisk = await RankingModel.find({
       $or: [{ atRisk: true }, { status: "AT_RISK" }],
+      "metadata.atRiskDecision": { $exists: false },
     })
       .sort({ updatedAt: -1 })
       .lean();

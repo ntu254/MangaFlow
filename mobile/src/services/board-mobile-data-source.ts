@@ -263,7 +263,12 @@ export type AtRiskDecisionValue = AtRiskDecision;
 
 export function decideAtRisk(
   seriesId: string,
-  input: { rankingId: string; decision: AtRiskDecisionValue; note?: string },
+  input: {
+    rankingId: string;
+    decision: AtRiskDecisionValue;
+    note?: string;
+    publicationType?: "WEEKLY" | "MONTHLY";
+  },
 ): Promise<void> {
   return mobileApi.request<void>(
     `/board/series/${seriesId}/at-risk-decisions`,
@@ -284,6 +289,8 @@ export interface BoardRankingItem {
   readerScore: number | null;
   status: string | null;
   atRisk: boolean;
+  decision?: string | null;
+  decisionStatus?: "PENDING" | "DECIDED";
 }
 
 const boardRankingResponseSchema = z.object({
@@ -299,6 +306,8 @@ const boardRankingResponseSchema = z.object({
       readerScore: z.number().nullable(),
       status: z.string().nullable(),
       atRisk: z.boolean(),
+      decision: z.string().nullable().optional(),
+      decisionStatus: z.enum(["PENDING", "DECIDED"]).optional(),
     }),
   ),
 });

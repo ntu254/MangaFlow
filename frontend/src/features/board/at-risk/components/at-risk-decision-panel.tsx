@@ -20,6 +20,7 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
     isAtRiskDecisionSupported(review.decision) ? review.decision : undefined,
   );
   const [reason, setReason] = useState(review.decisionReason ?? "");
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
   useEffect(() => {
     setDecision(isAtRiskDecisionSupported(review.decision) ? review.decision : undefined);
     setReason(review.decisionReason ?? "");
@@ -110,6 +111,22 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
         <StateBlock title="Expected effect" description={getAtRiskDecisionEffect(decision)} />
       )}
 
+      {decision === "CHANGE_FORMAT" ? (
+        <label className="grid gap-1 text-xs font-semibold">
+          New publication cadence
+          <select
+            value={publicationType}
+            onChange={(event) =>
+              setPublicationType(event.target.value as "WEEKLY" | "MONTHLY")
+            }
+            className="rounded border border-[var(--admin-border)] bg-[var(--admin-surface)] px-2 py-2 text-xs font-normal"
+          >
+            <option value="WEEKLY">Weekly</option>
+            <option value="MONTHLY">Monthly</option>
+          </select>
+        </label>
+      ) : null}
+
       <div>
         <label className="mb-1 block text-[11px] font-semibold text-[var(--admin-muted)]">
           Reason {reasonRequired && <span className="text-rose-500">*</span>}
@@ -136,6 +153,7 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
                 rankingId: review.rankingId,
                 decision,
                 note: reason.trim() || undefined,
+                ...(decision === "CHANGE_FORMAT" ? { publicationType } : {}),
               },
             },
             {

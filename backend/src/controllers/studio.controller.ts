@@ -577,6 +577,13 @@ export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
   );
 });
 export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "regionId")) {
+    throw new AppError(
+      400,
+      "Region-level tasks are retired. Create one page task instead.",
+      "REGION_TASKS_RETIRED",
+    );
+  }
   const body = parseBody(createStudioTaskSchema, req);
   await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
@@ -607,7 +614,7 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const rateSnapshot = Number(rate.amount);
   const estimatedAmount = quantity * rateSnapshot;
   const taskId = id("task");
-  const activePageTask = await StudioTaskModel.findOne({
+  const activePageTask = await (StudioTaskModel as any).findOne({
     pageId: body.pageId,
     $or: [
       { pageTaskActive: true },
@@ -640,7 +647,7 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   };
 
   try {
-    const task = await StudioTaskModel.create({
+    const task = await (StudioTaskModel as any).create({
       id: taskId,
       ...taskBody,
       createdAt: nowIso(),
@@ -671,6 +678,13 @@ export const patchTasks = asyncRoute(async (req: AuthedRequest, res) => {
   );
 });
 export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "regionId")) {
+    throw new AppError(
+      400,
+      "Region links are managed by the page task workflow.",
+      "PROTECTED_FIELD",
+    );
+  }
   const body = parseBody(patchStudioTaskSchema, req);
   const existing = await StudioTaskModel.findOne({
     id: String(req.params.id),

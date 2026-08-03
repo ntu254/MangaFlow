@@ -371,7 +371,7 @@ export async function activeTantouEditorId(series: any) {
 }
 
 export async function materialScopeFilter(actor: RequestActor, mode: "read" | "mutate" = "read") {
-  const proposalIds = (await ProposalModel.find(visibleProposalFilter(actor, mode)).select({ id: 1 }).lean()).map(
+  const proposalIds = (await ProposalModel.find(visibleProposalFilter(actor, mode) as any).select({ id: 1 }).lean()).map(
     (item: any) => item.id,
   );
   const { seriesIds, chapterIds, pageIds } = await scopedProductionIds(actor, mode);
@@ -526,7 +526,24 @@ export async function assertCanMutateTask(actor: RequestActor, task: any) {
           chapter ? SeriesModel.findOne({ id: chapter.seriesId }).lean() : null,
         )
       : null;
-  if (series && (await canMutateSeries(actor, series))) return;
+  if (series) {
+    if (String(series.status) === "ARCHIVED") {
+      throw new AppError(409, "Series is archived and cannot be modified.", "SERIES_ARCHIVED");
+    }
+    if (series.deletedAt) {
+      throw new AppError(409, "Series is deleted and cannot be modified.", "SERIES_DELETED");
+    }
+    if (!(await canMutateSeries(actor, series))) {
+      const code =
+        actor.role === "MANGAKA"
+          ? "MANGAKA_OWNER_REQUIRED"
+          : actor.role === "EDITOR"
+            ? "TANTOU_ASSIGNMENT_REQUIRED"
+            : "FORBIDDEN";
+      throw new AppError(403, "You do not have permission to change this task.", code);
+    }
+    return;
+  }
   const code =
     actor.role === "MANGAKA"
       ? "MANGAKA_OWNER_REQUIRED"

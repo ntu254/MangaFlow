@@ -99,7 +99,7 @@ cd backend && npm test       # Vitest, backend unit/integration suite
 Backend runtime boundaries are layered: `routes/` composes endpoints, `controllers/`
 handles HTTP parsing, `services/` owns workflow and delivery logic, `jobs/` owns
 scheduled work, and `db/` owns Mongoose models. The production outbox runner is
-configured with `OUTBOX_INTERVAL_MS`, `OUTBOX_BATCH_SIZE`, and
+configured with `OUTBOX_INTERVAL_MS`, `OUTBOX_BATCH_SIZE`, `PUBLICATION_INTERVAL_MS`, and
 `OUTBOX_MAX_ATTEMPTS`. Before deploying the canonical workflow schema, migrate
 legacy comment fields/statuses and region lock data with:
 

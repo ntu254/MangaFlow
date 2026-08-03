@@ -54,6 +54,14 @@ const sessionNoteSchema = z
   })
   .strict();
 
+const closeVotingSessionSchema = z
+  .object({
+    note: z.string().max(2000).optional(),
+    publicationType: z.enum(["WEEKLY", "MONTHLY"]).optional(),
+    expectedVersion: z.number().int().positive().optional(),
+  })
+  .strict();
+
 const resolveTieSchema = z
   .object({
     decision: z.enum(["APPROVED", "REJECTED"]),
@@ -324,12 +332,10 @@ export const patchVotingSession = asyncRoute(async (req: AuthedRequest, res) => 
   ok(res, session);
 });
 
-export const closeSession = asyncRoute(async (req: AuthedRequest, res) =>
-  ok(
-    res,
-    await closeVotingSession(req, String(req.params.id), req.body?.note, req.body?.publicationType),
-  ),
-);
+export const closeSession = asyncRoute(async (req: AuthedRequest, res) => {
+  const body = parseBody(closeVotingSessionSchema, req);
+  ok(res, await closeVotingSession(req, String(req.params.id), body.note, body.publicationType));
+});
 export const resolveTie = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(resolveTieSchema, req);
   ok(

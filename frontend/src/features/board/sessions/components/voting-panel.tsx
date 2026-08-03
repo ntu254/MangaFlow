@@ -34,6 +34,9 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
   const finalize = useFinalizeDecisionMutation();
   const [decision, setDecision] = useState<PanelDecision | undefined>();
   const [comment, setComment] = useState("");
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">(
+    proposal.requestedPublicationType ?? "MONTHLY",
+  );
 
   if (!user) return null;
 
@@ -87,7 +90,10 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
       {
         seriesId: proposal.id,
         sessionId,
-        body: { expectedVersion: expectedVersion ?? undefined },
+        body: {
+          expectedVersion: expectedVersion ?? undefined,
+          publicationType,
+        },
       },
       {
         onSuccess: () => {
@@ -189,6 +195,19 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
                   Backend-owned result: quorum, no quorum, re-vote, approval, and rejection.
                 </span>
               </div>
+              <label className="grid gap-1 text-xs font-semibold">
+                Publication cadence for the approved series
+                <select
+                  value={publicationType}
+                  onChange={(event) =>
+                    setPublicationType(event.target.value as "WEEKLY" | "MONTHLY")
+                  }
+                  className="rounded border border-border bg-background px-2 py-2 text-xs font-normal"
+                >
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                </select>
+              </label>
               <button
                 type="button"
                 disabled={!canFinalize || finalize.isPending}

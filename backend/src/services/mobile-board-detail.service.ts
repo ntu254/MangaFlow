@@ -169,7 +169,14 @@ export async function getBoardSessionDetail(actor: RequestActor, sessionId: stri
       tiePolicy: normalizeTiePolicy(session.tiePolicy),
       tieResolution: session.tieResolution ?? "PENDING",
     },
-    proposal: proposal ? { id: proposal.id, title: proposal.title, status: proposal.status } : null,
+    proposal: proposal
+      ? {
+          id: proposal.id,
+          title: proposal.title,
+          status: proposal.status,
+          requestedPublicationType: proposal.requestedPublicationType ?? null,
+        }
+      : null,
     tally: {
       approve: context.tally.approve,
       reject: context.tally.reject,
@@ -188,7 +195,7 @@ export async function getBoardRankings(actor: RequestActor) {
   if (actor.role !== "BOARD") {
     throw new AppError(403, "Board permission is required.", "FORBIDDEN");
   }
-  const rankings = await RankingModel.find({}).sort({ rank: 1 }).lean();
+  const rankings = await RankingModel.find({}).sort({ period: -1, rank: 1, finalScore: -1 }).lean();
   return {
     generatedAt: new Date().toISOString(),
     items: rankings.map((ranking: any) => ({
@@ -201,6 +208,8 @@ export async function getBoardRankings(actor: RequestActor) {
       readerScore: ranking.readerScore ?? null,
       status: ranking.status ?? null,
       atRisk: ranking.atRisk === true || ranking.status === "AT_RISK",
+      decision: ranking.metadata?.atRiskDecision?.decision ?? null,
+      decisionStatus: ranking.metadata?.atRiskDecision?.decision ? "DECIDED" : "PENDING",
     })),
   };
 }

@@ -126,7 +126,15 @@ export function useAtRiskDecisionMutation() {
   return useMutation<
     Record<string, unknown>,
     Error,
-    { seriesId: string; body: { rankingId: string; decision: string; note?: string } }
+    {
+      seriesId: string;
+      body: {
+        rankingId: string;
+        decision: string;
+        note?: string;
+        publicationType?: "WEEKLY" | "MONTHLY";
+      };
+    }
   >({
     mutationFn: ({ seriesId, body }) =>
       apiRequest<Record<string, unknown>>(`/board/series/${seriesId}/at-risk-decisions`, {

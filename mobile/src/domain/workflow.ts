@@ -105,7 +105,7 @@ export type RankingStatus =
   "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "WARNING" | "AT_RISK";
 
 export type AtRiskDecision =
-  "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL";
+  "CONTINUE" | "WARNING" | "CHANGE_FORMAT" | "CANCEL";
 
 export type EditorProposalAction =
   "start-review" | "request-revision" | "reject" | "forward-to-board";

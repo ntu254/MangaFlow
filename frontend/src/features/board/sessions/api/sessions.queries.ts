@@ -82,7 +82,14 @@ export function useCloseVotingSessionMutation() {
   return useMutation<
     VotingSession,
     Error,
-    { sessionId: string; body?: { expectedVersion?: number; note?: string } }
+    {
+      sessionId: string;
+      body?: {
+        expectedVersion?: number;
+        note?: string;
+        publicationType?: "WEEKLY" | "MONTHLY";
+      };
+    }
   >({
     mutationFn: ({ sessionId, body }) =>
       apiRequest<VotingSession>(`/voting-sessions/${sessionId}/close`, {
