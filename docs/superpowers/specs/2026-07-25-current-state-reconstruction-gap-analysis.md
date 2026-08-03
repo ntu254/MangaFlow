@@ -31,7 +31,7 @@ None of these are architectural; all are small, localized fixes. Overall the pro
 
 **Purpose [Intent + C].** Coordinate the end-to-end lifecycle of a serialized manga inside an editorial department: pitch, approve, produce, review, publish, and monitor performance. Confirmed by the entity model and workflow services; `PRODUCT.md`/`BUSINESS_FLOW.md` describe the same intent.
 
-**Users [C]** (`types.ts:3`): `MANGAKA`, `ASSISTANT`, `EDITOR` (Tantou), `BOARD` (with `isChair`, `isEditorInChief`), and `ADMIN`.
+**Users [C]** (`types.ts:3`): `MANGAKA`, `ASSISTANT`, `EDITOR` (Tantou), `BOARD` (with `isChair`), and `ADMIN`.
 
 **Current scope [C]:** proposal intake + editor screening + board voting/approval; auto series creation; chapter/page/region/task production; assistant submission + Mangaka review; consolidated editor chapter review; publication scheduling/publish; reader-vote import + at-risk flagging; assistant earnings + admin payroll; notifications, audit, file access; AI bubble detect/whiten.
 
@@ -56,7 +56,7 @@ Auth is JWT bearer; all `/api/*` except auth + file-token is behind `requireAuth
 | **Mangaka** | Create/submit/edit/withdraw/resubmit proposals; run studio production (create regions/tasks — MANGAKA-only, `studio.routes.ts:36,43`); review assistant submissions (`submission.routes.ts:26-28`); send chapter to editor review (`studio.routes.ts:29`). | Own proposals only (`canReadProposal`, `authorization.service.ts:40`); own series (`canReadSeries:79`); blocked from archiving/unpublishing public series (`series.controller.ts:327`). |
 | **Assistant** | Start/submit/reopen assigned tasks (`submission.routes.ts:21-22`); comment; view own earnings (`admin.routes.ts:62`). | Assigned tasks only (`assertTaskReadable`, `workflow.service.ts:127`); production scope = assigned tasks/membership (`productionScopeFilter:168`). |
 | **Editor (Tantou)** | Claim/screen proposals → request-changes/forward/reject (`workflow.service.ts:493-518`); review consolidated chapters (`series.routes.ts:80`); annotate (comments, `studio.routes.ts:56`); schedule/publish. | Non-DRAFT proposals (`authorization.service.ts:41`); chapter actions require being the **assigned** series editor (`assertAssignedSeriesEditor:121`); cannot review own authored chapter (`workflow.service.ts:1760`). |
-| **Board** | Vote in open sessions (`mobile.routes.ts:29`); import rankings (BOARD/ADMIN); at-risk decisions; **Chair** opens/closes/cancels sessions (`voting.routes.ts:22-25`); **EIC** casts weighted tie-break (weight 2, `workflow.service.ts:55`). | Board-visible proposal statuses only (`authorization.service.ts:15`); all series read; **no** production scope (`:170`). |
+| **Board** | Vote in open sessions (`mobile.routes.ts:29`); import rankings (BOARD/ADMIN); at-risk decisions; **Chair** opens/closes/cancels sessions (`voting.routes.ts:22-25`). | Board-visible proposal statuses only (`authorization.service.ts:15`); all series read; **no** production scope (`:170`). |
 | **Admin** | Users, payroll, materials, demo reset, audited overrides — all `requireRole("ADMIN")` (`admin.routes.ts`). | Full read/mutate; but **route guards exclude ADMIN** from many production mutation routes (`requireExactRole` without ADMIN) — see §10. |
 
 ## 4. Implemented modules, features, APIs, frontend–backend flows
@@ -75,7 +75,7 @@ Auth is JWT bearer; all `/api/*` except auth + file-token is behind `requireAuth
 
 Summarized here; the exhaustive per-action tables are in the earlier reconstruction doc §4/§6.
 
-1. **Proposal → board approval.** `DRAFT →(SUBMIT)→ PENDING_EDITOR →(CLAIM, Editor)→ EDITOR_REVIEWING →(FORWARD)→ PENDING_BOARD`. Chair opens a `VotingSession` (`voting.controller.ts:144`), which freezes a `ProposalVersion` and sets proposal `→ BOARD_REVIEW`. Board members `VOTE`; quorum = `configuredBoardQuorum()` (floor ≥ 2, `workflow.service.ts:44`), `BOARD_TOTAL=5`; EIC tie-break weight 2. Chair `closeVotingSession` (`:2737`) → `APPROVED` + `BoardDecision` + auto **Series** creation (`ensureProductionSeriesForApprovedProposal:202`). Direct forcing removed (`410`, `assertProposalAction:528`).
+1. **Proposal → board approval.** `DRAFT →(SUBMIT)→ PENDING_EDITOR →(CLAIM, Editor)→ EDITOR_REVIEWING →(FORWARD)→ PENDING_BOARD`. Chair opens a `VotingSession` (`voting.controller.ts:144`), which freezes a `ProposalVersion` and sets proposal `→ BOARD_REVIEW`. Board members `VOTE`; quorum = `configuredBoardQuorum()` and ties create a fresh re-vote. Chair `closeVotingSession` → `APPROVED` + `BoardDecision` + auto **Series** creation. Direct forcing removed.
 2. **Series & chapter production.** Series `PRE_PRODUCTION →(START_PRODUCTION, requires APPROVED proposal)→ ONGOING` (`series.controller.ts:314`). Chapters `PLANNED →(START_DRAFT)→ IN_PRODUCTION`.
 3. **Page & region tasks.** Pages embedded in Chapter; Mangaka creates regions/tasks (MANGAKA-only). `START` locks the region.
 4. **Assistant submission → Mangaka review.** `POST /tasks/:id/submit` (idempotency key + `expectedCurrentSubmissionId`, cross-entity scope guard `:564`) → `Submission PENDING`, task `SUBMITTED`. Mangaka `approve|reject|request-revision` (`submissionDecision:2959`, self-approval blocked); approve accrues an `Earning`. **Editor no longer reviews individual submissions** (deprecated `410`).
@@ -95,8 +95,8 @@ Summarized here; the exhaustive per-action tables are in the earlier reconstruct
 | Proposal | DRAFT, PENDING_EDITOR, EDITOR_REVIEWING, CHANGES_REQUESTED, PENDING_BOARD, BOARD_REVIEW, APPROVED, REJECTED, WITHDRAWN, ARCHIVED (+ legacy SUBMITTED/RESUBMITTED/READY_FOR_BOARD/BOARD_VOTING/TIE_BREAK) | **No enum** (`models.ts:329`) |
 | VotingSession | OPEN, NO_QUORUM, TIE_BREAK_REQUIRED, FINALIZED, CANCELLED (schema default DRAFT) | **No enum** (`:1127`) |
 | Series | PLANNING, PRE_PRODUCTION, ONGOING, HIATUS, ARCHIVED (CANCELLED/COMPLETED referenced, unreachable) | **No enum** (`:454`) |
-| Chapter | PLANNED, IN_PRODUCTION, TANTOU_REVIEW, REVISION_REQUIRED, READY_FOR_PUBLICATION, PUBLISHED, ARCHIVED | **Enum** (`:561`) ✓ |
-| Page | PENDING_UPLOAD, (UPLOADED, REGIONING, IN_PRODUCTION, MANGAKA_REVIEW unused), REVISION_REQUIRED, TANTOU_REVIEW, FINALIZED | No enum (embedded) |
+| Chapter | PLANNED, IN_PRODUCTION, TANTOU_REVIEW, REVISION_REQUIRED, READY_FOR_PUBLICATION, PUBLISHED | **Enum** (`:561`) ✓; follows parent Series lifecycle |
+| Page | PENDING_UPLOAD, UPLOADED, FINALIZED; Chapter owns all Tantou review/revision state | No enum (embedded) |
 | Task | TODO, IN_PROGRESS, SUBMITTED, REVISION_REQUESTED, MANGAKA_APPROVED, REJECTED, CANCELLED (+ legacy) | **Enum** (`:759`) ✓ |
 | Submission | PENDING, MANGAKA_APPROVED, REVISION_REQUESTED, SUPERSEDED, REJECTED (+ legacy) | **Enum** (`:943`) ✓ |
 | Publication | DRAFT, SCHEDULED, PUBLISHED, CANCELLED | **Enum** (`:619`) ✓ |

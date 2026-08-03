@@ -11,8 +11,8 @@ Make Board voting immediate and deterministic: no schedule selection, and a deci
 - Resolve a closed session as follows:
   - at least three `APPROVE` votes: `APPROVED`;
   - at least three `REJECT` votes: `REJECTED`;
-  - all five members voted and approve/reject counts are equal: `TIE_BREAK_REQUIRED` for the Editor-in-chief;
-  - every other outcome, including `2 APPROVE`, `1 REJECT`, `2 ABSTAIN`: `NO_QUORUM`, then return the proposal to `PENDING_BOARD` for a new session.
+  - all five members voted and approve/reject counts are equal: close the round and open a fresh Board re-vote;
+  - a split before all eligible voters have voted remains pending; after quorum and a strict majority, the Chair may close early.
 
 ## Constraints
 
@@ -24,5 +24,5 @@ Make Board voting immediate and deterministic: no schedule selection, and a deci
 
 - A voting-session form has no time inputs.
 - Three approvals and three rejections produce the matching final result.
-- `2 APPROVE`, `1 REJECT`, `2 ABSTAIN` produces `NO_QUORUM` and returns the proposal to `PENDING_BOARD`.
-- A `2 APPROVE`, `2 REJECT`, `1 ABSTAIN` result requires an Editor-in-chief tie-break.
+- `2 APPROVE`, `1 REJECT` is an approved majority once the session quorum is three submitted votes.
+- An equal `2 APPROVE`, `2 REJECT` result closes the full four-seat round and opens a fresh Board re-vote.

@@ -49,8 +49,8 @@ Member removal is a lifecycle operation, not a simple membership delete:
 
 - `resolve` and `reopen` are assigned Tantou actions and are exposed as Editor-only routes because the assigned Tantou is the Editor assigned to the Series.
 - `address` is an owning Mangaka action for Tantou blocking comments.
-- Chapter editorial actions remain assigned-Editor/EIC guarded by the domain service. Route descriptions must not imply that Assistant can mutate Chapter lifecycle.
-- VotingSession tie-break remains restricted to an Editor with `isEditorInChief=true`.
+- Chapter editorial actions remain guarded by the active Tantou Editor membership. Route descriptions must not imply that Assistant can mutate Chapter lifecycle.
+- VotingSession ties automatically open a fresh Board re-vote; no special Editor vote exists.
 
 ### Postman contract
 
@@ -84,7 +84,7 @@ Assignment-removal checks are implemented as focused workload queries/services s
 ## Error handling
 
 - `401` remains unauthenticated.
-- `403` is used for role, ownership, assignment, and EIC authorization failures.
+- `403` is used for role, ownership, and assignment authorization failures.
 - `409 ACTIVE_ASSIGNMENTS_EXIST` and `409 EDITOR_WORKLOAD_EXISTS` identify blocking work and recovery identifiers.
 - `409` is also used for immutable approved-version conflicts and invalid state transitions where the resource exists but cannot move from its current state.
 - Deprecated bypass endpoints continue to return their documented `410` code.

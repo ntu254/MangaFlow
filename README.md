@@ -34,7 +34,7 @@ are retained only as historical references.
 | `ASSISTANT` | Executes assigned panel/region work, submits it, tracks earnings |
 | `EDITOR` | Reviews proposals and chapters, gates publication readiness |
 | `BOARD` | Votes on proposals, governs cadence and rankings |
-| `ADMIN` | User lifecycle, Chair/EIC designation, RateTable, managed notifications, read-only operational dashboards |
+| `ADMIN` | User lifecycle, Board Chair designation, RateTable, managed notifications, read-only operational dashboards |
 
 Full permission matrix: see
 [`docs/business-flows/INDEX.md`](docs/business-flows/INDEX.md#roles).
@@ -103,14 +103,14 @@ legacy comment fields/statuses and region lock data with:
 cd backend
 npm run migrate:canonical-comments -- --apply
 npm run migrate:region-lock-status -- --apply
-npm run migrate:material-status -- --dry-run
-npm run migrate:material-status -- --apply
+npm run migrate:material-attachments
+npm run migrate:material-attachments:apply
 ```
 
-`migrate:material-status` is dry-run by default and promotes legacy
-`metadata.status` to top-level `status`; review invalid records before using
-`--apply`. Do not run `--apply` against production without the deployment backup
-and rollback procedure.
+`migrate:material-attachments` is dry-run by default. It reports archived legacy
+attachments that will be removed and retained standalone/Proposal attachments whose
+status fields will be stripped. Do not run the `:apply` command against production without the
+deployment backup and rollback procedure.
 
 ## Documentation
 

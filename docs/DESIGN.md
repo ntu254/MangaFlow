@@ -23,7 +23,7 @@ production, assistant task work, editorial (Tantou) review, and publication, plu
 supporting rankings and earnings tracking. Users are staff in five roles (below);
 there is no public sign-up — accounts are provisioned by an Administrator
 **[Implemented]**. Admin is limited to user account lifecycle, assignment of the
-Board Chair/EIC flags, managed notifications, read-only dashboards, RateTable
+Board Chair designation, managed notifications, read-only dashboards, RateTable
 configuration, and dev-only demo data; Admin does not operate editorial, production,
 Board, Material, Ranking, payroll or workflow functions **[Implemented — FLOW-GAP-04 /
 CT-11 Resolved]**. The boundary is deliberate: **editorial governance** (proposals,
@@ -129,16 +129,15 @@ Token storage location is a known gap (§13).
 
 1. **Authentication** — valid access JWT (`middleware/auth.ts`).
 2. **Role / capability** — role in the allowed set; special flags `isChair` (Board),
-   `isEditorInChief` (Editor).
 3. **Resource ownership / assignment / relationship** — the record-level check.
 
 **[Canonical] examples:** Mangaka **and** owns the Series; Editor **and** is the
 assigned Tantou; Assistant **and** is assigned the Task; Board **and** in the active
-VotingSession; Board Chair (`isChair`); Editor-in-Chief (`isEditorInChief`).
+VotingSession; Board Chair (`isChair`). Tantou is a normal active Editor membership on a Series.
 
 **Canonical Admin boundary [Implemented — FLOW-GAP-04 / CT-11 Resolved]:** Admin may
 list, create, update, deactivate and conditionally delete users. User update may
-assign `isChair` only to an active BOARD user and `isEditorInChief` only to an
+assign `isChair` only to an active BOARD user and
 active EDITOR user. At most one active holder of each designation exists. Admin
 assigns the designation but cannot execute its workflow actions. Admin also
 retains managed notifications (`/admin/notifications*`), read-only dashboards
@@ -146,10 +145,10 @@ retains managed notifications (`/admin/notifications*`), read-only dashboards
 (`/admin/rates*`, `MANAGE_RATE_TABLE`), and demo data reset/clear (mounted only
 when `NODE_ENV !== "production"`, with a handler-level environment guard as a
 backstop). Admin no longer has: materials, payroll, or workflow-override routes
-(deleted); rankings import (BOARD only); tantou assign/remove (EIC only — not
+(deleted); rankings import (BOARD only); tantou assign/remove (owning Mangaka only — not
 general BOARD); series lifecycle actions (owning Mangaka/assigned Tantou per the
-§3.1 matrix in the CT-11 design spec); proposal `RELEASE_CLAIM`/`REASSIGN_CLAIM`
-(EIC only) and `ARCHIVE` (owning Mangaka or EIC, requires a non-empty `reason`);
+§3.1 matrix in the CT-11 design spec); proposal `RELEASE_CLAIM` (claiming Editor
+only) and `ARCHIVE` (owning Mangaka, requires a non-empty `reason`);
 file presign-download (resource owner/member/reviewer scope only).
 Reusable guard expectations: `assertCanRaiseBlockingComment`,
 `assertCanResolveTantouBlockingComment`, `assertCanMutateTask`, etc.
@@ -208,8 +207,8 @@ Cross-flow principles: the owning Mangaka retains Chapter ownership and canonica
 initiates `START_DRAFT`, while Assistants work through Task → Submission; Board tallies
 remain provisional until Chair close; the active Board roster contains three to five
 seats with a fixed decision threshold of three and is snapshotted per session; finalized
-Board approval is the only Series-creation path. Material readiness distinguishes
-confirmed status/file/scope checks from unresolved version-integrity verification.
+Board approval is the only Series-creation path. Supporting Materials are optional
+attachments and do not participate in Chapter readiness or editorial transitions.
 
 ## 10. API conventions
 
@@ -302,8 +301,8 @@ flows plus the focused `tests/business-flow-contracts.spec.ts` contract suite
 (repo-wide: no `src/**/*.test.*`); component behavior is currently verified through
 browser contracts and E2E. **Business invariants that must stay tested:** voting
 finalize/cancel, submission approval → earning, chapter readiness gate, region
-one-active-task, blocking-comment gate, canonical comment actions, and top-level
-Material status mapping.
+one-active-task, blocking-comment gate, canonical comment actions, and the
+status-free Supporting Material attachment contract.
 
 ## 15. Deployment and environments
 
@@ -329,20 +328,17 @@ items feed Phase 3
 (`CODE-TODO.md`) only where direct code evidence supports them. Token-in-`localStorage`
 is an **[Accepted Risk]** (§13), not an actionable TODO.
 
-**[Implemented] Material `APPROVED` reachability.** The Material model enumerates
-`APPROVED` and the chapter-review readiness guard accepts it
-(`chapter-review.service.ts`). The guarded `PATCH /api/materials/:id` endpoint
-is the canonical writer: only the assigned Tantou may move `ACTIVE`/`IN_REVIEW` to
-`APPROVED`; the owner or assigned Tantou may activate or archive. Backend
-authorization tests and the material-status migration planner cover the transition.
-See
-[07-material-management.md](business-flows/07-material-management.md).
+**[Implemented] Supporting Material simplification.** Material is a versioned,
+status-free attachment. Only the owning Mangaka mutates it; Editor/Board access is
+read-only and Chapter readiness is independent of attachment state. The legacy-data
+migration removes archived records and strips status fields from retained records.
+See [07-material-management.md](business-flows/07-material-management.md).
 
 ## 17. Architecture decisions
 
 | Decision | Reason | Trade-off | Status | Related |
 |----------|--------|-----------|--------|---------|
-| Admin is limited to account lifecycle and Chair/EIC designation | Keeps account administration separate from editorial, production and governance | Admin materials/payroll/workflow-override routes deleted; rankings/tantou/series/proposal/file routes restricted (FLOW-GAP-04 — Resolved) | Implemented | [INDEX](business-flows/INDEX.md) |
+| Admin is limited to account lifecycle and Board Chair designation | Keeps account administration separate from editorial, production and governance | Admin workflow routes remain restricted | Implemented | [INDEX](business-flows/INDEX.md) |
 | Finalized Board approval auto-creates at most one production Series; public manual creation is removed | Preserves one governance gate and one source of truth | Legacy `PLANNING` records require migration handling | Implemented | [02](business-flows/02-proposal-lifecycle.md), [03](business-flows/03-series-lifecycle.md) |
 | Assistant works only through Task → Submission | Clear ownership; Mangaka owns the Chapter | Extra indirection for small edits | Implemented | [05](business-flows/05-assistant-submission.md) |
 | Tantou (assigned Editor) owns editorial review | Accountable single reviewer per Series | Assignment must remain enforced on every mutation | Implemented | [12](business-flows/12-comments.md) |

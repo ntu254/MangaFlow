@@ -28,7 +28,7 @@ Opening a Board session snapshots five Board IDs and a backend quorum on the ses
 - **Evidence:** `eligibleVoterIds` is persisted as a five-ID session snapshot in `backend/src/controllers/voting.controller.ts:221-232`. The vote path loads the session and permits any actor with role `BOARD` while the session is open, but never checks `actor.id` against that snapshot (`backend/src/services/workflow.service.ts:905-934`).
 - **Observed behavior:** An authenticated Board-role user outside the snapshot can cast a vote for that session.
 - **User impact:** A vote can be accepted from someone who was not eligible when the session opened, undermining the frozen voter set and recorded decision.
-- **Smallest recommendation:** Before constructing the vote, reject an open-session Board actor whose ID is absent from `session.eligibleVoterIds`; preserve the existing Editor-in-Chief tie-break path.
+- **Smallest recommendation:** Before constructing the vote, reject an open-session Board actor whose ID is absent from `session.eligibleVoterIds`; preserve the Board re-vote path.
 
 ### High — a stale session conflict can leave a source-of-truth vote behind — Fix now
 

@@ -12,7 +12,7 @@ application has implemented the open FLOW-GAP items.
 - UTF-8 replacement characters: none found.
 - Markdown fenced-code blocks: balanced in all files.
 - Relative Markdown file links: valid within the export.
-- Admin scope: limited to user-account lifecycle and Chair/EIC designation assignment.
+- Admin scope: limited to user-account lifecycle and Board Chair designation assignment.
 - Chapter ownership: owning Mangaka; canonical `START_DRAFT` actor is the owning
   Mangaka; Assistant work is Task → Submission only.
 - Board governance: provisional tally separated from Chair finalization.

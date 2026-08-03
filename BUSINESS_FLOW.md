@@ -40,23 +40,23 @@
 MangaFlow is a production-and-publishing management system for a manga studio.
 It replaces email/spreadsheet coordination between a creator (Mangaka), the
 drawing assistants who execute panel-level work, an editorial layer (Tantou
-Editor / Editor-in-Chief), and an editorial Board that governs which series get
+Editor), and an editorial Board that governs which series get
 greenlit — with one system of record for proposals, chapters, page-level tasks,
 reviews, publication scheduling, and per-task earnings.
 
-| Surface | Stack | Serves |
-| --- | --- | --- |
-| **Web app** | TanStack Start · React 19 · TanStack Router/Query · Zustand | All five roles; file-based routes under `/app/*`, plus a public reader at `/read/*` |
-| **API** | Express · TypeScript · Mongoose/MongoDB | REST API, JWT auth, RBAC, the workflow state machine, audit log, outbox dispatcher |
-| **AI service** | FastAPI · YOLO11 segmentation · OpenCV | Speech-bubble detection and "whitening" (text removal) for scan/draft pages, proxied from the API |
-| **Mobile app** | Expo · React Native · expo-router | A focused Board + Editor shell — review, vote, finalize, tie-break, at-risk decisions on the go |
+| Surface        | Stack                                                       | Serves                                                                                            |
+| -------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Web app**    | TanStack Start · React 19 · TanStack Router/Query · Zustand | All five roles; file-based routes under `/app/*`, plus a public reader at `/read/*`               |
+| **API**        | Express · TypeScript · Mongoose/MongoDB                     | REST API, JWT auth, RBAC, the workflow state machine, audit log, outbox dispatcher                |
+| **AI service** | FastAPI · YOLO11 segmentation · OpenCV                      | Speech-bubble detection and "whitening" (text removal) for scan/draft pages, proxied from the API |
+| **Mobile app** | Expo · React Native · expo-router                           | A focused Board + Editor shell — review, vote, finalize, tie-break, at-risk decisions on the go   |
 
-| Metric | Value |
-| --- | --- |
-| Roles | 5 |
-| Core domain entities (Mongo collections) | 21 |
-| Workflow engine | ~2,940 lines (`workflow.service.ts`) |
-| Route domains | 14 |
+| Metric                                   | Value                                |
+| ---------------------------------------- | ------------------------------------ |
+| Roles                                    | 5                                    |
+| Core domain entities (Mongo collections) | 21                                   |
+| Workflow engine                          | ~2,940 lines (`workflow.service.ts`) |
+| Route domains                            | 14                                   |
 
 ## 2. Roles &amp; access model
 
@@ -66,20 +66,20 @@ record, is the assigned Tantou editor, is an active series member, or is the
 assigned assistant for a task. This keeps the flow realistic without turning the
 project into a large enterprise permissions system.
 
-| Role | Charter | Primary navigation |
-| --- | --- | --- |
-| `ADMIN` | Full system access: user management, materials, earnings tracking, settings | Dashboard, Users, Material Library, Earnings Tracking, Settings, Notifications |
-| `MANGAKA` | Creator: drafts proposals, leads production, assigns and reviews studio work | My Series, Task Board, Review Queue, Publications, Rankings |
-| `ASSISTANT` | Executes assigned panel/region work, submits it, tracks earnings | My Tasks, Submissions, Earnings, Notifications |
-| `EDITOR` | Tantou Editor: reviews proposals and chapters, gates publication readiness | Review Queue, Series Monitor, Publications, Board Briefs |
-| `BOARD` | Governance: votes on proposals, owns ranking &amp; at-risk analytics | Board Queue, Voting Sessions, Rankings, At-risk Reviews, Decisions |
+| Role        | Charter                                                                      | Primary navigation                                                             |
+| ----------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `ADMIN`     | Full system access: user management, materials, earnings tracking, settings  | Dashboard, Users, Material Library, Earnings Tracking, Settings, Notifications |
+| `MANGAKA`   | Creator: drafts proposals, leads production, assigns and reviews studio work | My Series, Task Board, Review Queue, Publications, Rankings                    |
+| `ASSISTANT` | Executes assigned panel/region work, submits it, tracks earnings             | My Tasks, Submissions, Earnings, Notifications                                 |
+| `EDITOR`    | Tantou Editor: reviews proposals and chapters, gates publication readiness   | Review Queue, Series Monitor, Publications, Board Briefs                       |
+| `BOARD`     | Governance: votes on proposals, owns ranking &amp; at-risk analytics         | Board Queue, Voting Sessions, Rankings, At-risk Reviews, Decisions             |
 
 **Seat-level flags:**
 
-| Flag | Held by | Unlocks |
-| --- | --- | --- |
-| `isChair` | One BOARD seat | Open / patch / close / cancel a Voting Session; finalize at-risk decisions |
-| `isEditorInChief` | One EDITOR seat | Reassign or release another editor's proposal claim; cast the deciding **tie-break** vote (weight = 2) when a Board vote ties |
+| Flag              | Held by         | Unlocks                                                                                                                       |
+| ----------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `isChair`         | One BOARD seat  | Open / patch / close / cancel a Voting Session; finalize at-risk decisions                                                    |
+| Tantou assignment | One active Editor per Series | Reviews that Series; no special editor authority |
 
 > **Enforcement.** Every protected route runs `requireAuth` (JWT → active
 > session → user), then the route role gate, then shared record checks from
@@ -136,7 +136,7 @@ flowchart TD
   B -->|"forward"| C["Board opens a Voting Session"]
   C --> D["Board members vote"]
   D --> E{"Quorum &amp; result"}
-  E -->|"tie"| T["Editor-in-Chief casts tie-break (x2 weight)"]
+  E -->|"all voters tied"| T["Chair closes round; system opens fresh Board re-vote"]
   T --> E
   E -->|"rejected"| RJ2["Rejected"]
   E -->|"approved"| F["Series created - PRE_PRODUCTION"]
@@ -162,28 +162,28 @@ can bounce it back for changes) and then the Board (collective vote,
 quorum-gated). Only a **Board approval** produces a production Series — there
 is no other path to Series creation.
 
-| From | Action | Role | To | Side effects |
-| --- | --- | --- | --- | --- |
-| `DRAFT` | `SUBMIT` | author (Mangaka) | `PENDING_EDITOR` | Notifies the editor pool; audit entry |
-| `PENDING_EDITOR` | `CLAIM` | Editor | `EDITOR_REVIEWING` | Atomic claim (race-safe); notifies author |
-| `EDITOR_REVIEWING` | `REQUEST_CHANGES` | claim owner / EIC | `CHANGES_REQUESTED` | Appends a change checklist; `revisionRound`++; notifies author |
-| `CHANGES_REQUESTED` | `RESUBMIT` | author | `EDITOR_REVIEWING` | Blocked unless every checklist item is resolved |
-| `EDITOR_REVIEWING` | `FORWARD` | claim owner / EIC | `PENDING_BOARD` | Notifies all 5 Board seats |
-| `EDITOR_REVIEWING` | `REJECT` | claim owner / EIC | `REJECTED` | Requires a reason; notifies author |
-| `PENDING_BOARD` | chair opens session | Board chair | `BOARD_REVIEW` | Creates a `VotingSession` (`OPEN`) |
-| `BOARD_REVIEW` | `VOTE` | Board / EIC (tie-break) | — | Writes canonical `ProposalVote`; EIC vote weight = 2 |
-| `BOARD_REVIEW` | chair closes session | Board chair | `APPROVED` / `REJECTED` | See outcome table below |
-| any pre-Board status | `WITHDRAW` | author | `WITHDRAWN` | — |
-| any non-approved | `ARCHIVE` | Admin | `ARCHIVED` | Requires a reason |
+| From                 | Action               | Role                    | To                      | Side effects                                                   |
+| -------------------- | -------------------- | ----------------------- | ----------------------- | -------------------------------------------------------------- |
+| `DRAFT`              | `SUBMIT`             | author (Mangaka)        | `PENDING_EDITOR`        | Notifies the editor pool; audit entry                          |
+| `PENDING_EDITOR`     | `CLAIM`              | Editor                  | `EDITOR_REVIEWING`      | Atomic claim (race-safe); notifies author                      |
+| `EDITOR_REVIEWING`   | `REQUEST_CHANGES`    | claim owner             | `CHANGES_REQUESTED`     | Appends a change checklist; `revisionRound`++; notifies author |
+| `CHANGES_REQUESTED`  | `RESUBMIT`           | author                  | `EDITOR_REVIEWING`      | Blocked unless every checklist item is resolved                |
+| `EDITOR_REVIEWING`   | `FORWARD`            | claim owner             | `PENDING_BOARD`         | Notifies all active Board seats                               |
+| `EDITOR_REVIEWING`   | `REJECT`             | claim owner             | `REJECTED`              | Requires a reason; notifies author                             |
+| `PENDING_BOARD`      | chair opens session  | Board chair             | `BOARD_REVIEW`          | Creates a `VotingSession` (`OPEN`)                             |
+| `BOARD_REVIEW`       | `VOTE`               | Board member            | —                       | One immutable `APPROVE` or `REJECT` vote per seat              |
+| `BOARD_REVIEW`       | chair closes session | Board chair             | `APPROVED` / `REJECTED` | See outcome table below                                        |
+| any pre-Board status | `WITHDRAW`           | author                  | `WITHDRAWN`             | —                                                              |
+| any non-approved     | `ARCHIVE`            | Admin                   | `ARCHIVED`              | Requires a reason                                              |
 
 **Voting session outcomes:**
 
-| Outcome | Trigger | Result |
-| --- | --- | --- |
-| `NO_QUORUM` | Fewer votes than `BOARD_QUORUM` (env, default 3, floor 2, ceiling 5) | Proposal reverts to `PENDING_BOARD` |
-| `TIE_BREAK_REQUIRED` | Approve/reject tally ties | Only the Editor-in-Chief's vote (weight 2) can resolve it |
-| `FINALIZED` → `APPROVED` | Quorum met, approve majority | Proposal → `APPROVED`; `BoardDecision` snapshot written; **Series created** (`PRE_PRODUCTION`) from the frozen proposal version |
-| `FINALIZED` → `REJECTED` | Quorum met, reject majority | Proposal → `REJECTED` |
+| Outcome                  | Trigger                                                              | Result                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `NO_QUORUM`              | Fewer votes than `BOARD_QUORUM` (env, default 3, floor 2, ceiling 5) | Proposal reverts to `PENDING_BOARD`                                                                                             |
+| `TIED`                    | All eligible voters voted and approve/reject are equal               | Close round and open a fresh Board re-vote                                                                                      |
+| `FINALIZED` → `APPROVED` | Quorum met, approve majority                                         | Proposal → `APPROVED`; `BoardDecision` snapshot written; **Series created** (`PRE_PRODUCTION`) from the frozen proposal version |
+| `FINALIZED` → `REJECTED` | Quorum met, reject majority                                          | Proposal → `REJECTED`                                                                                                           |
 
 > **Edit lock.** A proposal cannot be edited once it is in `BOARD_REVIEW`, has
 > an active voting session, or any non-terminal voting session exists for it —
@@ -237,17 +237,16 @@ Manual Series promotion and automatic Board promotion share the same origin
 link: `sourceProposalId`. That field is unique, so one approved Proposal cannot
 produce two production Series even if two requests race.
 
-| Action | From | To | Gate | Notes |
-| --- | --- | --- | --- | --- |
-| `START_DRAFT` | `PLANNED` | `IN_PRODUCTION` | owner | — |
-| `SUBMIT_REVIEW` | `PLANNED` / `IN_PRODUCTION` | `TANTOU_REVIEW` | owner | Full pre-check below; freezes a review snapshot; opens a `ChapterReview` |
-| `REQUEST_REVISION` / `REJECT` | `TANTOU_REVIEW` / `EDITOR_REVIEW` | `REVISION_REQUIRED` | Editor, not the series author | 409 if the snapshot is stale (pages changed since freeze); opens a blocking comment |
-| `RESUBMIT` | `REVISION_REQUIRED` | `TANTOU_REVIEW` | owner | — |
-| `EDITOR_APPROVE` | `TANTOU_REVIEW` / `EDITOR_REVIEW` | `READY_FOR_PUBLICATION` | Editor, not the author | Pages → `FINALIZED`; `ChapterReview` → `APPROVED` |
-| `SCHEDULE` | `READY_FOR_PUBLICATION` | `READY_FOR_PUBLICATION` | Editor | Requires a future date; creates/updates a `Publication` as `SCHEDULED` |
-| `PUBLISH` | `READY_FOR_PUBLICATION` | `PUBLISHED` | Editor | Requires a scheduled Publication whose `scheduledAt` has passed; notifies the author |
-| `POSTPONE` | `READY_FOR_PUBLICATION` | `READY_FOR_PUBLICATION` | Editor | Cancels the scheduled Publication row |
-| `ARCHIVE` | Any non-archived status | `ARCHIVED` | Assigned Tantou Editor | Persists archive metadata; repeated archive is rejected |
+| Action                        | From                              | To                      | Gate                          | Notes                                                                                |
+| ----------------------------- | --------------------------------- | ----------------------- | ----------------------------- | ------------------------------------------------------------------------------------ |
+| `START_DRAFT`                 | `PLANNED`                         | `IN_PRODUCTION`         | owner                         | —                                                                                    |
+| `SUBMIT_REVIEW`               | `PLANNED` / `IN_PRODUCTION`       | `TANTOU_REVIEW`         | owner                         | Full pre-check below; freezes a review snapshot; opens a `ChapterReview`             |
+| `REQUEST_REVISION` / `REJECT` | `TANTOU_REVIEW` / `EDITOR_REVIEW` | `REVISION_REQUIRED`     | Editor, not the series author | 409 if the snapshot is stale (pages changed since freeze); opens a blocking comment  |
+| `RESUBMIT`                    | `REVISION_REQUIRED`               | `TANTOU_REVIEW`         | owner                         | —                                                                                    |
+| `EDITOR_APPROVE`              | `TANTOU_REVIEW` / `EDITOR_REVIEW` | `READY_FOR_PUBLICATION` | Editor, not the author        | Pages → `FINALIZED`; `ChapterReview` → `APPROVED`                                    |
+| `SCHEDULE`                    | `READY_FOR_PUBLICATION`           | `READY_FOR_PUBLICATION` | Editor                        | Requires a future date; creates/updates a `Publication` as `SCHEDULED`               |
+| `PUBLISH`                     | `READY_FOR_PUBLICATION`           | `PUBLISHED`             | Editor                        | Requires a scheduled Publication whose `scheduledAt` has passed; notifies the author |
+| `POSTPONE`                    | `READY_FOR_PUBLICATION`           | `READY_FOR_PUBLICATION` | Editor                        | Cancels the scheduled Publication row                                                |
 
 **"Submit for review" pre-conditions** — a chapter cannot reach
 `TANTOU_REVIEW` unless all of the following hold, which is what makes the
@@ -255,8 +254,7 @@ frozen snapshot trustworthy:
 
 - The series is `ONGOING` and traces back to an `APPROVED` proposal.
 - Every page has an uploaded asset.
-- Every referenced review material is `ACTIVE`/`APPROVED`.
-- Every *required* Studio Task is `MANGAKA_APPROVED`, each with a matching
+- Every _required_ Studio Task is `MANGAKA_APPROVED`, each with a matching
   approved current Submission.
 - No unresolved blocking `StudioComment` remains.
 
@@ -286,14 +284,14 @@ If the region is already assigned or locked, the create request returns
 `REGION_HAS_ACTIVE_TASK`; if task creation fails, the region claim is rolled
 back.
 
-| Step | Actor | Action | Result |
-| --- | --- | --- | --- |
-| 1 | Assistant | `START` | Task → `IN_PROGRESS`; region locked to this task |
-| 2 | Assistant | `POST /tasks/:id/submit` | New `Submission` version created; supersedes any prior pending one; Task → `SUBMITTED` |
-| 3 | Mangaka | approve | Task → `MANGAKA_APPROVED`; region unlocked; **Earning** row created (`EARNED`) |
-| 3b | Mangaka | request-revision | Task → `REVISION_REQUESTED` |
-| 3c | Mangaka | reject | Task → `REJECTED`; region unlocked |
-| 4 | Assistant | `REOPEN` | From a revision request back to `IN_PROGRESS` |
+| Step | Actor     | Action                   | Result                                                                                 |
+| ---- | --------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| 1    | Assistant | `START`                  | Task → `IN_PROGRESS`; region locked to this task                                       |
+| 2    | Assistant | `POST /tasks/:id/submit` | New `Submission` version created; supersedes any prior pending one; Task → `SUBMITTED` |
+| 3    | Mangaka   | approve                  | Task → `MANGAKA_APPROVED`; region unlocked; **Earning** row created (`EARNED`)         |
+| 3b   | Mangaka   | request-revision         | Task → `REVISION_REQUESTED`                                                            |
+| 3c   | Mangaka   | reject                   | Task → `REJECTED`; region unlocked                                                     |
+| 4    | Assistant | `REOPEN`                 | From a revision request back to `IN_PROGRESS`                                          |
 
 > **Self-review is blocked.** An assistant can never approve or reject their
 > own submission — the reviewer must be a different account holding the
@@ -323,7 +321,7 @@ stateDiagram-v2
 
 ## 8. Flow D — Editorial review &amp; publication
 
-The Editor reviews the *frozen snapshot* produced when the Mangaka submitted
+The Editor reviews the _frozen snapshot_ produced when the Mangaka submitted
 for review — never a live, possibly-still-changing chapter. If any page
 changed after the freeze, the snapshot is stale and the Editor's decision is
 blocked until a fresh one is produced.
@@ -359,7 +357,7 @@ assistant's submission — there is no separate "log my hours" step.
 > `RATE_CONFIGURATION_REQUIRED` rather than creating a zero-priced task. The
 > admin payroll actions `confirm` /
 > `mark-paid` / `void` all return HTTP 410 — the payment lifecycle was
-> deliberately disabled; Earnings today are *tracking-only* records, not a live
+> deliberately disabled; Earnings today are _tracking-only_ records, not a live
 > payout pipeline. The active runtime record is `Earning`; `EarningItem` is
 > retained only as a legacy/seed model and is not written by production code.
 
@@ -445,7 +443,6 @@ erDiagram
     string email
     string role
     bool isChair
-    bool isEditorInChief
   }
   PROPOSAL {
     string id PK
@@ -524,77 +521,77 @@ erDiagram
 
 ## 12. API reference
 
-Every route below sits behind `requireAuth` except where marked *public*.
+Every route below sits behind `requireAuth` except where marked _public_.
 Roles are the route-level gate. For project records, the API also checks simple
 ownership, assignment, or membership rules before returning or changing data.
 
 **Auth &amp; files**
 
-| Method | Path | Roles | Purpose |
-| --- | --- | --- | --- |
-| POST | `/auth/login` | public | Issue access + refresh token |
-| POST | `/auth/refresh` | public | Rotate refresh session (old one revoked) |
-| GET | `/auth/me` | any authed | Current user |
-| POST | `/auth/logout` | any authed | Revoke session |
-| PUT | `/files/local-upload/:token` | signed token | Raw file upload via a token the API pre-issued |
-| GET | `/files/display/:token` | signed token | Signed display URL |
+| Method | Path                         | Roles        | Purpose                                        |
+| ------ | ---------------------------- | ------------ | ---------------------------------------------- |
+| POST   | `/auth/login`                | public       | Issue access + refresh token                   |
+| POST   | `/auth/refresh`              | public       | Rotate refresh session (old one revoked)       |
+| GET    | `/auth/me`                   | any authed   | Current user                                   |
+| POST   | `/auth/logout`               | any authed   | Revoke session                                 |
+| PUT    | `/files/local-upload/:token` | signed token | Raw file upload via a token the API pre-issued |
+| GET    | `/files/display/:token`      | signed token | Signed display URL                             |
 
 **Proposal &amp; voting**
 
-| Method | Path | Roles | Purpose |
-| --- | --- | --- | --- |
-| GET | `/proposals`, `/proposals/:id` | any authed + ownership/visibility | List / read; drafts are owner-only |
-| POST | `/proposals` | Mangaka, Editor | Create draft |
-| PATCH | `/proposals/:id` | any authed + ownership/assignment | Edit (ownership/assigned editor + edit-lock enforced in service) |
-| POST | `/proposals/:id/actions/:action` | Mangaka, Editor, Board | SUBMIT / CLAIM / REQUEST_CHANGES / FORWARD / REJECT / VOTE / WITHDRAW / ARCHIVE … |
-| DELETE | `/proposals/:id` | Mangaka, Editor | Delete |
-| GET | `/voting-sessions`, `/voting-sessions/:id` | Board, Editor | List / read sessions + decision history |
-| POST | `/voting-sessions` | Board chair | Open a session |
-| POST | `/voting-sessions/:id/close`, `/cancel` | Board chair | Finalize or cancel |
-| POST | `/voting-sessions/:id/tie-break` | Editor-in-Chief | Cast the deciding vote |
+| Method | Path                                       | Roles                             | Purpose                                                                           |
+| ------ | ------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------- |
+| GET    | `/proposals`, `/proposals/:id`             | any authed + ownership/visibility | List / read; drafts are owner-only                                                |
+| POST   | `/proposals`                               | Mangaka, Editor                   | Create draft                                                                      |
+| PATCH  | `/proposals/:id`                           | any authed + ownership/assignment | Edit (ownership/assigned editor + edit-lock enforced in service)                  |
+| POST   | `/proposals/:id/actions/:action`           | Mangaka, Editor, Board            | SUBMIT / CLAIM / REQUEST_CHANGES / FORWARD / REJECT / VOTE / WITHDRAW / ARCHIVE … |
+| DELETE | `/proposals/:id`                           | Mangaka, Editor                   | Delete                                                                            |
+| GET    | `/voting-sessions`, `/voting-sessions/:id` | Board, Editor                     | List / read sessions + decision history                                           |
+| POST   | `/voting-sessions`                         | Board chair                       | Open a session                                                                    |
+| POST   | `/voting-sessions/:id/close`, `/cancel`    | Board chair                       | Finalize or cancel                                                                |
+| POST   | `/voting-sessions/:id/tie-break`           | Nobody (retired)                  | Retired compatibility route; new ties use a fresh Board re-vote                  |
 
 **Series, chapters &amp; files**
 
-| Method | Path | Roles | Purpose |
-| --- | --- | --- | --- |
-| GET | `/series`, `/series/:id`, `/series/:id/chapters` | any authed + ownership/membership | List / read scoped to owner, assigned editor, active member, or Board/Admin |
-| POST / PATCH | `/series`, `/series/:id` | Editor, Mangaka + ownership/assignment | Create from approved Proposal / edit metadata; cannot set Tantou or assistants |
-| POST | `/series/:id/actions/:action` | Admin, Editor, Mangaka + ownership/assignment | Lifecycle actions (activate, archive, delete…) |
-| * | `/series/:seriesId/members…` | Editor, Mangaka + ownership/assignment | Staff assistants through membership records |
-| GET / PATCH | `/chapters`, `/chapters/:id` | Editor, Mangaka, Assistant, Admin + ownership/membership | List / read / edit scoped by series ownership, Tantou, or membership |
-| POST | `/chapters/:id/actions/:action` | Editor, Mangaka, Assistant + ownership/membership | See Flow B table; editorial decisions require assigned Tantou |
-| GET | `/chapters/:id/pages`, `/readiness`, `/reviews` | role gate + ownership/membership | Page list, publish-readiness check, review history |
-| POST | `/files/presign-upload`, `/display-url` | Editor, Mangaka, Assistant | Get a signed R2 URL |
+| Method       | Path                                             | Roles                                                    | Purpose                                                                        |
+| ------------ | ------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| GET          | `/series`, `/series/:id`, `/series/:id/chapters` | any authed + ownership/membership                        | List / read scoped to owner, assigned editor, active member, or Board/Admin    |
+| POST / PATCH | `/series`, `/series/:id`                         | Editor, Mangaka + ownership/assignment                   | Create from approved Proposal / edit metadata; cannot set Tantou or assistants |
+| POST         | `/series/:id/actions/:action`                    | Admin, Editor, Mangaka + ownership/assignment            | Lifecycle actions (activate, archive, delete…)                                 |
+| *            | `/series/:seriesId/members…`                     | Editor, Mangaka + ownership/assignment                   | Staff assistants through membership records                                    |
+| GET / PATCH  | `/chapters`, `/chapters/:id`                     | Editor, Mangaka, Assistant, Admin + ownership/membership | List / read / edit scoped by series ownership, Tantou, or membership           |
+| POST         | `/chapters/:id/actions/:action`                  | Editor, Mangaka, Assistant + ownership/membership        | See Flow B table; editorial decisions require assigned Tantou                  |
+| GET          | `/chapters/:id/pages`, `/readiness`, `/reviews`  | role gate + ownership/membership                         | Page list, publish-readiness check, review history                             |
+| POST         | `/files/presign-upload`, `/display-url`          | Editor, Mangaka, Assistant                               | Get a signed R2 URL                                                            |
 
 **Studio production &amp; submissions**
 
-| Method | Path | Roles | Purpose |
-| --- | --- | --- | --- |
-| POST | `/studio/chapters/:id/send-editor-review` | Mangaka | Freeze snapshot, open ChapterReview |
-| * (mutations) | `/studio/regions…` | Mangaka + ownership | Define / edit panel regions only inside owned production scope |
-| POST / PATCH | `/studio/tasks` | Mangaka + ownership | Create / edit tasks only inside owned production scope |
-| POST | `/studio/tasks/:id/actions/:action` | Editor, Mangaka, Assistant + assignment/ownership | START / CANCEL / BLOCK / REASSIGN (review actions moved to Submission, see below) |
-| * | `/studio/comments…` | Editor, Mangaka, Assistant + target visibility | Blocking / non-blocking discussion threads |
-| GET | `/submissions`, `/submissions/:id`, `/tasks/:id/submissions` | any authed + assignment/ownership | List / read scoped to assigned assistant, owner, Tantou, or Admin |
-| POST | `/tasks/:id/submit` | Assistant | Idempotent submit (requires `Idempotency-Key`) |
-| POST | `/tasks/:id/reopen` | Assistant | Reopen after a revision request |
-| GET | `/submissions/review-queue` | Editor | Editor's queue view |
-| POST | `/submissions/:id/approve`, `/reject`, `/request-revision` | Mangaka + task ownership | Review decision (self-review and cross-owner review blocked) |
+| Method        | Path                                                         | Roles                                          | Purpose                                                                                                                |
+| ------------- | ------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| POST          | `/studio/chapters/:id/send-editor-review`                    | Mangaka                                        | Freeze snapshot, open ChapterReview                                                                                    |
+| * (mutations) | `/studio/regions…`                                           | Mangaka + ownership                            | Define / edit panel regions only inside owned production scope                                                         |
+| POST / PATCH  | `/studio/tasks`                                              | Mangaka + ownership                            | Create / edit tasks only inside owned production scope                                                                 |
+| POST          | `/studio/tasks/:id/actions/:action`                          | Mangaka + assigned Assistant                   | ACCEPT / REJECT / START / CANCEL / REOPEN / REASSIGN (review actions moved to Submission, see below) |
+| *             | `/studio/comments…`                                          | Editor, Mangaka, Assistant + target visibility | Blocking / non-blocking discussion threads                                                                             |
+| GET           | `/submissions`, `/submissions/:id`, `/tasks/:id/submissions` | any authed + assignment/ownership              | List / read scoped to assigned assistant, owner, Tantou, or Admin                                                      |
+| POST          | `/tasks/:id/submit`                                          | Assistant                                      | Idempotent submit (requires `Idempotency-Key`)                                                                         |
+| POST          | `/tasks/:id/reopen`                                          | Assistant                                      | Reopen after a revision request                                                                                        |
+| GET           | `/submissions/review-queue`                                  | Editor                                         | Editor's queue view                                                                                                    |
+| POST          | `/submissions/:id/approve`, `/reject`, `/request-revision`   | Mangaka + task ownership                       | Review decision (self-review and cross-owner review blocked)                                                           |
 
 **Admin, materials, tantou, notifications, mobile &amp; AI**
 
-| Method | Path | Roles | Purpose |
-| --- | --- | --- | --- |
-| * | `/materials…` | any authed read; Editor/Mangaka write + target ownership | Reference material library scoped by proposal/series/chapter/page target, versioned |
-| GET/POST | `/admin/materials`, `/admin/materials/:id/replace`, `/archive`, `/restore` | Admin | Admin material library: upload, replace version, archive, restore |
-| * | `/admin/users`, `/notifications`, `/workflow-summary`, `/storage-summary` | Admin | User management, broadcast notices, system health |
-| POST | `/admin/payroll/confirm`, `/mark-paid`, `/void` | Admin | **410 — disabled**, payroll lifecycle intentionally off |
-| GET | `/assistant/earnings` | Assistant | Own earnings |
-| POST / DELETE | `/tantou/series/:id/editor` | Board, Admin | Assign / remove a Tantou editor from a series; generic Series patch cannot do this |
-| GET / PATCH | `/notifications…` | any authed | Read, mark read/archived |
-| POST | `/rankings/import` | Board, Admin | Bulk ranking import (CSV) |
-| * | `/editor/*`, `/board/*` | Editor, Board + record visibility | Mobile aliases: review queue, cast vote, finalize, tie-break, at-risk decisions |
-| POST | `/ai/bubble/detect`, `/whiten`, `/process` | Editor, Mangaka | Proxy to the YOLO11 bubble-detection service (≤15MB upload) |
+| Method        | Path                                                                       | Roles                                                    | Purpose                                                                             |
+| ------------- | -------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| *             | `/materials…`                                                              | any authed read; Editor/Mangaka write + target ownership | Reference material library scoped by proposal/series/chapter/page target, versioned |
+| GET/POST      | `/admin/materials`, `/admin/materials/:id/replace`, `/archive`, `/restore` | Admin                                                    | Admin material library: upload, replace version, archive, restore                   |
+| *             | `/admin/users`, `/notifications`, `/workflow-summary`, `/storage-summary`  | Admin                                                    | User management, broadcast notices, system health                                   |
+| POST          | `/admin/payroll/confirm`, `/mark-paid`, `/void`                            | Admin                                                    | **410 — disabled**, payroll lifecycle intentionally off                             |
+| GET           | `/assistant/earnings`                                                      | Assistant                                                | Own earnings                                                                        |
+| POST / DELETE | `/tantou/series/:id/editor`                                                | Board, Admin                                             | Assign / remove a Tantou editor from a series; generic Series patch cannot do this  |
+| GET / POST    | `/notifications…`                                                          | any authed                                               | Read notifications and mark them read                                               |
+| POST          | `/rankings/import`                                                         | Board, Admin                                             | Bulk ranking import (CSV)                                                           |
+| *             | `/editor/*`, `/board/*`                                                    | Editor, Board + record visibility                        | Mobile aliases: review queue, cast vote, finalize, tie-break, at-risk decisions     |
+| POST          | `/ai/bubble/detect`, `/whiten`, `/process`                                 | Editor, Mangaka                                          | Proxy to the YOLO11 bubble-detection service (≤15MB upload)                         |
 
 ## 13. Business rules &amp; invariants
 
@@ -643,8 +640,8 @@ ownership, assignment, or membership rules before returning or changing data.
 
 - **Quorum** is env-configurable (`BOARD_QUORUM`), default 3, floor 2, ceiling
   `BOARD_TOTAL`=5.
-- **Tie-break** resolves only through the Editor-in-Chief, whose vote carries
-  weight 2.
+- **Tie-break** is not an active action. A complete equal split is recorded as
+  `TIED`, then the system opens a fresh Board re-vote with the same snapshot.
 - Only one open Voting Session may exist per proposal at a time (partial
   unique index).
 - Board-approved cadence is copied from Voting Session close into the approved
@@ -687,29 +684,29 @@ SHA-256 hashes and rotated on every use — no refresh token is ever reused.
 
 ## 15. Status legend
 
-Several enums carry values the service still *reads* for backward
-compatibility but no longer *writes*. Treat these as historical, not current
+Several enums carry values the service still _reads_ for backward
+compatibility but no longer _writes_. Treat these as historical, not current
 behavior.
 
-| Entity | Active values still written | Legacy — read-only |
-| --- | --- | --- |
-| Proposal | `DRAFT, PENDING_EDITOR, EDITOR_REVIEWING, CHANGES_REQUESTED, PENDING_BOARD, BOARD_REVIEW, APPROVED, REJECTED, WITHDRAWN, ARCHIVED` | `SUBMITTED, RESUBMITTED, READY_FOR_BOARD, BOARD_VOTING, TIE_BREAK` |
-| Chapter | `PLANNED, IN_PRODUCTION, TANTOU_REVIEW, REVISION_REQUIRED, READY_FOR_PUBLICATION, PUBLISHED, ARCHIVED` | `DRAFTING, ASSISTANT_WORKING, MANGAKA_REVIEW, EDITOR_REVIEW, REVISION, EDITOR_APPROVED, SCHEDULED (moved to Publication), IN_REVIEW, APPROVED` |
-| StudioTask | `TODO, IN_PROGRESS, SUBMITTED, REVISION_REQUESTED, MANGAKA_APPROVED, REJECTED, CANCELLED` | `MANGAKA_REVIEWING, MANGAKA_REVISION_REQUESTED, EDITOR_REVIEWING, EDITOR_REVISION_REQUESTED, EDITOR_APPROVED, OPEN, COMPLETED` |
-| Submission | `PENDING, MANGAKA_APPROVED, REVISION_REQUESTED, SUPERSEDED, REJECTED` | `MANGAKA_REVISION_REQUESTED, EDITOR_APPROVED, EDITOR_REVISION_REQUESTED` |
+| Entity     | Active values still written                                                                                                        | Legacy — read-only                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Proposal   | `DRAFT, PENDING_EDITOR, EDITOR_REVIEWING, CHANGES_REQUESTED, PENDING_BOARD, BOARD_REVIEW, APPROVED, REJECTED, WITHDRAWN, ARCHIVED` | `SUBMITTED, RESUBMITTED, READY_FOR_BOARD, BOARD_VOTING, TIE_BREAK`                                                                             |
+| Chapter    | `PLANNED, IN_PRODUCTION, TANTOU_REVIEW, REVISION_REQUIRED, READY_FOR_PUBLICATION, PUBLISHED`                                       | `DRAFTING, ASSISTANT_WORKING, MANGAKA_REVIEW, EDITOR_REVIEW, REVISION, EDITOR_APPROVED, SCHEDULED (moved to Publication), IN_REVIEW, APPROVED, ARCHIVED` |
+| StudioTask | `TODO, IN_PROGRESS, SUBMITTED, REVISION_REQUESTED, MANGAKA_APPROVED, REJECTED, CANCELLED`                                          | `MANGAKA_REVIEWING, MANGAKA_REVISION_REQUESTED, EDITOR_REVIEWING, EDITOR_REVISION_REQUESTED, EDITOR_APPROVED, OPEN, COMPLETED`                 |
+| Submission | `PENDING, MANGAKA_APPROVED, REVISION_REQUESTED, SUPERSEDED, REJECTED`                                                              | `MANGAKA_REVISION_REQUESTED, EDITOR_APPROVED, EDITOR_REVISION_REQUESTED`                                                                       |
 
 ## 16. Environments &amp; services
 
-| Variable | Service | Purpose |
-| --- | --- | --- |
-| `MONGO_URI` | Backend | Primary datastore — must be a replica set (transactions required) |
-| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Backend | Token signing, independent secrets |
-| `AI_SERVICE_URL` | Backend | Base URL the API proxies bubble-detection requests to |
-| `R2_*` (endpoint, keys, bucket) | Backend | Cloudflare R2 — page images and material files |
-| `VITE_API_BASE_URL` | Web | Frontend → API base path |
-| `BACKEND_ORIGIN` | AI service | CORS allow-list origin for the FastAPI service |
+| Variable                                   | Service    | Purpose                                                           |
+| ------------------------------------------ | ---------- | ----------------------------------------------------------------- |
+| `MONGO_URI`                                | Backend    | Primary datastore — must be a replica set (transactions required) |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Backend    | Token signing, independent secrets                                |
+| `AI_SERVICE_URL`                           | Backend    | Base URL the API proxies bubble-detection requests to             |
+| `R2_*` (endpoint, keys, bucket)            | Backend    | Cloudflare R2 — page images and material files                    |
+| `VITE_API_BASE_URL`                        | Web        | Frontend → API base path                                          |
+| `BACKEND_ORIGIN`                           | AI service | CORS allow-list origin for the FastAPI service                    |
 
 ---
 
-*Compiled from the storyboard-nexus repository via Grapuco's code graph and a
-direct read of the workflow engine, domain models, and route layer.*
+_Compiled from the storyboard-nexus repository via Grapuco's code graph and a
+direct read of the workflow engine, domain models, and route layer._

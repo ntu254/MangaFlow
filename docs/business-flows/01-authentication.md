@@ -53,23 +53,12 @@ Role-specific routes additionally use:
 - `requireBoardChair` — checks `role === "BOARD" && isChair === true`
 - `requireExactBoardChair` — alias of requireBoardChair
 
-## Special Designation Management (Canonical)
+## Board Chair designation (Canonical)
 
-Admin manages user accounts and may assign the two special designations through the
-normal user-update function:
-
-- `role = BOARD` may have `isChair = true`.
-- `role = EDITOR` may have `isEditorInChief = true`.
-- A non-BOARD user must not retain `isChair`.
-- A non-EDITOR user must not retain `isEditorInChief`.
-- The active Board roster contains three to five users.
-- At most one active Board Chair and one active EIC may exist at a time.
-- Reassigning a designation must clear it from the previous holder atomically.
-- Deactivating or changing the role of a current Chair/EIC must clear the incompatible flag.
-
-Assigning these flags is account administration only. Admin does not create or close
-VotingSessions, vote, cast a tie-break, claim Proposals, review Chapters, or perform
-any workflow action on behalf of the designated user.
+Admin may assign `isChair = true` only to one active `BOARD` user at a time.
+Reassignment is transactional and deactivation or role changes clear the flag.
+There is no second editor designation: Tantou is a normal active `EDITOR`
+membership stored on each Series and is managed by that Series' owning Mangaka.
 
 ## Key Files
 - `backend/src/middleware/auth.ts` — requireAuth, requireRole, requireBoardChair

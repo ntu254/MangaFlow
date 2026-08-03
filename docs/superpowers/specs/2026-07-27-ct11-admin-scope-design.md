@@ -18,9 +18,9 @@ Guiding rule (user): **keep only what an account administrator truly needs.**
 
 ### KEEP (Admin genuinely needs)
 - **User account lifecycle:** `/admin/users` list, get, create, update, deactivate, guarded delete.
-- **Chair/EIC designation** via `updateUser` (`isChair` for active BOARD, `isEditorInChief`
-  for active EDITOR; uniqueness; clear on role change/deactivation). Admin assigns the flag
-  but never executes the designee's workflow actions.
+- **Board Chair designation** via `updateUser` (`isChair` for active BOARD; uniqueness;
+  clear on role change/deactivation). Admin assigns the flag but never executes the
+  designee's workflow actions.
 - **RateTable admin:** `/admin/rates` list/create/patch (the `MANAGE_RATE_TABLE` capability).
 - **Read-only system dashboards:** `GET /admin/workflow-summary`, `GET /admin/storage-summary`.
 - **Managed notifications:** `/admin/notifications` list/create/patch/delete (system broadcast).
@@ -35,10 +35,10 @@ Guiding rule (user): **keep only what an account administrator truly needs.**
 | Payroll (list/confirm/mark-paid/void) | `/admin/payroll*` ADMIN | **Delete routes + handlers** (already deprecated) |
 | Workflow overrides | `/admin/workflow-overrides`, `/admin/override` ADMIN | **Delete routes + handler** (dangerous, non-canonical) |
 | Rankings import | `POST /rankings/import` BOARD,ADMIN | Remove ADMIN → **BOARD only** |
-| Tantou assign/remove | `/series/:id/editor` BOARD,ADMIN | Remove ADMIN **and general BOARD** → **EIC only** (Editor-in-Chief) |
+| Tantou assign/remove | `/series/:id/editor` BOARD,ADMIN | Remove ADMIN and general BOARD → owning Mangaka only |
 | Series lifecycle | `START_PRODUCTION`/`UNPUBLISH`/`ARCHIVE`/delete ADMIN | Remove ADMIN; see the per-action matrix in §3.1 |
-| Proposal claim mgmt | `RELEASE_CLAIM`/`REASSIGN_CLAIM` ADMIN | Remove ADMIN → **EIC only** (`assertProposalAction`) |
-| Proposal ARCHIVE | `ARCHIVE` ADMIN-only | Remove ADMIN → **owning Mangaka or EIC**; require `reason` + audit |
+| Proposal claim mgmt | `RELEASE_CLAIM`/special reassignment ADMIN | Remove ADMIN → claiming Editor releases; another Editor can claim after release |
+| Proposal ARCHIVE | `ARCHIVE` ADMIN-only | Remove ADMIN → owning Mangaka only; require `reason` + audit |
 | File presign-download | ADMIN in role list / visibility | Remove ADMIN → resource owner/member/reviewer only |
 
 ## 3. Removal style
@@ -48,12 +48,12 @@ Guiding rule (user): **keep only what an account administrator truly needs.**
 - **Admin-only removed capabilities** (materials, payroll, overrides): **delete the routes and
   their handlers** (and the frontend pages). Clean removal — no `410` deprecation window
   (internal course project, not a public API with external clients).
-- **Proposal `RELEASE_CLAIM`/`REASSIGN_CLAIM`:** in `assertProposalAction`, drop the
-  `actor.role === "ADMIN"` branch so only the EIC passes.
-- **Proposal `ARCHIVE`:** remove the ADMIN branch; allow the owning Mangaka (author) or the
-  EIC. Require a non-empty `reason` and write an audit entry.
-- **Tantou assign/remove (`/series/:id/editor`):** EIC only — remove both `ADMIN` and the
-  general `BOARD` grant; the guard requires `role === "EDITOR" && isEditorInChief`.
+- **Proposal claim release:** only the Editor who owns the claim can release it; there is no
+  special reassignment action.
+- **Proposal `ARCHIVE`:** remove the ADMIN branch; allow the owning Mangaka (author) only.
+  Require a non-empty `reason` and write an audit entry.
+- **Tantou assign/remove (`/series/:id/editor`):** owning Mangaka only; the target must be an
+  active `EDITOR`, and removal is blocked while review workload remains.
 - **Demo reset/clear:** the routes are **only registered when `NODE_ENV !== "production"`**
   (production → `404`), and the handler/service enforces the same environment guard as a
   backstop.
@@ -78,15 +78,14 @@ ADMIN is removed from all of the above.
   payroll handlers, `executeOverride` (`admin.controller.ts`). Demo handlers/service keep an
   environment-guard backstop.
 - `routes/notification.routes.ts:20` rankings import → `requireRole("BOARD")`.
-- `routes/tantou.routes.ts:12-13` → **EIC only** (`role === "EDITOR" && isEditorInChief`), not
-  BOARD/ADMIN.
+- `routes/tantou.routes.ts:12-13` → owning Mangaka only, not BOARD/ADMIN.
 - `routes/series.routes.ts:43,46,67` (lifecycle/delete) and `:74,88,109` (file/presign) —
   remove `ADMIN`; `series.controller.ts` `seriesLifecycleAction` (`:282,330` region) — enforce
   the §3.1 matrix: `START_PRODUCTION` owner/Tantou, `UNPUBLISH` Tantou-only, `ARCHIVE`
   owner-or-Tantou while never published else Tantou-only, delete owner-only.
 - `routes/proposal.routes.ts:23,28` role list may stay broad, but `assertProposalAction`
-  (`workflow.service.ts`): `RELEASE_CLAIM`/`REASSIGN_CLAIM` → EIC only; `ARCHIVE` → owning
-  Mangaka (author) or EIC, drop the ADMIN branch, require a non-empty `reason` and audit.
+  (`workflow.service.ts`) enforces claiming-Editor release and owning-Mangaka archive, with
+  a non-empty `reason` and audit.
 - File visibility: remove `ADMIN` from `assertFileKeyVisible` / presign-download role list.
 
 ## 5. Frontend changes

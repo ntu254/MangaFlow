@@ -5,7 +5,7 @@ change. It does not modify application code.
 
 ## Final canonical clarifications
 
-- Admin is limited to user-account lifecycle and Chair/EIC designation assignment.
+- Admin is limited to user-account lifecycle and Board Chair designation assignment.
 - The owning Mangaka retains Chapter ownership and canonically initiates
   `START_DRAFT`; Assistants work only through Region → Task → Submission.
 - Board vote tallies are provisional; only Board Chair close finalizes a Proposal.

@@ -483,7 +483,6 @@ Extend `MobileAuthUser` with:
 
 ```ts
 isChair?: boolean;
-isEditorInChief?: boolean;
 ```
 
 Add `restoreMobileSession()` that reads the refresh token, refreshes once, verifies `/auth/me`, rejects unsupported roles, and returns `null` on an expired session after clearing storage. Remove direct calls to `setMobileWorkflowAuthToken`; Task 7 will retire that global-token boundary.

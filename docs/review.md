@@ -270,14 +270,10 @@ docs/business-flows/05-assistant-submission.md
 docs/business-flows/INDEX.md
 ```
 
-Do not deprecate every generic Task action.
-
-Retain genuine Task lifecycle actions such as:
+Keep only the canonical Task lifecycle actions:
 
 ```text
 START
-BLOCK
-UNBLOCK
 CANCEL
 REASSIGN
 REOPEN
@@ -432,7 +428,6 @@ Recommended meanings:
 | `MANGAKA_OWNER_REQUIRED`     | Action must be performed by the Mangaka who owns the Series or Chapter |
 | `TANTOU_ASSIGNMENT_REQUIRED` | Editor is not the assigned Tantou                                      |
 | `BOARD_CHAIR_REQUIRED`       | Board actor is not the Chair                                           |
-| `EDITOR_IN_CHIEF_REQUIRED`   | Editor actor is not the EIC                                            |
 | `SELF_APPROVAL_BLOCKED`      | Actor is attempting an invalid self-approval                           |
 
 Canonical Chapter ownership rule:
@@ -630,8 +625,6 @@ AND belongs to the active VotingSession
 Board Chair
 AND isChair = true
 
-Editor-in-Chief
-AND isEditorInChief = true
 ```
 
 Document reusable authorization guard expectations.

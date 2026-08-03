@@ -37,7 +37,7 @@ The system coordinates the lifecycle of a serialized manga from **idea to public
 
 ## 3. Actors, responsibilities, permissions, ownership & visibility
 
-Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-flags: `isChair`, `isEditorInChief` (EIC) (`types.ts:11-12`). Auth is JWT bearer; every `/api/*` route except auth + file-token is behind `requireAuth` (`routes/index.ts:30`).
+Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-flag: `isChair` (`types.ts:11`). Tantou is an active Editor membership on a Series. Auth is JWT bearer; every `/api/*` route except auth + file-token is behind `requireAuth` (`routes/index.ts:30`).
 
 **Permission primitives:**
 - `requireRole(...roles)` — allows listed roles; **does not** auto-allow ADMIN (`middleware/auth.ts:18`). [C]
@@ -51,7 +51,7 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
 | **Mangaka** | Create proposals (`proposal.routes.ts:19`), submit/edit/withdraw/resubmit them, run studio production (create regions/tasks — `studio.routes.ts:36,43`, MANGAKA-only), review assistant submissions (`submission.routes.ts:26-28`), send chapter to editor review (`studio.routes.ts:29`, MANGAKA-only), view own rankings. | Sees only own proposals (`canReadProposal` MANGAKA→`authorId===actor.id`, `authorization.service.ts:40`) and own series (`canReadSeries:79`). Cannot archive/unpublish public series (`series.controller.ts:327`). [C] |
 | **Assistant** | Start/submit/reopen assigned tasks (`submission.routes.ts:21-22`), comment, view own earnings (`admin.routes.ts:62`). | Task must be assigned to them (`assertTaskReadable`, `workflow.service.ts:127`; `assertCanReadStudioPage` TASK_ONLY scope, `studio-access.service.ts:40`). Production scope limited to assigned tasks/series membership (`productionScopeFilter`, `authorization.service.ts:168`). [C] |
 | **Tantou Editor** | Claim/screen proposals, request changes / forward / reject to Board (`workflow.service.ts:493-518`), review consolidated chapters (approve/revision/reject — `series.routes.ts:80`), manage series info, add editorial comments/annotations (`studio.routes.ts:56`), schedule/publish chapters. | Editor sees non-DRAFT proposals (`canReadProposal` EDITOR→`status!=='DRAFT'`, `authorization.service.ts:41`). Chapter editorial actions require being **the assigned series editor** (`assertAssignedSeriesEditor`, `authorization.service.ts:121`; enforced `workflow.service.ts:1758`). Cannot review own authored chapter (`SELF_APPROVAL_BLOCKED`, `workflow.service.ts:1760`). [C] |
-| **Editorial Board** | Vote on proposals in an open session (`mobile.routes.ts:29`; `workflow.service.ts:VOTE`), review rankings, import reader votes (`notification.routes.ts:20`, BOARD/ADMIN), at-risk decisions. **Chair** opens/closes/cancels voting sessions (`voting.routes.ts:22-25`). **EIC** casts weighted tie-break votes (weight 2, `workflow.service.ts:55,954`). | Board sees only board-relevant proposal statuses (`BOARD_VISIBLE_PROPOSAL_STATUSES`, `authorization.service.ts:15`) and all series for read (`canReadSeries:78`). Board has **no** production/mutation scope (`productionScopeFilter` BOARD→empty, `authorization.service.ts:170`). [C] |
+| **Editorial Board** | Vote on proposals in an open session (`mobile.routes.ts:29`; `workflow.service.ts:VOTE`), review rankings, import reader votes (`notification.routes.ts:20`, BOARD/ADMIN), at-risk decisions. **Chair** opens/closes/cancels voting sessions (`voting.routes.ts:22-25`). Ties automatically open a fresh Board re-vote. | Board sees only board-relevant proposal statuses (`BOARD_VISIBLE_PROPOSAL_STATUSES`, `authorization.service.ts:15`) and all series for read (`canReadSeries:78`). Board has **no** production/mutation scope (`productionScopeFilter` BOARD→empty, `authorization.service.ts:170`). [C] |
 | **Admin** | User management, payroll, materials, demo reset, audited overrides (`admin.routes.ts`, all `requireRole("ADMIN")`). | Full read/mutate via ADMIN branches everywhere. [C] |
 
 **Visibility filters (confirmed):** `actorSeriesScopeFilter` (`authorization.service.ts:155`), `productionScopeFilter:168`, `visibleProposalFilter:197`, `materialScopeFilter:304`, `commentScopeFilter:320`, `assertFileKeyVisible` (`studio-access.service.ts:75`).
@@ -61,12 +61,12 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
 ### 4.1 Proposal & board approval [C]
 1. **Mangaka** `POST /proposals` (`proposal.routes.ts:19`) → status `DRAFT`.
 2. `POST /proposals/:id/actions/SUBMIT` → `DRAFT → PENDING_EDITOR` (`workflow.service.ts:631`).
-3. **Editor** `CLAIM` → `PENDING_EDITOR → EDITOR_REVIEWING` (atomic claim, `workflow.service.ts:646`). Optional `RELEASE_CLAIM`/`REASSIGN_CLAIM` (ADMIN/EIC).
+3. **Editor** `CLAIM` → `PENDING_EDITOR → EDITOR_REVIEWING` (atomic claim, `workflow.service.ts:646`). The claiming Editor may release; another Editor may claim after release.
 4. Editor decides: `REQUEST_CHANGES` → `CHANGES_REQUESTED` (`:766`); or `FORWARD` → `PENDING_BOARD` (`:816`); or `REJECT` → `REJECTED` (`:851`).
    - From `CHANGES_REQUESTED`, **Mangaka** `RESUBMIT` (requires all requested-change items resolved, `:1045`) → back to `EDITOR_REVIEWING`/`PENDING_EDITOR`.
 5. **Board chair** `POST /voting-sessions` (`voting.controller.ts:144`): requires proposal `PENDING_BOARD`; freezes a `ProposalVersion` (`status:FROZEN, source:VOTING_SESSION`, `:192`); creates `VotingSession` `OPEN` with `quorum = BOARD_QUORUM`; sets proposal `PENDING_BOARD → BOARD_REVIEW` + `activeVotingSessionId` (`:241`).
 6. **Board members** `VOTE` (`workflow.service.ts:893`): requires `BOARD_REVIEW` + active session; upserts `ProposalVote`; tally via `evaluateBoardTally` (`:388`). Quorum = `configuredBoardQuorum()` (floor `<2 → 3`, `:44`), `BOARD_TOTAL = 5` (`:53`).
-7. Tie → EIC tie-break vote, weight `EIC_TIEBREAK_WEIGHT = 2` (`:55,954`).
+7. Tie → the current session closes and a fresh Board re-vote session opens.
 8. **Chair** `closeVotingSession` (`:2737`): computes outcome → session `FINALIZED | NO_QUORUM | TIE_BREAK_REQUIRED`; on approve, proposals → `APPROVED`, `BoardDecision` recorded (`:2895`), and `ensureProductionSeriesForApprovedProposal` creates the Series (`:202`).
 
 **Approval gate:** a proposal can only be approved through a VotingSession finalize; direct `FORCE_STATUS` is removed (`410 WORKFLOW_REMOVED`, `assertProposalAction:528`). [C]
@@ -94,10 +94,10 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
    - **Editor no longer reviews individual submissions** — `editor-approve` on submissions/tasks is deprecated `410` (`:2146,2967`). Editor review happens at the **chapter** level (§4.5). [C]
 
 ### 4.5 Editorial review & revision (chapter-level) [C]
-1. **Mangaka** `POST /studio/chapters/:chapterId/send-editor-review` (MANGAKA-only, `studio.routes.ts:29`) → `sendChapterToEditorReview` (`workflow.service.ts:1419`). Gates checked: series `ONGOING`; source proposal `APPROVED`; chapter status `IN_PRODUCTION|PLANNED` (SUBMIT) or `REVISION_REQUIRED` (RESUBMIT); every page has an uploaded asset (`pageHasUploadedAsset:1377`); all required non-cancelled tasks `MANGAKA_APPROVED` with a current `MANGAKA_APPROVED` submission; review materials `ACTIVE/APPROVED`; no unresolved blocking comments (`findChapterBlockingComments:1391`). → chapter `TANTOU_REVIEW`, pages `TANTOU_REVIEW`, a frozen `reviewSnapshot` + open `ChapterReview` created.
+1. **Mangaka** `POST /studio/chapters/:chapterId/send-editor-review` (MANGAKA-only, `studio.routes.ts:29`) → `sendChapterToEditorReview` (`workflow.service.ts:1419`). Gates checked: series `ONGOING`; source proposal `APPROVED`; chapter status `IN_PRODUCTION|PLANNED` (SUBMIT) or `REVISION_REQUIRED` (RESUBMIT); every page has an uploaded asset (`pageHasUploadedAsset:1377`); all required non-cancelled tasks `MANGAKA_APPROVED` with a current `MANGAKA_APPROVED` submission; review materials `ACTIVE/APPROVED`; no unresolved blocking comments (`findChapterBlockingComments:1391`). → chapter `TANTOU_REVIEW`, pages stay `UPLOADED` and become immutable, and a frozen `reviewSnapshot` + open `ChapterReview` is created.
 2. **Assigned Editor** (`assertAssignedSeriesEditor`, not the author) acts via `POST /chapters/:chapterId/actions/:action`:
    - `EDITOR_APPROVE`: `TANTOU_REVIEW → READY_FOR_PUBLICATION`, pages `FINALIZED`, approved regions `DONE` (`:1731,2061`). Snapshot-staleness guarded (`:1794`).
-   - `REQUEST_REVISION` / `REJECT`: `TANTOU_REVIEW → REVISION_REQUIRED`, pages `REVISION_REQUIRED`, a blocking comment created (`:1969`).
+   - `REQUEST_REVISION` / `REJECT`: `TANTOU_REVIEW → REVISION_REQUIRED`, pages stay `UPLOADED`, and a blocking Page/Region comment identifies the required change (`:1969`).
 3. Revision loop: Mangaka fixes, `RESUBMIT` re-freezes a new snapshot.
 
 ### 4.6 Reader-vote import & ranking [C][I]
@@ -147,15 +147,14 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
 |---|---|---|
 | DRAFT | SUBMIT (Mangaka) | PENDING_EDITOR |
 | PENDING_EDITOR / SUBMITTED* | CLAIM (Editor) | EDITOR_REVIEWING |
-| SUBMITTED*/TANTOU_REVIEW*/PENDING_EDITOR/EDITOR_REVIEWING | RELEASE_CLAIM (Editor/ADMIN/EIC) | PENDING_EDITOR |
-| (same set) | REASSIGN_CLAIM (ADMIN/EIC) | EDITOR_REVIEWING |
+| SUBMITTED*/TANTOU_REVIEW*/PENDING_EDITOR/EDITOR_REVIEWING | RELEASE_CLAIM (claiming Editor) | PENDING_EDITOR |
 | review set* | REQUEST_CHANGES (Editor) | CHANGES_REQUESTED |
 | CHANGES_REQUESTED | RESUBMIT (Mangaka) *all change-items resolved* | EDITOR_REVIEWING / PENDING_EDITOR |
 | review set* | FORWARD (Editor) | PENDING_BOARD |
 | review set* | REJECT (Editor) | REJECTED |
 | PENDING_BOARD | *createVotingSession* (Chair) | BOARD_REVIEW |
 | READY_FOR_BOARD*/PENDING_BOARD/BOARD_REVIEW/BOARD_VOTING* | RECALL (Editor) | PENDING_EDITOR |
-| BOARD_REVIEW | VOTE (Board/EIC) *active session* | BOARD_REVIEW (tally only) |
+| BOARD_REVIEW | VOTE (Board) *active session* | BOARD_REVIEW (tally only) |
 | BOARD_REVIEW | *closeVotingSession approve* (Chair) | APPROVED |
 | BOARD_REVIEW | *closeVotingSession reject* (Chair) | REJECTED |
 | DRAFT/…/CHANGES_REQUESTED | WITHDRAW (Mangaka) | WITHDRAWN |
@@ -171,7 +170,7 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
 | OPEN | close, quorum + majority (Chair) | FINALIZED (result APPROVED/REJECTED) |
 | OPEN | close, no quorum (Chair) | NO_QUORUM |
 | OPEN | close, tie (Chair) | TIE_BREAK_REQUIRED |
-| TIE_BREAK_REQUIRED | tie-break vote + close (EIC/Chair) | FINALIZED |
+| TIE_BREAK_REQUIRED | historical closed round; fresh Board re-vote is opened | OPEN |
 | OPEN / TIE_BREAK_REQUIRED | cancel (Chair) | CANCELLED |
 
 *Note [I]: `VotingSessionStatus` type omits `DRAFT` (the schema default) and `CLOSED`; schema has no enum.*
@@ -200,7 +199,7 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
 | READY_FOR_PUBLICATION | SCHEDULE (Editor) | READY_FOR_PUBLICATION *(+Publication SCHEDULED)* |
 | READY_FOR_PUBLICATION | POSTPONE (Editor) | READY_FOR_PUBLICATION *(Publication CANCELLED)* |
 | READY_FOR_PUBLICATION | PUBLISH (Editor) *publication due* | PUBLISHED |
-| any | REASSIGN / ARCHIVE (Editor) | (same) / ARCHIVED |
+| any | REASSIGN (Editor) | (same; Chapter has no independent archive lifecycle) |
 
 ### Page (`PAGE_STATUSES` `types.ts:146`; embedded, **no schema enum**)
 | From | Trigger | To |
@@ -273,7 +272,7 @@ Roles: `ADMIN | MANGAKA | ASSISTANT | EDITOR | BOARD` (`types.ts:3`). Board sub-
 | Mangaka submits proposal | `proposal.routes.ts:19 createProposal`; `workflow.service.ts:631 SUBMIT` | **Complete** |
 | Editor screens (claim/changes/forward/reject) | `workflow.service.ts:646/766/816/851` | **Complete** |
 | Board votes with quorum | `workflow.service.ts:388 evaluateBoardTally,893 VOTE`; `voting.controller.ts:144 createVotingSession` | **Complete** |
-| EIC tie-break | `workflow.service.ts:928,954`; `voting.routes.ts:26` | **Complete** |
+| Board re-vote after tie | `proposal-governance.service.ts` creates a new session | **Complete** |
 | Board decision recorded + audited | `workflow.service.ts:2895 BoardDecision`; `audit.service.ts` | **Complete** |
 | Auto series creation on approval | `workflow.service.ts:202 ensureProductionSeriesForApprovedProposal` | **Complete** |
 | Publication cadence chosen by Board | `workflow.service.ts:219 (boardApprovedPublicationType)` | **Complete** |

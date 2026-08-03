@@ -26,7 +26,7 @@ separation. `review.md` is byte-identical (only line endings differed).
 
 **Added, with code evidence:**
 - **FLOW-GAP-04 / CT-11** — Admin currently holds workflow/content permissions beyond
-  account lifecycle + Chair/EIC designation. Verified against routes
+  account lifecycle + Board Chair designation. Verified against routes
   (`series.controller.ts:280-364`, `admin.routes.ts:50-54`, `admin.controller.ts:67-198`,
   proposal claim/archive `workflow.service.ts:480-485,518`, `tantou.controller.ts:13-20`,
   `notification.controller.ts:120`). Priority P1, scope L.
@@ -57,7 +57,7 @@ and this spec remain; `review.md`'s "current canonical outputs" pointers stay va
 
 ## 4. Canonical decision landing on main
 
-Adopting v2 records **FLOW-GAP-04 / CT-11** (reduce Admin to account lifecycle + Chair/EIC
+Adopting v2 records **FLOW-GAP-04 / CT-11** (reduce Admin to account lifecycle + Board Chair
 designation) as canonical. This is documentation of a gap only — the application still
 grants Admin the broader permissions until CT-11 is implemented. Implementation is **out
 of scope** here.
