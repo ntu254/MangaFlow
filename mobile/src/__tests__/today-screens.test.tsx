@@ -104,6 +104,25 @@ describe("Queue-first Today surfaces", () => {
     })
   })
 
+  it("removes active accents from disabled publication actions", () => {
+    render(
+      <WorkflowActionBar
+        actions={[
+          { action: "PUBLISH", enabled: false, disabledReason: "Readiness failed.", requiresConfirmation: true, requiresReason: false },
+          { action: "POSTPONE", enabled: false, disabledReason: "Nothing scheduled.", requiresConfirmation: true, requiresReason: false },
+        ]}
+        onAction={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "Publish now" })).toHaveStyle({
+      backgroundColor: colors.surfaceContainer,
+      borderColor: colors.surfaceContainer,
+    })
+    expect(screen.getByText("Publish now")).toHaveStyle({ color: colors.textMuted })
+    expect(screen.getByText("Postpone")).toHaveStyle({ color: colors.textMuted })
+  })
+
   it("renders a success empty state without demo rows", () => {
     render(<EditorTodayScreen inbox={{ ...editorInboxFixture, items: [] }} />)
     expect(screen.getByText("No decisions need your attention.")).toBeVisible()
