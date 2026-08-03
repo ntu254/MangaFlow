@@ -236,6 +236,7 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
     PublicationModel.findOne({ chapterId: chapter.id }).lean(),
   ]);
   const status = (publication as any)?.status ?? "DRAFT";
+  const chapterTitle = chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`;
   return {
     id: `PUBLICATION:${chapter.id}`,
     kind: "PUBLICATION",
@@ -243,7 +244,7 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
     entityId: String(chapter.id),
     status: String(status),
     version: null,
-    title: chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`,
+    title: chapterTitle,
     subtitle: status === "SCHEDULED" ? "Scheduled" : "Ready to schedule",
     priority: { level: "NORMAL", reason: "Publication decision", dueAt: null },
     blockers: [],
@@ -258,7 +259,7 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
       seriesTitle: String((series as any).title),
       chapterId: String(chapter.id),
       chapterNumber: Number(chapter.number),
-      chapterTitle: String(chapter.title),
+      chapterTitle,
     },
   };
 }

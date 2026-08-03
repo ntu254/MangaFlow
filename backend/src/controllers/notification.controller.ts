@@ -1,6 +1,6 @@
 import { asyncRoute, ok, created, AppError } from "../lib/http.js";
 import { NotificationModel, SeriesModel, RankingModel, RankingImportModel } from "../db/models.js";
-import { paginated, patchById, requireActor } from "./helpers.js";
+import { paginated, paginationFromQuery, patchById, requireActor } from "./helpers.js";
 import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
 import { parseBody, rejectProtectedFields } from "../validators/common.js";
@@ -32,13 +32,25 @@ const rankingImportSchema = z
 
 export const listNotifications = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  await paginated(
-    req,
-    res,
-    NotificationModel,
-    { userId: actor.id },
-    { createdAt: -1 },
-  );
+  const { page, limit, skip } = paginationFromQuery(req);
+  const filter = { userId: actor.id };
+  const [data, total, unreadTotal] = await Promise.all([
+    NotificationModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    NotificationModel.countDocuments(filter),
+    NotificationModel.countDocuments({ ...filter, readAt: null }),
+  ]);
+
+  ok(res, {
+    data,
+    pagination: {
+      page,
+      pageSize: limit,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
+    unreadTotal,
+  });
 });
 
 export const markRead = asyncRoute(async (req: AuthedRequest, res) => {

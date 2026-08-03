@@ -27,7 +27,24 @@ export const mobileNotificationSchema = z.object({
 
 export const mobileNotificationListSchema = z.array(mobileNotificationSchema)
 
+export const mobileNotificationPageSchema = z
+  .object({
+    data: mobileNotificationListSchema,
+    pagination: z.object({
+      page: z.number().int().positive(),
+      totalPages: z.number().int().positive(),
+    }),
+    unreadTotal: z.number().int().nonnegative(),
+  })
+  .transform(({ data, pagination, unreadTotal }) => ({
+    items: data,
+    page: pagination.page,
+    totalPages: pagination.totalPages,
+    unreadTotal,
+  }))
+
 export type MobileNotification = z.infer<typeof mobileNotificationSchema>
+export type MobileNotificationPage = z.infer<typeof mobileNotificationPageSchema>
 export type MobileNotificationPriority = MobileNotification["priority"]
 
 export function isUnread(notification: MobileNotification): boolean {

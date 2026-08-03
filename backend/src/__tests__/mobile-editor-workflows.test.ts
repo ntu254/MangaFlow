@@ -249,6 +249,43 @@ describe("mobile editor workflows", () => {
     ]));
   });
 
+  it("returns 50 classified records when newer redundant chapter audits exceed the cap", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const chapterId = "ch-s-berserk-prod-5";
+    await AuditEntryModel.deleteMany({ actorId: editor.user.id, actorRole: "EDITOR" });
+    await AuditEntryModel.insertMany([
+      ...Array.from({ length: 55 }, (_, index) => ({
+        id: `activity-cap-redundant-${index}`,
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "chapter.editor_approve",
+        entityType: "chapter",
+        entityId: chapterId,
+        createdAt: new Date(Date.UTC(2026, 7, 5, 12, 0, index)),
+      })),
+      ...Array.from({ length: 50 }, (_, index) => ({
+        id: `activity-cap-classified-${index}`,
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "CHAPTER_TANTOU_REVISION_REQUESTED",
+        entityType: "chapter",
+        entityId: chapterId,
+        createdAt: new Date(Date.UTC(2026, 7, 4, 12, 0, index)),
+      })),
+    ]);
+
+    const response = await request(createApp())
+      .get("/api/editor/activity")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data).toHaveLength(50);
+    expect(response.body.data.every((item: any) => item.area === "CHAPTER")).toBe(true);
+    expect(response.body.data.map((item: any) => item.id)).toEqual(
+      Array.from({ length: 50 }, (_, index) => `activity-cap-classified-${49 - index}`),
+    );
+  });
+
   it("never exposes an Assistant-submission approval action to the Editor", async () => {
     const editor = await loginAs("editor@mangaflow.local");
     const inbox = await editorInbox(editor.accessToken);

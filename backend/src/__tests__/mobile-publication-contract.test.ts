@@ -49,4 +49,29 @@ describe("mobile publication inbox contract", () => {
       },
     });
   });
+
+  it("uses the chapter number when publication work has no chapter title", async () => {
+    await mongoose.connection.collection("chapters").updateOne(
+      { id: "ch-s-berserk-prod-4" },
+      { $unset: { title: "" } },
+    );
+    const login = await request(createApp())
+      .post("/api/auth/login")
+      .send({ email: "tanaka@beachread.jp", password: "tanaka@beachread.jp" })
+      .expect(200);
+    const response = await request(createApp())
+      .get("/api/editor/inbox")
+      .set("Authorization", `Bearer ${login.body.data.accessToken}`)
+      .expect(200);
+
+    const inbox = mobileInboxSchema.parse(response.body.data);
+    const publication = inbox.items.find(
+      (item) => item.kind === "PUBLICATION" && item.entityId === "ch-s-berserk-prod-4",
+    );
+
+    expect(publication).toMatchObject({
+      title: "Chapter 4",
+      chapterContext: { chapterNumber: 4, chapterTitle: "Chapter 4" },
+    });
+  });
 });

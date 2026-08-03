@@ -122,7 +122,10 @@ export async function getEditorActivity(actor: RequestActor): Promise<EditorActi
   const audits = await AuditEntryModel.find({
     actorId: actor.id,
     actorRole: "EDITOR",
-    action: { $regex: /^(proposal[._]|chapter[._]|comment[.]|publication[._])/i },
+    action: {
+      $regex: /^(proposal[._]|chapter[._]|comment[.]|publication[._])/i,
+      $nin: [...REDUNDANT_CHAPTER_AUDITS],
+    },
   })
     .sort({ createdAt: -1 })
     .limit(50)

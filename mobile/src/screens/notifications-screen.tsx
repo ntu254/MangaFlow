@@ -8,6 +8,7 @@ import {
   isUnread,
   notificationKindLabel,
   type MobileNotification,
+  type MobileNotificationPage,
 } from "@/domain/mobile-notification"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
@@ -28,14 +29,13 @@ export function NotificationsScreen({
   list,
   markRead,
 }: {
-  list?: () => Promise<MobileNotification[]>
+  list?: (page: number) => Promise<MobileNotificationPage>
   markRead?: (id: string) => Promise<MobileNotification>
 } = {}) {
-  const { notifications, markAsRead, unreadCount } = useMobileNotifications({ list, markRead })
+  const { notifications, markAsRead, items, unreadCount, fetchNextPage, hasNextPage } =
+    useMobileNotifications({ list, markRead })
   const [failedId, setFailedId] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
-
-  const items = notifications.data ?? []
 
   if (notifications.isLoading && !notifications.data) {
     return <WorkflowState kind="loading" label="Loading your notifications…" />
@@ -89,15 +89,31 @@ export function NotificationsScreen({
           description="Workflow updates addressed to your account appear here."
         />
       ) : (
-        items.map((notification) => (
-          <NotificationRow
-            key={notification.id}
-            notification={notification}
-            busy={markAsRead.isPending && markAsRead.variables === notification.id}
-            failure={failedId === notification.id ? failure : null}
-            onRead={() => requestRead(notification.id)}
-          />
-        ))
+        <>
+          {items.map((notification) => (
+            <NotificationRow
+              key={notification.id}
+              notification={notification}
+              busy={markAsRead.isPending && markAsRead.variables === notification.id}
+              failure={failedId === notification.id ? failure : null}
+              onRead={() => requestRead(notification.id)}
+            />
+          ))}
+          {hasNextPage ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Load more notifications"
+              accessibilityState={{ disabled: notifications.isFetchingNextPage }}
+              disabled={notifications.isFetchingNextPage}
+              onPress={() => void fetchNextPage()}
+              style={styles.loadMore}
+            >
+              <Text style={styles.loadMoreText}>
+                {notifications.isFetchingNextPage ? "Loading more…" : "Load more notifications"}
+              </Text>
+            </Pressable>
+          ) : null}
+        </>
       )}
     </ScrollView>
   )
@@ -207,4 +223,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   retryText: { color: colors.primary, fontWeight: "800", fontSize: typography.label },
+  loadMore: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  loadMoreText: { color: colors.primary, fontWeight: "800", fontSize: typography.label },
 })

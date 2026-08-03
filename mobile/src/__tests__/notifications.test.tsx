@@ -6,6 +6,8 @@ import { MFScreen } from "@/components/mf"
 import { TestQueryProvider } from "@/test/test-query-provider"
 import { MobileApiError } from "@/services/mobile-api-error"
 import { MobileRequestError } from "@/services/mobile-request-diagnostics"
+import { mobileApi } from "@/services/mobile-api-client"
+import { getMobileNotifications } from "@/services/mobile-notification-data-source"
 import {
   formatNotificationTime,
   mobileNotificationListSchema,
@@ -34,8 +36,22 @@ const readNotification: MobileNotification = {
   readAt: new Date().toISOString(),
 }
 
+type NotificationPage = {
+  items: MobileNotification[]
+  page: number
+  totalPages: number
+  unreadTotal: number
+}
+
+function notificationPage(
+  items: MobileNotification[],
+  { page = 1, totalPages = 1, unreadTotal = unreadNotificationCount(items) } = {},
+): NotificationPage {
+  return { items, page, totalPages, unreadTotal }
+}
+
 function renderScreen(overrides: {
-  list?: () => Promise<MobileNotification[]>
+  list?: (page: number) => Promise<NotificationPage>
   markRead?: (id: string) => Promise<MobileNotification>
 }) {
   return render(
@@ -77,11 +93,44 @@ describe("notification contract", () => {
     expect(formatNotificationTime("2026-07-20T09:00:00.000Z", now)).toBe("2026-07-20")
     expect(formatNotificationTime(null, now)).toBe("—")
   })
+
+  it("validates notification page metadata from the success envelope", async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            data: [unreadNotification],
+            pagination: { page: 2, pageSize: 50, limit: 50, total: 51, totalPages: 2 },
+            unreadTotal: 37,
+          },
+        }),
+        { status: 200, headers: { "x-request-id": "req-notifications-2" } },
+      ),
+    ) as unknown as typeof fetch
+
+    await expect(getMobileNotifications(2)).resolves.toEqual({
+      items: [unreadNotification],
+      page: 2,
+      totalPages: 2,
+      unreadTotal: 37,
+    })
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/notifications?page=2"),
+      expect.any(Object),
+    )
+  })
+
+  afterEach(() => {
+    mobileApi.setAccessToken(null)
+    mobileApi.setRefreshHandler(null)
+    jest.restoreAllMocks()
+  })
 })
 
 describe("NotificationsScreen", () => {
   it("renders title, message, kind, priority, time, and read state", async () => {
-    renderScreen({ list: async () => [unreadNotification, readNotification] })
+    renderScreen({ list: async () => notificationPage([unreadNotification, readNotification]) })
 
     expect(await screen.findByText("Proposal forwarded to Board")).toBeVisible()
     expect(screen.getByText("Neon District is now waiting on a Board session.")).toBeVisible()
@@ -94,22 +143,22 @@ describe("NotificationsScreen", () => {
   })
 
   it("shows an explicit loading surface before the first page arrives", async () => {
-    let release: (value: MobileNotification[]) => void = () => {}
+    let release: (value: NotificationPage) => void = () => {}
     const list = () =>
-      new Promise<MobileNotification[]>((resolve) => {
+      new Promise<NotificationPage>((resolve) => {
         release = resolve
       })
     renderScreen({ list })
 
     expect(screen.getByText("Loading your notifications…")).toBeVisible()
 
-    release([unreadNotification])
+    release(notificationPage([unreadNotification]))
     expect(await screen.findByText("Proposal forwarded to Board")).toBeVisible()
     expect(screen.queryByText("Loading your notifications…")).toBeNull()
   })
 
   it("shows an empty state instead of an unexplained blank list", async () => {
-    renderScreen({ list: async () => [] })
+    renderScreen({ list: async () => notificationPage([]) })
 
     expect(await screen.findByText("No notifications yet.")).toBeVisible()
     expect(screen.getByText("All caught up.")).toBeVisible()
@@ -139,8 +188,13 @@ describe("NotificationsScreen", () => {
     const markRead = jest.fn().mockResolvedValue({ ...unreadNotification, readAt: new Date().toISOString() })
     const list = jest
       .fn()
-      .mockResolvedValueOnce([unreadNotification, readNotification])
-      .mockResolvedValue([{ ...unreadNotification, readAt: new Date().toISOString() }, readNotification])
+      .mockResolvedValueOnce(notificationPage([unreadNotification, readNotification]))
+      .mockResolvedValue(
+        notificationPage(
+          [{ ...unreadNotification, readAt: new Date().toISOString() }, readNotification],
+          { unreadTotal: 0 },
+        ),
+      )
 
     renderScreen({ list, markRead })
 
@@ -156,7 +210,10 @@ describe("NotificationsScreen", () => {
 
   it("never marks anything read just by opening the tab", async () => {
     const markRead = jest.fn()
-    renderScreen({ list: async () => [unreadNotification, readNotification], markRead })
+    renderScreen({
+      list: async () => notificationPage([unreadNotification, readNotification]),
+      markRead,
+    })
 
     expect(await screen.findByText("Proposal forwarded to Board")).toBeVisible()
     expect(markRead).not.toHaveBeenCalled()
@@ -164,7 +221,7 @@ describe("NotificationsScreen", () => {
 
   it("cannot re-mark an already read notification", async () => {
     const markRead = jest.fn()
-    renderScreen({ list: async () => [readNotification], markRead })
+    renderScreen({ list: async () => notificationPage([readNotification]), markRead })
 
     const row = await screen.findByRole("button", { name: "Chapter approved, read" })
     expect(row.props.accessibilityState.disabled).toBe(true)
@@ -178,7 +235,7 @@ describe("NotificationsScreen", () => {
       .mockRejectedValueOnce(new MobileApiError("Notification not found.", 404, "NOTIFICATION_NOT_FOUND"))
       .mockResolvedValue({ ...unreadNotification, readAt: new Date().toISOString() })
 
-    renderScreen({ list: async () => [unreadNotification], markRead })
+    renderScreen({ list: async () => notificationPage([unreadNotification]), markRead })
 
     fireEvent.press(
       await screen.findByRole("button", { name: "Proposal forwarded to Board, unread" }),
@@ -195,6 +252,60 @@ describe("NotificationsScreen", () => {
       screen.getByRole("button", { name: "Retry marking Proposal forwarded to Board as read" }),
     )
     await waitFor(() => expect(markRead).toHaveBeenCalledTimes(2))
+  })
+
+  it("loads a second page, renders both pages, and shows the server unread total", async () => {
+    const pageTwoNotification = {
+      ...readNotification,
+      id: "n-51",
+      title: "Publication scheduled",
+      message: "Chapter 13 is scheduled for tomorrow.",
+    }
+    const list = jest.fn(async (page: number) =>
+      page === 1
+        ? notificationPage([unreadNotification], { page: 1, totalPages: 2, unreadTotal: 37 })
+        : notificationPage([pageTwoNotification], { page: 2, totalPages: 2, unreadTotal: 37 }),
+    )
+
+    renderScreen({ list })
+
+    expect(await screen.findByText("Proposal forwarded to Board")).toBeVisible()
+    expect(screen.getByText("37 unread")).toBeVisible()
+    fireEvent.press(screen.getByRole("button", { name: "Load more notifications" }))
+
+    expect(await screen.findByText("Publication scheduled")).toBeVisible()
+    expect(screen.getByText("Proposal forwarded to Board")).toBeVisible()
+    expect(list).toHaveBeenNthCalledWith(1, 1)
+    expect(list).toHaveBeenNthCalledWith(2, 2)
+    expect(screen.queryByRole("button", { name: "Load more notifications" })).toBeNull()
+  })
+
+  it("refreshes every loaded notification page after marking one as read", async () => {
+    let markedRead = false
+    const pageTwoNotification = { ...unreadNotification, id: "n-51", title: "Chapter revised" }
+    const list = jest.fn(async (page: number) =>
+      notificationPage(
+        page === 1
+          ? [{ ...unreadNotification, readAt: markedRead ? new Date().toISOString() : null }]
+          : [pageTwoNotification],
+        { page, totalPages: 2, unreadTotal: markedRead ? 1 : 2 },
+      ),
+    )
+    const markRead = jest.fn(async () => {
+      markedRead = true
+      return { ...unreadNotification, readAt: new Date().toISOString() }
+    })
+
+    renderScreen({ list, markRead })
+    fireEvent.press(await screen.findByRole("button", { name: "Load more notifications" }))
+    expect(await screen.findByText("Chapter revised")).toBeVisible()
+    fireEvent.press(screen.getByRole("button", { name: "Proposal forwarded to Board, unread" }))
+
+    expect(await screen.findByText("1 unread")).toBeVisible()
+    await waitFor(() => {
+      expect(list.mock.calls.filter(([page]) => page === 1)).toHaveLength(2)
+      expect(list.mock.calls.filter(([page]) => page === 2)).toHaveLength(2)
+    })
   })
 })
 

@@ -1,8 +1,9 @@
 import { mobileApi } from "@/services/mobile-api-client"
 import {
-  mobileNotificationListSchema,
+  mobileNotificationPageSchema,
   mobileNotificationSchema,
   type MobileNotification,
+  type MobileNotificationPage,
 } from "@/domain/mobile-notification"
 import { MobileContractError, MobileRequestError, describeRequestFailure } from "@/services/mobile-request-diagnostics"
 
@@ -15,10 +16,10 @@ export const NOTIFICATION_CONTEXT = "your notifications"
 
 // The authenticated feed for the signed-in user. Validated against the shared
 // contract and normalized into safe diagnostics on failure, like the inbox.
-export async function getMobileNotifications(): Promise<MobileNotification[]> {
+export async function getMobileNotifications(page: number): Promise<MobileNotificationPage> {
   try {
-    const response = await mobileApi.requestWithMetadata("/notifications")
-    const result = mobileNotificationListSchema.safeParse(response.data)
+    const response = await mobileApi.requestWithMetadata(`/notifications?page=${page}`)
+    const result = mobileNotificationPageSchema.safeParse(response.data)
     if (!result.success) throw new MobileContractError(response.requestId ?? null)
     return result.data
   } catch (error) {
