@@ -51,7 +51,7 @@
     "lint": "npx tsc --noEmit",
     "test": "jest --runInBand --forceExit",
     "test:watch": "jest --watch",
-    "test:legacy": "node --test ./src/__tests__/mobile-data.test.mjs",
+    "test:legacy": "node --test ./src/__tests__/mobile-data.test.mjs ./src/__tests__/mobile-file-review.test.mjs",
     "build": "expo export --platform web --output-dir dist"
   },
   "private": true,
