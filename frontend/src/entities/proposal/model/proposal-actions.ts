@@ -1,5 +1,4 @@
 import type { User } from "@/shared/auth";
-import { isEditorInChief } from "@/shared/auth";
 import type { ProposalAction, SeriesProposal } from "./proposal-types";
 import { OWNER_OR_ADMIN, EDITOR_OR_ADMIN, BOARD_OR_ADMIN } from "@/shared/lib/permissions";
 
@@ -42,49 +41,27 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
       if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Editor only." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return { ok: false, reason: "Only when proposal is under editor review." };
-      if (
-        p.claimedByEditorId &&
-        p.claimedByEditorId !== user.id &&
-        !isEditorInChief(user) &&
-        user.role !== "admin"
-      )
+      if (p.claimedByEditorId && p.claimedByEditorId !== user.id && user.role !== "editor")
         return { ok: false, reason: "Proposal has been claimed by another editor." };
       return { ok: true };
     case "FORWARD":
       if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Editor only." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return { ok: false, reason: "Can only forward when proposal is under editor review." };
-      if (
-        p.claimedByEditorId &&
-        p.claimedByEditorId !== user.id &&
-        !isEditorInChief(user) &&
-        user.role !== "admin"
-      )
+      if (p.claimedByEditorId && p.claimedByEditorId !== user.id && user.role !== "editor")
         return { ok: false, reason: "Proposal has been claimed by another editor." };
       return { ok: true };
     case "REJECT":
       if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Editor only." };
       if (!EDITOR_REVIEW_STATUSES.includes(p.status))
         return { ok: false, reason: "Can only reject when proposal is under editor review." };
-      if (
-        p.claimedByEditorId &&
-        p.claimedByEditorId !== user.id &&
-        !isEditorInChief(user) &&
-        user.role !== "admin"
-      )
+      if (p.claimedByEditorId && p.claimedByEditorId !== user.id && user.role !== "editor")
         return { ok: false, reason: "Proposal has been claimed by another editor." };
       return { ok: true };
     case "RELEASE_CLAIM":
-      if (user.role !== "admin" && !(user.role === "editor" && isEditorInChief(user)))
-        return { ok: false, reason: "Admin or Editor-in-Chief only." };
-      if (!EDITOR_REVIEW_STATUSES.includes(p.status) || !p.claimedByEditorId)
-        return { ok: false, reason: "Proposal has not been claimed." };
-      return { ok: true };
-    case "REASSIGN_CLAIM":
-      if (user.role !== "admin" && !(user.role === "editor" && isEditorInChief(user)))
-        return { ok: false, reason: "Admin or Editor-in-Chief only." };
-      if (!EDITOR_REVIEW_STATUSES.includes(p.status))
-        return { ok: false, reason: "Only when proposal is under editor review." };
+      if (user.role !== "editor") return { ok: false, reason: "Editor only." };
+      if (!EDITOR_REVIEW_STATUSES.includes(p.status) || p.claimedByEditorId !== user.id)
+        return { ok: false, reason: "Only the Editor who claimed it can release it." };
       return { ok: true };
     case "RECALL":
       if (!EDITOR_OR_ADMIN(user)) return { ok: false, reason: "Assigned editor only." };
@@ -96,18 +73,12 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
         return { ok: false, reason: "Can only vote when PENDING_BOARD or TIE_BREAK." };
       if (p.status === "PENDING_BOARD") {
         if (!BOARD_OR_ADMIN(user)) return { ok: false, reason: "Board member only." };
-      } else {
-        // TIE_BREAK
-        const isEiC = user.role === "editor" && isEditorInChief(user);
-        if (!isEiC && user.role !== "admin")
-          return { ok: false, reason: "Only the Editor-in-Chief can cast the tie-break vote." };
-      }
+      } else return { ok: false, reason: "A tied round is closed; wait for the Board re-vote." };
       if (p.votes.some((v) => v.memberId === user.id))
         return { ok: false, reason: "You have already voted." };
       return { ok: true };
     case "FORCE_STATUS":
-      if (user.role !== "admin") return { ok: false, reason: "Admin only." };
-      return { ok: true };
+      return { ok: false, reason: "Direct status forcing is retired." };
   }
 }
 
@@ -119,13 +90,11 @@ export function allowedActions(user: User, p: SeriesProposal): ProposalAction[] 
     "WITHDRAW",
     "CLAIM",
     "RELEASE_CLAIM",
-    "REASSIGN_CLAIM",
     "REQUEST_CHANGES",
     "FORWARD",
     "REJECT",
     "RECALL",
     "VOTE",
-    "FORCE_STATUS",
   ];
   return all.filter((a) => checkAction(a, user, p).ok);
 }

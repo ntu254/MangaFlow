@@ -83,7 +83,7 @@ export function StepCharactersMaterials({
           <MaterialsUploader
             items={storyboard}
             onChange={onStoryboardChange}
-            allowedKinds={["world"]}
+            allowedKinds={["storyboard"]}
             maxFiles={1}
             required={filesRequired}
             label="Storyboard file (1 file max)"
@@ -97,7 +97,7 @@ export function StepCharactersMaterials({
           <MaterialsUploader
             items={characterSheets}
             onChange={onCharacterSheetsChange}
-            allowedKinds={["character", "reference", "other"]}
+            allowedKinds={["character", "world", "reference", "other"]}
             label="Supporting materials"
           />
         </UploadSection>

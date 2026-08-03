@@ -1,7 +1,6 @@
 import type {
   SeriesMaterial,
   SeriesMaterialKind,
-  SeriesMaterialStatus,
   SeriesMaterialVersion,
   MaterialItem,
   MaterialVersionItem,
@@ -9,7 +8,6 @@ import type {
 
 const KIND_VALUES: SeriesMaterialKind[] = [
   "storyboard",
-  "manuscript",
   "character",
   "background",
   "moodboard",
@@ -20,14 +18,6 @@ const KIND_VALUES: SeriesMaterialKind[] = [
   "other",
 ];
 
-const STATUS_VALUES: SeriesMaterialStatus[] = [
-  "DRAFT",
-  "ACTIVE",
-  "IN_REVIEW",
-  "APPROVED",
-  "ARCHIVED",
-];
-
 function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
@@ -35,13 +25,6 @@ function asString(value: unknown): string | undefined {
 function normalizeKind(value: unknown): SeriesMaterialKind {
   const kind = asString(value);
   return kind && (KIND_VALUES as string[]).includes(kind) ? (kind as SeriesMaterialKind) : "other";
-}
-
-function normalizeStatus(value: unknown): SeriesMaterialStatus {
-  const status = asString(value);
-  return status && (STATUS_VALUES as string[]).includes(status)
-    ? (status as SeriesMaterialStatus)
-    : "DRAFT";
 }
 
 function meta(item: { metadata?: Record<string, unknown> }): Record<string, unknown> {
@@ -68,8 +51,7 @@ function mapVersion(v: MaterialVersionItem): SeriesMaterialVersion {
 
 /**
  * Map a backend MaterialItem to the SeriesMaterial shape used by the
- * Series Materials Library UI. Status is canonical at the top level;
- * metadata.status remains a legacy read fallback for migration compatibility.
+ * Supporting Materials Library UI. Lifecycle status is intentionally ignored.
  *
  * Versions are returned newest-first to match the existing UI which reads
  * `versions[0]` as the current version.
@@ -85,7 +67,6 @@ export function mapApiMaterialToSeriesMaterial(item: MaterialItem): SeriesMateri
     seriesId: item.seriesId ?? "",
     title: item.title ?? "",
     kind: normalizeKind(item.kind ?? m.kind),
-    status: normalizeStatus(item.status ?? m.status),
     chapterId: item.chapterId ?? undefined,
     tags: Array.isArray(item.tags) ? item.tags : [],
     note: asString(m.note),

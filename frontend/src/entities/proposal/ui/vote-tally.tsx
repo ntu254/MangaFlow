@@ -1,4 +1,8 @@
-import type { BoardVote, SeriesProposal } from "@/entities/proposal/model/proposal-types";
+import type {
+  BoardTallySnapshot,
+  BoardVote,
+  SeriesProposal,
+} from "@/entities/proposal/model/proposal-types";
 import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 
@@ -6,29 +10,31 @@ export function VoteTally({
   votes,
   status,
   quorum = Math.ceil(BOARD_TOTAL / 2),
+  tally: serverTally,
+  eligible = BOARD_TOTAL,
 }: {
   votes: BoardVote[];
   status?: SeriesProposal["status"];
   quorum?: number;
+  tally?: BoardTallySnapshot;
+  eligible?: number;
 }) {
-  const tally = evaluateBoardTally(votes, quorum);
+  const tally = serverTally ?? evaluateBoardTally(votes, quorum);
   const approve = tally.approve;
   const reject = tally.reject;
-  const abstain = tally.abstain;
   return (
     <div className="rounded-md border border-border bg-card/40 p-4">
       <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        Board votes · quorum {quorum}/{BOARD_TOTAL}
+        Board votes · quorum {quorum}/{eligible}
       </p>
       {status === "TIE_BREAK" ? (
         <div className="mb-3 rounded border border-fuchsia-300 bg-fuchsia-50 p-2 text-[11px] text-fuchsia-900">
           Historical tied vote. This round is read-only; close it to open a fresh Board re-vote.
         </div>
       ) : null}
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-2 gap-2 text-center">
         <Tally label="Approve" count={approve} tone="emerald" />
         <Tally label="Reject" count={reject} tone="rose" />
-        <Tally label="Abstain" count={abstain} tone="zinc" />
       </div>
       {votes.length > 0 ? (
         <ul className="mt-4 space-y-1.5 text-xs">
@@ -39,11 +45,7 @@ export function VoteTally({
             >
               <span className="font-medium">
                 {v.memberName}
-                {v.isEditorInChief ? (
-                  <span className="ml-2 rounded bg-fuchsia-100 px-1.5 text-[10px] font-bold text-fuchsia-900">
-                    Editor-in-chief
-                  </span>
-                ) : v.isChair ? (
+                {v.isChair ? (
                   <span className="ml-2 rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
                     Chair
                   </span>
@@ -64,21 +66,13 @@ export function VoteTally({
   );
 }
 
-function Tally({
-  label,
-  count,
-  tone,
-}: {
-  label: string;
-  count: number;
-  tone: "emerald" | "rose" | "zinc";
-}) {
+function Tally({ label, count, tone }: { label: string; count: number; tone: "emerald" | "rose" }) {
   const cls =
     tone === "emerald"
       ? "bg-emerald-100 text-emerald-900"
       : tone === "rose"
         ? "bg-rose-100 text-rose-900"
-        : "bg-zinc-200 text-zinc-800";
+        : "bg-emerald-100 text-emerald-900";
   return (
     <div className={`rounded ${cls} px-2 py-2`}>
       <p className="font-serif text-2xl leading-none">{count}</p>

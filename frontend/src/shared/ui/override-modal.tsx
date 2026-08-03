@@ -1,18 +1,18 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+  ModalTrigger,
+} from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/shared/lib/cn";
 import { AlertTriangle, FileClock } from "lucide-react";
 import { useState } from "react";
 
-export function OverrideDialog({
+export function OverrideModal({
   trigger,
   actionLabel = "Confirm Override",
   onConfirm,
@@ -54,19 +54,19 @@ export function OverrideDialog({
   const isReady = reason.trim().length >= 8;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => (nextOpen ? setOpenValue(true) : close())}>
-      {!isControlled && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent aria-describedby="override-dialog-description">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Modal open={open} onOpenChange={(nextOpen) => (nextOpen ? setOpenValue(true) : close())}>
+      {!isControlled && <ModalTrigger asChild>{trigger}</ModalTrigger>}
+      <ModalContent aria-describedby="override-dialog-description">
+        <ModalHeader>
+          <ModalTitle className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-rose-700" />
             Override Required
-          </DialogTitle>
-          <DialogDescription id="override-dialog-description">
+          </ModalTitle>
+          <ModalDescription id="override-dialog-description">
             This is not a normal workflow action. A written reason is required and will be stored as
             an internal governance record.
-          </DialogDescription>
-        </DialogHeader>
+          </ModalDescription>
+        </ModalHeader>
 
         <div className="space-y-3">
           {targetLabel ? (
@@ -109,7 +109,7 @@ export function OverrideDialog({
           </p>
         </div>
 
-        <DialogFooter>
+        <ModalFooter>
           <button
             type="button"
             className="rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-sm font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:translate-y-px"
@@ -128,8 +128,10 @@ export function OverrideDialog({
           >
             {actionLabel}
           </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }
+
+export { OverrideModal as OverrideDialog };

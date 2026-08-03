@@ -1,20 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle,
-  ArrowUpRight,
   BookOpen,
   CheckCircle2,
   ChevronRight,
   Clock,
-  FileEdit,
   FileText,
-  Filter,
-  Layers,
   Loader2,
   Plus,
   Search,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
@@ -22,7 +16,6 @@ import { DataPagination, DataTable, ResolvedImage, SortableHeader, Surface } fro
 import { useProposalsQuery } from "@/features/proposals";
 import { ProposalStatusPill } from "@/entities/proposal";
 import type { ProposalStatus, SeriesProposal } from "@/entities/proposal/model/proposal-types";
-import { STATUS_LABEL } from "@/entities/proposal/model/proposal-types";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 import {
   Table,
@@ -154,7 +147,7 @@ export function ProposalsListPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Header Bar — No Eyebrow per Craft Floor Rules */}
+      {/* Header Bar */}
       <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-serif">
@@ -422,5 +415,4 @@ export function ProposalsListPage() {
   );
 }
 
-// Alias export for backward compatibility
 export { ProposalsListPage as SubmissionsListPage };

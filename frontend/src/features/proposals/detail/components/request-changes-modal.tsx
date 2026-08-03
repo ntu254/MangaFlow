@@ -2,19 +2,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { User } from "@/shared/auth";
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Modal, ModalContent, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function RequestChangesDialog({
-  proposal,
-  user,
+export function RequestChangesModal({
+  proposal: _proposal,
+  user: _user,
   open,
   onClose,
   onRequestChanges,
@@ -55,11 +49,11 @@ export function RequestChangesDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Request changes on proposal</DialogTitle>
-        </DialogHeader>
+    <Modal open={open} onOpenChange={(v) => !v && onClose()}>
+      <ModalContent className="max-w-xl">
+        <ModalHeader>
+          <ModalTitle>Request Changes on Proposal</ModalTitle>
+        </ModalHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -100,7 +94,7 @@ export function RequestChangesDialog({
             </div>
           </div>
         </div>
-        <DialogFooter>
+        <ModalFooter>
           <button
             onClick={onClose}
             disabled={submitting}
@@ -115,8 +109,11 @@ export function RequestChangesDialog({
           >
             {submitting ? "Submitting..." : "Submit change request"}
           </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }
+
+// Alias export
+export { RequestChangesModal as RequestChangesDialog };

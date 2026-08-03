@@ -23,8 +23,8 @@ type Tab = "overview" | "manuscripts" | "materials" | "revision" | "decision";
 
 const TABS: { id: Tab; label: string; badge?: number }[] = [
   { id: "overview", label: "Overview" },
-  { id: "manuscripts", label: "Manuscripts" },
-  { id: "materials", label: "Materials" },
+  { id: "manuscripts", label: "Manuscript" },
+  { id: "materials", label: "Supporting materials" },
   { id: "revision", label: "Revision" },
   { id: "decision", label: "Decision history" },
 ];
@@ -58,7 +58,7 @@ export function ProposalDetailPage({
         title="Proposal not found"
         description="The proposal may have been deleted or the ID is invalid."
         action={
-          <Link to="/app/submissions" className="text-xs underline">
+          <Link to="/app/proposals" className="text-xs underline">
             Back to list
           </Link>
         }
@@ -67,7 +67,8 @@ export function ProposalDetailPage({
   }
 
   const canEdit =
-    (user.role === "admin" || (user.role === "mangaka" && proposal.authorId === user.id)) &&
+    user.role === "mangaka" &&
+    proposal.authorId === user.id &&
     ["DRAFT", "CHANGES_REQUESTED"].includes(proposal.status);
 
   if (editing && canEdit) {
@@ -75,16 +76,19 @@ export function ProposalDetailPage({
       <div className="mx-auto max-w-5xl space-y-6">
         <button
           onClick={() => {
-            navigate({ to: "/app/submissions/$id", params: { id: proposalId }, search: {} });
+            navigate({ to: "/app/proposals/$proposalId", params: { proposalId }, search: {} });
           }}
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
         >
           <ArrowLeft className="size-3.5" /> Cancel editing
         </button>
-        <header className="border-b border-border pb-4">
-          <h1 className="font-serif text-3xl">Edit proposal</h1>
+        <header className="border-b border-border/60 pb-4">
+          <div className="flex items-center gap-2">
+            <h1 className="font-serif text-3xl font-bold tracking-tight">Edit Proposal</h1>
+            <ProposalStatusPill status={proposal.status} />
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Current status: <ProposalStatusPill status={proposal.status} />
+            Update your manga series draft details before sending to editor review.
           </p>
         </header>
         <ProposalWizard
@@ -92,13 +96,13 @@ export function ProposalDetailPage({
           initialProposal={proposal}
           submitLabel="Save changes"
           onCancel={() =>
-            navigate({ to: "/app/submissions/$id", params: { id: proposalId }, search: {} })
+            navigate({ to: "/app/proposals/$proposalId", params: { proposalId }, search: {} })
           }
           onSave={async (payload) => {
             try {
               await updateProposalMutation.mutateAsync(payload);
-              toast.success("Changes saved.");
-              navigate({ to: "/app/submissions/$id", params: { id: proposalId }, search: {} });
+              toast.success("Changes saved successfully.");
+              navigate({ to: "/app/proposals/$proposalId", params: { proposalId }, search: {} });
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Error saving changes.");
               throw error;
@@ -110,88 +114,157 @@ export function ProposalDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <Link
-        to="/app/submissions"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        to="/app/proposals"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft className="size-3.5" /> Submissions
+        <ArrowLeft className="size-3.5" /> Back to Proposals
       </Link>
 
       {editing && !canEdit ? (
-        <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-900 dark:text-amber-200">
           This proposal cannot be edited with the current account or status.
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="space-y-4">
-          <div className="overflow-hidden rounded-md border border-border bg-card">
-            <ResolvedImage
-              fileKey={proposal.coverFileKey}
-              fallbackUrl={proposal.coverUrl}
-              alt={proposal.title}
-              className="aspect-[2/3] w-full object-cover"
-            />
-          </div>
-          <div className="space-y-2 text-xs">
-            <Meta label="Author" value={proposal.authorName} />
-            <Meta label="Audience" value={AUDIENCE_LABEL[proposal.targetAudience]} />
-            <Meta label="Chapters" value={String(proposal.chaptersPlanned)} />
-            <Meta label="Genres" value={proposal.genres.join(", ")} />
-            <Meta label="Editor" value={proposal.assignedEditorName ?? "Unassigned"} />
-            <Meta label="Revision round" value={String(proposal.revisionRound ?? 0)} />
-            <Meta
-              label="Sample"
-              value={
-                <ResolvedFileLink
-                  fileKey={proposal.manuscripts.at(-1)?.fileKey}
-                  fallbackUrl={proposal.sampleChapterUrl}
-                  fileName={proposal.manuscripts.at(-1)?.fileName}
-                  className="underline"
-                >
-                  View sample chapter
-                </ResolvedFileLink>
-              }
-            />
-          </div>
-        </aside>
-
-        <div className="space-y-6">
-          <header>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Proposal · {proposal.id}
-                </p>
-                <h1 className="mt-1 font-serif text-4xl">{proposal.title}</h1>
-              </div>
-              <ProposalStatusPill status={proposal.status} size="lg" />
+      {/* Single Vertical Column Flow (Thành dọc) */}
+      <div className="space-y-6">
+        {/* Unified Top Hero Card — Gộp Cover + Header + Metadata */}
+        <div className="rounded-xl border border-border/80 bg-card p-5 shadow-xs">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start">
+            {/* Left Cover Image */}
+            <div className="w-36 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-muted shadow-2xs">
+              <ResolvedImage
+                fileKey={proposal.coverFileKey}
+                fallbackUrl={proposal.coverUrl}
+                alt={proposal.title}
+                className="aspect-[2/3] w-full object-cover"
+              />
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-foreground/85">{proposal.synopsis}</p>
-          </header>
 
-          <StatusFlow status={proposal.status} />
-
-          <ActionPanel proposal={proposal} user={user} />
-
-          <div className="flex flex-wrap gap-1 border-b border-border">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`-mb-px border-b-2 px-3 py-2 text-xs font-semibold ${tab === t.id ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-              >
-                {t.label}
-                {typeof t.badge === "number" && t.badge > 0 ? (
-                  <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[10px] text-foreground/70">
-                    {t.badge}
+            {/* Right Details: Title, Badge, Synopsis & Metadata Grid */}
+            <div className="flex-1 space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Series Proposal · ID {proposal.id}
                   </span>
-                ) : null}
-              </button>
-            ))}
+                  <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-foreground">
+                    {proposal.title}
+                  </h1>
+                </div>
+                <ProposalStatusPill status={proposal.status} size="lg" />
+              </div>
+
+              <p className="text-xs leading-relaxed text-muted-foreground font-normal">
+                {proposal.synopsis}
+              </p>
+
+              {/* Grid Metadata Row */}
+              <div className="grid grid-cols-2 gap-3 pt-2 text-xs border-t border-border/60 sm:grid-cols-4">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Author
+                  </span>
+                  <span className="font-semibold text-foreground">{proposal.authorName}</span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Audience
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {AUDIENCE_LABEL[proposal.targetAudience]}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Target Chapters
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {proposal.chaptersPlanned} Chapters
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Genres
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {proposal.genres.join(", ") || "N/A"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Assigned Editor
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {proposal.assignedEditorName ?? "Unassigned"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Revision Round
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    Round {proposal.revisionRound ?? 0}
+                  </span>
+                </div>
+
+                <div className="col-span-2 sm:col-span-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Sample Chapter File
+                  </span>
+                  <ResolvedFileLink
+                    fileKey={proposal.manuscripts.at(-1)?.fileKey}
+                    fallbackUrl={proposal.sampleChapterUrl}
+                    fileName={proposal.manuscripts.at(-1)?.fileName}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    View Sample Chapter
+                  </ResolvedFileLink>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Workflow Status Pipeline */}
+        <StatusFlow status={proposal.status} />
+
+        {/* Workflow Action Panel */}
+        <ActionPanel proposal={proposal} user={user} />
+
+        {/* SaaS Tabs Header & Content */}
+        <div className="space-y-4">
+          <div className="border-b border-border">
+            <nav className="-mb-px flex space-x-6 text-sm font-medium">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`border-b-2 py-2.5 text-xs font-semibold transition-colors ${
+                    tab === t.id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                  {typeof t.badge === "number" && t.badge > 0 ? (
+                    <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-foreground">
+                      {t.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </nav>
           </div>
 
+          {/* Tab Content Panels */}
           {tab === "overview" ? (
             <div className="space-y-6">
               {proposal.status === "PENDING_BOARD" ||
@@ -200,17 +273,17 @@ export function ProposalDetailPage({
               proposal.status === "REJECTED" ? (
                 <VoteTally votes={proposal.votes} status={proposal.status} />
               ) : null}
-              <section>
-                <h2 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Timeline
-                </h2>
+              <section className="rounded-xl border border-border/80 bg-card p-4 shadow-xs">
+                <h3 className="mb-3 text-xs font-bold text-foreground">
+                  Workflow Timeline & Activity
+                </h3>
                 <Timeline events={proposal.history} />
               </section>
             </div>
           ) : tab === "manuscripts" ? (
             <ManuscriptList manuscripts={proposal.manuscripts} />
           ) : tab === "materials" ? (
-            <MaterialsViewer proposal={proposal} user={user} />
+            <MaterialsViewer proposal={proposal} scope="supporting" />
           ) : tab === "revision" ? (
             <RevisionChecklist proposal={proposal} />
           ) : (

@@ -4,7 +4,6 @@ import { BOARD_TOTAL } from "./proposal-types";
 export type TallyResult = {
   approve: number;
   reject: number;
-  abstain: number;
   total: number;
   status: ProposalStatus | null;
   reason: string;
@@ -14,61 +13,58 @@ export function evaluateBoardTally(
   votes: BoardVote[],
   quorum = Math.ceil(BOARD_TOTAL / 2),
 ): TallyResult {
-  const approve = votes
-    .filter((v) => v.decision === "APPROVE")
-    .reduce((s, v) => s + (v.weight ?? 1), 0);
-  const reject = votes
-    .filter((v) => v.decision === "REJECT")
-    .reduce((s, v) => s + (v.weight ?? 1), 0);
-  const abstain = votes.filter((v) => v.decision === "ABSTAIN").length;
-  const total = votes.length;
+  const validVotes = votes.filter(
+    (vote) => vote.decision === "APPROVE" || vote.decision === "REJECT",
+  );
+  const approve = validVotes
+    .filter((vote) => vote.decision === "APPROVE")
+    .reduce((sum, vote) => sum + (vote.weight ?? 1), 0);
+  const reject = validVotes
+    .filter((vote) => vote.decision === "REJECT")
+    .reduce((sum, vote) => sum + (vote.weight ?? 1), 0);
+  const total = validVotes.length;
 
-  if (approve >= quorum)
+  if (total < quorum) {
     return {
       approve,
       reject,
-      abstain,
+      total,
+      status: null,
+      reason: `Waiting for quorum (${total}/${quorum} votes).`,
+    };
+  }
+  if (approve > reject) {
+    return {
+      approve,
+      reject,
       total,
       status: "APPROVED",
-      reason: `Quorum ${approve} APPROVE ≥ ${quorum}.`,
+      reason: `Board majority ${approve} APPROVE to ${reject} REJECT.`,
     };
-  if (reject >= quorum)
+  }
+  if (reject > approve) {
     return {
       approve,
       reject,
-      abstain,
       total,
       status: "REJECTED",
-      reason: `Quorum ${reject} REJECT ≥ ${quorum}.`,
+      reason: `Board majority ${reject} REJECT to ${approve} APPROVE.`,
     };
-
-  if (total >= BOARD_TOTAL && approve === reject) {
+  }
+  if (total >= BOARD_TOTAL) {
     return {
       approve,
       reject,
-      abstain,
       total,
       status: "TIE_BREAK",
       reason: `Tied ${approve}-${reject}. Close this round to open a fresh Board re-vote.`,
     };
   }
-
-  if (total >= BOARD_TOTAL)
-    return {
-      approve,
-      reject,
-      abstain,
-      total,
-      status: null,
-      reason: "No quorum reached. Close the session to return the proposal to Board review.",
-    };
-
   return {
     approve,
     reject,
-    abstain,
     total,
     status: null,
-    reason: `Awaiting more votes (${total}/${BOARD_TOTAL}).`,
+    reason: `Waiting for more votes (${total}/${BOARD_TOTAL}).`,
   };
 }
