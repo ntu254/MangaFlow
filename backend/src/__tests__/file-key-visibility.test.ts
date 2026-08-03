@@ -4,7 +4,14 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { ProposalModel } from "../db/models.js";
+import {
+  ChapterModel,
+  MaterialModel,
+  ProposalModel,
+  SeriesModel,
+  StudioTaskModel,
+  SubmissionModel,
+} from "../db/models.js";
 
 let mongo: MongoMemoryReplSet;
 
@@ -35,6 +42,44 @@ describe("editor file-key visibility", () => {
         },
       },
     );
+    await SeriesModel.create({
+      id: "s-1",
+      title: "Board-inaccessible production series",
+      authorId: "u-mangaka",
+      coverFileKey: "series/s-1/cover.png",
+    });
+    await ChapterModel.create({
+      id: "ch-1",
+      seriesId: "s-1",
+      number: 1,
+      title: "Production chapter",
+      pages: [{ id: "p-1", pageNumber: 1, fileKey: "chapters/ch-1/pages/p-1.png" }],
+      history: [],
+    });
+    await MaterialModel.create({
+      id: "mat-1",
+      chapterId: "ch-1",
+      fileKey: "materials/ch-1/reference.pdf",
+      title: "Production reference",
+      versions: [],
+    });
+    await StudioTaskModel.create({
+      id: "task-1",
+      chapterId: "ch-1",
+      pageId: "p-1",
+      seriesId: "s-1",
+      currentSubmissionId: "sub-1",
+      status: "SUBMITTED",
+    });
+    await SubmissionModel.create({
+      id: "sub-1",
+      taskId: "task-1",
+      chapterId: "ch-1",
+      pageId: "p-1",
+      seriesId: "s-1",
+      fileKey: "submissions/sub-1/work.png",
+      status: "SUBMITTED",
+    });
   }, 30_000);
   afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); }, 30_000);
 
@@ -70,17 +115,37 @@ describe("editor file-key visibility", () => {
         .expect(200);
     }
   });
-  it("allows a Board user to resolve a visible review file but not a draft file", async () => {
+  it("allows Board to resolve visible Proposal files but not a draft file", async () => {
     const board = await loginAs("board@beachread.jp");
-    await request(createApp())
-      .post("/api/files/display-url")
-      .set("Authorization", `Bearer ${board.accessToken}`)
-      .send({ key: "proposals/p-002/cover.png", fileName: "cover.png" })
-      .expect(200);
+    for (const key of [
+      "proposals/p-002/cover.png",
+      "proposals/p-002/manuscript-v1.pdf",
+      "proposals/p-002/sample-pages.pdf",
+    ]) {
+      await request(createApp())
+        .post("/api/files/display-url")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .send({ key })
+        .expect(200);
+    }
     await request(createApp())
       .post("/api/files/display-url")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ key: "proposals/p-001/cover.png", fileName: "cover.png" })
+      .expect(403);
+  });
+
+  it.each([
+    "chapters/ch-1/pages/p-1.png",
+    "series/s-1/cover.png",
+    "materials/ch-1/reference.pdf",
+    "submissions/sub-1/work.png",
+  ])("blocks Board display URL for production key %s", async (key) => {
+    const board = await loginAs("board@beachread.jp");
+    await request(createApp())
+      .post("/api/files/display-url")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ key })
       .expect(403);
   });
 });

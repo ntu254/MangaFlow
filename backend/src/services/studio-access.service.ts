@@ -76,18 +76,37 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
   // under the same visibility rules so review screens can preview manuscripts
   // and supporting materials as well as the cover.
   const proposal = await ProposalModel.findOne({
-    $or: [{ coverFileKey: key }, { "manuscripts.fileKey": key }, { "materials.fileKey": key }],
+    $or: [
+      { coverFileKey: key },
+      { "manuscripts.fileKey": key },
+      { "manuscripts.key": key },
+      { "manuscripts.file.key": key },
+      { "materials.fileKey": key },
+      { "materials.key": key },
+      { "materials.file.key": key },
+      { "materials.versions.fileKey": key },
+      { "materials.versions.key": key },
+      { "materials.versions.file.key": key },
+    ],
   }).lean();
-  if (proposal) {
+  if (actor.role === "BOARD") {
     const boardVisibleStatuses = new Set([
       "PENDING_BOARD",
+      "READY_FOR_BOARD",
+      "BOARD_REVIEW",
       "BOARD_VOTING",
       "TIE_BREAK",
       "APPROVED",
       "REJECTED",
     ]);
+    if (proposal && boardVisibleStatuses.has(String((proposal as any).status))) {
+      return { chapter: null, page: null, series: null };
+    }
+    throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
+  }
+
+  if (proposal) {
     const canRead =
-      (actor.role === "BOARD" && boardVisibleStatuses.has(String((proposal as any).status))) ||
       (actor.role === "EDITOR" && String((proposal as any).status) !== "DRAFT") ||
       (actor.role === "MANGAKA" && (proposal as any).authorId === actor.id);
     if (canRead) return { chapter: null, page: null, series: null };
