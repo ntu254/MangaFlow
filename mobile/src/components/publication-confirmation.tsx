@@ -71,12 +71,11 @@ export function PublicationConfirmation({
 
   const effect =
     action === "PUBLISH"
-      ? `Publish ${chapterTitle} now. It becomes publicly visible. Backend readiness is currently ${
-          readinessReady ? "ready" : "not ready"
-        }.`
+      ? `Publishing ${chapterTitle} now makes it immediately visible to the public.`
       : action === "SCHEDULE"
         ? `Schedule ${chapterTitle} for a future date. It publishes automatically at that time.`
         : `Postpone the scheduled publication of ${chapterTitle}.`
+  const readiness = action === "PUBLISH" ? `Backend readiness is currently ${readinessReady ? "ready" : "not ready"}.` : null
   const scheduledAt = action === "SCHEDULE" ? toScheduledAt(selectedDate, hour, minute, new Date()) : null
 
   return (
@@ -87,6 +86,7 @@ export function PublicationConfirmation({
             {TITLES[action]}
           </Text>
           <Text style={styles.body}>{effect}</Text>
+          {readiness ? <Text style={styles.readiness}>{readiness}</Text> : null}
           {action === "SCHEDULE" ? (
             <ScrollView testID="publication-schedule-scroll" style={styles.scheduler} contentContainerStyle={styles.schedulerContent}>
               <View style={styles.monthHeader}>
@@ -175,9 +175,14 @@ export function PublicationConfirmation({
               accessibilityLabel={`Confirm ${TITLES[action].toLowerCase()}`}
               disabled={submitting || (action === "SCHEDULE" && !scheduledAt)}
               onPress={confirm}
-              style={[styles.button, styles.confirm, (submitting || (action === "SCHEDULE" && !scheduledAt)) && styles.disabled]}
+              style={[
+                styles.button,
+                styles.confirm,
+                action === "POSTPONE" && styles.tertiaryConfirm,
+                (submitting || (action === "SCHEDULE" && !scheduledAt)) && styles.disabled,
+              ]}
             >
-              <Text style={styles.confirmText}>Confirm</Text>
+              <Text style={[styles.confirmText, action === "POSTPONE" && styles.tertiaryConfirmText]}>Confirm</Text>
             </Pressable>
           </View>
         </View>
@@ -197,6 +202,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: typography.title, fontWeight: "700", color: colors.text },
   body: { fontSize: typography.body, color: colors.textMuted },
+  readiness: { fontSize: typography.label, color: colors.textMuted },
   scheduler: { maxHeight: 360 },
   schedulerContent: { gap: spacing.xs },
   monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -218,5 +224,7 @@ const styles = StyleSheet.create({
   cancelText: { color: colors.text, fontWeight: "600", fontSize: typography.body },
   confirm: { backgroundColor: colors.primary },
   confirmText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
+  tertiaryConfirm: { backgroundColor: colors.surfaceContainer },
+  tertiaryConfirmText: { color: colors.text, fontWeight: "600" },
   disabled: { opacity: 0.6 },
 })

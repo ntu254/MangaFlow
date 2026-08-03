@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import { WorkItemCard } from "@/components/work-item-card"
+import { WorkflowActionBar } from "@/components/workflow-action-bar"
 import { EditorTodayScreen } from "@/screens/editor-today-screen"
 import { BoardTodayScreen } from "@/screens/board-today-screen"
 import { filterEditorInbox } from "@/screens/editor-workspace"
@@ -53,6 +54,41 @@ describe("Queue-first Today surfaces", () => {
 
     fireEvent.press(screen.getByRole("button", { name: /open Neon District/i }))
     expect(onSelect).toHaveBeenCalledWith(urgentProposalFixture)
+  })
+
+  it("makes publication work explicit with a normalized chapter context", () => {
+    const publication = {
+      ...urgentProposalFixture,
+      id: "PUBLICATION:c-012",
+      kind: "PUBLICATION" as const,
+      entityType: "CHAPTER" as const,
+      title: "Chapter 12",
+      subtitle: "Neon District",
+    }
+
+    render(<WorkItemCard item={publication} onSelect={jest.fn()} />)
+
+    expect(screen.getByText("Publication · Chapter 12")).toBeVisible()
+    expect(screen.getByText("Chapter 12")).toBeVisible()
+    expect(screen.getByText("Neon District")).toBeVisible()
+  })
+
+  it("keeps publication actions compact, accessible, and single-line", () => {
+    render(
+      <WorkflowActionBar
+        actions={[
+          { action: "SCHEDULE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+          { action: "PUBLISH", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+          { action: "POSTPONE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+        ]}
+        onAction={jest.fn()}
+      />,
+    )
+
+    for (const label of ["Schedule publication", "Publish now", "Postpone"]) {
+      expect(screen.getByRole("button", { name: label })).toHaveStyle({ minHeight: 44 })
+      expect(screen.getByText(label).props.numberOfLines).toBe(1)
+    }
   })
 
   it("renders a success empty state without demo rows", () => {

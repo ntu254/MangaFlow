@@ -55,7 +55,7 @@ export function WorkflowActionBar({
               onPress={() => onAction(descriptor)}
               style={[styles.button, (!descriptor.enabled || busy) && styles.disabled]}
             >
-              <Text style={styles.buttonText}>{busy ? "Working…" : label}</Text>
+              <Text numberOfLines={1} style={styles.buttonText}>{busy ? "Working\u2026" : label}</Text>
             </Pressable>
             {!descriptor.enabled && descriptor.disabledReason ? (
               <Text style={styles.reason}>{descriptor.disabledReason}</Text>
@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   disabled: { backgroundColor: colors.surfaceContainer },
-  buttonText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
+  buttonText: { color: colors.surface, fontWeight: "600", fontSize: typography.body },
   reason: { color: colors.textMuted, fontSize: typography.label, paddingHorizontal: spacing.sm },
 })

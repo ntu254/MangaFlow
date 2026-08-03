@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import { PublicationConfirmation } from "@/components/publication-confirmation"
 import { toScheduledAt } from "@/domain/publication-schedule"
+import { colors } from "@/design/tokens"
 
 describe("toScheduledAt", () => {
   it("converts a future local date and time to an ISO timestamp", () => {
@@ -70,5 +71,39 @@ describe("PublicationConfirmation", () => {
     fireEvent.press(screen.getByRole("button", { name: "Minute 34" }))
 
     expect(screen.getByRole("button", { name: "Confirm schedule publication" })).toBeDisabled()
+  })
+
+  it("makes immediate public visibility explicit before publishing", () => {
+    render(
+      <PublicationConfirmation
+        visible
+        action="PUBLISH"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByRole("header", { name: "Publish now" })).toBeVisible()
+    expect(screen.getByText("Publishing Echoes now makes it immediately visible to the public.")).toBeVisible()
+  })
+
+  it("keeps postponement a tertiary confirmation action", () => {
+    render(
+      <PublicationConfirmation
+        visible
+        action="POSTPONE"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "Confirm postpone publication" })).toHaveStyle({
+      minHeight: 44,
+      backgroundColor: colors.surfaceContainer,
+    })
   })
 })
