@@ -4,6 +4,9 @@ import {
   ProposalModel,
   SeriesModel,
   StudioCommentModel,
+  StudioRegionModel,
+  StudioTaskModel,
+  SubmissionModel,
 } from "../db/models.js";
 import { AppError } from "../lib/http.js";
 import type { RequestActor } from "../types.js";
@@ -59,9 +62,47 @@ function activityArea(action: string): EditorActivityArea | null {
   return null;
 }
 
-function chapterIdForComment(comment: any): string | null {
+async function chapterIdForComment(comment: any): Promise<string | null> {
   if (comment?.chapterId) return String(comment.chapterId);
   if (comment?.targetType === "CHAPTER" && comment?.targetId) return String(comment.targetId);
+
+  const taskId = comment?.taskId ?? (comment?.targetType === "TASK" ? comment?.targetId : null);
+  if (taskId) {
+    const task = await StudioTaskModel.findOne({ id: String(taskId) })
+      .select({ chapterId: 1 })
+      .lean();
+    if ((task as any)?.chapterId) return String((task as any).chapterId);
+  }
+
+  const regionId = comment?.regionId ?? (comment?.targetType === "REGION" ? comment?.targetId : null);
+  if (regionId) {
+    const region = await StudioRegionModel.findOne({ id: String(regionId) })
+      .select({ chapterId: 1 })
+      .lean();
+    if ((region as any)?.chapterId) return String((region as any).chapterId);
+  }
+
+  if (comment?.targetType === "SUBMISSION" && comment?.targetId) {
+    const submission = await SubmissionModel.findOne({ id: String(comment.targetId) })
+      .select({ chapterId: 1, taskId: 1 })
+      .lean();
+    if ((submission as any)?.chapterId) return String((submission as any).chapterId);
+    if ((submission as any)?.taskId) {
+      const task = await StudioTaskModel.findOne({ id: String((submission as any).taskId) })
+        .select({ chapterId: 1 })
+        .lean();
+      if ((task as any)?.chapterId) return String((task as any).chapterId);
+    }
+  }
+
+  const pageId = comment?.pageId ?? (comment?.targetType === "PAGE" ? comment?.targetId : null);
+  if (pageId) {
+    const chapter = await ChapterModel.findOne({ "pages.id": String(pageId) })
+      .select({ id: 1 })
+      .lean();
+    if ((chapter as any)?.id) return String((chapter as any).id);
+  }
+
   return null;
 }
 
@@ -80,6 +121,7 @@ export async function getEditorActivity(actor: RequestActor): Promise<EditorActi
 
   const audits = await AuditEntryModel.find({
     actorId: actor.id,
+    actorRole: "EDITOR",
     action: { $regex: /^(proposal[._]|chapter[._]|comment[.]|publication[._])/i },
   })
     .sort({ createdAt: -1 })
@@ -103,12 +145,28 @@ export async function getEditorActivity(actor: RequestActor): Promise<EditorActi
   const [proposals, comments] = await Promise.all([
     ProposalModel.find({ id: { $in: proposalIds } }).select({ id: 1, title: 1 }).lean(),
     StudioCommentModel.find({ id: { $in: commentIds } })
-      .select({ id: 1, seriesId: 1, chapterId: 1, targetType: 1, targetId: 1 })
+      .select({
+        id: 1,
+        seriesId: 1,
+        chapterId: 1,
+        pageId: 1,
+        regionId: 1,
+        taskId: 1,
+        targetType: 1,
+        targetId: 1,
+      })
       .lean(),
   ]);
   const commentById = new Map(comments.map((comment: any) => [String(comment.id), comment]));
-  const commentChapterIds = comments
-    .map(chapterIdForComment)
+  const commentChapterEntries = await Promise.all(
+    comments.map(async (comment: any) => [
+      String(comment.id),
+      await chapterIdForComment(comment),
+    ] as const),
+  );
+  const commentChapterIdById = new Map(commentChapterEntries);
+  const commentChapterIds = commentChapterEntries
+    .map(([, chapterId]) => chapterId)
     .filter((value): value is string => value !== null);
   const chapters = await ChapterModel.find({
     id: { $in: [...new Set([...directChapterIds, ...commentChapterIds])] },
@@ -134,7 +192,7 @@ export async function getEditorActivity(actor: RequestActor): Promise<EditorActi
   return classified.map(({ audit, area }) => {
     const entityId = String(audit.entityId);
     const comment = area === "COMMENT" ? commentById.get(entityId) : null;
-    const chapterId = comment ? chapterIdForComment(comment) :
+    const chapterId = comment ? commentChapterIdById.get(entityId) ?? null :
       area === "CHAPTER" || area === "PUBLICATION" ? entityId : null;
     const chapter = chapterId ? chapterById.get(chapterId) : null;
     const seriesId = chapter?.seriesId ?? comment?.seriesId ?? null;
