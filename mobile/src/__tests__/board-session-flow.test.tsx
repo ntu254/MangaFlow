@@ -18,7 +18,7 @@ jest.mock("@/services/board-mobile-data-source", () => ({
 const mocked = dataSource as jest.Mocked<typeof dataSource>
 
 const votableSession: BoardSessionDetail = {
-  session: { id: "vs-1", title: "Weekly slate", status: "OPEN", version: 3, proposalId: "p-004", reVoteOfSessionId: null, isReVote: false },
+  session: { id: "vs-1", title: "Weekly slate", status: "OPEN", version: 3, proposalId: "p-004", reVoteOfSessionId: null, isReVote: false, votingRound: 1, tiePolicy: "CHAIR_DECIDES", tieResolution: "PENDING" },
   proposal: { id: "p-004", title: "Neon District", status: "BOARD_REVIEW" },
   tally: { approve: 2, reject: 0, total: 2, quorum: 3, eligible: 5, canFinalize: false },
   myVote: null,
@@ -73,6 +73,24 @@ describe("BoardSessionDetailScreen", () => {
       session: { ...votableSession.session, id: "vs-2", reVoteOfSessionId: "vs-1", isReVote: true },
     })
     expect(await screen.findByText("Fresh re-vote is open")).toBeVisible()
+  })
+
+  it("refreshes the session detail after a successful API action", async () => {
+    mocked.getBoardSessionDetail
+      .mockResolvedValueOnce(votableSession)
+      .mockResolvedValueOnce({
+        ...votableSession,
+        myVote: { decision: "APPROVE" },
+        currentUserVote: { decision: "APPROVE" },
+      })
+    mocked.castBoardVote.mockResolvedValue(undefined)
+
+    renderScreen()
+    fireEvent.press(await screen.findByRole("button", { name: "Approve" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm approve" }))
+
+    await waitFor(() => expect(screen.getByText("You voted: APPROVE")).toBeVisible())
+    expect(mocked.getBoardSessionDetail).toHaveBeenCalledTimes(2)
   })
 
   it("lets the Chair finalize when the tally is decisive", async () => {

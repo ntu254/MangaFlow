@@ -105,7 +105,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
     return <SubmissionReviewMissing backLink={backLink} />;
   }
 
-  const isPending = submission.status === "PENDING" || submission.status === "SUBMITTED";
+  const isPending = submission.status === "PENDING";
 
   function handleReview(action: "approve" | "reject" | "request-revision", reason?: string) {
     reviewMutation.mutate(

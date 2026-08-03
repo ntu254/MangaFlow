@@ -268,7 +268,6 @@ export function ProposalDetailPage({
           {tab === "overview" ? (
             <div className="space-y-6">
               {proposal.status === "PENDING_BOARD" ||
-              proposal.status === "TIE_BREAK" ||
               proposal.status === "APPROVED" ||
               proposal.status === "REJECTED" ? (
                 <VoteTally votes={proposal.votes} status={proposal.status} />

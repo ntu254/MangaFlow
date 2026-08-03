@@ -149,23 +149,15 @@ const WORKFLOW_LABEL: Record<WorkflowFilter, string> = {
 };
 
 const REVIEW_SUBMISSION_STATUSES = new Set<SubmissionStatus>([
-  "SUBMITTED",
   "PENDING",
   "REVISION_REQUESTED",
-  "MANGAKA_REVISION_REQUESTED",
-  "EDITOR_REVISION_REQUESTED",
 ]);
 
 const ACTIVE_TASK_STATUSES = new Set<StudioTask["status"]>([
   "TODO",
   "IN_PROGRESS",
-  "SUBMITTED",
   "REVISION_REQUESTED",
-  "MANGAKA_REVIEWING",
-  "MANGAKA_REVISION_REQUESTED",
   "MANGAKA_APPROVED",
-  "EDITOR_REVIEWING",
-  "EDITOR_REVISION_REQUESTED",
 ]);
 
 function getInitials(title: string): string {

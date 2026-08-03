@@ -13,7 +13,6 @@ type StudioTaskFilters = {
   seriesId?: string;
   chapterId?: string;
   pageId?: string;
-  regionId?: string;
   assigneeId?: string;
   status?: string;
 };
@@ -145,23 +144,16 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
 function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
   switch (raw) {
     case "PENDING":
-    case "SUBMITTED":
-    case "IN_REVIEW":
-      return "SUBMITTED";
     case "REVISION_REQUESTED":
-    case "MANGAKA_REVISION_REQUESTED":
-    case "EDITOR_REVISION_REQUESTED":
       return "REVISION_REQUESTED";
     case "MANGAKA_APPROVED":
       return "MANGAKA_APPROVED";
-    case "EDITOR_APPROVED":
-      return "EDITOR_APPROVED";
-    case "APPROVED":
-      return "APPROVED";
     case "REJECTED":
       return "REJECTED";
+    case "SUPERSEDED":
+      return "SUPERSEDED";
     default:
-      return "DRAFT";
+      return "PENDING";
   }
 }
 
@@ -354,7 +346,6 @@ export function useCreateSubmissionMutation() {
       seriesId?: string;
       chapterId?: string;
       pageId?: string;
-      regionId?: string;
       fileKey?: string;
       fileName?: string;
       fileUrl?: string;
@@ -364,7 +355,7 @@ export function useCreateSubmissionMutation() {
       notes?: string;
       intent?: "DRAFT" | "SUBMIT";
       version?: number;
-      status?: "DRAFT" | "SUBMITTED";
+      status?: "PENDING" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "REJECTED" | "SUPERSEDED";
       expectedCurrentSubmissionId?: string | null;
       idempotencyKey?: string;
     }

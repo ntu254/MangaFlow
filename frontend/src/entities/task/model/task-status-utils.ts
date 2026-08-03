@@ -5,7 +5,6 @@ export type VisualTaskStatus = StudioTaskStatus | "OVERDUE" | "REASSIGNED" | "CA
 type UnknownTask = Partial<StudioTask> & Record<string, unknown>;
 
 const CLOSED_STATUSES: StudioTaskStatus[] = [
-  "EDITOR_APPROVED",
   "MANGAKA_APPROVED",
   "REJECTED",
   "CANCELLED",
@@ -63,12 +62,10 @@ export function getTaskStatusLabel(status: VisualTaskStatus): string {
 export function getTaskStatusTone(
   status: VisualTaskStatus,
 ): "default" | "success" | "warning" | "danger" | "muted" {
-  if (status === "EDITOR_APPROVED" || status === "MANGAKA_APPROVED") return "success";
+  if (status === "MANGAKA_APPROVED") return "success";
   if (
     status === "SUBMITTED" ||
     status === "IN_PROGRESS" ||
-    status === "MANGAKA_REVISION_REQUESTED" ||
-    status === "EDITOR_REVISION_REQUESTED" ||
     status === "REASSIGNED"
   )
     return "warning";

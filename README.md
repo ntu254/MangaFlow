@@ -20,11 +20,12 @@ are retained only as historical references.
 
 | Path | What it is | Stack |
 | --- | --- | --- |
-| `src/` | Web app | TanStack Start · React 19 · TanStack Router/Query · Zustand · Tailwind |
+| `frontend/` | Web app | TanStack Start · React 19 · TanStack Router/Query · Zustand · Tailwind |
 | `backend/` | REST API + background jobs | Express · TypeScript · MongoDB/Mongoose · JWT auth |
 | `ai-service/` | Speech-bubble detection & whitening | FastAPI · YOLO11 (Ultralytics) · OpenCV |
 | `mobile/` | Board + Editor mobile shell | Expo · React Native |
-| `scripts/` | Repository harness CLI and automation | — |
+| `tools/` | Ask-the-Codebase CLI and server | Node.js |
+| `postman/` | Postman API collection | — |
 
 ## Roles at a glance
 
@@ -52,6 +53,7 @@ Full permission matrix: see
 ### 1. Web app
 
 ```bash
+cd frontend
 npm install
 cp .env.example .env      # fill in VITE_API_BASE_URL
 npm run dev                # http://localhost:5173
@@ -86,8 +88,10 @@ npm run web       # or: npm run android / npm run ios
 ## Testing
 
 ```bash
-npm run test:e2e            # Playwright, from the repo root
+cd frontend
+npm run test:e2e            # Playwright, web E2E suite
 npm run typecheck           # Web TypeScript check
+npm run lint                # Web ESLint
 npm run audit:architecture  # FDM import-boundary checks
 cd backend && npm test       # Vitest, backend unit/integration suite
 ```

@@ -251,7 +251,7 @@ async function validateInvariants(unmapped: ReportRow[]) {
 }
 
 async function duplicateReport() {
-  const activeStatuses = ["DRAFT", "OPEN", "CLOSED", "TIE_BREAK_REQUIRED"];
+  const activeStatuses = ["OPEN"];
   const [sessions, series, votes, decisions, earnings] = await Promise.all([
     VotingSessionModel.find({ targetType: "PROPOSAL", status: { $in: activeStatuses } }).lean(),
     SeriesModel.find({ sourceProposalId: { $exists: true, $ne: null } }).lean(),
@@ -285,7 +285,7 @@ async function createUniqueIndexesIfClean(report: any) {
         partialFilterExpression: {
           targetType: "PROPOSAL",
           proposalId: { $type: "string" },
-          status: { $in: ["DRAFT", "OPEN", "CLOSED", "TIE_BREAK_REQUIRED"] },
+          status: { $in: ["OPEN"] },
         },
       },
     ),

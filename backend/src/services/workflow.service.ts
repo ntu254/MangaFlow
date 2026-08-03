@@ -30,7 +30,6 @@ import type {
 } from "../types.js";
 import {
   BOARD_QUORUM,
-  DEFAULT_BOARD_ELIGIBLE_VOTER_IDS,
   evaluateBoardTally,
   normalizeBoardVote,
 } from "./board-governance.service.js";
@@ -213,12 +212,6 @@ function assertProposalAction(
       if (actor.role === "BOARD") return;
       if (actor.role === "EDITOR") return;
       throw new AppError(403, "Only Board members can vote.", "FORBIDDEN");
-    case "FORCE_STATUS":
-      throw new AppError(
-        410,
-        "Direct proposal status forcing is removed. Finalize Board decisions through VotingSession commands or use the audited Admin override workflow.",
-        "WORKFLOW_REMOVED",
-      );
     case "ARCHIVE": {
       const isOwningMangaka = actor.role === "MANGAKA" && proposal.authorId === actor.id;
       if (!isOwningMangaka) {
@@ -290,7 +283,7 @@ export async function applyProposalAction(
       break;
 
     case "CLAIM": {
-      if (!["SUBMITTED", "PENDING_EDITOR"].includes(proposal.status))
+      if (proposal.status !== "PENDING_EDITOR")
         throw new AppError(
           400,
           "The current status does not allow this action.",
@@ -307,7 +300,7 @@ export async function applyProposalAction(
       const updatedDoc = await ProposalModel.findOneAndUpdate(
         {
           id: proposalId,
-          status: { $in: ["SUBMITTED", "PENDING_EDITOR"] },
+          status: "PENDING_EDITOR",
           $or: [{ claimedByEditorId: { $exists: false } }, { claimedByEditorId: null }],
         },
         {
@@ -356,9 +349,7 @@ export async function applyProposalAction(
 
     case "RELEASE_CLAIM":
       if (
-        !["SUBMITTED", "TANTOU_REVIEW", "PENDING_EDITOR", "EDITOR_REVIEWING"].includes(
-          proposal.status,
-        )
+        !["EDITOR_REVIEWING", "CHANGES_REQUESTED", "PENDING_EDITOR"].includes(proposal.status)
       ) {
         throw new AppError(
           400,
@@ -381,7 +372,7 @@ export async function applyProposalAction(
       break;
 
     case "UPDATE_EDITORIAL_CHECKLIST": {
-      if (!["EDITOR_REVIEWING", "RESUBMITTED"].includes(proposal.status)) {
+      if (proposal.status !== "EDITOR_REVIEWING") {
         throw new AppError(
           409,
           "The checklist can only be updated during an active editor review.",
@@ -400,11 +391,8 @@ export async function applyProposalAction(
     case "REQUEST_CHANGES": {
       if (
         ![
-          "SUBMITTED",
-          "TANTOU_REVIEW",
           "PENDING_EDITOR",
           "EDITOR_REVIEWING",
-          "RESUBMITTED",
         ].includes(proposal.status)
       )
         throw new AppError(
@@ -450,11 +438,8 @@ export async function applyProposalAction(
     case "FORWARD":
       if (
         ![
-          "SUBMITTED",
-          "TANTOU_REVIEW",
           "PENDING_EDITOR",
           "EDITOR_REVIEWING",
-          "RESUBMITTED",
         ].includes(proposal.status)
       )
         throw new AppError(
@@ -492,11 +477,8 @@ export async function applyProposalAction(
     case "REJECT":
       if (
         ![
-          "SUBMITTED",
-          "TANTOU_REVIEW",
           "PENDING_EDITOR",
           "EDITOR_REVIEWING",
-          "RESUBMITTED",
         ].includes(proposal.status)
       )
         throw new AppError(
@@ -522,13 +504,12 @@ export async function applyProposalAction(
 
     case "RECALL":
       if (
-        !["READY_FOR_BOARD", "PENDING_BOARD", "BOARD_REVIEW", "BOARD_VOTING"].includes(
+        !["PENDING_BOARD", "BOARD_REVIEW"].includes(
           proposal.status,
         )
       )
         throw new AppError(409, "Only board proposals can be recalled.", "INVALID_TRANSITION");
       patch.status = "PENDING_EDITOR";
-      patch.votes = [];
       break;
 
     case "VOTE": {
@@ -564,11 +545,10 @@ export async function applyProposalAction(
           "FORBIDDEN",
         );
       }
-      const eligibleVoterIds =
-        Array.isArray((session as any).eligibleVoterIds) &&
-        (session as any).eligibleVoterIds.length > 0
-          ? (session as any).eligibleVoterIds
-          : DEFAULT_BOARD_ELIGIBLE_VOTER_IDS;
+      const eligibleVoterIds = (session as any).eligibleVoterIds;
+      if (!Array.isArray(eligibleVoterIds) || eligibleVoterIds.length === 0) {
+        throw new AppError(409, "Voting session has no electorate snapshot.", "ELECTORATE_SNAPSHOT_REQUIRED");
+      }
       if (!eligibleVoterIds.includes(actor.id)) {
         throw new AppError(403, "You are not eligible to vote in this VotingSession.", "FORBIDDEN");
       }
@@ -594,8 +574,6 @@ export async function applyProposalAction(
         );
       }
       const vote = {
-        memberId: actor.id,
-        memberName: actor.name,
         voterId: actor.id,
         voterName: actor.name,
         decision,
@@ -620,9 +598,6 @@ export async function applyProposalAction(
         Number((session as any).quorum ?? BOARD_QUORUM),
         eligibleVoterIds.length,
       );
-
-      // Keep a denormalized read cache only; VotingSession remains the source of truth.
-      patch.votes = votes;
 
       // Write to source-of-truth collection
       await runWorkflowTransaction(async (tx) => {
@@ -680,8 +655,6 @@ export async function applyProposalAction(
       if (
         ![
           "DRAFT",
-          "SUBMITTED",
-          "TANTOU_REVIEW",
           "PENDING_EDITOR",
           "EDITOR_REVIEWING",
           "CHANGES_REQUESTED",
@@ -789,7 +762,7 @@ export async function applyProposalAction(
         const activeSession = await VotingSessionModel.findOne({
           targetType: "PROPOSAL",
           proposalId: proposal.id,
-          status: { $in: ["DRAFT", "OPEN", "CLOSED", "TIE_BREAK_REQUIRED"] },
+          status: "OPEN",
         }).lean();
         if (activeSession) {
           throw new AppError(
@@ -1285,7 +1258,7 @@ export async function dashboardSummary(role: string) {
     return {
       reviewQueue: {
         proposals: proposals.filter((p: any) =>
-          ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED", "RESUBMITTED"].includes(
+          ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED"].includes(
             p.status,
           ),
         ).length,
@@ -1303,13 +1276,12 @@ export async function dashboardSummary(role: string) {
     return {
       boardQueue: {
         pendingVotes: proposals.filter((p: any) =>
-          ["PENDING_BOARD", "BOARD_VOTING"].includes(p.status),
+          ["PENDING_BOARD", "BOARD_REVIEW"].includes(p.status),
         ).length,
-        tieBreaks: proposals.filter((p: any) => p.status === "TIE_BREAK").length,
         atRiskReviews: rankings.filter((r: any) => r.atRisk || r.status === "AT_RISK").length,
       },
       recentActivity: proposals
-        .filter((p: any) => ["PENDING_BOARD", "BOARD_VOTING", "TIE_BREAK"].includes(p.status))
+        .filter((p: any) => ["PENDING_BOARD", "BOARD_REVIEW"].includes(p.status))
         .map((p: any) => ({ id: p.id, label: `${p.title}: ${p.status}`, createdAt: p.updatedAt })),
     };
   }
@@ -1325,7 +1297,7 @@ export async function dashboardSummary(role: string) {
 
 export async function editorReviewQueue() {
   const proposals = await ProposalModel.find({
-    status: { $in: ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED", "RESUBMITTED"] },
+    status: { $in: ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED"] },
   })
     .sort({ updatedAt: -1 })
     .lean();
@@ -1340,7 +1312,7 @@ export async function editorReviewQueue() {
       id: proposal.id,
       title: proposal.title,
       status:
-        proposal.status === "CHANGES_REQUESTED" || proposal.status === "RESUBMITTED"
+        proposal.status === "CHANGES_REQUESTED"
           ? "REVISION_REQUESTED"
           : "EDITOR_REVIEW",
       synopsis: proposal.synopsis,
@@ -1363,7 +1335,7 @@ export async function editorReviewQueue() {
 export async function boardQueue() {
   const proposals = await ProposalModel.find({
     status: {
-      $in: ["READY_FOR_BOARD", "BOARD_REVIEW", "PENDING_BOARD", "BOARD_VOTING", "TIE_BREAK"],
+      $in: ["BOARD_REVIEW", "PENDING_BOARD"],
     },
   })
     .sort({ updatedAt: -1 })
@@ -1373,12 +1345,10 @@ export async function boardQueue() {
     VotingSessionModel.find({
       targetType: "PROPOSAL",
       proposalId: { $in: proposalIds },
-      status: { $in: ["OPEN", "TIE_BREAK_REQUIRED"] },
+      status: "OPEN",
     }).lean(),
     ProposalVoteModel.find({ proposalId: { $in: proposalIds } }).lean(),
   ]);
-  // A proposal can retain historical TIE_BREAK_REQUIRED sessions. Prefer the
-  // currently open re-vote and only fall back to the newest historical round.
   const sessionByProposal = new Map<string, any>();
   for (const session of [...sessions].sort((left: any, right: any) => {
     const leftOpen = left.status === "OPEN" ? 1 : 0;
@@ -1390,30 +1360,22 @@ export async function boardQueue() {
   }
   const proposalItems = proposals.map((proposal: any) => {
     const session = sessionByProposal.get(String(proposal.id));
-    const eligibleVoterIds =
-      Array.isArray((session as any)?.eligibleVoterIds) &&
-      (session as any).eligibleVoterIds.length > 0
-        ? (session as any).eligibleVoterIds
-        : DEFAULT_BOARD_ELIGIBLE_VOTER_IDS;
+    const eligibleVoterIds = (session as any)?.eligibleVoterIds ?? [];
     const votes = (
       session
         ? sessionVotes.filter((vote: any) => vote.sessionId === session.id)
-        : (proposal.votes ?? [])
-    ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)));
+        : []
+    ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId)));
     const quorum = Number((session as any)?.quorum ?? BOARD_QUORUM);
     const tally = evaluateBoardTally(votes, quorum, eligibleVoterIds.length);
     const canFinalize = Boolean(session) && Boolean(tally.status);
-    const sessionStatus = String((session as any)?.status ?? "");
-    const isTieBreak = session
-      ? sessionStatus === "TIE_BREAK_REQUIRED"
-      : proposal.status === "TIE_BREAK";
     return {
       id: proposal.id,
       seriesId: proposal.id,
       seriesTitle: proposal.title,
       title: proposal.title,
       seriesStatus: "BOARD_REVIEW",
-      decisionStatus: isTieBreak ? "TIE_BREAK_REQUIRED" : "PENDING",
+      decisionStatus: "PENDING",
       votingSessionId: (session as any)?.id ?? proposal.activeVotingSessionId ?? null,
       proposalVersionId:
         (session as any)?.proposalVersionId ?? proposal.activeProposalVersionId ?? null,
@@ -1468,14 +1430,11 @@ export async function seriesProposalSummary(seriesId: string) {
       id: value.id,
       title: value.title,
       status: [
-        "READY_FOR_BOARD",
         "BOARD_REVIEW",
         "PENDING_BOARD",
-        "BOARD_VOTING",
-        "TIE_BREAK",
       ].includes(value.status)
         ? "BOARD_REVIEW"
-        : value.status === "CHANGES_REQUESTED" || value.status === "RESUBMITTED"
+        : value.status === "CHANGES_REQUESTED"
           ? "REVISION_REQUESTED"
           : (value.status ?? "EDITOR_REVIEW"),
       synopsis: value.synopsis,
@@ -1488,12 +1447,8 @@ export async function seriesProposalSummary(seriesId: string) {
     },
     currentManuscript: (value.manuscripts ?? [])[value.manuscripts?.length - 1],
     manuscripts: value.manuscripts ?? [],
-    boardReview: value.votes
-      ? {
-          status: value.status === "TIE_BREAK" ? "TIE_BREAK_REQUIRED" : value.status,
-          result: value.status,
-          voteCount: value.votes.length,
-        }
+    boardReview: ["PENDING_BOARD", "BOARD_REVIEW"].includes(value.status)
+      ? { status: value.status, result: null }
       : undefined,
   };
 }

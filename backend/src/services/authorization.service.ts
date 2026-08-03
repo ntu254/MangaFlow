@@ -15,10 +15,7 @@ import type { RequestActor } from "../types.js";
 
 const BOARD_VISIBLE_PROPOSAL_STATUSES = new Set([
   "PENDING_BOARD",
-  "READY_FOR_BOARD",
   "BOARD_REVIEW",
-  "BOARD_VOTING",
-  "TIE_BREAK",
   "APPROVED",
   "REJECTED",
 ]);
@@ -234,16 +231,15 @@ export async function productionScopeFilter(actor: RequestActor, mode: "read" | 
   if (actor.role === "BOARD") return { id: { $in: [] } };
   if (actor.role === "ASSISTANT") {
     const tasks = await StudioTaskModel.find({ assigneeId: actor.id })
-      .select({ id: 1, regionId: 1 })
+      .select({ id: 1 })
       .lean();
     const taskIds = tasks.map((item: any) => item.id);
-    const regionIds = tasks.map((item: any) => item.regionId).filter(Boolean);
     if (mode === "mutate") return { assigneeId: actor.id };
     return {
       $or: [
         { assigneeId: actor.id },
         { assistantId: actor.id },
-        { id: { $in: [...taskIds, ...regionIds] } },
+        { id: { $in: taskIds } },
         { taskId: { $in: taskIds } },
         { activeTaskId: { $in: taskIds } },
         { lockedByTaskId: { $in: taskIds } },
@@ -293,7 +289,7 @@ async function scopedProductionIds(actor: RequestActor, mode: "read" | "mutate" 
       SeriesMemberModel.find({ userId: actor.id, status: "active" }).select({ seriesId: 1 }).lean(),
       SeriesModel.find({ assistantIds: actor.id }).select({ id: 1 }).lean(),
       StudioTaskModel.find({ assigneeId: actor.id, status: { $ne: "CANCELLED" } })
-        .select({ id: 1, seriesId: 1, chapterId: 1, pageId: 1, regionId: 1 })
+        .select({ id: 1, seriesId: 1, chapterId: 1, pageId: 1 })
         .lean(),
     ]);
     const seriesIds = [
@@ -319,7 +315,7 @@ async function scopedProductionIds(actor: RequestActor, mode: "read" | "mutate" 
         ]),
       ],
       taskIds: assignedTasks.map((item: any) => item.id),
-      regionIds: assignedTasks.map((item: any) => item.regionId).filter(Boolean),
+      regionIds: [],
     };
   }
 

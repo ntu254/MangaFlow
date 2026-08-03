@@ -11,11 +11,13 @@ import { audit } from "../services/audit.service.js";
 import {
   closeVotingSession,
   cancelVotingSession,
+  resolveTiedVotingSession,
 } from "../services/proposal-governance.service.js";
 import {
   activeBoardElectorate,
   BOARD_QUORUM,
   evaluateBoardTally,
+  normalizeTiePolicy,
 } from "../services/board-governance.service.js";
 import { requireActor } from "./helpers.js";
 import { parseBody, rejectProtectedFields } from "../validators/common.js";
@@ -32,6 +34,7 @@ const createVotingSessionSchema = z
     proposalIds: z.array(z.string()).optional(),
     scheduledFor: z.string().optional(),
     closesAt: z.string().optional(),
+    tiePolicy: z.enum(["CHAIR_DECIDES", "REJECT", "RETURN_TO_BOARD"]).optional(),
   })
   .strict();
 
@@ -51,13 +54,21 @@ const sessionNoteSchema = z
   })
   .strict();
 
+const resolveTieSchema = z
+  .object({
+    decision: z.enum(["APPROVED", "REJECTED"]),
+    note: z.string().min(1).max(5000),
+    expectedVersion: z.number().int().positive().optional(),
+  })
+  .strict();
+
 export const listVotingSessions = asyncRoute(async (_req: AuthedRequest, res) =>
   ok(res, await VotingSessionModel.find({}).sort({ openedAt: -1 }).lean()),
 );
 
 export const decisionHistory = asyncRoute(async (_req: AuthedRequest, res) => {
   const [proposals, sessions, riskDecisions, riskSignals] = await Promise.all([
-    ProposalModel.find({ status: { $in: ["APPROVED", "REJECTED", "TIE_BREAK"] } })
+    ProposalModel.find({ status: { $in: ["APPROVED", "REJECTED"] } })
       .sort({ updatedAt: -1 })
       .limit(100)
       .lean(),
@@ -167,7 +178,7 @@ export const createVotingSession = asyncRoute(async (req: AuthedRequest, res) =>
     const active = await VotingSessionModel.findOne({
       targetType: "PROPOSAL",
       proposalId,
-      status: { $in: ["DRAFT", "OPEN", "TIE_BREAK_REQUIRED"] },
+      status: "OPEN",
     })
       .session(tx)
       .lean();
@@ -238,9 +249,13 @@ export const createVotingSession = asyncRoute(async (req: AuthedRequest, res) =>
         proposalVersionId,
         status: "OPEN",
         version: 1,
+        votingRound: 1,
+        tiePolicy: normalizeTiePolicy(body.tiePolicy),
+        tieResolution: "PENDING",
         proposalIds: [proposalId],
         eligibleVoterIds,
         quorum: BOARD_QUORUM,
+        chairId: actor.id,
         createdById: actor.id,
         createdByName: actor.name,
         openedAt: now,
@@ -282,7 +297,7 @@ export const patchVotingSession = asyncRoute(async (req: AuthedRequest, res) => 
   const existing = await VotingSessionModel.findOne({ id: String(req.params.id) }).lean();
   if (!existing) throw new AppError(404, "Voting session not found.", "SESSION_NOT_FOUND");
   if (
-    ["FINALIZED", "NO_QUORUM", "CANCELLED", "TIED", "TIE_BREAK_REQUIRED"].includes(
+    ["FINALIZED", "NO_QUORUM", "CANCELLED", "TIED"].includes(
       String((existing as any).status),
     )
   ) {
@@ -315,6 +330,13 @@ export const closeSession = asyncRoute(async (req: AuthedRequest, res) =>
     await closeVotingSession(req, String(req.params.id), req.body?.note, req.body?.publicationType),
   ),
 );
+export const resolveTie = asyncRoute(async (req: AuthedRequest, res) => {
+  const body = parseBody(resolveTieSchema, req);
+  ok(
+    res,
+    await resolveTiedVotingSession(req, String(req.params.id), body.decision, body.note),
+  );
+});
 export const cancelSession = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await cancelVotingSession(req, String(req.params.id))),
 );

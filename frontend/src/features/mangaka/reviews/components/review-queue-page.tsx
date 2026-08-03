@@ -65,13 +65,9 @@ type TabKey = "ALL" | "NEEDS_REVIEW" | "APPROVED" | "REVISION" | "REJECTED";
 
 const PAGE_SIZE = 8;
 
-const NEEDS_REVIEW_STATUSES = new Set(["PENDING", "SUBMITTED"]);
-const REVISION_STATUSES = new Set([
-  "REVISION_REQUESTED",
-  "MANGAKA_REVISION_REQUESTED",
-  "EDITOR_REVISION_REQUESTED",
-]);
-const APPROVED_STATUSES = new Set(["MANGAKA_APPROVED", "EDITOR_APPROVED", "APPROVED"]);
+const NEEDS_REVIEW_STATUSES = new Set(["PENDING"]);
+const REVISION_STATUSES = new Set(["REVISION_REQUESTED"]);
+const APPROVED_STATUSES = new Set(["MANGAKA_APPROVED"]);
 
 function hasFile(sub: AssistantSubmission) {
   return Boolean(sub.fileUrl || sub.fileKey);

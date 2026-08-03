@@ -23,6 +23,7 @@ export const ACTION_LABELS: Record<string, string> = {
   COMMENT_RESOLVE: "Resolve comment",
   COMMENT_REOPEN: "Reopen comment",
   VOTE: "Vote",
+  TIE_RESOLVE: "Resolve tied vote",
 }
 
 export function actionLabel(action: string): string {

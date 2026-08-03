@@ -3,7 +3,6 @@ import {
   ChapterModel,
   SeriesMemberModel,
   SeriesModel,
-  StudioRegionModel,
   StudioTaskModel,
   SubmissionModel,
   UserModel,
@@ -18,7 +17,6 @@ import {
   assertCanReadTask,
 } from "./authorization.service.js";
 import { recordTaskEarning } from "./earning.service.js";
-import { lockRegionForTask, releaseRegionForTask } from "./region-lock.service.js";
 import {
   createAuditEntry,
   createOutboxEvent,
@@ -67,22 +65,6 @@ async function taskSeriesId(task: any) {
   const addSeriesId = (seriesId: unknown) => {
     if (seriesId) seriesIds.push(String(seriesId));
   };
-  if (task.regionId) {
-    const region = (await StudioRegionModel.findOne({
-      id: String(task.regionId),
-    }).lean()) as any;
-    if (!region)
-      throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
-    addSeriesId(region?.seriesId);
-    if (region?.chapterId) {
-      const chapter = (await ChapterModel.findOne({
-        id: String(region.chapterId),
-      }).lean()) as any;
-      if (!chapter)
-        throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
-      addSeriesId(chapter?.seriesId);
-    }
-  }
   if (task.pageId) {
     const chapter = (await ChapterModel.findOne({
       "pages.id": String(task.pageId),
@@ -156,11 +138,7 @@ function assertTaskActionAllowed(
       "INVALID_ACTION",
     );
   }
-  const assistantActions = new Set([
-    "START",
-    "SUBMIT",
-    "REOPEN",
-  ]);
+  const assistantActions = new Set(["START", "REOPEN"]);
   if (
     isAssignedAssistant(actor, task) &&
     ["ACCEPT", "REJECT"].includes(normalized)
@@ -199,23 +177,6 @@ function assertTaskActionAllowed(
     "Only the assigned Assistant or owning Mangaka can perform this task action.",
     "FORBIDDEN",
   );
-}
-
-async function lockRegion(
-  regionId: string | undefined,
-  taskId: string,
-  session?: any,
-) {
-  await lockRegionForTask(regionId, taskId, session);
-}
-
-async function releaseRegionLock(
-  regionId: string | undefined,
-  taskId: string,
-  nextStatus: string = "CONFIRMED",
-  session?: any,
-) {
-  await releaseRegionForTask(regionId, taskId, nextStatus, session);
 }
 
 // On Mangaka approval, promote the approved submission's asset to be the
@@ -265,14 +226,7 @@ async function applyApprovedSubmissionToPage(
 }
 
 async function assertSubmissionMatchesTaskScope(task: any, payload: any) {
-  if (task.targetScope === "PAGE" && payload?.regionId) {
-    throw new AppError(
-      400,
-      "Page tasks cannot receive region-scoped submissions.",
-      "REGION_TASKS_RETIRED",
-    );
-  }
-  const scopedFields = ["seriesId", "chapterId", "pageId", "regionId"];
+  const scopedFields = ["seriesId", "chapterId", "pageId"];
   for (const field of scopedFields) {
     if (
       payload?.[field] != null &&
@@ -310,18 +264,6 @@ async function assertSubmissionMatchesTaskScope(task: any, payload: any) {
   }
 }
 
-function deprecatedEndpoint(
-  message: string,
-  replacement?: string,
-  code = "ENDPOINT_DEPRECATED",
-) {
-  const error = new AppError(410, message, code) as AppError & {
-    replacement?: string;
-  };
-  if (replacement) error.replacement = replacement;
-  return error;
-}
-
 function stableJson(value: unknown): string {
   if (Array.isArray(value))
     return `[${value.map((item) => stableJson(item)).join(",")}]`;
@@ -342,9 +284,7 @@ function requestFingerprint(value: unknown) {
 }
 
 function isCanonicalRevisionStatus(value: unknown) {
-  return (
-    value === "REVISION_REQUESTED" || value === "MANGAKA_REVISION_REQUESTED"
-  );
+  return value === "REVISION_REQUESTED";
 }
 
 function currentSubmissionMatch(currentSubmissionId: unknown) {
@@ -374,8 +314,6 @@ export async function applyTaskAction(
   if (normalizedAction === "REOPEN") return reopenTaskForRevision(req, taskId);
 
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
-  let shouldLockRegion = false;
-  let shouldReleaseRegion = false;
   switch (normalizedAction) {
     case "ACCEPT":
       if (task.assignmentStatus !== "PENDING") {
@@ -426,13 +364,7 @@ export async function applyTaskAction(
       }
       patch.status = "IN_PROGRESS";
       patch.startedAt = new Date();
-      shouldLockRegion = true;
       break;
-    case "SUBMIT":
-      throw deprecatedEndpoint(
-        "Use POST /api/tasks/:taskId/submit.",
-        "/api/tasks/:taskId/submit",
-      );
     case "CANCEL":
       if (
         !["TODO", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED"].includes(
@@ -450,7 +382,6 @@ export async function applyTaskAction(
       patch.cancelledById = actor.id;
       patch.cancelReason = payload.cancelReason ?? payload.reason ?? "";
       patch.pageTaskActive = false;
-      shouldReleaseRegion = true;
       break;
     case "REASSIGN": {
       if (task.status !== "TODO") {
@@ -473,7 +404,7 @@ export async function applyTaskAction(
       );
       patch.assigneeId = payload.newAssigneeId;
       patch.assigneeName = (newAssignee as any).name;
-      patch.pageTaskActive = task.targetScope === "PAGE" ? true : task.pageTaskActive;
+      patch.pageTaskActive = true;
       patch.assignmentStatus = "PENDING";
       patch.assignmentAcceptedAt = null;
       patch.assignmentAcceptedById = null;
@@ -514,8 +445,6 @@ export async function applyTaskAction(
     if (updatedTask.modifiedCount !== 1) {
       throw new AppError(409, "Task changed while applying action.", "CONFLICT");
     }
-    if (shouldLockRegion) await lockRegion(task.regionId, taskId, session);
-    if (shouldReleaseRegion) await releaseRegionLock(task.regionId, taskId, "CONFIRMED", session);
     if (normalizedAction === "REASSIGN") {
       await audit(req, "TASK_ASSIGNED", "task", taskId, {
         fromAssignee: task.assigneeId,
@@ -593,13 +522,6 @@ export async function reopenTaskForRevision(
     ).lean();
     if (!updated)
       throw new AppError(409, "Task changed while reopening.", "CONFLICT");
-    if (task.regionId) {
-      await StudioRegionModel.updateOne(
-        { id: task.regionId },
-        { $set: { status: "IN_PROGRESS", updatedAt: nowIso() } },
-        { session },
-      );
-    }
     await audit(req, "TASK_REOPENED_FOR_REVISION", "task", taskId, {
       fromStatus: task.status,
     }, session);
@@ -651,7 +573,6 @@ export async function submitTaskWork(
     chapterId: payload.chapterId,
     pageId: payload.pageId,
     pageVersionId: payload.pageVersionId,
-    regionId: payload.regionId,
     notes: payload.notes,
     fileKey: payload.fileKey,
     fileName: payload.fileName,
@@ -760,9 +681,7 @@ export async function submitTaskWork(
     await SubmissionModel.updateMany(
       {
         taskId,
-        status: {
-          $in: ["PENDING", "REVISION_REQUESTED", "MANGAKA_REVISION_REQUESTED"],
-        },
+        status: { $in: ["PENDING", "REVISION_REQUESTED"] },
       },
       { $set: { status: "SUPERSEDED", updatedAt: now } },
       { session },
@@ -776,7 +695,6 @@ export async function submitTaskWork(
           chapterId: payload.chapterId ?? task.chapterId,
           pageId: payload.pageId ?? task.pageId,
           pageVersionId: payload.pageVersionId,
-          regionId: payload.regionId ?? task.regionId,
           assistantId: actor.id,
           assistantName: actor.name,
           submittedBy: { id: actor.id, name: actor.name, role: actor.role },
@@ -787,7 +705,6 @@ export async function submitTaskWork(
           idempotencyKey,
           requestFingerprint: fingerprint,
           status: "PENDING",
-          reviewStage: "MANGAKA_REVIEW",
           resultText: payload.notes,
           fileKey: payload.fileKey,
           fileName: payload.fileName,
@@ -821,13 +738,6 @@ export async function submitTaskWork(
         "CONFLICT",
       );
     }
-    if (task.regionId) {
-      await StudioRegionModel.updateOne(
-        { id: task.regionId },
-        { $set: { status: "SUBMITTED", updatedAt: now } },
-        { session },
-      );
-    }
     await createAuditEntry(
       req,
       "TASK_SUBMITTED",
@@ -858,17 +768,10 @@ export async function submitTaskWork(
 export async function submissionDecision(
   req: AuthedRequest,
   submissionId: string,
-  action: "approve" | "reject" | "request-revision" | "editor-approve",
+  action: "approve" | "reject" | "request-revision",
   note?: string,
 ) {
   const actor = ensureActor(req);
-  if (action === "editor-approve") {
-    throw deprecatedEndpoint(
-      "Tantou no longer approves Assistant submissions. Review the consolidated Chapter instead.",
-      "/api/chapters/:chapterId/reviews",
-      "WORKFLOW_REMOVED",
-    );
-  }
   const existingDoc = await SubmissionModel.findOne({
     id: submissionId,
   }).lean();
@@ -909,7 +812,6 @@ export async function submissionDecision(
     reviewPatch.mangakaNote = note;
     reviewPatch.mangakaReviewedById = actor.id;
     reviewPatch.mangakaReviewedAt = new Date();
-    reviewPatch.reviewStage = "MANGAKA_REVIEW";
   } else if (action === "reject") {
     status = "REJECTED";
     reviewPatch.mangakaNote = note;
@@ -962,10 +864,6 @@ export async function submissionDecision(
       {
         $set: {
           status,
-          reviewerNote: note,
-          reviewedById: actor.id,
-          reviewedByName: actor.name,
-          reviewedAt: new Date(),
           ...reviewPatch,
         },
       },
@@ -983,7 +881,6 @@ export async function submissionDecision(
         {
           $set: {
             status: "MANGAKA_APPROVED",
-            pageTaskActive: false,
             mangakaReviewedAt: new Date(),
             mangakaReviewedById: actor.id,
             updatedAt: nowIso(),
@@ -1005,9 +902,6 @@ export async function submissionDecision(
         { submissionId },
         session,
       );
-      if (task?.regionId) {
-        await releaseRegionForTask(task.regionId, submission.taskId, "APPROVED", session);
-      }
       await recordTaskEarning(task, submission, session);
       await applyApprovedSubmissionToPage(updated ?? submission, task, session);
     } else if (status === "REVISION_REQUESTED") {
@@ -1016,28 +910,17 @@ export async function submissionDecision(
         { $set: { status: "REVISION_REQUESTED", updatedAt: nowIso() } },
         { session },
       );
-      if (task?.regionId) {
-        await StudioRegionModel.updateOne(
-          { id: task.regionId },
-          { $set: { status: "REVISION_REQUIRED", updatedAt: nowIso() } },
-          { session },
-        );
-      }
     } else if (status === "REJECTED") {
       await StudioTaskModel.updateOne(
         { id: submission.taskId, currentSubmissionId: submission.id },
         {
           $set: {
             status: "REJECTED",
-            pageTaskActive: false,
             updatedAt: nowIso(),
           },
         },
         { session },
       );
-      if (task?.regionId) {
-        await releaseRegionForTask(task.regionId, submission.taskId, "CONFIRMED", session);
-      }
     }
     await createAuditEntry(
       req,

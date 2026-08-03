@@ -13,7 +13,6 @@ import {
 import { closeVotingSession } from "../services/proposal-governance.service.js";
 import {
   BOARD_QUORUM,
-  DEFAULT_BOARD_ELIGIBLE_VOTER_IDS,
   evaluateBoardTally,
   normalizeBoardVote,
 } from "../services/board-governance.service.js";
@@ -65,29 +64,17 @@ export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
   const proposal = await ProposalModel.findOne({ id: String(req.params.seriesId) }).lean();
   if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
   await assertCanReadProposal(requireActor(req), proposal);
-  const session =
-    (await VotingSessionModel.findOne({
-      targetType: "PROPOSAL",
-      proposalId: String(req.params.seriesId),
-      status: "OPEN",
-    }).lean()) ??
-    (await VotingSessionModel.findOne({
+  const session = await VotingSessionModel.findOne({
     targetType: "PROPOSAL",
     proposalId: String(req.params.seriesId),
-      status: "TIE_BREAK_REQUIRED",
-    })
-      .sort({ openedAt: -1 })
-      .lean());
-  const eligibleVoterIds =
-    Array.isArray((session as any)?.eligibleVoterIds) &&
-    (session as any).eligibleVoterIds.length > 0
-      ? (session as any).eligibleVoterIds
-      : DEFAULT_BOARD_ELIGIBLE_VOTER_IDS;
+    status: "OPEN",
+  }).lean();
+  const eligibleVoterIds = (session as any)?.eligibleVoterIds ?? [];
   const rawVotes = (
     session
       ? await ProposalVoteModel.find({ sessionId: (session as any).id }).lean()
-      : ((proposal as any).votes ?? [])
-  ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)));
+      : []
+  ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId)));
   const votes = rawVotes.map(normalizeBoardVote);
   const quorum = Number((session as any)?.quorum ?? BOARD_QUORUM);
   ok(res, {

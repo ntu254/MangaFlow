@@ -37,7 +37,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
 
   if (!user) return null;
 
-  const existing = votesData?.votes.find((v: BoardVote) => v.memberId === user.id);
+  const existing = votesData?.votes.find((v: BoardVote) => v.voterId === user.id);
   const guard = canShowAction({ role: user.role, action: "vote", currentUserId: user.id });
   // hasActiveSession is the source of truth: only an OPEN session accepts votes.
   const disabledReason = existing

@@ -205,7 +205,7 @@ function PublicationActions({
     );
   }
 
-  // EDITOR_APPROVED / READY_FOR_PUBLICATION → schedule a publish date
+  // Ready-for-publication chapters can be scheduled.
   return (
     <SchedulePopover
       chapterId={chapter.id}

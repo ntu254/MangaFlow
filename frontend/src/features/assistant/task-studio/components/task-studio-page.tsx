@@ -17,7 +17,6 @@ import {
   useReopenTaskMutation,
   useSeriesDetailQuery,
   useSeriesMaterialsQuery,
-  useStudioRegionsQuery,
   useStudioTaskActionMutation,
   useStudioTaskDetailQuery,
   useTaskCommentsQuery,
@@ -52,13 +51,6 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
   const { data: series } = useSeriesDetailQuery(seriesId);
   const chapters = useMemo(() => (chapter ? [chapter] : []), [chapter]);
   const seriesList = useMemo(() => (series ? [series] : []), [series]);
-  const { data: regions = [] } = useStudioRegionsQuery(
-    {
-      chapterId: task?.chapterId ?? "",
-      pageId: task?.pageId ?? "",
-    },
-    !!task,
-  );
   const { data: comments = [] } = useTaskCommentsQuery(task?.id ?? "");
   const taskActionMutation = useStudioTaskActionMutation(taskId);
   const reopenTaskMutation = useReopenTaskMutation(taskId);
@@ -67,7 +59,6 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
   const { data: submissions = [] } = useTaskSubmissionsQuery(task?.id ?? "");
   const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
   const page = ctx?.chapter?.pages.find((p) => p.id === task?.pageId);
-  const region = task?.regionId ? regions.find((r) => r.id === task.regionId) : undefined;
   const taskComments = useMemo(
     () => comments.filter((c) => c.taskId === task?.id || c.pageId === task?.pageId),
     [comments, task],
@@ -305,7 +296,6 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
           <div className="min-w-0 overflow-hidden p-3">
             <TaskRegionPreview
               page={page}
-              region={region}
               comments={taskComments}
               coverFallback={ctx?.series?.coverUrl}
             />
@@ -345,8 +335,7 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
                   task={task}
                   comments={taskComments}
                   highlight={
-                    task.status === "MANGAKA_REVISION_REQUESTED" ||
-                    task.status === "EDITOR_REVISION_REQUESTED"
+                    task.status === "REVISION_REQUESTED"
                   }
                   readOnly={readOnly}
                 />
@@ -472,11 +461,7 @@ function BottomActions({
       </>
     );
   }
-  if (
-    task.status === "REVISION_REQUESTED" ||
-    task.status === "MANGAKA_REVISION_REQUESTED" ||
-    task.status === "EDITOR_REVISION_REQUESTED"
-  ) {
+  if (task.status === "REVISION_REQUESTED") {
     const btn = (
       <button
         onClick={onReopen}

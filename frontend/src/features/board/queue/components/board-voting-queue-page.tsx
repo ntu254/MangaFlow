@@ -21,7 +21,7 @@ export function BoardVotingQueuePage() {
       <PageHeader
         eyebrow="Governance"
         title="Board voting queue"
-        description={`Three of ${BOARD_TOTAL} approve → APPROVED. Three reject → REJECTED. Tie → close the round and open a fresh Board re-vote.`}
+        description={`A majority finalizes the proposal. A fully participated tie opens one re-vote; a second tie follows the configured policy.`}
       >
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
           <Link
@@ -64,12 +64,10 @@ export function BoardVotingQueuePage() {
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          item.decisionStatus === "TIE_BREAK_REQUIRED"
-                            ? "bg-fuchsia-100 text-fuchsia-700"
-                            : "bg-amber-100 text-amber-700"
+                          "bg-amber-100 text-amber-700"
                         }`}
                       >
-                        {item.decisionStatus === "TIE_BREAK_REQUIRED" ? "TIE BREAK" : "PENDING"}
+                        PENDING
                       </span>
                     </div>
                     <div className="flex items-center justify-between pt-1">

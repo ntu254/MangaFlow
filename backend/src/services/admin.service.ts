@@ -359,7 +359,6 @@ export async function workflowSummary() {
   const [
     pendingEditor,
     pendingBoard,
-    tieBreaks,
     chaptersInReview,
     revisionChapters,
     openComments,
@@ -368,7 +367,6 @@ export async function workflowSummary() {
   ] = await Promise.all([
     ProposalModel.countDocuments({ status: { $in: ["PENDING_EDITOR", "CHANGES_REQUESTED"] } }),
     ProposalModel.countDocuments({ status: "PENDING_BOARD" }),
-    ProposalModel.countDocuments({ status: "TIE_BREAK" }),
     ChapterModel.countDocuments({ status: "TANTOU_REVIEW" }),
     ChapterModel.countDocuments({ status: "REVISION_REQUIRED" }),
     StudioCommentModel.countDocuments({ status: { $ne: "RESOLVED" } }),
@@ -379,7 +377,7 @@ export async function workflowSummary() {
   ]);
 
   const proposals = await ProposalModel.find({
-    status: { $in: ["CHANGES_REQUESTED", "PENDING_BOARD", "TIE_BREAK"] },
+    status: { $in: ["CHANGES_REQUESTED", "PENDING_BOARD"] },
   })
     .sort({ updatedAt: -1 })
     .limit(25)
@@ -398,7 +396,7 @@ export async function workflowSummary() {
       item: proposal.title,
       owner: proposal.assignedEditorName ?? proposal.authorName ?? "Unassigned",
       stage: proposal.status,
-      severity: proposal.status === "TIE_BREAK" ? "HIGH" : "MEDIUM",
+      severity: "MEDIUM",
       detail:
         proposal.status === "PENDING_BOARD"
           ? "Board packet waiting for votes"
@@ -421,7 +419,6 @@ export async function workflowSummary() {
     counts: {
       pendingEditor,
       pendingBoard,
-      tieBreaks,
       chaptersInReview,
       revisionChapters,
       openComments,

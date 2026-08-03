@@ -888,7 +888,7 @@ describe("P0 canonical task submission workflow", () => {
     }
   });
 
-  it("creates linked empty re-vote rounds without mutating tied session history", async () => {
+  it("limits re-voting to one round and lets the Chair resolve the final tie", async () => {
     const chair = await loginAs("board@beachread.jp");
     const voters = await Promise.all(
       [
@@ -990,16 +990,17 @@ describe("P0 canonical task submission workflow", () => {
     const afterSecondTie = (await VotingSessionModel.find({ proposalId: "prop-p0-revote" })
       .sort({ openedAt: 1 })
       .lean()) as any[];
-    expect(afterSecondTie).toHaveLength(3);
-    expect(afterSecondTie.map((round) => round.status)).toEqual(["TIED", "TIED", "OPEN"]);
-    expect(afterSecondTie[2]).toMatchObject({
-      reVoteOfSessionId: afterFirstTie[1].id,
+    expect(afterSecondTie).toHaveLength(2);
+    expect(afterSecondTie.map((round) => round.status)).toEqual(["TIED", "TIED"]);
+    expect(afterSecondTie[1]).toMatchObject({
+      votingRound: 2,
+      tiePolicy: "CHAIR_DECIDES",
+      tieResolution: "PENDING",
       proposalId: "prop-p0-revote",
       proposalVersionId: firstRound.body.data.proposalVersionId,
       eligibleVoterIds: voters.slice(0, 4).map((voter) => voter.user.id),
       quorum: firstRound.body.data.quorum,
     });
-    expect(await ProposalVoteModel.countDocuments({ sessionId: afterSecondTie[2].id })).toBe(0);
     expect(
       await ProposalVoteModel.find({ sessionId: firstRound.body.data.id })
         .sort({ voterId: 1 })
@@ -1013,9 +1014,110 @@ describe("P0 canonical task submission workflow", () => {
     }).lean()) as any;
     expect(proposalAfterSecondTie).toMatchObject({
       status: "BOARD_REVIEW",
-      activeVotingSessionId: afterSecondTie[2].id,
+      activeVotingSessionId: afterSecondTie[1].id,
       activeProposalVersionId: firstRound.body.data.proposalVersionId,
     });
+
+    const resolved = await request(createApp())
+      .post(`/api/voting-sessions/${afterSecondTie[1].id}/resolve-tie`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
+      .send({
+        decision: "APPROVED",
+        note: "The Chair resolves the repeated tie after reviewing the full Board record.",
+        expectedVersion: afterSecondTie[1].version,
+      })
+      .expect(200);
+    expect(resolved.body.data).toMatchObject({
+      status: "FINALIZED",
+      result: "APPROVED",
+      tieResolution: "APPROVED",
+    });
+    const resolvedProposal = (await ProposalModel.findOne({ id: "prop-p0-revote" }).lean()) as any;
+    expect(resolvedProposal.status).toBe("APPROVED");
+    expect(await BoardDecisionModel.countDocuments({ votingSessionId: afterSecondTie[1].id })).toBe(1);
+    const retry = await request(createApp())
+      .post(`/api/voting-sessions/${afterSecondTie[1].id}/resolve-tie`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
+      .send({ decision: "REJECTED", note: "Retry must not change the decision." })
+      .expect(200);
+    expect(retry.body.data.result).toBe("APPROVED");
+  });
+
+  it("applies automatic policies after the final tied re-vote", async () => {
+    const chair = await loginAs("board@beachread.jp");
+    const voters = await Promise.all(
+      [
+        "board@beachread.jp",
+        "sato@beachread.jp",
+        "kobayashi@beachread.jp",
+        "watanabe@beachread.jp",
+      ].map((email) => loginAs(email)),
+    );
+
+    for (const policy of ["REJECT", "RETURN_TO_BOARD"] as const) {
+      const proposalId = `prop-p0-tie-policy-${policy.toLowerCase()}`;
+      await ProposalModel.create({
+        id: proposalId,
+        title: `Tie policy ${policy}`,
+        authorId: "u-mangaka",
+        authorName: "Inoue",
+        status: "PENDING_BOARD",
+        currentVersion: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const created = await request(createApp())
+        .post("/api/voting-sessions")
+        .set("Authorization", `Bearer ${chair.accessToken}`)
+        .send({ proposalId, tiePolicy: policy })
+        .expect(201);
+      await VotingSessionModel.updateOne(
+        { id: created.body.data.id },
+        { $set: { eligibleVoterIds: voters.map((voter) => voter.user.id) } },
+      );
+
+      const tieRound = async (sessionId: string) => {
+        for (const [index, value] of ["APPROVE", "APPROVE", "REJECT", "REJECT"].entries()) {
+          await request(createApp())
+            .post(`/api/board/series/${proposalId}/votes`)
+            .set("Authorization", `Bearer ${voters[index].accessToken}`)
+            .send({ value, sessionId })
+            .expect(200);
+        }
+        return request(createApp())
+          .post(`/api/voting-sessions/${sessionId}/close`)
+          .set("Authorization", `Bearer ${chair.accessToken}`)
+          .send({})
+          .expect(200);
+      };
+
+      const firstClose = await tieRound(created.body.data.id);
+      expect(firstClose.body.data.status).toBe("TIED");
+      const secondRound = (await VotingSessionModel.findOne({
+        proposalId,
+        status: "OPEN",
+      }).lean()) as any;
+      const secondClose = await tieRound(secondRound.id);
+      const proposal = (await ProposalModel.findOne({ id: proposalId }).lean()) as any;
+      if (policy === "REJECT") {
+        expect(secondClose.body.data).toMatchObject({
+          status: "FINALIZED",
+          result: "REJECTED",
+          tieResolution: "REJECTED",
+        });
+        expect(proposal.status).toBe("REJECTED");
+      } else {
+        expect(secondClose.body.data).toMatchObject({
+          status: "TIED",
+          result: null,
+          tieResolution: "RETURNED_TO_BOARD",
+        });
+        expect(proposal.status).toBe("PENDING_BOARD");
+      }
+      expect(
+        await VotingSessionModel.countDocuments({ proposalId, status: "OPEN" }),
+      ).toBe(0);
+    }
   });
 
   it("does not write a vote when an open session becomes terminal after the initial read", async () => {

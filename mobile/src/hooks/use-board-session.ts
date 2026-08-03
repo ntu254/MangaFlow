@@ -4,6 +4,7 @@ import {
   castBoardVote,
   closeBoardSession,
   getBoardSessionDetail,
+  resolveBoardTie,
   updateBoardSession,
   type BoardSessionDetail,
   type BoardVoteValue,
@@ -12,7 +13,7 @@ import { mobileInboxKeys } from "@/services/mobile-inbox-data-source"
 import { getReviewFiles } from "@/services/mobile-file-review"
 
 export const boardSessionKeys = {
-  all: ["board", "sessions"] as const,
+  all: ["board"] as const,
   list: ["board", "sessions", "list"] as const,
   pendingProposals: ["board", "sessions", "pending-proposals"] as const,
   detail: (id: string) => ["board", "session", id] as const,
@@ -41,9 +42,11 @@ export function useBoardSession(
     enabled: proposalId !== null,
   })
 
-  const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ["board"] })
-    void queryClient.invalidateQueries({ queryKey: mobileInboxKeys.role("board") })
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: boardSessionKeys.all }),
+      queryClient.invalidateQueries({ queryKey: mobileInboxKeys.role("board") }),
+    ])
   }
 
   const vote = useMutation({
@@ -69,6 +72,14 @@ export function useBoardSession(
     mutationFn: () => cancelBoardSession(sessionId),
     onSuccess: invalidate,
   })
+  const resolveTie = useMutation({
+    mutationFn: (input: {
+      decision: "APPROVED" | "REJECTED"
+      note: string
+      expectedVersion: number
+    }) => resolveBoardTie(sessionId, input),
+    onSuccess: invalidate,
+  })
   const update = useMutation({
     mutationFn: (input: {
       expectedVersion: number
@@ -79,5 +90,5 @@ export function useBoardSession(
     onSuccess: invalidate,
   })
 
-  return { detail, vote, close, cancel, update, reviewFiles }
+  return { detail, vote, close, cancel, resolveTie, update, reviewFiles }
 }

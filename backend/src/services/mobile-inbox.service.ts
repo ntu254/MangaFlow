@@ -31,6 +31,7 @@ import {
   loadBoardSessionContext,
   type BoardSessionContext,
 } from "./mobile-board-detail.service.js";
+import { BOARD_MAX_VOTING_ROUND, normalizeTiePolicy } from "./board-governance.service.js";
 
 // Foundation slice: Editor Today shows proposal review work; Board Today shows
 // vote work. Later plans extend these projections with chapter/comment/publication
@@ -130,9 +131,8 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
 }
 
 // A vote item is votable only when an active voting session backs it. Board
-// proposals with no open session (or a tie-break awaiting a fresh re-vote) are
-// not surfaced as votable work here, so every emitted item carries the session
-// version used for optimistic concurrency.
+// Only OPEN sessions are votable. A final TIED round is surfaced to the Chair
+// as a resolution item, never as another vote.
 function boardVoteWorkItem(
   actor: RequestActor,
   session: any,
@@ -164,6 +164,10 @@ function sessionFinalizeWorkItem(
   session: any,
   ctx: BoardSessionContext,
 ): MobileWorkItem {
+  const tieNeedsChair =
+    session.status === "TIED" &&
+    normalizeTiePolicy(session.tiePolicy) === "CHAIR_DECIDES" &&
+    (session.tieResolution ?? "PENDING") === "PENDING";
   return {
     id: `SESSION_FINALIZE:${session.id}`,
     kind: "SESSION_FINALIZE",
@@ -172,10 +176,18 @@ function sessionFinalizeWorkItem(
     status: String(session.status),
     version: typeof session.version === "number" ? session.version : null,
     title: String(session.title ?? session.proposalId ?? session.id),
-    subtitle: ctx.canFinalize ? "Ready to finalize" : "Awaiting quorum",
+    subtitle: tieNeedsChair
+      ? "Chair decision required"
+      : ctx.canFinalize
+        ? "Ready to finalize"
+        : "Awaiting quorum",
     priority: {
       level: ctx.canFinalize ? "HIGH" : "NORMAL",
-      reason: ctx.canFinalize ? "Decision ready to finalize" : "Awaiting votes",
+      reason: tieNeedsChair
+        ? "The final re-vote is tied"
+        : ctx.canFinalize
+          ? "Decision ready to finalize"
+          : "Awaiting votes",
       dueAt: null,
     },
     blockers: [],
@@ -416,7 +428,7 @@ export async function getBoardMobileInbox(actor: RequestActor): Promise<MobileIn
   // round whose fresh re-vote is a separate OPEN session.
   const sessions = await VotingSessionModel.find({
     targetType: "PROPOSAL",
-    status: "OPEN",
+    status: { $in: ["OPEN", "TIED"] },
   })
     .sort({ updatedAt: -1 })
     .lean();
@@ -424,9 +436,22 @@ export async function getBoardMobileInbox(actor: RequestActor): Promise<MobileIn
   const items: MobileWorkItem[] = [];
   for (const session of sessions) {
     const ctx = await loadBoardSessionContext(actor, session);
-    items.push(boardVoteWorkItem(actor, session, ctx));
-    // Chair also sees a finalization item for the same session.
-    if (chair) items.push(sessionFinalizeWorkItem(actor, session, ctx));
+    const votingRound = Number(
+      (session as any).votingRound ??
+        ((session as any).reVoteOfSessionId ? BOARD_MAX_VOTING_ROUND : 1),
+    );
+    const tieNeedsChair =
+      chair &&
+      session.status === "TIED" &&
+      votingRound >= BOARD_MAX_VOTING_ROUND &&
+      normalizeTiePolicy((session as any).tiePolicy) === "CHAIR_DECIDES" &&
+      ((session as any).tieResolution ?? "PENDING") === "PENDING";
+    if (session.status === "OPEN") {
+      items.push(boardVoteWorkItem(actor, session, ctx));
+      if (chair) items.push(sessionFinalizeWorkItem(actor, session, ctx));
+    } else if (tieNeedsChair) {
+      items.push(sessionFinalizeWorkItem(actor, session, ctx));
+    }
   }
 
   // At-risk decisions are a manual Chair responsibility.

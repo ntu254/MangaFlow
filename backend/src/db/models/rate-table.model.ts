@@ -38,4 +38,4 @@ const rateTableSchema = looseSchema({
 rateTableSchema.index({ code: 1, version: 1 }, { unique: true });
 rateTableSchema.index({ code: 1, status: 1, effectiveFrom: 1 });
 
-export const RateTableModel = mongoose.model<any>("RateTable", rateTableSchema);
+export const RateTableModel = mongoose.model<RateTableRecord>("RateTable", rateTableSchema);

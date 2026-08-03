@@ -22,7 +22,7 @@ import { ReviewStatusPill } from "@/entities/submission";
 import { toast } from "sonner";
 import { MaterialsViewer } from "@/entities/proposal";
 
-const EDITOR_REVIEW_STATUSES = ["PENDING_EDITOR", "EDITOR_REVIEWING", "RESUBMITTED"];
+const EDITOR_REVIEW_STATUSES = ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED"];
 
 export function ProposalReviewPage() {
   const { proposalId } = useParams({ from: "/app/editor/proposals/$proposalId" });

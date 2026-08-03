@@ -14,12 +14,6 @@ export const PROPOSAL_STATUSES = [
   "APPROVED",
   "REJECTED",
   "WITHDRAWN",
-  // Legacy values accepted only for migration/backward-compatible reads.
-  "SUBMITTED",
-  "RESUBMITTED",
-  "READY_FOR_BOARD",
-  "BOARD_VOTING",
-  "TIE_BREAK",
   "ARCHIVED",
 ] as const;
 
@@ -36,12 +30,7 @@ export const TASK_STATUSES = [
   "TODO",
   "IN_PROGRESS",
   "SUBMITTED",
-  "MANGAKA_REVIEWING",
-  "MANGAKA_REVISION_REQUESTED",
   "MANGAKA_APPROVED",
-  "EDITOR_REVIEWING",
-  "EDITOR_REVISION_REQUESTED",
-  "EDITOR_APPROVED",
   "REJECTED",
   "CANCELLED",
 ] as const;
@@ -49,9 +38,7 @@ export const TASK_STATUSES = [
 export const SUBMISSION_STATUSES = [
   "PENDING",
   "MANGAKA_APPROVED",
-  "MANGAKA_REVISION_REQUESTED",
-  "EDITOR_APPROVED",
-  "EDITOR_REVISION_REQUESTED",
+  "REVISION_REQUESTED",
   "REJECTED",
   "SUPERSEDED",
 ] as const;
@@ -85,7 +72,6 @@ export const PROPOSAL_ACTIONS = [
   "REJECT",
   "RECALL",
   "VOTE",
-  "FORCE_STATUS",
   "ARCHIVE",
 ] as const;
 

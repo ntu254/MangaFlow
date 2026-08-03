@@ -36,22 +36,21 @@ export function deriveProductionSummary(
 
   const now = Date.now();
   const overdueTaskCount = seriesTasks.filter((t) => {
-    if (t.status === "EDITOR_APPROVED" || t.status === "REJECTED" || t.status === "CANCELLED")
+    if (t.status === "MANGAKA_APPROVED" || t.status === "REJECTED" || t.status === "CANCELLED")
       return false;
     if (!t.dueAt) return false;
     return new Date(t.dueAt).getTime() < now;
   }).length;
 
   const revisionTaskCount = seriesTasks.filter(
-    (t) => t.status === "MANGAKA_REVISION_REQUESTED" || t.status === "EDITOR_REVISION_REQUESTED",
+    (t) => t.status === "REVISION_REQUESTED",
   ).length;
 
   const reviewChapterCount = chapters.filter((c) => c.status === "TANTOU_REVIEW").length;
   const pendingSubmissionCount = submissions.filter(
     (s) =>
       s.status === "PENDING" ||
-      s.status === "MANGAKA_REVISION_REQUESTED" ||
-      s.status === "EDITOR_REVISION_REQUESTED",
+      s.status === "REVISION_REQUESTED",
   ).length;
   const pendingReviewCount = reviewChapterCount + pendingSubmissionCount;
 
@@ -63,7 +62,7 @@ export function deriveProductionSummary(
     if (ch.scheduledAt) deadlines.push(ch.scheduledAt);
   }
   for (const t of seriesTasks) {
-    if (t.status === "EDITOR_APPROVED" || t.status === "REJECTED" || t.status === "CANCELLED")
+    if (t.status === "MANGAKA_APPROVED" || t.status === "REJECTED" || t.status === "CANCELLED")
       continue;
     if (t.dueAt) deadlines.push(t.dueAt);
   }

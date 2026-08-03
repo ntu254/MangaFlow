@@ -15,7 +15,7 @@ import {
   useMySeriesQuery,
   useStudioTasksQuery,
 } from "@/features/series";
-import { useProposalsQuery } from "@/features/proposals/api/proposal-queries";
+import { useProposalsQuery } from "@/features/proposals";
 import { useAuth } from "@/shared/auth";
 import { PageShell } from "@/shared/layout/page-layout";
 import { formatDate, formatDateTime } from "@/shared/lib/format-date";
@@ -79,7 +79,7 @@ export function MangakaDashboard() {
     return tasks
       .filter((task) => {
         const visualStatus = getVisualTaskStatus(task);
-        return visualStatus !== "EDITOR_APPROVED" && visualStatus !== "CANCELLED";
+        return visualStatus !== "MANGAKA_APPROVED" && visualStatus !== "CANCELLED";
       })
       .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
   }, [tasks]);

@@ -120,19 +120,19 @@ export function SubmissionsPage() {
           tone="sky"
           icon={<Send className="size-4" />}
           label="Submitted"
-          value={count("SUBMITTED")}
+          value={count("PENDING")}
         />
         <StatCard
           tone="orange"
           icon={<AlertOctagon className="size-4" />}
           label="Revision"
-          value={count("MANGAKA_REVISION_REQUESTED") + count("EDITOR_REVISION_REQUESTED")}
+          value={count("REVISION_REQUESTED")}
         />
         <StatCard
           tone="emerald"
           icon={<CheckCircle2 className="size-4" />}
           label="Approved"
-          value={count("APPROVED")}
+          value={count("MANGAKA_APPROVED")}
         />
         <StatCard
           tone="rose"

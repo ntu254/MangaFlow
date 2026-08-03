@@ -128,7 +128,6 @@ export interface WorkflowSummary {
   counts: {
     pendingEditor: number;
     pendingBoard: number;
-    tieBreaks: number;
     chaptersInReview: number;
     revisionChapters: number;
     openComments: number;

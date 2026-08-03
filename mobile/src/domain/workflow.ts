@@ -93,8 +93,6 @@ export type BoardVoteValue = "APPROVE" | "REJECT";
 export type BoardDecisionStatus =
   | "DRAFT"
   | "OPEN"
-  | "CLOSED"
-  | "TIE_BREAK_REQUIRED"
   | "FINALIZED"
   | "NO_QUORUM"
   | "CANCELLED"

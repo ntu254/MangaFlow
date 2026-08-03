@@ -1,24 +1,24 @@
-import type { VoteDecision } from "@/entities/proposal/model/proposal-types";
-
 export type VotingSessionMode = "AD_HOC" | "SCHEDULED";
+
 export type VotingSessionStatus =
-  | "DRAFT"
   | "OPEN"
-  | "CLOSED"
   | "TIED"
-  | "TIE_BREAK_REQUIRED"
   | "FINALIZED"
   | "NO_QUORUM"
-  | "CANCELLED"
-  | "CANCELED";
+  | "CANCELLED";
+
+export type TiePolicy = "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
+
+export type TieResolution =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "RETURNED_TO_BOARD";
 
 export type SessionOutcomeDecision =
   | "APPROVED"
   | "REJECTED"
   | "TIED"
-  | "TIE_BREAK_REQUIRED"
-  | "TIE_BROKEN_APPROVED"
-  | "TIE_BROKEN_REJECTED"
   | "NO_QUORUM"
   | "PENDING";
 
@@ -27,9 +27,6 @@ export type SessionProposalOutcome = {
   decision: SessionOutcomeDecision;
   approve: number;
   reject: number;
-  tieBreakBy?: string;
-  tieBreakByName?: string;
-  tieBreakDecision?: VoteDecision;
   decidedAt?: string;
   reason: string;
 };
@@ -54,6 +51,12 @@ export type VotingSession = {
   proposalIds: string[];
   proposalId?: string;
   reVoteOfSessionId?: string;
+  votingRound?: number;
+  tiePolicy?: TiePolicy;
+  tieResolution?: TieResolution;
+  tieResolutionNote?: string;
+  tieResolvedById?: string;
+  tieResolvedAt?: string;
   targetType?: "PROPOSAL";
   result?: "APPROVED" | "REJECTED" | null;
   createdById: string;
@@ -70,40 +73,24 @@ export const SESSION_MODE_LABEL: Record<VotingSessionMode, string> = {
 };
 
 export const SESSION_STATUS_LABEL: Record<VotingSessionStatus, string> = {
-  DRAFT: "Draft",
   OPEN: "Open",
-  CLOSED: "Closed",
-  TIED: "Tied (re-vote opened)",
-  TIE_BREAK_REQUIRED: "Tie-break Required",
+  TIED: "Tied (policy applies)",
   FINALIZED: "Finalized",
   NO_QUORUM: "No Quorum",
   CANCELLED: "Cancelled",
-  CANCELED: "Cancelled",
 };
 
 export const SESSION_STATUS_HELP: Record<
   VotingSessionStatus,
   { description: string; nextStep: string }
 > = {
-  DRAFT: {
-    description: "The session has been prepared but is not accepting votes.",
-    nextStep: "A Chair must open the session before voting can start.",
-  },
   OPEN: {
     description: "This is the active voting round. Board members can cast one vote each.",
     nextStep: "Board members vote; the Chair closes the session when the round is complete.",
   },
-  CLOSED: {
-    description: "The round is closed and no longer accepts votes.",
-    nextStep: "Review the tally and outcome recorded for this round.",
-  },
   TIED: {
     description: "This round ended in a tie and is preserved as immutable history.",
-    nextStep: "Continue in the fresh OPEN Board re-vote created by the system.",
-  },
-  TIE_BREAK_REQUIRED: {
-    description: "Legacy tie-break history. It is kept for audit and is read-only.",
-    nextStep: "No special tie-break action is required; current ties use a fresh Board re-vote.",
+    nextStep: "Use the configured re-vote or Chair resolution policy.",
   },
   FINALIZED: {
     description: "The Board decision is complete and this round is immutable.",
@@ -117,19 +104,12 @@ export const SESSION_STATUS_HELP: Record<
     description: "The Chair cancelled this round before a final decision.",
     nextStep: "Create a new session if the proposal should return to Board review.",
   },
-  CANCELED: {
-    description: "The Chair cancelled this round before a final decision.",
-    nextStep: "Create a new session if the proposal should return to Board review.",
-  },
 };
 
 export const OUTCOME_LABEL: Record<SessionOutcomeDecision, string> = {
   APPROVED: "Approved",
   REJECTED: "Rejected",
-  TIED: "Tied (re-vote opened)",
-  TIE_BREAK_REQUIRED: "Tie-break required",
-  TIE_BROKEN_APPROVED: "Tie-break → Approved",
-  TIE_BROKEN_REJECTED: "Tie-break → Rejected",
+  TIED: "Tied (policy applies)",
   NO_QUORUM: "No Quorum",
   PENDING: "Pending",
 };

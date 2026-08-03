@@ -21,6 +21,9 @@ export function SessionForm({
   const createSessionMutation = useCreateVotingSessionMutation();
   const [title, setTitle] = useState("Board meeting");
   const [selected, setSelected] = useState<string[]>([]);
+  const [tiePolicy, setTiePolicy] = useState<"CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD">(
+    "CHAIR_DECIDES",
+  );
 
   const eligible = useMemo(
     () => proposals.filter((p) => p.status === "PENDING_BOARD"),
@@ -37,6 +40,7 @@ export function SessionForm({
         title: title.trim() || "Board meeting",
         mode: "AD_HOC",
         proposalIds: selected,
+        tiePolicy,
       });
       toast.success("Session created.");
       onCreated(session);
@@ -57,6 +61,22 @@ export function SessionForm({
           </Label>
           <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="tie-policy" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Policy if the re-vote is still tied
+        </Label>
+        <select
+          id="tie-policy"
+          value={tiePolicy}
+          onChange={(event) => setTiePolicy(event.target.value as typeof tiePolicy)}
+          className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+        >
+          <option value="CHAIR_DECIDES">Chair decides</option>
+          <option value="REJECT">Reject proposal</option>
+          <option value="RETURN_TO_BOARD">Return to Board queue</option>
+        </select>
       </div>
 
       <div>

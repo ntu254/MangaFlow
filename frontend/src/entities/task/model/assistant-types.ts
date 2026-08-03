@@ -22,12 +22,7 @@ export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
   SUBMITTED: "Submitted",
-  MANGAKA_REVIEWING: "Mangaka Reviewing",
-  MANGAKA_REVISION_REQUESTED: "Revision Requested",
   MANGAKA_APPROVED: "Mangaka Approved",
-  EDITOR_REVIEWING: "Editor Reviewing",
-  EDITOR_REVISION_REQUESTED: "Editor Revision Requested",
-  EDITOR_APPROVED: "Editor Approved",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
   COMPLETED: "Completed",
@@ -64,11 +59,9 @@ export function primaryActionForTaskStatus(status: StudioTaskStatus): TaskAction
       return "OPEN_STUDIO";
     case "SUBMITTED":
       return "VIEW_SUBMISSION";
-    case "MANGAKA_REVISION_REQUESTED":
-    case "EDITOR_REVISION_REQUESTED":
+    case "REVISION_REQUESTED":
       return "FIX_AND_RESUBMIT";
     case "MANGAKA_APPROVED":
-    case "EDITOR_APPROVED":
       return "VIEW_APPROVED";
     case "REJECTED":
       return "VIEW_REASON";

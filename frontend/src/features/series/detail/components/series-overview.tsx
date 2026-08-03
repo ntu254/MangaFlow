@@ -294,10 +294,9 @@ function pickCurrentChapter(chapters: Chapter[]): Chapter | undefined {
   const inflight = chapters
     .filter((c) =>
       [
-        "DRAFTING",
-        "EDITOR_REVIEW",
-        "REVISION",
-        "EDITOR_APPROVED",
+        "IN_PRODUCTION",
+        "TANTOU_REVIEW",
+        "REVISION_REQUIRED",
         "READY_FOR_PUBLICATION",
         "SCHEDULED",
       ].includes(c.status),
@@ -337,7 +336,7 @@ function CurrentProductionCard({
   ).length;
   const openTasks = tasks.filter(
     (task) =>
-      !["MANGAKA_APPROVED", "EDITOR_APPROVED", "REJECTED", "CANCELLED"].includes(task.status),
+      !["MANGAKA_APPROVED", "REJECTED", "CANCELLED"].includes(task.status),
   ).length;
   const deadlineIso = chapter.scheduledAt ?? chapter.reviewDueAt ?? chapter.draftDueAt;
   const deadlineDays = daysFromNow(deadlineIso);
@@ -694,7 +693,7 @@ function ChecklistCard({
           },
           {
             label: "Editor final review",
-            ok: ["EDITOR_APPROVED", "READY_FOR_PUBLICATION", "SCHEDULED", "PUBLISHED"].includes(
+            ok: ["READY_FOR_PUBLICATION", "SCHEDULED", "PUBLISHED"].includes(
               chapter.status,
             ),
           },
@@ -821,7 +820,7 @@ function ChaptersMiniList({ chapters, setTab }: { chapters: Chapter[]; setTab: (
 
 function TasksMiniList({ tasks, setTab }: { tasks: StudioTask[]; setTab: (t: Tab) => void }) {
   const rows = [...tasks]
-    .filter((task) => !["EDITOR_APPROVED", "REJECTED", "CANCELLED"].includes(task.status))
+    .filter((task) => !["MANGAKA_APPROVED", "REJECTED", "CANCELLED"].includes(task.status))
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
     .slice(0, 5)
     .map((task) => ({

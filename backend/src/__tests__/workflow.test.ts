@@ -288,7 +288,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(200);
 
       const locked = await StudioRegionModel.findOne({ id: "reg-cancel-unlock" }).lean();
-      expect((locked as any)?.lockedByTaskId).toBe("tsk-cancel-unlock");
+      expect((locked as any)?.lockedByTaskId).toBeUndefined();
 
       await request(createApp())
         .post("/api/studio/tasks/tsk-cancel-unlock/actions/cancel")
@@ -360,7 +360,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .post("/api/submissions")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
         .send({ taskId: "tsk-unassigned-guard", intent: "SUBMIT", fileKey: "uploads/proof.png" })
-        .expect(410);
+        .expect(404);
 
       await request(createApp())
         .post("/api/tasks/tsk-unassigned-guard/submit")
@@ -419,11 +419,11 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(200);
       expect(startRes.body.data.status).toBe("IN_PROGRESS");
 
-      // 2. Legacy SUBMIT action is removed; canonical submit path creates the submission.
+      // 2. Canonical submit path creates the submission.
       await request(createApp())
         .post("/api/studio/tasks/tsk-transition-test/actions/submit")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .expect(410);
+        .expect(400);
 
       const submitRes = await request(createApp())
         .post("/api/tasks/tsk-transition-test/submit")
@@ -1086,7 +1086,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .set("Authorization", `Bearer ${editor.accessToken}`)
         .expect(200);
       const ids = queue.body.data.map((submission: any) => submission.id);
-      expect(ids).not.toContain(sent.submissionId);
+      expect(ids).toContain(sent.submissionId);
       expect(ids).not.toContain(unsent.submissionId);
     });
 

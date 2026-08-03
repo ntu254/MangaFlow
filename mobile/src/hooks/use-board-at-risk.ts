@@ -9,8 +9,11 @@ export function useBoardAtRisk(seriesId: string) {
   const decide = useMutation({
     mutationFn: (input: { rankingId: string; decision: AtRiskDecisionValue; note?: string }) =>
       decideAtRisk(seriesId, input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: mobileInboxKeys.role("board") })
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["board"] }),
+        queryClient.invalidateQueries({ queryKey: mobileInboxKeys.role("board") }),
+      ])
     },
   })
   return { decide }

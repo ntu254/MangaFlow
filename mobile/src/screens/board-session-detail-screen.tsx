@@ -26,9 +26,10 @@ export function BoardSessionDetailScreen({
   sessionId: string;
   getDetail?: (id: string) => Promise<BoardSessionDetail>;
 }) {
-  const { detail, vote, close, cancel, reviewFiles } = useBoardSession(sessionId, getDetail)
+  const { detail, vote, close, cancel, resolveTie, reviewFiles } = useBoardSession(sessionId, getDetail)
   const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null)
   const [pendingChair, setPendingChair] = useState<"SESSION_FINALIZE" | "SESSION_CANCEL" | null>(null)
+  const [pendingTie, setPendingTie] = useState<"APPROVED" | "REJECTED" | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -55,7 +56,8 @@ export function BoardSessionDetailScreen({
   const cancelAction = data.actions.find(
     (action) => action.action === "SESSION_CANCEL",
   );
-  const chairSubmitting = close.isPending || cancel.isPending;
+  const tieResolveAction = data.actions.find((action) => action.action === "TIE_RESOLVE");
+  const chairSubmitting = close.isPending || cancel.isPending || resolveTie.isPending;
   const currentVote = data.currentUserVote ?? data.myVote;
   const priorRound =
     data.previousRound ??
@@ -95,7 +97,7 @@ export function BoardSessionDetailScreen({
         {
           onError: handleMutationError,
           onSuccess: (result) => {
-            setSuccessMessage(closeResultMessage(result.status));
+            setSuccessMessage(closeResultMessage(result.status, result.votingRound, result.tieResolution));
             setPendingChair(null);
             setSheetError(null);
           },
@@ -113,6 +115,25 @@ export function BoardSessionDetailScreen({
         },
       });
     }
+  };
+
+  const confirmTie = (note: string) => {
+    if (!pendingTie || !versionReady) return;
+    resolveTie.mutate(
+      {
+        decision: pendingTie,
+        note,
+        expectedVersion: data.session.version as number,
+      },
+      {
+        onError: handleMutationError,
+        onSuccess: () => {
+          setSuccessMessage(`Tie resolved as ${pendingTie}.`);
+          setPendingTie(null);
+          setSheetError(null);
+        },
+      },
+    );
   };
 
   const confirmVote = (note: string) => {
@@ -135,17 +156,15 @@ export function BoardSessionDetailScreen({
     );
   };
 
-  const historicalTieBreak =
-    data.session.status === "TIED" ||
-    data.session.status === "TIE_BREAK_REQUIRED";
+  const isHistoricalTie = data.session.status === "TIED";
 
   return (
     <>
       <WorkflowDetailLayout
         title={data.proposal?.title ?? data.session.title}
         subtitle={
-          historicalTieBreak
-            ? "Historical tie-break record · read-only"
+          isHistoricalTie
+            ? `Historical tied round ${data.session.votingRound} · read-only`
             : `Session ${data.session.status}`
         }
       >
@@ -176,6 +195,9 @@ export function BoardSessionDetailScreen({
               Editor recommendation: {data.proposal.editorRecommendation}
             </Text>
           ) : null}
+          <Text style={styles.evidenceText}>
+            Tie policy: {data.session.tiePolicy} · Round {data.session.votingRound}
+          </Text>
           {data.session.closesAt ? (
             <Text style={styles.evidenceText}>
               Closes {new Date(data.session.closesAt).toLocaleString()}
@@ -298,6 +320,41 @@ export function BoardSessionDetailScreen({
                 ) : null}
               </View>
             ) : null}
+            {tieResolveAction ? (
+              <View>
+                <Text style={styles.reason}>
+                  {tieResolveAction.enabled
+                    ? "Round 2 is tied. The Chair must choose the final result."
+                    : tieResolveAction.disabledReason}
+                </Text>
+                {tieResolveAction.enabled ? (
+                  <View style={styles.choices}>
+                    {(["APPROVED", "REJECTED"] as const).map((decision) => (
+                      <Pressable
+                        key={decision}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Resolve tie as ${decision}`}
+                        onPress={() => {
+                          setSuccessMessage(null);
+                          setSheetError(null);
+                          setPendingTie(decision);
+                        }}
+                        style={[styles.chairButton, decision === "REJECTED" && styles.chairCancel]}
+                      >
+                        <Text
+                          style={[
+                            styles.chairText,
+                            decision === "REJECTED" && styles.chairCancelText,
+                          ]}
+                        >
+                          Resolve {decision}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -333,6 +390,23 @@ export function BoardSessionDetailScreen({
       />
 
       <WorkflowConfirmationSheet
+        visible={pendingTie !== null}
+        title={pendingTie ? `Resolve tie as ${pendingTie}?` : ""}
+        effect="This is the final Chair resolution after the second tied round. It creates the immutable Board decision."
+        confirmLabel="Confirm Chair decision"
+        reasonLabel="Required resolution reason"
+        requireReason
+        submitting={resolveTie.isPending}
+        errorMessage={sheetError}
+        onCancel={() => {
+          if (resolveTie.isPending) return;
+          setPendingTie(null);
+          setSheetError(null);
+        }}
+        onConfirm={confirmTie}
+      />
+
+      <WorkflowConfirmationSheet
         visible={pendingChair !== null}
         title={
           pendingChair === "SESSION_FINALIZE"
@@ -341,7 +415,7 @@ export function BoardSessionDetailScreen({
         }
         effect={
           pendingChair === "SESSION_FINALIZE"
-            ? "The backend closes the round and determines the result: finalized decision, no quorum, or a fresh re-vote after a tie."
+            ? "The backend closes the round and applies quorum, the one re-vote limit, and the configured tie policy."
             : "The backend cancels the open session and returns its proposal to PENDING_BOARD."
         }
         confirmLabel={
@@ -373,9 +447,13 @@ export function BoardSessionDetailScreen({
   );
 }
 
-function closeResultMessage(status: string): string {
+function closeResultMessage(status: string, votingRound?: number, tieResolution?: string): string {
   if (status === "TIED")
-    return "Voting round tied. The backend opened a fresh re-vote.";
+    return votingRound && votingRound >= 2
+      ? tieResolution === "RETURNED_TO_BOARD"
+        ? "The final re-vote tied. The proposal returned to the Board queue."
+        : "The final re-vote tied. The Chair must resolve the result."
+      : "Voting round tied. The backend opened the one allowed re-vote.";
   if (status === "NO_QUORUM")
     return "Voting round closed without quorum. The proposal returned to the Board queue.";
   if (status === "FINALIZED")

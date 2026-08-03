@@ -524,7 +524,6 @@ export const seedStudioTasks = [
     seriesId: "s-berserk-prod",
     chapterId: "ch-s-berserk-prod-5",
     pageId: "ch-s-berserk-prod-5-p1",
-    regionId: "reg-001",
     title: "Clean speech bubble on page 01",
     type: "speech_bubble",
     assigneeId: "u-assist",
@@ -587,14 +586,12 @@ export const seedStudioTasks = [
     estimatedAmount: 20,
     currency: "USD",
     // Fully completed after editor approval
-    status: "EDITOR_APPROVED",
+    status: "MANGAKA_APPROVED",
     dueAt: ahead(-2),
     startedAt: ago(72),
     submittedAt: ago(50),
     mangakaReviewedAt: ago(40),
     mangakaReviewedById: "u-mangaka",
-    editorReviewedAt: ago(20),
-    editorReviewedById: "u-editor",
     createdAt: ago(80),
     updatedAt: ago(20)
   }
@@ -669,18 +666,12 @@ export const seedSubmissions = [
     versionLabel: "v1",
     // After Mangaka approved, now waiting for Editor review
     status: "MANGAKA_APPROVED",
-    reviewStage: "EDITOR_REVIEW",
-    reviewRound: 1,
     mangakaDecision: "APPROVED",
     mangakaNote: "Bubble cleaned well. Pass to editor.",
     mangakaReviewedById: "u-mangaka",
     mangakaReviewedAt: ago(20),
     resultText: "Cleaned bubble and exported metadata-only preview.",
     // Legacy fields kept for compat
-    reviewerNote: "Bubble cleaned well. Pass to editor.",
-    reviewedById: "u-mangaka",
-    reviewedByName: "Inoue Takehiko",
-    reviewedAt: ago(20)
   },
   {
     id: "sub-002",
@@ -693,22 +684,12 @@ export const seedSubmissions = [
     version: 1,
     versionLabel: "v1",
     // Fully editor-approved — eligible for earning
-    status: "EDITOR_APPROVED",
-    reviewStage: "FINAL",
-    reviewRound: 1,
+    status: "MANGAKA_APPROVED",
     mangakaDecision: "APPROVED",
     mangakaNote: "Clean typeset.",
     mangakaReviewedById: "u-mangaka",
     mangakaReviewedAt: ago(40),
-    editorDecision: "APPROVED",
-    editorNote: "Great work.",
-    editorReviewedById: "u-editor",
-    editorReviewedAt: ago(20),
     resultText: "Typeset background text completed.",
-    reviewerNote: "Great work.",
-    reviewedById: "u-editor",
-    reviewedByName: "Tanaka Akira",
-    reviewedAt: ago(20)
   }
 ];
 
@@ -990,7 +971,7 @@ export const seedEarningItems = [
     rate: 20,
     amount: 20,
     currency: "USD",
-    // APPROVED: submission was EDITOR_APPROVED — eligible for payout
+    // Approved earning item is eligible for payout.
     status: "APPROVED",
     approvedById: "u-admin",
     approvedAt: ago(18),

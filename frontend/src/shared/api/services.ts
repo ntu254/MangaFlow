@@ -136,7 +136,9 @@ export interface CreateMaterialVersionRequest {
 export interface CreateVotingSessionRequest {
   title: string;
   mode: "AD_HOC";
-  proposalIds: string[];
+  proposalIds?: string[];
+  proposalId?: string;
+  tiePolicy?: "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
   [key: string]: unknown;
 }
 
@@ -150,12 +152,6 @@ export interface UpdateVotingSessionRequest {
 
 export interface CastVoteRequest {
   decision: "APPROVE" | "REJECT";
-  reason?: string;
-  [key: string]: unknown;
-}
-
-export interface TieBreakRequest {
-  decision: string;
   reason?: string;
   [key: string]: unknown;
 }

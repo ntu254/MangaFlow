@@ -163,13 +163,6 @@ async function assertStudioTargetConsistency(body: Record<string, unknown>) {
         "TARGET_MISMATCH",
       );
     }
-    if (regionId && task.regionId && String(task.regionId) !== regionId) {
-      throw new AppError(
-        400,
-        "Task references belong to a different region.",
-        "TARGET_MISMATCH",
-      );
-    }
   }
   if (pageId) {
     if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
@@ -559,8 +552,6 @@ const PAGE_TASK_TERMINAL_STATUSES = [
   "REJECTED",
   "CANCELLED",
   "MANGAKA_APPROVED",
-  "EDITOR_APPROVED",
-  "COMPLETED",
 ];
 
 function isDuplicatePageTaskError(error: unknown) {
@@ -587,13 +578,6 @@ export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(createStudioTaskSchema, req);
-  if (body.regionId) {
-    throw new AppError(
-      400,
-      "Tasks are assigned to pages. Regions are only used for comments and coordinates.",
-      "REGION_TASKS_RETIRED",
-    );
-  }
   await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
 
@@ -642,7 +626,6 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   }
   const taskBody = {
     ...body,
-    targetScope: "PAGE",
     pageTaskActive: true,
     assigneeName,
     assignmentStatus: body.assigneeId ? "PENDING" : "UNASSIGNED",
@@ -702,10 +685,10 @@ export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
       "RATE_SNAPSHOT_IMMUTABLE",
     );
   }
-  if ("assigneeId" in body || "regionId" in body) {
+  if ("assigneeId" in body) {
     throw new AppError(
       400,
-      "Assignee and region must be changed through task actions.",
+      "Assignee must be changed through task actions.",
       "PROTECTED_FIELD",
     );
   }

@@ -25,6 +25,13 @@ const rawEnv = z
     R2_BUCKET: z.string().optional().default(""),
     R2_PUBLIC_URL: z.string().optional().default(""),
     FILE_STORAGE_MODE: z.enum(["auto", "r2", "local"]).default("auto"),
+    // Fail fast by default: without a database the API cannot serve correct
+    // data, so the process exits on startup failure. Set to "true" to keep
+    // the HTTP server running in degraded mode (readiness reports 503).
+    STARTUP_ALLOW_DEGRADED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((v) => v === "true"),
     ADMIN_EMAIL: z.string().email().optional(),
     ADMIN_PASSWORD: z.string().optional(),
     ADMIN_FULL_NAME: z.string().optional(),

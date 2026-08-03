@@ -24,15 +24,17 @@ function isBoardWorkflowUser(role: string): boolean {
   return role === "board" || role === "admin" || role === "editor";
 }
 
-function invalidateBoardDecisionCaches(
+async function invalidateBoardDecisionCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   seriesId: string,
 ) {
-  queryClient.invalidateQueries({ queryKey: boardKeys.votes(seriesId) });
-  queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
-  queryClient.invalidateQueries({ queryKey: proposalKeys.detail(seriesId) });
-  queryClient.invalidateQueries({ queryKey: proposalKeys.all });
-  queryClient.invalidateQueries({ queryKey: seriesKeys.mine() });
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+    queryClient.invalidateQueries({ queryKey: boardKeys.votes(seriesId) }),
+    queryClient.invalidateQueries({ queryKey: proposalKeys.detail(seriesId) }),
+    queryClient.invalidateQueries({ queryKey: proposalKeys.all }),
+    queryClient.invalidateQueries({ queryKey: seriesKeys.mine() }),
+  ]);
 }
 
 export function useBoardQueueQuery() {
@@ -85,7 +87,7 @@ export function useCastBoardVoteMutation() {
         body,
       }),
     onSuccess: (_data, variables) => {
-      invalidateBoardDecisionCaches(queryClient, variables.seriesId);
+      return invalidateBoardDecisionCaches(queryClient, variables.seriesId);
     },
   });
 }
@@ -113,11 +115,7 @@ export function useFinalizeDecisionMutation() {
         body: body ?? {},
       }),
     onSuccess: (_data, variables) => {
-      invalidateBoardDecisionCaches(queryClient, variables.seriesId);
-      queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
-      queryClient.invalidateQueries({
-        queryKey: [...boardKeys.all, "session", variables.sessionId],
-      });
+      return invalidateBoardDecisionCaches(queryClient, variables.seriesId);
     },
   });
 }
@@ -136,9 +134,10 @@ export function useAtRiskDecisionMutation() {
         body,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
-      queryClient.invalidateQueries({ queryKey: rankingKeys.list() });
-      queryClient.invalidateQueries({ queryKey: boardKeys.decisions() });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: rankingKeys.list() }),
+      ]);
     },
   });
 }
@@ -162,10 +161,11 @@ const BOARD_ERROR_MESSAGE: Record<string, string> = {
     "No VotingSession is open for this proposal yet. Ask the Board chair to open one before voting.",
   SESSION_NOT_ACTIVE:
     "This VotingSession is no longer active (closed, cancelled, or not opened yet). Refresh the Board queue and try again.",
-  TIE_BREAK_RETIRED: "This tie is historical. A fresh Board re-vote session is now open.",
   REVIEW_SNAPSHOT_STALE:
     "The proposal changed since this VotingSession was opened. Ask the Board chair to open a new session.",
   VERSION_CONFLICT: "This VotingSession changed while you were voting. Refresh and try again.",
+  TIE_RESOLUTION_NOT_READY: "Only the final tied re-vote can be resolved by the Chair.",
+  TIE_POLICY_AUTOMATIC: "This tie is resolved automatically by the session policy.",
 };
 
 export function mapBoardApiError(err: unknown): string {
@@ -181,5 +181,6 @@ export { useAddVotingSessionNoteMutation } from "../sessions/api/sessions.querie
 export {
   useCancelVotingSessionMutation,
   useCloseVotingSessionMutation,
+  useResolveVotingTieMutation,
   useVotingSessionQuery,
 } from "../sessions/api/sessions.queries";

@@ -47,7 +47,7 @@ export type ReviewItem = {
 const ACTIVE_PROPOSAL_REVIEW_STATUSES = new Set([
   "PENDING_EDITOR",
   "EDITOR_REVIEWING",
-  "RESUBMITTED",
+  "CHANGES_REQUESTED",
 ]);
 
 const COMPLETED_PROPOSAL_REVIEW_STATUSES = new Set([
@@ -113,7 +113,7 @@ export function buildReviewQueue(
       submittedAt: latestMs?.uploadedAt ?? p.updatedAt,
       submittedBy: p.authorName,
       revisionReturned:
-        p.revisionRound > 0 || p.status === "CHANGES_REQUESTED" || p.status === "RESUBMITTED",
+        p.revisionRound > 0 || p.status === "CHANGES_REQUESTED",
       isCompleted,
       claimedByEditorId: p.claimedByEditorId,
       claimedByEditorName: p.claimedByEditorName,

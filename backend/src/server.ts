@@ -15,6 +15,11 @@ async function start() {
     logger.info("seed_check_complete", seedResult);
   } catch (error) {
     logger.error("startup_database_init_failed", { error: error instanceof Error ? error.message : String(error) });
+    if (!env.STARTUP_ALLOW_DEGRADED) {
+      process.exitCode = 1;
+      throw error;
+    }
+    logger.warn("startup_continuing_degraded", { readiness: "503 until database is reachable" });
   }
 
   const app = createApp();

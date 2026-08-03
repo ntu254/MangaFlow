@@ -312,8 +312,8 @@ export function applyTransition(
       if (!payload.voteDecision) throw new Error("Missing vote decision.");
       const chair = isBoardChair(user.id);
       const vote: BoardVote = {
-        memberId: user.id,
-        memberName: user.name,
+        voterId: user.id,
+        voterName: user.name,
         decision: payload.voteDecision,
         comment: payload.comment,
         createdAt: new Date().toISOString(),
@@ -368,43 +368,7 @@ export function applyTransition(
           kind: "proposal.decided",
           message: `Proposal "${p.title}" → ${tally.status}.`,
         });
-      } else if (tally.status === "TIE_BREAK" && from !== "TIE_BREAK") {
-        // A tie closes the current round and immediately starts a clean Board re-vote.
-        // Keep the historical event type for audit compatibility, but do not expose a
-        // special tie-break state or give any role a deciding vote.
-        next.status = "PENDING_BOARD";
-        next.votes = [];
-        events.push({
-          id: uid("e"),
-          proposalId: p.id,
-          actorId: "system",
-          actorName: "System",
-          actorRole: "admin",
-          type: "TIE_BREAK",
-          fromStatus: from,
-          toStatus: "PENDING_BOARD",
-          comment: tally.reason,
-          createdAt: new Date().toISOString(),
-        });
-        notify.push({
-          userId: next.authorId,
-          kind: "proposal.tiebreak",
-          message: `Proposal "${p.title}" is awaiting a fresh Board re-vote.`,
-        });
       }
-      break;
-    }
-    case "FORCE_STATUS": {
-      if (!payload.forceStatus) throw new Error("Missing forceStatus.");
-      const from = next.status;
-      next.status = payload.forceStatus;
-      events.push({
-        ...baseEvent,
-        type: "FORCE_STATUS",
-        fromStatus: from,
-        toStatus: payload.forceStatus,
-        comment: payload.comment ?? "Admin force.",
-      });
       break;
     }
     case "EDIT":
