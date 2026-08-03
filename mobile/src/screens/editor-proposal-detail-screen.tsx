@@ -10,7 +10,7 @@ import { WorkflowConfirmationSheet } from "@/components/workflow-confirmation-sh
 import { WorkflowState } from "@/components/workflow-state"
 import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import { useEditorProposal } from "@/hooks/use-editor-proposal"
-import type { EditorProposalDetail } from "@/services/editor-mobile-data-source"
+import type { EditorialChecklist, EditorProposalDetail } from "@/services/editor-mobile-data-source"
 import { MobileApiError } from "@/services/mobile-api-error"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
@@ -20,6 +20,15 @@ function errorMessage(error: unknown): string {
   return "Something went wrong. Please try again."
 }
 
+const emptyEditorialChecklist: EditorialChecklist = {
+  hook: false,
+  characterMotivation: false,
+  audienceFit: false,
+  storyboardFlow: false,
+  manuscriptQuality: false,
+  serializePotential: false,
+}
+
 export function EditorProposalDetailScreen({
   proposalId,
   getDetail,
@@ -27,13 +36,18 @@ export function EditorProposalDetailScreen({
   proposalId: string
   getDetail?: (id: string) => Promise<EditorProposalDetail>
 }) {
-  const { detail, claim, requestChanges, reject, forward, reviewFiles } = useEditorProposal(
+  const { detail, claim, requestChanges, reject, forward, updateChecklist, reviewFiles } = useEditorProposal(
     proposalId,
     getDetail,
   )
   const [pending, setPending] = useState<WorkflowActionDescriptor | null>(null)
   const [forwardOpen, setForwardOpen] = useState(false)
   const [sheetError, setSheetError] = useState<string | null>(null)
+  const [checklistDraft, setChecklistDraft] = useState<EditorialChecklist>(emptyEditorialChecklist)
+
+  useEffect(() => {
+    if (detail.data) setChecklistDraft(detail.data.editorialChecklist ?? emptyEditorialChecklist)
+  }, [detail.data?.editorialChecklist])
 
   if (detail.isLoading && !detail.data) return <WorkflowState kind="loading" />
   if (detail.error && !detail.data) {
@@ -57,6 +71,8 @@ export function EditorProposalDetailScreen({
     (reject.isPending && "REJECT") ||
     (forward.isPending && "FORWARD") ||
     null
+
+  const checklistComplete = Object.values(checklistDraft).filter(Boolean).length
 
   const runSimple = (reason: string) => {
     if (!pending) return
@@ -86,6 +102,27 @@ export function EditorProposalDetailScreen({
               : "Unclaimed"}
           </Text>
         </View>
+        {data.claim.claimedByEditorId ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>Editorial checklist</Text>
+            <Text style={styles.body}>{checklistComplete}/6 complete</Text>
+            {checklistDraft ? (
+              <>
+                <ChecklistControls checklist={checklistDraft} onChange={setChecklistDraft} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Save checklist"
+                  accessibilityState={{ disabled: updateChecklist.isPending }}
+                  disabled={updateChecklist.isPending}
+                  onPress={() => updateChecklist.mutate(checklistDraft)}
+                  style={[styles.saveChecklist, updateChecklist.isPending && styles.disabled]}
+                >
+                  <Text style={styles.confirmText}>Save checklist</Text>
+                </Pressable>
+              </>
+            ) : null}
+          </View>
+        ) : null}
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Logline</Text>
           <Text style={styles.body}>{data.proposal.logline || "—"}</Text>
@@ -162,6 +199,37 @@ export function EditorProposalDetailScreen({
       />
     </>
   )
+}
+
+const checklistLabels: Array<[keyof EditorialChecklist, string]> = [
+  ["hook", "Hook"],
+  ["characterMotivation", "Character motivation"],
+  ["audienceFit", "Audience fit"],
+  ["storyboardFlow", "Storyboard flow"],
+  ["manuscriptQuality", "Manuscript quality"],
+  ["serializePotential", "Serialize potential"],
+]
+
+function ChecklistControls({
+  checklist,
+  onChange,
+}: {
+  checklist: EditorialChecklist
+  onChange: (checklist: EditorialChecklist) => void
+}) {
+  return checklistLabels.map(([key, label]) => (
+    <Pressable
+      key={key}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: checklist[key] }}
+      onPress={() => onChange({ ...checklist, [key]: !checklist[key] })}
+      style={styles.checklistRow}
+    >
+      <Text style={styles.body}>{label}</Text>
+      <Text style={styles.body}>{checklist[key] ? "Done" : "Not reviewed"}</Text>
+    </Pressable>
+  ))
 }
 
 // Forward requires an editor recommendation that is never synthesized. The
@@ -314,4 +382,6 @@ const styles = StyleSheet.create({
   confirm: { backgroundColor: colors.primary },
   confirmText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
   disabled: { opacity: 0.6 },
+  checklistRow: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },
+  saveChecklist: { minHeight: 44, borderRadius: radius.full, alignItems: "center", justifyContent: "center", backgroundColor: colors.primary },
 })

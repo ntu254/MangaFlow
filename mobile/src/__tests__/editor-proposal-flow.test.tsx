@@ -10,6 +10,7 @@ jest.mock("@/services/editor-mobile-data-source", () => ({
   requestEditorProposalChanges: jest.fn(),
   rejectEditorProposal: jest.fn(),
   forwardEditorProposal: jest.fn(),
+  updateEditorProposalChecklist: jest.fn(),
 }))
 
 const mocked = dataSource as jest.Mocked<typeof dataSource>
@@ -29,6 +30,14 @@ const detailFixture: EditorProposalDetail = {
   currentManuscript: { id: "m1", version: 2, status: "SUBMITTED" },
   version: 2,
   history: [],
+  editorialChecklist: {
+    hook: true,
+    characterMotivation: false,
+    audienceFit: true,
+    storyboardFlow: false,
+    manuscriptQuality: true,
+    serializePotential: false,
+  },
   actions: [
     { action: "CLAIM", enabled: false, disabledReason: "You already claimed this proposal.", requiresConfirmation: true, requiresReason: false },
     { action: "REQUEST_CHANGES", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
@@ -99,5 +108,26 @@ describe("EditorProposalDetailScreen", () => {
     fireEvent.press(await screen.findByRole("button", { name: "Confirm forward" }))
     expect(await screen.findByText("Editor recommendation is required.")).toBeVisible()
     expect(mocked.forwardEditorProposal).not.toHaveBeenCalled()
+  })
+
+  it("displays the saved checklist and submits all six draft values", async () => {
+    mocked.updateEditorProposalChecklist.mockResolvedValue(undefined)
+    renderScreen()
+
+    expect(await screen.findByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    fireEvent.press(screen.getByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("button", { name: "Save checklist" }))
+
+    await waitFor(() =>
+      expect(mocked.updateEditorProposalChecklist).toHaveBeenCalledWith("p-002", {
+        hook: true,
+        characterMotivation: true,
+        audienceFit: true,
+        storyboardFlow: false,
+        manuscriptQuality: true,
+        serializePotential: false,
+      }),
+    )
   })
 })

@@ -14,6 +14,15 @@ export interface EditorProposalActionDescriptor {
   requiresReason: boolean
 }
 
+export interface EditorialChecklist {
+  hook: boolean
+  characterMotivation: boolean
+  audienceFit: boolean
+  storyboardFlow: boolean
+  manuscriptQuality: boolean
+  serializePotential: boolean
+}
+
 export interface EditorProposalDetail {
   proposal: {
     id: string
@@ -32,6 +41,7 @@ export interface EditorProposalDetail {
   }
   currentManuscript: { id: string; version: number; status: string } | null
   version: number | null
+  editorialChecklist: EditorialChecklist | null
   history: Array<{
     id: string
     type: string
@@ -78,6 +88,13 @@ export function forwardEditorProposal(
   },
 ): Promise<void> {
   return proposalAction(proposalId, "FORWARD", input)
+}
+
+export function updateEditorProposalChecklist(
+  proposalId: string,
+  checklist: EditorialChecklist,
+): Promise<void> {
+  return proposalAction(proposalId, "UPDATE_EDITORIAL_CHECKLIST", { editorialChecklist: checklist })
 }
 
 // ---------------------------------------------------------------------------

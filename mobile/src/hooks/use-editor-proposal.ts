@@ -5,6 +5,8 @@ import {
   getEditorProposalDetail,
   rejectEditorProposal,
   requestEditorProposalChanges,
+  updateEditorProposalChecklist,
+  type EditorialChecklist,
   type EditorProposalDetail,
 } from "@/services/editor-mobile-data-source"
 import { mobileInboxKeys } from "@/services/mobile-inbox-data-source"
@@ -58,6 +60,10 @@ export function useEditorProposal(
     }) => forwardEditorProposal(proposalId, input),
     onSuccess: invalidate,
   })
+  const updateChecklist = useMutation({
+    mutationFn: (checklist: EditorialChecklist) => updateEditorProposalChecklist(proposalId, checklist),
+    onSuccess: invalidate,
+  })
 
-  return { detail, claim, requestChanges, reject, forward, reviewFiles }
+  return { detail, claim, requestChanges, reject, forward, updateChecklist, reviewFiles }
 }

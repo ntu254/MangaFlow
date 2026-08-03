@@ -89,6 +89,38 @@ describe("mobile editor workflows", () => {
     );
   });
 
+  it("returns every stored editorial checklist value in a claimed proposal detail", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    const inbox = await editorInbox(editor.accessToken);
+    const proposalItem = inbox.items.find((item: any) => item.kind === "PROPOSAL_REVIEW");
+    const checklist = {
+      hook: true,
+      characterMotivation: false,
+      audienceFit: true,
+      storyboardFlow: false,
+      manuscriptQuality: true,
+      serializePotential: false,
+    };
+
+    await request(createApp())
+      .post(`/api/proposals/${proposalItem.entityId}/actions/CLAIM`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    await request(createApp())
+      .post(`/api/proposals/${proposalItem.entityId}/actions/UPDATE_EDITORIAL_CHECKLIST`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ editorialChecklist: checklist })
+      .expect(200);
+
+    const response = await request(createApp())
+      .get(`/api/editor/proposals/${proposalItem.entityId}/detail`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data.editorialChecklist).toMatchObject(checklist);
+  });
+
   it("exposes publication capability to the assigned Tantou", async () => {
     // Tanaka is the assigned editor for the seeded production series, so their
     // inbox includes chapter/publication work.
