@@ -1,4 +1,3 @@
-import { clearMobileWorkflowAuthTokens, setMobileWorkflowAuthToken } from "@/services/mobile-workflow-data-source"
 import { getMobileApiBaseUrl } from "@/services/mobile-api-config"
 import { mobileApi } from "@/services/mobile-api-client"
 import { mobileAuthStorage } from "@/services/mobile-auth-storage"
@@ -91,7 +90,7 @@ export async function loginMobile(email: string, password: string): Promise<Mobi
   const envelope = await response.json() as ApiEnvelope<AuthPayload>
   const verifiedUser = await fetchMobileMe(envelope.data.accessToken)
   const role = toMobileRole(verifiedUser.role)
-  await establishSession(role, envelope.data.accessToken, envelope.data.refreshToken)
+  await establishSession(envelope.data.accessToken, envelope.data.refreshToken)
 
   return {
     user: verifiedUser,
@@ -103,7 +102,7 @@ export async function loginMobile(email: string, password: string): Promise<Mobi
 
 // Wire the token into the typed API client, persist the refresh token to
 // secure storage, and register a one-shot refresh for 401s.
-async function establishSession(role: MobileAuthRole, accessToken: string, refreshToken: string) {
+async function establishSession(accessToken: string, refreshToken: string) {
   mobileApi.setAccessToken(accessToken)
   mobileApi.setRefreshHandler(async () => {
     const stored = await mobileAuthStorage.getRefreshToken()
@@ -114,8 +113,6 @@ async function establishSession(role: MobileAuthRole, accessToken: string, refre
     return renewed.accessToken
   })
   await mobileAuthStorage.setRefreshToken(refreshToken)
-  // Keep the legacy data-source token boundary alive until Task 7 retires it.
-  setMobileWorkflowAuthToken(role, accessToken)
 }
 
 async function refreshTokens(refreshToken: string): Promise<AuthPayload | null> {
@@ -144,7 +141,7 @@ export async function restoreMobileSession(): Promise<MobileAuthSession | null> 
 
   try {
     const role = toMobileRole(renewed.user.role)
-    await establishSession(role, renewed.accessToken, renewed.refreshToken)
+    await establishSession(renewed.accessToken, renewed.refreshToken)
     return {
       user: renewed.user,
       accessToken: renewed.accessToken,
@@ -162,22 +159,15 @@ export async function logoutMobile(session: MobileAuthSession | null): Promise<v
   mobileApi.setRefreshHandler(null)
   await mobileAuthStorage.clearRefreshToken()
 
-  if (!session) {
-    clearMobileWorkflowAuthTokens()
-    return
-  }
+  if (!session) return
 
-  try {
-    const apiBaseUrl = getMobileApiBaseUrl()
-    await fetch(`${apiBaseUrl}/auth/logout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify({ refreshToken: session.refreshToken }),
-    })
-  } finally {
-    clearMobileWorkflowAuthTokens()
-  }
+  const apiBaseUrl = getMobileApiBaseUrl()
+  await fetch(`${apiBaseUrl}/auth/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+    body: JSON.stringify({ refreshToken: session.refreshToken }),
+  })
 }

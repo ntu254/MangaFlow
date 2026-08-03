@@ -10,6 +10,7 @@ import { WorkflowConfirmationSheet } from "@/components/workflow-confirmation-sh
 import { WorkflowState } from "@/components/workflow-state"
 import { ReadinessEvidence } from "@/components/readiness-evidence"
 import { CommentThread, type MobileComment } from "@/components/comment-thread"
+import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import { useEditorChapter } from "@/hooks/use-editor-chapter"
 import { useEditorComments } from "@/hooks/use-editor-comments"
 import type { EditorChapterDetail } from "@/services/editor-mobile-data-source"
@@ -58,7 +59,10 @@ export function EditorChapterDetailScreen({
   chapterId: string
   getDetail?: (id: string) => Promise<EditorChapterDetail>
 }) {
-  const { detail, requestRevision, reject, approve } = useEditorChapter(chapterId, getDetail)
+  const { detail, requestRevision, reject, approve, reviewFiles } = useEditorChapter(
+    chapterId,
+    getDetail,
+  )
   const comments = useEditorComments(chapterId)
   const [pending, setPending] = useState<WorkflowActionDescriptor | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
@@ -117,6 +121,11 @@ export function EditorChapterDetailScreen({
             submission(s)
           </Text>
         </View>
+        <SubmittedFilesPanel
+          files={reviewFiles.data ?? []}
+          loading={reviewFiles.isLoading}
+          errorText={reviewFiles.error ? "Could not load submitted files." : null}
+        />
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Blocking comments</Text>
           {data.blockers.length === 0 ? <Text style={styles.body}>None.</Text> : null}

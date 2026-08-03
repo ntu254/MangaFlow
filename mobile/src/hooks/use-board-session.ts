@@ -9,12 +9,14 @@ import {
   type BoardVoteValue,
 } from "@/services/board-mobile-data-source"
 import { mobileInboxKeys } from "@/services/mobile-inbox-data-source"
+import { getReviewFiles } from "@/services/mobile-file-review"
 
 export const boardSessionKeys = {
   all: ["board", "sessions"] as const,
   list: ["board", "sessions", "list"] as const,
   pendingProposals: ["board", "sessions", "pending-proposals"] as const,
   detail: (id: string) => ["board", "session", id] as const,
+  reviewFiles: (proposalId: string) => ["board", "proposal", proposalId, "review-files"] as const,
 }
 
 export function useBoardSession(
@@ -26,6 +28,17 @@ export function useBoardSession(
   const detail = useQuery({
     queryKey: boardSessionKeys.detail(sessionId),
     queryFn: () => getDetail(sessionId),
+  })
+
+  // Board reviews the frozen proposal manuscript/attachments only — never
+  // chapter, page, task, or submission files. The review context is the
+  // session's proposal, so this can only load once the session detail
+  // resolves a proposalId.
+  const proposalId = detail.data?.session.proposalId ?? null
+  const reviewFiles = useQuery({
+    queryKey: boardSessionKeys.reviewFiles(proposalId ?? ""),
+    queryFn: () => getReviewFiles("proposal", proposalId as string),
+    enabled: proposalId !== null,
   })
 
   const invalidate = () => {
@@ -66,5 +79,5 @@ export function useBoardSession(
     onSuccess: invalidate,
   })
 
-  return { detail, vote, close, cancel, update }
+  return { detail, vote, close, cancel, update, reviewFiles }
 }

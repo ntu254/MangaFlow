@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 import type { UseQueryResult } from "@tanstack/react-query"
 import { TodayQueue } from "@/components/today-queue"
@@ -23,6 +23,12 @@ export function EditorWorkspace({
   demoMode?: boolean
 }) {
   const [selected, setSelected] = useState<MobileWorkItem | null>(null)
+
+  // Switching tabs should always land on that tab's list, not leave a stale
+  // detail screen from whichever item was open before.
+  useEffect(() => {
+    setSelected(null)
+  }, [tab])
 
   if (selected) {
     return <EditorDetail item={selected} onBack={() => setSelected(null)} />
@@ -71,6 +77,11 @@ export function EditorWorkspace({
 }
 
 function EditorDetail({ item, onBack }: { item: MobileWorkItem; onBack: () => void }) {
+  const commentChapterId =
+    item.kind === "COMMENT_REVIEW" && typeof item.summary.chapterId === "string"
+      ? item.summary.chapterId
+      : null
+
   return (
     <View style={styles.root}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}>
@@ -83,11 +94,15 @@ function EditorDetail({ item, onBack }: { item: MobileWorkItem; onBack: () => vo
           <EditorChapterDetailScreen chapterId={item.entityId} />
         ) : item.kind === "PUBLICATION" ? (
           <EditorPublishScreen chapterId={item.entityId} />
+        ) : commentChapterId ? (
+          // Resolve/reopen lives on the chapter's blocking-comment thread, so
+          // route straight there instead of a dead end.
+          <EditorChapterDetailScreen chapterId={commentChapterId} />
         ) : (
           <WorkflowState
             kind="empty"
-            title="Open the chapter to act"
-            description="Resolve or reopen this comment from its chapter's review screen."
+            title="Chapter not found"
+            description="This comment's chapter could not be resolved. Open it from the Reviews tab instead."
           />
         )}
       </View>

@@ -13,6 +13,9 @@ import {
   RankingModel,
   SeriesModel,
   StudioCommentModel,
+  StudioRegionModel,
+  StudioTaskModel,
+  SubmissionModel,
   VotingSessionModel,
 } from "../db/models.js";
 import {
@@ -241,9 +244,43 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
   };
 }
 
-function commentReviewWorkItem(_actor: RequestActor, comment: any): MobileWorkItem {
+// Resolves the chapter a blocking comment belongs to so mobile can route
+// straight into that chapter's review screen instead of a dead end. Comments
+// created without an explicit chapterId (page/region/task/submission targets)
+// are resolved through their target's own chapterId.
+async function resolveCommentChapterId(comment: any): Promise<string | null> {
+  if (comment.chapterId) return String(comment.chapterId);
+  if (comment.taskId) {
+    const task = await StudioTaskModel.findOne({ id: comment.taskId })
+      .select({ chapterId: 1 })
+      .lean();
+    if ((task as any)?.chapterId) return String((task as any).chapterId);
+  }
+  if (comment.regionId) {
+    const region = await StudioRegionModel.findOne({ id: comment.regionId })
+      .select({ chapterId: 1 })
+      .lean();
+    if ((region as any)?.chapterId) return String((region as any).chapterId);
+  }
+  if (comment.targetType === "SUBMISSION" && comment.targetId) {
+    const submission = await SubmissionModel.findOne({ id: comment.targetId })
+      .select({ chapterId: 1 })
+      .lean();
+    if ((submission as any)?.chapterId) return String((submission as any).chapterId);
+  }
+  if (comment.pageId) {
+    const chapter = await ChapterModel.findOne({ "pages.id": comment.pageId })
+      .select({ id: 1 })
+      .lean();
+    if ((chapter as any)?.id) return String((chapter as any).id);
+  }
+  return null;
+}
+
+async function commentReviewWorkItem(_actor: RequestActor, comment: any): Promise<MobileWorkItem> {
   const canResolve = comment.status === "ADDRESSED";
   const canReopen = comment.status === "RESOLVED";
+  const chapterId = await resolveCommentChapterId(comment);
   return {
     id: `COMMENT_REVIEW:${comment.id}`,
     kind: "COMMENT_REVIEW",
@@ -271,7 +308,7 @@ function commentReviewWorkItem(_actor: RequestActor, comment: any): MobileWorkIt
         requiresReason: false,
       },
     ],
-    summary: { targetType: comment.targetType ?? "CHAPTER" },
+    summary: { targetType: comment.targetType ?? "CHAPTER", chapterId },
   };
 }
 
@@ -306,15 +343,16 @@ export async function getEditorMobileInbox(actor: RequestActor): Promise<MobileI
     .sort({ updatedAt: -1 })
     .lean();
 
-  const [chapterItems, publicationItems] = await Promise.all([
+  const [chapterItems, publicationItems, commentItems] = await Promise.all([
     Promise.all(reviewChapters.map((chapter: any) => chapterReviewWorkItem(actor, chapter))),
     Promise.all(publishChapters.map((chapter: any) => publicationWorkItem(actor, chapter))),
+    Promise.all(blockingComments.map((comment: any) => commentReviewWorkItem(actor, comment))),
   ]);
 
   const items: MobileWorkItem[] = [
     ...proposals.map((proposal) => proposalWorkItem(actor, proposal)),
     ...chapterItems,
-    ...blockingComments.map((comment: any) => commentReviewWorkItem(actor, comment)),
+    ...commentItems,
     ...publicationItems,
   ];
 

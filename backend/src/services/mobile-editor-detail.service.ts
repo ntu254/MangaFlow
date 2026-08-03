@@ -60,10 +60,12 @@ export async function loadEditorChapterContext(chapter: any): Promise<EditorChap
       ],
     }).lean(),
   ]);
-  // Unresolved blocking comments authored by the assigned Tantou.
-  const blockingComments = await findChapterBlockingComments(chapter, tasks, submissions, [
-    "RESOLVED",
-  ]);
+  // All blocking comments authored by the assigned Tantou, including RESOLVED
+  // ones. This doubles as the review-screen display list, so RESOLVED
+  // comments must stay visible for COMMENT_REOPEN — chapterReadiness's
+  // allCommentsResolved check already treats a RESOLVED comment as passing,
+  // so including it here does not change the readiness result.
+  const blockingComments = await findChapterBlockingComments(chapter, tasks, submissions, []);
   const readiness = chapterReadiness(chapter, blockingComments, tasks, submissions, materials);
   return { chapter, series, tasks, submissions, materials, blockingComments, readiness };
 }
@@ -301,6 +303,7 @@ export async function getEditorProposalDetail(actor: RequestActor, proposalId: s
         }
       : null,
     version: currentManuscript?.version ?? (manuscripts.length || null),
+    editorialChecklist: value.editorialChecklist ?? null,
     history: (value.history ?? []).map((event: any) => ({
       id: event.id,
       type: event.type,
