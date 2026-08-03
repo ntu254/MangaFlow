@@ -4,6 +4,7 @@ import {
   editorReviewQueueHandler,
   boardQueueHandler,
   editorInboxHandler,
+  editorActivityHandler,
   boardInboxHandler,
   editorProposalDetailHandler,
   editorChapterDetailHandler,
@@ -24,6 +25,7 @@ const router = Router();
 
 // Queue-first mobile inbox (foundation)
 router.get("/editor/inbox", requireExactRole("EDITOR") as any, editorInboxHandler);
+router.get("/editor/activity", requireExactRole("EDITOR") as any, editorActivityHandler);
 router.get("/board/inbox", requireExactRole("BOARD") as any, boardInboxHandler);
 
 // Editor detail projections

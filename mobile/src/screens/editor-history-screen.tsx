@@ -17,9 +17,9 @@ export function EditorHistoryScreen() {
 
   return (
     <>
-      <MFHero role="editor" title="Editorial Workflow Status" subtitle="Recent proposal workflow status visible to the Editor team. This is not a personal activity log." />
-      <SectionTitle title={`${items.length} updates · ${areas.length} work areas · Recent`} />
-      {items.length ? <SectionTitle title="Recent editorial workflow updates" /> : null}
+      <MFHero role="editor" title="My Editorial Activity" subtitle="Audited actions performed by your signed-in Editor account." />
+      <SectionTitle title={`${items.length} actions · ${areas.length} work areas · Recent`} />
+      {items.length ? <SectionTitle title="Your recent editorial work" /> : null}
       {items.length ? groups.map((group) => (
         <Fragment key={group.id}>
           <SectionTitle title={group.title} />
@@ -32,7 +32,7 @@ export function EditorHistoryScreen() {
           }))} />
         </Fragment>
       )) : (
-        <MFEmptyState title="No recent editorial workflow updates" subtitle="Recent proposal, chapter, comment, and publication status changes appear here." icon="file-check" />
+        <MFEmptyState title="No editorial activity yet" subtitle="Your audited proposal, chapter, comment, and publication actions appear here." icon="file-check" />
       )}
     </>
   )

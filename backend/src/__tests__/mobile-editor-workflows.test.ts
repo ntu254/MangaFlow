@@ -4,6 +4,13 @@ import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
 import { mobileInboxSchema } from "../mobile/mobile-work-item.contract.js";
+import {
+  AuditEntryModel,
+  ChapterModel,
+  ProposalModel,
+  SeriesModel,
+  StudioCommentModel,
+} from "../db/models.js";
 
 let mongo: MongoMemoryReplSet;
 
@@ -50,6 +57,116 @@ describe("mobile editor workflows", () => {
     for (const kind of kinds) {
       expect(["PROPOSAL_REVIEW", "CHAPTER_REVIEW", "COMMENT_REVIEW", "PUBLICATION"]).toContain(kind);
     }
+  });
+
+  it("returns only the authenticated Editor's auditable editorial actions with real context", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const proposal = await ProposalModel.findOne({}).lean();
+    const chapter = await ChapterModel.findOne({ seriesId: "s-berserk-prod" }).lean();
+    const series = await SeriesModel.findOne({ id: (chapter as any).seriesId }).lean();
+    const comment = await StudioCommentModel.create({
+      id: "activity-comment",
+      seriesId: (series as any).id,
+      chapterId: (chapter as any).id,
+      targetType: "CHAPTER",
+      targetId: (chapter as any).id,
+      authorId: editor.user.id,
+      authorName: "Tanaka Akira",
+      authorRole: "editor",
+      body: "Clarify the final panel.",
+      status: "OPEN",
+      createdAt: new Date("2026-08-04T08:00:00.000Z"),
+      updatedAt: new Date("2026-08-04T08:00:00.000Z"),
+    });
+
+    await AuditEntryModel.insertMany([
+      {
+        id: "activity-proposal",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "PROPOSAL_FORWARDED_TO_BOARD",
+        entityType: "proposal",
+        entityId: (proposal as any).id,
+        metadata: { toStatus: "PENDING_BOARD" },
+        createdAt: new Date("2026-08-04T09:00:00.000Z"),
+      },
+      {
+        id: "activity-chapter",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "CHAPTER_TANTOU_REVISION_REQUESTED",
+        entityType: "chapter",
+        entityId: (chapter as any).id,
+        metadata: { toStatus: "REVISION_REQUIRED" },
+        createdAt: new Date("2026-08-04T08:45:00.000Z"),
+      },
+      {
+        id: "activity-comment-row",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "comment.create",
+        entityType: "comment",
+        entityId: (comment as any).id,
+        createdAt: new Date("2026-08-04T08:30:00.000Z"),
+      },
+      {
+        id: "activity-publication",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "PUBLICATION_SCHEDULED",
+        entityType: "publication",
+        entityId: (chapter as any).id,
+        metadata: { scheduledAt: "2026-08-05T09:00:00.000Z" },
+        createdAt: new Date("2026-08-04T08:15:00.000Z"),
+      },
+      {
+        id: "activity-other-editor",
+        actorId: "u-another-editor",
+        actorRole: "EDITOR",
+        action: "CHAPTER_PUBLISHED",
+        entityType: "chapter",
+        entityId: (chapter as any).id,
+        createdAt: new Date("2026-08-04T10:00:00.000Z"),
+      },
+    ]);
+
+    const response = await request(createApp())
+      .get("/api/editor/activity")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data.map((item: any) => item.id)).toEqual([
+      "activity-proposal",
+      "activity-chapter",
+      "activity-comment-row",
+      "activity-publication",
+    ]);
+    expect(response.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "activity-proposal",
+        action: "PROPOSAL_FORWARDED_TO_BOARD",
+        area: "PROPOSAL",
+        subject: (proposal as any).title,
+        outcome: "PENDING_BOARD",
+      }),
+      expect.objectContaining({
+        id: "activity-chapter",
+        area: "CHAPTER",
+        subject: `${(series as any).title} · Chapter ${(chapter as any).number}`,
+        seriesTitle: (series as any).title,
+        chapterNumber: (chapter as any).number,
+      }),
+      expect.objectContaining({
+        id: "activity-comment-row",
+        area: "COMMENT",
+        subject: `${(series as any).title} · Chapter ${(chapter as any).number}`,
+      }),
+      expect.objectContaining({
+        id: "activity-publication",
+        area: "PUBLICATION",
+        subject: `${(series as any).title} · Chapter ${(chapter as any).number}`,
+      }),
+    ]));
   });
 
   it("never exposes an Assistant-submission approval action to the Editor", async () => {
