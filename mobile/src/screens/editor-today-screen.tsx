@@ -10,6 +10,7 @@ export function EditorTodayScreen(props: EditorTodayScreenProps) {
       {...props}
       emptyTitle="No decisions need your attention."
       emptyDescription="New proposals and reviews will appear here."
+      context="Editor work"
     />
   )
 }

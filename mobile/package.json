@@ -61,7 +61,7 @@
       "<rootDir>/jest.setup.ts"
     ],
     "testMatch": [
-      "<rootDir>/src/**/*.test.{ts,tsx}"
+      "**/src/**/*.test.{ts,tsx}"
     ]
   }
 }

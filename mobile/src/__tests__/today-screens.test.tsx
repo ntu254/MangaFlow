@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native"
 import { WorkItemCard } from "@/components/work-item-card"
 import { EditorTodayScreen } from "@/screens/editor-today-screen"
 import { BoardTodayScreen } from "@/screens/board-today-screen"
+import { filterEditorInbox } from "@/screens/editor-workspace"
 import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item"
 
 const urgentProposalFixture: MobileWorkItem = {
@@ -29,6 +30,19 @@ const editorInboxFixture: MobileInbox = {
 }
 
 describe("Queue-first Today surfaces", () => {
+  it("separates Priority, Reviews, and Publish without changing inbox order", () => {
+    const items: MobileWorkItem[] = [
+      urgentProposalFixture,
+      { ...urgentProposalFixture, id: "comment", kind: "COMMENT_REVIEW", priority: { ...urgentProposalFixture.priority, level: "HIGH" } },
+      { ...urgentProposalFixture, id: "chapter", kind: "CHAPTER_REVIEW", priority: { ...urgentProposalFixture.priority, level: "NORMAL" } },
+      { ...urgentProposalFixture, id: "publish", kind: "PUBLICATION", priority: { ...urgentProposalFixture.priority, level: "NORMAL" } },
+    ]
+
+    expect(filterEditorInbox("priority", items).map(({ id }) => id)).toEqual(["PROPOSAL_REVIEW:p-001", "comment"])
+    expect(filterEditorInbox("reviews", items).map(({ id }) => id)).toEqual(["PROPOSAL_REVIEW:p-001", "comment", "chapter"])
+    expect(filterEditorInbox("publish", items).map(({ id }) => id)).toEqual(["publish"])
+  })
+
   it("shows backend priority and opens detail without mutating from the card", () => {
     const onSelect = jest.fn()
     render(<WorkItemCard item={urgentProposalFixture} onSelect={onSelect} />)

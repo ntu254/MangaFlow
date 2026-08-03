@@ -1,5 +1,4 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
-import type { MobileApiError } from "@/services/mobile-api-error"
 import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item"
 import { WorkItemCard } from "@/components/work-item-card"
 import { WorkflowState } from "@/components/workflow-state"
@@ -8,7 +7,7 @@ import { colors, spacing, typography } from "@/design/tokens"
 export interface TodayQueueProps {
   inbox?: MobileInbox
   isLoading?: boolean
-  error?: MobileApiError | Error | null
+  error?: unknown
   onRetry?: () => void
   onRefresh?: () => void
   refreshing?: boolean
@@ -16,6 +15,8 @@ export interface TodayQueueProps {
   demoMode?: boolean
   emptyTitle: string
   emptyDescription: string
+  /** Role/context noun used by the failure title, e.g. "Editor work". */
+  context?: string
 }
 
 // Renders the backend queue order verbatim; mobile never re-sorts work.
@@ -30,9 +31,14 @@ export function TodayQueue({
   demoMode = false,
   emptyTitle,
   emptyDescription,
+  context,
 }: TodayQueueProps) {
   if (isLoading && !inbox) return <WorkflowState kind="loading" />
-  if (error && !inbox) return <WorkflowState kind="error" error={error} onRetry={onRetry ?? (() => {})} />
+  if (error && !inbox) {
+    return (
+      <WorkflowState kind="error" error={error} context={context} onRetry={onRetry ?? (() => {})} />
+    )
+  }
 
   const items = inbox?.items ?? []
 

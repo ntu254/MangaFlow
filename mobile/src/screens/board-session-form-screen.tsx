@@ -72,6 +72,7 @@ export function BoardSessionFormScreen({ onCreated }: { onCreated?: () => void }
         ) : proposals.error && !proposals.data ? (
           <WorkflowState
             kind="error"
+            context="proposals awaiting a session"
             error={proposals.error}
             onRetry={() => void proposals.refetch()}
           />

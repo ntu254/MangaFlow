@@ -31,16 +31,28 @@ mobile/src/MangaFlowMobileApp.tsx
 
 mobile/src/domain/
   mobile-work-item.ts: zod-validated inbox item contract shared with the backend.
+  mobile-notification.ts: zod-validated notification contract (actionUrl is
+  deliberately stripped — mobile has no approved destination contract).
+  editor-activity.ts: Editor-only "My Editorial Activity" presentation model.
+  board-decision-ledger.ts: Board-only "Governance Decision Ledger" model.
+  These two mappers are never merged into one business activity model.
+  timestamp.ts: shared low-level timestamp formatting only.
   workflow.ts: small shared UI types (Role, Tone, MetricItem, QueueItem,
   SeriesCard, AtRiskDecision) used by mf.tsx and the Board data source.
 
 mobile/src/services/
   mobile-api-client.ts / mobile-api-config.ts / mobile-api-error.ts: typed
   fetch client, base URL resolution, normalized error type.
+  mobile-request-diagnostics.ts: normalizes HTTP / network / Zod-contract
+  failures into safe support diagnostics (status, backend code, request id,
+  category) — never a response body, token, or stack trace.
+  mobile-clipboard.ts: optional copy affordance for support details.
   mobile-auth.ts / mobile-auth-storage.ts: login, session restore, refresh-token
   storage in SecureStore.
   mobile-inbox-data-source.ts: GET /editor/inbox | /board/inbox, validated by
-  mobileInboxSchema.
+  mobileInboxSchema and normalized through MobileRequestError on failure.
+  mobile-notification-data-source.ts: GET /notifications and
+  POST /notifications/:id/read.
   editor-mobile-data-source.ts: Editor proposal/chapter/comment/publication
   detail reads and canonical action calls.
   board-mobile-data-source.ts: Board session/ranking/decision-history detail
@@ -50,14 +62,17 @@ mobile/src/hooks/
   use-mobile-inbox.ts plus per-detail hooks (use-editor-proposal,
   use-editor-chapter, use-editor-comments, use-editor-publications,
   use-editor-history, use-board-session, use-board-sessions,
-  use-board-rankings, use-board-at-risk) — each wraps a data-source call in
-  React Query and owns its own mutation/invalidation wiring.
+  use-board-rankings, use-board-at-risk, use-mobile-notifications) — each wraps
+  a data-source call in React Query and owns its own mutation/invalidation
+  wiring.
 
 mobile/src/screens/
   editor-workspace.tsx / board-workspace.tsx: tab router for each role, holding
   local "which detail is open" navigation state.
   *-today-screen.tsx, *-sessions-screen.tsx, *-ranking-screen.tsx,
   *-history-screen.tsx: list screens for each tab.
+  notifications-screen.tsx: the fifth tab for both roles, shared by Editor and
+  Board because /notifications is already scoped to the authenticated user.
   editor-proposal-detail-screen.tsx, editor-chapter-detail-screen.tsx,
   editor-publish-screen.tsx, board-session-detail-screen.tsx,
   board-session-form-screen.tsx: detail/action screens.
@@ -79,8 +94,9 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 ## Mock/API Boundary
 
 - Live mode is the default and the only mode with real content. There is no
-  live-to-mock fallback on request failure — a failed read surfaces an error
-  state with retry.
+  live-to-mock fallback on request failure — a failed read surfaces a friendly
+  error with retry and a collapsed **Support details** disclosure carrying only
+  HTTP status, backend code, request id, and failure category.
 - Demo mode is explicit and opt-in via `EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true`.
   It short-circuits the inbox query to a labelled empty inbox
   (`demoInbox` in `MangaFlowMobileApp.tsx`) so the shell never issues a live
@@ -100,7 +116,7 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 
 ## Role Flows
 
-### Tantou Editor (`editor-workspace.tsx`, 4 tabs)
+### Tantou Editor (`editor-workspace.tsx`, 5 tabs)
 
 - **Today**: full inbox (`GET /editor/inbox`) — proposal reviews, chapter
   reviews, blocking comments awaiting verification, and publication items.
@@ -115,12 +131,18 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
     visible page/submission attachments.
 - **Publish**: inbox filtered to `PUBLICATION` — schedule, postpone, publish
   now, from `editor-publish-screen.tsx`.
-- **History**: read-only recent activity (`GET /dashboard/editor/summary`).
+- **History — "My Editorial Activity"**: read-only personal activity
+  (`GET /dashboard/editor/summary`) mapped through `editor-activity.ts`.
+- **Notifications**: fifth tab, `GET /notifications`, unread badge on the tab.
+- Proposal detail keeps `savedChecklist` (backend value / last successful save)
+  separate from `draftChecklist`. Forward to Board is disabled client-side until
+  `savedChecklist` is 6/6; the backend `EDITORIAL_CHECKLIST_INCOMPLETE` guard
+  stays authoritative for stale clients and direct API calls.
 - Comment lifecycle: `OPEN -> ADDRESSED -> RESOLVED`, with `REOPENED` as a
   manual escape hatch. `COMMENT_RESOLVE`/`COMMENT_REOPEN` act through
   `use-editor-comments.ts`.
 
-### Board / Board Chair (`board-workspace.tsx`, 4 tabs)
+### Board / Board Chair (`board-workspace.tsx`, 5 tabs)
 
 - **Today**: full inbox (`GET /board/inbox`) — open `BOARD_VOTE`/`BOARD_REVOTE`
   items, Chair-only `SESSION_FINALIZE` items, and Chair-only `AT_RISK` items.
@@ -138,8 +160,11 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 - **At-risk decision**: manual Chair-only decisions `CONTINUE`, `WARNING`,
   `REQUEST_IMPROVEMENT_PLAN`, `CANCEL` via `at-risk-decision-sheet.tsx`;
   cancellation is never automatic.
-- **History**: immutable decision history (`GET /board/decisions/history`),
-  annotated with re-vote lineage where applicable.
+- **History — "Governance Decision Ledger"**: immutable decision history
+  (`GET /board/decisions/history`) mapped through `board-decision-ledger.ts`,
+  annotated with re-vote lineage where applicable. It is an audit record, never
+  labelled as a personal activity feed.
+- **Notifications**: fifth tab, `GET /notifications`, unread badge on the tab.
 
 ### Retired: Editor-in-Chief tie-break voting
 

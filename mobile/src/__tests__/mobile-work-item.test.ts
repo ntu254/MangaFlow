@@ -47,6 +47,13 @@ describe("mobile work item contract", () => {
     expect(() => mobileWorkItemSchema.parse(value)).toThrow();
   });
 
+  it("accepts RELEASE_CLAIM emitted by the Editor inbox", () => {
+    const value = validProposalItem();
+    value.actions[0] = { ...value.actions[0], action: "RELEASE_CLAIM" };
+
+    expect(() => mobileWorkItemSchema.parse(value)).not.toThrow();
+  });
+
   it("rejects a disabled action without a reason", () => {
     const value = validProposalItem();
     value.actions[0] = { ...value.actions[0], enabled: false, disabledReason: null };

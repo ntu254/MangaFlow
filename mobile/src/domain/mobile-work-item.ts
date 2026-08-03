@@ -13,6 +13,7 @@ export const mobileWorkItemKindSchema = z.enum([
 
 export const mobileWorkflowActionSchema = z.enum([
   "CLAIM",
+  "RELEASE_CLAIM",
   "REQUEST_CHANGES",
   "REJECT",
   "FORWARD",

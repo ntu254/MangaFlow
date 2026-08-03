@@ -29,6 +29,28 @@ const emptyEditorialChecklist: EditorialChecklist = {
   serializePotential: false,
 }
 
+const checklistLabels: Array<[keyof EditorialChecklist, string]> = [
+  ["hook", "Hook"],
+  ["characterMotivation", "Character motivation"],
+  ["audienceFit", "Audience fit"],
+  ["storyboardFlow", "Storyboard flow"],
+  ["manuscriptQuality", "Manuscript quality"],
+  ["serializePotential", "Serialize potential"],
+]
+
+export const EDITORIAL_CHECKLIST_SIZE = checklistLabels.length
+
+function checklistCount(checklist: EditorialChecklist): number {
+  return checklistLabels.filter(([key]) => checklist[key]).length
+}
+
+// Stable value key: a refetch that returns the same checklist must not discard
+// the Editor's in-progress ticks, so the sync effect keys on the value itself.
+function checklistKey(checklist: EditorialChecklist | null): string {
+  if (!checklist) return "none"
+  return checklistLabels.map(([key]) => (checklist[key] ? "1" : "0")).join("")
+}
+
 export function EditorProposalDetailScreen({
   proposalId,
   getDetail,
@@ -43,26 +65,71 @@ export function EditorProposalDetailScreen({
   const [pending, setPending] = useState<WorkflowActionDescriptor | null>(null)
   const [forwardOpen, setForwardOpen] = useState(false)
   const [sheetError, setSheetError] = useState<string | null>(null)
-  const [checklistDraft, setChecklistDraft] = useState<EditorialChecklist>(emptyEditorialChecklist)
+  // savedChecklist is the backend value (detail read, or the last successful
+  // save). draftChecklist is what the Editor has ticked but not yet saved.
+  const [savedChecklist, setSavedChecklist] = useState<EditorialChecklist>(emptyEditorialChecklist)
+  const [draftChecklist, setDraftChecklist] = useState<EditorialChecklist>(emptyEditorialChecklist)
+  const [checklistError, setChecklistError] = useState<string | null>(null)
+
+  const serverChecklistKey = checklistKey(detail.data?.editorialChecklist ?? null)
 
   useEffect(() => {
-    if (detail.data) setChecklistDraft(detail.data.editorialChecklist ?? emptyEditorialChecklist)
-  }, [detail.data?.editorialChecklist])
+    const next = detail.data?.editorialChecklist ?? emptyEditorialChecklist
+    setSavedChecklist(next)
+    setDraftChecklist(next)
+    setChecklistError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverChecklistKey])
 
   if (detail.isLoading && !detail.data) return <WorkflowState kind="loading" />
   if (detail.error && !detail.data) {
-    return <WorkflowState kind="error" error={detail.error as Error} onRetry={() => void detail.refetch()} />
+    return (
+      <WorkflowState
+        kind="error"
+        context="this proposal"
+        error={detail.error as Error}
+        onRetry={() => void detail.refetch()}
+      />
+    )
   }
   const data = detail.data
   if (!data) return null
 
+  const savedCount = checklistCount(savedChecklist)
+  const draftCount = checklistCount(draftChecklist)
+  const savedChecklistComplete = savedCount === EDITORIAL_CHECKLIST_SIZE
+  const hasUnsavedChecklist = checklistKey(draftChecklist) !== checklistKey(savedChecklist)
+
+  // The backend remains the authority (EDITORIAL_CHECKLIST_INCOMPLETE); the
+  // client only ever narrows an action, never re-enables one the backend
+  // disabled, and never treats unsaved ticks as complete.
+  const actions: WorkflowActionDescriptor[] = data.actions.map((descriptor) =>
+    descriptor.action === "FORWARD" && descriptor.enabled && !savedChecklistComplete
+      ? {
+          ...descriptor,
+          enabled: false,
+          disabledReason: `Cần hoàn tất checklist: ${savedCount}/${EDITORIAL_CHECKLIST_SIZE}.`,
+        }
+      : descriptor,
+  )
+
   const onAction = (descriptor: WorkflowActionDescriptor) => {
     setSheetError(null)
     if (descriptor.action === "FORWARD") {
+      if (!savedChecklistComplete) return
       setForwardOpen(true)
       return
     }
     setPending(descriptor)
+  }
+
+  const saveChecklist = () => {
+    setChecklistError(null)
+    updateChecklist.mutate(draftChecklist, {
+      // A failed save keeps the draft so nothing the Editor ticked is lost.
+      onError: (error) => setChecklistError(errorMessage(error)),
+      onSuccess: () => setSavedChecklist(draftChecklist),
+    })
   }
 
   const busyAction =
@@ -72,8 +139,6 @@ export function EditorProposalDetailScreen({
     (reject.isPending && "REJECT") ||
     (forward.isPending && "FORWARD") ||
     null
-
-  const checklistComplete = Object.values(checklistDraft).filter(Boolean).length
 
   const runSimple = (reason: string) => {
     if (!pending) return
@@ -94,7 +159,7 @@ export function EditorProposalDetailScreen({
       <WorkflowDetailLayout
         title={data.proposal.title}
         subtitle={`${data.proposal.status} · ${data.proposal.requestedPublicationType}`}
-        actionBar={<WorkflowActionBar actions={data.actions} onAction={onAction} busyAction={busyAction} />}
+        actionBar={<WorkflowActionBar actions={actions} onAction={onAction} busyAction={busyAction} />}
       >
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Claim</Text>
@@ -107,19 +172,33 @@ export function EditorProposalDetailScreen({
         {data.claim.claimedByEditorId ? (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Editorial checklist</Text>
-            <Text style={styles.body}>{checklistComplete}/6 complete</Text>
+            <Text style={styles.body}>
+              {draftCount}/{EDITORIAL_CHECKLIST_SIZE} complete
+            </Text>
             {data.claim.claimedByMe ? (
               <>
-                <ChecklistControls checklist={checklistDraft} onChange={setChecklistDraft} />
+                <ChecklistControls checklist={draftChecklist} onChange={setDraftChecklist} />
+                {hasUnsavedChecklist ? (
+                  <Text style={styles.unsaved}>
+                    Unsaved changes. Saved checklist is {savedCount}/{EDITORIAL_CHECKLIST_SIZE}.
+                  </Text>
+                ) : null}
+                {checklistError ? (
+                  <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+                    {checklistError}
+                  </Text>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Save checklist"
                   accessibilityState={{ disabled: updateChecklist.isPending }}
                   disabled={updateChecklist.isPending}
-                  onPress={() => updateChecklist.mutate(checklistDraft)}
+                  onPress={saveChecklist}
                   style={[styles.saveChecklist, updateChecklist.isPending && styles.disabled]}
                 >
-                  <Text style={styles.confirmText}>Save checklist</Text>
+                  <Text style={styles.confirmText}>
+                    {updateChecklist.isPending ? "Saving…" : "Save checklist"}
+                  </Text>
                 </Pressable>
               </>
             ) : null}
@@ -205,15 +284,6 @@ export function EditorProposalDetailScreen({
   )
 }
 
-const checklistLabels: Array<[keyof EditorialChecklist, string]> = [
-  ["hook", "Hook"],
-  ["characterMotivation", "Character motivation"],
-  ["audienceFit", "Audience fit"],
-  ["storyboardFlow", "Storyboard flow"],
-  ["manuscriptQuality", "Manuscript quality"],
-  ["serializePotential", "Serialize potential"],
-]
-
 function ChecklistControls({
   checklist,
   onChange,
@@ -221,19 +291,25 @@ function ChecklistControls({
   checklist: EditorialChecklist
   onChange: (checklist: EditorialChecklist) => void
 }) {
-  return checklistLabels.map(([key, label]) => (
-    <Pressable
-      key={key}
-      accessibilityRole="checkbox"
-      accessibilityLabel={label}
-      accessibilityState={{ checked: checklist[key] }}
-      onPress={() => onChange({ ...checklist, [key]: !checklist[key] })}
-      style={styles.checklistRow}
-    >
-      <Text style={styles.body}>{label}</Text>
-      <Text style={styles.body}>{checklist[key] ? "Done" : "Not reviewed"}</Text>
-    </Pressable>
-  ))
+  return checklistLabels.map(([key, label]) => {
+    const checked = checklist[key]
+    return (
+      <Pressable
+        key={key}
+        accessibilityRole="checkbox"
+        accessibilityLabel={label}
+        accessibilityState={{ checked }}
+        onPress={() => onChange({ ...checklist, [key]: !checked })}
+        style={styles.checklistRow}
+      >
+        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+          {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+        </View>
+        <Text style={styles.checklistLabel}>{label}</Text>
+        <Text style={styles.checklistState}>{checked ? "Done" : "Not reviewed"}</Text>
+      </Pressable>
+    )
+  })
 }
 
 // Forward requires an editor recommendation that is never synthesized. The
@@ -386,6 +462,25 @@ const styles = StyleSheet.create({
   confirm: { backgroundColor: colors.primary },
   confirmText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
   disabled: { opacity: 0.6 },
-  checklistRow: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },
+  checklistRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: colors.outline,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
+  checkboxMark: { color: colors.surface, fontSize: typography.label, fontWeight: "900" },
+  checklistLabel: { flex: 1, fontSize: typography.body, color: colors.text },
+  checklistState: { fontSize: typography.label, color: colors.textMuted },
+  unsaved: { fontSize: typography.label, color: colors.warning, fontWeight: "700" },
   saveChecklist: { minHeight: 44, borderRadius: radius.full, alignItems: "center", justifyContent: "center", backgroundColor: colors.primary },
 })

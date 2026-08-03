@@ -47,6 +47,8 @@ export interface TabItem {
   id: string
   label: string
   icon: IconName
+  /** Live unread count rendered on the tab. Omit or 0 hides the badge. */
+  badgeCount?: number
 }
 
 interface MFScreenProps extends PropsWithChildren {
@@ -68,17 +70,33 @@ export function MFScreen({ tabs, activeTab, onTabChange, children, role = "edito
       <View style={styles.tabBar}>
         {tabs.map((tab) => {
           const active = tab.id === activeTab
+          const badge = tab.badgeCount ?? 0
           return (
             <Pressable
               key={tab.id}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
+              accessibilityLabel={badge > 0 ? `${tab.label}, ${badge} unread` : tab.label}
               hitSlop={8}
               onPress={() => onTabChange(tab.id)}
               style={styles.tabButton}
             >
-              <MFIcon name={tab.icon} size={22} color={active ? colors.primary : colors.outline} />
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>{tab.label}</Text>
+              <View>
+                <MFIcon name={tab.icon} size={22} color={active ? colors.primary : colors.outline} />
+                {badge > 0 ? (
+                  <View style={styles.tabBadge}>
+                    <Text style={styles.tabBadgeText}>{badge > 99 ? "99+" : badge}</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text
+                style={[styles.tabLabel, active && styles.tabLabelActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {tab.label}
+              </Text>
             </Pressable>
           )
         })}
@@ -92,10 +110,11 @@ interface MFHeaderProps {
   userName: string
   subtitle: string
   logoSuffix?: string
-  notificationCount?: number
 }
 
-export function MFHeader({ role, userName, subtitle, logoSuffix, notificationCount = 3 }: MFHeaderProps) {
+// Identity and account controls only. Notifications live in the bottom tab bar,
+// where the badge comes from live notification data.
+export function MFHeader({ role, userName, subtitle, logoSuffix }: MFHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.logoRow}>
@@ -106,10 +125,6 @@ export function MFHeader({ role, userName, subtitle, logoSuffix, notificationCou
         </View>
       </View>
       <View style={styles.headerRight}>
-        <View style={styles.bell}>
-          <MFIcon name="bell" size={18} color={colors.text} />
-          <View style={styles.notificationBadge}><Text style={styles.notificationText}>{notificationCount}</Text></View>
-        </View>
         <View style={styles.avatar}><Text style={styles.avatarText}>{role === "BOARD" ? "A" : "R"}</Text></View>
         <View style={styles.userBlock}>
           <Text style={styles.userName} numberOfLines={1}>{userName}</Text>
@@ -587,9 +602,8 @@ const styles = StyleSheet.create({
   logoText: { color: colors.primary, fontSize: 19, fontWeight: "900" },
   logoSuffix: { color: colors.primary, fontSize: 9, fontWeight: "800", letterSpacing: 4 },
   headerRight: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: spacing.sm, minWidth: 0 },
-  bell: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.outlineVariant, alignItems: "center", justifyContent: "center" },
-  notificationBadge: { position: "absolute", right: -5, top: -5, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-  notificationText: { color: colors.surface, fontSize: 10, fontWeight: "800" },
+  tabBadge: { position: "absolute", right: -10, top: -6, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  tabBadgeText: { color: colors.surface, fontSize: 10, fontWeight: "800" },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   avatarText: { color: colors.primary, fontWeight: "900" },
   userBlock: { flexShrink: 1, minWidth: 64, maxWidth: 96 },
