@@ -303,6 +303,7 @@ export async function getEditorProposalDetail(actor: RequestActor, proposalId: s
         }
       : null,
     version: currentManuscript?.version ?? (manuscripts.length || null),
+    editorialChecklist: value.editorialChecklist ?? null,
     history: (value.history ?? []).map((event: any) => ({
       id: event.id,
       type: event.type,

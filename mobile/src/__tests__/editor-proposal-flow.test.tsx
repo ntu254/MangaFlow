@@ -10,6 +10,7 @@ jest.mock("@/services/editor-mobile-data-source", () => ({
   requestEditorProposalChanges: jest.fn(),
   rejectEditorProposal: jest.fn(),
   forwardEditorProposal: jest.fn(),
+  updateEditorProposalChecklist: jest.fn(),
 }))
 
 const mocked = dataSource as jest.Mocked<typeof dataSource>
@@ -29,6 +30,14 @@ const detailFixture: EditorProposalDetail = {
   currentManuscript: { id: "m1", version: 2, status: "SUBMITTED" },
   version: 2,
   history: [],
+  editorialChecklist: {
+    hook: true,
+    characterMotivation: false,
+    audienceFit: true,
+    storyboardFlow: false,
+    manuscriptQuality: true,
+    serializePotential: false,
+  },
   actions: [
     { action: "CLAIM", enabled: false, disabledReason: "You already claimed this proposal.", requiresConfirmation: true, requiresReason: false },
     { action: "REQUEST_CHANGES", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
@@ -70,7 +79,7 @@ describe("EditorProposalDetailScreen", () => {
     )
   })
 
-  it("forwards with an editor recommendation and cadence", async () => {
+  it("forwards with an editor recommendation and feasibility note without a cadence selector", async () => {
     mocked.forwardEditorProposal.mockResolvedValue(undefined)
     renderScreen()
     fireEvent.press(await screen.findByRole("button", { name: "Forward to Board" }))
@@ -78,14 +87,17 @@ describe("EditorProposalDetailScreen", () => {
       await screen.findByLabelText("Editor recommendation"),
       "Ready for Board review.",
     )
+    fireEvent.changeText(await screen.findByLabelText("Feasibility note"), "Ready for production.")
+    expect(screen.queryByRole("button", { name: "Cadence WEEKLY" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Cadence MONTHLY" })).toBeNull()
     fireEvent.press(screen.getByRole("button", { name: "Confirm forward" }))
     await waitFor(() =>
       expect(mocked.forwardEditorProposal).toHaveBeenCalledWith(
         "p-002",
-        expect.objectContaining({
+        {
           editorRecommendation: "Ready for Board review.",
-          suggestedPublicationType: "MONTHLY",
-        }),
+          feasibilityNote: "Ready for production.",
+        },
       ),
     )
   })
@@ -96,5 +108,47 @@ describe("EditorProposalDetailScreen", () => {
     fireEvent.press(await screen.findByRole("button", { name: "Confirm forward" }))
     expect(await screen.findByText("Editor recommendation is required.")).toBeVisible()
     expect(mocked.forwardEditorProposal).not.toHaveBeenCalled()
+  })
+
+  it("displays the saved checklist and submits all six draft values", async () => {
+    mocked.updateEditorProposalChecklist.mockResolvedValue(undefined)
+    renderScreen()
+
+    expect(await screen.findByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    fireEvent.press(screen.getByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("button", { name: "Save checklist" }))
+
+    await waitFor(() =>
+      expect(mocked.updateEditorProposalChecklist).toHaveBeenCalledWith("p-002", {
+        hook: true,
+        characterMotivation: true,
+        audienceFit: true,
+        storyboardFlow: false,
+        manuscriptQuality: true,
+        serializePotential: false,
+      }),
+    )
+  })
+
+  it("shows a claimed-by-another-editor checklist without editable controls", async () => {
+    mocked.getEditorProposalDetail.mockResolvedValue({
+      ...detailFixture,
+      claim: {
+        claimedByEditorId: "u-other-editor",
+        claimedByEditorName: "Other Editor",
+        claimedByMe: false,
+      },
+    })
+    render(
+      <TestQueryProvider>
+        <EditorProposalDetailScreen proposalId="p-002" />
+      </TestQueryProvider>,
+    )
+
+    expect(await screen.findByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
   })
 })

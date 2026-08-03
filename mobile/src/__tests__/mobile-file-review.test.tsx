@@ -17,13 +17,27 @@ describe("review-file domain rules", () => {
     expect(shouldRefreshLease(null, 0)).toBe(true)
   })
 
-  it("resolves relative display URLs against the API origin and preserves absolute URLs", () => {
-    expect(resolveDisplayUrl("/api/files/display/signed-token", "http://localhost:3001/api")).toBe(
-      "http://localhost:3001/api/files/display/signed-token",
-    )
+  it("replaces local absolute display URL origins with the configured Android API origin", () => {
+    const androidApiOrigin = "http://10.0.2.2:3001/api"
+
     expect(
-      resolveDisplayUrl("https://cdn.example/files/signed-token", "http://localhost:3001/api"),
-    ).toBe("https://cdn.example/files/signed-token")
+      resolveDisplayUrl("http://localhost:3001/api/files/display/signed-token?download=true#preview", androidApiOrigin),
+    ).toBe("http://10.0.2.2:3001/api/files/display/signed-token?download=true#preview")
+    expect(resolveDisplayUrl("http://127.0.0.1:3001/api/files/display/signed-token", androidApiOrigin)).toBe(
+      "http://10.0.2.2:3001/api/files/display/signed-token",
+    )
+  })
+
+  it("resolves relative display URLs against the configured API origin", () => {
+    expect(resolveDisplayUrl("/api/files/display/signed-token", "http://10.0.2.2:3001/api")).toBe(
+      "http://10.0.2.2:3001/api/files/display/signed-token",
+    )
+  })
+
+  it("leaves remote signed display URLs unchanged", () => {
+    expect(resolveDisplayUrl("https://cdn.example/files/signed-token", "http://10.0.2.2:3001/api")).toBe(
+      "https://cdn.example/files/signed-token",
+    )
   })
 
   it("classifies preview kind from MIME type", () => {

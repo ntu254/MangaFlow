@@ -32,6 +32,13 @@ export function shouldRefreshLease(lease: FileUrlLease | null, nowMs: number): b
 }
 
 export function resolveDisplayUrl(url: string, apiBaseUrl: string): string {
-  if (/^[a-z][a-z\d+.-]*:/i.test(url)) return url;
+  if (/^[a-z][a-z\d+.-]*:/i.test(url)) {
+    const absoluteUrl = new URL(url);
+    if (absoluteUrl.hostname === "localhost" || absoluteUrl.hostname === "127.0.0.1") {
+      const apiOrigin = new URL(apiBaseUrl).origin;
+      return new URL(`${absoluteUrl.pathname}${absoluteUrl.search}${absoluteUrl.hash}`, apiOrigin).toString();
+    }
+    return url;
+  }
   return new URL(url, apiBaseUrl).toString();
 }
