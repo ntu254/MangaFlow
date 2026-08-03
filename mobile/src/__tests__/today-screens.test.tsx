@@ -5,6 +5,7 @@ import { EditorTodayScreen } from "@/screens/editor-today-screen"
 import { BoardTodayScreen } from "@/screens/board-today-screen"
 import { filterEditorInbox } from "@/screens/editor-workspace"
 import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item"
+import { colors } from "@/design/tokens"
 
 const urgentProposalFixture: MobileWorkItem = {
   id: "PROPOSAL_REVIEW:p-001",
@@ -89,6 +90,18 @@ describe("Queue-first Today surfaces", () => {
       expect(screen.getByRole("button", { name: label })).toHaveStyle({ minHeight: 44 })
       expect(screen.getByText(label).props.numberOfLines).toBe(1)
     }
+
+    expect(screen.getByRole("button", { name: "Schedule publication" })).toHaveStyle({
+      backgroundColor: colors.primary,
+    })
+    expect(screen.getByRole("button", { name: "Publish now" })).toHaveStyle({
+      backgroundColor: colors.surface,
+      borderColor: colors.primary,
+      borderWidth: 1,
+    })
+    expect(screen.getByRole("button", { name: "Postpone" })).toHaveStyle({
+      backgroundColor: colors.surfaceContainer,
+    })
   })
 
   it("renders a success empty state without demo rows", () => {

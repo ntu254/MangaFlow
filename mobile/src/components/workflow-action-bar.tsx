@@ -45,6 +45,7 @@ export function WorkflowActionBar({
       {actions.map((descriptor) => {
         const label = actionLabel(descriptor.action)
         const busy = busyAction === descriptor.action
+        const variant = descriptor.action === "PUBLISH" ? "secondary" : descriptor.action === "POSTPONE" ? "tertiary" : "primary"
         return (
           <View key={descriptor.action} style={styles.slot}>
             <Pressable
@@ -53,9 +54,23 @@ export function WorkflowActionBar({
               accessibilityState={{ disabled: !descriptor.enabled || busy }}
               disabled={!descriptor.enabled || busy}
               onPress={() => onAction(descriptor)}
-              style={[styles.button, (!descriptor.enabled || busy) && styles.disabled]}
+              style={[
+                styles.button,
+                variant === "secondary" && styles.secondaryButton,
+                variant === "tertiary" && styles.tertiaryButton,
+                (!descriptor.enabled || busy) && styles.disabled,
+              ]}
             >
-              <Text numberOfLines={1} style={styles.buttonText}>{busy ? "Working\u2026" : label}</Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.buttonText,
+                  variant === "secondary" && styles.secondaryButtonText,
+                  variant === "tertiary" && styles.tertiaryButtonText,
+                ]}
+              >
+                {busy ? "Working\u2026" : label}
+              </Text>
             </Pressable>
             {!descriptor.enabled && descriptor.disabledReason ? (
               <Text style={styles.reason}>{descriptor.disabledReason}</Text>
@@ -83,7 +98,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  secondaryButton: { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1 },
+  tertiaryButton: { backgroundColor: colors.surfaceContainer },
   disabled: { backgroundColor: colors.surfaceContainer },
   buttonText: { color: colors.surface, fontWeight: "600", fontSize: typography.body },
+  secondaryButtonText: { color: colors.primary },
+  tertiaryButtonText: { color: colors.textMuted },
   reason: { color: colors.textMuted, fontSize: typography.label, paddingHorizontal: spacing.sm },
 })
