@@ -1,0 +1,20 @@
+name: Mobile quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  mobile-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci --prefix mobile
+      - run: npm run check:utf8 --prefix mobile
+      - run: npm run lint --prefix mobile
+      - run: npm test --prefix mobile
