@@ -26,7 +26,7 @@ export function EditorProposalDetailScreen({
   proposalId: string
   getDetail?: (id: string) => Promise<EditorProposalDetail>
 }) {
-  const { detail, claim, requestChanges, reject, forward } = useEditorProposal(proposalId, getDetail)
+  const { detail, claim, releaseClaim, requestChanges, reject, forward } = useEditorProposal(proposalId, getDetail)
   const [pending, setPending] = useState<WorkflowActionDescriptor | null>(null)
   const [forwardOpen, setForwardOpen] = useState(false)
   const [sheetError, setSheetError] = useState<string | null>(null)
@@ -49,6 +49,7 @@ export function EditorProposalDetailScreen({
 
   const busyAction =
     (claim.isPending && "CLAIM") ||
+    (releaseClaim.isPending && "RELEASE_CLAIM") ||
     (requestChanges.isPending && "REQUEST_CHANGES") ||
     (reject.isPending && "REJECT") ||
     (forward.isPending && "FORWARD") ||
@@ -62,6 +63,7 @@ export function EditorProposalDetailScreen({
       setSheetError(null)
     }
     if (pending.action === "CLAIM") claim.mutate(undefined, { onError, onSuccess })
+    else if (pending.action === "RELEASE_CLAIM") releaseClaim.mutate(undefined, { onError, onSuccess })
     else if (pending.action === "REQUEST_CHANGES")
       requestChanges.mutate({ comment: reason }, { onError, onSuccess })
     else if (pending.action === "REJECT") reject.mutate({ reason }, { onError, onSuccess })
@@ -92,7 +94,7 @@ export function EditorProposalDetailScreen({
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Current manuscript</Text>
             <Text style={styles.body}>
-              v{data.currentManuscript.version} · {data.currentManuscript.status}
+              Version {data.currentManuscript.version}
             </Text>
           </View>
         ) : null}
@@ -118,6 +120,8 @@ export function EditorProposalDetailScreen({
         effect={
           pending?.action === "CLAIM"
             ? "Claiming assigns this proposal to you. If another editor already claimed it, this fails."
+            : pending?.action === "RELEASE_CLAIM"
+              ? "Releasing makes this proposal available for another Editor to claim."
             : "This decision is recorded and notifies the Mangaka."
         }
         confirmLabel={pending ? `Confirm ${actionLabel(pending.action).toLowerCase()}` : "Confirm"}

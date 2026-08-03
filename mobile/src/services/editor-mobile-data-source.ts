@@ -30,7 +30,7 @@ export interface EditorProposalDetail {
     claimedByEditorName: string | null
     claimedByMe: boolean
   }
-  currentManuscript: { id: string; version: number; status: string } | null
+  currentManuscript: { id: string; version: number } | null
   version: number | null
   history: Array<{
     id: string
@@ -57,6 +57,10 @@ function proposalAction(proposalId: string, action: string, body?: unknown): Pro
 
 export function claimEditorProposal(proposalId: string): Promise<void> {
   return proposalAction(proposalId, "CLAIM")
+}
+
+export function releaseEditorProposalClaim(proposalId: string): Promise<void> {
+  return proposalAction(proposalId, "RELEASE_CLAIM")
 }
 
 export function requestEditorProposalChanges(

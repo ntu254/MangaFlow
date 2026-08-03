@@ -2,7 +2,7 @@ import type {
   ActivityItem,
   CommentItem,
   CommentStatus,
-  EditorManuscriptReviewItem,
+  EditorProposalReviewItem,
   EditorReadinessResult,
   EditorSubmissionReviewItem,
   MetricItem,
@@ -12,8 +12,8 @@ import type {
 
 export const editorActions: MetricItem[] = [
   {
-    id: "manuscripts",
-    label: "Review manuscripts",
+    id: "proposals",
+    label: "Review proposals",
     value: "3",
     tone: "primary",
     icon: "file-text",
@@ -51,8 +51,8 @@ export const editorActions: MetricItem[] = [
 
 export const editorQueues: QueueItem[] = [
   {
-    id: "manuscripts",
-    title: "Manuscripts Waiting",
+    id: "proposals",
+    title: "Proposals Waiting",
     subtitle: "Initial proposals awaiting editor decision",
     value: "3",
     tone: "primary",
@@ -84,7 +84,7 @@ export const editorQueues: QueueItem[] = [
   },
 ];
 
-export const manuscripts: EditorManuscriptReviewItem[] = [
+export const proposals: EditorProposalReviewItem[] = [
   {
     id: "eclipse",
     title: "Eclipse of Eternity",
@@ -94,7 +94,6 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "primary",
     coverTone: "dark",
     tags: ["Fantasy", "Dark", "Action"],
-    manuscriptStatus: "SUBMITTED",
     seriesStatus: "EDITOR_REVIEW",
     version: "1.4",
     requestedPublicationType: "MONTHLY",
@@ -110,7 +109,6 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "warning",
     coverTone: "violet",
     tags: ["Sci-Fi", "Psychological", "Drama"],
-    manuscriptStatus: "SUBMITTED",
     seriesStatus: "REVISION_REQUESTED",
     version: "2.1",
     requestedPublicationType: "MONTHLY",
@@ -126,7 +124,6 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "danger",
     coverTone: "red",
     tags: ["Historical", "Romance", "Drama"],
-    manuscriptStatus: "SUBMITTED",
     seriesStatus: "EDITOR_REVIEW",
     version: "3.0",
     requestedPublicationType: "WEEKLY",
@@ -142,7 +139,6 @@ export const manuscripts: EditorManuscriptReviewItem[] = [
     tone: "success",
     coverTone: "warm",
     tags: ["Slice of Life", "Romance", "Food"],
-    manuscriptStatus: "SUBMITTED",
     seriesStatus: "EDITOR_REVIEW",
     version: "1.2",
     requestedPublicationType: "MONTHLY",
@@ -396,7 +392,7 @@ export const editorHome = {
   actions: editorActions,
   queues: editorQueues,
   activity: editorActivity,
-  priorityChapter: manuscripts[0],
+  priorityProposal: proposals[0],
   readiness: editorReadinessResult,
 };
 

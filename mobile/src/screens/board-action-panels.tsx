@@ -33,20 +33,26 @@ export function BoardVotePanel({
         <MFBadge tone="primary">{item.seriesStatus}</MFBadge>
       </View>
       <Text style={styles.body}>
-        Board vote options are APPROVE, REJECT, and NEEDS_REVISION. Admin override is not
-        represented in mobile.
+        Board vote options are APPROVE or REJECT. Members who have not voted
+        remain pending.
       </Text>
       <View style={styles.voteSplit}>
-        <BoardVoteCount label="Approve" value={String(item.voteSummary.approve)} tone="success" />
-        <BoardVoteCount label="Reject" value={String(item.voteSummary.reject)} tone="danger" />
         <BoardVoteCount
-          label="Needs Revision"
-          value={String(item.voteSummary.needsRevision)}
-          tone="neutral"
+          label="Approve"
+          value={String(item.voteSummary.approve)}
+          tone="success"
+        />
+        <BoardVoteCount
+          label="Reject"
+          value={String(item.voteSummary.reject)}
+          tone="danger"
         />
       </View>
       <MFProgress
-        value={(item.voteSummary.eligible - item.voteSummary.pending) / item.voteSummary.eligible}
+        value={
+          (item.voteSummary.eligible - item.voteSummary.pending) /
+          item.voteSummary.eligible
+        }
       />
       <View style={styles.buttonRow}>
         <MFButton
@@ -66,18 +72,11 @@ export function BoardVotePanel({
           Reject
         </MFButton>
       </View>
-      <MFButton
-        tone="warning"
-        variant="soft"
-        style={styles.actionButtonFull}
-        onPress={() => onVote("NEEDS_REVISION")}
-      >
-        Needs revision
-      </MFButton>
       <View style={styles.finalizeBlock}>
         <Text style={styles.muted}>
-          Finalize is backend-owned: quorum {item.voteSummary.quorum ?? "API"}, plurality, tie-break
-          status, notifications, and audit are resolved server-side.
+          Finalize is backend-owned: quorum {item.voteSummary.quorum ?? "API"},
+          plurality, fresh re-vote handling for ties, notifications, and audit
+          are resolved server-side.
         </Text>
         <MFButton
           style={styles.actionButtonFull}
@@ -117,7 +116,7 @@ export function BoardFinalizeConfirmationPanel({
   return (
     <MFConfirmationPanel
       title="Finalize Board decision"
-      body={`Send finalize request for ${selectedTitle ?? "the selected Board review"}. Backend verifies quorum and vote result; ties become TIE_BREAK_REQUIRED.`}
+      body={`Send finalize request for ${selectedTitle ?? "the selected Board review"}. Backend verifies quorum and vote result; a tie automatically opens a fresh Board re-vote.`}
       confirmLabel="Submit finalize"
       tone="primary"
       endpointHint="Live endpoint: POST /api/voting-sessions/:sessionId/close"
@@ -146,7 +145,7 @@ export function BoardVoteConfirmationPanel({
 }: {
   pendingVote: BoardVoteValue | null;
   selectedTitle?: string;
-  mode: "vote" | "tie-break";
+  mode?: "vote";
   noteValue: string;
   onChangeNote: (value: string) => void;
   busy: boolean;
@@ -156,27 +155,15 @@ export function BoardVoteConfirmationPanel({
 }) {
   if (!pendingVote) return null;
 
-  const isTieBreak = mode === "tie-break";
-
   return (
     <MFConfirmationPanel
       title={voteActionTitle(pendingVote)}
-      body={
-        isTieBreak
-          ? `Confirm Board Chair tie-break for ${selectedTitle ?? "the selected proposal"}. This action appears only because decision status is TIE_BREAK_REQUIRED.`
-          : `Confirm ${voteActionLabel(pendingVote)} vote for ${selectedTitle ?? "the selected Board review"}. Mobile records the vote; backend handles quorum and final decision state.`
-      }
-      confirmLabel={isTieBreak ? "Submit tie-break" : "Submit vote"}
+      body={`Confirm ${voteActionLabel(pendingVote)} vote for ${selectedTitle ?? "the selected Board review"}. Mobile records the vote; backend handles quorum, final decision state, and fresh re-votes for ties.`}
+      confirmLabel="Submit vote"
       tone={voteActionTone(pendingVote)}
-      endpointHint={
-        isTieBreak
-          ? "Live endpoint: POST /api/board/series/:seriesId/decisions/tie-break"
-          : "Live endpoint: POST /api/board/series/:seriesId/votes"
-      }
-      noteLabel={isTieBreak ? "Chair decision note" : "Vote note"}
-      notePlaceholder={
-        isTieBreak ? "Explain the tie-break rationale for audit." : "Optional Board note for audit."
-      }
+      endpointHint="Live endpoint: POST /api/board/series/:seriesId/votes"
+      noteLabel="Vote note"
+      notePlaceholder="Optional Board note for audit."
       noteValue={noteValue}
       onChangeNote={onChangeNote}
       busy={busy}
@@ -184,39 +171,6 @@ export function BoardVoteConfirmationPanel({
       onConfirm={onConfirm}
       onCancel={onCancel}
     />
-  );
-}
-
-export function BoardTieBreakActionsPanel({ onVote }: { onVote: (value: BoardVoteValue) => void }) {
-  return (
-    <>
-      <View style={styles.buttonRow}>
-        <MFButton
-          tone="success"
-          variant="soft"
-          style={styles.actionButtonHalf}
-          onPress={() => onVote("APPROVE")}
-        >
-          Approve
-        </MFButton>
-        <MFButton
-          tone="warning"
-          variant="soft"
-          style={styles.actionButtonHalf}
-          onPress={() => onVote("NEEDS_REVISION")}
-        >
-          Needs revision
-        </MFButton>
-      </View>
-      <MFButton
-        tone="danger"
-        variant="soft"
-        style={styles.actionButtonFull}
-        onPress={() => onVote("REJECT")}
-      >
-        Reject
-      </MFButton>
-    </>
   );
 }
 
@@ -260,8 +214,8 @@ export function BoardAtRiskDecisionPanel({
       </View>
       <Text style={styles.subhead}>Manual Board decision</Text>
       <Text style={styles.body}>
-        Series is not auto-cancelled. Each at-risk action requires confirmation when wired to the
-        backend.
+        Series is not auto-cancelled. Each at-risk action requires confirmation
+        when wired to the backend.
       </Text>
       <View style={styles.actionButtons}>
         <MFButton
@@ -329,7 +283,11 @@ export function BoardVoteCount({
   tone: "success" | "danger" | "neutral";
 }) {
   const color =
-    tone === "success" ? colors.success : tone === "danger" ? colors.danger : colors.outline;
+    tone === "success"
+      ? colors.success
+      : tone === "danger"
+        ? colors.danger
+        : colors.outline;
   const bg =
     tone === "success"
       ? colors.successSoft
@@ -337,11 +295,17 @@ export function BoardVoteCount({
         ? colors.dangerSoft
         : colors.surfaceContainer;
   const icon: IconName =
-    tone === "success" ? "check" : tone === "danger" ? "alert-triangle" : "circle";
+    tone === "success"
+      ? "check"
+      : tone === "danger"
+        ? "alert-triangle"
+        : "circle";
 
   return (
     <View style={styles.voteCount}>
-      <View style={[styles.voteCircle, { borderColor: color, backgroundColor: bg }]}>
+      <View
+        style={[styles.voteCircle, { borderColor: color, backgroundColor: bg }]}
+      >
         <MFIcon name={icon} size={20} color={color} strokeWidth={2.5} />
       </View>
       <Text style={styles.voteLabel} numberOfLines={2}>
@@ -354,33 +318,32 @@ export function BoardVoteCount({
 
 function voteActionTitle(value: BoardVoteValue) {
   if (value === "APPROVE") return "Approve production vote";
-  if (value === "REJECT") return "Reject production vote";
-  return "Request Board revision vote";
+  return "Reject production vote";
 }
 
 function voteActionLabel(value: BoardVoteValue) {
   if (value === "APPROVE") return "approve";
-  if (value === "REJECT") return "reject";
-  return "needs revision";
+  return "reject";
 }
 
 function voteActionTone(value: BoardVoteValue): Tone {
   if (value === "APPROVE") return "success";
-  if (value === "REJECT") return "danger";
-  return "warning";
+  return "danger";
 }
 
 function atRiskDecisionTitle(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "Continue publication";
   if (decision === "WARNING") return "Issue Board warning";
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan";
+  if (decision === "REQUEST_IMPROVEMENT_PLAN")
+    return "Request improvement plan";
   return "Cancel series";
 }
 
 function atRiskDecisionLabel(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "continue";
   if (decision === "WARNING") return "warning";
-  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "request an improvement plan";
+  if (decision === "REQUEST_IMPROVEMENT_PLAN")
+    return "request an improvement plan";
   return "cancel";
 }
 
@@ -405,8 +368,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
-  actionButtons: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+  buttonRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
   actionButtonHalf: { flexGrow: 1, flexBasis: "47%", minWidth: 132 },
   actionButtonFull: { marginTop: spacing.sm },
   finalizeBlock: { marginTop: spacing.md, gap: spacing.xs },

@@ -64,7 +64,7 @@ export function SeriesProposalSummaryPanel({
         {
           id: "manuscript",
           label: "Current manuscript",
-          value: manuscript ? `${manuscript.version} / ${manuscript.status}` : "No manuscript metadata returned",
+          value: manuscript ? `Version ${manuscript.version}` : "No manuscript metadata returned",
           tone: manuscript ? "primary" : "warning",
           icon: "file-check",
         },

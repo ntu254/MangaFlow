@@ -2,20 +2,38 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
-const dataSource = readFileSync(new URL("../data/mobile-data.ts", import.meta.url), "utf8");
-const editorDataSource = readFileSync(new URL("../data/editor.ts", import.meta.url), "utf8");
-const boardDataSource = readFileSync(new URL("../data/board.ts", import.meta.url), "utf8");
-const domainSource = readFileSync(new URL("../domain/workflow.ts", import.meta.url), "utf8");
+const dataSource = readFileSync(
+  new URL("../data/mobile-data.ts", import.meta.url),
+  "utf8",
+);
+const editorDataSource = readFileSync(
+  new URL("../data/editor.ts", import.meta.url),
+  "utf8",
+);
+const boardDataSource = readFileSync(
+  new URL("../data/board.ts", import.meta.url),
+  "utf8",
+);
+const domainSource = readFileSync(
+  new URL("../domain/workflow.ts", import.meta.url),
+  "utf8",
+);
 const mobileWorkItemSource = readFileSync(
   new URL("../domain/mobile-work-item.ts", import.meta.url),
   "utf8",
 );
-const mobileEnvSource = readFileSync(new URL("../config/mobile-env.ts", import.meta.url), "utf8");
+const mobileEnvSource = readFileSync(
+  new URL("../config/mobile-env.ts", import.meta.url),
+  "utf8",
+);
 const dataBoundarySource = readFileSync(
   new URL("../services/mobile-workflow-data-source.ts", import.meta.url),
   "utf8",
 );
-const authSource = readFileSync(new URL("../services/mobile-auth.ts", import.meta.url), "utf8");
+const authSource = readFileSync(
+  new URL("../services/mobile-auth.ts", import.meta.url),
+  "utf8",
+);
 const apiConfigSource = readFileSync(
   new URL("../services/mobile-api-config.ts", import.meta.url),
   "utf8",
@@ -28,15 +46,30 @@ const boardHookSource = readFileSync(
   new URL("../hooks/use-board-mobile-flow.ts", import.meta.url),
   "utf8",
 );
-const appSource = readFileSync(new URL("../MangaFlowMobileApp.tsx", import.meta.url), "utf8");
-const iconSource = readFileSync(new URL("../design/icons.tsx", import.meta.url), "utf8");
-const tokenSource = readFileSync(new URL("../design/tokens.ts", import.meta.url), "utf8");
-const mfSource = readFileSync(new URL("../components/mf.tsx", import.meta.url), "utf8");
+const appSource = readFileSync(
+  new URL("../MangaFlowMobileApp.tsx", import.meta.url),
+  "utf8",
+);
+const iconSource = readFileSync(
+  new URL("../design/icons.tsx", import.meta.url),
+  "utf8",
+);
+const tokenSource = readFileSync(
+  new URL("../design/tokens.ts", import.meta.url),
+  "utf8",
+);
+const mfSource = readFileSync(
+  new URL("../components/mf.tsx", import.meta.url),
+  "utf8",
+);
 const headerBackgroundSource = readFileSync(
   new URL("../components/header-background.tsx", import.meta.url),
   "utf8",
 );
-const boardSource = readFileSync(new URL("../screens/board-screens.tsx", import.meta.url), "utf8");
+const boardSource = readFileSync(
+  new URL("../screens/board-screens.tsx", import.meta.url),
+  "utf8",
+);
 const editorSource = readFileSync(
   new URL("../screens/editor-screens.tsx", import.meta.url),
   "utf8",
@@ -74,7 +107,7 @@ test("mobile mock data covers board and editor reference screens", () => {
     "commentMetrics",
     "productionComments",
     "commentActivity",
-    "manuscripts",
+    "proposals",
     "finalApprovals",
     "readinessChecks",
   ]) {
@@ -91,13 +124,23 @@ test("mobile app exposes the Queue-first authenticated shell", () => {
   assert.match(appSource, /BoardWorkspace/);
   assert.match(appSource, /useMobileInbox/);
   // Canonical tab sets.
-  for (const label of ["Today", "Reviews", "Publish", "History", "Sessions", "Ranking"]) {
+  for (const label of [
+    "Today",
+    "Reviews",
+    "Publish",
+    "History",
+    "Sessions",
+    "Ranking",
+  ]) {
     assert.match(appSource, new RegExp(`label: "${label}"`));
   }
   // Explicit demo gating, identity-driven (no manual role switch), no active tie-break UI.
   assert.match(appSource, /Demo data/);
   assert.match(appSource, /forceDemoMode/);
-  assert.match(appSource, /demoMode \? async \(\) => demoInbox\(role\) : undefined/);
+  assert.match(
+    appSource,
+    /demoMode \? async \(\) => demoInbox\(role\) : undefined/,
+  );
   assert.doesNotMatch(appSource, /switch role/i);
   assert.doesNotMatch(appSource, /tie-?break/i);
 });
@@ -105,7 +148,7 @@ test("mobile app exposes the Queue-first authenticated shell", () => {
 test("mobile data source exposes API-ready role methods and explicit demo selection", () => {
   for (const method of [
     "getEditorHome",
-    "getEditorManuscripts",
+    "getEditorProposals",
     "getEditorSubmissions",
     "getEditorComments",
     "getEditorReadiness",
@@ -119,7 +162,10 @@ test("mobile data source exposes API-ready role methods and explicit demo select
   }
 
   assert.match(dataBoundarySource, /mockMobileWorkflowDataSource/);
-  assert.match(mobileEnvSource, /enableMockFallback: readPublicEnv\("EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK"\) === "true"/);
+  assert.match(
+    mobileEnvSource,
+    /enableMockFallback: readPublicEnv\("EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK"\) === "true"/,
+  );
   assert.match(
     dataBoundarySource,
     /mobileEnv\.enableMockFallback\s*\?\s*mockMobileWorkflowDataSource\s*:\s*apiMobileWorkflowDataSource/,
@@ -129,7 +175,10 @@ test("mobile data source exposes API-ready role methods and explicit demo select
   assert.match(editorHookSource, /useEditorMobileFlow/);
   assert.match(boardHookSource, /useBoardMobileFlow/);
   assert.match(dataBoundarySource, /\/comments\/task\/\$\{firstTaskId\}/);
-  assert.match(dataBoundarySource, /\/chapters\/\$\{context\.chapterId\}\/readiness/);
+  assert.match(
+    dataBoundarySource,
+    /\/chapters\/\$\{context\.chapterId\}\/readiness/,
+  );
   assert.match(dataBoundarySource, /resolveEditorComment/);
   assert.match(editorHookSource, /resolveSelectedComment/);
 });
@@ -170,7 +219,6 @@ test("mobile domain uses canonical workflow values from contracts", () => {
     "REOPENED",
     "APPROVE",
     "REJECT",
-    "NEEDS_REVISION",
     "TIE_BREAK_REQUIRED",
     "CONTINUE",
     "WARNING",
@@ -237,12 +285,22 @@ test("mobile header background uses the shared manga wash treatment", () => {
   assert.match(headerBackgroundSource, /contentFit="cover"/);
   assert.match(headerBackgroundSource, /bottomFadeStrong/);
   assert.doesNotMatch(mfSource, /MFHeaderBackground compact/);
-  assert.ok(existsSync(new URL("../../assets/images/nen.jpg", import.meta.url)));
-  assert.ok(existsSync(new URL("../../assets/images/nen1.jpg", import.meta.url)));
+  assert.ok(
+    existsSync(new URL("../../assets/images/nen.jpg", import.meta.url)),
+  );
+  assert.ok(
+    existsSync(new URL("../../assets/images/nen1.jpg", import.meta.url)),
+  );
 });
 
 test("mobile UI requirement polish is represented in shared components", () => {
-  for (const tokenValue of ["#5d38f5", "#4f26e9", "#10b981", "#ef4444", "#f59e0b"]) {
+  for (const tokenValue of [
+    "#5d38f5",
+    "#4f26e9",
+    "#10b981",
+    "#ef4444",
+    "#f59e0b",
+  ]) {
     assert.match(tokenSource, new RegExp(tokenValue));
   }
 
@@ -287,8 +345,12 @@ test("mobile series covers use provided manga artwork assets", () => {
   assert.match(editorSource, /commentPanelImage/);
   assert.match(editorSource, /biatruyen\.jpg/);
   assert.match(editorSource, /biatruyen1\.jpg/);
-  assert.ok(existsSync(new URL("../../assets/images/biatruyen.jpg", import.meta.url)));
-  assert.ok(existsSync(new URL("../../assets/images/biatruyen1.jpg", import.meta.url)));
+  assert.ok(
+    existsSync(new URL("../../assets/images/biatruyen.jpg", import.meta.url)),
+  );
+  assert.ok(
+    existsSync(new URL("../../assets/images/biatruyen1.jpg", import.meta.url)),
+  );
 });
 
 test("legacy role-flow actions retain confirmation detail while Today remains Queue-first", () => {
@@ -337,13 +399,22 @@ test("legacy role-flow actions retain confirmation detail while Today remains Qu
     /Live endpoint: POST \/api\/voting-sessions\/:sessionId\/close/,
   );
   assert.match(boardHookSource, /target\.sessionId/);
-  assert.match(dataBoundarySource, /\/voting-sessions\/\$\{input\.sessionId\}\/close/);
+  assert.match(
+    dataBoundarySource,
+    /\/voting-sessions\/\$\{input\.sessionId\}\/close/,
+  );
   assert.match(
     boardActionPanelsSource,
     /Live endpoint: POST \/api\/board\/series\/:seriesId\/at-risk-decisions/,
   );
-  assert.match(boardActionPanelsSource, /Backend verifies quorum and vote result/);
-  assert.match(boardActionPanelsSource, /Board action remains auditable on the backend/);
+  assert.match(
+    boardActionPanelsSource,
+    /Backend verifies quorum and vote result/,
+  );
+  assert.match(
+    boardActionPanelsSource,
+    /Board action remains auditable on the backend/,
+  );
   assert.match(boardActionPanelsSource, /Series is never auto-cancelled/);
   // Ties are backend-created re-vote work, not an active Board Chair control.
   assert.match(mobileWorkItemSource, /"BOARD_REVOTE"/);
@@ -355,8 +426,11 @@ test("mobile queues expose selectable rows that drive detail panels", () => {
   assert.match(mfSource, /accessibilityState=\{\{ selected \}\}/);
   assert.match(mfSource, /seriesRowSelected/);
   assert.match(mfSource, /Selected/);
-  assert.match(editorSource, /setSelectedManuscriptId\(item\.id\)/);
-  assert.match(editorSource, /selected=\{flow\.selectedManuscriptId === item\.id\}/);
+  assert.match(editorSource, /setSelectedProposalId\(item\.id\)/);
+  assert.match(
+    editorSource,
+    /selected=\{flow\.selectedProposalId === item\.id\}/,
+  );
   assert.match(editorSource, /setSelectedSubmissionId\(item\.id\)/);
   assert.match(editorSource, /EditorSubmissionReviewDetail flow=\{flow\}/);
   assert.match(boardSource, /setSelectedSeriesId\(item\.id\)/);
@@ -369,8 +443,11 @@ test("mobile screens expose reusable loading error and empty states", () => {
   assert.match(mfSource, /MFStateNotice/);
   assert.match(mfSource, /MFEmptyState/);
   assert.match(mfSource, /Could not load this mobile flow/);
-  assert.match(mfSource, /Reading through the async mobile data-source boundary/);
-  assert.match(editorSource, /No manuscripts waiting/);
+  assert.match(
+    mfSource,
+    /Reading through the async mobile data-source boundary/,
+  );
+  assert.match(editorSource, /No proposals waiting/);
   assert.match(editorSource, /No production comments/);
   assert.match(editorSource, /No final approvals/);
   assert.match(editorSource, /No selected submission/);
@@ -402,7 +479,10 @@ test("mobile rich detail previews preserve backend-owned workflow boundaries", (
   assert.match(editorSource, /SeriesProposalSummaryPanel/);
   assert.match(boardSource, /SeriesProposalSummaryPanel/);
   assert.match(proposalSummaryPanelSource, /Live proposal summary/);
-  assert.match(proposalSummaryPanelSource, /does not request signed manuscript download URLs/);
+  assert.match(
+    proposalSummaryPanelSource,
+    /does not request signed manuscript download URLs/,
+  );
   assert.match(dataBoundarySource, /\/comments\/\$\{commentId\}\/reopen/);
   assert.match(editorSource, /Task detail/);
   assert.match(editorSource, /Chapter detail/);
@@ -412,8 +492,14 @@ test("mobile rich detail previews preserve backend-owned workflow boundaries", (
   assert.match(editorPanelsSource, /Reopen comment/);
   assert.match(editorSource, /resolveSelectedComment/);
   assert.match(editorSource, /reopenSelectedComment/);
-  assert.match(editorPanelsSource, /Mobile preview does not grant signed file access/);
-  assert.match(editorPanelsSource, /This status clears the publication blocker/);
+  assert.match(
+    editorPanelsSource,
+    /Mobile preview does not grant signed file access/,
+  );
+  assert.match(
+    editorPanelsSource,
+    /This status clears the publication blocker/,
+  );
   assert.match(editorPanelsSource, /Readiness evidence/);
   assert.match(editorPanelsSource, /backend-owned result/);
   assert.match(boardHookSource, /selectedRankingId/);
@@ -433,7 +519,10 @@ test("mobile proposal handoff summary and cadence stay API-backed", () => {
   assert.match(editorActionPanelsSource, /Publication cadence sent to Board/);
   assert.match(editorActionPanelsSource, /suggestedPublicationType/);
   assert.match(editorHookSource, /proposalPublicationType/);
-  assert.match(editorHookSource, /selectedProposalSummary\?\.requestedPublicationType/);
+  assert.match(
+    editorHookSource,
+    /selectedProposalSummary\?\.requestedPublicationType/,
+  );
   assert.doesNotMatch(editorHookSource, /suggestedPublicationType: "MONTHLY"/);
   assert.match(boardActionPanelsSource, /canFinalize/);
   assert.match(boardActionPanelsSource, /quorum/);
@@ -446,7 +535,10 @@ test("mobile detail panels are componentized out of role screen files", () => {
   assert.match(boardSource, /BoardRankingInsightPanel/);
   assert.match(boardSource, /BoardDecisionHistoryPanel/);
   assert.match(editorPanelsSource, /export function EditorCommentDetailPanel/);
-  assert.match(editorPanelsSource, /export function EditorReadinessEvidencePanel/);
+  assert.match(
+    editorPanelsSource,
+    /export function EditorReadinessEvidencePanel/,
+  );
   assert.match(boardPanelsSource, /export function BoardRankingInsightPanel/);
   assert.match(boardPanelsSource, /export function BoardDecisionHistoryPanel/);
   assert.doesNotMatch(editorSource, /function EditorCommentDetail/);
@@ -460,15 +552,33 @@ test("mobile action panels are componentized out of role screen files", () => {
   assert.match(boardSource, /BoardVotePanel/);
   assert.match(boardSource, /BoardFinalizeConfirmationPanel/);
   assert.match(boardSource, /BoardVoteConfirmationPanel/);
-  assert.match(boardSource, /BoardTieBreakActionsPanel/);
+  assert.doesNotMatch(boardSource, /BoardTieBreakActionsPanel/);
   assert.match(boardSource, /BoardAtRiskDecisionPanel/);
-  assert.match(editorActionPanelsSource, /export function EditorProposalDecisionPanel/);
-  assert.match(editorActionPanelsSource, /export function EditorFinalApprovalDecisionPanel/);
+  assert.match(
+    editorActionPanelsSource,
+    /export function EditorProposalDecisionPanel/,
+  );
+  assert.match(
+    editorActionPanelsSource,
+    /export function EditorFinalApprovalDecisionPanel/,
+  );
   assert.match(boardActionPanelsSource, /export function BoardVotePanel/);
-  assert.match(boardActionPanelsSource, /export function BoardFinalizeConfirmationPanel/);
-  assert.match(boardActionPanelsSource, /export function BoardVoteConfirmationPanel/);
-  assert.match(boardActionPanelsSource, /export function BoardTieBreakActionsPanel/);
-  assert.match(boardActionPanelsSource, /export function BoardAtRiskDecisionPanel/);
+  assert.match(
+    boardActionPanelsSource,
+    /export function BoardFinalizeConfirmationPanel/,
+  );
+  assert.match(
+    boardActionPanelsSource,
+    /export function BoardVoteConfirmationPanel/,
+  );
+  assert.doesNotMatch(
+    boardActionPanelsSource,
+    /export function BoardTieBreakActionsPanel/,
+  );
+  assert.match(
+    boardActionPanelsSource,
+    /export function BoardAtRiskDecisionPanel/,
+  );
   assert.doesNotMatch(editorSource, /function proposalActionTitle/);
   assert.doesNotMatch(editorSource, /function finalApprovalActionTitle/);
   assert.doesNotMatch(boardSource, /function voteActionTitle/);

@@ -53,7 +53,7 @@ export function EditorHomeScreen() {
       <MFQueueList items={flow.home.queues} />
       <SectionTitle title="Priority chapter" />
       <MFCard style={styles.priorityCard}>
-        <MFCover item={flow.home.priorityChapter} small />
+        <MFCover item={flow.home.priorityProposal} small />
         <View style={styles.flex}>
           <Text style={styles.title}>{flow.readiness.chapterTitle}</Text>
           <MFBadge tone={flow.readiness.overallPassed ? "success" : "danger"}>
@@ -74,18 +74,18 @@ export function EditorHomeScreen() {
   );
 }
 
-export function EditorManuscriptsScreen() {
+export function EditorProposalsScreen() {
   const flow = useEditorMobileFlow();
-  const selected = flow.selectedManuscript;
+  const selected = flow.selectedProposal;
 
   return (
     <>
-      <MFHero title="Manuscripts" subtitle="Proposal review before Board review." />
+      <MFHero title="Proposals" subtitle="Proposal review before Board review." />
       <MFStateNotice
         loading={flow.loading}
         error={flow.error}
         message={flow.lastMockAction}
-        loadingLabel="Loading manuscript review queue..."
+        loadingLabel="Loading proposal review queue..."
       />
       <MFMetricStrip
         items={[
@@ -93,7 +93,7 @@ export function EditorManuscriptsScreen() {
             id: "waiting",
             label: "Waiting",
             value: String(
-              flow.manuscriptItems.filter((item) => item.manuscriptStatus === "SUBMITTED").length,
+              flow.proposalItems.filter((item) => item.seriesStatus === "EDITOR_REVIEW").length,
             ),
             tone: "primary",
             icon: "file-text",
@@ -102,7 +102,7 @@ export function EditorManuscriptsScreen() {
             id: "revision",
             label: "Revisions",
             value: String(
-              flow.manuscriptItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED")
+              flow.proposalItems.filter((item) => item.seriesStatus === "REVISION_REQUESTED")
                 .length,
             ),
             tone: "warning",
@@ -112,7 +112,7 @@ export function EditorManuscriptsScreen() {
             id: "ready",
             label: "Ready for Board",
             value: String(
-              flow.manuscriptItems.filter((item) =>
+              flow.proposalItems.filter((item) =>
                 item.decisionActions.includes("forward-to-board"),
               ).length,
             ),
@@ -123,19 +123,19 @@ export function EditorManuscriptsScreen() {
       />
       <SegmentedControl labels={["Editor review", "Revision", "Forwardable"]} />
       <View style={styles.stack}>
-        {flow.manuscriptItems.length > 0 ? (
-          flow.manuscriptItems.map((item) => (
+        {flow.proposalItems.length > 0 ? (
+          flow.proposalItems.map((item) => (
             <MFSeriesRow
               key={item.id}
               item={item}
               actionLabel="Open Review"
-              selected={flow.selectedManuscriptId === item.id}
-              onPress={() => flow.setSelectedManuscriptId(item.id)}
+              selected={flow.selectedProposalId === item.id}
+              onPress={() => flow.setSelectedProposalId(item.id)}
             />
           ))
         ) : (
           <MFEmptyState
-            title="No manuscripts waiting"
+            title="No proposals waiting"
             subtitle="When the API returns an empty proposal queue, this panel keeps the review route stable."
             icon="file-text"
           />
@@ -191,7 +191,7 @@ export function EditorReadinessScreen() {
         loadingLabel="Loading readiness result..."
       />
       <MFCard style={styles.chapterPicker}>
-        <MFCover item={flow.home.priorityChapter} small />
+        <MFCover item={flow.home.priorityProposal} small />
         <Text style={[styles.title, styles.flex]}>{flow.readiness.chapterTitle}</Text>
         <MFIcon name="chevron-right" size={18} color={colors.outline} />
       </MFCard>

@@ -10,9 +10,20 @@ import type {
 } from "@/domain/workflow";
 
 export const boardMetrics: MetricItem[] = [
-  { id: "waiting", label: "Waiting", value: "4", tone: "primary", icon: "file-text" },
-  { id: "tie", label: "Tie-break", value: "1", tone: "warning", icon: "scale-balance" },
-  { id: "risk", label: "At-risk", value: "3", tone: "danger", icon: "alert-triangle" },
+  {
+    id: "waiting",
+    label: "Waiting",
+    value: "4",
+    tone: "primary",
+    icon: "file-text",
+  },
+  {
+    id: "risk",
+    label: "At-risk",
+    value: "3",
+    tone: "danger",
+    icon: "alert-triangle",
+  },
 ];
 
 export const boardDecisionCards: MetricItem[] = [
@@ -24,15 +35,6 @@ export const boardDecisionCards: MetricItem[] = [
     icon: "check-circle",
     subtitle: "BOARD_REVIEW proposals",
     actionLabel: "Open votes",
-  },
-  {
-    id: "tie",
-    label: "Tie-break required",
-    value: "1",
-    tone: "warning",
-    icon: "scale-balance",
-    subtitle: "Board Chair only",
-    actionLabel: "Resolve now",
   },
   {
     id: "risk",
@@ -62,14 +64,6 @@ export const boardQueues: QueueItem[] = [
     value: "4",
     tone: "primary",
     icon: "file-text",
-  },
-  {
-    id: "tie",
-    title: "Tie-break Decisions",
-    subtitle: "Requires Board Chair separate action",
-    value: "1",
-    tone: "warning",
-    icon: "scale-balance",
   },
   {
     id: "risk",
@@ -105,26 +99,26 @@ export const boardSeries: BoardSeriesReviewItem[] = [
     sessionId: "vs-neon",
     decisionStatus: "PENDING",
     publicationType: "MONTHLY",
-    voteSummary: { approve: 3, reject: 1, needsRevision: 0, pending: 3, eligible: 7 },
-    voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"],
+    voteSummary: { approve: 3, reject: 1, pending: 3, eligible: 7 },
+    voteOptions: ["APPROVE", "REJECT"],
   },
   {
     id: "aurora",
     title: "Aurora Pulse",
     subtitle: "Fantasy / Adventure",
     meta: "Proposed: Monthly",
-    status: "Tie-break",
-    tone: "warning",
-    progress: "6 / 7 votes submitted",
-    progressValue: 0.86,
+    status: "Board Review",
+    tone: "primary",
+    progress: "0 / 7 votes submitted",
+    progressValue: 0,
     coverTone: "blue",
     tags: ["Fantasy", "Adventure"],
     seriesStatus: "BOARD_REVIEW",
     sessionId: "vs-aurora",
-    decisionStatus: "TIE_BREAK_REQUIRED",
+    decisionStatus: "PENDING",
     publicationType: "MONTHLY",
-    voteSummary: { approve: 3, reject: 0, needsRevision: 3, pending: 1, eligible: 7 },
-    voteOptions: ["APPROVE", "NEEDS_REVISION"],
+    voteSummary: { approve: 0, reject: 0, pending: 7, eligible: 7 },
+    voteOptions: ["APPROVE", "REJECT"],
   },
   {
     id: "crimson",
@@ -141,8 +135,8 @@ export const boardSeries: BoardSeriesReviewItem[] = [
     sessionId: "vs-crimson",
     decisionStatus: "PENDING",
     publicationType: "WEEKLY",
-    voteSummary: { approve: 5, reject: 1, needsRevision: 0, pending: 1, eligible: 7 },
-    voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"],
+    voteSummary: { approve: 5, reject: 1, pending: 1, eligible: 7 },
+    voteOptions: ["APPROVE", "REJECT"],
   },
   {
     id: "shadow",
@@ -159,8 +153,8 @@ export const boardSeries: BoardSeriesReviewItem[] = [
     sessionId: "vs-shadow",
     decisionStatus: "PENDING",
     publicationType: "MONTHLY",
-    voteSummary: { approve: 1, reject: 1, needsRevision: 3, pending: 2, eligible: 7 },
-    voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"],
+    voteSummary: { approve: 1, reject: 1, pending: 5, eligible: 7 },
+    voteOptions: ["APPROVE", "REJECT"],
   },
 ];
 
@@ -246,7 +240,8 @@ export const atRiskTitles: BoardAtRiskCase[] = [
     seriesStatus: "AT_RISK",
     rankingStatus: "AT_RISK",
     availableDecisions: atRiskDecisions,
-    supportNote: "Action readability dropped after latest arc; monitor and require story support.",
+    supportNote:
+      "Action readability dropped after latest arc; monitor and require story support.",
     requiresConfirmation: true,
   },
   {
@@ -260,7 +255,8 @@ export const atRiskTitles: BoardAtRiskCase[] = [
     seriesStatus: "AT_RISK",
     rankingStatus: "WARNING",
     availableDecisions: ["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN"],
-    supportNote: "Soft warning recommended; cancellation is not suggested in this mock case.",
+    supportNote:
+      "Soft warning recommended; cancellation is not suggested in this mock case.",
     requiresConfirmation: true,
   },
 ];
@@ -276,8 +272,8 @@ export const boardDecisionHistory: BoardDecisionHistoryItem[] = [
   },
   {
     id: "hist-crimson",
-    title: "Crimson Road tie-break",
-    decision: "NEEDS_REVISION",
+    title: "Crimson Road Board re-vote",
+    decision: "REJECT",
     status: "FINALIZED",
     time: "1d ago",
     immutable: true,

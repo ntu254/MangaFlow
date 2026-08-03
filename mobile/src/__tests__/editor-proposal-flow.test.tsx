@@ -7,6 +7,7 @@ import type { EditorProposalDetail } from "@/services/editor-mobile-data-source"
 jest.mock("@/services/editor-mobile-data-source", () => ({
   getEditorProposalDetail: jest.fn(),
   claimEditorProposal: jest.fn(),
+  releaseEditorProposalClaim: jest.fn(),
   requestEditorProposalChanges: jest.fn(),
   rejectEditorProposal: jest.fn(),
   forwardEditorProposal: jest.fn(),
@@ -26,11 +27,12 @@ const detailFixture: EditorProposalDetail = {
     requestedPublicationType: "MONTHLY",
   },
   claim: { claimedByEditorId: "u-editor", claimedByEditorName: "Tanaka Akira", claimedByMe: true },
-  currentManuscript: { id: "m1", version: 2, status: "SUBMITTED" },
+  currentManuscript: { id: "m1", version: 2 },
   version: 2,
   history: [],
   actions: [
     { action: "CLAIM", enabled: false, disabledReason: "You already claimed this proposal.", requiresConfirmation: true, requiresReason: false },
+    { action: "RELEASE_CLAIM", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
     { action: "REQUEST_CHANGES", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
     { action: "REJECT", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
     { action: "FORWARD", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
@@ -55,6 +57,14 @@ describe("EditorProposalDetailScreen", () => {
     fireEvent.press(await screen.findByRole("button", { name: "Confirm request changes" }))
     expect(await screen.findByText("Reason is required.")).toBeVisible()
     expect(mocked.requestEditorProposalChanges).not.toHaveBeenCalled()
+  })
+
+  it("allows the claiming editor to release the claim", async () => {
+    mocked.releaseEditorProposalClaim.mockResolvedValue(undefined)
+    renderScreen()
+    fireEvent.press(await screen.findByRole("button", { name: "Release claim" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm release claim" }))
+    await waitFor(() => expect(mocked.releaseEditorProposalClaim).toHaveBeenCalledWith("p-002"))
   })
 
   it("submits a reason for request changes", async () => {

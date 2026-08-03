@@ -1,6 +1,6 @@
 import { Text, View, StyleSheet } from "react-native"
 import { MFBadge, MFButton, MFCard, MFConfirmationPanel, SectionTitle } from "@/components/mf"
-import type { EditorFinalApprovalAction, EditorManuscriptReviewItem, EditorProposalAction, EditorSubmissionReviewItem, Tone } from "@/domain/workflow"
+import type { EditorFinalApprovalAction, EditorProposalAction, EditorProposalReviewItem, EditorSubmissionReviewItem, Tone } from "@/domain/workflow"
 import { colors, spacing } from "@/design/tokens"
 
 export function EditorProposalDecisionPanel({
@@ -16,7 +16,7 @@ export function EditorProposalDecisionPanel({
   busy = false,
   errorText,
 }: {
-  item: EditorManuscriptReviewItem
+  item: EditorProposalReviewItem
   pendingAction: EditorProposalAction | null
   onStartAction: (action: EditorProposalAction) => void
   onConfirm: () => void
@@ -35,7 +35,7 @@ export function EditorProposalDecisionPanel({
       <MFCard>
         <View style={styles.rowBetween}>
           <Text style={styles.title}>Proposal decision preview</Text>
-          <MFBadge tone={item.tone}>{item.manuscriptStatus}</MFBadge>
+          <MFBadge tone={item.tone}>{item.seriesStatus}</MFBadge>
         </View>
         <Text style={styles.body}>{item.editorRecommendation}</Text>
         <Text style={styles.muted}>Version {item.version}. Editor decisions call the live Series review API and remain backend-authorized.</Text>

@@ -42,7 +42,7 @@ describe("BoardSessionDetailScreen", () => {
   it("shows the backend tally and casts a vote with expectedVersion", async () => {
     mocked.castBoardVote.mockResolvedValue(undefined)
     renderScreen()
-    expect(await screen.findByText("Approve 2 · Reject 0 · Abstain 0 · Quorum 3 of 5")).toBeVisible()
+    expect(await screen.findByText("Approve 2 · Reject 0 · Quorum 3 of 5")).toBeVisible()
     fireEvent.press(screen.getByRole("button", { name: "Approve" }))
     fireEvent.press(await screen.findByRole("button", { name: "Confirm approve" }))
     await waitFor(() =>

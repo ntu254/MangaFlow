@@ -14,7 +14,7 @@ import {
   editorHome,
   editorReadinessResult,
   finalApprovals,
-  manuscripts,
+  proposals,
   productionComments,
 } from "@/data/editor";
 import type {
@@ -22,7 +22,7 @@ import type {
   BoardDecisionHistoryItem,
   BoardRankingItem,
   BoardSeriesReviewItem,
-  EditorManuscriptReviewItem,
+  EditorProposalReviewItem,
   EditorReadinessResult,
   EditorSubmissionReviewItem,
   MetricItem,
@@ -40,7 +40,7 @@ export interface EditorHomePayload {
   actions: MetricItem[];
   queues: QueueItem[];
   activity: ActivityItem[];
-  priorityChapter: EditorManuscriptReviewItem;
+  priorityProposal: EditorProposalReviewItem;
   readiness: EditorReadinessResult;
 }
 
@@ -88,10 +88,6 @@ export interface BoardVoteInput {
   note?: string;
 }
 
-export interface BoardTieBreakInput extends BoardVoteInput {
-  publicationType?: "WEEKLY" | "MONTHLY";
-}
-
 export interface BoardFinalizeDecisionInput {
   sessionId: string;
   note?: string;
@@ -108,24 +104,37 @@ export interface MobileWorkflowDataSource {
     seriesId: string,
     input: EditorProposalRevisionInput,
   ): Promise<void>;
-  rejectEditorProposal(seriesId: string, input: EditorRejectInput): Promise<void>;
-  forwardEditorProposalToBoard(seriesId: string, input: EditorForwardInput): Promise<void>;
+  rejectEditorProposal(
+    seriesId: string,
+    input: EditorRejectInput,
+  ): Promise<void>;
+  forwardEditorProposalToBoard(
+    seriesId: string,
+    input: EditorForwardInput,
+  ): Promise<void>;
   createEditorComment(input: EditorCreateCommentInput): Promise<void>;
   resolveEditorComment(commentId: string): Promise<void>;
   reopenEditorComment(commentId: string): Promise<void>;
   castBoardVote(seriesId: string, input: BoardVoteInput): Promise<void>;
-  finalizeBoardDecision(seriesId: string, input: BoardFinalizeDecisionInput): Promise<void>;
-  tieBreakBoardDecision(seriesId: string, input: BoardTieBreakInput): Promise<void>;
-  createBoardAtRiskDecision(seriesId: string, input: BoardAtRiskDecisionInput): Promise<void>;
+  finalizeBoardDecision(
+    seriesId: string,
+    input: BoardFinalizeDecisionInput,
+  ): Promise<void>;
+  createBoardAtRiskDecision(
+    seriesId: string,
+    input: BoardAtRiskDecisionInput,
+  ): Promise<void>;
   getEditorHome(): Promise<EditorHomePayload>;
-  getEditorManuscripts(): Promise<EditorManuscriptReviewItem[]>;
+  getEditorProposals(): Promise<EditorProposalReviewItem[]>;
   getEditorSubmissions(): Promise<EditorSubmissionReviewItem[]>;
   getEditorComments(): Promise<EditorCommentsPayload>;
   getEditorReadiness(): Promise<EditorReadinessResult>;
-  getSeriesProposalSummary(seriesId: string, role: MobileApiRole): Promise<SeriesProposalSummary>;
+  getSeriesProposalSummary(
+    seriesId: string,
+    role: MobileApiRole,
+  ): Promise<SeriesProposalSummary>;
   getBoardHome(): Promise<BoardHomePayload>;
   getBoardSeriesReviews(): Promise<BoardSeriesReviewItem[]>;
-  getBoardTieBreaks(): Promise<BoardSeriesReviewItem[]>;
   getBoardRankings(): Promise<BoardRankingItem[]>;
   getBoardAtRiskCases(): Promise<BoardAtRiskCase[]>;
   getBoardDecisionHistory(): Promise<BoardDecisionHistoryItem[]>;
@@ -147,7 +156,10 @@ export type MobileApiRole = "editor" | "board";
 
 const tokenCache: Partial<Record<MobileApiRole, string>> = {};
 
-export function setMobileWorkflowAuthToken(role: MobileApiRole, accessToken: string | null) {
+export function setMobileWorkflowAuthToken(
+  role: MobileApiRole,
+  accessToken: string | null,
+) {
   if (accessToken) {
     tokenCache[role] = accessToken;
     return;
@@ -201,7 +213,8 @@ function toneForStatus(status: string | undefined): Tone {
     status === "FINALIZED"
   )
     return "success";
-  if (status === "AT_RISK" || status === "REJECTED" || status === "CANCELLED") return "danger";
+  if (status === "AT_RISK" || status === "REJECTED" || status === "CANCELLED")
+    return "danger";
   if (
     status === "REVISION_REQUESTED" ||
     status === "TIE_BREAK_REQUIRED" ||
@@ -211,7 +224,9 @@ function toneForStatus(status: string | undefined): Tone {
   return "primary";
 }
 
-function boardDecisionStatus(status: string | undefined): BoardSeriesReviewItem["decisionStatus"] {
+function boardDecisionStatus(
+  status: string | undefined,
+): BoardSeriesReviewItem["decisionStatus"] {
   if (
     status === "APPROVED" ||
     status === "REJECTED" ||
@@ -225,7 +240,8 @@ function boardDecisionStatus(status: string | undefined): BoardSeriesReviewItem[
 }
 
 function commentStatus(status: string | undefined): CommentStatus {
-  if (status === "ADDRESSED" || status === "RESOLVED" || status === "REOPENED") return status;
+  if (status === "ADDRESSED" || status === "RESOLVED" || status === "REOPENED")
+    return status;
   return "OPEN";
 }
 
@@ -257,41 +273,44 @@ function readinessTitle(key: string): string {
     publicationDateExists: "Publication date exists",
   };
   return (
-    labels[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())
+    labels[key] ??
+    key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())
   );
 }
 
 function summaryFromCard(
-  card?: EditorManuscriptReviewItem | BoardSeriesReviewItem,
+  card?: EditorProposalReviewItem | BoardSeriesReviewItem,
 ): SeriesProposalSummary {
   return {
     seriesId: card?.id ?? "mock-series",
     title: card?.title ?? "Series proposal",
     status:
       "seriesStatus" in (card ?? {})
-        ? (card as EditorManuscriptReviewItem | BoardSeriesReviewItem).seriesStatus
+        ? (card as EditorProposalReviewItem | BoardSeriesReviewItem)
+            .seriesStatus
         : "EDITOR_REVIEW",
     synopsis:
-      card?.subtitle ?? "Proposal details are available when the live summary API responds.",
+      card?.subtitle ??
+      "Proposal details are available when the live summary API responds.",
     logline: card?.meta ?? "Metadata only preview.",
-    premise: "Mobile summary fallback keeps review context visible without granting file access.",
+    premise:
+      "Mobile summary fallback keeps review context visible without granting file access.",
     characters: "Read-only mobile detail.",
     conflict: "Read-only mobile detail.",
     targetAudience: "General audience",
     requestedPublicationType: publicationType(
       "requestedPublicationType" in (card ?? {})
-        ? (card as EditorManuscriptReviewItem).requestedPublicationType
+        ? (card as EditorProposalReviewItem).requestedPublicationType
         : (card as BoardSeriesReviewItem | undefined)?.publicationType,
     ),
     genres: card?.tags ?? [],
     tags: card?.tags ?? [],
     currentManuscript: {
       id: `${card?.id ?? "mock"}-manuscript`,
-      version: "version" in (card ?? {}) ? (card as EditorManuscriptReviewItem).version : "API",
-      status:
-        "manuscriptStatus" in (card ?? {})
-          ? (card as EditorManuscriptReviewItem).manuscriptStatus
-          : "FORWARDED_TO_BOARD",
+      version:
+        "version" in (card ?? {})
+          ? (card as EditorProposalReviewItem).version
+          : "API",
       fileName: "Signed file access not requested on mobile",
       fileType: "metadata",
       fileSize: "metadata only",
@@ -307,9 +326,13 @@ function summaryFromCard(
   };
 }
 
-function mapSeriesProposalSummary(summary: any, fallbackId: string): SeriesProposalSummary {
+function mapSeriesProposalSummary(
+  summary: any,
+  fallbackId: string,
+): SeriesProposalSummary {
   const series = summary?.series ?? summary ?? {};
-  const manuscript = summary?.currentManuscript ?? asArray<any>(summary?.manuscripts)[0];
+  const manuscript =
+    summary?.currentManuscript ?? asArray<any>(summary?.manuscripts)[0];
   const file = manuscript?.file ?? {};
   const boardReview = summary?.boardReview;
 
@@ -332,11 +355,15 @@ function mapSeriesProposalSummary(summary: any, fallbackId: string): SeriesPropo
       ? {
           id: itemId(manuscript, `${fallbackId}-manuscript`),
           version: text(
-            manuscript?.version === undefined ? undefined : `v${manuscript.version}`,
+            manuscript?.version === undefined
+              ? undefined
+              : `v${manuscript.version}`,
             "v1",
           ),
-          status: text(manuscript?.status, "SUBMITTED"),
-          fileName: text(file?.originalName, "Signed file access not requested on mobile"),
+          fileName: text(
+            file?.originalName,
+            "Signed file access not requested on mobile",
+          ),
           fileType: text(file?.mimeType, "metadata"),
           fileSize: fileSizeText(file?.size),
         }
@@ -388,7 +415,11 @@ async function apiMutate(
   }
 }
 
-async function apiRequest<T>(path: string, role: MobileApiRole, init?: RequestInit): Promise<T> {
+async function apiRequest<T>(
+  path: string,
+  role: MobileApiRole,
+  init?: RequestInit,
+): Promise<T> {
   const token = await getToken(role);
   const response = await fetch(`${getMobileApiBaseUrl()}${path}`, {
     ...init,
@@ -433,7 +464,9 @@ async function getToken(role: MobileApiRole): Promise<string> {
   );
   const password = requireMobileEnv(
     role === "editor" ? mobileEnv.editorPassword : mobileEnv.boardPassword,
-    role === "editor" ? "EXPO_PUBLIC_EDITOR_PASSWORD" : "EXPO_PUBLIC_BOARD_PASSWORD",
+    role === "editor"
+      ? "EXPO_PUBLIC_EDITOR_PASSWORD"
+      : "EXPO_PUBLIC_BOARD_PASSWORD",
   );
   const response = await fetch(`${getMobileApiBaseUrl()}/auth/login`, {
     method: "POST",
@@ -453,7 +486,9 @@ async function getToken(role: MobileApiRole): Promise<string> {
     );
   }
 
-  const envelope = (await response.json()) as ApiEnvelope<{ accessToken: string }>;
+  const envelope = (await response.json()) as ApiEnvelope<{
+    accessToken: string;
+  }>;
   tokenCache[role] = envelope.data.accessToken;
   return envelope.data.accessToken;
 }
@@ -468,10 +503,9 @@ export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
   reopenEditorComment: async () => undefined,
   castBoardVote: async () => undefined,
   finalizeBoardDecision: async () => undefined,
-  tieBreakBoardDecision: async () => undefined,
   createBoardAtRiskDecision: async () => undefined,
   getEditorHome: () => resolveMock(editorHome),
-  getEditorManuscripts: () => resolveMock(manuscripts),
+  getEditorProposals: () => resolveMock(proposals),
   getEditorSubmissions: () => resolveMock(finalApprovals),
   getEditorComments: () =>
     resolveMock({
@@ -483,14 +517,12 @@ export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
   getSeriesProposalSummary: async (seriesId, role) => {
     const card =
       role === "editor"
-        ? (manuscripts.find((item) => item.id === seriesId) ?? manuscripts[0])
+        ? (proposals.find((item) => item.id === seriesId) ?? proposals[0])
         : (boardSeries.find((item) => item.id === seriesId) ?? boardSeries[0]);
     return summaryFromCard(card);
   },
   getBoardHome: () => resolveMock(boardHome),
   getBoardSeriesReviews: () => resolveMock(boardSeries),
-  getBoardTieBreaks: () =>
-    resolveMock(boardSeries.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED")),
   getBoardRankings: () => resolveMock(boardRankings),
   getBoardAtRiskCases: () => resolveMock(atRiskTitles),
   getBoardDecisionHistory: () => resolveMock(boardDecisionHistory),
@@ -555,14 +587,6 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
     });
   },
 
-  tieBreakBoardDecision: async (seriesId, input) => {
-    await apiMutate(`/board/series/${seriesId}/decisions/tie-break`, "board", {
-      value: input.value,
-      publicationType: input.value === "APPROVE" ? input.publicationType : undefined,
-      note: input.note,
-    });
-  },
-
   createBoardAtRiskDecision: async (seriesId, input) => {
     await apiMutate(`/board/series/${seriesId}/at-risk-decisions`, "board", {
       decision: input.decision,
@@ -571,21 +595,24 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
   },
 
   getEditorHome: async () => {
-    const [summary, manuscriptItems, submissionItems, readiness] = await Promise.all([
-      apiRequest<any>("/dashboard/editor/summary", "editor"),
-      apiMobileWorkflowDataSource.getEditorManuscripts(),
-      apiMobileWorkflowDataSource.getEditorSubmissions(),
-      apiMobileWorkflowDataSource.getEditorReadiness(),
-    ]);
+    const [summary, proposalItems, submissionItems, readiness] =
+      await Promise.all([
+        apiRequest<any>("/dashboard/editor/summary", "editor"),
+        apiMobileWorkflowDataSource.getEditorProposals(),
+        apiMobileWorkflowDataSource.getEditorSubmissions(),
+        apiMobileWorkflowDataSource.getEditorReadiness(),
+      ]);
     // Prefer the live review-queue lengths so Home counts match the lists the editor can open.
-    const manuscriptsCount = manuscriptItems.length || summary?.reviewQueue?.manuscripts || 0;
-    const finalCount = submissionItems.length || summary?.reviewQueue?.productions || 0;
+    const proposalsCount =
+      proposalItems.length || summary?.reviewQueue?.proposals || 0;
+    const finalCount =
+      submissionItems.length || summary?.reviewQueue?.productions || 0;
 
     const actions: MetricItem[] = [
       {
-        id: "manuscripts",
-        label: "Review manuscripts",
-        value: numberText(manuscriptsCount),
+        id: "proposals",
+        label: "Review proposals",
+        value: numberText(proposalsCount),
         tone: "primary",
         icon: "file-text",
         subtitle: "Live editor review queue",
@@ -622,10 +649,10 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
 
     const queues: QueueItem[] = [
       {
-        id: "manuscripts",
-        title: "Manuscripts Waiting",
+        id: "proposals",
+        title: "Proposals Waiting",
         subtitle: "Initial proposals awaiting editor decision",
-        value: numberText(manuscriptsCount),
+        value: numberText(proposalsCount),
         tone: "primary",
         icon: "file-text",
       },
@@ -665,13 +692,16 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         tone: "primary",
         icon: "file-text",
       })),
-      priorityChapter: manuscriptItems[0] ?? manuscripts[0],
+      priorityProposal: proposalItems[0] ?? proposals[0],
       readiness,
     };
   },
 
-  getEditorManuscripts: async () => {
-    const items = await apiRequest<any[]>("/editor/manuscripts/review-queue", "editor");
+  getEditorProposals: async () => {
+    const items = await apiRequest<any[]>(
+      "/editor/proposals/review-queue",
+      "editor",
+    );
     return asArray<any>(items).map((item, index) => {
       const series = item?.series ?? item;
       const manuscript = item?.manuscript ?? {};
@@ -680,14 +710,20 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         id: itemId(series, `editor-series-${index}`),
         title: text(series?.title, "Untitled series"),
         subtitle:
-          asArray<string>(series?.genres).join(" / ") || text(series?.targetAudience, "Proposal"),
+          asArray<string>(series?.genres).join(" / ") ||
+          text(series?.targetAudience, "Proposal"),
         meta: `Version ${manuscript?.version ?? 1}`,
-        status: status === "REVISION_REQUESTED" ? "Revision Uploaded" : "Waiting Review",
+        status:
+          status === "REVISION_REQUESTED"
+            ? "Revision Uploaded"
+            : "Waiting Review",
         tone: toneForStatus(status),
         coverTone: index % 2 === 0 ? "dark" : "violet",
         tags: asArray<string>(series?.genres),
-        manuscriptStatus: "SUBMITTED",
-        seriesStatus: status === "REVISION_REQUESTED" ? "REVISION_REQUESTED" : "EDITOR_REVIEW",
+        seriesStatus:
+          status === "REVISION_REQUESTED"
+            ? "REVISION_REQUESTED"
+            : "EDITOR_REVIEW",
         version: String(manuscript?.version ?? 1),
         requestedPublicationType: publicationType(
           series?.requestedPublicationType ?? series?.publicationType,
@@ -696,28 +732,41 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
           manuscript?.editorRecommendation ?? series?.synopsis,
           "Review proposal before forwarding to Board.",
         ),
-        decisionActions: ["start-review", "request-revision", "reject", "forward-to-board"],
-      } satisfies EditorManuscriptReviewItem;
+        decisionActions: [
+          "start-review",
+          "request-revision",
+          "reject",
+          "forward-to-board",
+        ],
+      } satisfies EditorProposalReviewItem;
     });
   },
 
   getEditorSubmissions: async () => {
-    const items = await apiRequest<any[]>("/submissions/review-queue", "editor");
+    const items = await apiRequest<any[]>(
+      "/submissions/review-queue",
+      "editor",
+    );
     return Promise.all(
       asArray<any>(items).map(async (item, index) => {
         const task = item?.taskId ?? item?.task ?? {};
         const chapter = task?.chapterId ?? item?.chapterId ?? {};
         const taskId = typeof task === "string" ? task : itemId(task, "");
-        const chapterId = typeof chapter === "string" ? chapter : itemId(chapter, "");
+        const chapterId =
+          typeof chapter === "string" ? chapter : itemId(chapter, "");
         const [taskDetail, chapterDetail, pageItems] = await Promise.all([
           taskId
             ? apiRequest<any>(`/tasks/${taskId}`, "editor").catch(() => task)
             : Promise.resolve(task),
           chapterId
-            ? apiRequest<any>(`/chapters/${chapterId}`, "editor").catch(() => chapter)
+            ? apiRequest<any>(`/chapters/${chapterId}`, "editor").catch(
+                () => chapter,
+              )
             : Promise.resolve(chapter),
           chapterId
-            ? apiRequest<any[]>(`/chapters/${chapterId}/pages`, "editor").catch(() => [])
+            ? apiRequest<any[]>(`/chapters/${chapterId}/pages`, "editor").catch(
+                () => [],
+              )
             : Promise.resolve([]),
         ]);
         const firstPage = asArray<any>(pageItems)[0];
@@ -738,14 +787,18 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
           chapterStatus,
           taskPriority: text(taskDetail?.priority, ""),
           taskDueDate: text(taskDetail?.dueDate, ""),
-          title: text(taskDetail?.title ?? task?.title, `Submission ${index + 1}`),
+          title: text(
+            taskDetail?.title ?? task?.title,
+            `Submission ${index + 1}`,
+          ),
           subtitle: text(
             chapterDetail?.title ?? chapter?.title ?? task?.seriesId?.title,
             "Production task",
           ),
           meta: `Assistant: ${text(item?.submittedBy?.name ?? task?.assignedTo?.name, "Assigned assistant")}`,
           status:
-            chapterStatus === "READY_FOR_PUBLICATION" || chapterStatus === "PUBLISHED"
+            chapterStatus === "READY_FOR_PUBLICATION" ||
+            chapterStatus === "PUBLISHED"
               ? "Ready for publication"
               : "Waiting",
           tone: toneForStatus(status),
@@ -768,7 +821,8 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
   },
 
   getEditorComments: async () => {
-    const submissions = await apiMobileWorkflowDataSource.getEditorSubmissions();
+    const submissions =
+      await apiMobileWorkflowDataSource.getEditorSubmissions();
     const firstTaskId = submissions.find((item) => item.taskId)?.taskId;
     if (!firstTaskId) {
       return {
@@ -778,7 +832,10 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
       };
     }
 
-    const items = await apiRequest<any[]>(`/comments/task/${firstTaskId}`, "editor");
+    const items = await apiRequest<any[]>(
+      `/comments/task/${firstTaskId}`,
+      "editor",
+    );
     const comments = asArray<any>(items).map((item, index) => {
       const canonicalStatus = commentStatus(item?.status);
       const isBlocking = Boolean(item?.isBlocking);
@@ -786,7 +843,10 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
       const author = item?.authorId ?? {};
       return {
         id: itemId(item, `comment-${index}`),
-        title: text(item?.chapterId?.title ?? item?.taskId?.title, `Task comment ${index + 1}`),
+        title: text(
+          item?.chapterId?.title ?? item?.taskId?.title,
+          `Task comment ${index + 1}`,
+        ),
         body: text(item?.body, "Production feedback comment."),
         owner: text(author?.name ?? author?.role, "Production reviewer"),
         status: commentStatusLabel(canonicalStatus),
@@ -796,15 +856,24 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         page: text(item?.pageId?.pageNumber ?? item?.pageId?.index, "API"),
         coverTone: "mono",
         isBlocking,
-      } satisfies CommentItem & { canonicalStatus: CommentStatus; isBlocking: boolean };
+      } satisfies CommentItem & {
+        canonicalStatus: CommentStatus;
+        isBlocking: boolean;
+      };
     });
 
-    const open = comments.filter((item) => item.canonicalStatus === "OPEN").length;
-    const reopened = comments.filter((item) => item.canonicalStatus === "REOPENED").length;
+    const open = comments.filter(
+      (item) => item.canonicalStatus === "OPEN",
+    ).length;
+    const reopened = comments.filter(
+      (item) => item.canonicalStatus === "REOPENED",
+    ).length;
     const blocking = comments.filter(
       (item) => item.isBlocking && item.canonicalStatus !== "RESOLVED",
     ).length;
-    const resolved = comments.filter((item) => item.canonicalStatus === "RESOLVED").length;
+    const resolved = comments.filter(
+      (item) => item.canonicalStatus === "RESOLVED",
+    ).length;
 
     return {
       metrics: [
@@ -849,11 +918,15 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
   },
 
   getEditorReadiness: async () => {
-    const submissions = await apiMobileWorkflowDataSource.getEditorSubmissions();
+    const submissions =
+      await apiMobileWorkflowDataSource.getEditorSubmissions();
     const context = submissions.find((item) => item.chapterId);
     if (!context?.chapterId) return editorReadinessResult;
 
-    const readiness = await apiRequest<any>(`/chapters/${context.chapterId}/readiness`, "editor");
+    const readiness = await apiRequest<any>(
+      `/chapters/${context.chapterId}/readiness`,
+      "editor",
+    );
     return {
       chapterId: text(readiness?.chapterId, context.chapterId),
       chapterStatus: text(readiness?.chapterStatus, "UNKNOWN"),
@@ -864,7 +937,10 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         id: text(item?.key, `readiness-${index}`),
         title: readinessTitle(text(item?.key, `Readiness ${index + 1}`)),
         passed: Boolean(item?.passed),
-        reason: text(item?.reason, "Backend readiness check returned no reason."),
+        reason: text(
+          item?.reason,
+          "Backend readiness check returned no reason.",
+        ),
       })),
     } satisfies EditorReadinessResult;
   },
@@ -881,8 +957,10 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
       apiMobileWorkflowDataSource.getBoardAtRiskCases(),
     ]);
     // Prefer live queue lengths so Home counts match the lists the board can open.
-    const pendingVotes = seriesReviews.length || summary?.boardQueue?.pendingVotes || 0;
-    const atRiskReviews = atRiskCases.length || summary?.boardQueue?.atRiskReviews || 0;
+    const pendingVotes =
+      seriesReviews.length || summary?.boardQueue?.pendingVotes || 0;
+    const atRiskReviews =
+      atRiskCases.length || summary?.boardQueue?.atRiskReviews || 0;
 
     const metrics: MetricItem[] = [
       {
@@ -891,15 +969,6 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
         value: numberText(pendingVotes),
         tone: "primary",
         icon: "file-text",
-      },
-      {
-        id: "tie",
-        label: "Tie-break",
-        value: numberText(
-          seriesReviews.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED").length,
-        ),
-        tone: "warning",
-        icon: "scale-balance",
       },
       {
         id: "risk",
@@ -921,17 +990,6 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
           icon: "check-circle",
           subtitle: "BOARD_REVIEW proposals",
           actionLabel: "Open votes",
-        },
-        {
-          id: "tie",
-          label: "Tie-break required",
-          value: numberText(
-            seriesReviews.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED").length,
-          ),
-          tone: "warning",
-          icon: "scale-balance",
-          subtitle: "Board Chair only",
-          actionLabel: "Resolve now",
         },
         {
           id: "risk",
@@ -960,16 +1018,6 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
           value: numberText(pendingVotes),
           tone: "primary",
           icon: "file-text",
-        },
-        {
-          id: "tie",
-          title: "Tie-break Decisions",
-          subtitle: "Requires Board Chair separate action",
-          value: numberText(
-            seriesReviews.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED").length,
-          ),
-          tone: "warning",
-          icon: "scale-balance",
         },
         {
           id: "risk",
@@ -1005,11 +1053,14 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
             : typeof item?.voteCount === "number"
               ? Math.max(item.voteCount, 1)
               : 1;
-        const quorum = typeof item?.quorum === "number" ? item.quorum : Math.ceil(eligible / 2);
+        const quorum =
+          typeof item?.quorum === "number"
+            ? item.quorum
+            : Math.ceil(eligible / 2);
         const submitted =
           Number(summary.APPROVE ?? summary.approve ?? 0) +
           Number(summary.REJECT ?? summary.reject ?? 0) +
-          Number(summary.NEEDS_REVISION ?? summary.needsRevision ?? 0);
+          0;
         return {
           id: itemId(item, `board-series-${index}`),
           title: text(item?.seriesTitle, "Untitled series"),
@@ -1026,7 +1077,12 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
           progress: `${submitted} / ${eligible} votes submitted`,
           progressValue: submitted / eligible,
           coverTone: index % 2 === 0 ? "violet" : "blue",
-          tags: [text(item?.requestedPublicationType ?? item?.publicationType, "MONTHLY")],
+          tags: [
+            text(
+              item?.requestedPublicationType ?? item?.publicationType,
+              "MONTHLY",
+            ),
+          ],
           seriesStatus: "BOARD_REVIEW",
           sessionId:
             typeof item?.activeVotingSessionId === "string"
@@ -1044,26 +1100,21 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
                 : undefined,
           decisionStatus: boardDecisionStatus(item?.decisionStatus),
           publicationType:
-            item?.publicationType === "WEEKLY" || item?.requestedPublicationType === "WEEKLY"
+            item?.publicationType === "WEEKLY" ||
+            item?.requestedPublicationType === "WEEKLY"
               ? "WEEKLY"
               : "MONTHLY",
           voteSummary: {
             approve: Number(summary.APPROVE ?? summary.approve ?? 0),
             reject: Number(summary.REJECT ?? summary.reject ?? 0),
-            needsRevision: Number(summary.NEEDS_REVISION ?? summary.needsRevision ?? 0),
             pending: Math.max(eligible - submitted, 0),
             eligible,
             quorum,
             canFinalize: Boolean(item?.canFinalize),
           },
-          voteOptions: ["APPROVE", "REJECT", "NEEDS_REVISION"],
+          voteOptions: ["APPROVE", "REJECT"],
         } satisfies BoardSeriesReviewItem;
       });
-  },
-
-  getBoardTieBreaks: async () => {
-    const items = await apiMobileWorkflowDataSource.getBoardSeriesReviews();
-    return items.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED");
   },
 
   getBoardRankings: async () => {
@@ -1072,7 +1123,10 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
       (item, index) =>
         ({
           id: itemId(item, `ranking-${index}`),
-          title: text(item?.seriesId?.title ?? item?.seriesTitle, "Series ranking"),
+          title: text(
+            item?.seriesId?.title ?? item?.seriesTitle,
+            "Series ranking",
+          ),
           subtitle: `Period ${text(item?.period, "current")}`,
           meta: `Reader score ${item?.readerScore ?? "n/a"}`,
           status: text(item?.status, "DRAFT"),
@@ -1115,7 +1169,8 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
               "REQUEST_IMPROVEMENT_PLAN",
               "CANCEL",
             ],
-            supportNote: "Backend marks this title at risk; mobile does not auto-cancel.",
+            supportNote:
+              "Backend marks this title at risk; mobile does not auto-cancel.",
             requiresConfirmation: true,
           }) satisfies BoardAtRiskCase,
       );
@@ -1137,9 +1192,11 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
                   ? "APPROVE"
                   : item.decisionStatus === "REJECTED"
                     ? "REJECT"
-                    : "NEEDS_REVISION",
+                    : "REJECT",
               status:
-                item.decisionStatus === "TIE_BREAK_REQUIRED" ? "TIE_BREAK_REQUIRED" : "FINALIZED",
+                item.decisionStatus === "TIE_BREAK_REQUIRED"
+                  ? "TIE_BREAK_REQUIRED"
+                  : "FINALIZED",
               time: "Live API",
               immutable: true,
             }) satisfies BoardDecisionHistoryItem,
@@ -1161,6 +1218,7 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
 
 // Demo mode is a deliberate, app-wide source selection. Live mode never
 // attempts a reference-data fallback: MobileApiError reaches the caller.
-export const mobileWorkflowDataSource: MobileWorkflowDataSource = mobileEnv.enableMockFallback
-  ? mockMobileWorkflowDataSource
-  : apiMobileWorkflowDataSource;
+export const mobileWorkflowDataSource: MobileWorkflowDataSource =
+  mobileEnv.enableMockFallback
+    ? mockMobileWorkflowDataSource
+    : apiMobileWorkflowDataSource;

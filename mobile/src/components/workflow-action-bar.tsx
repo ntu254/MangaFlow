@@ -11,6 +11,7 @@ export interface WorkflowActionDescriptor {
 
 export const ACTION_LABELS: Record<string, string> = {
   CLAIM: "Claim",
+  RELEASE_CLAIM: "Release claim",
   REQUEST_CHANGES: "Request changes",
   REJECT: "Reject",
   FORWARD: "Forward to Board",

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { editorHome, editorReadinessResult, finalApprovals, manuscripts, productionComments } from "@/data/editor"
+import { editorHome, editorReadinessResult, finalApprovals, proposals, productionComments } from "@/data/editor"
 import type { EditorFinalApprovalAction, EditorProposalAction, SeriesProposalSummary } from "@/domain/workflow"
 import { mobileWorkflowDataSource, type EditorCommentsPayload, type EditorHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
 
 export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource) {
   const [home, setHome] = useState<EditorHomePayload>(editorHome)
-  const [manuscriptItems, setManuscriptItems] = useState(manuscripts)
+  const [proposalItems, setProposalItems] = useState(proposals)
   const [submissionItems, setSubmissionItems] = useState(finalApprovals)
   const [commentsPayload, setCommentsPayload] = useState<EditorCommentsPayload>({ metrics: [], comments: productionComments, activity: [] })
   const [readiness, setReadiness] = useState(editorReadinessResult)
   const [selectedProposalSummary, setSelectedProposalSummary] = useState<SeriesProposalSummary | null>(null)
   const [proposalSummaryLoading, setProposalSummaryLoading] = useState(false)
-  const [selectedManuscriptId, setSelectedManuscriptId] = useState(manuscripts[0]?.id ?? "")
+  const [selectedProposalId, setSelectedProposalId] = useState(proposals[0]?.id ?? "")
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(finalApprovals[0]?.id ?? "")
   const [selectedCommentId, setSelectedCommentId] = useState(productionComments[0]?.id ?? "")
   const [pendingProposalAction, setPendingProposalAction] = useState<EditorProposalAction | null>(null)
@@ -29,15 +29,15 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     setLoading(true)
     setError(null)
     try {
-      const [nextHome, nextManuscripts, nextSubmissions, nextComments, nextReadiness] = await Promise.all([
+      const [nextHome, nextProposals, nextSubmissions, nextComments, nextReadiness] = await Promise.all([
         dataSource.getEditorHome(),
-        dataSource.getEditorManuscripts(),
+        dataSource.getEditorProposals(),
         dataSource.getEditorSubmissions(),
         dataSource.getEditorComments(),
         dataSource.getEditorReadiness(),
       ])
       setHome(nextHome)
-      setManuscriptItems(nextManuscripts)
+      setProposalItems(nextProposals)
       setSubmissionItems(nextSubmissions)
       setCommentsPayload(nextComments)
       setReadiness(nextReadiness)
@@ -58,17 +58,16 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     }
   }, [reload])
 
-  const selectedManuscript = useMemo(
-    () => manuscriptItems.find((item) => item.id === selectedManuscriptId) ?? manuscriptItems[0],
-    [manuscriptItems, selectedManuscriptId],
+  const selectedProposal = useMemo(
+    () => proposalItems.find((item) => item.id === selectedProposalId) ?? proposalItems[0],
+    [proposalItems, selectedProposalId],
   )
 
   useEffect(() => {
-    // Wait for the live manuscript queue to load. The initial mock manuscripts
-    // carry placeholder ids (e.g. "neon-manuscript") that 404 against
+    // Wait for the live proposal queue to load. Initial mock ids can 404 against
     // /series/:id/summary.
     if (loading) return
-    const seriesId = selectedManuscript?.id
+    const seriesId = selectedProposal?.id
     if (!seriesId) {
       setSelectedProposalSummary(null)
       return
@@ -90,7 +89,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     return () => {
       cancelled = true
     }
-  }, [dataSource, loading, selectedManuscript?.id])
+  }, [dataSource, loading, selectedProposal?.id])
 
   const selectedSubmission = useMemo(
     () => submissionItems.find((item) => item.id === selectedSubmissionId) ?? submissionItems[0],
@@ -105,7 +104,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   function startProposalAction(action: EditorProposalAction) {
     setActionError(null)
     setProposalNote("")
-    setProposalPublicationType(selectedProposalSummary?.requestedPublicationType ?? selectedManuscript?.requestedPublicationType ?? "MONTHLY")
+    setProposalPublicationType(selectedProposalSummary?.requestedPublicationType ?? selectedProposal?.requestedPublicationType ?? "MONTHLY")
     setPendingProposalAction(action)
   }
 
@@ -118,7 +117,7 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
 
   async function confirmProposalAction() {
     const action = pendingProposalAction
-    const target = selectedManuscript
+    const target = selectedProposal
     if (!action || !target) return
 
     const note = proposalNote.trim()
@@ -241,21 +240,21 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
 
   return {
     home,
-    manuscriptItems,
+    proposalItems,
     submissionItems,
     commentsPayload,
     readiness,
-    selectedManuscript,
+    selectedProposal,
     selectedSubmission,
     selectedComment,
     selectedProposalSummary,
     proposalSummaryLoading,
-    selectedManuscriptId,
+    selectedProposalId,
     selectedSubmissionId,
     selectedCommentId,
     pendingProposalAction,
     pendingFinalApprovalAction,
-    setSelectedManuscriptId,
+    setSelectedProposalId,
     setSelectedSubmissionId,
     setSelectedCommentId,
     lastMockAction,

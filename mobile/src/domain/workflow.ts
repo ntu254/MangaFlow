@@ -70,14 +70,6 @@ export type SeriesStatus =
   | "REJECTED"
   | "WITHDRAWN";
 
-export type ManuscriptStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "REVISION_REQUESTED"
-  | "APPROVED"
-  | "REJECTED"
-  | "ARCHIVED";
-
 export type TaskStatus =
   | "TODO"
   | "IN_PROGRESS"
@@ -96,7 +88,7 @@ export type SubmissionStatus =
 
 export type CommentStatus = "OPEN" | "ADDRESSED" | "RESOLVED" | "REOPENED";
 
-export type BoardVoteValue = "APPROVE" | "REJECT" | "NEEDS_REVISION";
+export type BoardVoteValue = "APPROVE" | "REJECT";
 
 export type BoardDecisionStatus =
   | "DRAFT"
@@ -111,19 +103,14 @@ export type BoardDecisionStatus =
   | "PENDING"
   | "NEEDS_REVISION";
 
-export type RankingStatus = "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "WARNING" | "AT_RISK";
+export type RankingStatus =
+  "DRAFT" | "IMPORTED" | "REVIEWED" | "FINALIZED" | "WARNING" | "AT_RISK";
 
 export type AtRiskDecision =
-  | "CONTINUE"
-  | "WARNING"
-  | "REQUEST_IMPROVEMENT_PLAN"
-  | "CANCEL";
+  "CONTINUE" | "WARNING" | "REQUEST_IMPROVEMENT_PLAN" | "CANCEL";
 
 export type EditorProposalAction =
-  | "start-review"
-  | "request-revision"
-  | "reject"
-  | "forward-to-board";
+  "start-review" | "request-revision" | "reject" | "forward-to-board";
 
 export type EditorFinalApprovalAction = "add-comment";
 
@@ -143,7 +130,6 @@ export interface SeriesProposalSummary {
   currentManuscript?: {
     id: string;
     version: string;
-    status: ManuscriptStatus | string;
     fileName: string;
     fileType: string;
     fileSize: string;
@@ -155,8 +141,7 @@ export interface SeriesProposalSummary {
   };
 }
 
-export interface EditorManuscriptReviewItem extends SeriesCard {
-  manuscriptStatus: ManuscriptStatus;
+export interface EditorProposalReviewItem extends SeriesCard {
   seriesStatus: SeriesStatus;
   version: string;
   requestedPublicationType: "WEEKLY" | "MONTHLY";
@@ -200,7 +185,6 @@ export interface EditorReadinessResult {
 export interface BoardVoteSummary {
   approve: number;
   reject: number;
-  needsRevision: number;
   pending: number;
   eligible: number;
   quorum?: number;

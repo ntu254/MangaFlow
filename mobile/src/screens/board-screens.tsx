@@ -14,7 +14,7 @@ import {
   SectionTitle,
   SegmentedControl,
 } from "@/components/mf"
-import { BoardAtRiskDecisionPanel, BoardFinalizeConfirmationPanel, BoardTieBreakActionsPanel, BoardVoteConfirmationPanel, BoardVoteCount, BoardVotePanel } from "@/screens/board-action-panels"
+import { BoardAtRiskDecisionPanel, BoardFinalizeConfirmationPanel, BoardVoteConfirmationPanel, BoardVotePanel } from "@/screens/board-action-panels"
 import { colors, radius, spacing } from "@/design/tokens"
 import { useBoardMobileFlow } from "@/hooks/use-board-mobile-flow"
 import { BoardDecisionHistoryPanel, BoardRankingInsightPanel } from "@/screens/board-panels"
@@ -93,55 +93,7 @@ export function BoardReviewsScreen() {
 }
 
 export function BoardTieBreakScreen() {
-  const flow = useBoardMobileFlow()
-  const item = flow.tieBreaks[0]
-
-  return (
-    <>
-      <MFHero role="board" title="Tie-break" subtitle="Board Chair resolution required" />
-      <MFStateNotice loading={flow.loading} error={flow.error} message={flow.lastMockAction} loadingLabel="Loading Board Chair tie-break queue..." />
-      {item ? (
-        <>
-          <MFCard style={styles.tieCard}>
-            <MFCover item={item} />
-            <View style={styles.tieBody}>
-              <View style={styles.rowBetween}>
-                <Text style={styles.title}>{item.title}</Text>
-                <MFBadge tone="warning">{item.decisionStatus}</MFBadge>
-              </View>
-              <Text style={styles.muted}>Series proposal / {item.publicationType}</Text>
-              <View style={styles.divider} />
-              <Text style={styles.subhead}>Current vote split</Text>
-              <View style={styles.voteSplit}>
-                <BoardVoteCount label="Approve" value={String(item.voteSummary.approve)} tone="success" />
-                <BoardVoteCount label="Needs Revision" value={String(item.voteSummary.needsRevision)} tone="danger" />
-                <BoardVoteCount label="Pending" value={String(item.voteSummary.pending)} tone="neutral" />
-              </View>
-            </View>
-          </MFCard>
-          <MFCard>
-            <Text style={styles.subhead}>Board Chair boundary</Text>
-            <Text style={styles.body}>Chair tie-break is a separate action only because normal votes produced TIE_BREAK_REQUIRED.</Text>
-          </MFCard>
-          <BoardTieBreakActionsPanel onVote={flow.startTieBreakVote} />
-          <BoardVoteConfirmationPanel
-            pendingVote={flow.pendingVote}
-            selectedTitle={item.title}
-            mode="tie-break"
-            noteValue={flow.voteNote}
-            onChangeNote={flow.setVoteNote}
-            busy={flow.actionBusy}
-            errorText={flow.actionError}
-            onConfirm={flow.confirmVote}
-            onCancel={flow.cancelVote}
-          />
-        </>
-      ) : (
-        <MFEmptyState title="No tie-break decisions" subtitle="Board Chair action appears only when backend decision status is TIE_BREAK_REQUIRED." icon="scale-balance" tone="success" />
-      )}
-      <BoardDecisionHistoryPanel items={flow.decisionHistory} />
-    </>
-  )
+  return <BoardReviewsScreen />
 }
 
 export function BoardRankingScreen() {

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   claimEditorProposal,
+  releaseEditorProposalClaim,
   forwardEditorProposal,
   getEditorProposalDetail,
   rejectEditorProposal,
@@ -34,6 +35,10 @@ export function useEditorProposal(
     mutationFn: () => claimEditorProposal(proposalId),
     onSuccess: invalidate,
   })
+  const releaseClaim = useMutation({
+    mutationFn: () => releaseEditorProposalClaim(proposalId),
+    onSuccess: invalidate,
+  })
   const requestChanges = useMutation({
     mutationFn: (input: { comment: string }) => requestEditorProposalChanges(proposalId, input),
     onSuccess: invalidate,
@@ -51,5 +56,5 @@ export function useEditorProposal(
     onSuccess: invalidate,
   })
 
-  return { detail, claim, requestChanges, reject, forward }
+  return { detail, claim, releaseClaim, requestChanges, reject, forward }
 }

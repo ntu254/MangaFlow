@@ -37,7 +37,7 @@ const boardTabs: TabItem[] = [
 
 function designationFor(session: MobileAuthSession): string {
   if (session.role === "board") return session.user.isChair ? "Board Chair" : "Board Member"
-  return session.user.isEditorInChief ? "Editor-in-Chief" : "Tantou Editor"
+  return "Tantou Editor"
 }
 
 // Small demo inbox so mock mode shows a labeled reference surface instead of

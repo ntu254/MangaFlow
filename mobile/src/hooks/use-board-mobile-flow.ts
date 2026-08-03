@@ -18,9 +18,6 @@ export function useBoardMobileFlow(
 ) {
   const [home, setHome] = useState<BoardHomePayload>(boardHome);
   const [seriesReviews, setSeriesReviews] = useState(boardSeries);
-  const [tieBreaks, setTieBreaks] = useState(
-    boardSeries.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED"),
-  );
   const [rankings, setRankings] = useState(boardRankings);
   const [atRiskCases, setAtRiskCases] = useState(atRiskTitles);
   const [decisionHistory, setDecisionHistory] = useState(boardDecisionHistory);
@@ -31,7 +28,6 @@ export function useBoardMobileFlow(
   const [selectedAtRiskId, setSelectedAtRiskId] = useState(atRiskTitles[0]?.id ?? "");
   const [selectedRankingId, setSelectedRankingId] = useState(boardRankings[0]?.id ?? "");
   const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null);
-  const [pendingVoteMode, setPendingVoteMode] = useState<"vote" | "tie-break">("vote");
   const [pendingFinalize, setPendingFinalize] = useState(false);
   const [pendingAtRiskDecision, setPendingAtRiskDecision] = useState<AtRiskDecision | null>(null);
   const [lastMockAction, setLastMockAction] = useState(
@@ -49,11 +45,10 @@ export function useBoardMobileFlow(
     setLoading(true);
     setError(null);
     try {
-      const [nextHome, nextSeries, nextTieBreaks, nextRankings, nextAtRisk, nextHistory] =
+      const [nextHome, nextSeries, nextRankings, nextAtRisk, nextHistory] =
         await Promise.all([
           dataSource.getBoardHome(),
           dataSource.getBoardSeriesReviews(),
-          dataSource.getBoardTieBreaks(),
           dataSource.getBoardRankings(),
           dataSource.getBoardAtRiskCases(),
           dataSource.getBoardDecisionHistory(),
@@ -61,7 +56,6 @@ export function useBoardMobileFlow(
 
       setHome(nextHome);
       setSeriesReviews(nextSeries);
-      setTieBreaks(nextTieBreaks);
       setRankings(nextRankings);
       setAtRiskCases(nextAtRisk);
       setDecisionHistory(nextHistory);
@@ -130,14 +124,6 @@ export function useBoardMobileFlow(
   function startVote(value: BoardVoteValue) {
     setActionError(null);
     setVoteNote("");
-    setPendingVoteMode("vote");
-    setPendingVote(value);
-  }
-
-  function startTieBreakVote(value: BoardVoteValue) {
-    setActionError(null);
-    setVoteNote("");
-    setPendingVoteMode("tie-break");
     setPendingVote(value);
   }
 
@@ -145,26 +131,17 @@ export function useBoardMobileFlow(
     const value = pendingVote;
     if (!value) return;
 
-    const target = pendingVoteMode === "tie-break" ? tieBreaks[0] : selectedSeries;
+    const target = selectedSeries;
     if (!target) return;
 
     setActionBusy(true);
     setActionError(null);
     try {
-      if (pendingVoteMode === "tie-break") {
-        await dataSource.tieBreakBoardDecision(target.id, {
-          value,
-          publicationType: target.publicationType,
-          note: voteNote.trim() || undefined,
-        });
-        setLastMockAction(`Tie-break ${value} decision submitted for ${target.title}.`);
-      } else {
-        await dataSource.castBoardVote(target.id, {
-          value,
-          note: voteNote.trim() || undefined,
-        });
-        setLastMockAction(`Board ${value} vote submitted for ${target.title}.`);
-      }
+      await dataSource.castBoardVote(target.id, {
+        value,
+        note: voteNote.trim() || undefined,
+      });
+      setLastMockAction(`Board ${value} vote submitted for ${target.title}.`);
       setVoteNote("");
       await reload();
     } catch (err) {
@@ -266,7 +243,6 @@ export function useBoardMobileFlow(
   return {
     home,
     seriesReviews,
-    tieBreaks,
     rankings,
     atRiskCases,
     decisionHistory,
@@ -286,7 +262,6 @@ export function useBoardMobileFlow(
     setSelectedRankingId,
     lastMockAction,
     startVote,
-    startTieBreakVote,
     confirmVote,
     cancelVote,
     startFinalizeDecision,
@@ -295,7 +270,6 @@ export function useBoardMobileFlow(
     startAtRiskDecision,
     confirmAtRiskDecision,
     cancelAtRiskDecision,
-    pendingVoteMode,
     voteNote,
     setVoteNote,
     finalizeNote,
