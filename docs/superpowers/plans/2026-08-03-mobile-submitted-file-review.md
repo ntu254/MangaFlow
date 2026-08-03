@@ -29,8 +29,8 @@
 - mobile/src/domain/review-files.ts: DTOs, preview type, pure 900-second lease decisions.
 - mobile/src/services/mobile-file-review.ts: authenticated metadata and display URL reads without mock URL fallback.
 - mobile/src/components/submitted-files-panel.tsx, mobile/src/components/review-file-viewer.tsx: list and viewer.
-- mobile/src/screens/series-proposal-summary-panel.tsx, mobile/src/screens/editor-panels.tsx, role flow hooks: placement.
-- mobile/src/__tests__/mobile-file-review.test.mjs: mobile contract/lifecycle tests.
+- mobile/src/screens/editor-proposal-detail-screen.tsx, mobile/src/screens/editor-chapter-detail-screen.tsx, mobile/src/screens/board-session-detail-screen.tsx: placement in the live detail screens. mobile/src/hooks/use-editor-proposal.ts, mobile/src/hooks/use-editor-chapter.ts, mobile/src/hooks/use-board-session.ts: per-detail review-file state.
+- mobile/src/__tests__/mobile-file-review.test.ts: mobile contract/lifecycle tests.
 - mobile/README.md, mobile/MOBILE_AGENT_CONTEXT.md, docs/business-flows/11-file-management.md, docs/business-flows/INDEX.md: maintained documentation.
 
 ### Task 1: Add a role-scoped backend review-file metadata contract
@@ -166,7 +166,7 @@ git commit -m "fix: permit scoped Board file display URLs"
 **Files:**
 - Create: mobile/src/domain/review-files.ts
 - Create: mobile/src/services/mobile-file-review.ts
-- Test: mobile/src/__tests__/mobile-file-review.test.mjs
+- Test: mobile/src/__tests__/mobile-file-review.test.ts
 
 **Interfaces:**
 
@@ -193,7 +193,7 @@ test("file URLs are acquired only when a user opens a file", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
 Expected: FAIL because the domain/service modules do not exist.
 
@@ -211,14 +211,14 @@ openReviewFile posts key and name to /files/display-url, uses server expiresAt w
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
 Expected: PASS; 870 seconds refreshes a 900-second lease and acquisition is lazy.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/src/domain/review-files.ts mobile/src/services/mobile-file-review.ts mobile/src/__tests__/mobile-file-review.test.mjs
+git add mobile/src/domain/review-files.ts mobile/src/services/mobile-file-review.ts mobile/src/__tests__/mobile-file-review.test.ts
 git commit -m "feat: add expiring mobile review file leases"
 ~~~
 
@@ -228,7 +228,7 @@ git commit -m "feat: add expiring mobile review file leases"
 - Create: mobile/src/components/submitted-files-panel.tsx
 - Create: mobile/src/components/review-file-viewer.tsx
 - Modify: mobile/package.json, mobile/src/design/icons.tsx
-- Test: mobile/src/__tests__/mobile-file-review.test.mjs
+- Test: mobile/src/__tests__/mobile-file-review.test.ts
 
 **Interfaces:** consumes Task 3 types/functions and produces SubmittedFilesPanel plus ReviewFileViewer.
 
@@ -249,7 +249,7 @@ test("viewer refreshes one expired URL before showing Retry", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
 Expected: FAIL because panel and viewer do not exist.
 
@@ -261,62 +261,66 @@ Render images with expo-image; render PDFs in a WebView only with a fresh in-mem
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
 Expected: PASS; metadata, one automatic retry, and manual recovery are present.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/package.json mobile/package-lock.json mobile/src/design/icons.tsx mobile/src/components/submitted-files-panel.tsx mobile/src/components/review-file-viewer.tsx mobile/src/__tests__/mobile-file-review.test.mjs
+git add mobile/package.json mobile/package-lock.json mobile/src/design/icons.tsx mobile/src/components/submitted-files-panel.tsx mobile/src/components/review-file-viewer.tsx mobile/src/__tests__/mobile-file-review.test.ts
 git commit -m "feat: add mobile submitted file preview"
 ~~~
 
 ### Task 5: Wire file review into Editor and Board details
 
 **Files:**
-- Modify: mobile/src/screens/series-proposal-summary-panel.tsx
-- Modify: mobile/src/screens/editor-panels.tsx
-- Modify: mobile/src/hooks/use-editor-mobile-flow.ts
-- Modify: mobile/src/hooks/use-board-mobile-flow.ts
-- Modify: mobile/src/services/mobile-workflow-data-source.ts
-- Test: mobile/src/__tests__/mobile-file-review.test.mjs
+- Modify: mobile/src/screens/editor-proposal-detail-screen.tsx
+- Modify: mobile/src/screens/editor-chapter-detail-screen.tsx
+- Modify: mobile/src/screens/board-session-detail-screen.tsx
+- Modify: mobile/src/hooks/use-editor-proposal.ts
+- Modify: mobile/src/hooks/use-editor-chapter.ts
+- Modify: mobile/src/hooks/use-board-session.ts
+- Modify: mobile/src/services/editor-mobile-data-source.ts
+- Modify: mobile/src/services/board-mobile-data-source.ts
+- Test: mobile/src/__tests__/mobile-file-review.test.ts
 
-**Interfaces:** consumes Task 3 getReviewFiles and Task 4 SubmittedFilesPanel.
+**Interfaces:** consumes Task 3 getReviewFiles and Task 4 SubmittedFilesPanel. There is no `series-proposal-summary-panel.tsx`, `editor-panels.tsx`, `use-editor-mobile-flow.ts`, `use-board-mobile-flow.ts`, or `mobile-workflow-data-source.ts` in this codebase — those were an earlier mock-era screen layer removed because nothing imported them; the live Editor/Board detail screens and their per-detail hooks (listed above) are the only mount points. Board's review context is the session's proposal (`data.session.proposalId` from `BoardSessionDetail`), not a `selectedSeries` — the Board session detail screen has no such field.
 
 - [ ] **Step 1: Write failing integration wiring tests**
 
 ~~~
-test("Board proposal detail loads proposal files but never chapter files", () => {
-  assert.match(boardHookSource, /getReviewFiles\("proposal", selectedSeries\.id, "board"\)/);
-  assert.doesNotMatch(boardHookSource, /getReviewFiles\("chapter"/);
+test("Board session detail loads proposal review files but never chapter files", () => {
+  assert.match(boardSessionScreenSource, /getReviewFiles\("proposal", data\.session\.proposalId, "board"\)/);
+  assert.doesNotMatch(boardSessionScreenSource, /getReviewFiles\("chapter"/);
 });
-test("Editor mounts proposal and chapter submitted-file panels", () => {
-  assert.match(editorPanelSource, /SubmittedFilesPanel/);
-  assert.match(editorHookSource, /getReviewFiles\("chapter",/);
+test("Editor proposal and chapter detail screens mount the submitted-file panel", () => {
+  assert.match(editorProposalScreenSource, /SubmittedFilesPanel/);
+  assert.match(editorChapterScreenSource, /SubmittedFilesPanel/);
+  assert.match(editorChapterScreenSource, /getReviewFiles\("chapter",/);
 });
 ~~~
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
-Expected: FAIL because neither role flow loads review-file metadata.
+Expected: FAIL because none of the three live detail screens load review-file metadata yet.
 
 - [ ] **Step 3: Add per-detail state and mount panels**
 
-Add getReviewFiles to the data source without signed-URL fallback. Cancel stale requests when the selected item changes. Board calls only proposal context. Editor calls proposal context and chapter context only when selected API-backed data has a chapterId; otherwise render empty state without a request.
+Add `getReviewFiles` to `editor-mobile-data-source.ts` (proposal and chapter contexts) and to `board-mobile-data-source.ts` (proposal context only), without signed-URL fallback. Cancel stale requests when the selected item changes. `board-session-detail-screen.tsx` requests only `getReviewFiles("proposal", data.session.proposalId, "board")`, guarded by `data.session.proposalId` being non-null. `editor-proposal-detail-screen.tsx` requests `getReviewFiles("proposal", proposalId, "editor")`. `editor-chapter-detail-screen.tsx` requests `getReviewFiles("chapter", chapterId, "editor")`. Neither Editor detail screen requests the other screen's context.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
 Expected: PASS; Board is proposal-only and Editor gets both allowed contexts.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/src/screens/series-proposal-summary-panel.tsx mobile/src/screens/editor-panels.tsx mobile/src/hooks/use-editor-mobile-flow.ts mobile/src/hooks/use-board-mobile-flow.ts mobile/src/services/mobile-workflow-data-source.ts mobile/src/__tests__/mobile-file-review.test.mjs
+git add mobile/src/screens/editor-proposal-detail-screen.tsx mobile/src/screens/editor-chapter-detail-screen.tsx mobile/src/screens/board-session-detail-screen.tsx mobile/src/hooks/use-editor-proposal.ts mobile/src/hooks/use-editor-chapter.ts mobile/src/hooks/use-board-session.ts mobile/src/services/editor-mobile-data-source.ts mobile/src/services/board-mobile-data-source.ts mobile/src/__tests__/mobile-file-review.test.ts
 git commit -m "feat: show submitted files in mobile review flows"
 ~~~
 
@@ -325,7 +329,7 @@ git commit -m "feat: show submitted files in mobile review flows"
 **Files:**
 - Modify: mobile/README.md, mobile/MOBILE_AGENT_CONTEXT.md
 - Modify: docs/business-flows/11-file-management.md, docs/business-flows/INDEX.md
-- Test: mobile/src/__tests__/mobile-file-review.test.mjs
+- Test: mobile/src/__tests__/mobile-file-review.test.ts
 
 - [ ] **Step 1: Write the failing documentation-contract test**
 
@@ -339,7 +343,7 @@ test("mobile documentation records URL refresh and role boundaries", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: npm test --prefix mobile -- mobile-file-review.test.mjs
+Run: npm test --prefix mobile -- mobile-file-review.test.ts
 
 Expected: FAIL because the maintained docs do not yet describe the feature.
 
@@ -362,7 +366,7 @@ Expected: every command exits 0; backend role/key tests and mobile lifecycle tes
 - [ ] **Step 5: Commit**
 
 ~~~
-git add mobile/README.md mobile/MOBILE_AGENT_CONTEXT.md docs/business-flows/11-file-management.md docs/business-flows/INDEX.md mobile/src/__tests__/mobile-file-review.test.mjs
+git add mobile/README.md mobile/MOBILE_AGENT_CONTEXT.md docs/business-flows/11-file-management.md docs/business-flows/INDEX.md mobile/src/__tests__/mobile-file-review.test.ts
 git commit -m "docs: document mobile file review lifecycle"
 ~~~
 
