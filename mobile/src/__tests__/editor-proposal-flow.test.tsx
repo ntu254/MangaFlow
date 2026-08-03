@@ -70,7 +70,7 @@ describe("EditorProposalDetailScreen", () => {
     )
   })
 
-  it("forwards with an editor recommendation and cadence", async () => {
+  it("forwards with an editor recommendation and feasibility note without a cadence selector", async () => {
     mocked.forwardEditorProposal.mockResolvedValue(undefined)
     renderScreen()
     fireEvent.press(await screen.findByRole("button", { name: "Forward to Board" }))
@@ -78,14 +78,17 @@ describe("EditorProposalDetailScreen", () => {
       await screen.findByLabelText("Editor recommendation"),
       "Ready for Board review.",
     )
+    fireEvent.changeText(await screen.findByLabelText("Feasibility note"), "Ready for production.")
+    expect(screen.queryByRole("button", { name: "Cadence WEEKLY" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Cadence MONTHLY" })).toBeNull()
     fireEvent.press(screen.getByRole("button", { name: "Confirm forward" }))
     await waitFor(() =>
       expect(mocked.forwardEditorProposal).toHaveBeenCalledWith(
         "p-002",
-        expect.objectContaining({
+        {
           editorRecommendation: "Ready for Board review.",
-          suggestedPublicationType: "MONTHLY",
-        }),
+          feasibilityNote: "Ready for production.",
+        },
       ),
     )
   })

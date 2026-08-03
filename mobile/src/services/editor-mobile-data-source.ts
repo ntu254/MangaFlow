@@ -75,7 +75,6 @@ export function forwardEditorProposal(
   input: {
     editorRecommendation: string
     feasibilityNote: string
-    suggestedPublicationType: "WEEKLY" | "MONTHLY"
   },
 ): Promise<void> {
   return proposalAction(proposalId, "FORWARD", input)

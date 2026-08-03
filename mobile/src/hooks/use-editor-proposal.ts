@@ -55,7 +55,6 @@ export function useEditorProposal(
     mutationFn: (input: {
       editorRecommendation: string
       feasibilityNote: string
-      suggestedPublicationType: "WEEKLY" | "MONTHLY"
     }) => forwardEditorProposal(proposalId, input),
     onSuccess: invalidate,
   })

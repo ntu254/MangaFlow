@@ -144,7 +144,6 @@ export function EditorProposalDetailScreen({
       <ForwardSheet
         visible={forwardOpen}
         proposalTitle={data.proposal.title}
-        defaultPublicationType={data.proposal.requestedPublicationType}
         submitting={forward.isPending}
         errorMessage={sheetError}
         onCancel={() => {
@@ -165,12 +164,11 @@ export function EditorProposalDetailScreen({
   )
 }
 
-// Forward needs a recommendation and cadence; the recommendation is required
-// and never synthesized. The draft is preserved across a failed confirm.
+// Forward requires an editor recommendation that is never synthesized. The
+// draft is preserved across a failed confirm.
 function ForwardSheet({
   visible,
   proposalTitle,
-  defaultPublicationType,
   submitting,
   errorMessage: externalError,
   onCancel,
@@ -178,29 +176,25 @@ function ForwardSheet({
 }: {
   visible: boolean
   proposalTitle: string
-  defaultPublicationType: "WEEKLY" | "MONTHLY"
   submitting: boolean
   errorMessage: string | null
   onCancel: () => void
   onConfirm: (input: {
     editorRecommendation: string
     feasibilityNote: string
-    suggestedPublicationType: "WEEKLY" | "MONTHLY"
   }) => void
 }) {
   const [recommendation, setRecommendation] = useState("")
   const [feasibility, setFeasibility] = useState("")
-  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">(defaultPublicationType)
   const [localError, setLocalError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!visible) {
       setRecommendation("")
       setFeasibility("")
-      setPublicationType(defaultPublicationType)
       setLocalError(null)
     }
-  }, [defaultPublicationType, visible])
+  }, [visible])
 
   const confirm = () => {
     if (recommendation.trim().length === 0) {
@@ -211,7 +205,6 @@ function ForwardSheet({
     onConfirm({
       editorRecommendation: recommendation.trim(),
       feasibilityNote: feasibility.trim(),
-      suggestedPublicationType: publicationType,
     })
   }
 
@@ -249,27 +242,6 @@ function ForwardSheet({
             multiline
             style={styles.input}
           />
-          <View style={styles.cadenceRow}>
-            {(["WEEKLY", "MONTHLY"] as const).map((type) => (
-              <Pressable
-                key={type}
-                accessibilityRole="button"
-                accessibilityLabel={`Cadence ${type}`}
-                accessibilityState={{ selected: publicationType === type }}
-                onPress={() => setPublicationType(type)}
-                style={[styles.cadenceChip, publicationType === type && styles.cadenceChipActive]}
-              >
-                <Text
-                  style={[
-                    styles.cadenceText,
-                    publicationType === type && styles.cadenceTextActive,
-                  ]}
-                >
-                  {type}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
           {localError || externalError ? (
             <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
               {localError ?? externalError}
@@ -334,19 +306,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlignVertical: "top",
   },
-  cadenceRow: { flexDirection: "row", gap: spacing.sm },
-  cadenceChip: {
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cadenceChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-  cadenceText: { color: colors.textMuted, fontWeight: "700", fontSize: typography.body },
-  cadenceTextActive: { color: colors.primary },
   error: { color: colors.danger, fontSize: typography.body },
   actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
   sheetButton: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
