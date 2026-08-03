@@ -115,8 +115,21 @@ export function chapterPublicationActions(
   const assigned = isAssignedTantou(actor, series);
   const notAssigned = "You are not the assigned Tantou for this series.";
   const scheduled = publication?.status === "SCHEDULED";
-  const futureScheduled =
-    scheduled && publication?.scheduledAt && new Date(publication.scheduledAt) > new Date();
+  const scheduledAt = scheduled && publication?.scheduledAt
+    ? new Date(publication.scheduledAt)
+    : null;
+  const futureScheduled = scheduledAt != null && scheduledAt > new Date();
+  const dueScheduled = scheduledAt != null && !Number.isNaN(scheduledAt.getTime()) && !futureScheduled;
+  const seriesPublishable = !["CANCELLED", "COMPLETED"].includes(String(series?.status));
+  const publishDisabledReason = !assigned
+    ? notAssigned
+    : !seriesPublishable
+      ? "This series cannot be published in its current state."
+      : !scheduled
+        ? "Schedule this chapter before publishing."
+        : futureScheduled
+          ? "Publication is scheduled for a future date; postpone first to publish now."
+          : "Publication schedule is invalid; schedule this chapter again.";
   return [
     describeAction({
       action: "SCHEDULE",
@@ -134,10 +147,8 @@ export function chapterPublicationActions(
     }),
     describeAction({
       action: "PUBLISH",
-      enabled: assigned && !futureScheduled,
-      disabledReason: !assigned
-        ? notAssigned
-        : "Publication is scheduled for a future date; postpone first to publish now.",
+      enabled: assigned && dueScheduled && seriesPublishable,
+      disabledReason: publishDisabledReason,
       requiresConfirmation: true,
       requiresReason: false,
     }),

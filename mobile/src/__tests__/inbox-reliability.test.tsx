@@ -67,7 +67,7 @@ const httpFailure = new MobileRequestError({
 
 describe("Editor inbox failure surface", () => {
   it("explains the failure without technical detail and never falls back to demo data", () => {
-    render(<EditorWorkspace tab="today" inbox={inboxQuery({ error: httpFailure })} />)
+    render(<EditorWorkspace tab="priority" inbox={inboxQuery({ error: httpFailure })} />)
 
     expect(screen.getByText("Could not load Editor work.")).toBeVisible()
     expect(screen.queryByText("Demo data")).toBeNull()
@@ -78,7 +78,7 @@ describe("Editor inbox failure surface", () => {
   })
 
   it("reveals safe support details on demand with a copy affordance", () => {
-    render(<EditorWorkspace tab="today" inbox={inboxQuery({ error: httpFailure })} />)
+    render(<EditorWorkspace tab="priority" inbox={inboxQuery({ error: httpFailure })} />)
 
     fireEvent.press(screen.getByRole("button", { name: "Support details" }))
 
@@ -96,7 +96,7 @@ describe("Editor inbox failure surface", () => {
       code: "CONTRACT_INVALID",
       requestId: null,
     })
-    render(<EditorWorkspace tab="today" inbox={inboxQuery({ error: contractFailure })} />)
+    render(<EditorWorkspace tab="priority" inbox={inboxQuery({ error: contractFailure })} />)
     fireEvent.press(screen.getByRole("button", { name: "Support details" }))
 
     expect(screen.getByText(/Category: CONTRACT/)).toBeVisible()
@@ -105,7 +105,7 @@ describe("Editor inbox failure surface", () => {
 
   it("retries the authenticated query", () => {
     const refetch = jest.fn()
-    render(<EditorWorkspace tab="today" inbox={inboxQuery({ error: httpFailure, refetch })} />)
+    render(<EditorWorkspace tab="priority" inbox={inboxQuery({ error: httpFailure, refetch })} />)
 
     fireEvent.press(screen.getByRole("button", { name: "Retry" }))
     expect(refetch).toHaveBeenCalledTimes(1)
@@ -113,11 +113,19 @@ describe("Editor inbox failure surface", () => {
 })
 
 describe("Editor tabs as filters over one inbox", () => {
-  it("shows every inbox item on Today", () => {
-    render(<EditorWorkspace tab="today" inbox={inboxQuery({ data: editorInbox })} />)
+  it("shows only urgent and high inbox items on Priority", () => {
+    const inbox = {
+      ...editorInbox,
+      items: [
+        editorInbox.items[0],
+        { ...editorInbox.items[1], priority: { ...editorInbox.items[1].priority, level: "NORMAL" as const } },
+        { ...editorInbox.items[2], priority: { ...editorInbox.items[2].priority, level: "URGENT" as const } },
+      ],
+    }
+    render(<EditorWorkspace tab="priority" inbox={inboxQuery({ data: inbox })} />)
 
     expect(screen.getByText("Proposal item")).toBeVisible()
-    expect(screen.getByText("Chapter item")).toBeVisible()
+    expect(screen.queryByText("Chapter item")).toBeNull()
     expect(screen.getByText("Publication item")).toBeVisible()
   })
 

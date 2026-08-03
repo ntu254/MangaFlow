@@ -1,6 +1,6 @@
 import { mobileApi } from "@/services/mobile-api-client"
 import { mobileInboxSchema, type MobileInbox } from "@/domain/mobile-work-item"
-import { MobileRequestError, describeRequestFailure } from "@/services/mobile-request-diagnostics"
+import { MobileContractError, MobileRequestError, describeRequestFailure } from "@/services/mobile-request-diagnostics"
 import type { MobileAuthRole } from "@/services/mobile-auth"
 
 export const mobileInboxKeys = {
@@ -30,7 +30,10 @@ export async function getMobileInbox(role: MobileAuthRole): Promise<MobileInbox>
   if (!path) throw new Error(`Unsupported mobile inbox role: ${String(role)}`)
 
   try {
-    return mobileInboxSchema.parse(await mobileApi.request(path))
+    const response = await mobileApi.requestWithMetadata(path)
+    const result = mobileInboxSchema.safeParse(response.data)
+    if (!result.success) throw new MobileContractError(response.requestId ?? null)
+    return result.data
   } catch (error) {
     // Normalize HTTP, network, and contract failures into the same safe
     // diagnostic shape so the queue can explain itself without leaking the

@@ -11,19 +11,19 @@ jest.mock("@/services/editor-mobile-data-source", () => ({
 const mocked = dataSource as jest.Mocked<typeof dataSource>
 
 describe("Editor activity mapper", () => {
-  it("describes the editorial work behind a known status", () => {
+  it("describes a workflow status without claiming the signed-in Editor performed it", () => {
     const [item] = toEditorActivityItems([
       { id: "p-1", label: "Neon District: PENDING_BOARD", createdAt: "2026-07-30T09:00:00.000Z" },
     ])
 
-    expect(item.action).toBe("Forwarded a proposal to the Board")
+    expect(item.action).toBe("Proposal status updated")
     expect(item.subject).toBe("Neon District")
     expect(item.area).toBe("Proposal review")
     expect(item.outcome).toBe("Waiting on the Board")
     expect(item.occurredAt).toBe("2026-07-30T09:00:00.000Z")
   })
 
-  it("maps chapter, comment, and publication work to their own areas", () => {
+  it("maps chapter, comment, and publication status to their own areas", () => {
     const items = toEditorActivityItems([
       { id: "c-1", label: "Chapter 12: REVISION_REQUESTED", createdAt: null },
       { id: "c-2", label: "Chapter 11: RESOLVED", createdAt: null },
@@ -31,7 +31,7 @@ describe("Editor activity mapper", () => {
     ])
 
     expect(items.map((item) => item.area)).toEqual(["Chapter review", "Comments", "Publication"])
-    expect(items[2].action).toBe("Published a chapter")
+    expect(items[2].action).toBe("Publication status updated")
   })
 
   it("falls back safely for an unknown status without inventing an action", () => {
@@ -65,7 +65,7 @@ describe("Editor activity mapper", () => {
 describe("EditorHistoryScreen", () => {
   afterEach(() => jest.clearAllMocks())
 
-  it("presents personal editorial activity, not a governance record", async () => {
+  it("presents truthful editorial workflow status, not personal or governance claims", async () => {
     mocked.getEditorHistory.mockResolvedValue([
       {
         id: "p-1",
@@ -80,16 +80,17 @@ describe("EditorHistoryScreen", () => {
       </TestQueryProvider>,
     )
 
-    expect(await screen.findByText("My Editorial Activity")).toBeVisible()
-    expect(screen.getByText("Forwarded a proposal to the Board")).toBeVisible()
+    expect(await screen.findByText("Editorial Workflow Status")).toBeVisible()
+    expect(screen.getByText("Proposal status updated")).toBeVisible()
     expect(screen.getByText(/Neon District · Proposal review · Waiting on the Board/)).toBeVisible()
-    expect(screen.getByText("Your recent editorial work")).toBeVisible()
+    expect(screen.getByText("Recent editorial workflow updates")).toBeVisible()
+    expect(screen.queryByText(/My Editorial Activity|you completed|Your recent editorial work/)).toBeNull()
     // Board governance language must not leak into the Editor feed.
     expect(screen.queryByText(/Governance Decision Ledger/)).toBeNull()
     expect(screen.queryByText(/Immutable/)).toBeNull()
   })
 
-  it("has an empty state that only refers to Editorial activity", async () => {
+  it("has an empty state that refers only to workflow status", async () => {
     mocked.getEditorHistory.mockResolvedValue([])
 
     render(
@@ -98,10 +99,10 @@ describe("EditorHistoryScreen", () => {
       </TestQueryProvider>,
     )
 
-    expect(await screen.findByText("No editorial activity yet")).toBeVisible()
+    expect(await screen.findByText("No recent editorial workflow updates")).toBeVisible()
     expect(
       screen.getByText(
-        "Editorial work you complete — proposal reviews, chapter reviews, comments, and publication actions — appears here.",
+        "Recent proposal, chapter, comment, and publication status changes appear here.",
       ),
     ).toBeVisible()
   })

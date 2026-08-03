@@ -126,10 +126,11 @@ describe("getMobileInbox failure normalization", () => {
     })
   })
 
-  it("normalizes a contract failure and never returns demo data", async () => {
+  it("preserves the response request id for a contract failure without exposing its payload", async () => {
     globalThis.fetch = jest.fn().mockResolvedValue(
       new Response(JSON.stringify({ success: true, data: { role: "EDITOR", items: [{ id: 1 }] } }), {
         status: 200,
+        headers: { "x-request-id": "req-contract-17" },
       }),
     ) as unknown as typeof fetch
 
@@ -141,8 +142,9 @@ describe("getMobileInbox failure normalization", () => {
       category: "CONTRACT",
       status: null,
       code: "CONTRACT_INVALID",
-      requestId: null,
+      requestId: "req-contract-17",
     })
+    expect(JSON.stringify((failure as MobileRequestError).diagnostics)).not.toContain('\"id\":1')
   })
 
   it("normalizes a transport failure", async () => {

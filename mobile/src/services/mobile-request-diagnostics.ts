@@ -24,6 +24,13 @@ export class MobileRequestError extends Error {
   }
 }
 
+export class MobileContractError extends Error {
+  constructor(readonly requestId: string | null) {
+    super("Response contract invalid.")
+    this.name = "MobileContractError"
+  }
+}
+
 function isZodError(error: unknown): boolean {
   // Name check as well as instanceof: a duplicated zod instance in the bundle
   // would otherwise be misreported as an unknown failure.
@@ -46,6 +53,16 @@ export function describeRequestFailure(error: unknown, context: string): MobileR
       status: error.status,
       code: error.code,
       requestId: error.requestId ?? null,
+    }
+  }
+
+  if (error instanceof MobileContractError) {
+    return {
+      context,
+      category: "CONTRACT",
+      status: null,
+      code: "CONTRACT_INVALID",
+      requestId: error.requestId,
     }
   }
 

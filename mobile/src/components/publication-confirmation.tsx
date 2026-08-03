@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { colors, radius, spacing, typography } from "@/design/tokens"
-import { toScheduledAt } from "@/domain/publication-schedule"
+import { formatSelectedSchedule, monthCalendarDates, toScheduledAt } from "@/domain/publication-schedule"
 
 export type PublicationAction = "SCHEDULE" | "POSTPONE" | "PUBLISH"
 
@@ -13,12 +13,7 @@ const TITLES: Record<PublicationAction, string> = {
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
 const MINUTES = Array.from({ length: 60 }, (_, minute) => minute)
-
-function monthDays(month: Date) {
-  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1)
-  const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
-  return Array.from({ length: lastDay }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1))
-}
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 function dayLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -77,6 +72,7 @@ export function PublicationConfirmation({
         : `Postpone the scheduled publication of ${chapterTitle}.`
   const readiness = action === "PUBLISH" ? `Backend readiness is currently ${readinessReady ? "ready" : "not ready"}.` : null
   const scheduledAt = action === "SCHEDULE" ? toScheduledAt(selectedDate, hour, minute, new Date()) : null
+  const selectedSchedule = formatSelectedSchedule(selectedDate, hour, minute)
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -88,12 +84,13 @@ export function PublicationConfirmation({
           <Text style={styles.body}>{effect}</Text>
           {readiness ? <Text style={styles.readiness}>{readiness}</Text> : null}
           {action === "SCHEDULE" ? (
-            <ScrollView testID="publication-schedule-scroll" style={styles.scheduler} contentContainerStyle={styles.schedulerContent}>
+            <ScrollView testID="publication-schedule-scroll" style={styles.scheduler} contentContainerStyle={styles.schedulerContent} nestedScrollEnabled>
               <View style={styles.monthHeader}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Previous month"
                   onPress={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))}
+                  style={styles.calendarNavTarget}
                 >
                   <Text style={styles.pickerLabel}>‹</Text>
                 </Pressable>
@@ -102,29 +99,40 @@ export function PublicationConfirmation({
                   accessibilityRole="button"
                   accessibilityLabel="Next month"
                   onPress={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))}
+                  style={styles.calendarNavTarget}
                 >
                   <Text style={styles.pickerLabel}>›</Text>
                 </Pressable>
               </View>
-              <View style={styles.dayGrid}>
-                {monthDays(visibleMonth).map((day) => {
-                  const selected = day.toDateString() === selectedDate.toDateString()
-                  return (
-                    <Pressable
-                      key={day.toISOString()}
-                      accessibilityRole="button"
-                      accessibilityLabel={dayLabel(day)}
-                      accessibilityState={{ selected }}
-                      onPress={() => setSelectedDate(day)}
-                      style={[styles.day, selected && styles.selectedOption]}
-                    >
-                      <Text style={[styles.dayText, selected && styles.selectedOptionText]}>{day.getDate()}</Text>
-                    </Pressable>
-                  )
-                })}
-              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.calendarCanvas}>
+                <View>
+                  <View style={styles.weekdayRow}>
+                    {WEEKDAYS.map((weekday) => (
+                      <Text key={weekday} style={styles.weekday}>{weekday}</Text>
+                    ))}
+                  </View>
+                  <View style={styles.dayGrid}>
+                    {monthCalendarDates(visibleMonth).map((day, index) => {
+                      if (!day) return <View key={`empty-${index}`} style={styles.dayPlaceholder} />
+                      const selected = day.toDateString() === selectedDate.toDateString()
+                      return (
+                        <Pressable
+                          key={day.toISOString()}
+                          accessibilityRole="button"
+                          accessibilityLabel={dayLabel(day)}
+                          accessibilityState={{ selected }}
+                          onPress={() => setSelectedDate(day)}
+                          style={[styles.day, selected && styles.selectedOption]}
+                        >
+                          <Text style={[styles.dayText, selected && styles.selectedOptionText]}>{day.getDate()}</Text>
+                        </Pressable>
+                      )
+                    })}
+                  </View>
+                </View>
+              </ScrollView>
               <Text style={styles.pickerLabel}>Hour</Text>
-              <View style={styles.optionGrid}>
+              <ScrollView testID="publication-hour-picker" horizontal nestedScrollEnabled showsHorizontalScrollIndicator contentContainerStyle={styles.optionRow}>
                 {HOURS.map((value) => (
                   <Pressable
                     key={value}
@@ -137,9 +145,9 @@ export function PublicationConfirmation({
                     <Text style={[styles.optionText, hour === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
                   </Pressable>
                 ))}
-              </View>
+              </ScrollView>
               <Text style={styles.pickerLabel}>Minute</Text>
-              <View style={styles.optionGrid}>
+              <ScrollView testID="publication-minute-picker" horizontal nestedScrollEnabled showsHorizontalScrollIndicator contentContainerStyle={styles.optionRow}>
                 {MINUTES.map((value) => (
                   <Pressable
                     key={value}
@@ -152,10 +160,11 @@ export function PublicationConfirmation({
                     <Text style={[styles.optionText, minute === value && styles.selectedOptionText]}>{String(value).padStart(2, "0")}</Text>
                   </Pressable>
                 ))}
-              </View>
-              <Text accessibilityLabel="Selected publication timestamp" style={styles.selectedTimestamp}>
-                {scheduledAt ?? "Choose a future publication time."}
+              </ScrollView>
+              <Text accessibilityLabel="Selected publication time" style={styles.selectedTimestamp}>
+                {selectedSchedule}
               </Text>
+              {!scheduledAt ? <Text style={styles.futureHint}>Choose a future publication time.</Text> : null}
             </ScrollView>
           ) : null}
           {localError || errorMessage ? (
@@ -206,17 +215,23 @@ const styles = StyleSheet.create({
   scheduler: { maxHeight: 360 },
   schedulerContent: { gap: spacing.xs },
   monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  calendarNavTarget: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   monthTitle: { fontSize: typography.body, fontWeight: "700", color: colors.text },
-  dayGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  day: { width: "13%", minHeight: 36, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  calendarCanvas: { minWidth: 308 },
+  weekdayRow: { flexDirection: "row" },
+  weekday: { width: 44, textAlign: "center", color: colors.textMuted, fontSize: typography.label, fontWeight: "700" },
+  dayGrid: { width: 308, flexDirection: "row", flexWrap: "wrap" },
+  dayPlaceholder: { width: 44, height: 44 },
+  day: { width: 44, minWidth: 44, minHeight: 44, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   dayText: { color: colors.text, fontSize: typography.body },
   pickerLabel: { color: colors.textMuted, fontSize: typography.body, fontWeight: "600" },
-  optionGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  option: { minWidth: 40, minHeight: 36, paddingHorizontal: spacing.sm, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  optionRow: { flexDirection: "row", gap: spacing.xs, paddingBottom: spacing.xs },
+  option: { minWidth: 44, minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   optionText: { color: colors.text, fontSize: typography.body },
   selectedOption: { backgroundColor: colors.primary },
   selectedOptionText: { color: colors.surface, fontWeight: "700" },
   selectedTimestamp: { color: colors.textMuted, fontSize: typography.body },
+  futureHint: { color: colors.warning, fontSize: typography.label },
   error: { color: colors.danger, fontSize: typography.body },
   actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
   button: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },

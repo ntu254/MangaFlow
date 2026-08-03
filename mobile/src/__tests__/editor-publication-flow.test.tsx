@@ -23,7 +23,7 @@ const readyDetail: EditorChapterDetail = {
   readiness: { ready: true, items: [] },
   blockers: [],
   evidence: { taskCount: 0, currentSubmissionCount: 0 },
-  publication: { status: "DRAFT", scheduledAt: null },
+  publication: { status: "SCHEDULED", scheduledAt: new Date(2026, 7, 12, 14, 33).toISOString() },
   actions: [
     { action: "SCHEDULE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
     { action: "POSTPONE", enabled: false, disabledReason: "Nothing is scheduled to postpone.", requiresConfirmation: true, requiresReason: false },

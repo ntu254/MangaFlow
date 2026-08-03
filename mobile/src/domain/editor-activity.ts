@@ -3,9 +3,10 @@ import type { Tone } from "@/domain/workflow"
 import { formatWorkflowTimestamp } from "@/domain/timestamp"
 import type { EditorHistoryItem } from "@/services/editor-mobile-data-source"
 
-// Editor-only presentation model: "what this Editor did". It is never used for
-// Board governance records, which are an immutable audit ledger, not a personal
-// activity feed (see board-decision-ledger.ts).
+// Editor-only workflow-status presentation. The source summary is not an
+// actor-scoped audit feed, so this model never attributes an action to the
+// signed-in Editor. Board governance records keep their separate immutable
+// ledger model (see board-decision-ledger.ts).
 
 export type EditorWorkflowArea =
   | "Proposal review"
@@ -16,7 +17,7 @@ export type EditorWorkflowArea =
 
 export interface EditorActivityItem {
   id: string
-  /** Human-readable description of the work performed. */
+  /** Human-readable description of the observed workflow update. */
   action: string
   /** The proposal/chapter the work touched. */
   subject: string
@@ -29,8 +30,15 @@ export interface EditorActivityItem {
   icon: IconName
 }
 
+const STATUS_ACTION_BY_AREA: Record<EditorWorkflowArea, string> = {
+  "Proposal review": "Proposal status updated",
+  "Chapter review": "Chapter status updated",
+  Comments: "Comment status updated",
+  Publication: "Publication status updated",
+  "Editorial workflow": "Editorial workflow status updated",
+}
+
 interface ActivityDescriptor {
-  action: string
   area: EditorWorkflowArea
   outcome: string
   tone: Tone
@@ -38,122 +46,105 @@ interface ActivityDescriptor {
 }
 
 // The Editor summary payload encodes the workflow status it reached; each known
-// status maps to the editorial work that produced it.
+// status maps only to its workflow area and outcome.
 const ACTIVITY_BY_STATUS: Record<string, ActivityDescriptor> = {
   PENDING_EDITOR: {
-    action: "Took a proposal into editorial review",
     area: "Proposal review",
     outcome: "Awaiting editorial review",
     tone: "primary",
     icon: "file-text",
   },
   EDITOR_REVIEWING: {
-    action: "Reviewed a proposal",
     area: "Proposal review",
     outcome: "Editorial review in progress",
     tone: "primary",
     icon: "file-text",
   },
   CHANGES_REQUESTED: {
-    action: "Requested changes from the Mangaka",
     area: "Proposal review",
     outcome: "Changes requested",
     tone: "warning",
     icon: "alert-circle",
   },
   RESUBMITTED: {
-    action: "Received a resubmitted manuscript",
     area: "Proposal review",
     outcome: "Resubmitted",
     tone: "primary",
     icon: "refresh-cw",
   },
   PENDING_BOARD: {
-    action: "Forwarded a proposal to the Board",
     area: "Proposal review",
     outcome: "Waiting on the Board",
     tone: "success",
     icon: "file-check",
   },
   BOARD_VOTING: {
-    action: "Forwarded a proposal to the Board",
     area: "Proposal review",
     outcome: "Board voting",
     tone: "success",
     icon: "file-check",
   },
   APPROVED: {
-    action: "Completed a proposal review",
     area: "Proposal review",
     outcome: "Approved",
     tone: "success",
     icon: "check-circle",
   },
   REJECTED: {
-    action: "Rejected a proposal",
     area: "Proposal review",
     outcome: "Rejected",
     tone: "danger",
     icon: "alert-triangle",
   },
   CANCELLED: {
-    action: "Closed a proposal",
     area: "Proposal review",
     outcome: "Cancelled",
     tone: "neutral",
     icon: "circle",
   },
   TANTOU_REVIEW: {
-    action: "Reviewed a chapter",
     area: "Chapter review",
     outcome: "Chapter review in progress",
     tone: "primary",
     icon: "file-text",
   },
   REVISION_REQUESTED: {
-    action: "Requested a chapter revision",
     area: "Chapter review",
     outcome: "Revision requested",
     tone: "warning",
     icon: "alert-circle",
   },
   TANTOU_APPROVED: {
-    action: "Approved a chapter",
     area: "Chapter review",
     outcome: "Chapter approved",
     tone: "success",
     icon: "check-circle",
   },
   RESOLVED: {
-    action: "Resolved a blocking comment",
     area: "Comments",
     outcome: "Resolved",
     tone: "success",
     icon: "message-circle",
   },
   REOPENED: {
-    action: "Reopened a comment",
     area: "Comments",
     outcome: "Reopened",
     tone: "warning",
     icon: "message-circle",
   },
   SCHEDULED: {
-    action: "Scheduled a publication",
     area: "Publication",
     outcome: "Scheduled",
     tone: "primary",
     icon: "calendar",
   },
   PUBLISHED: {
-    action: "Published a chapter",
     area: "Publication",
     outcome: "Published",
     tone: "success",
     icon: "check-circle",
   },
   POSTPONED: {
-    action: "Postponed a publication",
     area: "Publication",
     outcome: "Postponed",
     tone: "warning",
@@ -183,7 +174,10 @@ export function toEditorActivityItem(row: EditorHistoryItem): EditorActivityItem
 
   return {
     id: row.id,
-    action: descriptor?.action ?? "Recorded editorial work",
+    // The editor dashboard summary is a global proposal-status snapshot, not
+    // actor-scoped audit data. Describe only the observed status so this feed
+    // cannot attribute another Editor's action to the signed-in user.
+    action: descriptor ? STATUS_ACTION_BY_AREA[descriptor.area] : "Recorded editorial work",
     subject,
     area: descriptor?.area ?? "Editorial workflow",
     outcome: descriptor?.outcome ?? (status ? humanize(status) : null),
