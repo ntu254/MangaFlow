@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import {
+  resolveDisplayUrl,
+  shouldRefreshLease,
+} from "../domain/review-files.ts";
 
 const domainSource = readFileSync(new URL("../domain/review-files.ts", import.meta.url), "utf8");
 const serviceSource = readFileSync(
@@ -9,11 +13,19 @@ const serviceSource = readFileSync(
 );
 
 test("review-file lease refreshes before a 900-second URL expires", () => {
-  assert.match(domainSource, /DEFAULT_LEASE_MS\s*=\s*8\s*\*\s*60\s*\*\s*1000/);
-  assert.match(domainSource, /REFRESH_SKEW_MS\s*=\s*30\s*\*\s*1000/);
-  assert.match(
-    domainSource,
-    /nowMs\s*>=\s*lease\.expiresAtMs\s*-\s*REFRESH_SKEW_MS/,
+  const lease = { url: "https://signed.example/file", expiresAtMs: 900_000 };
+  assert.equal(shouldRefreshLease(lease, 869_999), false);
+  assert.equal(shouldRefreshLease(lease, 870_000), true);
+});
+
+test("relative display URLs resolve against the API origin while absolute URLs are preserved", () => {
+  assert.equal(
+    resolveDisplayUrl("/api/files/display/signed-token", "http://localhost:3001/api"),
+    "http://localhost:3001/api/files/display/signed-token",
+  );
+  assert.equal(
+    resolveDisplayUrl("https://cdn.example/files/signed-token", "http://localhost:3001/api"),
+    "https://cdn.example/files/signed-token",
   );
 });
 

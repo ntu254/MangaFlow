@@ -1,6 +1,7 @@
 import {
   DEFAULT_LEASE_MS,
   derivePreviewKind,
+  resolveDisplayUrl,
   type FileUrlLease,
   type ReviewFile,
 } from "@/domain/review-files";
@@ -88,7 +89,7 @@ export async function openReviewFile(file: ReviewFile, role: MobileApiRole): Pro
   const serverExpiresAtMs = payload.expiresAt ? Date.parse(payload.expiresAt) : Number.NaN;
 
   return {
-    url: payload.url,
+    url: resolveDisplayUrl(payload.url, getMobileApiBaseUrl()),
     expiresAtMs: Number.isFinite(serverExpiresAtMs)
       ? serverExpiresAtMs
       : Date.now() + DEFAULT_LEASE_MS,

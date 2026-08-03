@@ -30,3 +30,8 @@ export function derivePreviewKind(mimeType: string): ReviewPreviewKind {
 export function shouldRefreshLease(lease: FileUrlLease | null, nowMs: number): boolean {
   return !lease || nowMs >= lease.expiresAtMs - REFRESH_SKEW_MS;
 }
+
+export function resolveDisplayUrl(url: string, apiBaseUrl: string): string {
+  if (/^[a-z][a-z\d+.-]*:/i.test(url)) return url;
+  return new URL(url, apiBaseUrl).toString();
+}
