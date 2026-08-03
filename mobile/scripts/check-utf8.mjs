@@ -40,7 +40,7 @@ function scanDirectory(directory) {
       continue;
     }
 
-    if (/[ÃƒÃ‚][\u0080-\u00BF]|\uFFFD/.test(text)) {
+    if (/[\u00C3\u0192\u201A][\u0080-\u00BF]|\uFFFD/.test(text)) {
       failures.push(`${displayPath}: mojibake`);
     }
   }
