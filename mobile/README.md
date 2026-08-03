@@ -7,20 +7,9 @@ This mobile app is a Queue-first workflow console for Board and Tantou Editor ac
 - **Live mode is the default.** Editor and Board identities (and Board Chair designation) come from the live auth API via `/auth/me`; there is no manual role switch.
 - **No silent fallback.** A live read failure surfaces an error with retry — it never quietly returns reference/mock data.
 - **Demo mode is explicit and labelled.** Set `EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true` to use local reference data; the shell then shows a persistent `Demo data` label.
-- **Foundation slice** exposes live Editor proposal and Board vote Today queues. Later slices complete the remaining Editor (Reviews/Publish/History) and Board (Sessions/Ranking/History) tabs.
+- **All four tabs are live** for both roles: Editor (Today/Reviews/Publish/History) and Board (Today/Sessions/Ranking/History) read and act through the backend mobile API; there is no remaining mock UI to complete.
 
-For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile. Recent story packets:
-
-- `../docs/stories/MF-HIOS-095-mobile-editor-board-flow-foundation.md`
-- `../docs/stories/MF-HIOS-096-mobile-decision-confirmation-details.md`
-- `../docs/stories/MF-HIOS-097-mobile-queue-selection-details.md`
-- `../docs/stories/MF-HIOS-098-mobile-empty-error-state-polish.md`
-- `../docs/stories/MF-HIOS-099-mobile-rich-detail-previews.md`
-- `../docs/stories/MF-HIOS-100-mobile-role-handoff-profile-polish.md`
-- `../docs/stories/MF-HIOS-101-mobile-panel-componentization.md`
-- `../docs/stories/MF-HIOS-102-mobile-action-panel-componentization.md`
-- `../docs/stories/MF-HIOS-103-mobile-action-visual-polish.md`
-- `../docs/stories/MF-HIOS-104-mobile-edge-case-visual-qa.md`
+For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile.
 
 ## Scripts
 
@@ -68,19 +57,10 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 
 ## Scope
 
-- Board shell: Today, Sessions, Ranking, History; Today currently exposes live vote queues.
-- Editor shell: Today, Reviews, Publish, History; Today currently exposes live proposal queues.
+- Board shell (`src/screens/board-workspace.tsx`): Today, Sessions, Ranking, History — all backed by live reads through `src/services/board-mobile-data-source.ts`.
+- Editor shell (`src/screens/editor-workspace.tsx`): Today, Reviews, Publish, History — all backed by live reads through `src/services/editor-mobile-data-source.ts`.
+- Shared inbox projection under `src/services/mobile-inbox-data-source.ts` and `src/domain/mobile-work-item.ts` (zod-validated backend contract), consumed via `src/hooks/use-mobile-inbox.ts`.
 - Shared MangaFlow UI primitives under `src/components/mf.tsx`.
-- Contract-aligned mobile types under `src/domain/workflow.ts`.
-- Role-specific reference data under `src/data/editor.ts` and `src/data/board.ts`, available only in explicit demo mode.
-- Live API boundary under `src/services/mobile-workflow-data-source.ts`, with normalized errors and no live-to-mock fallback.
-- Role flow hooks under `src/hooks/use-editor-mobile-flow.ts` and `src/hooks/use-board-mobile-flow.ts`.
-- Confirmation detail panels for live Editor and Board workflow mutations.
-- Selectable queue rows for Editor and Board detail panels, backed by live reads or explicit local demo data.
-- Shared empty/loading/error UI states for mobile API flows.
-- Rich detail previews for Editor proposal/comment/readiness evidence and Board proposal/ranking/history context.
-- Role handoff and profile scope panels that explain live API/fallback boundaries without adding Mangaka or Assistant mobile roles.
-- Componentized Editor and Board detail panels under `src/screens/*-panels.tsx`.
-- Componentized Editor and Board action/confirmation panels under `src/screens/*-action-panels.tsx`.
-- Polished mobile action controls, status chips, readiness blockers, ranking rows, segmented controls, and confirmation panels for narrow mobile widths.
-- Visual edge-case hardening for empty queues, long labels, wrapped action rows, and narrow mobile viewport QA.
+- Session/auth boundary under `src/services/mobile-auth.ts`, `mobile-api-client.ts`, and `mobile-auth-storage.ts`; capabilities always come from the backend `actions[]` descriptor, never recomputed client-side.
+- Explicit, labelled demo mode only (`EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true`): a small empty-items inbox, not a full mock UI layer. There is no live-to-mock fallback on request failure.
+- Confirmation sheets, empty/loading/error states, readiness evidence, vote progress, and comment threads shared across Editor and Board detail screens.
