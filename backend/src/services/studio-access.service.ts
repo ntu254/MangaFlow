@@ -71,7 +71,13 @@ export async function assertCanRunPageAi(actor: RequestActor, pageId: string) {
 }
 
 export async function assertFileKeyVisible(actor: RequestActor, key: string) {
-  const proposal = await ProposalModel.findOne({ coverFileKey: key }).lean();
+  // Proposal attachments are embedded in the proposal document rather than
+  // stored as standalone Material records. Keep all proposal-owned file keys
+  // under the same visibility rules so review screens can preview manuscripts
+  // and supporting materials as well as the cover.
+  const proposal = await ProposalModel.findOne({
+    $or: [{ coverFileKey: key }, { "manuscripts.fileKey": key }, { "materials.fileKey": key }],
+  }).lean();
   if (proposal) {
     const boardVisibleStatuses = new Set([
       "PENDING_BOARD",

@@ -10,6 +10,15 @@ export function isBlocking(comment: StudioComment) {
   return Boolean(comment.isBlocking);
 }
 
+/** Only a blocking note authored by a Tantou can be verified by the Tantou. */
+export function isTantouBlocking(comment: StudioComment, assignedEditorId?: string) {
+  return (
+    isBlocking(comment) &&
+    (comment.authorRole?.toUpperCase() === "EDITOR" ||
+      (Boolean(assignedEditorId) && comment.authorId === assignedEditorId))
+  );
+}
+
 export function commentText(comment: StudioComment) {
   return comment.body || comment.text || "";
 }

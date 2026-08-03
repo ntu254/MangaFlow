@@ -121,6 +121,21 @@ const BOARD_RANKING = {
   atRisk: true,
 } satisfies SeriesRanking;
 
+const EDITOR_RANKINGS = [
+  BOARD_RANKING,
+  {
+    ...BOARD_RANKING,
+    id: "ranking-002",
+    seriesId: "series-002",
+    seriesTitle: "Moonlit Atelier",
+    finalScore: 8.8,
+    readerScore: 8.9,
+    voteCount: 1840,
+    status: "ACTIVE",
+    atRisk: false,
+  },
+] satisfies SeriesRanking[];
+
 const ADMIN_USER = {
   id: "user-nakamura-hina",
   name: "Nakamura Hina",
@@ -213,6 +228,8 @@ function roleFlowFixture(
       }
     case "editor":
       switch (requestKey) {
+        case "GET /api/rankings":
+          return EDITOR_RANKINGS;
         case `GET /api/proposals/${EDITOR_PROPOSAL.id}`:
           return EDITOR_PROPOSAL;
         case `GET /api/proposals/${EDITOR_PROPOSAL.id}/versions`:
@@ -222,6 +239,14 @@ function roleFlowFixture(
       }
     case "mangaka":
       switch (requestKey) {
+        case "GET /api/rankings":
+          return [
+            {
+              ...BOARD_RANKING,
+              seriesId: ROLE_FLOW_SERIES.id,
+              seriesTitle: ROLE_FLOW_SERIES.title,
+            },
+          ];
         case "GET /api/proposals":
         case "GET /api/chapters":
         case "GET /api/studio/tasks":
@@ -573,6 +598,17 @@ test.describe("MangaFlow Role-based E2E Smoke Tests", () => {
     ).toBeVisible();
   });
 
+  test("5. Editor flow: rankings show the full series slate", async ({ page }) => {
+    await mockRoleFlowApi(page, "editor");
+    await seedWorkspaceRole(page, "editor");
+
+    await page.goto("/app/rankings");
+    await expect(page.locator("h1", { hasText: "Series rankings" })).toBeVisible();
+    await expect(page.getByText("Harbor of Bones", { exact: true })).toBeVisible();
+    await expect(page.getByText("Moonlit Atelier", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Period")).toBeVisible();
+  });
+
   // Payroll admin flow removed (CT-11 / FLOW-GAP-04): the `/app/admin/payroll` page and
   // its backend routes were deleted, so the former "Payroll flow: split warning" E2E case
   // no longer applies.
@@ -597,5 +633,16 @@ test.describe("MangaFlow Role-based E2E Smoke Tests", () => {
     await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Chapters" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Team" })).toBeVisible();
+  });
+
+  test("7. Mangaka flow: rankings subtab shows owned series rankings", async ({ page }) => {
+    await mockRoleFlowApi(page, "mangaka");
+    await seedWorkspaceRole(page, "mangaka");
+
+    await page.goto("/app/rankings");
+    await expect(page.getByRole("button", { name: "My series rankings" })).toBeVisible();
+    await page.getByRole("button", { name: "My series rankings" }).click();
+    await expect(page.getByText("Harbor of Bones", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Period")).toBeVisible();
   });
 });

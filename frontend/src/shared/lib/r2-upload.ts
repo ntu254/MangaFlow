@@ -11,7 +11,7 @@
 //      entity API (materials, submissions, chapter pages). There is no
 //      separate backend "commit" endpoint.
 
-import { apiRequest } from "../api/client";
+import { apiBaseUrl, apiRequest } from "../api/client";
 
 export type UploadedFileMetadata = {
   /** Stable storage key persisted on the entity record. */
@@ -148,7 +148,7 @@ export async function uploadFileToR2(
     await putFileToR2(file, signed, contentType, options.onProgress);
   }
 
-  const url = signed.publicUrl ?? signed.downloadUrl;
+  const url = resolveApiRelativeUrl(signed.publicUrl ?? signed.downloadUrl);
   return {
     fileKey: signed.key,
     url,
@@ -170,7 +170,7 @@ function putFileToR2(
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open(signed.method, signed.uploadUrl, true);
+    xhr.open(signed.method, resolveApiRelativeUrl(signed.uploadUrl), true);
     const headers = signed.headers ?? { "content-type": contentType };
     for (const [name, value] of Object.entries(headers)) {
       xhr.setRequestHeader(name, value);
@@ -191,4 +191,9 @@ function putFileToR2(
     xhr.onerror = () => reject(new Error("Network error during upload"));
     xhr.send(file);
   });
+}
+
+function resolveApiRelativeUrl(value: string) {
+  if (/^(?:https?:|data:|blob:|metadata:)/i.test(value)) return value;
+  return new URL(value, apiBaseUrl()).toString();
 }

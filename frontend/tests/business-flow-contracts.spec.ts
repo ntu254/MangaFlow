@@ -21,8 +21,49 @@ import {
   markNotificationArchivedInList,
   markNotificationReadInList,
 } from "../src/shared/lib/notification-cache";
+import {
+  isRankingAtRisk,
+  mapRankingToAtRiskReview,
+} from "../src/features/board/at-risk/model/at-risk-review-adapter";
 
 test.describe("canonical business-flow contracts", () => {
+  test("at-risk reviews are derived from imported ranking signals", () => {
+    const healthy = {
+      id: "rank-healthy",
+      seriesId: "series-healthy",
+      seriesTitle: "Healthy Series",
+      period: "2026-07",
+      readerScore: 8.2,
+      voteCount: 1200,
+      finalScore: 8.1,
+      status: "ACTIVE",
+      atRisk: false,
+    };
+    const flagged = {
+      ...healthy,
+      id: "rank-flagged",
+      seriesId: "series-flagged",
+      seriesTitle: "Flagged Series",
+      readerScore: 4.2,
+      finalScore: 4.0,
+      voteCount: 540,
+      status: "AT_RISK",
+      atRisk: true,
+    };
+
+    expect(isRankingAtRisk(healthy)).toBe(false);
+    expect(isRankingAtRisk(flagged)).toBe(true);
+    expect(mapRankingToAtRiskReview(flagged)).toMatchObject({
+      rankingId: "rank-flagged",
+      seriesTitle: "Flagged Series",
+      period: "2026-07",
+      finalScore: 4,
+      voteCount: 540,
+      status: "OPEN",
+      risk: "HIGH",
+    });
+  });
+
   test("chapter readiness is backend-owned", () => {
     expect(isCanonicalChapterReady({ ready: true })).toBe(true);
     expect(isCanonicalChapterReady({ ready: false })).toBe(false);

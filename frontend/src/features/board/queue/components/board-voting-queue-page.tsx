@@ -21,7 +21,7 @@ export function BoardVotingQueuePage() {
       <PageHeader
         eyebrow="Governance"
         title="Board voting queue"
-        description={`Three of ${BOARD_TOTAL} approve → APPROVED. Three reject → REJECTED. Tie → Editor-in-chief breaks tie.`}
+        description={`Three of ${BOARD_TOTAL} approve → APPROVED. Three reject → REJECTED. Tie → close the round and open a fresh Board re-vote.`}
       >
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
           <Link

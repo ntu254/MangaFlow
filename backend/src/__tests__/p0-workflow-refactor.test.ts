@@ -572,6 +572,47 @@ describe("P0 canonical task submission workflow", () => {
     );
   });
 
+  it("promotes the approved submission asset onto the target chapter page", async () => {
+    const assistant = await loginAs("jun@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-p0-page-apply",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      pageId: "ch-s-berserk-prod-4-p1",
+      assigneeId: assistant.user.id,
+      assigneeName: "Jun Assistant",
+      status: "IN_PROGRESS",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const submit = await request(createApp())
+      .post("/api/tasks/task-p0-page-apply/submit")
+      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .set("Idempotency-Key", "idem-task-p0-page-apply")
+      .send({
+        expectedCurrentSubmissionId: null,
+        fileKey: "pages/approved-page-apply.png",
+        fileName: "approved-page-apply.png",
+      })
+      .expect(201);
+
+    await request(createApp())
+      .post(`/api/submissions/${submit.body.data.id}/approve`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ reviewerNote: "Approved" })
+      .expect(200);
+
+    const chapter = (await ChapterModel.findOne({
+      "pages.id": "ch-s-berserk-prod-4-p1",
+    }).lean()) as any;
+    const page = chapter.pages.find((p: any) => p.id === "ch-s-berserk-prod-4-p1");
+    expect(page.fileKey).toBe("pages/approved-page-apply.png");
+    expect(page.status).toBe("UPLOADED");
+  });
+
   it("freezes VotingSession on a proposal version and returns Proposal to PENDING_BOARD on NO_QUORUM", async () => {
     const board = await loginAs("board@beachread.jp");
     const mangaka = await loginAs("inoue@beachread.jp");
@@ -1704,6 +1745,39 @@ describe("P0 canonical task submission workflow", () => {
     );
     await request(createApp())
       .post("/api/chapters/chapter-p0-publication/actions/PUBLISH")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.status).toBe("PUBLISHED");
+      });
+
+    await ChapterModel.create({
+      id: "chapter-p0-publication-early",
+      seriesId: "series-p0-publication",
+      number: 2,
+      title: "Chapter 2",
+      status: "READY_FOR_PUBLICATION",
+      pages: [
+        {
+          id: "page-p0-publication-early",
+          pageNumber: 1,
+          fileKey: "page-p0-publication-early.png",
+          status: "FINALIZED",
+        },
+      ],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const earlyFuture = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    await request(createApp())
+      .post("/api/chapters/chapter-p0-publication-early/actions/SCHEDULE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ scheduledAt: earlyFuture })
+      .expect(200);
+    await request(createApp())
+      .post("/api/chapters/chapter-p0-publication-early/actions/PUBLISH_EARLY")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({})
       .expect(200)

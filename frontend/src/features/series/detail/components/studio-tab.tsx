@@ -303,6 +303,7 @@ export function StudioTab({
         action,
         reviewerNote: note,
         chapterId: chapter?.id,
+        seriesId: series.id,
         taskId: selection.kind === "task" ? selection.taskId : undefined,
       },
       {

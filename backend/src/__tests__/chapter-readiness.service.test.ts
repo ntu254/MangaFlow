@@ -53,6 +53,32 @@ describe("Chapter readiness bounded context", () => {
     expect(chapterReviewVersion(chapter)).toContain("chapter-blocked");
   });
 
+  it("does not let a terminal REJECTED task block the chapter once its replacement is approved", () => {
+    const result = chapterReadiness(
+      {
+        id: "chapter-rejected-leftover",
+        status: "IN_PRODUCTION",
+        pages: [{ id: "page-1", fileKey: "r2/page.png", status: "UPLOADED" }],
+      },
+      [],
+      [
+        // Old submission got rejected; task is a terminal dead-end (cannot reopen).
+        { id: "task-rejected", isRequired: true, status: "REJECTED", currentSubmissionId: "sub-r" },
+        // Replacement task on the same region was redone and approved.
+        { id: "task-ok", isRequired: true, status: "MANGAKA_APPROVED", currentSubmissionId: "sub-ok" },
+      ],
+      [
+        { id: "sub-r", taskId: "task-rejected", status: "REJECTED" },
+        { id: "sub-ok", taskId: "task-ok", status: "MANGAKA_APPROVED" },
+      ],
+      [],
+    );
+
+    expect(result.items.find((item) => item.key === "allTasksApproved")?.passed).toBe(true);
+    expect(result.items.find((item) => item.key === "allSubmissionsApproved")?.passed).toBe(true);
+    expect(result.ready).toBe(true);
+  });
+
   it("keeps an ADDRESSED blocking comment pending until Tantou verification", () => {
     const result = chapterReadiness(
       {

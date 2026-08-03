@@ -115,6 +115,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
         reviewerNote: reason,
         taskId: submission!.taskId,
         chapterId: task?.chapterId,
+        seriesId: task?.seriesId ?? ctx?.series?.id,
       },
       {
         onSuccess: () => {

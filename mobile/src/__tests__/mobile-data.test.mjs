@@ -6,6 +6,11 @@ const dataSource = readFileSync(new URL("../data/mobile-data.ts", import.meta.ur
 const editorDataSource = readFileSync(new URL("../data/editor.ts", import.meta.url), "utf8");
 const boardDataSource = readFileSync(new URL("../data/board.ts", import.meta.url), "utf8");
 const domainSource = readFileSync(new URL("../domain/workflow.ts", import.meta.url), "utf8");
+const mobileWorkItemSource = readFileSync(
+  new URL("../domain/mobile-work-item.ts", import.meta.url),
+  "utf8",
+);
+const mobileEnvSource = readFileSync(new URL("../config/mobile-env.ts", import.meta.url), "utf8");
 const dataBoundarySource = readFileSync(
   new URL("../services/mobile-workflow-data-source.ts", import.meta.url),
   "utf8",
@@ -80,19 +85,24 @@ test("mobile mock data covers board and editor reference screens", () => {
   }
 });
 
-test("mobile app exposes Board and Tantou Editor role shells", () => {
-  assert.match(appSource, /BoardHomeScreen/);
-  assert.match(appSource, /BoardReviewsScreen/);
-  assert.match(appSource, /BoardTieBreakScreen/);
-  assert.match(appSource, /BoardAtRiskScreen/);
-  assert.match(appSource, /EditorHomeScreen/);
-  assert.match(appSource, /EditorManuscriptsScreen/);
-  assert.match(appSource, /EditorCommentsScreen/);
-  assert.match(appSource, /EditorReadinessScreen/);
-  assert.match(appSource, /BoardRankingScreen/);
+test("mobile app exposes the Queue-first authenticated shell", () => {
+  // Live Today screens / workspace replace the legacy per-tab mock screens.
+  assert.match(appSource, /EditorWorkspace/);
+  assert.match(appSource, /BoardWorkspace/);
+  assert.match(appSource, /useMobileInbox/);
+  // Canonical tab sets.
+  for (const label of ["Today", "Reviews", "Publish", "History", "Sessions", "Ranking"]) {
+    assert.match(appSource, new RegExp(`label: "${label}"`));
+  }
+  // Explicit demo gating, identity-driven (no manual role switch), no active tie-break UI.
+  assert.match(appSource, /Demo data/);
+  assert.match(appSource, /forceDemoMode/);
+  assert.match(appSource, /demoMode \? async \(\) => demoInbox\(role\) : undefined/);
+  assert.doesNotMatch(appSource, /switch role/i);
+  assert.doesNotMatch(appSource, /tie-?break/i);
 });
 
-test("mobile data source exposes API-ready role methods", () => {
+test("mobile data source exposes API-ready role methods and explicit demo selection", () => {
   for (const method of [
     "getEditorHome",
     "getEditorManuscripts",
@@ -101,7 +111,6 @@ test("mobile data source exposes API-ready role methods", () => {
     "getEditorReadiness",
     "getBoardHome",
     "getBoardSeriesReviews",
-    "getBoardTieBreaks",
     "getBoardRankings",
     "getBoardAtRiskCases",
     "getBoardDecisionHistory",
@@ -110,6 +119,13 @@ test("mobile data source exposes API-ready role methods", () => {
   }
 
   assert.match(dataBoundarySource, /mockMobileWorkflowDataSource/);
+  assert.match(mobileEnvSource, /enableMockFallback: readPublicEnv\("EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK"\) === "true"/);
+  assert.match(
+    dataBoundarySource,
+    /mobileEnv\.enableMockFallback\s*\?\s*mockMobileWorkflowDataSource\s*:\s*apiMobileWorkflowDataSource/,
+  );
+  assert.match(dataBoundarySource, /MobileApiError/);
+  assert.doesNotMatch(dataBoundarySource, /fallbackDataSource/);
   assert.match(editorHookSource, /useEditorMobileFlow/);
   assert.match(boardHookSource, /useBoardMobileFlow/);
   assert.match(dataBoundarySource, /\/comments\/task\/\$\{firstTaskId\}/);
@@ -127,7 +143,7 @@ test("mobile auth flow calls live auth API before role screens", () => {
   assert.match(authSource, /setMobileWorkflowAuthToken/);
   assert.match(authSource, /getMobileApiBaseUrl/);
   assert.match(authSource, /mobileDemoAccounts/);
-  assert.match(apiConfigSource, /localhost:3001/);
+  assert.match(apiConfigSource, /EXPO_PUBLIC_API_BASE_URL/);
   assert.match(apiConfigSource, /10\.0\.2\.2/);
   assert.doesNotMatch(`${authSource}\n${dataBoundarySource}`, /localhost:3002/);
   assert.match(dataBoundarySource, /setMobileWorkflowAuthToken/);
@@ -137,7 +153,7 @@ test("mobile auth flow calls live auth API before role screens", () => {
   assert.doesNotMatch(appSource, /Logout from mobile/);
   assert.doesNotMatch(appSource, /Logout Board session/);
   assert.doesNotMatch(appSource, /Logout Editor session/);
-  assert.match(appSource, /Live API login/);
+  assert.match(appSource, /live auth API/i);
   assert.match(appSource, /Mobile registration is disabled/);
   assert.doesNotMatch(appSource, /Sign up/);
   assert.doesNotMatch(appSource, /Register/);
@@ -159,7 +175,7 @@ test("mobile domain uses canonical workflow values from contracts", () => {
     "CONTINUE",
     "WARNING",
     "CANCEL",
-    "COMPLETE",
+    "REQUEST_IMPROVEMENT_PLAN",
   ]) {
     assert.match(domainSource, new RegExp(`"${value}"`));
   }
@@ -181,7 +197,7 @@ test("board mock covers ranking and manual at-risk decisions", () => {
   assert.match(boardDataSource, /readerScore: 6\.1/);
   assert.match(boardDataSource, /readerScore: 6\.3/);
   assert.match(boardDataSource, /readerScore: 6\.4/);
-  assert.match(boardDataSource, /"COMPLETE"/);
+  assert.match(boardDataSource, /"REQUEST_IMPROVEMENT_PLAN"/);
   assert.match(boardDataSource, /requiresConfirmation: true/);
   assert.match(boardActionPanelsSource, /Series is not auto-cancelled/);
 });
@@ -275,7 +291,7 @@ test("mobile series covers use provided manga artwork assets", () => {
   assert.ok(existsSync(new URL("../../assets/images/biatruyen1.jpg", import.meta.url)));
 });
 
-test("mobile decision actions require confirmation detail before mock recording", () => {
+test("legacy role-flow actions retain confirmation detail while Today remains Queue-first", () => {
   assert.match(mfSource, /MFConfirmationPanel/);
   assert.match(mfSource, /Confirmation required/);
   assert.match(mfSource, /noteValue/);
@@ -309,9 +325,7 @@ test("mobile decision actions require confirmation detail before mock recording"
   assert.match(boardHookSource, /pendingAtRiskDecision/);
   assert.match(dataBoundarySource, /castBoardVote/);
   assert.match(dataBoundarySource, /finalizeBoardDecision/);
-  assert.match(dataBoundarySource, /tieBreakBoardDecision/);
   assert.match(dataBoundarySource, /createBoardAtRiskDecision/);
-  assert.match(boardHookSource, /startTieBreakVote/);
   assert.match(boardHookSource, /confirmFinalizeDecision/);
   assert.match(boardHookSource, /actionBusy/);
   assert.match(
@@ -326,15 +340,14 @@ test("mobile decision actions require confirmation detail before mock recording"
   assert.match(dataBoundarySource, /\/voting-sessions\/\$\{input\.sessionId\}\/close/);
   assert.match(
     boardActionPanelsSource,
-    /Live endpoint: POST \/api\/board\/series\/:seriesId\/decisions\/tie-break/,
-  );
-  assert.match(
-    boardActionPanelsSource,
     /Live endpoint: POST \/api\/board\/series\/:seriesId\/at-risk-decisions/,
   );
   assert.match(boardActionPanelsSource, /Backend verifies quorum and vote result/);
   assert.match(boardActionPanelsSource, /Board action remains auditable on the backend/);
   assert.match(boardActionPanelsSource, /Series is never auto-cancelled/);
+  // Ties are backend-created re-vote work, not an active Board Chair control.
+  assert.match(mobileWorkItemSource, /"BOARD_REVOTE"/);
+  assert.doesNotMatch(appSource, /tie-?break/i);
 });
 
 test("mobile queues expose selectable rows that drive detail panels", () => {
@@ -366,7 +379,7 @@ test("mobile screens expose reusable loading error and empty states", () => {
   assert.match(editorSource, /Publication scheduling boundary/);
   assert.doesNotMatch(editorSource, /Schedule publication mock/);
   assert.match(boardSource, /No Board reviews/);
-  assert.match(boardSource, /No tie-break decisions/);
+  assert.match(mobileWorkItemSource, /"BOARD_REVOTE"/);
   assert.match(boardSource, /No ranking import/);
   assert.match(boardSource, /No at-risk cases/);
   assert.doesNotMatch(editorSource, /function StateBanner/);
@@ -462,23 +475,19 @@ test("mobile action panels are componentized out of role screen files", () => {
   assert.doesNotMatch(boardSource, /function atRiskDecisionTitle/);
 });
 
-test("mobile role handoff and profile polish explains scope without adding roles", () => {
-  assert.match(appSource, /RoleHandoffSummary/);
-  assert.match(appSource, /Editor handoff to Board review/);
-  assert.match(appSource, /Board handoff from Editor review/);
-  assert.match(appSource, /backend owns transitions and audit/);
-  assert.match(
-    appSource,
-    /Auth, permissions, signed URLs, workflow transitions, readiness, ranking, and earnings tracking remain backend-owned/,
-  );
-  assert.match(appSource, /Read fallback stays available/);
-  assert.match(appSource, /Tantou Editor surfaces only/);
-  assert.match(appSource, /Board and Board Chair surfaces only/);
-  assert.match(appSource, /No Admin override is represented/);
-  assert.match(
-    appSource,
-    /Publication scheduling, signed file previews, and Board decision history remain separate follow-up slices/,
-  );
+test("mobile shell is identity-driven with an avatar profile menu", () => {
+  // Designation copy comes from the authenticated user, not a role switch.
+  assert.match(appSource, /Tantou Editor/);
+  assert.match(appSource, /Board Chair/);
+  assert.match(appSource, /Board Member/);
+  // Profile/logout live behind the avatar menu.
+  assert.match(appSource, /Account menu/);
+  assert.match(appSource, /"Logout"/);
+  // All four role tabs are implemented; no placeholder surface remains.
+  assert.doesNotMatch(appSource, /Coming soon/);
+  // Legacy handoff/profile prose and extra roles are gone.
+  assert.doesNotMatch(appSource, /RoleHandoffSummary/);
+  assert.doesNotMatch(appSource, /Read fallback stays available/);
   assert.doesNotMatch(appSource, /confirmed mock UI/);
   assert.doesNotMatch(appSource, /Mangaka companion/);
   assert.doesNotMatch(appSource, /Assistant companion/);

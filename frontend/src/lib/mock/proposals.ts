@@ -722,7 +722,7 @@ export const seedProposals: SeriesProposal[] = [
         type: "TIE_BREAK",
         fromStatus: "PENDING_BOARD",
         toStatus: "TIE_BREAK",
-        comment: "4/5 votes: 2 APPROVE - 2 REJECT. Awaiting Editor-in-Chief vote (weight 2).",
+        comment: "4/5 votes: 2 APPROVE - 2 REJECT. Historical tie; a fresh Board re-vote is required.",
         createdAt: ago(14),
       },
     ],

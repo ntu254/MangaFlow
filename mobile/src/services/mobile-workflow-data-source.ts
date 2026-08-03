@@ -6,6 +6,8 @@ import {
   boardSeries,
 } from "@/data/board";
 import { getMobileApiBaseUrl } from "@/services/mobile-api-config";
+import { mobileEnv, requireMobileEnv } from "@/config/mobile-env";
+import { MobileApiError } from "@/services/mobile-api-error";
 import {
   commentActivity,
   commentMetrics,
@@ -137,14 +139,11 @@ interface ApiEnvelope<T> {
   success: boolean;
   data: T;
   message?: string;
+  code?: string;
+  details?: unknown;
 }
 
 export type MobileApiRole = "editor" | "board";
-
-const EDITOR_EMAIL = process.env.EXPO_PUBLIC_EDITOR_EMAIL ?? "editor@mangaflow.local";
-const EDITOR_PASSWORD = process.env.EXPO_PUBLIC_EDITOR_PASSWORD ?? "editor@mangaflow.local";
-const BOARD_EMAIL = process.env.EXPO_PUBLIC_BOARD_EMAIL ?? "board@beachread.jp";
-const BOARD_PASSWORD = process.env.EXPO_PUBLIC_BOARD_PASSWORD ?? "board@beachread.jp";
 
 const tokenCache: Partial<Record<MobileApiRole, string>> = {};
 
@@ -369,13 +368,23 @@ async function apiMutate(
 
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
+    let code = "UNKNOWN";
+    let details: unknown;
     try {
-      const envelope = (await response.json()) as { message?: string };
+      const envelope = (await response.json()) as ApiEnvelope<unknown>;
       if (envelope?.message) message = envelope.message;
+      if (envelope?.code) code = envelope.code;
+      details = envelope?.details;
     } catch {
       // keep default status message
     }
-    throw new Error(message);
+    throw new MobileApiError(
+      message,
+      response.status,
+      code,
+      response.headers.get("x-request-id") ?? undefined,
+      details,
+    );
   }
 }
 
@@ -391,7 +400,24 @@ async function apiRequest<T>(path: string, role: MobileApiRole, init?: RequestIn
   });
 
   if (!response.ok) {
-    throw new Error(`Mobile API ${path} failed with ${response.status}`);
+    let message = `Mobile API ${path} failed with ${response.status}`;
+    let code = "UNKNOWN";
+    let details: unknown;
+    try {
+      const envelope = (await response.json()) as ApiEnvelope<unknown>;
+      if (envelope?.message) message = envelope.message;
+      if (envelope?.code) code = envelope.code;
+      details = envelope?.details;
+    } catch {
+      // keep the request-specific default message
+    }
+    throw new MobileApiError(
+      message,
+      response.status,
+      code,
+      response.headers.get("x-request-id") ?? undefined,
+      details,
+    );
   }
 
   const envelope = (await response.json()) as ApiEnvelope<T>;
@@ -401,8 +427,14 @@ async function apiRequest<T>(path: string, role: MobileApiRole, init?: RequestIn
 async function getToken(role: MobileApiRole): Promise<string> {
   if (tokenCache[role]) return tokenCache[role] as string;
 
-  const email = role === "editor" ? EDITOR_EMAIL : BOARD_EMAIL;
-  const password = role === "editor" ? EDITOR_PASSWORD : BOARD_PASSWORD;
+  const email = requireMobileEnv(
+    role === "editor" ? mobileEnv.editorEmail : mobileEnv.boardEmail,
+    role === "editor" ? "EXPO_PUBLIC_EDITOR_EMAIL" : "EXPO_PUBLIC_BOARD_EMAIL",
+  );
+  const password = requireMobileEnv(
+    role === "editor" ? mobileEnv.editorPassword : mobileEnv.boardPassword,
+    role === "editor" ? "EXPO_PUBLIC_EDITOR_PASSWORD" : "EXPO_PUBLIC_BOARD_PASSWORD",
+  );
   const response = await fetch(`${getMobileApiBaseUrl()}/auth/login`, {
     method: "POST",
     headers: {
@@ -413,104 +445,17 @@ async function getToken(role: MobileApiRole): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error(`Mobile ${role} login failed with ${response.status}`);
+    throw new MobileApiError(
+      `Mobile ${role} login failed with ${response.status}`,
+      response.status,
+      "AUTH_LOGIN_FAILED",
+      response.headers.get("x-request-id") ?? undefined,
+    );
   }
 
   const envelope = (await response.json()) as ApiEnvelope<{ accessToken: string }>;
   tokenCache[role] = envelope.data.accessToken;
   return envelope.data.accessToken;
-}
-
-function fallbackDataSource(
-  primary: MobileWorkflowDataSource,
-  fallback: MobileWorkflowDataSource,
-): MobileWorkflowDataSource {
-  const allowFallback =
-    process.env.EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK === "true" ||
-    process.env.NODE_ENV !== "production";
-  const read = <T>(loader: () => Promise<T>, fallbackLoader: () => Promise<T>) =>
-    loader().catch((error) => {
-      if (allowFallback) return fallbackLoader();
-      throw error;
-    });
-
-  return {
-    // Mutations call the live endpoint directly and surface real errors; no silent mock fallback.
-    startEditorProposalReview: (seriesId) => primary.startEditorProposalReview(seriesId),
-    requestEditorProposalRevision: (seriesId, input) =>
-      primary.requestEditorProposalRevision(seriesId, input),
-    rejectEditorProposal: (seriesId, input) => primary.rejectEditorProposal(seriesId, input),
-    forwardEditorProposalToBoard: (seriesId, input) =>
-      primary.forwardEditorProposalToBoard(seriesId, input),
-    createEditorComment: (input) => primary.createEditorComment(input),
-    resolveEditorComment: (commentId) => primary.resolveEditorComment(commentId),
-    reopenEditorComment: (commentId) => primary.reopenEditorComment(commentId),
-    castBoardVote: (seriesId, input) => primary.castBoardVote(seriesId, input),
-    finalizeBoardDecision: (seriesId, input) => primary.finalizeBoardDecision(seriesId, input),
-    tieBreakBoardDecision: (seriesId, input) => primary.tieBreakBoardDecision(seriesId, input),
-    createBoardAtRiskDecision: (seriesId, input) =>
-      primary.createBoardAtRiskDecision(seriesId, input),
-    getEditorHome: async () =>
-      read(
-        () => primary.getEditorHome(),
-        () => fallback.getEditorHome(),
-      ),
-    getEditorManuscripts: async () =>
-      read(
-        () => primary.getEditorManuscripts(),
-        () => fallback.getEditorManuscripts(),
-      ),
-    getEditorSubmissions: async () =>
-      read(
-        () => primary.getEditorSubmissions(),
-        () => fallback.getEditorSubmissions(),
-      ),
-    getEditorComments: async () =>
-      read(
-        () => primary.getEditorComments(),
-        () => fallback.getEditorComments(),
-      ),
-    getEditorReadiness: async () =>
-      read(
-        () => primary.getEditorReadiness(),
-        () => fallback.getEditorReadiness(),
-      ),
-    getSeriesProposalSummary: async (seriesId, role) =>
-      read(
-        () => primary.getSeriesProposalSummary(seriesId, role),
-        () => fallback.getSeriesProposalSummary(seriesId, role),
-      ),
-    getBoardHome: async () =>
-      read(
-        () => primary.getBoardHome(),
-        () => fallback.getBoardHome(),
-      ),
-    getBoardSeriesReviews: async () =>
-      read(
-        () => primary.getBoardSeriesReviews(),
-        () => fallback.getBoardSeriesReviews(),
-      ),
-    getBoardTieBreaks: async () =>
-      read(
-        () => primary.getBoardTieBreaks(),
-        () => fallback.getBoardTieBreaks(),
-      ),
-    getBoardRankings: async () =>
-      read(
-        () => primary.getBoardRankings(),
-        () => fallback.getBoardRankings(),
-      ),
-    getBoardAtRiskCases: async () =>
-      read(
-        () => primary.getBoardAtRiskCases(),
-        () => fallback.getBoardAtRiskCases(),
-      ),
-    getBoardDecisionHistory: async () =>
-      read(
-        () => primary.getBoardDecisionHistory(),
-        () => fallback.getBoardDecisionHistory(),
-      ),
-  };
 }
 
 export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
@@ -1164,7 +1109,12 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
             coverTone: index % 2 === 0 ? "dark" : "red",
             seriesStatus: "AT_RISK",
             rankingStatus: "AT_RISK",
-            availableDecisions: ["CONTINUE", "WARNING", "CANCEL", "COMPLETE"],
+            availableDecisions: [
+              "CONTINUE",
+              "WARNING",
+              "REQUEST_IMPROVEMENT_PLAN",
+              "CANCEL",
+            ],
             supportNote: "Backend marks this title at risk; mobile does not auto-cancel.",
             requiresConfirmation: true,
           }) satisfies BoardAtRiskCase,
@@ -1209,7 +1159,8 @@ export const apiMobileWorkflowDataSource: MobileWorkflowDataSource = {
   },
 };
 
-export const mobileWorkflowDataSource: MobileWorkflowDataSource = fallbackDataSource(
-  apiMobileWorkflowDataSource,
-  mockMobileWorkflowDataSource,
-);
+// Demo mode is a deliberate, app-wide source selection. Live mode never
+// attempts a reference-data fallback: MobileApiError reaches the caller.
+export const mobileWorkflowDataSource: MobileWorkflowDataSource = mobileEnv.enableMockFallback
+  ? mockMobileWorkflowDataSource
+  : apiMobileWorkflowDataSource;

@@ -1,4 +1,5 @@
 import { asyncRoute, created, ok, AppError } from "../lib/http.js";
+import { env } from "../config/env.js";
 import {
   SeriesModel,
   ChapterModel,
@@ -399,7 +400,7 @@ async function attachPublications(chapters: any[]) {
 
 export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  await assertCanMutateSeriesById(actor, String(req.params.id));
+  const series = await assertCanMutateSeriesById(actor, String(req.params.id));
   const now = nowIso();
   const body = parseBody(createChapterSchema, req);
   rejectProtectedFields(body as Record<string, unknown>);
@@ -409,8 +410,10 @@ export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) =>
     number: Number(body.number ?? 1),
     title: body.title ?? "Untitled chapter",
     status: "PLANNED",
-    assigneeId: body.assigneeId ?? req.actor?.id,
-    assigneeName: body.assigneeName ?? req.actor?.name,
+    // A chapter belongs to the series' Mangaka. Assistant assignment happens
+    // later on StudioTask records, at page/region level.
+    assigneeId: (series as any).authorId,
+    assigneeName: (series as any).authorName,
     draftDueAt: body.draftDueAt ? new Date(body.draftDueAt) : undefined,
     reviewDueAt: body.reviewDueAt ? new Date(body.reviewDueAt) : undefined,
     plannedAt: body.plannedAt ? new Date(body.plannedAt) : undefined,
@@ -866,7 +869,7 @@ export const presignUpload = asyncRoute(async (req: AuthedRequest, res) => {
   }
   const folder = typeof req.body.folder === "string" ? req.body.folder : undefined;
   const signed = await presignR2Upload({ fileName, contentType, folder });
-  if (signed.storage === "metadata-only" || process.env.VITEST) {
+  if (signed.storage === "metadata-only" || env.FILE_STORAGE_MODE === "local" || process.env.VITEST) {
     ok(res, {
       ...signed,
       uploadUrl: createLocalUploadUrl(signed.key, contentType, fileName),

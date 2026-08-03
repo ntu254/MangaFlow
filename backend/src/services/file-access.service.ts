@@ -27,6 +27,18 @@ function signPayload(encodedPayload: string) {
   return createHmac("sha256", secret()).update(encodedPayload).digest("base64url");
 }
 
+function publicApiBaseUrl() {
+  const configured = env.PUBLIC_API_BASE_URL.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  return `http://localhost:${env.PORT}`;
+}
+
+function toApiUrl(path: string) {
+  const base = publicApiBaseUrl();
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 export function createFileAccessToken(payload: Omit<TokenPayload, "exp">, ttlSeconds = TOKEN_TTL_SECONDS) {
   const encodedPayload = base64Url(
     JSON.stringify({
@@ -93,21 +105,21 @@ export function createDisplayUrl(key: string, fileName?: string) {
   const token = createFileAccessToken({ key, fileName });
   return {
     key,
-    url: `/api/files/display/${token}`,
+    url: toApiUrl(`/api/files/display/${token}`),
     expiresAt: new Date(Date.now() + TOKEN_TTL_SECONDS * 1000).toISOString(),
   };
 }
 
 export function createLocalUploadUrl(key: string, contentType?: string, fileName?: string) {
   const token = createFileAccessToken({ key, contentType, fileName });
-  return `/api/files/local-upload/${token}`;
+  return toApiUrl(`/api/files/local-upload/${token}`);
 }
 
 export async function readStoredObject(key: string, fallbackUrl?: string) {
   if (process.env.VITEST) {
     return readLocalObject(key);
   }
-  if (key.startsWith("local/") || !env.R2_BUCKET) {
+  if (env.FILE_STORAGE_MODE === "local" || key.startsWith("local/") || !env.R2_BUCKET) {
     return readLocalObject(key);
   }
 
@@ -128,7 +140,7 @@ export async function persistGeneratedObject(input: {
   bytes: Buffer;
   contentType: string;
 }) {
-  if (env.R2_BUCKET && !process.env.VITEST) {
+  if (env.FILE_STORAGE_MODE !== "local" && env.R2_BUCKET && !process.env.VITEST) {
     await putR2Object(input);
     const signed = await presignR2Download(input.key);
     return signed.downloadUrl;
@@ -139,7 +151,7 @@ export async function persistGeneratedObject(input: {
 }
 
 export async function deleteStoredObject(key: string) {
-  if (env.R2_BUCKET && !process.env.VITEST) {
+  if (env.FILE_STORAGE_MODE !== "local" && env.R2_BUCKET && !process.env.VITEST) {
     await deleteR2Object(key);
     return;
   }

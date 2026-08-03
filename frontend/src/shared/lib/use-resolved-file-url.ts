@@ -13,7 +13,15 @@ export function useResolvedFileUrl(
 
   useEffect(() => {
     let cancelled = false;
-    if (!fileKey) {
+    const normalizedFallback = fallbackUrl?.trim().toLowerCase() ?? "";
+    const hasMetadataFallback = normalizedFallback.startsWith("metadata://");
+    const hasLocalDisplayFallback = normalizedFallback.includes("/api/files/display/");
+
+    // Metadata URLs are intentional placeholders in seeded/demo data and
+    // cannot be resolved by the authenticated file endpoint. In local storage
+    // mode the display URL is already the stable URL, so presigning it would
+    // replace a usable preview with a metadata:// placeholder.
+    if (!fileKey || hasMetadataFallback || hasLocalDisplayFallback) {
       setUrl(safeFallback);
       setError(null);
       setLoading(false);

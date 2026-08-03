@@ -12,6 +12,8 @@ import { VoteTally } from "@/entities/proposal";
 import { useAuth } from "@/shared/auth";
 import { useProposalQuery } from "@/features/proposals";
 import { useBoardVotesQuery } from "../../api/board-queries";
+import { useActiveVotingSession } from "../../api/use-active-voting-session";
+import { getReVoteBanner } from "../../vote/model/revote-banner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SeriesProposal, BoardVote } from "@/entities/proposal/model/proposal-types";
 
@@ -23,6 +25,7 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
   const user = useAuth((s) => s.user);
   const { data: proposalRaw, isLoading: proposalLoading } = useProposalQuery(proposalId);
   const { data: votesData, isLoading: votesLoading } = useBoardVotesQuery(proposalId);
+  const activeVotingSession = useActiveVotingSession(proposalId);
 
   if (!user) return null;
 
@@ -63,6 +66,10 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
     ...proposalRaw,
     votes,
   };
+  const reVoteBanner = getReVoteBanner(
+    activeVotingSession.session,
+    proposalRaw.status === "TIE_BREAK" ? "TIE_BREAK_REQUIRED" : proposalRaw.status,
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -72,6 +79,34 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
       >
         <ArrowLeft className="size-3.5" /> Board queue
       </Link>
+      {reVoteBanner ? (
+        <section
+          className={`rounded-lg border p-4 ${
+            reVoteBanner.kind === "fresh"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+              : "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-950"
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
+                Board workflow
+              </p>
+              <h2 className="mt-1 font-serif text-xl">{reVoteBanner.title}</h2>
+              <p className="mt-1 text-xs opacity-80">{reVoteBanner.description}</p>
+            </div>
+            {activeVotingSession.session ? (
+              <Link
+                to="/app/board/sessions/$sid"
+                params={{ sid: activeVotingSession.session.id }}
+                className="shrink-0 rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:bg-foreground/90"
+              >
+                Open re-vote session
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <main className="space-y-4">
           <ProposalSummaryCard proposal={mergedProposal} />

@@ -284,7 +284,7 @@ export function BoardAtRiskDecisionPanel({
           tone="primary"
           variant="soft"
           style={styles.actionButtonHalf}
-          onPress={() => onStartDecision("COMPLETE")}
+          onPress={() => onStartDecision("REQUEST_IMPROVEMENT_PLAN")}
         >
           Complete
         </MFButton>
@@ -373,14 +373,14 @@ function voteActionTone(value: BoardVoteValue): Tone {
 function atRiskDecisionTitle(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "Continue publication";
   if (decision === "WARNING") return "Issue Board warning";
-  if (decision === "COMPLETE") return "Complete series";
+  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Request improvement plan";
   return "Cancel series";
 }
 
 function atRiskDecisionLabel(decision: AtRiskDecision) {
   if (decision === "CONTINUE") return "continue";
   if (decision === "WARNING") return "warning";
-  if (decision === "COMPLETE") return "complete";
+  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "request an improvement plan";
   return "cancel";
 }
 

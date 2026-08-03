@@ -46,7 +46,7 @@ function decisionLabel(decision: BoardDecisionHistoryItem["decision"]) {
   if (decision === "APPROVE") return "Approved"
   if (decision === "REJECT") return "Rejected"
   if (decision === "NEEDS_REVISION") return "Needs revision"
-  if (decision === "COMPLETE") return "Completed"
+  if (decision === "REQUEST_IMPROVEMENT_PLAN") return "Improvement plan requested"
   if (decision === "CONTINUE") return "Continue"
   if (decision === "WARNING") return "Warning issued"
   return "Cancelled"

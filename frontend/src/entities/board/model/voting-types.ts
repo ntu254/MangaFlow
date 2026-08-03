@@ -82,6 +82,48 @@ export const SESSION_STATUS_LABEL: Record<VotingSessionStatus, string> = {
   CANCELED: "Cancelled",
 };
 
+export const SESSION_STATUS_HELP: Record<
+  VotingSessionStatus,
+  { description: string; nextStep: string }
+> = {
+  DRAFT: {
+    description: "The session has been prepared but is not accepting votes.",
+    nextStep: "A Chair must open the session before voting can start.",
+  },
+  OPEN: {
+    description: "This is the active voting round. Board members can cast one vote each.",
+    nextStep: "Board members vote; the Chair closes the session when the round is complete.",
+  },
+  CLOSED: {
+    description: "The round is closed and no longer accepts votes.",
+    nextStep: "Review the tally and outcome recorded for this round.",
+  },
+  TIED: {
+    description: "This round ended in a tie and is preserved as immutable history.",
+    nextStep: "Continue in the fresh OPEN Board re-vote created by the system.",
+  },
+  TIE_BREAK_REQUIRED: {
+    description: "Legacy tie-break history. It is kept for audit and is read-only.",
+    nextStep: "No EIC action is required; current ties use a fresh Board re-vote.",
+  },
+  FINALIZED: {
+    description: "The Board decision is complete and this round is immutable.",
+    nextStep: "Open the proposal to review the final decision and audit trail.",
+  },
+  NO_QUORUM: {
+    description: "The round closed without enough votes to make a decision.",
+    nextStep: "A Chair can create a new voting session if the proposal needs another round.",
+  },
+  CANCELLED: {
+    description: "The Chair cancelled this round before a final decision.",
+    nextStep: "Create a new session if the proposal should return to Board review.",
+  },
+  CANCELED: {
+    description: "The Chair cancelled this round before a final decision.",
+    nextStep: "Create a new session if the proposal should return to Board review.",
+  },
+};
+
 export const OUTCOME_LABEL: Record<SessionOutcomeDecision, string> = {
   APPROVED: "Approved",
   REJECTED: "Rejected",

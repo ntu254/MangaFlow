@@ -8,18 +8,20 @@ export const rankingKeys = {
   list: () => [...rankingKeys.all, "list"] as const,
 };
 
-export function useMySeriesQuery() {
+export function useMySeriesQuery(enabled = true) {
   return useQuery<ProductionSeries[]>({
     queryKey: seriesKeys.mine(),
     queryFn: () => apiRequest<ProductionSeries[]>("/series?mine=true"),
+    enabled,
     staleTime: 60000,
   });
 }
 
-export function useRankingsListQuery() {
+export function useRankingsListQuery(enabled = true) {
   return useQuery<SeriesRanking[]>({
     queryKey: rankingKeys.list(),
     queryFn: () => apiRequest<SeriesRanking[]>("/rankings"),
+    enabled,
     staleTime: 60000,
   });
 }

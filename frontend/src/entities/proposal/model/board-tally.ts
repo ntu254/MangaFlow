@@ -1,5 +1,5 @@
 import type { BoardVote, ProposalStatus } from "./proposal-types";
-import { BOARD_TOTAL, EIC_TIEBREAK_WEIGHT } from "./proposal-types";
+import { BOARD_TOTAL } from "./proposal-types";
 
 export type TallyResult = {
   approve: number;
@@ -49,7 +49,7 @@ export function evaluateBoardTally(
       abstain,
       total,
       status: "TIE_BREAK",
-      reason: `Tied ${approve}-${reject}. Awaiting Editor-in-Chief tie-break vote (weight ${EIC_TIEBREAK_WEIGHT}).`,
+      reason: `Tied ${approve}-${reject}. Close this round to open a fresh Board re-vote.`,
     };
   }
 

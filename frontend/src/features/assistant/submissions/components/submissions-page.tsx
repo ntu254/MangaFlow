@@ -27,8 +27,9 @@ import { SelectItem } from "@/components/ui/select";
 import { StatCard } from "@/shared/ui/stat-card";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 import { Link } from "@tanstack/react-router";
-import { AlertOctagon, CheckCircle2, ExternalLink, Send, X, XCircle } from "lucide-react";
+import { AlertOctagon, CheckCircle2, ExternalLink, Eye, Send, X, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useResolvedFileUrl } from "@/shared/lib/use-resolved-file-url";
 
 const PAGE_SIZE = 10;
 
@@ -239,16 +240,25 @@ export function SubmissionsPage() {
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground">{m.reviewedByName ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right">
-                      {t ? (
-                        <Link
-                          to="/app/assistant/tasks/$taskId/studio"
-                          params={{ taskId: t.id }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background hover:opacity-90"
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(m.id)}
+                          className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] font-semibold hover:bg-muted"
                         >
-                          Studio
-                        </Link>
-                      ) : null}
+                          <Eye className="size-3" /> View submission
+                        </button>
+                        {t ? (
+                          <Link
+                            to="/app/assistant/tasks/$taskId/studio"
+                            params={{ taskId: t.id }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background hover:opacity-90"
+                          >
+                            Studio
+                          </Link>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -289,8 +299,16 @@ function SubmissionDetailDrawer({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const { url: submittedFileUrl, loading: fileLoading } = useResolvedFileUrl(
+    submission?.fileKey,
+    submission?.fileUrl,
+  );
+
   if (!submission) return null;
   const t = getTask(submission.taskId);
+  const isImage = isImageFile(submission);
+  const isPdf =
+    submission.mimeType === "application/pdf" || submission.fileName?.toLowerCase().endsWith(".pdf");
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full max-w-md overflow-y-auto p-0 sm:max-w-md">
@@ -310,6 +328,49 @@ function SubmissionDetailDrawer({
           </button>
         </div>
         <div className="space-y-3 p-4 text-xs">
+          <section className="overflow-hidden rounded-md border border-border bg-muted/20">
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Submitted file
+              </p>
+              <a
+                href={submittedFileUrl || "#"}
+                target="_blank"
+                rel="noreferrer"
+                aria-disabled={!submittedFileUrl || fileLoading}
+                className="text-[10px] font-semibold underline-offset-2 hover:underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
+              >
+                Open submitted file
+              </a>
+            </div>
+            <div className="aspect-[4/3] w-full bg-muted/30">
+              {fileLoading ? (
+                <div className="grid h-full place-items-center text-xs text-muted-foreground">
+                  Loading submitted file…
+                </div>
+              ) : !submittedFileUrl ? (
+                <div className="grid h-full place-items-center px-6 text-center text-xs text-muted-foreground">
+                  This submission has no accessible file. The file metadata is still shown below.
+                </div>
+              ) : isImage ? (
+                <img
+                  src={submittedFileUrl}
+                  alt={submission.fileName ?? submission.versionLabel}
+                  className="h-full w-full object-contain"
+                />
+              ) : isPdf ? (
+                <iframe
+                  src={submittedFileUrl}
+                  title={submission.fileName ?? submission.versionLabel}
+                  className="h-full w-full"
+                />
+              ) : (
+                <div className="grid h-full place-items-center px-6 text-center text-xs text-muted-foreground">
+                  Preview is not available for this file type. Use “Open submitted file” above.
+                </div>
+              )}
+            </div>
+          </section>
           <Row k="File" v={submission.fileName ?? "—"} />
           <Row
             k="Size"
@@ -343,6 +404,14 @@ function SubmissionDetailDrawer({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function isImageFile(submission: AssistantSubmission) {
+  const mimeType = submission.mimeType?.toLowerCase();
+  const fileName = submission.fileName?.toLowerCase() ?? "";
+  return Boolean(
+    mimeType?.startsWith("image/") || /\.(?:png|jpe?g|webp|gif|bmp)$/.test(fileName),
   );
 }
 

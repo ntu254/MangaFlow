@@ -7,7 +7,7 @@ import {
   type BoardVotesResult,
 } from "../model/board-adapters";
 import { proposalKeys } from "@/features/proposals";
-import { seriesKeys } from "@/entities/series";
+import { rankingKeys, seriesKeys } from "@/entities/series";
 import { ApiRequestError, apiRequest } from "@/shared/api/client";
 import { useAuth } from "@/shared/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ export const boardKeys = {
   queue: () => [...boardKeys.all, "queue"] as const,
   votes: (seriesId: string) => [...boardKeys.all, "votes", seriesId] as const,
   sessions: () => [...boardKeys.all, "sessions"] as const,
+  decisions: () => [...boardKeys.all, "decisions"] as const,
 };
 
 function isBoardWorkflowUser(role: string): boolean {
@@ -136,6 +137,8 @@ export function useAtRiskDecisionMutation() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
+      queryClient.invalidateQueries({ queryKey: rankingKeys.list() });
+      queryClient.invalidateQueries({ queryKey: boardKeys.decisions() });
     },
   });
 }

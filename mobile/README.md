@@ -2,7 +2,12 @@
 
 Expo + React Native + TypeScript mobile foundation for MangaFlow.
 
-This mobile slice supports Board Chair/Board and Tantou Editor flows with live API auth, live read endpoints, and live workflow mutations for proposal review, final approval, comments, Board votes, finalize, tie-break, and at-risk decisions. Read calls still keep a local reference-data fallback so the mobile shell remains stable when the API is unavailable.
+This mobile app is a Queue-first workflow console for Board and Tantou Editor accounts.
+
+- **Live mode is the default.** Editor and Board identities (and Board Chair designation) come from the live auth API via `/auth/me`; there is no manual role switch.
+- **No silent fallback.** A live read failure surfaces an error with retry — it never quietly returns reference/mock data.
+- **Demo mode is explicit and labelled.** Set `EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true` to use local reference data; the shell then shows a persistent `Demo data` label.
+- **Foundation slice** exposes live Editor proposal and Board vote Today queues. Later slices complete the remaining Editor (Reviews/Publish/History) and Board (Sessions/Ranking/History) tabs.
 
 For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile. Recent story packets:
 
@@ -28,6 +33,20 @@ npm run web
 npm run android
 ```
 
+## Environment
+
+Expo reads mobile configuration from `mobile/.env`. Create it from the committed template:
+
+```bash
+cp .env.example .env
+```
+
+Configure `EXPO_PUBLIC_API_BASE_URL` and the Board/Editor accounts used by the quick-login buttons.
+Set `EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true` only for the explicitly labelled local demo mode;
+it selects local data directly rather than falling back after a live failure. Restart Expo after changing
+`.env` so the build-time public variables are refreshed. These variables are bundled into the app, so
+they must not contain private production secrets.
+
 ## Android Emulator
 
 Start an Android emulator from Android Studio first, then run:
@@ -49,15 +68,15 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 
 ## Scope
 
-- Board shell: Home, Reviews, Votes, Ranking, Profile.
-- Editor shell: Home, Review, Comments, Readiness, Profile.
+- Board shell: Today, Sessions, Ranking, History; Today currently exposes live vote queues.
+- Editor shell: Today, Reviews, Publish, History; Today currently exposes live proposal queues.
 - Shared MangaFlow UI primitives under `src/components/mf.tsx`.
 - Contract-aligned mobile types under `src/domain/workflow.ts`.
-- Role-specific reference fallback data under `src/data/editor.ts` and `src/data/board.ts`.
-- Live API + fallback boundary under `src/services/mobile-workflow-data-source.ts`.
+- Role-specific reference data under `src/data/editor.ts` and `src/data/board.ts`, available only in explicit demo mode.
+- Live API boundary under `src/services/mobile-workflow-data-source.ts`, with normalized errors and no live-to-mock fallback.
 - Role flow hooks under `src/hooks/use-editor-mobile-flow.ts` and `src/hooks/use-board-mobile-flow.ts`.
 - Confirmation detail panels for live Editor and Board workflow mutations.
-- Selectable queue rows for Editor and Board detail panels, backed by live reads with local reference fallback.
+- Selectable queue rows for Editor and Board detail panels, backed by live reads or explicit local demo data.
 - Shared empty/loading/error UI states for mobile API flows.
 - Rich detail previews for Editor proposal/comment/readiness evidence and Board proposal/ranking/history context.
 - Role handoff and profile scope panels that explain live API/fallback boundaries without adding Mangaka or Assistant mobile roles.

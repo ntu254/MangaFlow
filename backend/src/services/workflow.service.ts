@@ -969,6 +969,7 @@ export async function applyChapterAction(
     SCHEDULE: { from: ["READY_FOR_PUBLICATION"], editor: true },
     POSTPONE: { from: ["READY_FOR_PUBLICATION"], editor: true },
     PUBLISH: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
+    PUBLISH_EARLY: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
     REASSIGN: { editor: true },
     ARCHIVE: { editor: true },
   };
@@ -1090,8 +1091,15 @@ export async function applyChapterAction(
   if (action === "POSTPONE") {
     await postponeChapterPublication(req, chapterId, fromStatus);
   }
-  if (action === "PUBLISH") {
-    const publishedAt = await publishChapter(req, chapter, series, chapterId, fromStatus);
+  if (action === "PUBLISH" || action === "PUBLISH_EARLY") {
+    const publishedAt = await publishChapter(
+      req,
+      chapter,
+      series,
+      chapterId,
+      fromStatus,
+      action === "PUBLISH_EARLY",
+    );
     patch.publishedAt = publishedAt;
     patch.publishedById = actor.id;
   }

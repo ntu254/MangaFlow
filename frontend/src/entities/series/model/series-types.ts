@@ -39,6 +39,7 @@ export type ChapterAction =
   | "SCHEDULE"
   | "POSTPONE"
   | "PUBLISH"
+  | "PUBLISH_EARLY"
   | "REASSIGN"
   | "ARCHIVE"
   // Legacy
@@ -191,6 +192,7 @@ export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
   SCHEDULE: "Schedule",
   POSTPONE: "Postpone",
   PUBLISH: "Publish Now",
+  PUBLISH_EARLY: "Publish Early",
   REASSIGN: "Reassign",
   ARCHIVE: "Archive",
 };
@@ -321,6 +323,16 @@ export interface SeriesRanking {
   finalScore: number;
   status: string;
   atRisk: boolean;
+  source?: string;
+  metadata?: {
+    atRiskDecision?: {
+      decision?: string;
+      note?: string;
+      decidedAt?: string;
+      decidedById?: string;
+      decidedByName?: string;
+    };
+  };
 }
 
 export const seriesKeys = {

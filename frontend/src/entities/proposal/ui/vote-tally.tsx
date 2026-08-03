@@ -1,5 +1,5 @@
 import type { BoardVote, SeriesProposal } from "@/entities/proposal/model/proposal-types";
-import { BOARD_TOTAL, EIC_TIEBREAK_WEIGHT } from "@/entities/proposal/model/proposal-types";
+import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 
 export function VoteTally({
@@ -22,7 +22,7 @@ export function VoteTally({
       </p>
       {status === "TIE_BREAK" ? (
         <div className="mb-3 rounded border border-fuchsia-300 bg-fuchsia-50 p-2 text-[11px] text-fuchsia-900">
-          Tied vote — awaiting Editor-in-Chief tie-break vote (weight {EIC_TIEBREAK_WEIGHT}).
+          Historical tied vote. This round is read-only; close it to open a fresh Board re-vote.
         </div>
       ) : null}
       <div className="grid grid-cols-3 gap-2 text-center">

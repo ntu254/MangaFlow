@@ -2,6 +2,7 @@ export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AtRiskDecisionKind =
   | "CONTINUE"
   | "WARNING"
+  | "REQUEST_IMPROVEMENT_PLAN"
   | "CANCEL"
   | "COMPLETE"
   | "CHANGE_FORMAT"
@@ -53,16 +54,19 @@ export type AtRiskReview = {
   rankingId: string;
   seriesId: string;
   seriesTitle: string;
+  period?: string;
   risk: RiskLevel;
   reason: string;
   readerScore: number;
-  voteDropPct: number;
-  completionRate: number;
+  finalScore?: number;
+  voteCount?: number;
+  source?: string;
   status: "OPEN" | "DECIDED";
-  recommendedDecision: AtRiskDecisionKind;
+  recommendedDecision?: AtRiskDecisionKind;
   decision?: AtRiskDecisionKind;
   decisionReason?: string;
   decidedAt?: string;
+  decidedByName?: string;
 };
 
 export const RISK_LABEL: Record<RiskLevel, string> = {
@@ -75,6 +79,7 @@ export const RISK_LABEL: Record<RiskLevel, string> = {
 export const AT_RISK_DECISION_LABEL: Record<AtRiskDecisionKind, string> = {
   CONTINUE: "Continue",
   WARNING: "Warning",
+  REQUEST_IMPROVEMENT_PLAN: "Request improvement plan",
   CANCEL: "Cancel",
   COMPLETE: "Complete",
   CHANGE_FORMAT: "Change format",

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReviewItem } from "../../model/editor-access";
-import { formatDate, isOverdue } from "@/shared/lib/format-date";
+import { formatDate, formatDateTime, isOverdue, timeAgo } from "@/shared/lib/format-date";
 import { ReviewStatusPill, PriorityPill } from "@/entities/submission";
 import type { QueueAccent, QueueColumn } from "@/shared/ui";
 
@@ -35,6 +35,12 @@ export function isItemCompleted(item: ReviewItem) {
 
 export function isItemOverdue(item: ReviewItem) {
   return !isItemCompleted(item) && isOverdue(item.deadline ?? undefined);
+}
+
+const NEW_REVIEW_STATUSES = new Set(["PENDING_EDITOR", "TANTOU_REVIEW", "MANGAKA_APPROVED"]);
+
+export function isNewReviewItem(item: ReviewItem) {
+  return !isItemCompleted(item) && NEW_REVIEW_STATUSES.has(item.status);
 }
 
 function includesFor(item: ReviewItem) {
@@ -115,7 +121,14 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
             {(item.seriesTitle ?? item.title ?? "?").slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-[var(--admin-ink)]">{item.title}</p>
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="truncate font-semibold text-[var(--admin-ink)]">{item.title}</p>
+              {isNewReviewItem(item) ? (
+                <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-800">
+                  New
+                </span>
+              ) : null}
+            </div>
             <p className="truncate text-[11px] text-[var(--admin-faint)]">
               {item.seriesTitle ?? "—"} · {includesFor(item)}
             </p>
@@ -129,6 +142,20 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
       sortable: true,
       className: "w-[140px]",
       render: (item) => <ReviewStatusPill status={item.status} />,
+    },
+    {
+      key: "submitted",
+      header: "Submitted",
+      sortable: true,
+      className: "w-[110px]",
+      render: (item) => (
+        <span
+          className="text-[12px] text-[var(--admin-muted)]"
+          title={formatDateTime(item.submittedAt)}
+        >
+          {timeAgo(item.submittedAt)}
+        </span>
+      ),
     },
     {
       key: "due",

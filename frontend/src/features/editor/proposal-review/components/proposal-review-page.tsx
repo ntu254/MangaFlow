@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, FileText, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
 import { useAuth, isEditorInChief, type User } from "@/shared/auth";
 import {
   useProposalActionMutation,
@@ -20,7 +20,7 @@ import { isEditorialChecklistComplete } from "../model/editorial-checklist";
 import { DecisionActions } from "@/shared/ui/decision-actions";
 import { ReviewStatusPill } from "@/entities/submission";
 import { toast } from "sonner";
-import { ResolvedFileLink } from "@/shared/ui/resolved-file-link";
+import { MaterialsViewer } from "@/entities/proposal";
 
 const EDITOR_REVIEW_STATUSES = ["PENDING_EDITOR", "EDITOR_REVIEWING", "RESUBMITTED"];
 
@@ -123,37 +123,7 @@ export function ProposalReviewPage() {
             !proposal.sampleChapterUrl ? (
               <p className="text-xs text-muted-foreground">No materials yet</p>
             ) : (
-              <ul className="min-w-0 space-y-1.5">
-                {proposal.manuscripts.map((m) => (
-                  <FileAssetRow
-                    key={m.id}
-                    title={`Manuscript v${m.version}: ${m.fileName}`}
-                    meta={`v${m.version} · ${Math.round(m.sizeKB)}KB`}
-                    fileKey={m.fileKey}
-                    href={m.fileUrl}
-                    fileName={m.fileName}
-                  />
-                ))}
-                {proposal.sampleChapterUrl ? (
-                  <FileAssetRow
-                    title="Sample pages"
-                    meta={proposal.sampleChapterUrl}
-                    fileKey={latestMs?.fileKey}
-                    href={proposal.sampleChapterUrl}
-                    fileName={latestMs?.fileName}
-                  />
-                ) : null}
-                {proposal.materials.map((m) => (
-                  <FileAssetRow
-                    key={m.id}
-                    title={`Creative material: ${m.title}`}
-                    meta={`${m.fileName} · ${Math.round(m.sizeKB)}KB`}
-                    fileKey={m.fileKey}
-                    href={m.fileUrl}
-                    fileName={m.fileName}
-                  />
-                ))}
-              </ul>
+              <MaterialsViewer proposal={proposal} user={user} annotationLabel="Review notes" />
             )}
           </Block>
 
@@ -472,53 +442,6 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
       </p>
       <div className="mt-3 min-w-0 space-y-2 overflow-hidden">{children}</div>
     </div>
-  );
-}
-
-function FileAssetRow({
-  title,
-  meta,
-  fileKey,
-  href,
-  fileName,
-}: {
-  title: string;
-  meta?: string;
-  fileKey?: string;
-  href?: string;
-  fileName?: string;
-}) {
-  const metaTitle = meta ?? title;
-
-  return (
-    <li className="flex min-w-0 items-start gap-2 text-xs">
-      <FileText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold" title={title}>
-          {title}
-        </p>
-        {meta ? (
-          fileKey || href ? (
-            <ResolvedFileLink
-              fileKey={fileKey}
-              fallbackUrl={href}
-              fileName={fileName}
-              className="mt-0.5 line-clamp-2 min-w-0 break-all text-muted-foreground underline-offset-2 hover:underline"
-              ariaLabel={`Open ${title}`}
-            >
-              {meta}
-            </ResolvedFileLink>
-          ) : (
-            <p
-              className="mt-0.5 line-clamp-2 min-w-0 break-all text-muted-foreground"
-              title={metaTitle}
-            >
-              {meta}
-            </p>
-          )
-        ) : null}
-      </div>
-    </li>
   );
 }
 

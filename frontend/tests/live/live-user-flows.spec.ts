@@ -26,6 +26,7 @@ const chapterTitle = "E2E Signal Chapter";
 const sampleImage = path.resolve("public/assets/covers/onepiece.jpg");
 const sampleImage2 = path.resolve("public/assets/covers/berserk.jpg");
 const sampleImage3 = path.resolve("public/assets/covers/vinland.jpg");
+const API_ORIGIN = process.env.E2E_API_ORIGIN ?? "http://localhost:3001";
 
 let proposalId = "";
 let sessionId = "";
@@ -167,7 +168,7 @@ async function createAdminUser(page: Page, input: readonly [string, string, stri
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Name").fill(name);
   await dialog.getByLabel("Email").fill(email);
-  await dialog.getByLabel("Password (optional)").fill(password);
+  await dialog.getByLabel("Password").fill(password);
   await dialog.getByLabel("Role").click();
   await page.getByRole("option", { name: role, exact: true }).click();
   const responsePromise = page.waitForResponse(
@@ -217,6 +218,18 @@ async function createAndSubmitProposal(page: Page, title: string, materialTitle:
   expect((await submitResponsePromise).status()).toBe(200);
   await expect(page).toHaveURL(/\/app\/submissions$/);
   return String(createPayload.data.id);
+}
+
+async function completeEditorialChecklist(page: Page) {
+  const uncheckedCriteria = page.locator('button[aria-pressed="false"]');
+  for (let index = 0; index < 6; index += 1) {
+    const updateResponse = page.waitForResponse((response) =>
+      response.url().includes("/actions/UPDATE_EDITORIAL_CHECKLIST"),
+    );
+    await uncheckedCriteria.first().click();
+    expect((await updateResponse).status()).toBe(200);
+  }
+  await expect(page.locator('button[aria-pressed="false"]')).toHaveCount(0);
 }
 
 test.describe.serial("live cross-role business chain", () => {
@@ -310,6 +323,7 @@ test.describe.serial("live cross-role business chain", () => {
     );
     await page.getByRole("button", { name: "Claim Review", exact: true }).click();
     expect((await claimResponse).status()).toBe(200);
+    await completeEditorialChecklist(page);
     const sendToBoard = page.getByRole("button", { name: "Send to Board", exact: true });
     await expect(sendToBoard).toBeEnabled();
 
@@ -786,10 +800,7 @@ test.describe.serial("live cross-role business chain", () => {
     await screenshot(page, "27-public-reader-scheduled-hidden");
   });
 
-  test("Publication due guard blocks early release, then Tantou publishes when due", async ({
-    page,
-  }) => {
-    test.setTimeout(120_000);
+  test("Tantou can publish a scheduled Chapter early", async ({ page }) => {
     expect(publicationScheduledAtMs).toBeGreaterThan(Date.now());
     await login(page, ...SEEDED.editor);
     await page.goto("/app/editor/publications");
@@ -799,26 +810,12 @@ test.describe.serial("live cross-role business chain", () => {
     await expect(row).toBeVisible();
 
     const earlyPublishResponse = page.waitForResponse((response) =>
-      response.url().includes("/actions/PUBLISH"),
+      response.url().includes("/actions/PUBLISH_EARLY"),
     );
-    await row.getByRole("button", { name: "Publish", exact: true }).click();
+    page.once("dialog", (dialog) => dialog.accept());
+    await row.getByRole("button", { name: "Publish early", exact: true }).click();
     const earlyResponse = await earlyPublishResponse;
-    expect(earlyResponse.status()).toBe(409);
-    expect((await earlyResponse.json()).code).toBe("PUBLICATION_NOT_DUE");
-
-    await expect
-      .poll(() => Date.now(), {
-        timeout: 90_000,
-        intervals: [1_000],
-        message: "Waiting for the scheduled publication time",
-      })
-      .toBeGreaterThan(publicationScheduledAtMs);
-
-    const publishResponse = page.waitForResponse((response) =>
-      response.url().includes("/actions/PUBLISH"),
-    );
-    await row.getByRole("button", { name: "Publish", exact: true }).click();
-    expect((await publishResponse).status()).toBe(200);
+    expect(earlyResponse.status()).toBe(200);
     await page.getByRole("button", { name: "Published", exact: true }).click();
     await expect(page.locator("tr").filter({ hasText: chapterTitle })).toBeVisible();
     await screenshot(page, "22-tantou-published-chapter");
@@ -842,9 +839,7 @@ test.describe.serial("live cross-role business chain", () => {
     await chapterLink.click();
 
     await expect(page).toHaveURL(new RegExp(`/read/${seriesSlug}/1$`));
-    await expect(
-      page.getByText(`Chapter 1: ${chapterTitle}`, { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText(`Chapter 1: ${chapterTitle}`, { exact: true })).toBeVisible();
     await expect(page.getByRole("img", { name: "Page 1" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Page 2" })).toBeVisible();
     await expect(page.getByText(/will wire real images/i)).toHaveCount(0);
@@ -878,6 +873,7 @@ test.describe.serial("live cross-role business chain", () => {
     );
     await page.getByRole("button", { name: "Claim Review", exact: true }).click();
     expect((await claimResponse).status()).toBe(200);
+    await completeEditorialChecklist(page);
 
     const forwardResponse = page.waitForResponse((response) =>
       response.url().includes("/actions/FORWARD"),
@@ -1008,6 +1004,7 @@ test("Board rejects a proposal at three-of-five quorum and moves it to Decisions
   );
   await page.getByRole("button", { name: "Claim Review", exact: true }).click();
   expect((await claimResponse).status()).toBe(200);
+  await completeEditorialChecklist(page);
   const forwardResponse = page.waitForResponse((response) =>
     response.url().includes("/actions/FORWARD"),
   );
@@ -1021,8 +1018,7 @@ test("Board rejects a proposal at three-of-five quorum and moves it to Decisions
   await page.getByLabel("Title").fill("E2E Rejection Decision Session");
   const createSessionResponse = page.waitForResponse(
     (response) =>
-      response.url().endsWith("/api/voting-sessions") &&
-      response.request().method() === "POST",
+      response.url().endsWith("/api/voting-sessions") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Create session", exact: true }).click();
   const createdSession = await createSessionResponse;
@@ -1073,16 +1069,32 @@ test("Board rejects a proposal at three-of-five quorum and moves it to Decisions
 test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approves", async ({
   page,
 }) => {
+  const regionChapterTitle = "E2E Harbor Cleanup Chapter";
   const taskTitle = "E2E Harbor Cleanup Region";
   await login(page, ...SEEDED.mangaka);
-  await page.goto("/app/series/berserk-prod/overview");
-  await page
-    .getByRole("button", {
-      name: "Open Studio",
-      description: "Mangaka production owner",
-      exact: true,
-    })
-    .click();
+  await page.goto("/app/series/berserk-prod/chapters");
+  await page.getByRole("button", { name: "Create chapter", exact: true }).click();
+  const chapterDialog = page.getByRole("dialog");
+  await chapterDialog.getByLabel("Title").fill(regionChapterTitle);
+  const chapterResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/series/s-berserk-prod/chapters") &&
+      response.request().method() === "POST",
+  );
+  await chapterDialog.getByRole("button", { name: "Create", exact: true }).click();
+  const createdChapter = await chapterResponse;
+  expect(createdChapter.status()).toBe(201);
+  await page.getByText(regionChapterTitle, { exact: true }).click();
+  await page.getByRole("button", { name: "Open Studio", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Upload Page", exact: true })).toBeVisible();
+  const uploadResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/chapters/") &&
+      response.url().endsWith("/pages") &&
+      response.request().method() === "POST",
+  );
+  await page.locator('input[type="file"]').first().setInputFiles(sampleImage3);
+  expect((await uploadResponse).status()).toBe(201);
   await expect(page.getByRole("button", { name: "Draw Region", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Draw Region", exact: true }).click();
@@ -1093,16 +1105,11 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
 
   const createRegionResponse = page.waitForResponse(
     (response) =>
-      response.url().endsWith("/api/studio/regions") &&
-      response.request().method() === "POST",
+      response.url().endsWith("/api/studio/regions") && response.request().method() === "POST",
   );
   await page.mouse.move(box!.x + box!.width * 0.42, box!.y + box!.height * 0.34);
   await page.mouse.down();
-  await page.mouse.move(
-    box!.x + box!.width * 0.58,
-    box!.y + box!.height * 0.48,
-    { steps: 8 },
-  );
+  await page.mouse.move(box!.x + box!.width * 0.58, box!.y + box!.height * 0.48, { steps: 8 });
   await page.mouse.up();
   const regionResponse = await createRegionResponse;
   expect(regionResponse.status()).toBe(201);
@@ -1122,8 +1129,7 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
 
   const createTaskResponse = page.waitForResponse(
     (response) =>
-      response.url().endsWith("/api/studio/tasks") &&
-      response.request().method() === "POST",
+      response.url().endsWith("/api/studio/tasks") && response.request().method() === "POST",
   );
   await dialog.getByRole("button", { name: "Create task", exact: true }).click();
   const taskResponse = await createTaskResponse;
@@ -1167,11 +1173,7 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
   const payload = await response.json();
   const submissionId = String(payload.data.id);
   expect(response.status()).toBe(201);
-  await expect(
-    page.getByText("This task is in read-only state; you cannot upload edited files.", {
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(page.getByText("Work already submitted", { exact: true })).toBeVisible();
   await screenshot(page, "33-assistant-submitted-region-task");
 
   await clearSession(page);
@@ -1233,9 +1235,7 @@ test("Mangaka versions a Material and Editor approves it as an immutable record"
       response.url().endsWith(`/api/materials/${materialId}/versions`) &&
       response.request().method() === "POST",
   );
-  await versionDialog
-    .getByRole("button", { name: "Upload new version", exact: true })
-    .click();
+  await versionDialog.getByRole("button", { name: "Upload new version", exact: true }).click();
   expect((await versionResponse).status()).toBe(200);
   await expect(detail.getByText("v2", { exact: true }).first()).toBeVisible();
 
@@ -1270,22 +1270,26 @@ test("Mangaka versions a Material and Editor approves it as an immutable record"
   await expect(detail.getByRole("button", { name: "Replace", exact: true })).toHaveCount(0);
   await screenshot(page, "36-editor-approved-material");
 
-  const card = page.locator("div.group").filter({
-    has: page.getByRole("img", { name: materialTitle }).first(),
-  });
-  await card.getByRole("button", { name: "More", exact: true }).click();
+  const card = page
+    .locator("div.group")
+    .filter({ has: page.getByRole("img", { name: materialTitle }).first() })
+    .first();
+  await card.getByRole("button", { name: "More", exact: true }).first().click();
   await expect(page.getByRole("menuitem", { name: "Delete", exact: true })).toHaveCount(0);
   await page.keyboard.press("Escape");
 
-  const deleteAttempt = await page.evaluate(async (id) => {
-    const raw = window.localStorage.getItem("beachread-api-tokens");
-    const tokens = raw ? JSON.parse(raw) : null;
-    const response = await fetch(`http://localhost:3101/api/materials/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${tokens?.accessToken ?? ""}` },
-    });
-    return { status: response.status, body: await response.json() };
-  }, materialId);
+  const deleteAttempt = await page.evaluate(
+    async ({ id, apiOrigin }) => {
+      const raw = window.localStorage.getItem("beachread-api-tokens");
+      const tokens = raw ? JSON.parse(raw) : null;
+      const response = await fetch(`${apiOrigin}/api/materials/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${tokens?.accessToken ?? ""}` },
+      });
+      return { status: response.status, body: await response.json() };
+    },
+    { id: materialId, apiOrigin: API_ORIGIN },
+  );
   expect(deleteAttempt.status).toBe(409);
   expect(deleteAttempt.body.code).toBe("APPROVED_MATERIAL_IMMUTABLE");
   await expect(page.getByRole("img", { name: materialTitle }).first()).toBeVisible();
@@ -1372,14 +1376,14 @@ test("AI service is reachable through the authenticated frontend backend contrac
   const responsePromise = page.waitForResponse((response) =>
     response.url().endsWith("/api/ai/health"),
   );
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (apiOrigin) => {
     const raw = window.localStorage.getItem("beachread-api-tokens");
     const tokens = raw ? JSON.parse(raw) : null;
-    const response = await fetch("http://localhost:3101/api/ai/health", {
+    const response = await fetch(`${apiOrigin}/api/ai/health`, {
       headers: { Authorization: `Bearer ${tokens?.accessToken ?? ""}` },
     });
     return { status: response.status, body: await response.json() };
-  });
+  }, API_ORIGIN);
   await responsePromise;
   expect(result.status).toBe(200);
   expect(result.body.data.status).toBe("ok");

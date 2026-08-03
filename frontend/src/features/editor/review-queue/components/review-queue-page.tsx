@@ -24,11 +24,12 @@ import {
 import {
   isItemCompleted,
   isItemOverdue,
+  isNewReviewItem,
   reviewQueueColumns,
   reviewRowAccent,
 } from "./review-queue-table";
 
-type TabKey = "ALL" | "NEEDS" | "RESUBMITTED" | "BLOCKING" | "OVERDUE" | "COMPLETED";
+type TabKey = "ALL" | "NEW" | "NEEDS" | "RESUBMITTED" | "BLOCKING" | "OVERDUE" | "COMPLETED";
 
 const PAGE_SIZE = 8;
 const PRIORITY_ORDER: Record<string, number> = { BLOCKING: 4, HIGH: 3, NORMAL: 2, LOW: 1 };
@@ -37,6 +38,8 @@ function matchesTab(item: ReviewItem, tab: TabKey): boolean {
   switch (tab) {
     case "ALL":
       return true;
+    case "NEW":
+      return isNewReviewItem(item);
     case "NEEDS":
       return !isItemCompleted(item);
     case "RESUBMITTED":
@@ -74,6 +77,7 @@ export function ReviewQueuePage() {
   const counts = useMemo(
     () => ({
       ALL: queue.length,
+      NEW: queue.filter((i) => matchesTab(i, "NEW")).length,
       NEEDS: queue.filter((i) => matchesTab(i, "NEEDS")).length,
       RESUBMITTED: queue.filter((i) => matchesTab(i, "RESUBMITTED")).length,
       BLOCKING: queue.filter((i) => matchesTab(i, "BLOCKING")).length,
@@ -95,13 +99,18 @@ export function ReviewQueuePage() {
     );
   }, [tabbed, query]);
 
-  const { sorted, sortKey, sortDirection, toggleSort } = useSortableData(filtered, {
-    priority: (item) => PRIORITY_ORDER[item.priority] ?? 0,
-    item: (item) => item.title,
-    status: (item) => item.status,
-    due: (item) => (item.deadline ? new Date(item.deadline) : undefined),
-    revision: (item) => Number(Boolean(item.revisionReturned)),
-  });
+  const { sorted, sortKey, sortDirection, toggleSort } = useSortableData(
+    filtered,
+    {
+      priority: (item) => PRIORITY_ORDER[item.priority] ?? 0,
+      item: (item) => item.title,
+      status: (item) => item.status,
+      submitted: (item) => new Date(item.submittedAt),
+      due: (item) => (item.deadline ? new Date(item.deadline) : undefined),
+      revision: (item) => Number(Boolean(item.revisionReturned)),
+    },
+    { key: "submitted", direction: "desc" },
+  );
 
   useEffect(() => {
     setPage(1);
@@ -119,6 +128,7 @@ export function ReviewQueuePage() {
 
   const tabs: QueueTab[] = [
     { key: "ALL", label: "All", count: counts.ALL },
+    { key: "NEW", label: "New", count: counts.NEW },
     { key: "NEEDS", label: "Needs Review", count: counts.NEEDS },
     { key: "RESUBMITTED", label: "Resubmitted", count: counts.RESUBMITTED },
     { key: "BLOCKING", label: "Blocking", count: counts.BLOCKING },
@@ -132,7 +142,7 @@ export function ReviewQueuePage() {
     <QueuePage
       eyebrow="Editorial"
       title="Editor Reviews"
-      description="Review chapters and packages submitted by mangaka before publication."
+      description="Newest submissions appear first. Review chapters and packages submitted by mangaka before publication."
       actions={
         <QueueActionButton
           icon={<RefreshCw className="size-4" />}

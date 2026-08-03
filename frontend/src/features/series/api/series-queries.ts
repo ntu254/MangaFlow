@@ -440,6 +440,7 @@ export function useSubmissionReviewMutation() {
       action: "approve" | "reject" | "request-revision";
       reviewerNote?: string;
       chapterId?: string;
+      seriesId?: string;
       taskId?: string;
     }
   >({
@@ -468,6 +469,12 @@ export function useSubmissionReviewMutation() {
       }
       if (variables.chapterId) {
         queryClient.invalidateQueries({ queryKey: chapterKeys.readiness(variables.chapterId) });
+        // Approval promotes the submission asset to the chapter page, so refresh
+        // the page-backed views ("Pages uploaded" preview, before/after compare).
+        queryClient.invalidateQueries({ queryKey: chapterKeys.pages(variables.chapterId) });
+      }
+      if (variables.seriesId) {
+        queryClient.invalidateQueries({ queryKey: seriesKeys.chapters(variables.seriesId) });
       }
     },
   });

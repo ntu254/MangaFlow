@@ -100,6 +100,7 @@ export async function publishChapter(
   series: any,
   chapterId: string,
   fromStatus: string,
+  allowEarly = false,
 ) {
   const publication = await PublicationModel.findOne({ chapterId, status: "SCHEDULED" }).lean();
   if (!publication) {
@@ -110,9 +111,11 @@ export async function publishChapter(
     );
   }
   const scheduledAt = new Date((publication as any).scheduledAt);
-  if (scheduledAt.getTime() > Date.now()) {
+  const isEarly = scheduledAt.getTime() > Date.now();
+  if (isEarly && !allowEarly) {
     throw new AppError(409, "Publication scheduledAt has not arrived.", "PUBLICATION_NOT_DUE");
   }
+  assertPublishableSeries(series);
   const publishedAt = new Date();
   await PublicationModel.updateOne(
     { chapterId },
@@ -138,13 +141,15 @@ export async function publishChapter(
   await audit(req, "CHAPTER_PUBLISHED", "chapter", chapterId, {
     fromStatus,
     toStatus: "PUBLISHED",
+    publishedEarly: isEarly,
+    scheduledAt: scheduledAt.toISOString(),
   });
   await notifyMany([
     {
       userId: series.authorId,
       kind: "CHAPTER_PUBLISHED",
       title: "Chapter published",
-      message: `${chapter.title} has been published.`,
+      message: `${chapter.title} has been published${isEarly ? " early" : ""}.`,
     },
   ]);
   return publishedAt;

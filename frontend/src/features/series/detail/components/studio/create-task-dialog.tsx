@@ -82,12 +82,15 @@ export function CreateTaskDialog({
   const [type, setType] = useState<RegionType>(region?.type ?? "background");
   const [assigneeId, setAssigneeId] = useState(members[0]?.id ?? "");
   const [rateCode, setRateCode] = useState(rates[0]?.code ?? "");
-  const [quantity, setQuantity] = useState("1");
   const [dueAt, setDueAt] = useState("");
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
   const [instructions, setInstructions] = useState("");
   const selectedRate = rates.find((rate) => rate.code === rateCode);
-  const estimatedAmount = selectedRate ? Number(quantity || 0) * selectedRate.amount : 0;
+  // This dialog creates a task for one selected page/region. Batch tasks can
+  // still use quantity through the API, but this single-unit flow must remain
+  // unambiguous for the assistant and payroll calculation.
+  const quantity = 1;
+  const estimatedAmount = selectedRate ? selectedRate.amount : 0;
   const pageHasSource = Boolean(
     page?.fileKey || isRenderableFileUrl(page?.fileUrl ?? page?.imageUrl),
   );
@@ -98,7 +101,6 @@ export function CreateTaskDialog({
       setTitle(region ? `${REGION_TYPE_LABEL[region.type]} — ${region.label ?? "Region"}` : "");
       setAssigneeId(members[0]?.id ?? "");
       setRateCode(rates[0]?.code ?? "");
-      setQuantity("1");
     }
   }, [members, open, region, rates]);
 
@@ -233,15 +235,9 @@ export function CreateTaskDialog({
               </select>
             )}
           </Row>
-          <Row label="Quantity">
-            <Input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </Row>
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            This task covers 1 selected {selectedRate?.workUnitType?.toLowerCase() ?? "unit"}.
+          </div>
           {selectedRate ? (
             <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
               <span>Estimated task amount</span>

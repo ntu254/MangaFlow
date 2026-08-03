@@ -157,6 +157,45 @@ async function releaseRegionLock(
   );
 }
 
+// On Mangaka approval, promote the approved submission's asset to be the
+// chapter page image so the "Pages uploaded" preview reflects the accepted work
+// without a manual reload. Only runs when the work targets a page and carries a
+// file asset.
+async function applyApprovedSubmissionToPage(submission: any, task: any, session: any) {
+  const pageId = submission?.pageId ?? task?.pageId;
+  const fileKey = submission?.fileKey;
+  const fileUrl = submission?.fileUrl ?? submission?.imageUrl;
+  const imageUrl = submission?.imageUrl ?? submission?.fileUrl;
+  if (!pageId || (!fileKey && !fileUrl && !imageUrl)) return;
+
+  const chapter = (await ChapterModel.findOne({ "pages.id": String(pageId) })
+    .session(session)
+    .lean()) as any;
+  if (!chapter) return;
+
+  const now = nowIso();
+  const pages = (chapter.pages ?? []).map((page: any) => {
+    if (String(page.id) !== String(pageId)) return page;
+    return {
+      ...page,
+      fileKey: fileKey ?? page.fileKey,
+      fileUrl: fileUrl ?? page.fileUrl,
+      imageUrl: imageUrl ?? page.imageUrl,
+      fileName: submission?.fileName ?? page.fileName,
+      mimeType: submission?.mimeType ?? page.mimeType,
+      sizeKB: typeof submission?.fileSizeKB === "number" ? submission.fileSizeKB : page.sizeKB,
+      status: "UPLOADED",
+      uploadedAt: now,
+      updatedAt: now,
+    };
+  });
+  await ChapterModel.updateOne(
+    { id: chapter.id },
+    { $set: { pages, updatedAt: now } },
+    { session },
+  );
+}
+
 async function assertSubmissionMatchesTaskScope(task: any, payload: any) {
   const scopedFields = ["seriesId", "chapterId", "pageId", "regionId"];
   for (const field of scopedFields) {
@@ -660,6 +699,7 @@ export async function submissionDecision(
         );
       }
       await recordTaskEarning(task, submission, session);
+      await applyApprovedSubmissionToPage(updated ?? submission, task, session);
     } else if (status === "REVISION_REQUESTED") {
       await StudioTaskModel.updateOne(
         { id: submission.taskId, currentSubmissionId: submission.id },

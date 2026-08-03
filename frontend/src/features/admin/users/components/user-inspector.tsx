@@ -119,12 +119,12 @@ export function UserInspector({
               <FieldRow label="User ID">
                 <span className="font-mono text-[12px] text-[var(--admin-muted)]">{user.id}</span>
               </FieldRow>
-              <FieldRow label="Joined">
+              <FieldRow label="Created">
                 <span className="text-[12px] text-[var(--admin-muted)]">
                   {formatUserDateTime(user.createdAt)}
                 </span>
               </FieldRow>
-              <FieldRow label="Last login">
+              <FieldRow label="Updated">
                 <span className="text-[12px] text-[var(--admin-muted)]">
                   {formatUserDateTime(user.updatedAt)}
                 </span>

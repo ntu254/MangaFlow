@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { VotingSession } from "@/entities/board/model/voting-types";
 import {
   SESSION_MODE_LABEL,
+  SESSION_STATUS_HELP,
   SESSION_STATUS_LABEL,
   OUTCOME_LABEL,
 } from "@/entities/board/model/voting-types";
@@ -18,8 +19,15 @@ const STATUS_TONE: Record<VotingSession["status"], string> = {
   CANCELED: "bg-rose-100 text-rose-900",
 };
 
-export function SessionCard({ session }: { session: VotingSession }) {
-  const tieCount = session.outcomes.filter((o) => o.decision === "NO_QUORUM").length;
+export function SessionCard({
+  session,
+  reVoteSession,
+}: {
+  session: VotingSession;
+  reVoteSession?: VotingSession;
+}) {
+  const statusHelp = SESSION_STATUS_HELP[session.status];
+  const tieCount = session.outcomes.filter((o) => o.decision === "TIE_BREAK_REQUIRED").length;
   const decided = session.outcomes.filter((o) =>
     ["APPROVED", "REJECTED", "TIE_BROKEN_APPROVED", "TIE_BROKEN_REJECTED"].includes(o.decision),
   ).length;
@@ -42,6 +50,13 @@ export function SessionCard({ session }: { session: VotingSession }) {
           {SESSION_STATUS_LABEL[session.status]}
         </span>
       </div>
+      <div className="mt-3 rounded-md border border-border/70 bg-background/70 px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          What is happening
+        </p>
+        <p className="mt-1 text-xs font-semibold text-foreground">{statusHelp.description}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">Next: {statusHelp.nextStep}</p>
+      </div>
       <dl className="mt-3 grid grid-cols-2 gap-y-1 text-[11px] text-muted-foreground">
         <div>
           <dt className="font-semibold text-foreground">Proposals</dt>
@@ -51,9 +66,21 @@ export function SessionCard({ session }: { session: VotingSession }) {
           <dt className="font-semibold text-foreground">Decided</dt>
           <dd>{decided}</dd>
         </div>
+        <div>
+          <dt className="font-semibold text-foreground">Round</dt>
+          <dd>{session.reVoteOfSessionId ? "Re-vote after tie" : "First round"}</dd>
+        </div>
         {tieCount > 0 ? (
           <div className="col-span-2 mt-1 rounded bg-fuchsia-100 px-2 py-1 text-fuchsia-900">
-            {tieCount} proposals awaiting Editor-in-chief tie-break
+            {tieCount} historical tie-break record{tieCount === 1 ? "" : "s"} · read-only
+          </div>
+        ) : null}
+        {reVoteSession ? (
+          <div className="col-span-2 mt-1 rounded border border-emerald-300 bg-emerald-50 px-2 py-2 text-emerald-950">
+            <p className="font-semibold">Fresh Board re-vote is open.</p>
+            <p className="mt-0.5 text-[10px]">
+              Open this card to review the tie, then use the re-vote session.
+            </p>
           </div>
         ) : null}
         {session.scheduledFor ? (
@@ -67,7 +94,7 @@ export function SessionCard({ session }: { session: VotingSession }) {
         <ul className="mt-3 space-y-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
           {session.outcomes.slice(0, 3).map((o) => (
             <li key={o.proposalId}>
-              {o.proposalId}: {OUTCOME_LABEL[o.decision]}
+              Proposal {o.proposalId}: {OUTCOME_LABEL[o.decision]}
             </li>
           ))}
         </ul>

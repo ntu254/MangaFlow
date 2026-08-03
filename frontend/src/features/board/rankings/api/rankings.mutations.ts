@@ -26,7 +26,6 @@ export interface RankingImportRow {
 }
 
 export interface RankingImportInput {
-  csvData: string;
   rows?: RankingImportRow[];
   source?: string;
   period?: string;

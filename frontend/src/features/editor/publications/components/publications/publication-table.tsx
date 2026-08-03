@@ -138,7 +138,7 @@ function PublicationActions({
   const action = useChapterActionMutation(chapter.id, chapter.seriesId);
   const suggested = nextSuggestedSchedule(publicationType);
 
-  const run = (act: "POSTPONE" | "PUBLISH", successMsg: string) =>
+  const run = (act: "POSTPONE" | "PUBLISH" | "PUBLISH_EARLY", successMsg: string) =>
     action.mutate(
       { action: act },
       {
@@ -150,17 +150,6 @@ function PublicationActions({
   if (chapter.status === "PUBLISHED") {
     return <span className="text-[10px] font-semibold text-emerald-700">Published</span>;
   }
-
-  const publishBtn = (
-    <button
-      type="button"
-      disabled={action.isPending}
-      onClick={() => run("PUBLISH", "Chapter published.")}
-      className="rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background hover:opacity-90 disabled:opacity-40"
-    >
-      Publish
-    </button>
-  );
 
   if (chapter.publication?.status === "SCHEDULED") {
     const scheduledAt = chapter.publication.scheduledAt ?? chapter.scheduledAt;
@@ -188,20 +177,29 @@ function PublicationActions({
           />
         )}
         {isDue ? (
-          publishBtn
+          <span className="rounded bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+            Auto-publish due
+          </span>
         ) : (
-          <button
-            type="button"
-            disabled
-            title={
-              scheduledAt
-                ? `Publish becomes available ${formatDate(scheduledAt)}.`
-                : "A publication schedule is required."
-            }
-            className="cursor-not-allowed rounded bg-foreground px-2 py-1 text-[10px] font-semibold text-background opacity-40"
-          >
-            Publish
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={action.isPending}
+              title={scheduledAt ? `Publish before ${formatDate(scheduledAt)}.` : undefined}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Publish this chapter now? This will release it before the scheduled time.",
+                  )
+                ) {
+                  run("PUBLISH_EARLY", "Chapter published early.");
+                }
+              }}
+              className="rounded border border-rose-300 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-40"
+            >
+              Publish early
+            </button>
+          </>
         )}
       </div>
     );

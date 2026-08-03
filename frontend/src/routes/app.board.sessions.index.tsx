@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useAuth, isBoardChair } from "@/shared/auth";
 import { SessionCard, useVotingSessionsQuery } from "@/features/board";
-import type { VotingSessionStatus } from "@/entities/board/model/voting-types";
+import {
+  SESSION_STATUS_LABEL,
+  type VotingSessionStatus,
+} from "@/entities/board/model/voting-types";
 
 export const Route = createFileRoute("/app/board/sessions/")({
   component: VotingSessionsList,
@@ -51,7 +54,8 @@ function VotingSessionsList() {
           </p>
           <h1 className="mt-1 font-serif text-4xl">Voting sessions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ad-hoc voting sessions for proposals and scheduled board meetings.
+            Each card is one voting round. Open rounds accept votes; tied rounds create a new
+            Board re-vote automatically.
           </p>
         </div>
         {canCreate ? (
@@ -64,8 +68,25 @@ function VotingSessionsList() {
         ) : null}
       </header>
 
+      <section className="grid gap-2 rounded-lg border border-border bg-card/40 p-4 text-xs md:grid-cols-3">
+        <div>
+          <p className="font-bold text-emerald-800">OPEN</p>
+          <p className="mt-1 text-muted-foreground">Board members are voting now.</p>
+        </div>
+        <div>
+          <p className="font-bold text-fuchsia-800">TIED</p>
+          <p className="mt-1 text-muted-foreground">This round is history; a new re-vote is active.</p>
+        </div>
+        <div>
+          <p className="font-bold text-blue-800">FINALIZED</p>
+          <p className="mt-1 text-muted-foreground">The Board decision is complete.</p>
+        </div>
+      </section>
+
       <nav className="flex flex-wrap gap-1">
-        {(["ALL", "OPEN", "CLOSED", "CANCELED"] as const).map((f) => (
+        {(
+          ["ALL", "OPEN", "TIED", "TIE_BREAK_REQUIRED", "FINALIZED", "NO_QUORUM", "CANCELLED"] as const
+        ).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -75,7 +96,7 @@ function VotingSessionsList() {
                 : "border-border bg-card text-muted-foreground hover:bg-muted"
             }`}
           >
-            {f}
+            {f === "ALL" ? "All" : SESSION_STATUS_LABEL[f]}
           </button>
         ))}
       </nav>
@@ -96,7 +117,12 @@ function VotingSessionsList() {
         <ul className="grid gap-3 md:grid-cols-2">
           {visible.map((vs) => (
             <li key={vs.id}>
-              <SessionCard session={vs} />
+              <SessionCard
+                session={vs}
+                reVoteSession={sessions.find(
+                  (candidate) => candidate.reVoteOfSessionId === vs.id && candidate.status === "OPEN",
+                )}
+              />
             </li>
           ))}
         </ul>

@@ -64,13 +64,21 @@ export function chapterReadiness(
       key: "allTasksApproved",
       passed: tasks
         .filter((task) => task.isRequired !== false)
-        .every((task) => ["MANGAKA_APPROVED", "CANCELLED"].includes(task.status)),
+        // CANCELLED and REJECTED tasks are terminal dead-ends (a rejected task
+        // cannot be reopened; the region is freed for a replacement task), so
+        // they must not block the chapter.
+        .every((task) => ["MANGAKA_APPROVED", "CANCELLED", "REJECTED"].includes(task.status)),
       reason: "Every required assistant task must be approved by Mangaka.",
     },
     {
       key: "allSubmissionsApproved",
       passed: tasks
-        .filter((task) => task.isRequired !== false && task.status !== "CANCELLED")
+        .filter(
+          (task) =>
+            task.isRequired !== false &&
+            task.status !== "CANCELLED" &&
+            task.status !== "REJECTED",
+        )
         .every((task) =>
           submissions.some(
             (submission) =>

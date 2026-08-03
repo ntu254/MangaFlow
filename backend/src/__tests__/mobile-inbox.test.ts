@@ -1,0 +1,102 @@
+import mongoose from "mongoose";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
+import request from "supertest";
+import { createApp } from "../app.js";
+import { seedDatabase } from "../seed.js";
+import { mobileInboxSchema } from "../mobile/mobile-work-item.contract.js";
+
+let mongo: MongoMemoryReplSet;
+
+async function loginAs(email: string, password = email) {
+  const response = await request(createApp())
+    .post("/api/auth/login")
+    .send({ email, password })
+    .expect(200);
+  return response.body.data as { accessToken: string; user: { id: string; role: string } };
+}
+
+describe("mobile inbox projections", () => {
+  beforeAll(async () => {
+    mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+    await mongoose.connect(mongo.getUri());
+  }, 30_000);
+
+  beforeEach(async () => {
+    await seedDatabase();
+  }, 30_000);
+
+  afterAll(async () => {
+    await mongoose.disconnect();
+    await mongo.stop();
+  }, 30_000);
+
+  it("returns only proposal work to an Editor in the foundation slice", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    const response = await request(createApp())
+      .get("/api/editor/inbox")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data.items.length).toBeGreaterThan(0);
+    expect(
+      response.body.data.items.every((item: any) => item.kind === "PROPOSAL_REVIEW"),
+    ).toBe(true);
+    expect(() => mobileInboxSchema.parse(response.body.data)).not.toThrow();
+    // No Assistant-submission approval or Board-only actions leak into Editor foundation slice.
+    const actions = response.body.data.items.flatMap((item: any) => item.actions);
+    expect(actions.every((action: any) => action.action !== "EDITOR_APPROVE")).toBe(true);
+  });
+
+  it("returns only Board vote work with a VOTE action in the foundation slice", async () => {
+    const board = await loginAs("sato@beachread.jp");
+    const response = await request(createApp())
+      .get("/api/board/inbox")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data.role).toBe("BOARD");
+    expect(response.body.data.items.length).toBeGreaterThan(0);
+    expect(response.body.data.items.every((item: any) => item.kind === "BOARD_VOTE")).toBe(true);
+    expect(() => mobileInboxSchema.parse(response.body.data)).not.toThrow();
+    const actions = response.body.data.items.flatMap((item: any) => item.actions);
+    expect(actions.some((action: any) => action.action === "VOTE")).toBe(true);
+  });
+
+  it("does not expose Chair/finalize actions to an ordinary Board member", async () => {
+    const board = await loginAs("sato@beachread.jp");
+    const response = await request(createApp())
+      .get("/api/board/inbox")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(200);
+    expect(
+      response.body.data.items
+        .flatMap((item: any) => item.actions)
+        .some((action: any) => action.action === "SESSION_FINALIZE"),
+    ).toBe(false);
+  });
+
+  it.each(["jun@beachread.jp", "admin@beachread.jp"])(
+    "denies unsupported mobile role %s on the Editor inbox",
+    async (email) => {
+      const user = await loginAs(email);
+      await request(createApp())
+        .get("/api/editor/inbox")
+        .set("Authorization", `Bearer ${user.accessToken}`)
+        .expect(403);
+    },
+  );
+
+  it("denies an Editor on the Board inbox and a Board member on the Editor inbox", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    const board = await loginAs("sato@beachread.jp");
+
+    await request(createApp())
+      .get("/api/board/inbox")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(403);
+    await request(createApp())
+      .get("/api/editor/inbox")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(403);
+  });
+});

@@ -26,7 +26,27 @@ describe("editor file-key visibility", () => {
     );
     await ProposalModel.updateOne(
       { id: "p-002" },
-      { $set: { status: "PENDING_EDITOR", coverFileKey: "proposals/p-002/cover.png" } },
+      {
+        $set: {
+          status: "PENDING_EDITOR",
+          coverFileKey: "proposals/p-002/cover.png",
+          manuscripts: [
+            {
+              id: "ms-p-002-v1",
+              version: 1,
+              fileKey: "proposals/p-002/manuscript-v1.pdf",
+            },
+          ],
+          materials: [
+            {
+              id: "mat-p-002-pages",
+              kind: "SAMPLE_PAGES",
+              title: "Sample pages",
+              fileKey: "proposals/p-002/sample-pages.pdf",
+            },
+          ],
+        },
+      },
     );
   }, 30_000);
   afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); }, 30_000);
@@ -47,5 +67,20 @@ describe("editor file-key visibility", () => {
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ key: "proposals/p-002/cover.png" })
       .expect(200);
+  });
+
+  it("allows an editor to resolve manuscript and supporting material keys", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+
+    for (const key of [
+      "proposals/p-002/manuscript-v1.pdf",
+      "proposals/p-002/sample-pages.pdf",
+    ]) {
+      await request(createApp())
+        .post("/api/files/display-url")
+        .set("Authorization", `Bearer ${editor.accessToken}`)
+        .send({ key })
+        .expect(200);
+    }
   });
 });

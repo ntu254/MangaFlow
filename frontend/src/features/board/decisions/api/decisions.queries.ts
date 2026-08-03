@@ -14,7 +14,7 @@ export interface BoardDecisionHistoryRow {
 export function useBoardDecisionHistoryQuery() {
   return useQuery<BoardDecisionHistoryRow[], Error>({
     // Fallback to queue if decisions doesn't exist on boardKeys, or define it
-    queryKey: [...boardKeys.all, "decisions"],
+    queryKey: boardKeys.decisions(),
     queryFn: () => boardApi.decisionHistory() as Promise<BoardDecisionHistoryRow[]>,
     staleTime: 30000,
   });
