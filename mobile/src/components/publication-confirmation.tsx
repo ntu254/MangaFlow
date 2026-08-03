@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native"
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 import { toScheduledAt } from "@/domain/publication-schedule"
 
@@ -88,7 +88,7 @@ export function PublicationConfirmation({
           </Text>
           <Text style={styles.body}>{effect}</Text>
           {action === "SCHEDULE" ? (
-            <View style={styles.scheduler}>
+            <ScrollView testID="publication-schedule-scroll" style={styles.scheduler} contentContainerStyle={styles.schedulerContent}>
               <View style={styles.monthHeader}>
                 <Pressable
                   accessibilityRole="button"
@@ -156,7 +156,7 @@ export function PublicationConfirmation({
               <Text accessibilityLabel="Selected publication timestamp" style={styles.selectedTimestamp}>
                 {scheduledAt ?? "Choose a future publication time."}
               </Text>
-            </View>
+            </ScrollView>
           ) : null}
           {localError || errorMessage ? (
             <Text style={styles.error}>{localError ?? errorMessage}</Text>
@@ -197,7 +197,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: typography.title, fontWeight: "700", color: colors.text },
   body: { fontSize: typography.body, color: colors.textMuted },
-  scheduler: { gap: spacing.xs },
+  scheduler: { maxHeight: 360 },
+  schedulerContent: { gap: spacing.xs },
   monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   monthTitle: { fontSize: typography.body, fontWeight: "700", color: colors.text },
   dayGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },

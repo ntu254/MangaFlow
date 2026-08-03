@@ -12,6 +12,17 @@ describe("toScheduledAt", () => {
   it("rejects a time in the current minute", () => {
     expect(toScheduledAt(new Date(2026, 7, 12), 14, 34, new Date(2026, 7, 12, 14, 34))).toBeNull()
   })
+
+  it.each([
+    [24, 0],
+    [-1, 0],
+    [14, 60],
+    [14, -1],
+    [14.5, 0],
+    [14, Number.NaN],
+  ])("rejects an out-of-range or non-integer time of %s:%s", (hour, minute) => {
+    expect(toScheduledAt(new Date(2026, 7, 12), hour, minute, new Date(2026, 7, 12, 0, 0))).toBeNull()
+  })
 })
 
 describe("PublicationConfirmation", () => {
@@ -32,6 +43,7 @@ describe("PublicationConfirmation", () => {
     )
 
     expect(screen.getByText("August 2026")).toBeVisible()
+    expect(screen.getByTestId("publication-schedule-scroll")).toBeVisible()
     fireEvent.press(screen.getByRole("button", { name: "August 12, 2026" }))
     fireEvent.press(screen.getByRole("button", { name: "Hour 14" }))
     fireEvent.press(screen.getByRole("button", { name: "Minute 35" }))
