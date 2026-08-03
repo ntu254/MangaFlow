@@ -35,10 +35,24 @@ describe("editor file-key visibility", () => {
       { id: "p-002" },
       {
         $set: {
-          status: "PENDING_BOARD",
+          status: "BOARD_REVIEW",
           coverFileKey: "proposals/p-002/cover.png",
-          manuscripts: [{ id: "ms-p-002-v1", version: 1, fileKey: "proposals/p-002/manuscript-v1.pdf" }],
-          materials: [{ id: "mat-p-002-pages", kind: "SAMPLE_PAGES", title: "Sample pages", fileKey: "proposals/p-002/sample-pages.pdf" }],
+          manuscripts: [
+            { id: "ms-p-002-v1", version: 1, fileKey: "proposals/p-002/manuscript-v1.pdf" },
+            { file: { key: "proposals/p-002/manuscript-nested.pdf" } },
+            { fileKey: "proposals/p-002/manuscript-current.pdf" },
+          ],
+          materials: [
+            { id: "mat-p-002-pages", kind: "SAMPLE_PAGES", title: "Sample pages", fileKey: "proposals/p-002/sample-pages.pdf" },
+            { fileKey: "proposals/p-002/attachment.pdf" },
+            { file: { key: "proposals/p-002/nested-attachment.pdf" } },
+            {
+              versions: [
+                { fileKey: "proposals/p-002/versioned-attachment.pdf" },
+                { file: { key: "proposals/p-002/nested-versioned-attachment.pdf" } },
+              ],
+            },
+          ],
         },
       },
     );
@@ -133,6 +147,22 @@ describe("editor file-key visibility", () => {
       .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ key: "proposals/p-001/cover.png", fileName: "cover.png" })
       .expect(403);
+  });
+
+  it.each([
+    "proposals/p-002/manuscript-v1.pdf",
+    "proposals/p-002/manuscript-current.pdf",
+    "proposals/p-002/attachment.pdf",
+    "proposals/p-002/nested-attachment.pdf",
+    "proposals/p-002/versioned-attachment.pdf",
+    "proposals/p-002/nested-versioned-attachment.pdf",
+  ])("allows Board display URL for a Board-review proposal file %s", async (key) => {
+    const board = await loginAs("board@beachread.jp");
+    await request(createApp())
+      .post("/api/files/display-url")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ key })
+      .expect(200);
   });
 
   it.each([

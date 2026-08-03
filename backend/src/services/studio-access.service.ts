@@ -7,6 +7,7 @@ import {
   SubmissionModel,
 } from "../db/models.js";
 import { AppError } from "../lib/http.js";
+import { canReadProposal } from "./authorization.service.js";
 import type { RequestActor } from "../types.js";
 
 export type ResolvedStudioPage = {
@@ -90,16 +91,7 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
     ],
   }).lean();
   if (actor.role === "BOARD") {
-    const boardVisibleStatuses = new Set([
-      "PENDING_BOARD",
-      "READY_FOR_BOARD",
-      "BOARD_REVIEW",
-      "BOARD_VOTING",
-      "TIE_BREAK",
-      "APPROVED",
-      "REJECTED",
-    ]);
-    if (proposal && boardVisibleStatuses.has(String((proposal as any).status))) {
+    if (proposal && canReadProposal(actor, proposal)) {
       return { chapter: null, page: null, series: null };
     }
     throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
