@@ -41,13 +41,16 @@ describe("editor file-key visibility", () => {
             { id: "ms-p-002-v1", version: 1, fileKey: "proposals/p-002/manuscript-v1.pdf" },
             { file: { key: "proposals/p-002/manuscript-nested.pdf" } },
             { fileKey: "proposals/p-002/manuscript-current.pdf" },
+            { key: "proposals/p-002/manuscript-top-level.pdf" },
           ],
           materials: [
             { id: "mat-p-002-pages", kind: "SAMPLE_PAGES", title: "Sample pages", fileKey: "proposals/p-002/sample-pages.pdf" },
+            { key: "proposals/p-002/attachment-top-level.pdf" },
             { fileKey: "proposals/p-002/attachment.pdf" },
             { file: { key: "proposals/p-002/nested-attachment.pdf" } },
             {
               versions: [
+                { key: "proposals/p-002/versioned-attachment-top-level.pdf" },
                 { fileKey: "proposals/p-002/versioned-attachment.pdf" },
                 { file: { key: "proposals/p-002/nested-versioned-attachment.pdf" } },
               ],
@@ -150,10 +153,13 @@ describe("editor file-key visibility", () => {
   });
 
   it.each([
+    "proposals/p-002/manuscript-top-level.pdf",
     "proposals/p-002/manuscript-v1.pdf",
     "proposals/p-002/manuscript-current.pdf",
+    "proposals/p-002/attachment-top-level.pdf",
     "proposals/p-002/attachment.pdf",
     "proposals/p-002/nested-attachment.pdf",
+    "proposals/p-002/versioned-attachment-top-level.pdf",
     "proposals/p-002/versioned-attachment.pdf",
     "proposals/p-002/nested-versioned-attachment.pdf",
   ])("allows Board display URL for a Board-review proposal file %s", async (key) => {
