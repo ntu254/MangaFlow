@@ -23,6 +23,8 @@ import type { EditorCommentItem } from "@/data/editor";
 import type { EditorReadinessCheck } from "@/domain/workflow";
 import { MFIcon, type IconName } from "@/design/icons";
 import { colors, radius, spacing } from "@/design/tokens";
+import { WorkItemCard } from "@/components/work-item-card";
+import type { MobileInbox, MobileWorkItem } from "@/domain/mobile-work-item";
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow";
 import { SubmittedFilesPanel } from "@/components/submitted-files-panel";
 import {
@@ -35,45 +37,154 @@ import { SeriesProposalSummaryPanel } from "@/screens/series-proposal-summary-pa
 const shadowlineCover = require("../../assets/images/biatruyen.jpg");
 const crimsonRoadCover = require("../../assets/images/biatruyen1.jpg");
 
-export function EditorHomeScreen() {
+export function EditorHomeScreen({
+  onNavigateTab,
+  inbox,
+  onSelect,
+}: {
+  onNavigateTab?: (tab: string) => void;
+  inbox?: MobileInbox;
+  onSelect?: (item: MobileWorkItem) => void;
+}) {
   const flow = useEditorMobileFlow();
   const passed = flow.readiness.checks.filter((check) => check.passed).length;
+  const failedChecks = flow.readiness.checks.filter((check) => !check.passed);
+
+  const liveItems = inbox?.items;
+
+  const proposalsCount = liveItems
+    ? liveItems.filter((i) => i.kind === "PROPOSAL_REVIEW").length
+    : flow.manuscriptItems.filter((m) => m.manuscriptStatus === "SUBMITTED").length;
+
+  const chaptersCount = liveItems
+    ? liveItems.filter((i) => i.kind === "CHAPTER_REVIEW").length
+    : flow.submissionItems.filter(
+        (s) => s.submissionStatus === "PENDING" || s.submissionStatus === "MANGAKA_APPROVED",
+      ).length;
+
+  const blockersCount = liveItems
+    ? liveItems.filter((i) => i.blockers && i.blockers.length > 0).length
+    : flow.commentsPayload.comments.filter(
+        (c) => c.status === "OPEN" || c.status === "ADDRESSED",
+      ).length;
+
+  const readyCount = liveItems
+    ? liveItems.filter((i) => i.kind === "PUBLICATION").length
+    : flow.submissionItems.filter((s) => s.submissionStatus === "MANGAKA_APPROVED").length;
+
+  const homeMetrics = [
+    {
+      id: "proposals",
+      label: "Proposals",
+      value: String(proposalsCount),
+      tone: "primary" as const,
+      icon: "file-text" as const,
+    },
+    {
+      id: "chapters",
+      label: "Chapters",
+      value: String(chaptersCount),
+      tone: "warning" as const,
+      icon: "check-circle" as const,
+    },
+    {
+      id: "comments",
+      label: "Blockers",
+      value: String(blockersCount),
+      tone: "danger" as const,
+      icon: "alert-triangle" as const,
+    },
+    {
+      id: "ready",
+      label: "Approved",
+      value: String(readyCount),
+      tone: "success" as const,
+      icon: "shield-check" as const,
+    },
+  ];
 
   return (
     <>
-      <MFHero title="Today" subtitle="Review and publication companion" />
+      <MFHero title="Today" subtitle="Tantou Editor review & publication console" />
       <MFStateNotice
         loading={flow.loading}
         error={flow.error}
         message={flow.lastMockAction}
         loadingLabel="Loading Editor home..."
       />
-      <SectionTitle title="Next actions" action="View all" />
-      <MFActionCards items={flow.home.actions} />
-      <SectionTitle title="Review queues" />
-      <MFQueueList items={flow.home.queues} />
-      <SectionTitle title="Priority chapter" />
+      <SectionTitle title="Overview" action="Live" />
+      <MFMetricStrip items={homeMetrics} />
+
+      {liveItems && liveItems.length > 0 ? (
+        <>
+          <SectionTitle
+            title="Action required"
+            action="View all"
+            onAction={() => onNavigateTab?.("reviews")}
+          />
+          <View style={styles.stack}>
+            {liveItems.map((item) => (
+              <WorkItemCard key={item.id} item={item} onSelect={onSelect ?? (() => {})} />
+            ))}
+          </View>
+        </>
+      ) : (
+        <>
+          <SectionTitle
+            title="Next actions"
+            action="View all"
+            onAction={() => onNavigateTab?.("reviews")}
+          />
+          <MFActionCards items={flow.home.actions} />
+          <SectionTitle
+            title="Review queues"
+            action="View all"
+            onAction={() => onNavigateTab?.("reviews")}
+          />
+          <MFQueueList items={flow.home.queues} />
+        </>
+      )}
+
+      <SectionTitle title="Priority chapter readiness" />
       <MFCard style={styles.priorityCard}>
         <MFCover item={flow.home.priorityChapter} small />
         <View style={styles.flex}>
-          <Text style={styles.title}>{flow.readiness.chapterTitle}</Text>
-          <MFBadge tone={flow.readiness.overallPassed ? "success" : "danger"}>
-            {flow.readiness.overallPassed ? "Ready" : "Blocked"}
-          </MFBadge>
+          <View style={styles.rowBetween}>
+            <Text style={styles.title}>{flow.readiness.chapterTitle}</Text>
+            <MFBadge tone={flow.readiness.overallPassed ? "success" : "danger"}>
+              {flow.readiness.overallPassed ? "Ready" : "Blocked"}
+            </MFBadge>
+          </View>
           <Text style={styles.passText}>
             {passed} / {flow.readiness.checks.length} checks passed
           </Text>
           <MFProgress value={passed / flow.readiness.checks.length} />
+          {failedChecks.length > 0 ? (
+            <View style={styles.failedBlockerBox}>
+              {failedChecks.map((check) => (
+                <Text key={check.id} style={styles.failedBlockerText} numberOfLines={1}>
+                  ⚠️ {check.title}: {check.reason}
+                </Text>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.allPassedText}>✓ All readiness checks verified</Text>
+          )}
           <Text style={styles.muted}>
             Source: {flow.readiness.source}. Mobile displays results only.
           </Text>
         </View>
       </MFCard>
-      <SectionTitle title="Recent activity" action="View all" />
+      <SectionTitle
+        title="Recent activity"
+        action="View all"
+        onAction={() => onNavigateTab?.("history")}
+      />
       <ActivityList items={flow.home.activity} />
     </>
   );
 }
+
 
 export function EditorManuscriptsScreen() {
   const flow = useEditorMobileFlow();
@@ -838,4 +949,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff8f8",
   },
   calloutButton: { flexGrow: 1, flexBasis: "100%" },
+  failedBlockerBox: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: spacing.xs,
+    marginTop: spacing.xs,
+    gap: 2,
+  },
+  failedBlockerText: {
+    color: colors.danger,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  allPassedText: {
+    color: colors.success,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: spacing.xs,
+  },
 });
+
