@@ -11,6 +11,14 @@ const serviceSource = readFileSync(
   new URL("../services/mobile-file-review.ts", import.meta.url),
   "utf8",
 );
+const panelSource = readFileSync(
+  new URL("../components/submitted-files-panel.tsx", import.meta.url),
+  "utf8",
+);
+const viewerSource = readFileSync(
+  new URL("../components/review-file-viewer.tsx", import.meta.url),
+  "utf8",
+);
 
 test("review-file lease refreshes before a 900-second URL expires", () => {
   const lease = { url: "https://signed.example/file", expiresAtMs: 900_000 };
@@ -53,4 +61,16 @@ test("review-file failures preserve authorization and missing-file HTTP status",
   assert.match(serviceSource, /class MobileFileReviewHttpError/);
   assert.match(serviceSource, /readonly status: number/);
   assert.match(serviceSource, /throw new MobileFileReviewHttpError\(response\.status/);
+});
+
+test("submitted file UI renders metadata and an explicit empty state", () => {
+  assert.match(panelSource, /No submitted files are available for this review/);
+  assert.match(panelSource, /submittedBy/);
+  assert.match(panelSource, /submittedAt/);
+});
+
+test("viewer refreshes one expired URL before showing Retry", () => {
+  assert.match(viewerSource, /hasRetriedRef/);
+  assert.match(viewerSource, /shouldRefreshLease/);
+  assert.match(viewerSource, /Retry/);
 });

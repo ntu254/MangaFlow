@@ -17,6 +17,7 @@ import {
   Home,
   Eye,
   EyeOff,
+  ExternalLink,
   Lock,
   MessageCircle,
   MessageSquare,
@@ -26,6 +27,7 @@ import {
   ShieldCheck,
   TrendingUp,
   User,
+  X,
 } from "lucide-react-native"
 
 export type IconName =
@@ -42,6 +44,7 @@ export type IconName =
   | "circle-user"
   | "eye"
   | "eye-off"
+  | "external-link"
   | "file-check"
   | "file-text"
   | "home"
@@ -55,6 +58,7 @@ export type IconName =
   | "shield-check"
   | "trending-up"
   | "user"
+  | "x"
 
 type LucideProps = {
   color: string
@@ -76,6 +80,7 @@ const lucideIcons: Record<Exclude<IconName, "scale-balance">, ComponentType<Luci
   "circle-user": CircleUserRound,
   eye: Eye,
   "eye-off": EyeOff,
+  "external-link": ExternalLink,
   "file-check": FileCheck2,
   "file-text": FileText,
   home: Home,
@@ -88,6 +93,7 @@ const lucideIcons: Record<Exclude<IconName, "scale-balance">, ComponentType<Luci
   "shield-check": ShieldCheck,
   "trending-up": TrendingUp,
   user: User,
+  x: X,
 }
 
 export function MFIcon({ name, color, size = 20, strokeWidth = 2.2 }: { name: IconName; color: string; size?: number; strokeWidth?: number }) {
