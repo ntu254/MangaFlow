@@ -99,6 +99,12 @@ async function proposalReviewFiles(actor: RequestActor, proposalId: string) {
   const proposal = await ProposalModel.findOne({ id: proposalId }).lean();
   if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
   await assertCanReadProposal(actor, proposal);
+  if (
+    actor.role === "EDITOR" &&
+    ((proposal as any).assignedEditorId ?? (proposal as any).claimedByEditorId) !== actor.id
+  ) {
+    throw new AppError(403, "Proposal review files require the assigned Editor.", "FORBIDDEN");
+  }
 
   const manuscripts = Array.isArray((proposal as any).manuscripts) ? (proposal as any).manuscripts : [];
   const currentManuscript = manuscripts.length > 0 ? [manuscripts[manuscripts.length - 1]] : [];

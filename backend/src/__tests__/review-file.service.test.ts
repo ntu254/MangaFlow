@@ -3,7 +3,7 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.js";
-import { ProposalModel } from "../db/models.js";
+import { ChapterReviewModel, ProposalModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryReplSet;
@@ -24,6 +24,7 @@ describe("review file metadata", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterReviewModel.deleteMany({});
     await ProposalModel.updateOne(
       { id: "p-002" },
       {
@@ -54,6 +55,26 @@ describe("review file metadata", () => {
         },
       },
     );
+    await ChapterReviewModel.create({
+      id: "review-ch-s-berserk-prod-5",
+      chapterId: "ch-s-berserk-prod-5",
+      seriesId: "s-berserk-prod",
+      chapterVersionId: "ch-s-berserk-prod-5-v1",
+      pageVersionIds: [],
+      status: "OPEN",
+      createdById: "u-mangaka",
+      snapshot: {
+        pages: [
+          {
+            id: "review-page-1",
+            fileKey: "chapters/ch-s-berserk-prod-5/page-1.png",
+            fileName: "page-1.png",
+            mimeType: "image/png",
+          },
+        ],
+        submissionIds: [],
+      },
+    });
   }, 30_000);
 
   afterAll(async () => {
@@ -91,5 +112,49 @@ describe("review file metadata", () => {
       .get("/api/review-files/chapter/ch-s-berserk-prod-5")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .expect(403);
+  });
+
+  it("rejects an editor who is not assigned to the proposal review", async () => {
+    const unassignedEditor = await loginAs("editor@mangaflow.local");
+    await request(createApp())
+      .get("/api/review-files/proposal/p-002")
+      .set("Authorization", `Bearer ${unassignedEditor.accessToken}`)
+      .expect(403);
+  });
+
+  it("returns proposal review files to the assigned editor", async () => {
+    const assignedEditor = await loginAs("tanaka@beachread.jp");
+    const response = await request(createApp())
+      .get("/api/review-files/proposal/p-002")
+      .set("Authorization", `Bearer ${assignedEditor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "proposals/p-002/manuscript-v2.pdf" }),
+      ]),
+    );
+  });
+
+  it("returns chapter review files only to the assigned Tantou", async () => {
+    const unassignedEditor = await loginAs("editor@mangaflow.local");
+    await request(createApp())
+      .get("/api/review-files/chapter/ch-s-berserk-prod-5")
+      .set("Authorization", `Bearer ${unassignedEditor.accessToken}`)
+      .expect(403);
+
+    const assignedEditor = await loginAs("tanaka@beachread.jp");
+    const response = await request(createApp())
+      .get("/api/review-files/chapter/ch-s-berserk-prod-5")
+      .set("Authorization", `Bearer ${assignedEditor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data).toEqual([
+      expect.objectContaining({
+        id: "review-page-1",
+        key: "chapters/ch-s-berserk-prod-5/page-1.png",
+        previewKind: "image",
+      }),
+    ]);
   });
 });
