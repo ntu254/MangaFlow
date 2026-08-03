@@ -63,8 +63,10 @@ public → chỉ Tantou; private → owner hoặc Tantou; COMPLETED/HIATUS/DRAFT
 Sau khi build set theo role: nếu `archived` → trả set với `canEnterStudio: false`
 (giữ `mode`/`title` — không gãy component nào).
 
-Hệ quả: studio tab fallback overview (guard có sẵn), nút "Open Studio" ẩn nếu gate theo
-`canEnterStudio`. Không sửa `series-detail-page.tsx`.
+Hệ quả (xác minh trong code): `series-detail-page.tsx:103` gộp
+`studioPermissions.canEnterStudio && !isLocked` → nút "Open Studio" (dòng 181-193) tự disabled
+khi `canEnterStudio=false`, và studio tab fallback overview (dòng 106 `effectiveTab`).
+Không cần sửa `series-detail-page.tsx`.
 
 ## Testing
 
