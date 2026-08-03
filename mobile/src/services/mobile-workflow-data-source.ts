@@ -458,6 +458,10 @@ async function getToken(role: MobileApiRole): Promise<string> {
   return envelope.data.accessToken;
 }
 
+export async function getMobileWorkflowAccessToken(role: MobileApiRole): Promise<string> {
+  return getToken(role);
+}
+
 export const mockMobileWorkflowDataSource: MobileWorkflowDataSource = {
   startEditorProposalReview: async () => undefined,
   requestEditorProposalRevision: async () => undefined,

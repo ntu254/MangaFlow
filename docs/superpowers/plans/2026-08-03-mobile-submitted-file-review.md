@@ -111,18 +111,19 @@ git add backend/src/services/review-file.service.ts backend/src/controllers/revi
 git commit -m "feat: expose scoped review file metadata"
 ~~~
 
-### Task 2: Permit Board display URLs only through existing key visibility checks
+### Task 2: Restrict Board display URLs to Board-review Proposal keys
 
 **Files:**
 - Modify: backend/src/routes/series.routes.ts:101-112
+- Modify: backend/src/services/studio-access.service.ts
 - Test: backend/src/__tests__/file-key-visibility.test.ts
 
-**Interfaces:** consumes Task 1 ReviewFile.key; keeps assertFileKeyVisible as enforcement.
+**Interfaces:** consumes Task 1 ReviewFile.key. `assertFileKeyVisible` remains the enforcement point, but gains a Board-specific branch that authorizes only Proposal file keys belonging to a Proposal visible to Board. It must never use generic Board series scope for a display URL.
 
 - [ ] **Step 1: Write the failing route-authorization test**
 
 ~~~
-it("allows a Board user to resolve a visible review file but not a draft file", async () => {
+it("allows a Board user to resolve a Board-review proposal file but not a draft file", async () => {
   const board = await loginAs("board@beachread.jp");
   await request(createApp()).post("/api/files/display-url")
     .set("Authorization", "Bearer " + board.accessToken)
@@ -131,34 +132,39 @@ it("allows a Board user to resolve a visible review file but not a draft file", 
     .set("Authorization", "Bearer " + board.accessToken)
     .send({ key: "proposals/p-001/cover.png", fileName: "cover.png" }).expect(403);
 });
+it.each(["chapters/ch-1/pages/p-1.png", "series/s-1/cover.png", "materials/ch-1/reference.pdf", "submissions/sub-1/work.png"])("blocks Board display URL for production key %s", async (key) => {
+  const board = await loginAs("board@beachread.jp");
+  await request(createApp()).post("/api/files/display-url")
+    .set("Authorization", "Bearer " + board.accessToken).send({ key }).expect(403);
+});
 ~~~
 
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: npm test --prefix backend -- file-key-visibility.test.ts
 
-Expected: FAIL on the first request because the route excludes BOARD.
+Expected: FAIL on the allowed request because the route excludes BOARD. After adding the route gate, production-key tests must fail until the Board-specific guard exists.
 
-- [ ] **Step 3: Change only the route gate**
+- [ ] **Step 3: Add a Board-specific Proposal-key guard and route gate**
 
 ~~~
 router.post("/files/display-url",
   requireExactRole("BOARD", "EDITOR", "MANGAKA", "ASSISTANT") as any, displayUrl);
 ~~~
 
-Do not alter displayUrl or assertFileKeyVisible.
+Before generic key checks, `assertFileKeyVisible` must branch on `actor.role === "BOARD"`, resolve only a Proposal record containing the requested key, and authorize it through Proposal visibility for Board-review states. It must throw `FORBIDDEN` for every non-Proposal key without evaluating generic series scope. Keep `displayUrl` unchanged.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: npm test --prefix backend -- file-key-visibility.test.ts
 
-Expected: PASS; visible key works and draft key remains blocked.
+Expected: PASS; Board-review Proposal key works while draft, series, chapter, page, task, submission, and material keys remain blocked.
 
 - [ ] **Step 5: Commit**
 
 ~~~
-git add backend/src/routes/series.routes.ts backend/src/__tests__/file-key-visibility.test.ts
-git commit -m "fix: permit scoped Board file display URLs"
+git add backend/src/routes/series.routes.ts backend/src/services/studio-access.service.ts backend/src/__tests__/file-key-visibility.test.ts
+git commit -m "fix: restrict Board display URLs to proposals"
 ~~~
 
 ### Task 3: Add mobile DTOs and the expiring URL lease manager

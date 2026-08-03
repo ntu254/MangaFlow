@@ -9,18 +9,8 @@ This mobile app is a Queue-first workflow console for Board and Tantou Editor ac
 - **Demo mode is explicit and labelled.** Set `EXPO_PUBLIC_ENABLE_MOBILE_MOCK_FALLBACK=true` to use local reference data; the shell then shows a persistent `Demo data` label.
 - **Foundation slice** exposes live Editor proposal and Board vote Today queues. Later slices complete the remaining Editor (Reviews/Publish/History) and Board (Sessions/Ranking/History) tabs.
 
-For future agent context, read `MOBILE_AGENT_CONTEXT.md` before changing mobile. Recent story packets:
-
-- `../docs/stories/MF-HIOS-095-mobile-editor-board-flow-foundation.md`
-- `../docs/stories/MF-HIOS-096-mobile-decision-confirmation-details.md`
-- `../docs/stories/MF-HIOS-097-mobile-queue-selection-details.md`
-- `../docs/stories/MF-HIOS-098-mobile-empty-error-state-polish.md`
-- `../docs/stories/MF-HIOS-099-mobile-rich-detail-previews.md`
-- `../docs/stories/MF-HIOS-100-mobile-role-handoff-profile-polish.md`
-- `../docs/stories/MF-HIOS-101-mobile-panel-componentization.md`
-- `../docs/stories/MF-HIOS-102-mobile-action-panel-componentization.md`
-- `../docs/stories/MF-HIOS-103-mobile-action-visual-polish.md`
-- `../docs/stories/MF-HIOS-104-mobile-edge-case-visual-qa.md`
+For future agent context, read `MOBILE_AGENT_CONTEXT.md` and the maintained
+`../docs/business-flows/` documents before changing mobile.
 
 ## Scripts
 
@@ -84,3 +74,12 @@ If Expo asks for a target device, select the running emulator. The Android SDK p
 - Componentized Editor and Board action/confirmation panels under `src/screens/*-action-panels.tsx`.
 - Polished mobile action controls, status chips, readiness blockers, ranking rows, segmented controls, and confirmation panels for narrow mobile widths.
 - Visual edge-case hardening for empty queues, long labels, wrapped action rows, and narrow mobile viewport QA.
+- Submitted-file review for Board Proposal reviews and assigned Editor Proposal/Chapter reviews. Metadata is loaded from `/api/review-files`; a display URL is requested only when a file is opened.
+
+## Submitted-file review
+
+- Board can review **Proposal files only**. It never requests Chapter, Page, Task, Submission, or production Material files.
+- An Editor can review files for its permitted Proposal and Chapter contexts; the backend remains the authorization source for every request.
+- File metadata contains no display URL. The app POSTs `/api/files/display-url` only after the user selects a file, keeps the URL only in memory, and never fabricates a mock URL.
+- A URL is treated as expired at the server `expiresAt`, or after an eight-minute fallback lease. The viewer refreshes 30 seconds before a 900-second URL expires, retries one failed preview with a new URL, and then offers manual Retry.
+- A `403` clears the viewer and returns to the review surface; a `404` is shown as unavailable. Image/PDF files preview in-app; unsupported types open through the device handler.

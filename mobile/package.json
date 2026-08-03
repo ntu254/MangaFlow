@@ -30,6 +30,7 @@
     "react-native-screens": "4.25.2",
     "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
+    "react-native-webview": "13.16.1",
     "react-native-worklets": "0.8.3",
     "zod": "^4.4.3"
   },
@@ -49,9 +50,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "npx tsc --noEmit",
-    "test": "jest --runInBand --forceExit",
+    "test": "npm run test:legacy && jest --runInBand --forceExit --passWithNoTests",
     "test:watch": "jest --watch",
-    "test:legacy": "node --test ./src/__tests__/mobile-data.test.mjs",
+    "test:legacy": "node --no-warnings --experimental-strip-types --test ./src/__tests__/mobile-data.test.mjs ./src/__tests__/mobile-file-review.test.mjs",
     "build": "expo export --platform web --output-dir dist"
   },
   "private": true,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { editorHome, editorReadinessResult, finalApprovals, manuscripts, productionComments } from "@/data/editor"
 import type { EditorFinalApprovalAction, EditorProposalAction, SeriesProposalSummary } from "@/domain/workflow"
 import { mobileWorkflowDataSource, type EditorCommentsPayload, type EditorHomePayload, type MobileWorkflowDataSource } from "@/services/mobile-workflow-data-source"
+import { getReviewFiles, type ReviewFile } from "@/services/mobile-file-review"
 
 export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource) {
   const [home, setHome] = useState<EditorHomePayload>(editorHome)
@@ -11,6 +12,12 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
   const [readiness, setReadiness] = useState(editorReadinessResult)
   const [selectedProposalSummary, setSelectedProposalSummary] = useState<SeriesProposalSummary | null>(null)
   const [proposalSummaryLoading, setProposalSummaryLoading] = useState(false)
+  const [selectedProposalFiles, setSelectedProposalFiles] = useState<ReviewFile[]>([])
+  const [proposalFilesLoading, setProposalFilesLoading] = useState(false)
+  const [proposalFilesError, setProposalFilesError] = useState<string | null>(null)
+  const [selectedChapterFiles, setSelectedChapterFiles] = useState<ReviewFile[]>([])
+  const [chapterFilesLoading, setChapterFilesLoading] = useState(false)
+  const [chapterFilesError, setChapterFilesError] = useState<string | null>(null)
   const [selectedManuscriptId, setSelectedManuscriptId] = useState(manuscripts[0]?.id ?? "")
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(finalApprovals[0]?.id ?? "")
   const [selectedCommentId, setSelectedCommentId] = useState(productionComments[0]?.id ?? "")
@@ -92,10 +99,69 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     }
   }, [dataSource, loading, selectedManuscript?.id])
 
+  useEffect(() => {
+    if (loading || !selectedManuscript?.id) {
+      setSelectedProposalFiles([])
+      setProposalFilesError(null)
+      return
+    }
+
+    let cancelled = false
+    setProposalFilesLoading(true)
+    setProposalFilesError(null)
+    void getReviewFiles("proposal", selectedManuscript.id, "editor")
+      .then((files) => {
+        if (!cancelled) setSelectedProposalFiles(files)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSelectedProposalFiles([])
+          setProposalFilesError("Submitted files could not be loaded for this proposal.")
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProposalFilesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loading, selectedManuscript?.id])
+
   const selectedSubmission = useMemo(
     () => submissionItems.find((item) => item.id === selectedSubmissionId) ?? submissionItems[0],
     [submissionItems, selectedSubmissionId],
   )
+
+  useEffect(() => {
+    const chapterId = selectedSubmission?.chapterId
+    if (loading || !chapterId) {
+      setSelectedChapterFiles([])
+      setChapterFilesError(null)
+      return
+    }
+
+    let cancelled = false
+    setChapterFilesLoading(true)
+    setChapterFilesError(null)
+    void getReviewFiles("chapter", chapterId, "editor")
+      .then((files) => {
+        if (!cancelled) setSelectedChapterFiles(files)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSelectedChapterFiles([])
+          setChapterFilesError("Submitted files could not be loaded for this chapter.")
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setChapterFilesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loading, selectedSubmission?.chapterId])
 
   const selectedComment = useMemo(
     () => commentsPayload.comments.find((item) => item.id === selectedCommentId) ?? commentsPayload.comments[0],
@@ -250,6 +316,12 @@ export function useEditorMobileFlow(dataSource: MobileWorkflowDataSource = mobil
     selectedComment,
     selectedProposalSummary,
     proposalSummaryLoading,
+    selectedProposalFiles,
+    proposalFilesLoading,
+    proposalFilesError,
+    selectedChapterFiles,
+    chapterFilesLoading,
+    chapterFilesError,
     selectedManuscriptId,
     selectedSubmissionId,
     selectedCommentId,

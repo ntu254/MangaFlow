@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
-import { AuditEntryModel, RateTableModel, StudioTaskModel } from "../db/models.js";
+import { AuditEntryModel, ChapterModel, RateTableModel, StudioTaskModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryServer;
@@ -23,6 +23,10 @@ describe("Rate table and task price snapshot contract", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-5", "pages.id": "ch-s-berserk-prod-5-p1" },
+      { $set: { "pages.$.fileKey": "chapters/ch-s-berserk-prod-5/pages/p1.png" } },
+    );
   });
 
   afterAll(async () => {
