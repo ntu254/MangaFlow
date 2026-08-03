@@ -3,20 +3,32 @@ import {
   BOARD_QUORUM,
   BOARD_TOTAL,
   DEFAULT_BOARD_ELIGIBLE_VOTER_IDS,
-  EIC_TIEBREAK_WEIGHT,
   evaluateBoardTally,
   normalizeBoardVote,
 } from "../services/board-governance.service.js";
 
 describe("Board governance bounded context", () => {
-  it("keeps the canonical roster, quorum, and tie-break weight", () => {
+  it("keeps the canonical roster and quorum", () => {
     expect(BOARD_TOTAL).toBe(5);
     expect(BOARD_QUORUM).toBe(3);
     expect(DEFAULT_BOARD_ELIGIBLE_VOTER_IDS).toHaveLength(5);
-    expect(EIC_TIEBREAK_WEIGHT).toBe(2);
   });
 
-  it("evaluates approval, rejection, tie-break, and pending tallies", () => {
+  it("evaluates majority, quorum, tie, and pending tallies", () => {
+    expect(
+      evaluateBoardTally(
+        [{ decision: "APPROVE" }, { decision: "APPROVE" }, { decision: "REJECT" }],
+        BOARD_QUORUM,
+        BOARD_TOTAL,
+      ).status,
+    ).toBe("APPROVED");
+    expect(
+      evaluateBoardTally(
+        [{ decision: "REJECT" }, { decision: "REJECT" }, { decision: "APPROVE" }],
+        BOARD_QUORUM,
+        BOARD_TOTAL,
+      ).status,
+    ).toBe("REJECTED");
     expect(
       evaluateBoardTally([
         { decision: "APPROVE" },
@@ -30,9 +42,16 @@ describe("Board governance bounded context", () => {
     ).toBe("REJECTED");
     expect(
       evaluateBoardTally(
-        [{ decision: "APPROVE" }, { decision: "REJECT" }, { decision: "ABSTAIN" }],
+        [{ decision: "APPROVE" }, { decision: "REJECT" }],
         BOARD_QUORUM,
-        3,
+        BOARD_TOTAL,
+      ).status,
+    ).toBeNull();
+    expect(
+      evaluateBoardTally(
+        [{ decision: "APPROVE" }, { decision: "REJECT" }, { decision: "APPROVE" }, { decision: "REJECT" }],
+        BOARD_QUORUM,
+        4,
       ).status,
     ).toBe("TIE_BREAK");
     expect(evaluateBoardTally([{ decision: "APPROVE" }]).status).toBeNull();
@@ -47,7 +66,6 @@ describe("Board governance bounded context", () => {
       decision: "APPROVE",
       weight: 1,
       isChair: false,
-      isEditorInChief: false,
     });
   });
 });

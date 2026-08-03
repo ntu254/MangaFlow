@@ -51,7 +51,7 @@ function AppLayout() {
   const location = useLocation();
   const { data: notifItems = [] } = useNotificationsQuery();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const unread = notifItems.filter((n) => !n.readAt && !n.archivedAt).length;
+  const unread = notifItems.filter((n) => !n.readAt).length;
 
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 1024px)");

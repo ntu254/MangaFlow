@@ -2,7 +2,9 @@ import type { VotingSession } from "@/entities/board/model/voting-types";
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
 import type { User } from "@/shared/auth";
 
-export function TieBreakPanel({ proposal }: {
+export function TieBreakPanel({
+  proposal,
+}: {
   session: VotingSession;
   proposal: SeriesProposal;
   user: User;

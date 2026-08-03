@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
-import { ProposalDetailPage } from "@/features/proposals/detail";
 
 const searchSchema = z.object({
   edit: z
@@ -10,12 +9,11 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/app/submissions/$id")({
   validateSearch: searchSchema,
-  head: () => ({ meta: [{ title: "Proposal detail — MangaFlow Studio" }] }),
-  component: RouteComponent,
+  beforeLoad: ({ params, search }) => {
+    throw redirect({
+      to: "/app/proposals/$proposalId",
+      params: { proposalId: params.id },
+      search: search as { edit?: boolean },
+    });
+  },
 });
-
-function RouteComponent() {
-  const { id } = Route.useParams();
-  const { edit } = Route.useSearch();
-  return <ProposalDetailPage proposalId={id} editing={edit === true} />;
-}

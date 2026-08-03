@@ -8,6 +8,7 @@ import {
   StudioRegionModel,
   StudioTaskModel,
   SubmissionModel,
+  UserModel,
 } from "../db/models.js";
 import { AppError } from "../lib/http.js";
 import type { RequestActor } from "../types.js";
@@ -46,7 +47,6 @@ export function canReadProposal(actor: RequestActor, proposal: any) {
 
 export function canMutateProposalAsEditor(actor: RequestActor, proposal: any) {
   if (actor.role !== "EDITOR") return false;
-  if (actor.isEditorInChief) return true;
   const assigned = proposal.assignedEditorId ?? proposal.claimedByEditorId;
   return !assigned || assigned === actor.id;
 }
@@ -63,7 +63,6 @@ export async function assertCanReadProposalById(actor: RequestActor, proposalId:
 }
 
 async function hasActiveSeriesMembership(actor: RequestActor, series: any) {
-  if (Array.isArray(series.assistantIds) && series.assistantIds.includes(actor.id)) return true;
   const member = await SeriesMemberModel.findOne({
     seriesId: series.id,
     userId: actor.id,
@@ -72,17 +71,31 @@ async function hasActiveSeriesMembership(actor: RequestActor, series: any) {
   return Boolean(member);
 }
 
+async function hasActiveTantouMembership(actor: RequestActor, series: any) {
+  if (actor.role !== "EDITOR" || String(series.editorId ?? "") !== String(actor.id)) return false;
+  const member = await SeriesMemberModel.findOne({
+    seriesId: series.id,
+    userId: actor.id,
+    role: "editor",
+  }).lean();
+  // Existing Series rows may predate SeriesMember persistence. In that case
+  // the canonical Series.editorId remains the assignment source until the
+  // migration backfills the membership row. An explicit inactive membership
+  // still blocks access.
+  return member ? (member as any).status === "active" : true;
+}
+
 export async function canReadSeries(actor: RequestActor, series: any) {
   if (actor.role === "BOARD") return true;
   if (actor.role === "MANGAKA") return series.authorId === actor.id;
-  if (actor.role === "EDITOR") return series.editorId === actor.id;
+  if (actor.role === "EDITOR") return hasActiveTantouMembership(actor, series);
   if (actor.role === "ASSISTANT") return hasActiveSeriesMembership(actor, series);
   return false;
 }
 
 export async function canMutateSeries(actor: RequestActor, series: any) {
   if (actor.role === "MANGAKA") return series.authorId === actor.id;
-  if (actor.role === "EDITOR") return series.editorId === actor.id;
+  if (actor.role === "EDITOR") return hasActiveTantouMembership(actor, series);
   return false;
 }
 
@@ -91,6 +104,12 @@ export async function assertCanReadSeries(actor: RequestActor, series: any) {
 }
 
 export async function assertCanMutateSeries(actor: RequestActor, series: any) {
+  if (String(series.status) === "ARCHIVED") {
+    throw new AppError(409, "Series is archived and cannot be modified.", "SERIES_ARCHIVED");
+  }
+  if (series.deletedAt) {
+    throw new AppError(409, "Series is deleted and cannot be modified.", "SERIES_DELETED");
+  }
   if (!(await canMutateSeries(actor, series))) throw forbidden("You do not have permission to change this series.");
 }
 
@@ -109,7 +128,7 @@ export async function assertCanMutateSeriesById(actor: RequestActor, seriesId: s
 }
 
 export async function assertAssignedSeriesEditor(actor: RequestActor, series: any) {
-  if (actor.role === "EDITOR" && series.editorId === actor.id) return;
+  if (await hasActiveTantouMembership(actor, series)) return;
   throw new AppError(
     403,
     "Only the assigned Tantou can perform this action.",
@@ -131,15 +150,36 @@ export async function assertCanMutateChapter(actor: RequestActor, chapter: any) 
   return series;
 }
 
+export function assertChapterContentUnlocked(chapter: any) {
+  const status = String(chapter?.status);
+  if (status === "TANTOU_REVIEW") {
+    throw new AppError(
+      409,
+      "Chapter content is locked while Tantou review is active.",
+      "CHAPTER_REVIEW_LOCKED",
+    );
+  }
+  if (!["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"].includes(status)) {
+    throw new AppError(
+      409,
+      "Chapter content can only change during planning, production, or revision.",
+      "CHAPTER_CONTENT_LOCKED",
+    );
+  }
+}
+
 export async function assertCanMutateChapterContent(actor: RequestActor, chapter: any) {
   const series = await SeriesModel.findOne({ id: chapter.seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-  if (actor.role === "MANGAKA" && (series as any).authorId === actor.id) return series;
-  throw new AppError(
-    403,
-    "Only the owning Mangaka can change chapter or page content.",
-    actor.role === "MANGAKA" ? "MANGAKA_OWNER_REQUIRED" : "FORBIDDEN",
-  );
+  if (!(actor.role === "MANGAKA" && (series as any).authorId === actor.id)) {
+    throw new AppError(
+      403,
+      "Only the owning Mangaka can change chapter or page content.",
+      actor.role === "MANGAKA" ? "MANGAKA_OWNER_REQUIRED" : "FORBIDDEN",
+    );
+  }
+  assertChapterContentUnlocked(chapter);
+  return series;
 }
 
 export async function assertCanReadChapterById(actor: RequestActor, chapterId: string) {
@@ -159,11 +199,33 @@ export async function assertCanMutateChapterById(actor: RequestActor, chapterId:
 export async function actorSeriesScopeFilter(actor: RequestActor, mode: "read" | "mutate" = "read") {
   if (mode === "read" && actor.role === "BOARD") return {};
   if (actor.role === "MANGAKA") return { authorId: actor.id };
-  if (actor.role === "EDITOR") return { editorId: actor.id };
+  if (actor.role === "EDITOR") {
+    const [members, legacyMemberships] = await Promise.all([
+      SeriesMemberModel.find({ userId: actor.id, role: "editor", status: "active" })
+        .select({ seriesId: 1 })
+        .lean(),
+      SeriesMemberModel.find({ userId: actor.id, role: "editor" })
+        .select({ seriesId: 1 })
+        .lean(),
+    ]);
+    const memberSeriesIds = new Set(legacyMemberships.map((item: any) => String(item.seriesId)));
+    const legacySeries = await SeriesModel.find({ editorId: actor.id })
+      .select({ id: 1 })
+      .lean();
+    const seriesIds = [
+      ...new Set([
+        ...members.map((item: any) => String(item.seriesId)),
+        ...legacySeries
+          .map((item: any) => String(item.id))
+          .filter((seriesId) => !memberSeriesIds.has(seriesId)),
+      ]),
+    ];
+    return { id: { $in: seriesIds } };
+  }
   if (actor.role === "ASSISTANT" && mode === "read") {
     const memberships = await SeriesMemberModel.find({ userId: actor.id, status: "active" }).lean();
     const seriesIds = memberships.map((item: any) => item.seriesId);
-    return { $or: [{ id: { $in: seriesIds } }, { assistantIds: actor.id }] };
+    return { id: { $in: seriesIds } };
   }
   return { id: { $in: [] } };
 }
@@ -200,7 +262,6 @@ function visibleProposalFilter(actor: RequestActor, mode: "read" | "mutate" = "r
   if (actor.role === "MANGAKA") return { authorId: actor.id };
   if (actor.role === "EDITOR") {
     if (mode === "mutate") {
-      if (actor.isEditorInChief) return { status: { $ne: "DRAFT" } };
       return {
         status: { $ne: "DRAFT" },
         $or: [
@@ -286,6 +347,33 @@ async function scopedProductionIds(actor: RequestActor, mode: "read" | "mutate" 
   };
 }
 
+export async function activeTantouEditorId(series: any) {
+  const activeMember = await SeriesMemberModel.findOne({
+    seriesId: series.id,
+    role: "editor",
+    status: "active",
+  })
+    .select({ userId: 1, status: 1 })
+    .lean();
+  if (activeMember) {
+    const user = await UserModel.findOne({ id: String((activeMember as any).userId) })
+      .select({ role: 1, active: 1 })
+      .lean();
+    if (user && (user as any).role === "EDITOR" && (user as any).active !== false) {
+      return String((activeMember as any).userId);
+    }
+    return undefined;
+  }
+  const historicalMember = await SeriesMemberModel.findOne({
+    seriesId: series.id,
+    role: "editor",
+  })
+    .select({ status: 1 })
+    .lean();
+  if (historicalMember) return undefined;
+  return series.editorId ? String(series.editorId) : undefined;
+}
+
 export async function materialScopeFilter(actor: RequestActor, mode: "read" | "mutate" = "read") {
   const proposalIds = (await ProposalModel.find(visibleProposalFilter(actor, mode)).select({ id: 1 }).lean()).map(
     (item: any) => item.id,
@@ -357,8 +445,16 @@ export async function assertCanMutateMaterial(actor: RequestActor, material: any
   if (material.proposalId) {
     const proposal = await ProposalModel.findOne({ id: String(material.proposalId) }).lean();
     if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
-    if (actor.role === "MANGAKA" && (proposal as any).authorId === actor.id) return;
-    if (canMutateProposalAsEditor(actor, proposal)) return;
+    if (actor.role === "MANGAKA" && (proposal as any).authorId === actor.id) {
+      if (!["DRAFT", "CHANGES_REQUESTED"].includes(String((proposal as any).status))) {
+        throw new AppError(
+          409,
+          "Supporting Materials are locked while the Proposal is under review.",
+          "PROPOSAL_LOCKED",
+        );
+      }
+      return;
+    }
     throw forbidden("You do not have permission to change this material.");
   }
   if (material.pageId) {
@@ -388,64 +484,6 @@ export async function assertCanMutateMaterialById(actor: RequestActor, materialI
   if (!material) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
   await assertCanMutateMaterial(actor, material);
   return material;
-}
-
-type MaterialWorkflowActors = { ownerId?: string; assignedEditorId?: string };
-
-async function materialWorkflowActors(material: any): Promise<MaterialWorkflowActors> {
-  if (material.proposalId) {
-    const proposal = (await ProposalModel.findOne({ id: String(material.proposalId) }).lean()) as any;
-    if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
-    return {
-      ownerId: proposal.authorId,
-      assignedEditorId: proposal.assignedEditorId ?? proposal.claimedByEditorId ?? undefined,
-    };
-  }
-
-  const series = material.seriesId
-    ? ((await SeriesModel.findOne({ id: String(material.seriesId) }).lean()) as any)
-    : material.chapterId
-      ? await ChapterModel.findOne({ id: String(material.chapterId) })
-          .lean()
-          .then((chapter: any) =>
-            chapter ? SeriesModel.findOne({ id: String(chapter.seriesId) }).lean() : null,
-          )
-      : material.pageId
-        ? await ChapterModel.findOne({ "pages.id": String(material.pageId) })
-            .lean()
-            .then((chapter: any) =>
-              chapter ? SeriesModel.findOne({ id: String(chapter.seriesId) }).lean() : null,
-            )
-        : null;
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-  return { ownerId: series.authorId, assignedEditorId: series.editorId };
-}
-
-/** APPROVED is a workflow decision; only the assigned Tantou may make it. */
-export async function assertCanTransitionMaterialToApproved(actor: RequestActor, material: any) {
-  const { assignedEditorId } = await materialWorkflowActors(material);
-  if (actor.role === "EDITOR" && assignedEditorId === actor.id) return;
-  throw new AppError(
-    403,
-    "Only the assigned Tantou can approve a material.",
-    "TANTOU_ASSIGNMENT_REQUIRED",
-  );
-}
-
-/** ACTIVE and ARCHIVED are owner/assigned-Tantou material lifecycle actions. */
-export async function assertCanTransitionMaterialAsOwnerOrTantou(
-  actor: RequestActor,
-  material: any,
-) {
-  const { ownerId, assignedEditorId } = await materialWorkflowActors(material);
-  if (
-    (actor.role === "MANGAKA" && ownerId === actor.id) ||
-    (actor.role === "EDITOR" && assignedEditorId === actor.id)
-  ) {
-    return;
-  }
-  const code = actor.role === "MANGAKA" ? "MANGAKA_OWNER_REQUIRED" : "TANTOU_ASSIGNMENT_REQUIRED";
-  throw new AppError(403, "Only the owner or assigned Tantou can change this material status.", code);
 }
 
 export async function assertCanMutateMaterialTarget(actor: RequestActor, input: any) {

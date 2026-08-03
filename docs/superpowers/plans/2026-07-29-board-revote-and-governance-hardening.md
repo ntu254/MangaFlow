@@ -14,7 +14,7 @@
 - The same Proposal snapshot and the same snapshotted Board electorate are used for a fresh voting round.
 - The new round starts with no votes.
 - Previous rounds remain immutable audit history.
-- A later tie may be re-voted again; EIC tie-break is removed from the active Proposal voting path.
+- A later tie may be re-voted again; special tie-break voting is removed from the active Proposal path.
 - Local Mongo transaction failures return `503 MONGODB_REPLICA_SET_REQUIRED`, not generic `500`.
 - Every tied-session transition and new-session creation is one transaction.
 - Session `proposalId`, `proposalIds`, `proposalVersionId`, `eligibleVoterIds`, `quorum`, and lifecycle status are not PATCH-mutable.
@@ -181,7 +181,7 @@ git commit -m "fix: harden Board voting session integrity"
 
 - [ ] **Step 1: Add failing re-vote tests**
 
-Replace the current EIC tie-break expectation with assertions for a new session:
+Replace the current special tie-break expectation with assertions for a new session:
 
 ```ts
 const closed = await closeSession(sessionId);
@@ -226,7 +226,7 @@ snapshot fields, keep the Proposal `BOARD_REVIEW` pointers on the new session,
 and write audit/outbox records in the same transaction. Do not copy
 `ProposalVote` rows.
 
-- [ ] **Step 5: Remove active EIC tie-break behavior**
+- [ ] **Step 5: Remove active special tie-break behavior**
 
 Reject new Proposal tie-break commands with an explicit retired-route error.
 Ensure `VOTE` only accepts `OPEN` sessions for Board actors; `TIED`,
@@ -265,7 +265,7 @@ git commit -m "feat: re-vote tied Board proposals"
 
 - Consumes: the `TIED`/new-`OPEN` API contract from Task 3.
 - Produces: Board UI that shows the active re-vote session and no longer sends
-  EIC tie-break requests for new ties.
+  special tie-break requests for new ties.
 
 - [ ] **Step 1: Update active-session projection**
 
@@ -277,13 +277,13 @@ to `/decisions/tie-break`; preserve historical display labels where needed.
 
 Always send `sessionId` and `expectedVersion` from the active session for Board
 votes. Keep finalize pointed at the active session id. Map `TIED` to a
-re-vote-needed message rather than an EIC action.
+re-vote-needed message rather than a special-role action.
 
 - [ ] **Step 3: Update docs**
 
 Change the flowchart, status table, quorum notes, and role-access table to say
 that ties create a fresh voting session. Document `TIED` as terminal history and
-remove EIC tie-break as the active Proposal path. Keep historical compatibility
+remove special tie-break as the active Proposal path. Keep historical compatibility
 notes explicit.
 
 - [ ] **Step 4: Run checks**

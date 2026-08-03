@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { User } from "@/shared/auth";
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ProposalWizard } from "../../create/components/proposal-wizard";
 
-export function ResubmitDialog({
+export function ResubmitModal({
   proposal,
   user: _user,
   open,
@@ -60,18 +60,18 @@ export function ResubmitDialog({
       setResolved({});
       setComment("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Resubmit failed.");
+      toast.error(error instanceof Error ? error.message : "Failed to resubmit.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
-      <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit and resubmit proposal</DialogTitle>
-        </DialogHeader>
+    <Modal open={open} onOpenChange={(value) => !value && onClose()}>
+      <ModalContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
+        <ModalHeader>
+          <ModalTitle>Edit and Resubmit Proposal</ModalTitle>
+        </ModalHeader>
 
         {openChange ? (
           <section className="rounded border border-amber-200 bg-amber-50/60 p-4">
@@ -132,7 +132,10 @@ export function ResubmitDialog({
             if (!submitting) await submit(values);
           }}
         />
-      </DialogContent>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 }
+
+// Alias export
+export { ResubmitModal as ResubmitDialog };

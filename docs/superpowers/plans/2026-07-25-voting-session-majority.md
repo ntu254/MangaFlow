@@ -13,9 +13,9 @@
 - No new dependencies, scheduler, workflow states, or automatic close behavior.
 - A session opens immediately; only the Board Chair closes it.
 - `APPROVED` needs at least three approve votes; `REJECTED` needs at least three reject votes.
-- All five votes with equal approve/reject counts require Editor-in-chief tie-break.
+- All five votes with equal approve/reject counts close the round and open a fresh Board re-vote.
 - All remaining closed outcomes are `NO_QUORUM` and return the proposal to `PENDING_BOARD`.
-- Abstain counts as participation, never as approve or reject.
+- Every eligible Board member must choose APPROVE or REJECT; there is no ABSTAIN decision.
 - The frontend reads the server-provided session quorum.
 
 ---
@@ -49,9 +49,9 @@ expect(closed.body.data.status).toBe("FINALIZED");
 expect(closed.body.data.result).toBe("REJECTED"); // three REJECT
 
 expect(closed.body.data.status).toBe("NO_QUORUM");
-expect(proposal.status).toBe("PENDING_BOARD"); // 2 APPROVE, 1 REJECT, 2 ABSTAIN
+expect(proposal.status).toBe("PENDING_BOARD"); // fewer than three submitted votes
 
-expect(closed.body.data.status).toBe("TIE_BREAK_REQUIRED"); // 2 APPROVE, 2 REJECT, 1 ABSTAIN
+expect(closed.body.data.status).toBe("TIED"); // all eligible voters split evenly; fresh re-vote opens
 ```
 
 - [ ] **Step 2: Run the focused test to verify it fails**

@@ -11,7 +11,6 @@ export interface MobileAuthUser {
   email: string
   role: "BOARD" | "EDITOR"
   isChair?: boolean
-  isEditorInChief?: boolean
 }
 
 export interface MobileAuthSession {

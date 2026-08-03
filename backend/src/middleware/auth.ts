@@ -35,9 +35,3 @@ export function requireBoardChair(req: AuthedRequest, _res: Response, next: Next
 }
 
 export const requireExactBoardChair = requireBoardChair;
-
-export function requireEditorInChief(req: AuthedRequest, _res: Response, next: NextFunction) {
-  if (!req.actor) return next(new AppError(401, "Missing authenticated user.", "MISSING_AUTH"));
-  if (req.actor.role === "EDITOR" && req.actor.isEditorInChief) return next();
-  return next(new AppError(403, "Editor-in-Chief permission is required.", "FORBIDDEN"));
-}

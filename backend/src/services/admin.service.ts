@@ -26,7 +26,6 @@ type GovernanceState = {
   role: unknown;
   active: boolean;
   isChair: boolean;
-  isEditorInChief: boolean;
 };
 
 function normalizedGovernanceState(
@@ -36,10 +35,8 @@ function normalizedGovernanceState(
   const role = patch.role ?? current?.role;
   const active = Boolean(patch.active ?? current?.active ?? true);
   let isChair = Boolean(patch.isChair ?? current?.isChair);
-  let isEditorInChief = Boolean(patch.isEditorInChief ?? current?.isEditorInChief);
 
   if (!active || role !== "BOARD") isChair = false;
-  if (!active || role !== "EDITOR") isEditorInChief = false;
 
   if (patch.isChair === true && (!active || role !== "BOARD")) {
     throw new AppError(
@@ -48,15 +45,7 @@ function normalizedGovernanceState(
       "INVALID_BOARD_CHAIR",
     );
   }
-  if (patch.isEditorInChief === true && (!active || role !== "EDITOR")) {
-    throw new AppError(
-      400,
-      "Editor-in-Chief designation requires an active EDITOR user.",
-      "INVALID_EDITOR_IN_CHIEF",
-    );
-  }
-
-  return { role, active, isChair, isEditorInChief };
+  return { role, active, isChair };
 }
 
 async function assertBoardCapacity(
@@ -93,18 +82,6 @@ async function clearPreviousDesignationHolders(
       { session },
     );
   }
-  if (state.isEditorInChief) {
-    await UserModel.updateMany(
-      {
-        id: { $ne: targetUserId },
-        role: "EDITOR",
-        active: { $ne: false },
-        isEditorInChief: true,
-      },
-      { $set: { isEditorInChief: false, updatedAt } },
-      { session },
-    );
-  }
 }
 
 export async function listUsers() {
@@ -123,7 +100,6 @@ export function adminUser(user: any) {
     role: user.role,
     active: user.active !== false,
     isChair: Boolean(user.isChair),
-    isEditorInChief: Boolean(user.isEditorInChief),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -151,7 +127,6 @@ export async function createUser(req: AuthedRequest, body: Record<string, unknow
           role: state.role,
           active: state.active,
           isChair: state.isChair,
-          isEditorInChief: state.isEditorInChief,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -164,7 +139,6 @@ export async function createUser(req: AuthedRequest, body: Record<string, unknow
     role: state.role,
     active: state.active,
     isChair: state.isChair,
-    isEditorInChief: state.isEditorInChief,
   });
   return user;
 }
@@ -213,7 +187,6 @@ export async function updateUser(
     role: state.role,
     active: state.active,
     isChair: state.isChair,
-    isEditorInChief: state.isEditorInChief,
   };
   const updated = await runWorkflowTransaction(async (session) => {
     await assertBoardCapacity(state, session, userId);
@@ -276,7 +249,6 @@ export async function deleteUser(req: AuthedRequest, userId: string) {
       $set: {
         active: false,
         isChair: false,
-        isEditorInChief: false,
         deletedAt: new Date(),
         updatedAt: new Date(),
       },
@@ -292,16 +264,11 @@ export async function deleteUser(req: AuthedRequest, userId: string) {
 
 export async function listManagedNotifications(filters?: {
   targetRole?: string;
-  status?: string;
   type?: string;
 }) {
   const query: Record<string, unknown> = {};
   if (filters?.targetRole) query.audienceRole = filters.targetRole;
   if (filters?.type) query.kind = filters.type;
-  if (filters?.status === "ARCHIVED") query.archivedAt = { $exists: true };
-  if (filters?.status === "ACTIVE" || filters?.status === "SENT") {
-    query.archivedAt = { $exists: false };
-  }
   return NotificationModel.find(query).sort({ createdAt: -1 }).limit(500).lean();
 }
 
@@ -371,14 +338,17 @@ export async function deleteManagedNotification(req: AuthedRequest, notification
   const existing = (await NotificationModel.findOne({ id: notificationId }).lean()) as any;
   if (!existing) throw new AppError(404, "Notification not found.", "NOTIFICATION_NOT_FOUND");
   const target = existing.batchId ? { batchId: existing.batchId } : { id: notificationId };
-  const patch = { archivedAt: new Date(), updatedAt: new Date() };
-  await NotificationModel.updateMany(target, { $set: patch });
-  const updated = await NotificationModel.findOne(target).lean();
+  const deleted = await NotificationModel.deleteMany(target);
   await audit(req, "notification.delete", "notification", notificationId, {
-    archived: true,
+    deleted: true,
+    deletedCount: deleted.deletedCount,
     batchId: existing.batchId,
   });
-  return updated;
+  return {
+    id: notificationId,
+    batchId: existing.batchId,
+    deletedCount: deleted.deletedCount,
+  };
 }
 
 export async function listAssistantEarnings(assistantId: string) {
@@ -488,7 +458,6 @@ export async function storageSummary() {
       sizeBytes:
         Number(material.size ?? material.metadata?.size ?? 0) ||
         Number(material.versions?.[material.versions.length - 1]?.size ?? 0),
-      status: material.status ?? "ACTIVE",
       updatedAt: material.updatedAt,
     })),
   };

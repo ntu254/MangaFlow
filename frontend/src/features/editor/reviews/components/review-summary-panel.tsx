@@ -177,10 +177,7 @@ export function ReviewSummaryPanel({
         )}
       </Panel>
 
-      <Panel
-        title={`Comments (${pageComments.length})`}
-        contentClassName="p-0"
-      >
+      <Panel title={`Comments (${pageComments.length})`} contentClassName="p-0">
         {pageComments.length === 0 ? (
           <p className="px-4 py-3 text-[12px] text-[var(--admin-faint)]">
             No comments on this page yet.

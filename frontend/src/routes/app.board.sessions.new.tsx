@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SessionForm } from "@/features/board";
-import { useAuth } from "@/shared/auth";
+import { isBoardChair, useAuth } from "@/shared/auth";
 
 export const Route = createFileRoute("/app/board/sessions/new")({
   component: NewSessionPage,
@@ -11,12 +11,12 @@ function NewSessionPage() {
   const navigate = useNavigate();
 
   if (!user) return null;
-  if (user.role !== "editor" && user.role !== "admin" && user.role !== "board") {
+  if (user.role !== "board" || !isBoardChair(user.id)) {
     return (
       <div className="mx-auto max-w-2xl space-y-3 text-center">
         <h1 className="font-serif text-3xl">Access denied</h1>
         <p className="text-sm text-muted-foreground">
-          Only Editor, Board, or Admin users can create voting sessions.
+          Only the Board Chair can create voting sessions.
         </p>
         <Link to="/app/board/sessions" className="text-xs underline">
           Back to sessions

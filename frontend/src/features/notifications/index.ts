@@ -1,7 +1,5 @@
 export {
   mapNotificationError,
-  useArchiveAllMutation,
-  useArchiveNotificationMutation,
   useMarkAllReadMutation,
   useMarkReadMutation,
   useNotificationsQuery,

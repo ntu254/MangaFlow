@@ -6,7 +6,7 @@ export function DecisionEffectPreview({
   decision,
 }: {
   proposal: SeriesProposal;
-  decision?: "APPROVE" | "REJECT" | "NEEDS_REVISION" | "ABSTAIN";
+  decision?: "APPROVE" | "REJECT";
 }) {
   return (
     <div className="rounded-md border border-border bg-background p-3 text-xs">

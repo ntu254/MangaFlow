@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SubmissionsListPage } from "@/features/proposals/list";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/submissions/")({
-  component: SubmissionsListPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/proposals" });
+  },
 });

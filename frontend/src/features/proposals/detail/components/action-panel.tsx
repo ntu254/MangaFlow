@@ -5,17 +5,11 @@ import type { User } from "@/shared/auth";
 import type { ProposalAction, SeriesProposal } from "@/entities/proposal/model/proposal-types";
 import { allowedActions, checkAction } from "@/entities/proposal";
 import { useProposalActionMutation } from "@/features/proposals";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Modal, ModalContent, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RequestChangesDialog } from "./request-changes-dialog";
-import { ResubmitDialog } from "./resubmit-dialog";
+import { RequestChangesModal } from "./request-changes-modal";
+import { ResubmitModal } from "./resubmit-modal";
 import { useMySeriesQuery } from "@/entities/series";
 import {
   useActiveVotingSession,
@@ -31,7 +25,6 @@ const LABELS: Record<ProposalAction, string> = {
   WITHDRAW: "Withdraw",
   CLAIM: "Claim review",
   RELEASE_CLAIM: "Release claim",
-  REASSIGN_CLAIM: "Reassign claim",
   REQUEST_CHANGES: "Request changes",
   FORWARD: "Forward to Board",
   REJECT: "Reject",
@@ -74,7 +67,13 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   );
   const createSessionMutation = useCreateVotingSessionMutation();
   const updateSessionMutation = useUpdateVotingSessionMutation();
-  const existingSeries = seriesList.find((x) => x.proposalId === proposal.id);
+  const existingSeries = seriesList.find(
+    (x) =>
+      x.proposalId === proposal.id ||
+      x.id === proposal.id ||
+      x.slug === proposal.id ||
+      x.title.toLowerCase() === proposal.title.toLowerCase(),
+  );
   const canOpenProduction =
     proposal.status === "APPROVED" && (user.role === "mangaka" || user.role === "editor");
   const canAttach =
@@ -86,14 +85,13 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   );
 
   const actions = allowedActions(user, proposal);
-  // Admin sees all, others see only allowed.
-  const visible = user.role === "admin" ? (Object.keys(LABELS) as ProposalAction[]) : actions;
+  const visible = actions;
 
   const run = (action: ProposalAction) => {
     if (action === "EDIT") {
       navigate({
-        to: "/app/submissions/$id",
-        params: { id: proposal.id },
+        to: "/app/proposals/$proposalId",
+        params: { proposalId: proposal.id },
         search: { edit: true },
       });
       return;
@@ -158,9 +156,11 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
       <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         Actions
       </p>
-      {visible.length === 0 ? (
+      {visible.length === 0 && !canOpenProduction && !canAttach ? (
         <p className="text-xs text-muted-foreground">No actions available for your current role.</p>
-      ) : (
+      ) : null}
+
+      {visible.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {visible.map((a) => {
             const check = checkAction(a, user, proposal);
@@ -191,19 +191,18 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
       )}
 
       {canOpenProduction ? (
-        <div className="mt-3 border-t border-border pt-3">
+        <div className={visible.length > 0 ? "mt-3 border-t border-border pt-3" : ""}>
           <button
             onClick={() => {
-              if (!existingSeries) return;
+              const targetSlug = existingSeries?.slug ?? proposal.id;
               navigate({
                 to: "/app/series/$slug/$tab",
-                params: { slug: existingSeries.slug, tab: "overview" },
+                params: { slug: targetSlug, tab: "overview" },
               });
             }}
-            disabled={!existingSeries}
-            className="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
           >
-            {existingSeries ? "Open production series" : "Production record is provisioning"}
+            Open Production Series
           </button>
         </div>
       ) : null}
@@ -219,11 +218,11 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
         </div>
       ) : null}
 
-      <Dialog open={open !== null} onOpenChange={(v) => !v && setOpen(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{open ? LABELS[open] : ""}</DialogTitle>
-          </DialogHeader>
+      <Modal open={open !== null} onOpenChange={(v) => !v && setOpen(null)}>
+        <ModalContent>
+          <ModalHeader>
+            <ModalTitle>{open ? LABELS[open] : ""}</ModalTitle>
+          </ModalHeader>
           <div className="space-y-2">
             <Label htmlFor="comment">
               Comment {open && REQUIRES_COMMENT.includes(open) ? "(required)" : "(optional)"}
@@ -238,7 +237,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
               rows={5}
             />
           </div>
-          <DialogFooter>
+          <ModalFooter>
             <button
               onClick={() => setOpen(null)}
               className="rounded border border-border px-3 py-1.5 text-xs"
@@ -251,11 +250,11 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
             >
               Confirm
             </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
-      <RequestChangesDialog
+      <RequestChangesModal
         proposal={proposal}
         user={user}
         open={changesOpen}
@@ -267,7 +266,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
           });
         }}
       />
-      <ResubmitDialog
+      <ResubmitModal
         proposal={proposal}
         user={user}
         open={resubmitOpen}
@@ -279,11 +278,11 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
           });
         }}
       />
-      <Dialog open={attachOpen} onOpenChange={(v) => !v && setAttachOpen(false)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Attach proposal to voting session</DialogTitle>
-          </DialogHeader>
+      <Modal open={attachOpen} onOpenChange={(v) => !v && setAttachOpen(false)}>
+        <ModalContent>
+          <ModalHeader>
+            <ModalTitle>Attach Proposal to Voting Session</ModalTitle>
+          </ModalHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="att-target">Session</Label>
@@ -303,7 +302,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
               </select>
             </div>
           </div>
-          <DialogFooter>
+          <ModalFooter>
             <button
               onClick={() => setAttachOpen(false)}
               className="rounded border border-border px-3 py-1.5 text-xs"
@@ -349,9 +348,9 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
             >
               Confirm
             </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

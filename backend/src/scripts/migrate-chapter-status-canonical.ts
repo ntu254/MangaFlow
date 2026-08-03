@@ -2,7 +2,7 @@
  * Convert legacy chapter.status values to the canonical set.
  *
  *   PLANNED → IN_PRODUCTION → TANTOU_REVIEW ⇄ REVISION_REQUIRED
- *           → READY_FOR_PUBLICATION → SCHEDULED → PUBLISHED (+ ARCHIVED)
+ *           → READY_FOR_PUBLICATION → PUBLISHED
  *
  * Mapping:
  *   DRAFTING, ASSISTANT_WORKING, MANGAKA_REVIEW → IN_PRODUCTION
@@ -11,6 +11,8 @@
  *                                                 otherwise IN_PRODUCTION
  *   REVISION                                    → REVISION_REQUIRED
  *   EDITOR_APPROVED, APPROVED                   → READY_FOR_PUBLICATION
+ *   ARCHIVED                                    → PUBLISHED, READY_FOR_PUBLICATION,
+ *                                                 IN_PRODUCTION, or PLANNED from evidence
  *
  * Usage:
  *   tsx src/scripts/migrate-chapter-status-canonical.ts           # dry run
@@ -35,6 +37,8 @@ const LEGACY_STATUSES = [
   // Scheduling moved entirely to Publication.status; the chapter reverts to
   // READY_FOR_PUBLICATION (its SCHEDULED Publication, if any, is untouched).
   "SCHEDULED",
+  // Chapters now follow the Series lifecycle and cannot be archived separately.
+  "ARCHIVED",
 ];
 
 /** A snapshot is "valid enough" to keep the chapter in TANTOU_REVIEW. */
@@ -65,6 +69,21 @@ function canonicalStatus(chapter: any): string | null {
     case "APPROVED":
     case "SCHEDULED":
       return "READY_FOR_PUBLICATION";
+    case "ARCHIVED":
+      if (chapter.publishedAt) return "PUBLISHED";
+      if (
+        chapter.readyForPublicationAt ||
+        chapter.readyByEditorId ||
+        chapter.scheduledAt ||
+        (Array.isArray(chapter.pages) &&
+          chapter.pages.length > 0 &&
+          chapter.pages.every((page: any) => page.status === "FINALIZED"))
+      ) {
+        return "READY_FOR_PUBLICATION";
+      }
+      return Array.isArray(chapter.pages) && chapter.pages.length > 0
+        ? "IN_PRODUCTION"
+        : "PLANNED";
     default:
       return null;
   }
@@ -79,6 +98,7 @@ async function main() {
       id: chapter.id,
       from: chapter.status,
       to: canonicalStatus(chapter),
+      removeArchiveMetadata: chapter.status === "ARCHIVED",
     }))
     .filter((row) => row.to && row.to !== row.from);
 
@@ -95,9 +115,15 @@ async function main() {
 
   const now = new Date().toISOString();
   for (const row of plan) {
+    const update: Record<string, unknown> = {
+      $set: { status: row.to, updatedAt: now },
+    };
+    if (row.removeArchiveMetadata) {
+      update.$unset = { archivedAt: "", archivedById: "", archiveReason: "" };
+    }
     await ChapterModel.updateOne(
       { id: row.id },
-      { $set: { status: row.to, updatedAt: now } },
+      update,
     );
   }
   console.log(`\nApplied ${plan.length} update(s).`);

@@ -7,7 +7,6 @@ import {
   Crown,
   RefreshCw,
   RotateCcw,
-  Scale,
   Send,
   ShieldCheck,
   Trash2,
@@ -110,15 +109,13 @@ export function AdminDashboard() {
   const maxRoleCount = Math.max(1, ...roleCounts.map((role) => role.count));
 
   const chair = users.find((user) => user.isChair && user.active);
-  const eic = users.find((user) => user.isEditorInChief && user.active);
-  const designationsAssigned = (chair ? 1 : 0) + (eic ? 1 : 0);
+  const designationsAssigned = chair ? 1 : 0;
 
   const recentUsers = useMemo(
     () =>
       [...users]
         .sort(
-          (a, b) =>
-            new Date(changedAt(b) ?? 0).getTime() - new Date(changedAt(a) ?? 0).getTime(),
+          (a, b) => new Date(changedAt(b) ?? 0).getTime() - new Date(changedAt(a) ?? 0).getTime(),
         )
         .slice(0, 6),
     [users],
@@ -136,8 +133,7 @@ export function AdminDashboard() {
       })
       .sort(
         (a, b) =>
-          new Date(b.sentAt ?? b.createdAt).getTime() -
-          new Date(a.sentAt ?? a.createdAt).getTime(),
+          new Date(b.sentAt ?? b.createdAt).getTime() - new Date(a.sentAt ?? a.createdAt).getTime(),
       )
       .slice(0, 3);
   }, [notifications]);
@@ -234,10 +230,10 @@ export function AdminDashboard() {
         <MetricStripItem
           label="Designations"
           value={designationsAssigned}
-          valueSuffix=" / 2"
-          hint="Board Chair & Editor-in-Chief"
+          valueSuffix=" / 1"
+          hint="Board Chair"
           icon={<ShieldCheck className="size-4" />}
-          tone={designationsAssigned === 2 ? "success" : "warning"}
+          tone={designationsAssigned === 1 ? "success" : "warning"}
         />
         <MetricStripItem
           label="Active rate versions"
@@ -295,20 +291,11 @@ export function AdminDashboard() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Key designations"
+          title="Key designation"
           description="Single-holder governance roles Admin assigns."
           contentClassName="p-0"
         >
-          <DesignationRow
-            title="Board Chair"
-            icon={<Crown className="size-4" />}
-            holder={chair}
-          />
-          <DesignationRow
-            title="Editor-in-Chief"
-            icon={<Scale className="size-4" />}
-            holder={eic}
-          />
+          <DesignationRow title="Board Chair" icon={<Crown className="size-4" />} holder={chair} />
           <div className="px-5 py-3">
             <Link
               to="/app/admin/users"
@@ -398,9 +385,7 @@ export function AdminDashboard() {
                     {item.title}
                   </p>
                   <span className="shrink-0 rounded bg-[var(--admin-hover)] px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-[var(--admin-muted)]">
-                    {item.audienceType === "ALL"
-                      ? "All"
-                      : (item.audienceRole ?? "Role")}
+                    {item.audienceType === "ALL" ? "All" : (item.audienceRole ?? "Role")}
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-[var(--admin-faint)]">
@@ -467,9 +452,6 @@ export function AdminDashboard() {
           <StatusRow label="Board Chair">
             <DesignationStatus holder={chair} />
           </StatusRow>
-          <StatusRow label="Editor-in-Chief">
-            <DesignationStatus holder={eic} />
-          </StatusRow>
           <StatusRow label="Last account change">
             <span className="font-mono text-[12px] text-[var(--admin-muted)]">
               {formatRelative(changedAt(recentUsers[0]))}
@@ -498,9 +480,7 @@ export function AdminDashboard() {
               disabled={demo.isPending}
             />
             {demo.isError ? (
-              <p className="text-[11px] text-destructive">
-                {mapAdminError(demo.error)}
-              </p>
+              <p className="text-[11px] text-destructive">{mapAdminError(demo.error)}</p>
             ) : null}
           </DashboardPanel>
         ) : null}
@@ -635,9 +615,7 @@ function MetricStripItem({
       </div>
       <p className="mt-3 font-mono text-3xl font-semibold tracking-[-0.06em] text-[var(--admin-ink)]">
         {value.toLocaleString()}
-        {valueSuffix ? (
-          <span className="text-[var(--admin-faint)]">{valueSuffix}</span>
-        ) : null}
+        {valueSuffix ? <span className="text-[var(--admin-faint)]">{valueSuffix}</span> : null}
       </p>
       <p className="mt-1 text-[11px] text-[var(--admin-faint)]">{hint}</p>
     </div>
@@ -679,9 +657,7 @@ function DesignationRow({
 
 function DesignationStatus({ holder }: { holder?: AdminUser }) {
   if (!holder) {
-    return (
-      <span className="text-[12px] font-semibold text-[var(--role-admin)]">Vacant</span>
-    );
+    return <span className="text-[12px] font-semibold text-[var(--role-admin)]">Vacant</span>;
   }
   return (
     <span className="truncate text-[12px] font-semibold text-[var(--admin-ink)]">

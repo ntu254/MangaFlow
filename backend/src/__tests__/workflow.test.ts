@@ -42,6 +42,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateMany(
+      { id: { $in: ["ch-s-berserk-prod-4", "ch-s-berserk-prod-5"] } },
+      { $set: { status: "IN_PRODUCTION", "pages.$[].status": "UPLOADED" } },
+    );
   });
 
   afterAll(async () => {
@@ -238,10 +242,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
   });
 
   describe("Series Members sub-router CRUD", () => {
-    it("allows managing series team members", async () => {
+    it("retires direct team membership creation in favor of Assistant acceptance", async () => {
       const editor = await loginAs("tanaka@beachread.jp");
 
-      // 1. Add a new assistant as a team member
       const createRes = await request(createApp())
         .post("/api/series/s-berserk-prod/members")
         .set("Authorization", `Bearer ${editor.accessToken}`)
@@ -251,45 +254,54 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
           scope: "Lineart only",
           status: "active",
         })
-        .expect(201);
-
-      expect(createRes.body.data.userId).toBe("u-assist-new");
-      expect(createRes.body.data.scope).toBe("Lineart only");
-
-      const memberId = createRes.body.data.id;
-
-      // 2. GET members list
-      const getRes = await request(createApp())
-        .get("/api/series/s-berserk-prod/members")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(200);
-      expect(getRes.body.data.some((m: any) => m.id === memberId)).toBe(true);
-
-      // 3. PATCH member status / scope
-      const patchRes = await request(createApp())
-        .patch(`/api/series/s-berserk-prod/members/${memberId}`)
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .send({ scope: "Full chapter", status: "inactive" })
-        .expect(200);
-      expect(patchRes.body.data.status).toBe("inactive");
-      expect(patchRes.body.data.scope).toBe("Full chapter");
-
-      // 4. DELETE member
-      await request(createApp())
-        .delete(`/api/series/s-berserk-prod/members/${memberId}`)
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(200);
-
-      // Verify deletion
-      const verifyGetRes = await request(createApp())
-        .get("/api/series/s-berserk-prod/members")
-        .set("Authorization", `Bearer ${editor.accessToken}`)
-        .expect(200);
-      expect(verifyGetRes.body.data.some((m: any) => m.id === memberId)).toBe(false);
+        .expect(410);
+      expect(createRes.body.code).toBe("INVITE_ACCEPTANCE_REQUIRED");
     });
   });
 
   describe("Task action states", () => {
+    it("fully releases a region after Mangaka cancels a started task", async () => {
+      const assistant = await loginAs("jun@beachread.jp");
+      const mangaka = await loginAs("inoue@beachread.jp");
+
+      await StudioRegionModel.create({
+        id: "reg-cancel-unlock",
+        chapterId: "ch-s-berserk-prod-4",
+        status: "CONFIRMED",
+        lockStatus: "UNLOCKED",
+      });
+      await StudioTaskModel.create({
+        id: "tsk-cancel-unlock",
+        title: "Cancel unlock task",
+        chapterId: "ch-s-berserk-prod-4",
+        regionId: "reg-cancel-unlock",
+        status: "TODO",
+        assigneeId: assistant.user.id,
+        assigneeName: "Jun",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await request(createApp())
+        .post("/api/studio/tasks/tsk-cancel-unlock/actions/start")
+        .set("Authorization", `Bearer ${assistant.accessToken}`)
+        .expect(200);
+
+      const locked = await StudioRegionModel.findOne({ id: "reg-cancel-unlock" }).lean();
+      expect((locked as any)?.lockedByTaskId).toBe("tsk-cancel-unlock");
+
+      await request(createApp())
+        .post("/api/studio/tasks/tsk-cancel-unlock/actions/cancel")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ reason: "Reassign production scope" })
+        .expect(200);
+
+      const released = await StudioRegionModel.findOne({ id: "reg-cancel-unlock" }).lean();
+      expect((released as any)?.activeTaskId ?? null).toBeNull();
+      expect((released as any)?.lockedByTaskId ?? null).toBeNull();
+      expect((released as any)?.lockStatus).toBe("UNLOCKED");
+    });
+
     it("limits assistant task list and direct task reads to assigned tasks", async () => {
       const assistant = await loginAs("jun@beachread.jp");
 
@@ -421,33 +433,29 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .expect(201);
       expect(submitRes.body.data.status).toBe("PENDING");
 
-      // 3. BLOCK action -> blocked: true
+      // 3. Task block actions are removed from the canonical workflow.
       const blockRes = await request(createApp())
         .post("/api/studio/tasks/tsk-transition-test/actions/block")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
         .send({ reason: "Missing base layout storyboard" })
-        .expect(200);
-      expect(blockRes.body.data.blocked).toBe(true);
-      expect(blockRes.body.data.blockedReason).toBe("Missing base layout storyboard");
+        .expect(400);
+      expect(blockRes.body.code).toBe("INVALID_ACTION");
 
-      // 4. UNBLOCK action -> blocked: false
+      // 4. The legacy unblock endpoint is removed as well.
       const unblockRes = await request(createApp())
         .post("/api/studio/tasks/tsk-transition-test/actions/unblock")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .expect(200);
-      expect(unblockRes.body.data.blocked).toBe(false);
-      expect(unblockRes.body.data.blockedReason).toBeNull();
+        .expect(400);
+      expect(unblockRes.body.code).toBe("INVALID_ACTION");
     });
 
-    it("rejects START while the assigned task is blocked", async () => {
+    it("starts a TODO task without a separate blocked state", async () => {
       const assistant = await loginAs("jun@beachread.jp");
       await StudioTaskModel.create({
         id: "tsk-start-blocked",
-        title: "Blocked Start Guard",
+        title: "Start Without Block State",
         chapterId: "ch-s-berserk-prod-4",
         status: "TODO",
-        blocked: true,
-        blockedReason: "Waiting for source material",
         assigneeId: assistant.user.id,
         assigneeName: "Jun",
       });
@@ -455,12 +463,12 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const response = await request(createApp())
         .post("/api/studio/tasks/tsk-start-blocked/actions/start")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
-        .expect(409);
+        .expect(200);
 
-      expect(response.body.code).toBe("TASK_BLOCKED");
+      expect(response.body.data.status).toBe("IN_PROGRESS");
       const task = await StudioTaskModel.findOne({ id: "tsk-start-blocked" }).lean();
-      expect((task as any)?.status).toBe("TODO");
-      expect((task as any)?.startedAt).toBeUndefined();
+      expect((task as any)?.status).toBe("IN_PROGRESS");
+      expect((task as any)?.startedAt).toBeDefined();
     });
 
     it("rejects START after Mangaka approval without relocking the region", async () => {
@@ -639,6 +647,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
   describe("Mangaka sends a production chapter to Editor Review", () => {
     async function createReviewFixture(options?: {
       ownerId?: string;
+      editorId?: string | null;
       chapterAssigneeId?: string;
       page?: boolean;
       chapterStatus?: string;
@@ -654,6 +663,9 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const taskId = `tsk-review-${suffix}`;
       const submissionId = `sub-review-${suffix}`;
       const ownerId = options?.ownerId ?? "u-mangaka";
+      const editorId = options && Object.prototype.hasOwnProperty.call(options, "editorId")
+        ? options.editorId
+        : "u-editor";
 
       await ProposalModel.create({
         id: proposalId,
@@ -669,8 +681,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         title: "Production review fixture",
         authorId: ownerId,
         authorName: "Mangaka",
-        editorId: "u-editor",
-        editorName: "Editor",
+        ...(editorId ? { editorId, editorName: "Editor" } : {}),
         publicationType: "WEEKLY",
         proposalId,
         sourceProposalId: proposalId,
@@ -761,7 +772,38 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(response.body.data.nextStatus).toBe("TANTOU_REVIEW");
       expect(response.body.data.flow).toBe("DIRECT");
       expect(response.body.data.chapter.status).toBe("TANTOU_REVIEW");
-      expect(response.body.data.pages[0].status).toBe("TANTOU_REVIEW");
+      expect(response.body.data.pages[0].status).toBe("UPLOADED");
+    });
+
+    it("requires an active Tantou before opening Editor Review", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const fixture = await createReviewFixture({ ownerId: mangaka.user.id, editorId: null });
+
+      const response = await request(createApp())
+        .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(409);
+
+      expect(response.body.code).toBe("TANTOU_ASSIGNMENT_REQUIRED");
+      expect(await ChapterModel.findOne({ id: fixture.chapterId }).then((chapter) => chapter?.status)).toBe(
+        "IN_PRODUCTION",
+      );
+    });
+
+    it("keeps an unresolved blocking comment after Tantou reassignment", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const fixture = await createReviewFixture({
+        ownerId: mangaka.user.id,
+        editorId: "u-mobile-editor",
+        blockingTarget: "CHAPTER",
+      });
+
+      const response = await request(createApp())
+        .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(409);
+
+      expect(response.body.code).toBe("BLOCKING_COMMENTS_UNRESOLVED");
     });
 
     it("resubmits after the Mangaka addresses the Editor's blocking revision comment", async () => {
@@ -931,7 +973,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(response.body.code).toBe("BLOCKING_COMMENTS_UNRESOLVED");
     });
 
-    it("ignores blocking comments from an editor not assigned to the series", async () => {
+    it("keeps blocking comments valid across Tantou assignment changes", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
       const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
       await StudioCommentModel.create({
@@ -951,10 +993,13 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       await request(createApp())
         .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .expect(200);
+        .expect(409)
+        .expect((response) => {
+          expect(response.body.code).toBe("BLOCKING_COMMENTS_UNRESOLVED");
+        });
     });
 
-    it("blocks review materials that are not ACTIVE", async () => {
+    it("submits a Chapter without applying a Supporting Material status gate", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
       const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
       await MaterialModel.create({
@@ -969,8 +1014,8 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const response = await request(createApp())
         .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
-        .expect(409);
-      expect(response.body.code).toBe("REVIEW_MATERIAL_NOT_ACTIVE");
+        .expect(200);
+      expect(response.body.data.chapter.status).toBe("TANTOU_REVIEW");
     });
 
     it("rejects a Mangaka who does not own the series", async () => {
@@ -1095,7 +1140,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       const revisedTask = await StudioTaskModel.findOne({ id: revised.taskId }).lean();
       const revisedSubmission = await SubmissionModel.findOne({ id: revised.submissionId }).lean();
       expect((revisedChapter as any).status).toBe("REVISION_REQUIRED");
-      expect((revisedChapter as any).pages[0].status).toBe("REVISION_REQUIRED");
+      expect((revisedChapter as any).pages[0].status).toBe("UPLOADED");
       expect((revisedTask as any).status).toBe("MANGAKA_APPROVED");
       expect((revisedSubmission as any).status).toBe("MANGAKA_APPROVED");
     });
@@ -1119,7 +1164,7 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect(written).not.toContain("REVISION_REQUESTED");
     });
 
-    it("archives a chapter by persisting the ARCHIVED status", async () => {
+    it("rejects the retired Chapter ARCHIVE action without changing the chapter", async () => {
       const mangaka = await loginAs("inoue@beachread.jp");
       const fixture = await createReviewFixture({ ownerId: mangaka.user.id });
       const editor = await loginAs("tanaka@beachread.jp");
@@ -1128,12 +1173,12 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .post(`/api/chapters/${fixture.chapterId}/actions/ARCHIVE`)
         .set("Authorization", `Bearer ${editor.accessToken}`)
         .send({ reason: "Production record closed" })
-        .expect(200);
+        .expect(400);
 
-      expect(response.body.data.status).toBe("ARCHIVED");
-      expect(response.body.data.archiveReason).toBe("Production record closed");
-      const archived = await ChapterModel.findOne({ id: fixture.chapterId }).lean();
-      expect((archived as any).status).toBe("ARCHIVED");
+      expect(response.body.code).toBe("INVALID_ACTION");
+      const unchanged = await ChapterModel.findOne({ id: fixture.chapterId }).lean();
+      expect((unchanged as any).status).toBe("IN_PRODUCTION");
+      expect((unchanged as any).archivedAt).toBeUndefined();
     });
   });
 

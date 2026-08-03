@@ -1,7 +1,6 @@
 import {
   ChapterModel,
   ChapterReviewModel,
-  MaterialModel,
   ProposalModel,
   SeriesModel,
   StudioCommentModel,
@@ -13,6 +12,7 @@ import { id, nowIso } from "../domain/ids.js";
 import { apiToWebRole } from "../domain/roles.js";
 import { AppError } from "../lib/http.js";
 import { audit } from "./audit.service.js";
+import { activeTantouEditorId } from "./authorization.service.js";
 import {
   chapterReviewVersion,
   pageHasUploadedAsset,
@@ -43,10 +43,6 @@ export async function findChapterBlockingComments(
   submissions: any[],
   acceptedStatuses: string[] = ["ADDRESSED", "RESOLVED"],
 ) {
-  const series = (await SeriesModel.findOne({ id: chapter.seriesId })
-    .select({ editorId: 1 })
-    .lean()) as any;
-  if (!series?.editorId) return [];
   const pageIds = (chapter.pages ?? []).map((page: any) => page.id).filter(Boolean);
   const regions = await StudioRegionModel.find({ chapterId: chapter.id }).select({ id: 1 }).lean();
   const regionIds = regions.map((region: any) => region.id);
@@ -68,7 +64,6 @@ export async function findChapterBlockingComments(
           { targetType: "SUBMISSION", targetId: { $in: submissionIds } },
         ],
       },
-      { authorId: series.editorId },
       { $or: [{ isBlocking: true }, { blocking: true }] },
       { status: { $nin: acceptedStatuses } },
     ],
@@ -109,6 +104,14 @@ export async function sendChapterToEditorReview(
     );
   }
 
+  if (!(await activeTantouEditorId(series))) {
+    throw new AppError(
+      409,
+      "Assign an active Tantou Editor before sending a chapter to editor review.",
+      "TANTOU_ASSIGNMENT_REQUIRED",
+    );
+  }
+
   const sourceProposalId = series.sourceProposalId ?? series.proposalId;
   const approvedProposal = sourceProposalId
     ? await ProposalModel.findOne({ id: sourceProposalId, status: "APPROVED" }).lean()
@@ -139,30 +142,10 @@ export async function sendChapterToEditorReview(
     );
   }
 
-  const pageIds = chapter.pages.map((page: any) => page.id);
-  const [tasks, submissions, reviewMaterials] = await Promise.all([
+  const [tasks, submissions] = await Promise.all([
     StudioTaskModel.find({ chapterId }).lean(),
     SubmissionModel.find({ chapterId }).lean(),
-    MaterialModel.find({
-      $and: [
-        { $or: [{ chapterId }, { pageId: { $in: pageIds } }] },
-        {
-          $or: [{ fileKey: { $exists: true, $ne: "" } }, { url: { $exists: true, $ne: "" } }],
-        },
-      ],
-    }).lean(),
   ]);
-  if (
-    reviewMaterials.some(
-      (material: any) => !["ACTIVE", "APPROVED"].includes(String(material.status)),
-    )
-  ) {
-    throw new AppError(
-      409,
-      "Review materials must be ACTIVE or APPROVED before sending to editor review.",
-      "REVIEW_MATERIAL_NOT_ACTIVE",
-    );
-  }
   // CANCELLED and REJECTED tasks are terminal dead-ends (a rejected task cannot
   // be reopened; the region is freed for a replacement task), so they must not
   // block editor review.
@@ -217,11 +200,7 @@ export async function sendChapterToEditorReview(
   }
 
   const now = nowIso();
-  const pages = chapter.pages.map((page: any) => ({
-    ...page,
-    status: "TANTOU_REVIEW",
-    updatedAt: now,
-  }));
+  const pages = chapter.pages.map((page: any) => ({ ...page }));
   const event = {
     id: id("ce"),
     chapterId,
@@ -249,7 +228,6 @@ export async function sendChapterToEditorReview(
       {
         $set: {
           status: "TANTOU_REVIEW",
-          pages,
           reviewSnapshot,
           ...(action === "RESUBMIT"
             ? { revisionRound: Number(chapter.revisionRound ?? 0) + 1 }
@@ -328,11 +306,7 @@ export async function sendChapterToEditorReview(
       session,
     );
   };
-  if (action === "RESUBMIT") {
-    await runWorkflowTransaction(persistReviewTransition);
-  } else {
-    await persistReviewTransition();
-  }
+  await runWorkflowTransaction(persistReviewTransition);
 
   const updatedChapter = toObject(await ChapterModel.findOne({ id: chapterId }).lean()) as any;
   return {

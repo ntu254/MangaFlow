@@ -40,7 +40,7 @@ function pullSymbols(sourceRel, names) {
   const src = "features/proposals/model/proposal-machine.ts";
   const { extracted, remaining } = pullSymbols(src, ["TallyResult", "evaluateBoardTally"]);
   const newFile = "entities/proposal/model/board-tally.ts";
-  const header = 'import type { BoardVote, ProposalStatus } from "./proposal-types";\nimport { BOARD_QUORUM, BOARD_TOTAL, EIC_TIEBREAK_WEIGHT } from "./proposal-types";\n\n';
+  const header = 'import type { BoardVote, ProposalStatus } from "./proposal-types";\nimport { BOARD_QUORUM, BOARD_TOTAL } from "./proposal-types";\n\n';
   write(newFile, header + extracted.map(e => e.text).join("\n\n") + "\n");
   // source: add import for internal use + re-export
   const inject = 'import { evaluateBoardTally, type TallyResult } from "@/entities/proposal/model/board-tally";\nexport { evaluateBoardTally, type TallyResult } from "@/entities/proposal/model/board-tally";\n';

@@ -5,10 +5,10 @@ const seriesTabSchema = [
   "overview",
   "proposal",
   "chapters",
-  "materials",
   "rankings",
   "calendar",
   "team",
+  "studio",
 ] as const;
 
 export type SeriesTab = (typeof seriesTabSchema)[number];

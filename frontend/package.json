@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:revote-banner": "npm --prefix backend exec -- tsx -- src/features/board/vote/model/revote-banner.check.ts",
+    "test:revote-banner": "npm --prefix ../backend exec -- tsx -- ../frontend/src/features/board/vote/model/revote-banner.check.ts",
     "audit:architecture": "node scripts/pass12-check-boundaries.cjs && node scripts/pass12-check-architecture.cjs",
     "format": "prettier --write .",
     "test:e2e": "playwright test"

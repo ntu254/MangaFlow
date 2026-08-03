@@ -65,11 +65,19 @@ export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
   const proposal = await ProposalModel.findOne({ id: String(req.params.seriesId) }).lean();
   if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
   await assertCanReadProposal(requireActor(req), proposal);
-  const session = await VotingSessionModel.findOne({
+  const session =
+    (await VotingSessionModel.findOne({
+      targetType: "PROPOSAL",
+      proposalId: String(req.params.seriesId),
+      status: "OPEN",
+    }).lean()) ??
+    (await VotingSessionModel.findOne({
     targetType: "PROPOSAL",
     proposalId: String(req.params.seriesId),
-    status: { $in: ["OPEN", "TIE_BREAK_REQUIRED"] },
-  }).lean();
+      status: "TIE_BREAK_REQUIRED",
+    })
+      .sort({ openedAt: -1 })
+      .lean());
   const eligibleVoterIds =
     Array.isArray((session as any)?.eligibleVoterIds) &&
     (session as any).eligibleVoterIds.length > 0
@@ -98,6 +106,9 @@ export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const startReview = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await applyProposalAction(req, String(req.params.seriesId), "CLAIM", req.body)),
+);
+export const releaseClaim = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await applyProposalAction(req, String(req.params.proposalId), "RELEASE_CLAIM", req.body)),
 );
 export const requestRevision = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await applyProposalAction(req, String(req.params.seriesId), "REQUEST_CHANGES", req.body)),
@@ -128,17 +139,6 @@ export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) => {
   }
   ok(res, await closeVotingSession(req, sessionId, req.body?.note, req.body?.publicationType));
 });
-// Retired: Editor-in-Chief tie-break voting no longer exists. A tied session
-// closes to a TIED round and opens a fresh re-vote automatically. The endpoint
-// is kept only to return a clear 410 for any stale client.
-export const tieBreakDecision = asyncRoute(async (_req: AuthedRequest, _res) => {
-  throw new AppError(
-    410,
-    "Editor-in-chief tie-break voting has been retired; tied sessions now open a re-vote.",
-    "TIE_BREAK_RETIRED",
-  );
-});
-
 export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId ?? "").trim();
   if (!seriesId) {

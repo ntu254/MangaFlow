@@ -7,7 +7,6 @@ const TONES: Record<ChapterStatus, string> = {
   REVISION_REQUIRED: "bg-orange-100 text-orange-900 border-orange-300",
   READY_FOR_PUBLICATION: "bg-emerald-100 text-emerald-800 border-emerald-300",
   PUBLISHED: "bg-foreground text-background border-foreground",
-  ARCHIVED: "bg-zinc-200 text-zinc-700 border-zinc-300",
 };
 
 export function ChapterStatusPill({

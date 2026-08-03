@@ -11,6 +11,10 @@ import {
 } from "@/features/proposals";
 import { Button } from "@/components/ui/button";
 import type { SeriesProposal, SupportingMaterial } from "@/entities/proposal/model/proposal-types";
+import {
+  hasManuscriptFileChanged,
+  latestManuscriptVersion,
+} from "@/entities/proposal/model/proposal-attachments";
 import type { DraftManuscript, DraftMaterial } from "./manuscript-uploader";
 import { WizardStepper } from "./wizard-stepper";
 import { StepBasicPitch } from "./steps/step-basic-pitch";
@@ -73,10 +77,7 @@ type ProposalWizardProps = {
 };
 
 function latestManuscript(proposal?: SeriesProposal): DraftManuscript | null {
-  const current = proposal?.manuscripts?.reduce(
-    (latest, item) => (!latest || item.version > latest.version ? item : latest),
-    proposal.manuscripts[0],
-  );
+  const current = latestManuscriptVersion(proposal?.manuscripts ?? []);
   if (!current) return null;
   return {
     fileKey: current.fileKey,
@@ -143,13 +144,13 @@ export function ProposalWizard({
   const [storyboard, setStoryboard] = useState<DraftMaterial[]>(
     () =>
       initialProposal?.materials
-        ?.filter((material) => material.kind === "world")
+        ?.filter((material) => material.kind === "storyboard")
         .map(draftMaterial) ?? [],
   );
   const [characterSheets, setCharacterSheets] = useState<DraftMaterial[]>(
     () =>
       initialProposal?.materials
-        ?.filter((material) => material.kind !== "world")
+        ?.filter((material) => material.kind !== "storyboard")
         .map(draftMaterial) ?? [],
   );
   const [advanced, setAdvanced] = useState<AdvancedDetailsValues>(initialProposal?.advanced ?? {});
@@ -231,7 +232,8 @@ export function ProposalWizard({
       uploadedAt: now,
       ...m,
     }));
-    const manuscriptChanged = manuscript && manuscript.fileUrl !== initialManuscript?.fileUrl;
+    const manuscriptChanged = hasManuscriptFileChanged(manuscript, initialManuscript);
+    const previousManuscript = latestManuscriptVersion(initialProposal?.manuscripts ?? []);
     const manuscripts = isEdit
       ? [
           ...(initialProposal?.manuscripts ?? []),
@@ -247,7 +249,7 @@ export function ProposalWizard({
                   uploadedById: user.id,
                   uploadedByName: user.name,
                   uploadedAt: now,
-                  supersedes: initialProposal?.manuscripts.at(-1)?.id,
+                  supersedes: previousManuscript?.id,
                   ...manuscript,
                 },
               ]

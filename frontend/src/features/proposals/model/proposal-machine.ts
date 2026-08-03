@@ -3,7 +3,7 @@ export { evaluateBoardTally, type TallyResult } from "@/entities/proposal/model/
 export type { ActionCheck } from "@/entities/proposal/model/proposal-actions";
 export { checkAction, allowedActions } from "@/entities/proposal/model/proposal-actions";
 import type { Role, User } from "@/shared/auth";
-import { BOARD_MEMBERS, isBoardChair, isEditorInChief, findUserById } from "@/shared/auth";
+import { BOARD_MEMBERS, isBoardChair } from "@/shared/auth";
 import type {
   BoardVote,
   ManuscriptVersion,
@@ -13,7 +13,7 @@ import type {
   SeriesProposal,
   VoteDecision,
 } from "@/entities/proposal/model/proposal-types";
-import { BOARD_TOTAL, EIC_TIEBREAK_WEIGHT } from "@/entities/proposal/model/proposal-types";
+import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { checkAction } from "@/entities/proposal/model/proposal-actions";
 
 function uid(prefix: string) {
@@ -310,31 +310,26 @@ export function applyTransition(
     }
     case "VOTE": {
       if (!payload.voteDecision) throw new Error("Missing vote decision.");
-      const inTieBreak = next.status === "TIE_BREAK";
       const chair = isBoardChair(user.id);
-      const eic = user.role === "editor" && isEditorInChief(user);
-      const weight =
-        inTieBreak && eic && payload.voteDecision !== "ABSTAIN" ? EIC_TIEBREAK_WEIGHT : 1;
       const vote: BoardVote = {
         memberId: user.id,
         memberName: user.name,
         decision: payload.voteDecision,
         comment: payload.comment,
         createdAt: new Date().toISOString(),
-        weight,
+        weight: 1,
         isChair: chair,
-        isEditorInChief: eic,
       };
       next.votes = [...next.votes, vote];
       events.push({
         ...baseEvent,
         type: "VOTE",
-        comment: `${payload.voteDecision}${eic ? ` · Editor-in-chief${weight > 1 ? ` (tie-break weight ${weight})` : ""}` : chair ? ` · Board Chair` : ""}${payload.comment ? ` — ${payload.comment}` : ""}`,
+        comment: `${payload.voteDecision}${chair ? " · Board Chair" : ""}${payload.comment ? ` — ${payload.comment}` : ""}`,
       });
       notify.push({
         userId: next.authorId,
         kind: "proposal.vote",
-        message: `${user.name} ${payload.voteDecision === "APPROVE" ? "approved" : payload.voteDecision === "REJECT" ? "rejected" : "abstained on"} proposal "${p.title}".`,
+        message: `${user.name} ${payload.voteDecision === "APPROVE" ? "approved" : "rejected"} proposal "${p.title}".`,
       });
       if (next.assignedEditorId)
         notify.push({
@@ -374,7 +369,11 @@ export function applyTransition(
           message: `Proposal "${p.title}" → ${tally.status}.`,
         });
       } else if (tally.status === "TIE_BREAK" && from !== "TIE_BREAK") {
-        next.status = "TIE_BREAK";
+        // A tie closes the current round and immediately starts a clean Board re-vote.
+        // Keep the historical event type for audit compatibility, but do not expose a
+        // special tie-break state or give any role a deciding vote.
+        next.status = "PENDING_BOARD";
+        next.votes = [];
         events.push({
           id: uid("e"),
           proposalId: p.id,
@@ -383,21 +382,14 @@ export function applyTransition(
           actorRole: "admin",
           type: "TIE_BREAK",
           fromStatus: from,
-          toStatus: "TIE_BREAK",
+          toStatus: "PENDING_BOARD",
           comment: tally.reason,
           createdAt: new Date().toISOString(),
         });
-        const eicUser = findUserById("u-editor");
-        if (eicUser)
-          notify.push({
-            userId: eicUser.id,
-            kind: "proposal.tiebreak",
-            message: `Editor-in-chief tie-breaking vote needed for "${p.title}".`,
-          });
         notify.push({
           userId: next.authorId,
           kind: "proposal.tiebreak",
-          message: `Proposal "${p.title}" is awaiting the Editor-in-chief's tie-breaking vote.`,
+          message: `Proposal "${p.title}" is awaiting a fresh Board re-vote.`,
         });
       }
       break;
@@ -434,18 +426,6 @@ export function applyTransition(
         userId: next.authorId,
         kind: "proposal.claim_released",
         message: `Claim on "${p.title}" has been released.`,
-      });
-      break;
-    }
-    case "REASSIGN_CLAIM": {
-      next.claimedByEditorId = payload.comment; // overloaded: editorId passed via comment for simplicity
-      next.claimedByEditorName = payload.comment;
-      next.claimedAt = new Date().toISOString();
-      next.reviewStartedAt = new Date().toISOString();
-      events.push({
-        ...baseEvent,
-        type: "REASSIGN_CLAIM",
-        comment: payload.comment ?? "Claim reassigned.",
       });
       break;
     }

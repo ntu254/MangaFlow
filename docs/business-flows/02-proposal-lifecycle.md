@@ -63,7 +63,6 @@ to that new session.
 | Create/close/cancel Board session | BOARD Chair |
 | Vote in active Proposal round | BOARD, against the `OPEN` session only |
 | View historical `TIED` or `TIE_BREAK_REQUIRED` record | BOARD, EDITOR |
-| New EIC tie-break | Not supported; retired with `410 TIE_BREAK_RETIRED` |
 
 ## Invariants
 
@@ -76,5 +75,5 @@ to that new session.
 ## Historical compatibility
 
 Existing `TIE_BREAK_REQUIRED` Proposal/session records remain readable for audit and display.
-They do not authorize new weighted EIC tie-break requests. All new tied Proposal rounds become
+They do not authorize new weighted special-editor tie-break requests. All new tied Proposal rounds become
 terminal `TIED` history and receive a fresh `OPEN` Board re-vote.

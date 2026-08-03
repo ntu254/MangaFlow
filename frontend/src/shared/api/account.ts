@@ -21,10 +21,9 @@ export const adminApi = {
     apiRequest(`/admin/users/${userId}/deactivate`, { method: "POST", body: {} }),
   deleteUser: (userId: string, reason?: string) =>
     apiRequest(`/admin/users/${userId}`, { method: "DELETE", body: reason ? { reason } : {} }),
-  notifications: (filters?: { targetRole?: string; status?: string; type?: string }) => {
+  notifications: (filters?: { targetRole?: string; type?: string }) => {
     const params = new URLSearchParams();
     if (filters?.targetRole) params.set("targetRole", filters.targetRole);
-    if (filters?.status) params.set("status", filters.status);
     if (filters?.type) params.set("type", filters.type);
     const qs = params.toString();
     return apiRequest(`/admin/notifications${qs ? `?${qs}` : ""}`);
@@ -48,5 +47,4 @@ export const assistantEarningsApi = {
 export const notificationsApi = {
   list: () => apiRequest("/notifications"),
   read: (id: string) => apiRequest(`/notifications/${id}/read`, { method: "POST", body: {} }),
-  archive: (id: string) => apiRequest(`/notifications/${id}/archive`, { method: "POST", body: {} }),
 };

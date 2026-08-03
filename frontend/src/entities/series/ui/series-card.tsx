@@ -7,9 +7,7 @@ import {
   Pencil,
   Layers,
   Users,
-  FileText,
   Newspaper,
-  Flag,
 } from "lucide-react";
 import { SERIES_STATUS_LABEL, type ProductionSeries } from "@/entities/series/model/series-types";
 import { ChapterStatusPill } from "@/entities/chapter";
@@ -222,21 +220,9 @@ export function SeriesCard({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/app/tasks">
-                  <Flag className="mr-2 size-3.5" />
-                  Tasks
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <SeriesLink slug={series.slug} tab="team">
                   <Users className="mr-2 size-3.5" />
                   Team
-                </SeriesLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <SeriesLink slug={series.slug} tab="materials">
-                  <FileText className="mr-2 size-3.5" />
-                  Materials
                 </SeriesLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

@@ -67,9 +67,9 @@ triển `mangaflow` không bị reset hoặc thay đổi.
 
 1. Mangaka tạo proposal độc lập; Editor claim và forward.
 2. Board Chair mở session.
-3. Năm thành viên vote `2 APPROVE + 2 REJECT + 1 ABSTAIN`.
+3. Bốn thành viên vote `2 APPROVE + 2 REJECT`; đây là một vòng hòa và hệ thống mở re-vote mới.
 4. Chair close session; trạng thái chuyển `TIE_BREAK_REQUIRED`.
-5. Editor-in-chief bỏ phiếu weighted `APPROVE`.
+5. Board mở một phiên re-vote mới sau khi vòng đầu bị hòa.
 6. Chair close lần hai; session `FINALIZED`, proposal được approve và Series
    được provision.
 
@@ -144,12 +144,12 @@ không redirect sai về login, không có trang lỗi và không có API respon
 
 ## Lỗi phát hiện và đã sửa trong vòng kiểm thử này
 
-### E2E-006 — EIC không thấy proposal cần tie-break
+### E2E-006 — Board mở lại proposal trong phiên re-vote
 
 - Nguyên nhân: client so sánh proposal status với cả chuỗi
   `"A,B,C"` thay vì tách danh sách multi-status.
 - Sửa: tách status bằng dấu phẩy và lọc theo tập giá trị.
-- Regression: EIC thấy proposal, vote weighted và Chair finalize thành công.
+- Regression: Board thấy proposal trong phiên mới và tiếp tục bỏ phiếu theo quorum chuẩn.
 
 ### E2E-007 — Session detail thiếu proposal ở trạng thái tie-break
 
@@ -318,7 +318,7 @@ Các nhánh nên kiểm thử ở vòng tiếp theo:
 - [Console output 59 scenario](../../artifacts/e2e-live/full-run-59.out.log)
 - [Admin dashboard](../../artifacts/e2e-live/screenshots/01-admin-dashboard.png)
 - [AI whitening](../../artifacts/e2e-live/screenshots/08-live-ai-whitening.png)
-- [EIC tie-break approved](../../artifacts/e2e-live/screenshots/12-eic-tie-break-approved.png)
+- [Board re-vote open](../../artifacts/e2e-live/screenshots/12-board-revote-open.png)
 - [Series từ tie-break](../../artifacts/e2e-live/screenshots/13-tie-break-series-provisioned.png)
 - [Assistant task started](../../artifacts/e2e-live/screenshots/14-assistant-task-started.png)
 - [Assistant work submitted](../../artifacts/e2e-live/screenshots/15-assistant-work-submitted.png)

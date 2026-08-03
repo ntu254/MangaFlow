@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Archive, Bell } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { formatDateTime } from "../../_shared";
 import type { ManagedNotification } from "../api/notifications.queries";
 
@@ -17,14 +17,14 @@ export function BroadcastDetailSheet({
   broadcast,
   open,
   onOpenChange,
-  onArchive,
-  archiving,
+  onDelete,
+  deleting,
 }: {
   broadcast: BroadcastDetail | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onArchive: () => void;
-  archiving: boolean;
+  onDelete: () => void;
+  deleting: boolean;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -59,16 +59,16 @@ export function BroadcastDetailSheet({
                 {broadcast.batchId ?? "-"}
               </Detail>
               <Detail label="Created by">{broadcast.createdByName ?? "Admin"}</Detail>
-              <Detail label="Status">{broadcast.archivedAt ? "Archived" : "Sent"}</Detail>
+              <Detail label="Delivery">Sent</Detail>
             </dl>
           </div>
         ) : null}
 
         <SheetFooter className="border-t border-[var(--admin-border)] px-6 py-4 sm:flex-row sm:justify-end">
-          {broadcast && !broadcast.archivedAt ? (
-            <Button variant="outline" onClick={onArchive} disabled={archiving}>
-              <Archive className="mr-2 size-3.5" />
-              {archiving ? "Archiving..." : "Archive broadcast"}
+          {broadcast ? (
+            <Button variant="outline" onClick={onDelete} disabled={deleting}>
+              <Trash2 className="mr-2 size-3.5" />
+              {deleting ? "Deleting..." : "Delete broadcast"}
             </Button>
           ) : null}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

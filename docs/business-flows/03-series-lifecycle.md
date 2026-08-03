@@ -43,6 +43,21 @@ graph TD
 | `COMPLETED` | Production complete |
 | `ARCHIVED` | Lifecycle closed and retained |
 
+## Lifecycle transition guard
+
+The action endpoint validates the current status before checking the actor permission.
+The supported transitions are:
+
+| Current status | Action | Next status | Actor |
+|---|---|---|---|
+| `PLANNING`, `PRE_PRODUCTION` | `START_PRODUCTION` | `ONGOING` | Owning Mangaka or assigned Tantou |
+| `ONGOING`, `PUBLISHED`, `PUBLIC` | `UNPUBLISH` | `HIATUS` | Assigned Tantou only |
+| `PLANNING`, `PRE_PRODUCTION`, `ONGOING`, `PUBLISHED`, `PUBLIC` | `ARCHIVE` | `ARCHIVED` | Owner/Tantou before publication; Tantou only after publication |
+
+`ARCHIVED` cannot transition again. `HIATUS` cannot be archived or unpublished through
+these actions. Therefore transitions such as `PRE_PRODUCTION → HIATUS`,
+`HIATUS → ARCHIVED`, and `ARCHIVED → HIATUS` return `409 INVALID_TRANSITION`.
+
 ## Series Visibility
 `PRIVATE`, `PUBLIC`, `UNLISTED`, `ARCHIVED` control reader-facing availability.
 
@@ -63,7 +78,7 @@ has been removed.
 | Action | Current implementation | Canonical actor and guard |
 |---|---|---|
 | Create | System transaction | Finalized Board approval auto-creates at most one Series |
-| Patch | EDITOR, MANGAKA | Owning Mangaka or assigned Tantou |
+| Patch | MANGAKA, assigned EDITOR | Owning Mangaka or assigned Tantou |
 | `START_PRODUCTION` | Owning Mangaka or assigned Tantou | Requires approved source Proposal; `ADMIN` removed (FLOW-GAP-04 — Resolved) |
 | `UNPUBLISH` | Assigned Tantou only | `ADMIN` and general grant removed (FLOW-GAP-04 — Resolved) |
 | `ARCHIVE` | Owner or assigned Tantou while never published; assigned Tantou only once published | A published Series may only be archived by its Tantou; `ADMIN` removed (FLOW-GAP-04 — Resolved) |
@@ -71,7 +86,7 @@ has been removed.
 
 ## Canonical Decision — FLOW-GAP-04 (Resolved)
 Series routes no longer accept `ADMIN` for any lifecycle action. Admin is limited to
-user account lifecycle and Chair/EIC designation management. Series lifecycle
+user account lifecycle and Board Chair designation management. Series lifecycle
 permissions belong to the owning Mangaka and assigned Tantou, enforced by the
 per-action matrix above (`series.controller.ts:270-384`). Implemented by CT-11.
 

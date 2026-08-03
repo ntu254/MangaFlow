@@ -8,7 +8,7 @@ import type { AuthedRequest } from "../types.js";
 export const bootstrapHandler = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const role = apiToWebRole[actor.role];
-  const unreadNotifications = await NotificationModel.countDocuments({ userId: actor.id, readAt: { $exists: false }, archivedAt: { $exists: false } });
+  const unreadNotifications = await NotificationModel.countDocuments({ userId: actor.id, readAt: { $exists: false } });
   ok(res, {
     user: actor,
     navRole: role,

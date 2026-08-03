@@ -15,7 +15,7 @@ export type SeriesPublicationType = "WEEKLY" | "MONTHLY";
 
 // Canonical chapter lifecycle (aligned with backend):
 //   PLANNED → IN_PRODUCTION → TANTOU_REVIEW ⇄ REVISION_REQUIRED
-//           → READY_FOR_PUBLICATION → PUBLISHED (+ ARCHIVED)
+//           → READY_FOR_PUBLICATION → PUBLISHED
 // Scheduling is NOT a chapter status: a chapter stays READY_FOR_PUBLICATION
 // while its Publication is SCHEDULED. Legacy statuses were retired; backend
 // converts existing rows via migrate-chapter-status-canonical.ts.
@@ -25,8 +25,7 @@ export type ChapterStatus =
   | "TANTOU_REVIEW"
   | "REVISION_REQUIRED"
   | "READY_FOR_PUBLICATION"
-  | "PUBLISHED"
-  | "ARCHIVED";
+  | "PUBLISHED";
 
 export type ChapterAction =
   | "START_DRAFT"
@@ -41,7 +40,6 @@ export type ChapterAction =
   | "PUBLISH"
   | "PUBLISH_EARLY"
   | "REASSIGN"
-  | "ARCHIVE"
   // Legacy
   | "APPROVE";
 
@@ -177,7 +175,6 @@ export const CHAPTER_STATUS_LABEL: Record<ChapterStatus, string> = {
   REVISION_REQUIRED: "Revision Required",
   READY_FOR_PUBLICATION: "Ready for Publication",
   PUBLISHED: "Published",
-  ARCHIVED: "Archived",
 };
 
 export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
@@ -194,7 +191,6 @@ export const CHAPTER_ACTION_LABEL: Record<ChapterAction, string> = {
   PUBLISH: "Publish Now",
   PUBLISH_EARLY: "Publish Early",
   REASSIGN: "Reassign",
-  ARCHIVE: "Archive",
 };
 
 export const CADENCE_LABEL: Record<ChapterCadence, string> = {
@@ -215,7 +211,6 @@ export const CHAPTER_STATUS_FLOW: ChapterStatus[] = [
 
 export type SeriesMaterialKind =
   | "storyboard"
-  | "manuscript"
   | "character"
   | "background"
   | "moodboard"
@@ -224,8 +219,6 @@ export type SeriesMaterialKind =
   | "style_guide"
   | "brush"
   | "other";
-
-export type SeriesMaterialStatus = "DRAFT" | "ACTIVE" | "IN_REVIEW" | "APPROVED" | "ARCHIVED";
 
 export type SeriesMaterialVersion = {
   id: string;
@@ -247,7 +240,6 @@ export type SeriesMaterial = {
   seriesId: string;
   title: string;
   kind: SeriesMaterialKind;
-  status: SeriesMaterialStatus;
   chapterId?: string;
   tags: string[];
   note?: string;
@@ -259,7 +251,6 @@ export type SeriesMaterial = {
 
 export const SERIES_MATERIAL_KIND_LABEL: Record<SeriesMaterialKind, string> = {
   storyboard: "Storyboard / Name",
-  manuscript: "Manuscript",
   character: "Character Sheets",
   background: "Background",
   moodboard: "Moodboard",
@@ -268,14 +259,6 @@ export const SERIES_MATERIAL_KIND_LABEL: Record<SeriesMaterialKind, string> = {
   style_guide: "Style Guide",
   brush: "Brush / Tone",
   other: "Other",
-};
-
-export const SERIES_MATERIAL_STATUS_LABEL: Record<SeriesMaterialStatus, string> = {
-  DRAFT: "Draft",
-  ACTIVE: "Active",
-  IN_REVIEW: "In review",
-  APPROVED: "Approved",
-  ARCHIVED: "Archived",
 };
 
 export interface MaterialVersionItem {
@@ -299,7 +282,6 @@ export interface MaterialItem {
   chapterId?: string;
   title: string;
   kind?: string;
-  status?: SeriesMaterialStatus;
   description?: string;
   tags?: string[];
   fileKey?: string;

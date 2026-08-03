@@ -51,7 +51,6 @@ const PROTECTED_FIELDS = new Set([
   "passwordHash",
   "refreshToken",
   "isChair",
-  "isEditorInChief",
   "status",
   "state",
   "decision",

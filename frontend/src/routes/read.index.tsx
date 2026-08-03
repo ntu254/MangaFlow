@@ -1,8 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  fetchPublicSeriesList,
-  publicAssetUrl,
-} from "@/entities/reader/model/public-reader";
+import { fetchPublicSeriesList, publicAssetUrl } from "@/entities/reader/model/public-reader";
 
 export const Route = createFileRoute("/read/")({
   loader: () => fetchPublicSeriesList(),
@@ -30,9 +27,7 @@ function CatalogPage() {
     <main className="mx-auto max-w-[1400px] px-6 py-10">
       <header className="mb-8 flex items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-accent">
-            Catalog
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-accent">Catalog</p>
           <h1 className="mt-1 font-serif text-5xl">Published Series</h1>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -50,12 +45,7 @@ function CatalogPage() {
       ) : (
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {series.map((item) => (
-            <Link
-              key={item.id}
-              to="/read/$slug"
-              params={{ slug: item.slug }}
-              className="group"
-            >
+            <Link key={item.id} to="/read/$slug" params={{ slug: item.slug }} className="group">
               {item.coverUrl ? (
                 <img
                   src={publicAssetUrl(item.coverUrl)}

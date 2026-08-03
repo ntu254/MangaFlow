@@ -14,7 +14,6 @@ export type SeedUser = {
   password: string;
   role: Role;
   isChair?: boolean;
-  isEditorInChief?: boolean;
 };
 
 export const seedUsers: SeedUser[] = [
@@ -27,8 +26,7 @@ export const seedUsers: SeedUser[] = [
     name: "Tanaka Akira",
     email: "tanaka@beachread.jp",
     password: "tanaka@beachread.jp",
-    role: "EDITOR",
-    isEditorInChief: true
+    role: "EDITOR"
   },
   {
     id: "u-mobile-editor",
@@ -59,8 +57,7 @@ function manuscript(proposalId: string, version = 1) {
     sizeKB: 1280 + version * 32,
     uploadedById: "u-mangaka",
     uploadedByName: "Inoue Takehiko",
-    uploadedAt: ago(96 - version),
-    status: "SUBMITTED"
+    uploadedAt: ago(96 - version)
   };
 }
 
@@ -299,7 +296,7 @@ export const seedProposalVotes = [
     createdAt: ago(12),
     updatedAt: ago(12)
   },
-  // p-009 Ember Engine — prior tied round (2 approve, 2 reject, 1 abstain)
+  // p-009 Ember Engine — prior tied round (2 approve, 2 reject, four-seat snapshot)
   {
     id: "pv-003",
     sessionId: "vs-002",
@@ -356,29 +353,16 @@ export const seedProposalVotes = [
     createdAt: ago(14),
     updatedAt: ago(14)
   },
-  {
-    id: "pv-007",
-    sessionId: "vs-002",
-    proposalId: "p-009",
-    voterId: "u-board",
-    voterName: "Yamamoto Director",
-    voterRole: "BOARD",
-    decision: "ABSTAIN",
-    comment: "Abstained after the discussion.",
-    votedAt: ago(13),
-    weight: 1,
-    createdAt: ago(13),
-    updatedAt: ago(13)
-  }
 ];
 
-function pages(chapterId: string, count: number) {
+function pages(chapterId: string, count: number, status: "UPLOADED" | "FINALIZED" = "UPLOADED") {
   return Array.from({ length: count }, (_, index) => ({
     id: `${chapterId}-p${index + 1}`,
     index: index + 1,
     pageNumber: index + 1,
     fileName: `page-${String(index + 1).padStart(2, "0")}.jpg`,
     fileUrl: "metadata://signed-url-not-issued",
+    status,
     sizeKB: 310 + index,
     uploadedAt: ago(36)
   }));
@@ -446,7 +430,7 @@ export const seedChapters = [
     readyForPublicationAt: ago(5),
     readyByEditorId: "u-editor",
     scheduledById: "u-editor",
-    pages: pages("ch-s-berserk-prod-4", 18),
+    pages: pages("ch-s-berserk-prod-4", 18, "FINALIZED"),
     reviewNotes: [],
     revisionRound: 0,
     history: [],
@@ -493,7 +477,7 @@ export const seedChapters = [
     assigneeId: "u-mangaka",
     assigneeName: "Inoue Takehiko",
     readyByEditorId: "u-editor",
-    pages: pages("ch-s-vinland-prod-1", 22),
+    pages: pages("ch-s-vinland-prod-1", 22, "FINALIZED"),
     reviewNotes: [],
     revisionRound: 0,
     history: [],
@@ -568,7 +552,7 @@ export const seedStudioTasks = [
     seriesId: "s-berserk-prod",
     chapterId: "ch-s-berserk-prod-5",
     pageId: "ch-s-berserk-prod-5-p1",
-    title: "Blocked task for testing",
+    title: "Lettering task awaiting work",
     type: "speech_bubble",
     assigneeId: "u-assist",
     assigneeName: "Suzuki Jun",
@@ -576,16 +560,13 @@ export const seedStudioTasks = [
     // TODO (was previously OPEN — now canonical enum)
     status: "TODO",
     dueAt: ahead(2),
-    instructions: "This is a blocked task.",
+    instructions: "Prepare the lettering layer for the assigned page.",
     rateCode: "SPEECH_BUBBLE",
     rateVersion: 1,
     quantity: 1,
     rateSnapshot: 25,
     estimatedAmount: 25,
     currency: "USD",
-    blocked: true,
-    blockedReason: "Waiting for raw scanned pages from Mangaka.",
-    blockedBy: "Inoue Takehiko",
     createdAt: ago(24),
     updatedAt: ago(24)
   },
@@ -741,7 +722,6 @@ export const seedMaterials = [
     title: "Chapter 5 reference board",
     kind: "reference",
     // type field deprecated, kind is source of truth
-    status: "APPROVED",
     tags: ["reference", "chapter-5"],
     currentVersion: 1,
     versions: [
@@ -752,8 +732,8 @@ export const seedMaterials = [
         fileUrl: "metadata://signed-url-not-issued",
         fileType: "application/pdf",
         sizeKB: 900,
-        uploadedById: "u-editor",
-        uploadedByName: "Tanaka Akira",
+        uploadedById: "u-mangaka",
+        uploadedByName: "Inoue Takehiko",
         uploadedAt: ago(36)
       }
     ],
@@ -781,7 +761,6 @@ export const seedVotingSessions = [
     rules: {
       approveThreshold: 3,
       rejectThreshold: 3,
-      allowAbstain: true
     },
     createdById: "u-editor",
     createdByName: "Tanaka Akira",
@@ -792,7 +771,6 @@ export const seedVotingSessions = [
         decision: "PENDING",
         approveCount: 2,
         rejectCount: 0,
-        abstainCount: 0,
         finalReason: "Waiting for more votes."
       }
     ],
@@ -811,13 +789,12 @@ export const seedVotingSessions = [
     closesAt: ago(13),
     closedAt: ago(13),
     proposalIds: ["p-009"],
-    eligibleVoterIds: ["u-board", "u-board-2", "u-board-3", "u-board-4", "u-board-5"],
+    eligibleVoterIds: ["u-board-2", "u-board-3", "u-board-4", "u-board-5"],
     quorum: 3,
     chairId: "u-board",
     rules: {
       approveThreshold: 3,
       rejectThreshold: 3,
-      allowAbstain: true
     },
     createdById: "u-editor",
     createdByName: "Tanaka Akira",
@@ -828,7 +805,6 @@ export const seedVotingSessions = [
         decision: "TIED",
         approveCount: 2,
         rejectCount: 2,
-        abstainCount: 1,
         finalReason: "All eligible Board members voted and the round ended in a tie."
       }
     ],
@@ -847,13 +823,12 @@ export const seedVotingSessions = [
     scheduledFor: ago(12),
     closesAt: ahead(1),
     proposalIds: ["p-009"],
-    eligibleVoterIds: ["u-board", "u-board-2", "u-board-3", "u-board-4", "u-board-5"],
+    eligibleVoterIds: ["u-board-2", "u-board-3", "u-board-4", "u-board-5"],
     quorum: 3,
     chairId: "u-board",
     rules: {
       approveThreshold: 3,
       rejectThreshold: 3,
-      allowAbstain: true
     },
     createdById: "u-board",
     createdByName: "Yamamoto Director",

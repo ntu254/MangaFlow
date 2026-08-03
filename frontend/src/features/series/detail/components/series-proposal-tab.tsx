@@ -278,7 +278,7 @@ function StatusCard({
 const STATUS_ALERT: Partial<Record<ProposalStatus, string>> = {
   CHANGES_REQUESTED: "Storyboard needs updating and resubmission.",
   REJECTED: "Proposal has been rejected. See feedback for details.",
-  TIE_BREAK: "Waiting for Editor-in-chief to break the tie.",
+  TIE_BREAK: "Historical tie; waiting for the Board re-vote.",
   DRAFT: "Complete and submit to Editor.",
 };
 

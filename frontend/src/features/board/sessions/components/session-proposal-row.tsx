@@ -54,8 +54,8 @@ export function SessionProposalRow({
             {OUTCOME_LABEL[outcome.decision]}
           </span>
           <span className="font-mono text-muted-foreground">
-            A {outcome.approve} · R {outcome.reject} · ABS {outcome.abstain} ·{" "}
-            {outcome.approve + outcome.reject + outcome.abstain}/{BOARD_TOTAL}
+            A {outcome.approve} · R {outcome.reject} · {outcome.approve + outcome.reject}/
+            {BOARD_TOTAL}
           </span>
           <Link
             to="/app/board/$id"

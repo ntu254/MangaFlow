@@ -2,7 +2,8 @@
 
 ## Description
 When the owning Mangaka approves an Assistant Submission, the system creates one
-idempotent `EARNED` record for the Task. This module is earnings tracking only, not
+idempotent `EARNED` record for the Page Task. The unit is one Page assigned to one
+Assistant; regions never create separate tasks or earnings. This module is earnings tracking only, not
 payroll or payment processing. Rate policy is configured by Admin through the
 narrow `MANAGE_RATE_TABLE` capability; Mangaka never writes monetary rates.
 
@@ -10,7 +11,7 @@ narrow `MANAGE_RATE_TABLE` capability; Mangaka never writes monetary rates.
 
 ```mermaid
 graph TD
-    A[Admin configures active RateTable] --> B[Mangaka creates Task with rateCode + quantity]
+    A[Admin configures active RateTable] --> B[Mangaka creates one Page Task with rateCode]
     B --> C[Backend resolves rate and stores immutable snapshot]
     C --> D[Assistant submits Task work]
     D --> E[Mangaka approves Submission]
@@ -42,6 +43,10 @@ active entry and stores `rateCode`, `rateVersion`, `rateSnapshot`, `currency`, a
 exists, creation returns `409 RATE_CONFIGURATION_REQUIRED` rather than creating a
 zero-priced task. Production amounts are intentionally not defined in the
 repository and must be configured by an authorized Admin.
+
+The task pricing snapshot is immutable after creation. A later patch cannot change
+`quantity`, `rateSnapshot`, or the calculated earning; changing the work scope
+requires cancelling the task and creating a new Page Task.
 
 ## Role Access
 

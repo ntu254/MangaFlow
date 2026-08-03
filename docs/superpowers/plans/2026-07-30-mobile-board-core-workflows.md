@@ -15,7 +15,7 @@
 - Mobile sends `expectedVersion` for vote, patch, close, cancel, and finalize operations where the endpoint supports it.
 - Board members see vote actions; only `isChair=true` users see Chair actions.
 - Closing a tied round creates a fresh empty `OPEN` re-vote linked by `reVoteOfSessionId`.
-- New EIC tie-break behavior is retired; the legacy endpoint remains `410 TIE_BREAK_RETIRED`.
+- Special tie-break behavior is retired; ties automatically create a fresh Board re-vote session.
 - Historical `TIE_BREAK_REQUIRED` records are read-only compatibility data.
 - No votes are copied from a tied round to its re-vote.
 - At-risk cancellation is always a manual Chair decision.

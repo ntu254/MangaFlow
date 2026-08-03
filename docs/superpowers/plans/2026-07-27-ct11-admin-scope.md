@@ -11,14 +11,14 @@
 ## Global Constraints
 
 - Confirmed scope is the spec `docs/superpowers/specs/2026-07-27-ct11-admin-scope-design.md` (read it — it has the exact KEEP/REMOVE lists, the §3.1 series matrix, and the removal style). Do not expand scope.
-- **KEEP unchanged:** `/admin/users*`, `/admin/notifications*`, `/admin/workflow-summary`, `/admin/storage-summary`, `/admin/rates*` (MANAGE_RATE_TABLE), Chair/EIC designation via `updateUser`.
+- **KEEP unchanged:** `/admin/users*`, `/admin/notifications*`, `/admin/workflow-summary`, `/admin/storage-summary`, `/admin/rates*` (MANAGE_RATE_TABLE), Board Chair designation via `updateUser`.
 - **Removal style:** shared routes → remove `ADMIN` from the role guard (Admin gets `403 FORBIDDEN`); admin-only removed capabilities (materials, payroll, overrides) → delete routes + handlers + dead service code; proposal claim/archive → `assertProposalAction`; demo → mount only when `NODE_ENV !== "production"` + service backstop.
-- **Tantou assign/remove → EIC only** (`role === "EDITOR" && isEditorInChief`), not BOARD/ADMIN.
+- **Tantou assign/remove → owning Mangaka only**, not BOARD/ADMIN.
 - **Series §3.1 matrix:** START_PRODUCTION owner/Tantou; UNPUBLISH Tantou-only; ARCHIVE owner-or-Tantou while never public, Tantou-only once public; delete owner-only.
-- **Proposal:** RELEASE_CLAIM/REASSIGN_CLAIM → EIC only; ARCHIVE → owning Mangaka or EIC, require non-empty `reason` + audit; drop the ADMIN branch.
+- **Proposal:** RELEASE_CLAIM → claiming Editor only; ARCHIVE → owning Mangaka only, require non-empty `reason` + audit; drop the ADMIN branch.
 - Canonical backend test command: `npm test` (from `backend/`). Frontend: `npm run lint`/`typecheck`/`build`, `npx playwright test`. Contract: `node scripts/verify-postman-contract.mjs`. Architecture: `npm run audit:architecture`.
 - Per-commit TDD: write/adjust the test → run → implement → run focused + relevant regression → commit green. Each commit = code + its tests + the directly-affected docs. No red commit.
-- Seeded logins (password === email): ADMIN `admin@beachread.jp`, Board Chair `board@beachread.jp`, EIC `tanaka@beachread.jp` (EDITOR isEditorInChief), Tantou EDITOR `editor@mangaflow.local` (id `u-mobile-editor`), MANGAKA `inoue@beachread.jp`.
+- Seeded logins (password === email): ADMIN `admin@beachread.jp`, Board Chair `board@beachread.jp`, Tantou EDITOR `editor@mangaflow.local` (id `u-mobile-editor`), MANGAKA `inoue@beachread.jp`.
 
 ---
 
@@ -31,7 +31,7 @@
 
 - [ ] **Step 1: Write failing negative-authorization tests**
 
-Add tests asserting ADMIN now gets `403` (and the canonical actor still succeeds) for: rankings import, tantou assign/remove (also assert general BOARD non-chair… BOARD member without EIC is now rejected → 403), series `START_PRODUCTION`/`UNPUBLISH`/`ARCHIVE`, proposal `RELEASE_CLAIM`/`REASSIGN_CLAIM`/`ARCHIVE`, file presign-download. Use the seeded logins. Example shape:
+Add tests asserting ADMIN now gets `403` (and the canonical actor still succeeds) for: rankings import, tantou assign/remove (also assert general BOARD is rejected), series `START_PRODUCTION`/`UNPUBLISH`/`ARCHIVE`, proposal `RELEASE_CLAIM`/`ARCHIVE`, file presign-download. Use the seeded logins. Example shape:
 
 ```ts
 it("rejects ADMIN importing rankings (403)", async () => {
@@ -48,10 +48,10 @@ it("rejects ADMIN importing rankings (403)", async () => {
 - [ ] **Step 3: Implement the guard changes**
 
 - `notification.routes.ts` rankings import: `requireRole("BOARD", "ADMIN")` → `requireRole("BOARD")`.
-- `tantou.routes.ts:12-13`: replace `requireRole("BOARD", "ADMIN")` with an EIC guard — `requireRole("EDITOR")` plus an in-handler/middleware check `isEditorInChief`, or a dedicated `requireEditorInChief`. Tantou assign/remove now EIC-only.
+- `tantou.routes.ts:12-13`: require the owning Mangaka in the service. Tantou assign/remove validates an active Editor target and workload guards.
 - `series.routes.ts:43,46,67,74,88,109`: remove `"ADMIN"` from the role lists.
 - `series.controller.ts seriesLifecycleAction`: implement §3.1. START_PRODUCTION: `isOwner || (EDITOR && series.editorId === actor.id)` (drop ADMIN/generic EDITOR). UNPUBLISH: assigned Tantou only. ARCHIVE: if `PUBLIC_SERIES_STATUSES.has(status)` → assigned Tantou only; else owner **or** assigned Tantou. Return `MANGAKA_OWNER_REQUIRED`/`TANTOU_ASSIGNMENT_REQUIRED` as appropriate.
-- `assertProposalAction` (`workflow.service.ts`): RELEASE_CLAIM/REASSIGN_CLAIM branch `actor.role !== "ADMIN" && !(EDITOR&&EIC)` → `!(EDITOR&&EIC)` (EIC only). ARCHIVE branch `requireMutationRole(actor,["ADMIN"])` → allow owning Mangaka (`proposal.authorId === actor.id`) or EIC; require `payload.reason` non-empty (else `400 REASON_REQUIRED`) and audit.
+- `assertProposalAction` (`workflow.service.ts`): RELEASE_CLAIM accepts only the claiming Editor; ARCHIVE allows the owning Mangaka only, requires `payload.reason` non-empty (else `400 REASON_REQUIRED`) and audits.
 - File presign-download: remove `ADMIN` from the allowed roles / `assertFileKeyVisible` so Admin no longer bypasses resource scope.
 
 - [ ] **Step 4: Run focused tests to green.**
@@ -95,7 +95,7 @@ it("rejects ADMIN importing rankings (403)", async () => {
 
 - [ ] **Step 1:** Remove the deleted admin routes from the Postman collection; update the route-parity baseline in `verify-postman-contract.mjs`.
 - [ ] **Step 2:** Run `node scripts/verify-postman-contract.mjs` → parity OK.
-- [ ] **Step 3:** Ensure the backend negative-authz suite (Task 1/2) fully covers: Admin 403 on each de-permissioned action; 404 on each deleted route; EIC-only tantou; series matrix (owner vs Tantou vs published); proposal ARCHIVE reason-required + owner/EIC.
+- [ ] **Step 3:** Ensure the backend negative-authz suite (Task 1/2) fully covers: Admin 403 on each de-permissioned action; 404 on each deleted route; owning-Mangaka Tantou assignment; series matrix (owner vs Tantou vs published); proposal ARCHIVE reason-required + owner.
 - [ ] **Step 4:** `npm test` (backend) green.
 - [ ] **Step 5: Commit** `test(CT-11): postman parity + admin negative-authorization coverage`.
 
@@ -107,7 +107,7 @@ it("rejects ADMIN importing rankings (403)", async () => {
 
 - [ ] **Step 1:** CODE-TODO CT-11 → **Done** + implemented write-up; compliance-matrix "Admin role boundary" → **PASS (implemented)**.
 - [ ] **Step 2:** INDEX gap register FLOW-GAP-04 → **Resolved**; roles table + Admin invariant now enforced. DESIGN §7 Admin boundary → implemented; §17 ADR row → Implemented.
-- [ ] **Step 3:** In each flow doc, change "Admin removed by FLOW-GAP-04 / CT-11" notes to "enforced"; record the kept exceptions (dashboards, demo dev-only, managed notifications, RateTable) and the moved actors (tantou→EIC, series matrix, proposal claim/archive→EIC/owner).
+- [ ] **Step 3:** In each flow doc, change "Admin removed by FLOW-GAP-04 / CT-11" notes to "enforced"; record the kept exceptions (dashboards, demo dev-only, managed notifications, RateTable) and the moved actors (tantou→owner, series matrix, proposal claim/archive→claiming Editor/owner).
 - [ ] **Step 4:** Write the completion report (what changed, kept exceptions, verification evidence).
 - [ ] **Step 5: Commit** `docs(CT-11): mark FLOW-GAP-04 resolved and sync admin-scope docs`.
 
@@ -119,13 +119,13 @@ it("rejects ADMIN importing rankings (403)", async () => {
 - [ ] Frontend: `npm run lint`/`typecheck`/`build` + `npx playwright test` — green.
 - [ ] Contract: `node scripts/verify-postman-contract.mjs` — parity OK.
 - [ ] Architecture: `npm run audit:architecture` — exit 0.
-- [ ] Open one PR to `main` summarizing the kept/removed Admin scope, actor moves (tantou→EIC, series matrix, proposal→EIC/owner), demo-in-prod behavior, and all verification commands/results.
+- [ ] Open one PR to `main` summarizing the kept/removed Admin scope, actor moves (tantou→owner, series matrix, proposal→claiming Editor/owner), demo-in-prod behavior, and all verification commands/results.
 
 ## Self-review checklist
 
-- Admin KEEP set untouched (users, notifications, summaries, rates, Chair/EIC designation).
+- Admin KEEP set untouched (users, notifications, summaries, rates, Board Chair designation).
 - Every removed capability: shared → 403; admin-only → 404; verified by tests.
-- Tantou = EIC only; series matrix (published nuance) enforced; proposal ARCHIVE reason+audit; RELEASE/REASSIGN = EIC.
+- Tantou = active Editor assigned by owning Mangaka; series matrix (published nuance) enforced; proposal ARCHIVE reason+audit; RELEASE = claiming Editor.
 - Demo routes absent in production (`NODE_ENV`), with a service backstop.
 - Frontend admin section builds and shows only kept pages; no dead API calls.
 - Postman parity green; docs mark FLOW-GAP-04/CT-11 resolved with the kept-exception list.

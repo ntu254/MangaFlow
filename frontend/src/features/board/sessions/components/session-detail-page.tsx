@@ -157,7 +157,9 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
 
       <section className="space-y-3">
         <div>
-          <h2 className="font-serif text-xl">Proposals in this round ({session.proposalIds.length})</h2>
+          <h2 className="font-serif text-xl">
+            Proposals in this round ({session.proposalIds.length})
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Each proposal shows the current tally, round outcome, and link to its evidence.
           </p>
@@ -181,7 +183,7 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
           <h2 className="font-serif text-xl text-fuchsia-950">Historical tie-break record</h2>
           <p className="text-xs text-fuchsia-950/80">
             {tieCount} tied proposal{tieCount === 1 ? "" : "s"} remain{tieCount === 1 ? "s" : ""} in
-            this historical session. EIC tie-break voting is retired; new ties automatically open
+            this historical session. Legacy tie-break voting is retired; new ties automatically open
             a fresh Board re-vote.
           </p>
         </section>

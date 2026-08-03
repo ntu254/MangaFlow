@@ -1,6 +1,5 @@
 import {
   mapNotificationError,
-  useArchiveNotificationMutation,
   useMarkReadMutation,
   useNotificationsQuery,
   NotificationDetailSheet,
@@ -29,7 +28,6 @@ const GOVERNANCE_KINDS = [
 export function BoardNotificationsPage() {
   const { data: allItems = [], isLoading } = useNotificationsQuery();
   const markRead = useMarkReadMutation();
-  const archive = useArchiveNotificationMutation();
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const items = allItems.filter((item) => GOVERNANCE_KINDS.includes(item.kind));
@@ -84,16 +82,6 @@ export function BoardNotificationsPage() {
                     Mark read
                   </button>
                 ) : null}
-                <button
-                  onClick={() =>
-                    archive.mutate(item.id, {
-                      onError: (e) => toast.error(mapNotificationError(e)),
-                    })
-                  }
-                  className="rounded border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
-                >
-                  Archive
-                </button>
               </div>
             </article>
           ))}
@@ -108,13 +96,7 @@ export function BoardNotificationsPage() {
             onError: (error) => toast.error(mapNotificationError(error)),
           })
         }
-        onArchive={(id) =>
-          archive.mutate(id, {
-            onSuccess: () => setDetailId(null),
-            onError: (error) => toast.error(mapNotificationError(error)),
-          })
-        }
-        busy={markRead.isPending || archive.isPending}
+        busy={markRead.isPending}
       />
     </div>
   );

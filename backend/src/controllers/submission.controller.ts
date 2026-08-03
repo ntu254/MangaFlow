@@ -1,7 +1,11 @@
 import { asyncRoute, created, ok, AppError } from "../lib/http.js";
 import { ChapterModel, SeriesModel, StudioTaskModel, SubmissionModel } from "../db/models.js";
 import { filterFromQuery, paginated } from "./helpers.js";
-import { assertCanReadSubmission, assertCanReadTask } from "../services/authorization.service.js";
+import {
+  assertCanReadSubmission,
+  assertCanReadTask,
+  actorSeriesScopeFilter,
+} from "../services/authorization.service.js";
 import {
   reopenTaskForRevision,
   submissionDecision,
@@ -21,7 +25,8 @@ export const listSubmissions = asyncRoute(async (req: AuthedRequest, res) => {
     // Mangaka/Editor only see submissions that belong to the series they own
     // (author for Mangaka, assigned editor for Editor). Scope by both seriesId
     // and chapterId so records persisted with either linkage are matched.
-    const scope = actor.role === "MANGAKA" ? { authorId: actor.id } : { editorId: actor.id };
+    const scope =
+      actor.role === "MANGAKA" ? { authorId: actor.id } : await actorSeriesScopeFilter(actor, "read");
     const series = await SeriesModel.find(scope).select({ id: 1 }).lean();
     const seriesIds = series.map((item) => (item as any).id);
     const chapters = await ChapterModel.find({ seriesId: { $in: seriesIds } })
@@ -50,7 +55,9 @@ export const reopenTask = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const reviewQueue = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = req.actor!;
-  const series = await SeriesModel.find({ editorId: actor.id }).select({ id: 1 }).lean();
+  const series = await SeriesModel.find(await actorSeriesScopeFilter(actor, "read"))
+    .select({ id: 1 })
+    .lean();
   const chapters = await ChapterModel.find({
     seriesId: { $in: series.map((item: any) => item.id) },
     status: "TANTOU_REVIEW",

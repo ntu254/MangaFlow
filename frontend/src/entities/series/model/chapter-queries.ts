@@ -20,10 +20,7 @@ export type SendEditorReviewResult = {
 export function useMyChaptersQuery() {
   const user = useAuth((s) => s.user);
   const canLoadMyChapters =
-    user?.role === "admin" ||
-    user?.role === "editor" ||
-    user?.role === "mangaka" ||
-    user?.role === "assistant";
+    user?.role === "editor" || user?.role === "mangaka" || user?.role === "assistant";
 
   return useQuery<Chapter[]>({
     queryKey: chapterKeys.all,

@@ -18,20 +18,11 @@ export function computeOutcome(p: SeriesProposal): SessionProposalOutcome {
     decision,
     approve: tally.approve,
     reject: tally.reject,
-    abstain: tally.abstain,
     reason: tally.reason,
   };
 }
 
 export function canCloseSession(session: VotingSession) {
   if (session.status !== "OPEN") return { ok: false, reason: "Session is closed or cancelled." };
-  return { ok: true };
-}
-
-export function canTieBreak(session: VotingSession, proposalId: string) {
-  const outcome = session.outcomes.find((o) => o.proposalId === proposalId);
-  if (!outcome) return { ok: false, reason: "No outcome yet." };
-  if (outcome.decision !== "NO_QUORUM")
-    return { ok: false, reason: "Outcome does not require a tie-break." };
   return { ok: true };
 }

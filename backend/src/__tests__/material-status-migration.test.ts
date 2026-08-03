@@ -1,44 +1,63 @@
 import {
-  planMaterialStatusMigration,
-  type MaterialStatusMigrationPlan,
-} from "../services/material-status.service.js";
-import { summarizeMaterialStatusMigration } from "../scripts/migrate-material-status.js";
+  cleanProposalAttachmentArrays,
+  planMaterialAttachmentMigration,
+} from "../services/material-attachment-migration.service.js";
+import { summarizeMaterialAttachmentMigration } from "../scripts/migrate-material-attachments.js";
 
-describe("material status migration", () => {
-  it("promotes valid metadata statuses and is idempotent after cleanup", () => {
-    const legacy = { id: "m-active", status: "DRAFT", metadata: { status: "ACTIVE" } };
-    expect(planMaterialStatusMigration(legacy)).toEqual({ action: "MIGRATE", status: "ACTIVE" });
-
-    const migrated = { id: legacy.id, status: "ACTIVE", metadata: {} };
-    expect(planMaterialStatusMigration(migrated)).toEqual({
-      action: "SKIP",
-      reason: "TOP_LEVEL_STATUS_CANONICAL",
+describe("Supporting Material attachment migration", () => {
+  it("removes archived records and keeps active records as status-free attachments", () => {
+    expect(planMaterialAttachmentMigration({ id: "m-archived", status: "ARCHIVED" })).toEqual({
+      action: "REMOVE",
+      reason: "ARCHIVED",
     });
-    expect(summarizeMaterialStatusMigration([legacy]).candidates).toEqual([
-      { id: "m-active", status: "ACTIVE" },
-    ]);
+    expect(
+      planMaterialAttachmentMigration({
+        id: "m-active",
+        status: "ACTIVE",
+        metadata: { status: "DRAFT" },
+      }),
+    ).toEqual({ action: "CLEAN_STATUS" });
   });
 
-  it("migrates APPROVED, skips canonical records, and reports invalid values", () => {
-    const summary = summarizeMaterialStatusMigration([
+  it("uses metadata ARCHIVED only when there is no top-level status", () => {
+    expect(
+      planMaterialAttachmentMigration({ id: "m-legacy-archived", metadata: { status: "ARCHIVED" } }),
+    ).toEqual({ action: "REMOVE", reason: "ARCHIVED" });
+    expect(
+      planMaterialAttachmentMigration({
+        id: "m-conflict",
+        status: "ACTIVE",
+        metadata: { status: "ARCHIVED" },
+      }),
+    ).toEqual({ action: "CLEAN_STATUS" });
+  });
+
+  it("summarizes cleanup idempotently without rejecting unknown legacy statuses", () => {
+    const summary = summarizeMaterialAttachmentMigration([
       { id: "m-approved", metadata: { status: "APPROVED" } },
-      { id: "m-canonical", status: "ACTIVE", metadata: { status: "DRAFT" } },
-      { id: "m-invalid", metadata: { status: "WAITING" } },
+      { id: "m-archived", status: "ARCHIVED" },
+      { id: "m-unknown", status: "WAITING" },
+      { id: "m-current", metadata: { fileName: "reference.png" } },
     ]);
 
-    expect(summary.candidates).toEqual([{ id: "m-approved", status: "APPROVED" }]);
+    expect(summary.cleanStatusIds).toEqual(["m-approved", "m-unknown"]);
+    expect(summary.removeIds).toEqual(["m-archived"]);
     expect(summary.skipped).toBe(1);
-    expect(summary.invalid).toEqual([
-      { id: "m-invalid", source: "METADATA", value: "WAITING" },
-    ]);
   });
 
-  it("reports an invalid top-level status instead of overwriting it", () => {
-    const plan: MaterialStatusMigrationPlan = planMaterialStatusMigration({
-      id: "m-invalid-top-level",
-      status: "WAITING",
-      metadata: { status: "ACTIVE" },
+  it("cleans embedded Proposal files while preserving IDs and metadata", () => {
+    expect(
+      cleanProposalAttachmentArrays({
+        manuscripts: [{ id: "mv-1", version: 1, status: "SUBMITTED", note: "Draft pages" }],
+        materials: [
+          { id: "mat-keep", status: "ACTIVE", metadata: { status: "DRAFT", fileKey: "keep" } },
+          { id: "mat-remove", status: "ARCHIVED", fileKey: "remove" },
+        ],
+      }),
+    ).toEqual({
+      changed: true,
+      manuscripts: [{ id: "mv-1", version: 1, note: "Draft pages" }],
+      materials: [{ id: "mat-keep", metadata: { fileKey: "keep" } }],
     });
-    expect(plan).toEqual({ action: "INVALID", source: "TOP_LEVEL", value: "WAITING" });
   });
 });

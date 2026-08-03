@@ -1,4 +1,4 @@
-﻿import type { Role } from "@/shared/auth";
+import type { Role } from "@/shared/auth";
 
 export type ProposalStatus =
   | "DRAFT"
@@ -68,7 +68,6 @@ export type ProposalAction =
   | "EDIT"
   | "CLAIM"
   | "RELEASE_CLAIM"
-  | "REASSIGN_CLAIM"
   | "REQUEST_CHANGES"
   | "RESUBMIT"
   | "FORWARD"
@@ -77,7 +76,7 @@ export type ProposalAction =
   | "VOTE"
   | "FORCE_STATUS";
 
-export type VoteDecision = "APPROVE" | "REJECT" | "ABSTAIN";
+export type VoteDecision = "APPROVE" | "REJECT";
 
 export type BoardVote = {
   memberId: string;
@@ -87,7 +86,6 @@ export type BoardVote = {
   createdAt: string;
   weight?: number;
   isChair?: boolean;
-  isEditorInChief?: boolean;
 };
 
 export type ProposalEvent = {
@@ -109,7 +107,6 @@ export type ProposalEvent = {
     | "WITHDRAW"
     | "CLAIM"
     | "RELEASE_CLAIM"
-    | "REASSIGN_CLAIM"
     | "EDIT"
     | "TIE_BREAK"
     | "MANUSCRIPT_UPLOAD"
@@ -136,7 +133,7 @@ export type ManuscriptVersion = {
   supersedes?: string;
 };
 
-export type SupportingMaterialKind = "character" | "world" | "reference" | "other";
+export type SupportingMaterialKind = "character" | "world" | "reference" | "storyboard" | "other";
 
 export type SupportingMaterial = {
   id: string;
@@ -245,6 +242,14 @@ export type ProposalVersion = {
   updatedAt: string;
 };
 
+export type BoardTallySnapshot = {
+  approve: number;
+  reject: number;
+  total: number;
+  status: ProposalStatus | null;
+  reason: string;
+};
+
 export const STATUS_LABEL: Record<ProposalStatus, string> = {
   DRAFT: "Draft",
   SUBMITTED: "Submitted",
@@ -275,10 +280,6 @@ export const STATUS_FLOW: ProposalStatus[] = [
 ];
 
 export const BOARD_TOTAL = 5;
-export const EIC_TIEBREAK_WEIGHT = 2;
-/** @deprecated use EIC_TIEBREAK_WEIGHT */
-export const CHAIR_TIEBREAK_WEIGHT = EIC_TIEBREAK_WEIGHT;
-
 export const AUDIENCE_LABEL: Record<SeriesProposal["targetAudience"], string> = {
   shounen: "Shounen",
   seinen: "Seinen",
@@ -290,6 +291,7 @@ export const MATERIAL_KIND_LABEL: Record<SupportingMaterialKind, string> = {
   character: "Character sheet",
   world: "World bible",
   reference: "Reference",
+  storyboard: "Storyboard / Name",
   other: "Other",
 };
 

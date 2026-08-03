@@ -10,16 +10,23 @@ function computeEstimatedAmount(task: any) {
 }
 
 export async function recordTaskEarning(task: any, submission: any, session: ClientSession) {
-  if (!submission.assistantId) return;
+  const assistantId = String(submission.assistantId ?? task.assigneeId ?? "").trim();
+  if (!assistantId) {
+    throw new Error(`Cannot record earning for task ${String(task.id)} without an assistant.`);
+  }
   const amount = computeEstimatedAmount(task);
   const sourceKey = `TASK_APPROVAL:${task.id}:${submission.id}`;
+  const existing = await EarningModel.findOne({ taskId: task.id })
+    .session(session)
+    .lean();
+  if (existing) return existing;
   await EarningModel.findOneAndUpdate(
     { taskId: task.id },
     {
       $setOnInsert: {
         id: id("earn"),
         sourceKey,
-        assistantId: submission.assistantId,
+        assistantId,
         period: String(new Date().toISOString().slice(0, 7)),
         taskId: task.id,
         submissionId: submission.id,
@@ -42,7 +49,7 @@ export async function recordTaskEarning(task: any, submission: any, session: Cli
     {
       taskId: task.id,
       submissionId: submission.id,
-      assistantId: submission.assistantId,
+      assistantId,
     },
     session,
   );

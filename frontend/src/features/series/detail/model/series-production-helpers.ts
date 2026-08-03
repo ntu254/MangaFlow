@@ -42,11 +42,8 @@ export function deriveProductionSummary(
     return new Date(t.dueAt).getTime() < now;
   }).length;
 
-  const blockedTaskCount = seriesTasks.filter(
-    (t) =>
-      t.blocked ||
-      t.status === "MANGAKA_REVISION_REQUESTED" ||
-      t.status === "EDITOR_REVISION_REQUESTED",
+  const revisionTaskCount = seriesTasks.filter(
+    (t) => t.status === "MANGAKA_REVISION_REQUESTED" || t.status === "EDITOR_REVISION_REQUESTED",
   ).length;
 
   const reviewChapterCount = chapters.filter((c) => c.status === "TANTOU_REVIEW").length;
@@ -80,7 +77,7 @@ export function deriveProductionSummary(
     chapters,
     seriesTasks,
     overdueTaskCount,
-    blockedTaskCount,
+    revisionTaskCount,
     pendingReviewCount,
   );
 
@@ -95,7 +92,7 @@ export function deriveProductionSummary(
       : null,
     openTaskCount,
     overdueTaskCount,
-    blockedTaskCount,
+    revisionTaskCount,
     pendingReviewCount,
     nextDeadline,
     primaryAction,
@@ -107,13 +104,13 @@ function derivePrimaryAction(
   chapters: Chapter[],
   tasks: StudioTask[],
   overdueTaskCount: number,
-  blockedTaskCount: number,
+  revisionTaskCount: number,
   pendingReviewCount: number,
 ): SeriesPrimaryAction {
   if (series.status === "COMPLETED") return "view_publication";
   if (series.status === "HIATUS") return "resume_planning";
-  if (overdueTaskCount > 0) return "view_task_board";
-  if (blockedTaskCount > 0) return "view_task_board";
+  if (overdueTaskCount > 0) return "open_studio";
+  if (revisionTaskCount > 0) return "open_studio";
   if (pendingReviewCount > 0) return "review_submissions";
   if (series.status === "PLANNING" && chapters.length === 0) return "open_proposal";
   if (series.status === "PLANNING") return "setup_chapters";

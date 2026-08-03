@@ -30,7 +30,7 @@
 - Modify: `postman/MangaFlow-API.postman_collection.json` in comment and voting request descriptions
 
 **Interfaces:**
-- Consumes: existing `resolveComment`, `reopenComment`, `addressComment`, and EIC checks.
+- Consumes: existing `resolveComment`, `reopenComment`, `addressComment`, and active Tantou checks.
 - Produces: route-level role declarations that match runtime policy exactly.
 
 - [ ] **Step 1: Add the failing route-perimeter assertions**
@@ -86,7 +86,7 @@
 
 - [ ] **Step 4: Update API and Postman descriptions**
 
-  State that resolve/reopen require the assigned Tantou Editor and address requires the owning Mangaka. State that voting tie-break requires `EDITOR` with `isEditorInChief=true`; do not describe it as any Editor. Remove `FORCE_STATUS` from the normal Proposal action description; retain it only in the explicit Admin override/deprecated compatibility request with its documented `410`/operational meaning.
+  State that resolve/reopen require the assigned Tantou Editor and address requires the owning Mangaka. State that a tied vote opens a fresh Board re-vote. Remove `FORCE_STATUS` from the normal Proposal action description; retain it only in the explicit Admin override/deprecated compatibility request with its documented `410`/operational meaning.
 
 - [ ] **Step 5: Run the focused test and commit**
 
@@ -318,7 +318,7 @@
 
 - [ ] **Step 3: Organize canonical, negative, and deprecated requests**
 
-  Add folders named `Canonical Happy Path`, `Negative Authorization & State`, and `Deprecated Compatibility`. Move or duplicate existing requests without deleting mounted-route coverage. Negative requests must assert the expected status/code for Assistant comment resolve, Mangaka comment reopen, direct `FORCE_STATUS`, generic submission creation, Mangaka Material approval, DRAFT-to-APPROVED, and non-EIC tie-break. Mark Admin override and old aliases as operational/deprecated in their descriptions.
+  Add folders named `Canonical Happy Path`, `Negative Authorization & State`, and `Deprecated Compatibility`. Move or duplicate existing requests without deleting mounted-route coverage. Negative requests must assert the expected status/code for Assistant comment resolve, Mangaka comment reopen, direct `FORCE_STATUS`, generic submission creation, Mangaka Material approval, DRAFT-to-APPROVED, and special tie-break removal. Mark Admin override and old aliases as operational/deprecated in their descriptions.
 
 - [ ] **Step 4: Add deterministic collection route parity validation**
 

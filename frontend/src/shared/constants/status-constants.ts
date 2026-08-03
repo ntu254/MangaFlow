@@ -11,20 +11,11 @@
 
 export const CHAPTER_STATUSES = [
   "PLANNED",
-  "DRAFTING",
-  "ASSISTANT_WORKING",
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  "REVISION",
-  "EDITOR_APPROVED",
+  "IN_PRODUCTION",
+  "TANTOU_REVIEW",
+  "REVISION_REQUIRED",
   "READY_FOR_PUBLICATION",
-  "SCHEDULED",
   "PUBLISHED",
-  "ARCHIVED",
-  // Legacy values kept for backward compat with old data
-  // @deprecated — migrate via migrate-schema-v2.ts
-  "IN_REVIEW",
-  "APPROVED",
 ] as const;
 
 export type ChapterStatusV2 = (typeof CHAPTER_STATUSES)[number];
@@ -33,102 +24,57 @@ export type ChapterStatusV2 = (typeof CHAPTER_STATUSES)[number];
  * New canonical chapter statuses only (no legacy).
  * Use for new writes and UI display.
  */
-export const CHAPTER_STATUSES_CANONICAL = [
-  "PLANNED",
-  "DRAFTING",
-  "ASSISTANT_WORKING",
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  "REVISION",
-  "EDITOR_APPROVED",
-  "READY_FOR_PUBLICATION",
-  "SCHEDULED",
-  "PUBLISHED",
-  "ARCHIVED",
-] as const;
+export const CHAPTER_STATUSES_CANONICAL = [...CHAPTER_STATUSES] as const;
 
 export const CHAPTER_STATUS_LABEL: Record<ChapterStatusV2, string> = {
   PLANNED: "Planned",
-  DRAFTING: "Drafting",
-  ASSISTANT_WORKING: "Assistant Working",
-  MANGAKA_REVIEW: "Mangaka Review",
-  EDITOR_REVIEW: "Editor Review",
-  REVISION: "Revision",
-  EDITOR_APPROVED: "Editor Approved",
+  IN_PRODUCTION: "In Production",
+  TANTOU_REVIEW: "Tantou Review",
+  REVISION_REQUIRED: "Revision Required",
   READY_FOR_PUBLICATION: "Ready for Publication",
-  SCHEDULED: "Scheduled",
   PUBLISHED: "Published",
-  ARCHIVED: "Archived",
-  // Legacy labels (keep for old data rendering)
-  IN_REVIEW: "In Review",
-  APPROVED: "Approved",
 };
 
 /** Ordered flow for progress display */
 export const CHAPTER_STATUS_FLOW = [
   "PLANNED",
-  "DRAFTING",
-  "ASSISTANT_WORKING",
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  "REVISION",
-  "EDITOR_APPROVED",
+  "IN_PRODUCTION",
+  "TANTOU_REVIEW",
+  "REVISION_REQUIRED",
   "READY_FOR_PUBLICATION",
-  "SCHEDULED",
   "PUBLISHED",
 ] as const;
 
 /** Statuses that count as "done" for a chapter */
-export const CHAPTER_TERMINAL_STATUSES = new Set([
-  "PUBLISHED",
-  "ARCHIVED",
-  "EDITOR_APPROVED", // final editorial step
-  "READY_FOR_PUBLICATION",
-  "SCHEDULED",
-]);
+export const CHAPTER_TERMINAL_STATUSES = new Set(["PUBLISHED", "READY_FOR_PUBLICATION"]);
 
 /** Statuses that count as "in review" */
-export const CHAPTER_REVIEW_STATUSES = new Set([
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  // Legacy
-  "IN_REVIEW",
-]);
+export const CHAPTER_REVIEW_STATUSES = new Set(["TANTOU_REVIEW"]);
 
-/** Legacy → canonical mapping for display normalization */
-export const CHAPTER_LEGACY_STATUS_MAP: Record<
-  Extract<ChapterStatusV2, "IN_REVIEW" | "APPROVED">,
-  string
-> = {
-  IN_REVIEW: "EDITOR_REVIEW",
-  APPROVED: "EDITOR_APPROVED",
+/** Read-only compatibility for rows not yet processed by the backend migration. */
+export const CHAPTER_LEGACY_STATUS_MAP: Record<string, ChapterStatusV2> = {
+  DRAFTING: "IN_PRODUCTION",
+  ASSISTANT_WORKING: "IN_PRODUCTION",
+  MANGAKA_REVIEW: "IN_PRODUCTION",
+  EDITOR_REVIEW: "TANTOU_REVIEW",
+  IN_REVIEW: "TANTOU_REVIEW",
+  REVISION: "REVISION_REQUIRED",
+  EDITOR_APPROVED: "READY_FOR_PUBLICATION",
+  APPROVED: "READY_FOR_PUBLICATION",
+  SCHEDULED: "READY_FOR_PUBLICATION",
 };
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
-export const PAGE_STATUSES = [
-  "PENDING_UPLOAD",
-  "UPLOADED",
-  "REGIONING",
-  "IN_PRODUCTION",
-  "MANGAKA_REVIEW",
-  "REVISION_REQUIRED",
-  "TANTOU_REVIEW",
-  "FINALIZED",
-] as const;
+export const PAGE_STATUSES = ["PENDING_UPLOAD", "UPLOADED", "FINALIZED"] as const;
 
 export type PageStatus = (typeof PAGE_STATUSES)[number];
 
 export const PAGE_STATUS_LABEL: Record<PageStatus, string> = {
   PENDING_UPLOAD: "Pending Upload",
   UPLOADED: "Uploaded",
-  REGIONING: "Regioning",
-  IN_PRODUCTION: "In Production",
-  MANGAKA_REVIEW: "Mangaka Review",
-  REVISION_REQUIRED: "Revision Required",
-  TANTOU_REVIEW: "Tantou Review",
   FINALIZED: "Finalized",
 };
 

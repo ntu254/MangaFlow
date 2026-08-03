@@ -19,17 +19,11 @@ import {
 } from "../../api/board-queries";
 import { useActiveVotingSession } from "../../api/use-active-voting-session";
 
-type PanelDecision = VoteDecision | "NEEDS_REVISION";
+type PanelDecision = "APPROVE" | "REJECT";
 
 const OPTIONS: { value: PanelDecision; label: string; className: string }[] = [
   { value: "APPROVE", label: "Approve", className: "bg-emerald-700 hover:bg-emerald-800" },
   { value: "REJECT", label: "Reject", className: "bg-rose-700 hover:bg-rose-800" },
-  {
-    value: "NEEDS_REVISION",
-    label: "Needs Revision",
-    className: "bg-amber-600 hover:bg-amber-700",
-  },
-  { value: "ABSTAIN", label: "Abstain", className: "bg-zinc-700 hover:bg-zinc-800" },
 ];
 
 export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
@@ -53,7 +47,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
       : !guard.allowed
         ? guard.reason
         : undefined;
-  const requiresComment = decision === "REJECT" || decision === "NEEDS_REVISION";
+  const requiresComment = decision === "REJECT";
   const canSubmit =
     !existing && !disabledReason && decision && (!requiresComment || comment.trim().length > 0);
 
@@ -64,7 +58,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
       {
         seriesId: proposal.id,
         body: {
-          voteDecision: decision === "NEEDS_REVISION" ? "REJECT" : decision,
+          voteDecision: decision,
           comment: comment.trim() || undefined,
           sessionId,
           expectedVersion: expectedVersion ?? undefined,
@@ -109,7 +103,8 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
   const canFinalizeRole = user.role === "board";
   const isDecided = ["APPROVED", "REJECTED", "WITHDRAWN"].includes(proposal.status);
   const finalizeLocked = finalize.isPending || finalize.isSuccess || isDecided;
-  const canFinalize = canFinalizeRole && !existing && !finalizeLocked && Boolean(sessionId);
+  const canFinalize =
+    canFinalizeRole && !finalizeLocked && Boolean(sessionId) && Boolean(votesData?.tally.status);
 
   return (
     <aside className="sticky top-20 space-y-3 rounded-md border border-border bg-card p-4">

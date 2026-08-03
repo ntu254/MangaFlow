@@ -13,6 +13,7 @@ import {
   ProposalModel,
   ProposalVoteModel,
   ProposalVersionModel,
+  SeriesMemberModel,
   SeriesModel,
   StudioCommentModel,
   StudioRegionModel,
@@ -42,6 +43,10 @@ describe("P0 canonical task submission workflow", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateMany(
+      { id: { $in: ["ch-s-berserk-prod-4", "ch-s-berserk-prod-5"] } },
+      { $set: { status: "IN_PRODUCTION", "pages.$[].status": "UPLOADED" } },
+    );
   });
 
   afterAll(async () => {
@@ -330,7 +335,6 @@ describe("P0 canonical task submission workflow", () => {
       "MANGAKA_APPROVE",
       "REQUEST_REVISION",
       "EDITOR_APPROVE",
-      "REJECT",
     ]) {
       await request(createApp())
         .post(`/api/studio/tasks/task-legacy-review-blocked/actions/${action}`)
@@ -805,7 +809,7 @@ describe("P0 canonical task submission workflow", () => {
     const cases = [
       {
         id: "approve",
-        votes: ["APPROVE", "APPROVE", "APPROVE"],
+        votes: ["APPROVE", "APPROVE", "REJECT"],
         status: "FINALIZED",
         result: "APPROVED",
       },
@@ -816,14 +820,14 @@ describe("P0 canonical task submission workflow", () => {
         result: "REJECTED",
       },
       {
-        id: "abstain",
-        votes: ["APPROVE", "APPROVE", "REJECT", "ABSTAIN", "ABSTAIN"],
+        id: "pending",
+        votes: ["APPROVE", "REJECT"],
         status: "NO_QUORUM",
         result: null,
       },
       {
         id: "tie",
-        votes: ["APPROVE", "APPROVE", "REJECT", "REJECT", "ABSTAIN"],
+        votes: ["APPROVE", "APPROVE", "REJECT", "REJECT"],
         status: "TIED",
         result: null,
       },
@@ -847,6 +851,12 @@ describe("P0 canonical task submission workflow", () => {
         .set("Authorization", `Bearer ${chair.accessToken}`)
         .send({ proposalId })
         .expect(201);
+      if (testCase.id === "tie") {
+        await VotingSessionModel.updateOne(
+          { id: created.body.data.id },
+          { $set: { eligibleVoterIds: voters.slice(0, 4).map((voter) => voter.user.id) } },
+        );
+      }
 
       for (const [index, value] of testCase.votes.entries()) {
         await request(createApp())
@@ -905,7 +915,11 @@ describe("P0 canonical task submission workflow", () => {
       .set("Authorization", `Bearer ${chair.accessToken}`)
       .send({ proposalId: "prop-p0-revote" })
       .expect(201);
-    for (const [index, value] of ["APPROVE", "APPROVE", "REJECT", "REJECT", "ABSTAIN"].entries()) {
+    await VotingSessionModel.updateOne(
+      { id: firstRound.body.data.id },
+      { $set: { eligibleVoterIds: voters.slice(0, 4).map((voter) => voter.user.id) } },
+    );
+    for (const [index, value] of ["APPROVE", "APPROVE", "REJECT", "REJECT"].entries()) {
       await request(createApp())
         .post("/api/board/series/prop-p0-revote/votes")
         .set("Authorization", `Bearer ${voters[index].accessToken}`)
@@ -929,7 +943,7 @@ describe("P0 canonical task submission workflow", () => {
       reVoteOfSessionId: firstRound.body.data.id,
       proposalId: "prop-p0-revote",
       proposalVersionId: firstRound.body.data.proposalVersionId,
-      eligibleVoterIds: firstRound.body.data.eligibleVoterIds,
+      eligibleVoterIds: voters.slice(0, 4).map((voter) => voter.user.id),
       quorum: firstRound.body.data.quorum,
     });
     expect(await ProposalVoteModel.countDocuments({ sessionId: afterFirstTie[1].id })).toBe(0);
@@ -954,7 +968,7 @@ describe("P0 canonical task submission workflow", () => {
     const firstRoundVotes = await ProposalVoteModel.find({ sessionId: firstRound.body.data.id })
       .sort({ voterId: 1 })
       .lean();
-    for (const [index, value] of ["REJECT", "REJECT", "APPROVE", "APPROVE", "ABSTAIN"].entries()) {
+    for (const [index, value] of ["REJECT", "REJECT", "APPROVE", "APPROVE"].entries()) {
       await request(createApp())
         .post("/api/board/series/prop-p0-revote/votes")
         .set("Authorization", `Bearer ${voters[index].accessToken}`)
@@ -982,7 +996,7 @@ describe("P0 canonical task submission workflow", () => {
       reVoteOfSessionId: afterFirstTie[1].id,
       proposalId: "prop-p0-revote",
       proposalVersionId: firstRound.body.data.proposalVersionId,
-      eligibleVoterIds: firstRound.body.data.eligibleVoterIds,
+      eligibleVoterIds: voters.slice(0, 4).map((voter) => voter.user.id),
       quorum: firstRound.body.data.quorum,
     });
     expect(await ProposalVoteModel.countDocuments({ sessionId: afterSecondTie[2].id })).toBe(0);
@@ -1127,26 +1141,6 @@ describe("P0 canonical task submission workflow", () => {
         voterName: "Sato",
         voterRole: "BOARD",
         decision: "APPROVE",
-        votedAt: new Date(),
-      },
-      {
-        id: "pv-p0-eligible-3",
-        sessionId: session.body.data.id,
-        proposalId: "prop-p0-ineligible-tally",
-        voterId: "u-board-3",
-        voterName: "Kobayashi",
-        voterRole: "BOARD",
-        decision: "REJECT",
-        votedAt: new Date(),
-      },
-      {
-        id: "pv-p0-eligible-4",
-        sessionId: session.body.data.id,
-        proposalId: "prop-p0-ineligible-tally",
-        voterId: "u-board-4",
-        voterName: "Watanabe",
-        voterRole: "BOARD",
-        decision: "ABSTAIN",
         votedAt: new Date(),
       },
       {
@@ -1547,7 +1541,7 @@ describe("P0 canonical task submission workflow", () => {
     expect(res.body.data.nextStatus).toBe("TANTOU_REVIEW");
     expect(res.body.data.flow).toBe("DIRECT");
     expect(res.body.data.chapter.reviewSnapshot.pageVersionIds).toHaveLength(1);
-    expect(res.body.data.chapter.pages[0].status).toBe("TANTOU_REVIEW");
+    expect(res.body.data.chapter.pages[0].status).toBe("UPLOADED");
     const reviews = await request(createApp())
       .get("/api/chapters/chapter-p0-direct/reviews")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
@@ -1650,9 +1644,8 @@ describe("P0 canonical task submission workflow", () => {
       });
   });
 
-  it("prevents Mangaka from assigning Tantou and allows EIC assignment", async () => {
+  it("allows the owning Mangaka to assign a Tantou Editor", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
-    const editorInChief = await loginAs("tanaka@beachread.jp");
     await SeriesModel.create({
       id: "series-p0-tantou-assign",
       title: "Tantou Assign",
@@ -1666,12 +1659,6 @@ describe("P0 canonical task submission workflow", () => {
     await request(createApp())
       .post("/api/series/series-p0-tantou-assign/editor")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
-      .send({ editorId: "u-editor", editorName: "Tanaka Akira" })
-      .expect(403);
-
-    await request(createApp())
-      .post("/api/series/series-p0-tantou-assign/editor")
-      .set("Authorization", `Bearer ${editorInChief.accessToken}`)
       .send({ editorId: "u-editor", editorName: "Tanaka Akira" })
       .expect(200);
   });
@@ -1811,7 +1798,7 @@ describe("P0 canonical task submission workflow", () => {
           id: "page-p0-stale",
           pageNumber: 1,
           fileKey: "page-p0-stale.png",
-          status: "TANTOU_REVIEW",
+          status: "UPLOADED",
           version: 2,
         },
       ],
@@ -1837,6 +1824,10 @@ describe("P0 canonical task submission workflow", () => {
 
   it("rejects direct Page status writes outside backend workflow commands", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-4" },
+      { $set: { status: "IN_PRODUCTION" } },
+    );
 
     await request(createApp())
       .post("/api/chapters/ch-s-berserk-prod-4/pages")
@@ -1866,7 +1857,7 @@ describe("P0 canonical task submission workflow", () => {
 
     await ChapterModel.updateOne(
       { "pages.id": created.body.data.id },
-      { $set: { "pages.$.status": "REVISION_REQUIRED" } },
+      { $set: { status: "REVISION_REQUIRED", "pages.$.status": "UPLOADED" } },
     );
     const replacement = await request(createApp())
       .patch(`/api/pages/${created.body.data.id}`)
@@ -1880,6 +1871,116 @@ describe("P0 canonical task submission workflow", () => {
 
     expect(replacement.body.data.status).toBe("UPLOADED");
     expect(replacement.body.data.fileKey).toBe("pages/revised-page.png");
+  });
+
+  it("freezes Page content, new tasks, and Assistant submissions during Chapter Tantou review", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const assistant = await loginAs("jun@beachread.jp");
+    await SeriesModel.create({
+      id: "series-p0-review-lock",
+      title: "Review Lock",
+      authorId: mangaka.user.id,
+      authorName: "Inoue",
+      status: "ONGOING",
+      publicationType: "WEEKLY",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await ChapterModel.create({
+      id: "chapter-p0-review-lock",
+      seriesId: "series-p0-review-lock",
+      number: 1,
+      title: "Frozen Chapter",
+      status: "TANTOU_REVIEW",
+      pages: [
+        { id: "page-p0-review-lock-1", pageNumber: 1, fileKey: "pages/lock-1.png", status: "UPLOADED" },
+        { id: "page-p0-review-lock-2", pageNumber: 2, fileKey: "pages/lock-2.png", status: "UPLOADED" },
+      ],
+      history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await SeriesMemberModel.create({
+      id: "member-p0-review-lock",
+      seriesId: "series-p0-review-lock",
+      userId: assistant.user.id,
+      role: "assistant",
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await StudioTaskModel.create({
+      id: "task-p0-review-lock",
+      seriesId: "series-p0-review-lock",
+      chapterId: "chapter-p0-review-lock",
+      pageId: "page-p0-review-lock-1",
+      title: "Frozen assistant task",
+      assigneeId: assistant.user.id,
+      assignmentStatus: "ACCEPTED",
+      status: "IN_PROGRESS",
+      pageTaskActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const assertReviewLocked = (res: any) => {
+      expect(res.body.code).toBe("CHAPTER_REVIEW_LOCKED");
+    };
+
+    await request(createApp())
+      .post("/api/chapters/chapter-p0-review-lock/pages")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ pageNumber: 3, fileKey: "pages/lock-3.png" })
+      .expect(409)
+      .expect(assertReviewLocked);
+
+    await request(createApp())
+      .patch("/api/pages/page-p0-review-lock-1")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ fileKey: "pages/changed.png" })
+      .expect(409)
+      .expect(assertReviewLocked);
+
+    await request(createApp())
+      .patch("/api/chapters/chapter-p0-review-lock/pages/reorder")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ orderedPageIds: ["page-p0-review-lock-2", "page-p0-review-lock-1"] })
+      .expect(409)
+      .expect(assertReviewLocked);
+
+    await request(createApp())
+      .delete("/api/pages/page-p0-review-lock-2")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(409)
+      .expect(assertReviewLocked);
+
+    await request(createApp())
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({
+        seriesId: "series-p0-review-lock",
+        chapterId: "chapter-p0-review-lock",
+        pageId: "page-p0-review-lock-2",
+        assigneeId: assistant.user.id,
+        title: "Late task",
+      })
+      .expect(409)
+      .expect(assertReviewLocked);
+
+    await request(createApp())
+      .post("/api/tasks/task-p0-review-lock/submit")
+      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .set("Idempotency-Key", "review-lock-submit")
+      .send({ expectedCurrentSubmissionId: null, notes: "late submission" })
+      .expect(409)
+      .expect(assertReviewLocked);
+
+    const frozen = await ChapterModel.findOne({ id: "chapter-p0-review-lock" }).lean();
+    expect((frozen as any).pages.map((page: any) => page.id)).toEqual([
+      "page-p0-review-lock-1",
+      "page-p0-review-lock-2",
+    ]);
+    expect((frozen as any).pages.every((page: any) => page.status === "UPLOADED")).toBe(true);
   });
 
   it("rejects cross-entity Assistant submission file attachment", async () => {

@@ -9,7 +9,6 @@ export interface AdminUser {
   role: string;
   active: boolean;
   isChair?: boolean;
-  isEditorInChief?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -67,7 +66,6 @@ export interface Material {
   kind: string;
   category: string;
   description?: string;
-  status: "DRAFT" | "ACTIVE" | "IN_REVIEW" | "APPROVED" | "ARCHIVED";
   tags: string[];
   fileKey: string;
   url: string;

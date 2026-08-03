@@ -85,7 +85,6 @@ Series membership.
 | Flag | Holder | Additional authority |
 | --- | --- | --- |
 | `isChair` | One Board member | Opens, closes, or cancels Voting Sessions |
-| `isEditorInChief` | One Editor | Reassigns Editor claims and resolves tied Board votes |
 
 `ADMIN` is the global administrative bypass. Other actors only access records
 that belong to them or are assigned to them.
@@ -100,7 +99,7 @@ flowchart TD
   B -->|Forward| C["Board Voting Session"]
   C --> D["Board members vote"]
   D --> E{"Quorum and result"}
-  E -->|Tie| T["Editor-in-Chief tie-break"]
+  E -->|Full electorate tied| T["System opens fresh Board re-vote"]
   T --> E
   E -->|Reject| R2["Proposal REJECTED"]
   E -->|Approve| F["Series PRE_PRODUCTION"]
@@ -143,10 +142,10 @@ Only Board approval creates a production Series.
 | --- | --- | --- | --- | --- |
 | `DRAFT` | `SUBMIT` | Mangaka author | `PENDING_EDITOR` | Notifies Editor pool and writes audit entry |
 | `PENDING_EDITOR` | `CLAIM` | Editor | `EDITOR_REVIEWING` | Assigns one Editor |
-| `EDITOR_REVIEWING` | `REQUEST_CHANGES` | Assigned Editor or EIC | `CHANGES_REQUESTED` | Stores required changes and notifies author |
+| `EDITOR_REVIEWING` | `REQUEST_CHANGES` | Assigned Editor | `CHANGES_REQUESTED` | Stores required changes and notifies author |
 | `CHANGES_REQUESTED` | `RESUBMIT` | Mangaka author | `EDITOR_REVIEWING` | Returns revised Proposal to review |
-| `EDITOR_REVIEWING` | `FORWARD` | Assigned Editor or EIC | `PENDING_BOARD` | Sends Proposal to Board |
-| `EDITOR_REVIEWING` | `REJECT` | Assigned Editor or EIC | `REJECTED` | Requires rejection reason |
+| `EDITOR_REVIEWING` | `FORWARD` | Assigned Editor | `PENDING_BOARD` | Sends Proposal to Board |
+| `EDITOR_REVIEWING` | `REJECT` | Assigned Editor | `REJECTED` | Requires rejection reason |
 | `PENDING_BOARD` | Open session | Board Chair | `BOARD_REVIEW` | Creates one open Voting Session |
 | `BOARD_REVIEW` | `VOTE` | Board member | No immediate status change | Stores vote |
 | `BOARD_REVIEW` | Close session | Board Chair | `APPROVED` or `REJECTED` | Finalises result |
@@ -158,9 +157,8 @@ Only Board approval creates a production Series.
 | Action | Actor | Effect |
 | --- | --- | --- |
 | `EDIT` | Mangaka author | Edits Proposal content; blocked during Board review or active voting session |
-| `RELEASE_CLAIM` | Admin or EIC | Releases an Editor's claim; Proposal returns to `PENDING_EDITOR` |
-| `REASSIGN_CLAIM` | Admin or EIC | Reassigns the claim to a different Editor |
-| `RECALL` | Assigned Editor or EIC | Recalls a Board-stage Proposal back to `PENDING_EDITOR`; clears votes |
+| `RELEASE_CLAIM` | Assigned Editor | Releases their own claim; Proposal returns to `PENDING_EDITOR` so another Editor can claim it |
+| `RECALL` | Assigned Editor | Recalls a Board-stage Proposal back to `PENDING_EDITOR`; clears votes |
 
 `FORCE_STATUS` is defined in the codebase but disabled at runtime (HTTP 410
 `WORKFLOW_REMOVED`). It is not an available business action.
@@ -170,7 +168,7 @@ Only Board approval creates a production Series.
 | Outcome | Condition | Result |
 | --- | --- | --- |
 | `NO_QUORUM` | Votes below configured quorum | Proposal returns to `PENDING_BOARD` |
-| `TIE_BREAK_REQUIRED` | Approve and reject tallies are equal | Editor-in-Chief submits deciding vote |
+| `TIE_BREAK_REQUIRED` | Legacy tie history only | System opens a fresh Board re-vote; no special role vote |
 | `FINALIZED: APPROVED` | Quorum met and approval wins | Proposal approved; BoardDecision and Series created |
 | `FINALIZED: REJECTED` | Quorum met and rejection wins | Proposal rejected |
 
@@ -181,15 +179,10 @@ Only Board approval creates a production Series.
 - One approved Proposal may create only one Series.
 - Board-approved publication cadence is inherited by the Series.
 
-**EIC tie-break**
-
-- Editor-in-Chief `APPROVE` or `REJECT` during a tie-break carries weight 2.
-- Editor-in-Chief `ABSTAIN` carries weight 1 and does not resolve the tie.
-
 **Board quorum**
 
 - Default: 3
-- Minimum: 2
+- Minimum: 3
 - Maximum: 5 (total Board seats)
 - Configured via `BOARD_QUORUM` environment variable.
 
@@ -234,7 +227,7 @@ and Tantou assignment confirmed → Series ONGOING
 
 ### 5.2 Chapter lifecycle
 
-The business-facing Chapter lifecycle uses seven stages:
+The business-facing Chapter lifecycle uses six stages:
 
 ```mermaid
 stateDiagram-v2
@@ -245,7 +238,6 @@ stateDiagram-v2
   REVISION_REQUIRED --> IN_PRODUCTION: Revise Chapter
   TANTOU_REVIEW --> READY_FOR_PUBLICATION: Editor approves
   READY_FOR_PUBLICATION --> PUBLISHED: Publish
-  ANY --> ARCHIVED: Archive
 ```
 
 **Legacy/retired Chapter statuses**
@@ -288,7 +280,6 @@ for backward compatibility. They should not appear in current business flows.
 | `SCHEDULE` | `READY_FOR_PUBLICATION` | No chapter status change | Editor | Creates or updates a `Publication` record as `SCHEDULED` |
 | `POSTPONE` | `READY_FOR_PUBLICATION` | No chapter status change | Editor | Cancels the scheduled `Publication` record |
 | `REASSIGN` | Any | No chapter status change | Editor | Changes the assigned Tantou editor or assistant |
-| `ARCHIVE` | Any non-archived status | `ARCHIVED` | Assigned Tantou Editor | Persists archive metadata; repeated archive is rejected |
 
 ### 5.4 Review readiness
 
@@ -298,9 +289,8 @@ A Chapter may be submitted to the Editor only when all of the following hold:
 2. The Series is `ONGOING`.
 3. The Series originates from an `APPROVED` Proposal.
 4. Every Chapter page has a valid uploaded asset.
-5. Relevant review materials are `ACTIVE` or `APPROVED`.
-6. Every required Studio Task has a current `MANGAKA_APPROVED` Submission.
-7. No unresolved blocking Studio Comment remains.
+5. Every required Studio Task has a current `MANGAKA_APPROVED` Submission.
+6. No unresolved blocking Studio Comment remains.
 
 Submitting the Chapter freezes the reviewed page versions. If a page changes
 afterward, the Editor cannot approve the stale snapshot.
@@ -765,12 +755,12 @@ The following items are confirmed implementation defects or deviations from
 the intended design. They are documented for transparency and should not be
 silently repaired unless explicitly requested.
 
-**1. ARCHIVE chapter action — resolved**
+**1. Independent Chapter archive — removed**
 
-The `ARCHIVE` action in `applyChapterAction` now persists `Chapter.status` as
-`ARCHIVED` together with archive metadata. It is allowed from any non-archived
-chapter state and repeated archive attempts fail with
-`409 INVALID_TRANSITION`.
+Chapter no longer has an `ARCHIVE` action, `ARCHIVED` status, or archive
+metadata. It follows the lifecycle of its parent Series. Legacy archived
+Chapter rows are converted to the closest canonical production/publication
+state by the chapter-status migration.
 
 **2. MARK_READY — exceptional bypass**
 

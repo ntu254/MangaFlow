@@ -5,7 +5,6 @@ export type SeriesPrimaryAction =
   | "review_submissions"
   | "open_proposal"
   | "setup_chapters"
-  | "view_task_board"
   | "resume_planning"
   | "view_publication";
 
@@ -14,7 +13,6 @@ export const PRIMARY_ACTION_LABEL: Record<SeriesPrimaryAction, string> = {
   review_submissions: "Review",
   open_proposal: "Open Proposal",
   setup_chapters: "Setup Chapters",
-  view_task_board: "View Tasks",
   resume_planning: "Resume Planning",
   view_publication: "View Publication",
 };
@@ -24,7 +22,7 @@ export type SeriesProductionSummary = {
   currentChapter: { number: number; title: string; status: ChapterStatus } | null;
   openTaskCount: number;
   overdueTaskCount: number;
-  blockedTaskCount: number;
+  revisionTaskCount: number;
   pendingReviewCount: number;
   nextDeadline: string | null;
   primaryAction: SeriesPrimaryAction;

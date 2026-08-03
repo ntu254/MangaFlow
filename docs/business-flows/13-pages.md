@@ -1,11 +1,10 @@
 # Pages
 
 ## Description
-Pages are embedded sub-documents within a Chapter. Each page has a status,
-image/file references, and metadata. Pages are production evidence owned by
-the Series Mangaka. Only the owning Mangaka may create, update, delete, detect,
-or whiten a stored Page. The assigned Tantou reviews a frozen snapshot without
-modifying that evidence.
+Pages are embedded content units within a Chapter and the assignment unit for
+Assistant work. A Page has no Tantou review process of its own. The owning
+Mangaka manages Page assets and approves Assistant results; the assigned Tantou
+reviews one frozen snapshot of the complete Chapter.
 
 ## Flowchart
 
@@ -35,13 +34,13 @@ graph TD
     F --> N[Send chapter to review]
     N --> O{pageHasUploadedAsset?}
     O -- No --> P[HTTP 409 PAGE_IMAGE_REQUIRED]
-    O -- Yes --> Q[Pages status: TANTOU_REVIEW]
+    O -- Yes --> Q[Chapter: TANTOU_REVIEW<br/>Pages stay UPLOADED and are locked]
 
     Q --> R{Editor approves chapter}
     R --> S[Pages status: FINALIZED]
 
     Q --> T{Editor requests revision}
-    T --> U[Pages status: REVISION_REQUIRED]
+    T --> U[Chapter: REVISION_REQUIRED<br/>Pages stay UPLOADED and unlock]
 ```
 
 ## Page Status Values (from `backend/src/types.ts:146-155`)
@@ -49,19 +48,28 @@ graph TD
 | Status | Description |
 |--------|-------------|
 | `PENDING_UPLOAD` | Page created without file |
-| `UPLOADED` | File uploaded |
-| `REGIONING` | Regions being defined |
-| `IN_PRODUCTION` | Work in progress |
-| `MANGAKA_REVIEW` | Under Mangaka review |
-| `REVISION_REQUIRED` | Changes needed |
-| `TANTOU_REVIEW` | Under Editor (Tantou) review |
-| `FINALIZED` | Editor approved, final |
+| `UPLOADED` | Has a valid asset and remains part of production/editing |
+| `FINALIZED` | Its complete Chapter was approved by the Tantou |
 
 ## Page Asset Check (`chapter-readiness.service.ts`)
 `pageHasUploadedAsset(page)` returns true if:
 - `fileKey` exists and is non-empty, OR
 - `fileUrl`/`imageUrl` exists and is not a placeholder/metadata URL
-AND page status is not `PENDING_UPLOAD` or `REVISION_REQUIRED`
+AND page status is not `PENDING_UPLOAD`.
+
+## Chapter Review Lock
+
+While the Chapter is `TANTOU_REVIEW`, its frozen snapshot is authoritative:
+
+- no Page create, delete, reorder, asset replacement, or Page AI mutation;
+- no new Page Task;
+- no additional Assistant submission;
+- Page statuses stay `UPLOADED`.
+
+`REQUEST_REVISION` moves only the Chapter to `REVISION_REQUIRED`. Page assets
+remain `UPLOADED`, and the owning Mangaka may replace the specific assets named
+by Page/Region comments. `EDITOR_APPROVE` moves the Chapter to
+`READY_FOR_PUBLICATION` and changes all valid Pages to `FINALIZED`.
 
 ## Role Access
 
@@ -84,6 +92,8 @@ AND page status is not `PENDING_UPLOAD` or `REVISION_REQUIRED`
   renumbered in the same Chapter update.
 - Reorder and delete use the same Chapter-content ownership guard as create and
   update. Reviewers see persisted order but cannot mutate production evidence.
+- Every Page-content write also checks the Chapter review lock at the database
+  update boundary and returns `409 CHAPTER_REVIEW_LOCKED` if review is active.
 
 ## Key Files
 - `backend/src/controllers/series.controller.ts:763-829` — page CRUD handlers

@@ -37,6 +37,5 @@ authorization coverage.
 
 ## Open business decision
 
-`FLOW-GAP-04 / CT-11` remains open: Admin must eventually be reduced to account
-lifecycle and Chair/EIC designation management, but route removal requires an
-approved deprecation plan. The code was intentionally not changed by inference.
+`FLOW-GAP-04 / CT-11` is implemented: Admin remains limited to account lifecycle,
+Board Chair designation management, and explicitly retained system surfaces.

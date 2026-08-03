@@ -27,8 +27,7 @@ export function pageHasUploadedAsset(page: any) {
     !fallback.includes("placeholder-page");
   return (
     (hasDurableFile || hasLegacyFile) &&
-    page.status !== "PENDING_UPLOAD" &&
-    page.status !== "REVISION_REQUIRED"
+    page.status !== "PENDING_UPLOAD"
   );
 }
 
@@ -37,7 +36,6 @@ export function chapterReadiness(
   comments: any[] = [],
   tasks: any[] = [],
   submissions: any[] = [],
-  materials: any[] = [],
 ) {
   const requiresTantouVerification = [
     "TANTOU_REVIEW",
@@ -45,13 +43,6 @@ export function chapterReadiness(
     "PUBLISHED",
   ].includes(String(chapter.status));
   const items = [
-    {
-      key: "reviewMaterialActive",
-      passed: materials.every((material: any) =>
-        ["ACTIVE", "APPROVED"].includes(String(material.status)),
-      ),
-      reason: "Review materials must be ACTIVE or APPROVED before sending to editor review.",
-    },
     {
       key: "allPagesUploaded",
       passed:

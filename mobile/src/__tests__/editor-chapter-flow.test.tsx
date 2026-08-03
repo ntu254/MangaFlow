@@ -16,7 +16,7 @@ const mocked = dataSource as jest.Mocked<typeof dataSource>
 const blockedDetail: EditorChapterDetail = {
   chapter: { id: "ch-1", seriesId: "s-1", title: "Old Wound", number: 5, status: "TANTOU_REVIEW", version: 5 },
   series: { id: "s-1", title: "Berserk", editorId: "u-editor" },
-  pages: [{ id: "pg-1", pageNumber: 1, status: "APPROVED" }],
+  pages: [{ id: "pg-1", pageNumber: 1, status: "UPLOADED" }],
   readiness: {
     ready: false,
     items: [{ key: "allCommentsResolved", passed: false, reason: "Every blocking comment must be verified as RESOLVED." }],

@@ -104,8 +104,8 @@ const STATUS_CONFIG: Record<
     label: "Tie-break",
     pillClass:
       "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50",
-    stage: "Editor-in-Chief decision",
-    nextAction: "Waiting for Editor-in-Chief tie-break",
+    stage: "Board re-vote",
+    nextAction: "Waiting for a fresh Board re-vote",
     ctaLabel: "View Status",
   },
   APPROVED: {

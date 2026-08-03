@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   X,
-  Plus,
   UserPlus,
   MoreHorizontal,
   Crown,
@@ -14,13 +13,11 @@ import {
   Ban,
   Eye,
 } from "lucide-react";
-import { useAuth, ASSISTANTS, findUserById, type User as AppUser } from "@/shared/auth";
-import type { Role } from "@/shared/auth";
+import { useAuth, findUserById } from "@/shared/auth";
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
 import { StatCard } from "@/shared/ui/stat-card";
 import {
   useSeriesMembersQuery,
-  useAddMemberMutation,
   useInviteAssistantMutation,
   useRemoveMemberMutation,
   useUpdateMemberMutation,
@@ -64,71 +61,46 @@ function hash(s: string): number {
   return h;
 }
 
-const PRESENCES: Presence[] = ["Online", "Away", "Offline"];
-const RISKS: Risk[] = ["Low", "Medium", "High"];
-const LAST_ACTIVE = [
-  "Today 09:21",
-  "Today 08:47",
-  "Today 09:10",
-  "Today 08:59",
-  "Yesterday 22:31",
-  "Today 07:45",
-  "2 days ago",
-  "3 days ago",
-];
-
-function mockMetrics(id: string, kind: MemberKind) {
-  const h = hash(id);
-  const isOwner = kind === "MANGAKA";
-  const active = isOwner ? 0 : (h % 13) + 1;
-  const pending = isOwner ? 0 : (h >> 2) % 6;
-  const revision = isOwner ? 0 : (h >> 4) % 5;
-  const done = isOwner ? 0 : (h >> 6) % 20;
-  const completed = isOwner ? 120 + (h % 30) : (h >> 8) % 60;
-  const risk = isOwner ? "Low" : RISKS[(h >> 3) % RISKS.length];
-  const lastActive = LAST_ACTIVE[h % LAST_ACTIVE.length];
-  const presence = PRESENCES[(h >> 1) % PRESENCES.length];
-  const joinedDays = (h % 360) + 30;
-  const joined = new Date(Date.now() - joinedDays * 86400_000).toLocaleDateString("en-US");
-  const load = Math.min(100, Math.round((active / 20) * 100) + 20);
-  return { active, pending, revision, done, completed, risk, lastActive, presence, joined, load };
+function emptyMetrics(joined = "—") {
+  return {
+    active: 0,
+    pending: 0,
+    revision: 0,
+    done: 0,
+    completed: 0,
+    risk: "Low" as Risk,
+    lastActive: "—",
+    presence: "Offline" as Presence,
+    joined,
+    load: 0,
+  };
 }
 
 function ownerOf(series: ProductionSeries): MemberRow {
-  const m = mockMetrics(series.authorId, "MANGAKA");
+  const m = emptyMetrics();
   return {
     id: series.authorId,
     name: series.authorName,
-    email: `${series.authorName.toLowerCase().replace(/\s+/g, ".")}@studio.jp`,
+    email: "—",
     kind: "MANGAKA",
     scope: "OWNER",
     ...m,
   };
 }
 
-function editorOf(series: ProductionSeries, tantouEditor?: TantouEditor | null): MemberRow {
+function editorOf(series: ProductionSeries, tantouEditor?: TantouEditor | null): MemberRow | null {
   const editorId = tantouEditor?.userId ?? series.editorId;
   const editorName = tantouEditor?.userName ?? series.editorName;
-  const m = mockMetrics(editorId, "EDITOR");
+  if (!editorId || !editorName) return null;
+  const m = emptyMetrics(
+    tantouEditor?.joinedAt ? new Date(tantouEditor.joinedAt).toLocaleDateString("en-US") : "—",
+  );
   return {
     id: tantouEditor?.id ?? `editor-${series.id}`,
     name: editorName,
-    email: tantouEditor?.userEmail ?? `${editorName.toLowerCase().replace(/\s+/g, ".")}@studio.jp`,
+    email: tantouEditor?.userEmail ?? "—",
     kind: "EDITOR",
     scope: "FULL SERIES",
-    ...m,
-  };
-}
-
-function assistantRow(u: AppUser, scope: Scope = "FULL SERIES"): MemberRow {
-  const m = mockMetrics(u.id, "ASSISTANT");
-  return {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    avatar: u.avatar,
-    kind: scope === "TASK ONLY" || scope === "READ ONLY" ? "TASK-ONLY" : "ASSISTANT",
-    scope,
     ...m,
   };
 }
@@ -216,19 +188,11 @@ function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   );
 }
 
-function roleForMember(kind: MemberKind): Role {
-  if (kind === "MANGAKA") return "mangaka";
-  if (kind === "EDITOR") return "editor";
-  return "assistant";
-}
-
 // ---------- main ----------
 
 export function TeamPanel({ series, chapters }: { series: ProductionSeries; chapters: Chapter[] }) {
   const user = useAuth((s) => s.user);
-  const canEdit = !!user && (user.role === "admin" || user.role === "editor");
   const isMangakaOwner = !!user && user.role === "mangaka" && user.id === series.authorId;
-  const [picker, setPicker] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -240,31 +204,19 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
     "Full chapter",
   );
 
-  const { data: dbMembers = [], isLoading: isMembersLoading } = useSeriesMembersQuery(series.id);
+  const { data: dbMembers = [] } = useSeriesMembersQuery(series.id);
   const { data: tantouEditor } = useTantouEditorQuery(series.id);
+  const isAssignedTantou =
+    !!user &&
+    user.role === "editor" &&
+    (user.id === series.editorId || user.id === tantouEditor?.userId);
+  const canEdit = isMangakaOwner || isAssignedTantou;
   const assignEditor = useAssignEditorMutation(series.id);
   const removeEditor = useRemoveEditorMutation(series.id);
 
-  const addMember = useAddMemberMutation(series.id);
   const inviteAssistant = useInviteAssistantMutation(series.id);
   const removeMember = useRemoveMemberMutation(series.id, editingMemberId ?? selectedId ?? "");
   const updateMember = useUpdateMemberMutation(series.id, editingMemberId ?? selectedId ?? "");
-
-  const handleAddAssistant = async (userId: string) => {
-    try {
-      const u = findUserById(userId);
-      if (!u) return;
-      await addMember.mutateAsync({
-        userId,
-        role: "assistant",
-        scope: "Full chapter",
-      });
-      toast.success(`Added ${u.name}.`);
-      setPicker(false);
-    } catch (err) {
-      toast.error(mapApiError(err));
-    }
-  };
 
   const handleRemoveAssistant = async (memberId: string, name: string) => {
     try {
@@ -308,25 +260,32 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   };
 
   const members: MemberRow[] = useMemo(() => {
-    const list: MemberRow[] = [ownerOf(series), editorOf(series, tantouEditor)];
-    dbMembers.forEach((dbM: DbMember, idx: number) => {
+    const editor = editorOf(series, tantouEditor);
+    const list: MemberRow[] = [ownerOf(series), ...(editor ? [editor] : [])];
+    dbMembers.forEach((dbM: DbMember) => {
+      if (dbM.role === "editor" || dbM.status !== "active") return;
       const u = findUserById(dbM.userId);
-      if (!u) return;
+      const role = String(dbM.userRole ?? u?.role ?? dbM.role).toUpperCase();
+      const name = dbM.userName ?? u?.name ?? dbM.userId;
+      const email = dbM.userEmail ?? u?.email ?? "—";
 
       const mappedScope: Scope =
-        dbM.scope === "Full chapter"
+        dbM.scope === "Full chapter" || dbM.scope === "full_series" || dbM.scope === "FULL_SERIES"
           ? "FULL SERIES"
           : dbM.scope === "Task only" || dbM.scope === "TASK_ONLY" || dbM.scope === "TASK ONLY"
             ? "TASK ONLY"
             : "READ ONLY";
 
-      const m = mockMetrics(u.id, u.role === "assistant" ? "ASSISTANT" : "TASK-ONLY");
+      const kind: MemberKind = role === "ASSISTANT" ? "ASSISTANT" : "TASK-ONLY";
+      const m = emptyMetrics(
+        dbM.createdAt ? new Date(dbM.createdAt).toLocaleDateString("en-US") : "—",
+      );
       list.push({
         id: dbM.id,
-        name: u.name,
-        email: u.email,
-        avatar: u.avatar,
-        kind: u.role === "assistant" ? "ASSISTANT" : "TASK-ONLY",
+        name,
+        email,
+        avatar: u?.avatar,
+        kind,
         scope: mappedScope,
         ...m,
       });
@@ -347,8 +306,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   const pageRows = members.slice((page - 1) * pageSize, page * pageSize);
 
   const selected = selectedId ? (members.find((m) => m.id === selectedId) ?? null) : null;
-  const currentMemberUserIds = dbMembers.map((m: DbMember) => m.userId);
-  const available = ASSISTANTS.filter((a) => !currentMemberUserIds.includes(a.id));
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row">
@@ -366,35 +323,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
               >
                 <UserPlus className="size-3.5" /> Invite assistant
               </button>
-            ) : null}
-            {canEdit ? (
-              <div className="relative">
-                <button
-                  onClick={() => setPicker((p) => !p)}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
-                >
-                  <Plus className="size-3.5" /> Add assistant
-                </button>
-                {picker ? (
-                  <div className="absolute right-0 z-10 mt-2 w-64 space-y-1 rounded-md border border-border bg-card p-2 shadow-lg">
-                    {available.length === 0 ? (
-                      <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                        No more assistants to add.
-                      </p>
-                    ) : (
-                      available.map((a) => (
-                        <button
-                          key={a.id}
-                          onClick={() => handleAddAssistant(a.id)}
-                          className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted"
-                        >
-                          + {a.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                ) : null}
-              </div>
             ) : null}
           </div>
         </div>
@@ -433,14 +361,14 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
             tone="emerald"
             label="Assistants"
             value={assistantsList.length}
-            hint={`${assistantsList.length} active · 1 invited`}
+            hint={`${assistantsList.length} active`}
           />
           <StatCard
             icon={<ClipboardList className="size-4" />}
             tone="sky"
             label="Task-only members"
             value={taskOnlyList.length}
-            hint={`${taskOnlyList.length} active · 2 invited`}
+            hint={`${taskOnlyList.length} active`}
           />
         </div>
 
@@ -760,9 +688,8 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                     toast.error("Please select an editor.");
                     return;
                   }
-                  const editorName = editorId === "u-editor" ? "Tanaka Akira" : "Mobile Editor";
                   try {
-                    await assignEditor.mutateAsync({ editorId, editorName });
+                    await assignEditor.mutateAsync({ editorId });
                     toast.success("Tantou Editor assigned.");
                     setAssignEditorOpen(false);
                   } catch (err) {

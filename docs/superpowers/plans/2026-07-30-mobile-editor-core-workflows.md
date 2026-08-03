@@ -4,7 +4,7 @@
 
 **Goal:** Complete the Queue-first Editor mobile experience for proposals, consolidated chapter review, editorial comments, publication decisions, and history using canonical backend services.
 
-**Architecture:** Extend the shared inbox projection with actor-scoped Editor work items and use canonical proposal, chapter, comment, and publication endpoints for detail and mutation. Focused query hooks own each workflow family, while reusable detail and confirmation components render backend capabilities and disabled reasons. Assistant submissions stay read-only evidence; no Editor-in-Chief tie-break mutation exists.
+**Architecture:** Extend the shared inbox projection with actor-scoped Editor work items and use canonical proposal, chapter, comment, and publication endpoints for detail and mutation. Focused query hooks own each workflow family, while reusable detail and confirmation components render backend capabilities and disabled reasons. Assistant submissions stay read-only evidence; tied Board sessions use fresh re-votes.
 
 **Tech Stack:** Expo SDK 56, React Native, TypeScript, Zod, TanStack Query v5, Jest Expo, React Native Testing Library, Express, Mongoose, Vitest, Supertest.
 
@@ -17,7 +17,7 @@
 - Self-review remains forbidden.
 - Readiness and blocker eligibility are returned by backend services and are not recalculated on mobile.
 - Proposal, chapter, comment, and publication mutations use canonical services.
-- No new Editor-in-Chief tie-break action exists; ties create Board re-votes.
+- No special tie-break action exists; ties create Board re-votes.
 - Live API failures never return mock content.
 - Every decision preserves form input on validation, permission, conflict, or server failure.
 - Preserve unrelated dirty files.
@@ -560,6 +560,6 @@ git commit -m "feat: complete Queue-first Editor mobile workflows"
 - Proposal, chapter, comment, and publication decisions call canonical backend behavior.
 - Assistant submissions are read-only evidence and expose no Editor approval mutation.
 - Readiness and blockers match backend service output.
-- The app contains no active EIC tie-break action.
+- The app contains no active special tie-break action.
 - Editor tabs are exactly Today, Reviews, Publish, History.
 - Focused backend parity tests, all mobile behavior tests, typecheck, and Expo export pass.

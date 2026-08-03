@@ -16,10 +16,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReadIndexRouteImport } from './routes/read.index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as ReadSlugRouteImport } from './routes/read.$slug'
-import { Route as AppTasksRouteImport } from './routes/app.tasks'
 import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
 import { Route as AppSeriesRouteImport } from './routes/app.series'
 import { Route as AppRankingsRouteImport } from './routes/app.rankings'
+import { Route as AppProposalsRouteImport } from './routes/app.proposals'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppEditorRouteImport } from './routes/app.editor'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
@@ -29,11 +29,14 @@ import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as ReadSlugIndexRouteImport } from './routes/read.$slug.index'
 import { Route as AppSubmissionsIndexRouteImport } from './routes/app.submissions.index'
 import { Route as AppSeriesIndexRouteImport } from './routes/app.series.index'
+import { Route as AppProposalsIndexRouteImport } from './routes/app.proposals.index'
 import { Route as AppBoardIndexRouteImport } from './routes/app.board.index'
 import { Route as AppAdminIndexRouteImport } from './routes/app.admin.index'
 import { Route as ReadSlugChapterRouteImport } from './routes/read.$slug.$chapter'
 import { Route as AppSubmissionsNewRouteImport } from './routes/app.submissions.new'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions.$id'
+import { Route as AppProposalsNewRouteImport } from './routes/app.proposals.new'
+import { Route as AppProposalsProposalIdRouteImport } from './routes/app.proposals.$proposalId'
 import { Route as AppEditorSeriesRouteImport } from './routes/app.editor.series'
 import { Route as AppEditorReviewRouteImport } from './routes/app.editor.review'
 import { Route as AppEditorPublicationsRouteImport } from './routes/app.editor.publications'
@@ -111,11 +114,6 @@ const ReadSlugRoute = ReadSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ReadRoute,
 } as any)
-const AppTasksRoute = AppTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppSubmissionsRoute = AppSubmissionsRouteImport.update({
   id: '/submissions',
   path: '/submissions',
@@ -129,6 +127,11 @@ const AppSeriesRoute = AppSeriesRouteImport.update({
 const AppRankingsRoute = AppRankingsRouteImport.update({
   id: '/rankings',
   path: '/rankings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProposalsRoute = AppProposalsRouteImport.update({
+  id: '/proposals',
+  path: '/proposals',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
@@ -176,6 +179,11 @@ const AppSeriesIndexRoute = AppSeriesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppSeriesRoute,
 } as any)
+const AppProposalsIndexRoute = AppProposalsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppProposalsRoute,
+} as any)
 const AppBoardIndexRoute = AppBoardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -200,6 +208,16 @@ const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppSubmissionsRoute,
+} as any)
+const AppProposalsNewRoute = AppProposalsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppProposalsRoute,
+} as any)
+const AppProposalsProposalIdRoute = AppProposalsProposalIdRouteImport.update({
+  id: '/$proposalId',
+  path: '/$proposalId',
+  getParentRoute: () => AppProposalsRoute,
 } as any)
 const AppEditorSeriesRoute = AppEditorSeriesRouteImport.update({
   id: '/series',
@@ -430,10 +448,10 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/editor': typeof AppEditorRouteWithChildren
   '/app/notifications': typeof AppNotificationsRoute
+  '/app/proposals': typeof AppProposalsRouteWithChildren
   '/app/rankings': typeof AppRankingsRoute
   '/app/series': typeof AppSeriesRouteWithChildren
   '/app/submissions': typeof AppSubmissionsRouteWithChildren
-  '/app/tasks': typeof AppTasksRoute
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
@@ -459,11 +477,14 @@ export interface FileRoutesByFullPath {
   '/app/editor/publications': typeof AppEditorPublicationsRoute
   '/app/editor/review': typeof AppEditorReviewRouteWithChildren
   '/app/editor/series': typeof AppEditorSeriesRouteWithChildren
+  '/app/proposals/$proposalId': typeof AppProposalsProposalIdRoute
+  '/app/proposals/new': typeof AppProposalsNewRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/submissions/new': typeof AppSubmissionsNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/admin/': typeof AppAdminIndexRoute
   '/app/board/': typeof AppBoardIndexRoute
+  '/app/proposals/': typeof AppProposalsIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
   '/app/submissions/': typeof AppSubmissionsIndexRoute
   '/read/$slug/': typeof ReadSlugIndexRoute
@@ -495,7 +516,6 @@ export interface FileRoutesByTo {
   '/app/editor': typeof AppEditorRouteWithChildren
   '/app/notifications': typeof AppNotificationsRoute
   '/app/rankings': typeof AppRankingsRoute
-  '/app/tasks': typeof AppTasksRoute
   '/app': typeof AppIndexRoute
   '/read': typeof ReadIndexRoute
   '/app/admin/dashboard': typeof AppAdminDashboardRoute
@@ -516,11 +536,14 @@ export interface FileRoutesByTo {
   '/app/editor/dashboard': typeof AppEditorDashboardRoute
   '/app/editor/notifications': typeof AppEditorNotificationsRoute
   '/app/editor/publications': typeof AppEditorPublicationsRoute
+  '/app/proposals/$proposalId': typeof AppProposalsProposalIdRoute
+  '/app/proposals/new': typeof AppProposalsNewRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/submissions/new': typeof AppSubmissionsNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/admin': typeof AppAdminIndexRoute
   '/app/board': typeof AppBoardIndexRoute
+  '/app/proposals': typeof AppProposalsIndexRoute
   '/app/series': typeof AppSeriesIndexRoute
   '/app/submissions': typeof AppSubmissionsIndexRoute
   '/read/$slug': typeof ReadSlugIndexRoute
@@ -556,10 +579,10 @@ export interface FileRoutesById {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/editor': typeof AppEditorRouteWithChildren
   '/app/notifications': typeof AppNotificationsRoute
+  '/app/proposals': typeof AppProposalsRouteWithChildren
   '/app/rankings': typeof AppRankingsRoute
   '/app/series': typeof AppSeriesRouteWithChildren
   '/app/submissions': typeof AppSubmissionsRouteWithChildren
-  '/app/tasks': typeof AppTasksRoute
   '/read/$slug': typeof ReadSlugRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/read/': typeof ReadIndexRoute
@@ -585,11 +608,14 @@ export interface FileRoutesById {
   '/app/editor/publications': typeof AppEditorPublicationsRoute
   '/app/editor/review': typeof AppEditorReviewRouteWithChildren
   '/app/editor/series': typeof AppEditorSeriesRouteWithChildren
+  '/app/proposals/$proposalId': typeof AppProposalsProposalIdRoute
+  '/app/proposals/new': typeof AppProposalsNewRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/submissions/new': typeof AppSubmissionsNewRoute
   '/read/$slug/$chapter': typeof ReadSlugChapterRoute
   '/app/admin/': typeof AppAdminIndexRoute
   '/app/board/': typeof AppBoardIndexRoute
+  '/app/proposals/': typeof AppProposalsIndexRoute
   '/app/series/': typeof AppSeriesIndexRoute
   '/app/submissions/': typeof AppSubmissionsIndexRoute
   '/read/$slug/': typeof ReadSlugIndexRoute
@@ -626,10 +652,10 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/editor'
     | '/app/notifications'
+    | '/app/proposals'
     | '/app/rankings'
     | '/app/series'
     | '/app/submissions'
-    | '/app/tasks'
     | '/read/$slug'
     | '/app/'
     | '/read/'
@@ -655,11 +681,14 @@ export interface FileRouteTypes {
     | '/app/editor/publications'
     | '/app/editor/review'
     | '/app/editor/series'
+    | '/app/proposals/$proposalId'
+    | '/app/proposals/new'
     | '/app/submissions/$id'
     | '/app/submissions/new'
     | '/read/$slug/$chapter'
     | '/app/admin/'
     | '/app/board/'
+    | '/app/proposals/'
     | '/app/series/'
     | '/app/submissions/'
     | '/read/$slug/'
@@ -691,7 +720,6 @@ export interface FileRouteTypes {
     | '/app/editor'
     | '/app/notifications'
     | '/app/rankings'
-    | '/app/tasks'
     | '/app'
     | '/read'
     | '/app/admin/dashboard'
@@ -712,11 +740,14 @@ export interface FileRouteTypes {
     | '/app/editor/dashboard'
     | '/app/editor/notifications'
     | '/app/editor/publications'
+    | '/app/proposals/$proposalId'
+    | '/app/proposals/new'
     | '/app/submissions/$id'
     | '/app/submissions/new'
     | '/read/$slug/$chapter'
     | '/app/admin'
     | '/app/board'
+    | '/app/proposals'
     | '/app/series'
     | '/app/submissions'
     | '/read/$slug'
@@ -751,10 +782,10 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/editor'
     | '/app/notifications'
+    | '/app/proposals'
     | '/app/rankings'
     | '/app/series'
     | '/app/submissions'
-    | '/app/tasks'
     | '/read/$slug'
     | '/app/'
     | '/read/'
@@ -780,11 +811,14 @@ export interface FileRouteTypes {
     | '/app/editor/publications'
     | '/app/editor/review'
     | '/app/editor/series'
+    | '/app/proposals/$proposalId'
+    | '/app/proposals/new'
     | '/app/submissions/$id'
     | '/app/submissions/new'
     | '/read/$slug/$chapter'
     | '/app/admin/'
     | '/app/board/'
+    | '/app/proposals/'
     | '/app/series/'
     | '/app/submissions/'
     | '/read/$slug/'
@@ -867,13 +901,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReadSlugRouteImport
       parentRoute: typeof ReadRoute
     }
-    '/app/tasks': {
-      id: '/app/tasks'
-      path: '/tasks'
-      fullPath: '/app/tasks'
-      preLoaderRoute: typeof AppTasksRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/submissions': {
       id: '/app/submissions'
       path: '/submissions'
@@ -893,6 +920,13 @@ declare module '@tanstack/react-router' {
       path: '/rankings'
       fullPath: '/app/rankings'
       preLoaderRoute: typeof AppRankingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/proposals': {
+      id: '/app/proposals'
+      path: '/proposals'
+      fullPath: '/app/proposals'
+      preLoaderRoute: typeof AppProposalsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/notifications': {
@@ -958,6 +992,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSeriesIndexRouteImport
       parentRoute: typeof AppSeriesRoute
     }
+    '/app/proposals/': {
+      id: '/app/proposals/'
+      path: '/'
+      fullPath: '/app/proposals/'
+      preLoaderRoute: typeof AppProposalsIndexRouteImport
+      parentRoute: typeof AppProposalsRoute
+    }
     '/app/board/': {
       id: '/app/board/'
       path: '/'
@@ -992,6 +1033,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/submissions/$id'
       preLoaderRoute: typeof AppSubmissionsIdRouteImport
       parentRoute: typeof AppSubmissionsRoute
+    }
+    '/app/proposals/new': {
+      id: '/app/proposals/new'
+      path: '/new'
+      fullPath: '/app/proposals/new'
+      preLoaderRoute: typeof AppProposalsNewRouteImport
+      parentRoute: typeof AppProposalsRoute
+    }
+    '/app/proposals/$proposalId': {
+      id: '/app/proposals/$proposalId'
+      path: '/$proposalId'
+      fullPath: '/app/proposals/$proposalId'
+      preLoaderRoute: typeof AppProposalsProposalIdRouteImport
+      parentRoute: typeof AppProposalsRoute
     }
     '/app/editor/series': {
       id: '/app/editor/series'
@@ -1452,6 +1507,22 @@ const AppEditorRouteWithChildren = AppEditorRoute._addFileChildren(
   AppEditorRouteChildren,
 )
 
+interface AppProposalsRouteChildren {
+  AppProposalsProposalIdRoute: typeof AppProposalsProposalIdRoute
+  AppProposalsNewRoute: typeof AppProposalsNewRoute
+  AppProposalsIndexRoute: typeof AppProposalsIndexRoute
+}
+
+const AppProposalsRouteChildren: AppProposalsRouteChildren = {
+  AppProposalsProposalIdRoute: AppProposalsProposalIdRoute,
+  AppProposalsNewRoute: AppProposalsNewRoute,
+  AppProposalsIndexRoute: AppProposalsIndexRoute,
+}
+
+const AppProposalsRouteWithChildren = AppProposalsRoute._addFileChildren(
+  AppProposalsRouteChildren,
+)
+
 interface AppSeriesRouteChildren {
   AppSeriesIndexRoute: typeof AppSeriesIndexRoute
   AppSeriesSlugTabRoute: typeof AppSeriesSlugTabRoute
@@ -1489,10 +1560,10 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEditorRoute: typeof AppEditorRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
+  AppProposalsRoute: typeof AppProposalsRouteWithChildren
   AppRankingsRoute: typeof AppRankingsRoute
   AppSeriesRoute: typeof AppSeriesRouteWithChildren
   AppSubmissionsRoute: typeof AppSubmissionsRouteWithChildren
-  AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppMangakaSubmissionsReviewRoute: typeof AppMangakaSubmissionsReviewRoute
   AppMangakaSubmissionsSubmissionIdReviewRoute: typeof AppMangakaSubmissionsSubmissionIdReviewRoute
@@ -1505,10 +1576,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEditorRoute: AppEditorRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
+  AppProposalsRoute: AppProposalsRouteWithChildren,
   AppRankingsRoute: AppRankingsRoute,
   AppSeriesRoute: AppSeriesRouteWithChildren,
   AppSubmissionsRoute: AppSubmissionsRouteWithChildren,
-  AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppMangakaSubmissionsReviewRoute: AppMangakaSubmissionsReviewRoute,
   AppMangakaSubmissionsSubmissionIdReviewRoute:

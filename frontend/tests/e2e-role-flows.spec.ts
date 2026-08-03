@@ -104,9 +104,6 @@ const ASSISTANT_TASK = {
   instructions: "Clean the background while preserving the ink texture.",
   status: "IN_PROGRESS",
   createdAt: "2026-07-20T00:00:00.000Z",
-  blocked: true,
-  blockedReason: "Waiting for the revised perspective guide.",
-  waitingFor: "Mangaka reference update",
 } satisfies StudioTask;
 
 const BOARD_RANKING = {
@@ -512,20 +509,19 @@ test.describe("MangaFlow Role-based E2E Smoke Tests", () => {
     await expect(page.locator("h1", { hasText: "My tasks" })).toBeVisible();
 
     // Verify visual status tabs exist
-    await expect(page.locator('button:has-text("Blocked")')).toBeVisible();
     await expect(page.locator('button:has-text("Cancelled")')).toBeVisible();
     await expect(page.locator('button:has-text("Overdue")')).toBeVisible();
     await expect(page.locator('button:has-text("Reassigned")')).toBeVisible();
 
-    // Click "Blocked" tab and select a task
-    await page.click('button:has-text("Blocked")');
+    // Click "In progress" tab and select a task
+    await page.click('button:has-text("In progress")');
 
     // Select a task row to open the detail drawer
     await page.locator("table tbody tr").first().click();
 
     // Verify detail drawer is shown
     await expect(page.locator("a:has-text('Open Task Studio')")).toBeVisible();
-    await expect(page.locator("span:has-text('BLOCKED')").first()).toBeVisible();
+    await expect(page.locator("span:has-text('IN_PROGRESS')").first()).toBeVisible();
   });
 
   test("2. Board flow: Rankings details drawer and warnings", async ({ page }) => {

@@ -9,6 +9,7 @@ import {
 import { AppError } from "../lib/http.js";
 import { canReadProposal } from "./authorization.service.js";
 import type { RequestActor } from "../types.js";
+import { assertChapterContentUnlocked } from "./authorization.service.js";
 
 export type ResolvedStudioPage = {
   chapter: any;
@@ -16,12 +17,15 @@ export type ResolvedStudioPage = {
   series: any;
 };
 
-function hasSeriesScope(actor: RequestActor, series: any) {
+async function hasSeriesScope(actor: RequestActor, series: any) {
   if (actor.role === "BOARD") return true;
   if (actor.role === "MANGAKA") return series.authorId === actor.id;
   if (actor.role === "EDITOR") return series.editorId === actor.id;
   if (actor.role === "ASSISTANT") {
-    return Array.isArray(series.assistantIds) && series.assistantIds.includes(actor.id);
+    const member = await import("../db/models.js").then(({ SeriesMemberModel }) =>
+      SeriesMemberModel.findOne({ seriesId: series.id, userId: actor.id, status: "active" }).lean(),
+    );
+    return Boolean(member);
   }
   return false;
 }
@@ -47,11 +51,11 @@ export async function assertCanReadStudioPage(actor: RequestActor, pageId: strin
       status: { $ne: "CANCELLED" },
     }).lean();
     if (task) return resolved;
-    if (hasSeriesScope(actor, resolved.series)) return resolved;
+    if (await hasSeriesScope(actor, resolved.series)) return resolved;
     throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
   }
 
-  if (!hasSeriesScope(actor, resolved.series)) {
+  if (!(await hasSeriesScope(actor, resolved.series))) {
     throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
   }
 
@@ -68,6 +72,7 @@ export async function assertCanRunPageAi(actor: RequestActor, pageId: string) {
       "FORBIDDEN",
     );
   }
+  assertChapterContentUnlocked(resolved.chapter);
   return resolved;
 }
 
@@ -107,7 +112,7 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
 
   const coverSeries = await SeriesModel.findOne({ coverFileKey: key }).lean();
   if (coverSeries) {
-    if (hasSeriesScope(actor, coverSeries)) {
+    if (await hasSeriesScope(actor, coverSeries)) {
       return { chapter: null, page: null, series: coverSeries };
     }
     throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
@@ -130,7 +135,7 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
   if (material?.pageId) return assertCanReadStudioPage(actor, String(material.pageId));
   if (material?.seriesId) {
     const series = await SeriesModel.findOne({ id: String(material.seriesId) }).lean();
-    if (series && hasSeriesScope(actor, series)) return { chapter: null, page: null, series };
+    if (series && (await hasSeriesScope(actor, series))) return { chapter: null, page: null, series };
   }
 
   const submission = (await SubmissionModel.findOne({ fileKey: key }).lean()) as any;
@@ -143,12 +148,12 @@ export async function assertFileKeyVisible(actor: RequestActor, key: string) {
       const chapter = await ChapterModel.findOne({ id: String(submission.chapterId) }).lean();
       if (chapter) {
         const series = await SeriesModel.findOne({ id: String((chapter as any).seriesId) }).lean();
-        if (series && hasSeriesScope(actor, series)) return { chapter, page: null, series };
+        if (series && (await hasSeriesScope(actor, series))) return { chapter, page: null, series };
       }
     }
     if (submission.seriesId) {
       const series = await SeriesModel.findOne({ id: String(submission.seriesId) }).lean();
-      if (series && hasSeriesScope(actor, series)) return { chapter: null, page: null, series };
+        if (series && (await hasSeriesScope(actor, series))) return { chapter: null, page: null, series };
     }
     throw new AppError(403, "You do not have permission for this file.", "FORBIDDEN");
   }

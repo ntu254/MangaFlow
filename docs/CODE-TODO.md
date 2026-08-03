@@ -26,9 +26,9 @@ code evidence** — no speculative entries.
 | CT-08 | TECH-FINDING-02 | Remove dead `FIXED` comment status | P3 | S | Done |
 | CT-09 | TECH-FINDING-03 | Migrate Region `RELEASED` lock value to `UNLOCKED` | P3 | S | Done |
 | CT-10 | TECH-FINDING-04 | Drop deprecated decision aliases from `TASK_ACTIONS` | P3 | S | Done |
-| CT-11 | FLOW-GAP-04 | Reduce Admin to account lifecycle and Chair/EIC designation management | P1 | L | Done |
+| CT-11 | FLOW-GAP-04 | Reduce Admin to account lifecycle and Board Chair designation management | P1 | L | Done |
 | CT-12 | TECH-FINDING-08 | Add Admin-owned RateTable and immutable task price snapshots | P0 | M | Done |
-| CT-13 | FLOW-GAP-05 | Enforce unique active Chair/EIC and Board seat cap | P0 | M | Done |
+| CT-13 | FLOW-GAP-05 | Enforce unique active Chair and Board seat cap | P0 | M | Done |
 | CT-14 | FLOW-GAP-06 | Snapshot active Board electorate instead of seed IDs | P0 | S | Done |
 | CT-15 | FLOW-GAP-07 | Remove `MARK_READY` review bypass | P0 | S | Done |
 | CT-16 | FLOW-GAP-08 | Separate Page mutation from Tantou approval and require blocker verification | P0 | M | Done |
@@ -62,7 +62,7 @@ owns earning persistence/outbox. Existing line-number references in historical
 finding narratives are retained for audit traceability and are not current
 ownership claims. CT-11 is implemented: Admin's workflow/content routes are
 removed or restricted (fix/ct11-admin-scope branch), leaving account
-lifecycle, Chair/EIC designation, RateTable, managed notifications, and
+lifecycle, Board Chair designation, RateTable, managed notifications, and
 read-only dashboards. The narrow `MANAGE_RATE_TABLE` capability is an explicit current-MVP
 exception and is not payroll access. CT-12 is implemented with server-side rate
 resolution, immutable task snapshots, Admin-only writes, overlap validation, and
@@ -161,21 +161,20 @@ configuration step; supplied migrations remain unapplied to production by design
     guard as a backstop.
   - **Rankings import** (`POST /rankings/import`): `ADMIN` removed → `BOARD` only.
   - **Tantou assign/remove** (`/series/:id/editor`): `ADMIN` and general `BOARD`
-    removed → **EIC only** (`role === "EDITOR" && isEditorInChief`).
+    moved to the owning Mangaka.
   - **Series lifecycle** (`series.controller.ts` `seriesLifecycleAction`): `ADMIN`
     removed; enforces the per-action matrix — `START_PRODUCTION` owning Mangaka or
     assigned Tantou; `UNPUBLISH` assigned-Tantou-only; `ARCHIVE` owner-or-assigned-Tantou
     while the Series has never been public, assigned-Tantou-only once published;
     `DELETE` owning-Mangaka-only.
-  - **Proposal `RELEASE_CLAIM`/`REASSIGN_CLAIM`** (`assertProposalAction`): `ADMIN`
-    branch dropped → EIC only.
-  - **Proposal `ARCHIVE`**: `ADMIN`-only branch dropped → owning Mangaka or EIC,
+  - **Proposal `RELEASE_CLAIM`** (`assertProposalAction`): only the claiming Editor.
+  - **Proposal `ARCHIVE`**: owning Mangaka only,
     requires a non-empty `reason` and writes an audit entry.
   - **File presign-download**: `ADMIN` removed from the role list → resource
     owner/member/reviewer scope only (`EDITOR, MANGAKA, ASSISTANT, BOARD` per the
     resource's scope check).
   - **Kept unchanged:** `/admin/users*` (list/get/create/update/deactivate/guarded
-    delete, incl. Chair/EIC designation via `updateUser`), `/admin/notifications*`,
+    delete, incl. Board Chair designation via `updateUser`), `/admin/notifications*`,
     `GET /admin/workflow-summary`, `GET /admin/storage-summary`, `/admin/rates*`
     (`MANAGE_RATE_TABLE`).
   - **Frontend:** removed `app.admin.materials.tsx`, `app.admin.payroll.tsx`,
@@ -184,7 +183,7 @@ configuration step; supplied migrations remain unapplied to production by design
     notifications.
 - **Acceptance criteria:** met — Admin gets `403 FORBIDDEN` on rankings-import,
   tantou-assign, series lifecycle, and proposal claim actions; `404` on the
-  deleted admin-only routes and on demo routes in a production-like env; Chair/EIC
+deleted admin-only routes and on demo routes in a production-like env; Board Chair
   retain their role-specific actions; designation uniqueness/incompatibility rules
   remain enforced (unchanged).
 - **Evidence:** `backend/src/routes/{admin,tantou,series,notification,proposal}.routes.ts`,
@@ -334,16 +333,14 @@ security controls are documented separately and are not listed as accepted risks
 
 ## D. Resolved follow-up findings
 
-### Material `APPROVED` reachability
-- **Confirmed:** the Material model supports `APPROVED`; the Chapter readiness guard
-  accepts `ACTIVE` or `APPROVED` (`workflow.service.ts:1471-1490`).
-- **Resolved:** the canonical transition writer is `PATCH /api/materials/:id`:
-  `DRAFT -> ACTIVE` and archive are owner/assigned-Tantou actions; approval from
-  `ACTIVE`/`IN_REVIEW` is assigned-Tantou-only (`authorization.service.ts`), with
-  tests in `materials-mf032.test.ts`.
-- **Migration:** `backend/src/scripts/migrate-material-status.ts` provides a
-  default dry-run, `--apply`, invalid-value reporting, and idempotent cleanup of
-  legacy `metadata.status`; production migration remains intentionally unrun.
+### Supporting Material simplification
+- **Resolved:** Material is now a status-free optional attachment; no Tantou approval
+  or Chapter-readiness gate remains.
+- **Authorization:** only the owning Mangaka creates, edits, versions, or deletes;
+  Editor and Board access is read-only and parent-scoped.
+- **Migration:** `backend/src/scripts/migrate-material-attachments.ts` is dry-run by
+  default. Apply removes archived records and strips legacy status fields from retained
+  attachments; production migration remains intentionally unrun.
 
 ## E. Out of Scope (course project)
 
@@ -400,10 +397,11 @@ Current **code** vs canonical rules (evidence on the current branch).
 | Blocking-comment write authorization | **PASS (implemented — assigned-Tantou gate on create/patch, `studio.controller.ts`)** | FLOW-GAP-01 / CT-01 | `assertCanRaiseBlockingComment` gates `createComment`/`patchComment` on the assigned Tantou (`studio.controller.ts:151-161,440,471`) |
 | VotingSession cancellation | **PASS (implemented — transactional restore to `PENDING_BOARD`, `workflow.service.ts`)** | FLOW-GAP-02 / CT-02 | `cancelVotingSession` runs in `runWorkflowTransaction`, fails closed (409) unless session is active and Proposal is `BOARD_REVIEW`, and restores `Proposal.status = PENDING_BOARD` on success |
 | Comment resolve/reopen authorization | **PASS (implemented — strict assigned-Tantou guard + reopen source-status precondition)** | FLOW-GAP-03 / CT-03 | `assertCanResolveTantouBlockingComment` / `assertCanReopenTantouBlockingComment` require `series.editorId === actor.id`; reopen accepts only `ADDRESSED`/`RESOLVED` (`studio.controller.ts`) |
-| Material readiness | PASS | — | `ACTIVE`/`APPROVED` + file + scope enforced (`workflow.service.ts:1471-1490`) |
-| Material status transitions | **PASS (implemented)** | — | Owner/Tantou transition matrix and `APPROVED` authorization are enforced in `material.controller.ts`/`authorization.service.ts`; backend tests cover Mangaka, assigned and unassigned Editors |
-| Material status migration | **PASS (script verified; production not run)** | — | `migrate:material-status --dry-run/--apply` is idempotent, reports invalid legacy values, and is covered by migration planner tests |
-| Frontend business-flow contracts | **PASS (implemented)** | — | Playwright contract tests cover backend-owned readiness, canonical comment endpoints, and top-level material status mapping/patch |
+| Supporting Material independence | **PASS (implemented)** | — | Attachments have no status and never gate Chapter review, Tantou replacement, publication, or Board decisions |
+| Supporting Material authorization | **PASS (implemented)** | — | Owning Mangaka mutates; Editor/Board are read-only under parent visibility |
+| Supporting Material migration | **PASS (script verified; production not run)** | — | `migrate:material-attachments` is dry-run-first, removes archived records, strips retained status fields, and is planner-tested |
+| Notification read model | **PASS (implemented; migration not run)** | — | Notifications are unread/read only; `migrate:notification-read-model` removes legacy archived records and cleans the retired field |
+| Frontend business-flow contracts | **PASS (implemented)** | — | Proposal and Series UI separate Manuscripts from status-free Supporting Materials |
 | Submission decision endpoint canonicalization | **PASS (implemented)** | CT-10 | Generic Task-action decision aliases return `400 INVALID_ACTION`; canonical `/api/submissions/*` endpoints remain available |
 | Region locking through revision | PASS | — | Region stays `LOCKED` through revision (`workflow.service.ts:3132-3138`); one active task (`studio.controller.ts:271-311`) |
 | Submission concurrency error codes | **PASS (implemented)** | TECH-FINDING-05 / CT-05 | `EXPECTED_CURRENT_SUBMISSION_REQUIRED`, `CURRENT_SUBMISSION_CONFLICT`, and idempotency codes are implemented (`workflow.service.ts:2238-2307`) |
@@ -420,7 +418,9 @@ regression tests are implemented.
 
 ### Current residuals after the 2026-07-27 audit remediation
 
-- Chapter `ARCHIVE` is implemented and tested; it now persists `ARCHIVED`.
+- Independent Chapter archive has been removed and is covered by an API
+  regression test. Before rollout, run `migrate:chapter-status:apply` and
+  `migrate:series-visibility:apply` after reviewing both dry runs.
 - The dead `EarningItem` helper path was removed. Rate-table configuration is
   now Admin-owned; missing active rates fail task creation with
   `RATE_CONFIGURATION_REQUIRED` instead of silently producing zero.

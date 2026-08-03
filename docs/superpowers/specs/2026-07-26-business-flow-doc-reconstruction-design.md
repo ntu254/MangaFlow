@@ -139,7 +139,7 @@ names where they exist and flagging any that do not. Docs: `05-assistant-submiss
 **F8 — Ownership errors vs generic FORBIDDEN; Chapter submit authority.**
 Differentiate `FORBIDDEN` from explicit ownership/assignment errors (`TASK_NOT_ASSIGNED`,
 `MANGAKA_OWNER_REQUIRED`, `TANTOU_ASSIGNMENT_REQUIRED`, `BOARD_CHAIR_REQUIRED`,
-`EDITOR_IN_CHIEF_REQUIRED`, `SELF_APPROVAL_BLOCKED`), flagging which exist vs. are required.
+`SELF_APPROVAL_BLOCKED`), flagging which exist vs. are required.
 Canonical Chapter ownership: only the owning Mangaka may `SUBMIT_REVIEW`/`RESUBMIT` a Chapter;
 Assistant works only through Region → Task → Submission. **If current code uses Chapter
 `assigneeId` to let an Assistant submit the whole Chapter, this is explicitly classified as a

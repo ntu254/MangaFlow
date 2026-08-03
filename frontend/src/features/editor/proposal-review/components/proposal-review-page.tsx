@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
-import { useAuth, isEditorInChief, type User } from "@/shared/auth";
+import { useAuth, type User } from "@/shared/auth";
 import {
   useProposalActionMutation,
   useProposalQuery,
@@ -37,8 +37,6 @@ export function ProposalReviewPage() {
   const isUnclaimed = !!proposal && !proposal.claimedByEditorId;
   const isClaimedByMe = !!proposal && !!user && proposal.claimedByEditorId === user.id;
   const isClaimedByOther = !!proposal && !!proposal.claimedByEditorId && !isClaimedByMe;
-  const isEicOrAdmin =
-    !!user && (user.role === "admin" || (user.role === "editor" && isEditorInChief(user)));
 
   // Only the editor who claimed the review can update it or make a decision.
   const canDecide = isClaimedByMe;
@@ -123,7 +121,7 @@ export function ProposalReviewPage() {
             !proposal.sampleChapterUrl ? (
               <p className="text-xs text-muted-foreground">No materials yet</p>
             ) : (
-              <MaterialsViewer proposal={proposal} user={user} annotationLabel="Review notes" />
+              <MaterialsViewer proposal={proposal} />
             )}
           </Block>
 
@@ -189,7 +187,6 @@ export function ProposalReviewPage() {
             isUnclaimed={isUnclaimed}
             isClaimedByMe={isClaimedByMe}
             isClaimedByOther={isClaimedByOther}
-            isEicOrAdmin={isEicOrAdmin}
             actionMutation={actionMutation}
           />
 
@@ -224,7 +221,7 @@ export function ProposalReviewPage() {
                 You need to claim the review (Start Review) before making a decision.
               </p>
             )}
-            {isClaimedByOther && !isEicOrAdmin && (
+            {isClaimedByOther && (
               <p className="mt-2 text-xs text-muted-foreground">
                 <Lock className="mr-1 inline size-3" />
                 This proposal is being reviewed by {proposal.claimedByEditorName}. You can only
@@ -308,7 +305,6 @@ function ClaimStatusCard({
   isUnclaimed,
   isClaimedByMe,
   isClaimedByOther,
-  isEicOrAdmin,
   actionMutation,
 }: {
   proposal: SeriesProposal;
@@ -316,7 +312,6 @@ function ClaimStatusCard({
   isUnclaimed: boolean;
   isClaimedByMe: boolean;
   isClaimedByOther: boolean;
-  isEicOrAdmin: boolean;
   actionMutation: ReturnType<typeof useProposalActionMutation>;
 }) {
   if (!EDITOR_REVIEW_STATUSES.includes(proposal.status)) return null;
@@ -381,6 +376,30 @@ function ClaimStatusCard({
             Claimed at: {formatDateTime(proposal.claimedAt)}
           </p>
         )}
+        <button
+          type="button"
+          disabled={actionMutation.isPending}
+          onClick={() =>
+            actionMutation.mutate(
+              { action: "RELEASE_CLAIM" },
+              {
+                onSuccess: () => toast.success("Review claim released."),
+                onError: (err: unknown) =>
+                  toast.error(
+                    err instanceof Error ? err.message : "Unable to release the review claim.",
+                  ),
+              },
+            )
+          }
+          className="mt-3 inline-flex items-center gap-1.5 rounded border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/50"
+        >
+          {actionMutation.isPending ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <Unlock className="size-3" />
+          )}
+          Release claim
+        </button>
       </div>
     );
   }
@@ -402,30 +421,6 @@ function ClaimStatusCard({
           <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
             Claimed at: {formatDateTime(proposal.claimedAt)}
           </p>
-        )}
-        {isEicOrAdmin && (
-          <button
-            type="button"
-            disabled={actionMutation.isPending}
-            onClick={() =>
-              actionMutation.mutate(
-                { action: "RELEASE_CLAIM" },
-                {
-                  onSuccess: () => toast.success("Claim released."),
-                  onError: (err: unknown) =>
-                    toast.error(err instanceof Error ? err.message : "Failed to release claim."),
-                },
-              )
-            }
-            className="mt-3 inline-flex items-center gap-1.5 rounded border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-200 disabled:opacity-50 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
-          >
-            {actionMutation.isPending ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Unlock className="size-3" />
-            )}
-            Release Claim
-          </button>
         )}
       </div>
     );

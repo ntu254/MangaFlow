@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -39,7 +39,6 @@ export function UserInspector({
   const active = user.active !== false;
   const role = user.role.toLowerCase() as Role;
   const canBeChair = active && role === "board";
-  const canBeEditorInChief = active && role === "editor";
 
   const cancelEdit = () => {
     setEditing(false);
@@ -59,15 +58,15 @@ export function UserInspector({
 
   return (
     <>
-      <Dialog
+      <Modal
         open={open}
         onOpenChange={(next) => {
           if (!next) cancelEdit();
           onOpenChange(next);
         }}
       >
-        <DialogContent className="max-w-lg gap-0 overflow-hidden border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
-          <DialogTitle className="sr-only">User details for {user.name}</DialogTitle>
+        <ModalContent className="max-w-lg gap-0 overflow-hidden border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
+          <ModalTitle className="sr-only">User details for {user.name}</ModalTitle>
           <div className="relative px-6 pb-5 pt-6">
             <div className="absolute inset-0 bg-[var(--admin-hover)] opacity-60" />
             <div className="relative flex items-start gap-4">
@@ -143,18 +142,9 @@ export function UserInspector({
                   />
                   <span className="text-[12px] text-[var(--admin-muted)]">Chair</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={user.isEditorInChief === true}
-                    disabled={!canBeEditorInChief || updatePending}
-                    onCheckedChange={(checked) => onSave(user.id, { isEditorInChief: checked })}
-                    aria-label={`Set ${user.name} as Editor-in-Chief`}
-                  />
-                  <span className="text-[12px] text-[var(--admin-muted)]">Editor-in-Chief</span>
-                </div>
               </div>
               <p className="mt-2 text-[11px] text-[var(--admin-faint)]">
-                Chair requires an active Board role. Editor-in-Chief requires an active Editor role.
+                Chair designation requires an active Board role.
               </p>
             </div>
 
@@ -209,16 +199,16 @@ export function UserInspector({
               </Button>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </ModalContent>
+      </Modal>
 
-      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
-        <DialogContent className="max-w-sm gap-0 border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
-          <DialogHeader className="border-b border-[var(--admin-border)] px-6 py-4">
-            <DialogTitle className="text-[14px] font-semibold text-[var(--admin-ink)]">
+      <Modal open={resetOpen} onOpenChange={setResetOpen}>
+        <ModalContent className="max-w-sm gap-0 border-[var(--admin-border)] bg-[var(--admin-surface)] p-0">
+          <ModalHeader className="border-b border-[var(--admin-border)] px-6 py-4">
+            <ModalTitle className="text-[14px] font-semibold text-[var(--admin-ink)]">
               Reset password for {user.name}
-            </DialogTitle>
-          </DialogHeader>
+            </ModalTitle>
+          </ModalHeader>
           <div className="px-6 py-4">
             <Label htmlFor="reset-password" className="text-[12px] text-[var(--admin-muted)]">
               New password
@@ -253,8 +243,8 @@ export function UserInspector({
               {resetPending ? "Resetting..." : "Reset"}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ModalContent>
+      </Modal>
     </>
   );
 }

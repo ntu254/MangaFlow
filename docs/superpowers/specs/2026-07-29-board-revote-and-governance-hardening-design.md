@@ -9,7 +9,7 @@ Align the Board Proposal voting flow with the approved rule:
   used for a fresh voting round.
 - The new round starts with no votes.
 - Previous rounds remain immutable audit history.
-- A later tie may be re-voted again; EIC tie-break is removed from the active
+- A later tie may be re-voted again; special tie-break voting is removed from the active
   Proposal voting path.
 
 The change also fixes the confirmed runtime and integrity defects around the
@@ -39,7 +39,7 @@ The Proposal remains `BOARD_REVIEW` while the new session is open and retains
 its active-session pointers. A tied historical session is not an active
 session and cannot accept further votes.
 
-The current EIC tie-break endpoints become unavailable for Proposal voting.
+The current special tie-break endpoints become unavailable for Proposal voting.
 They should return a clear `409`/`410` response rather than silently creating a
 different decision path. Existing historical tie-break data remains readable.
 

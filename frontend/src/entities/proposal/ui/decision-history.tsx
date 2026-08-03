@@ -1,11 +1,21 @@
-import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
+import type { BoardTallySnapshot, SeriesProposal } from "@/entities/proposal/model/proposal-types";
 import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 import { useMemo } from "react";
 
 const DECISIVE = new Set(["DECIDE", "REJECT", "TIE_BREAK", "FORCE_STATUS", "FORWARD", "RECALL"]);
 
-export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
+export function DecisionHistory({
+  proposal,
+  tally: serverTally,
+  quorum = Math.ceil(BOARD_TOTAL / 2),
+  eligible = BOARD_TOTAL,
+}: {
+  proposal: SeriesProposal;
+  tally?: BoardTallySnapshot;
+  quorum?: number;
+  eligible?: number;
+}) {
   const events = useMemo(
     () =>
       proposal.history
@@ -13,7 +23,7 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [proposal.history],
   );
-  const tally = evaluateBoardTally(proposal.votes);
+  const tally = serverTally ?? evaluateBoardTally(proposal.votes, quorum);
 
   return (
     <div className="space-y-4">
@@ -23,8 +33,8 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
         </p>
         <ul className="space-y-1 text-xs text-foreground/85">
           <li>
-            Quorum: {Math.ceil(BOARD_TOTAL / 2)}/{BOARD_TOTAL} votes of the same type {"->"}{" "}
-            APPROVED or REJECTED immediately.
+            Quorum: {quorum}/{eligible} votes of the same type {"->"} APPROVED or REJECTED
+            immediately.
           </li>
           <li>If neither side reaches quorum, closing the session records NO_QUORUM.</li>
           <li>
@@ -49,11 +59,7 @@ export function DecisionHistory({ proposal }: { proposal: SeriesProposal }) {
               >
                 <span className="font-medium">
                   {v.memberName}
-                  {v.isEditorInChief ? (
-                    <span className="ml-2 rounded bg-fuchsia-100 px-1.5 text-[10px] font-bold text-fuchsia-900">
-                      Editor-in-chief
-                    </span>
-                  ) : v.isChair ? (
+                  {v.isChair ? (
                     <span className="ml-2 rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
                       Chair
                     </span>

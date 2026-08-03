@@ -1,44 +1,45 @@
-import { StyleSheet, Text, View } from "react-native"
-import { colors, radius, spacing, typography } from "@/design/tokens"
+import { StyleSheet, Text, View } from "react-native";
+import { colors, radius, spacing, typography } from "@/design/tokens";
 
 // Read-only presentation of the backend tally. The client does not decide
 // quorum, result, or finalization eligibility.
 export function VoteProgress({
   approve,
   reject,
-  abstain,
   total,
   quorum,
   eligible,
   canFinalize,
 }: {
-  approve: number
-  reject: number
-  abstain?: number
-  total: number
-  quorum: number
-  eligible: number
-  canFinalize: boolean
+  approve: number;
+  reject: number;
+  total: number;
+  quorum: number;
+  eligible: number;
+  canFinalize: boolean;
 }) {
-  const denominator = Math.max(eligible, 1)
-  const recordedAbstain = abstain ?? Math.max(total - approve - reject, 0)
+  const denominator = Math.max(eligible, 1);
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>
-        {`Approve ${approve} · Reject ${reject} · Abstain ${recordedAbstain} · Quorum ${quorum} of ${eligible}`}
+        {`Approve ${approve} · Reject ${reject} · Quorum ${quorum} of ${eligible}`}
       </Text>
       <View style={styles.track}>
         <View style={[styles.fillApprove, { flex: approve }]} />
         <View style={[styles.fillReject, { flex: reject }]} />
-        <View style={[styles.fillAbstain, { flex: recordedAbstain }]} />
         <View style={{ flex: Math.max(denominator - total, 0) }} />
       </View>
-      <Text style={[styles.status, { color: canFinalize ? colors.success : colors.textMuted }]}>
+      <Text
+        style={[
+          styles.status,
+          { color: canFinalize ? colors.success : colors.textMuted },
+        ]}
+      >
         {canFinalize ? "Decision ready to close" : "Awaiting more votes"}
       </Text>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -60,6 +61,5 @@ const styles = StyleSheet.create({
   },
   fillApprove: { backgroundColor: colors.success },
   fillReject: { backgroundColor: colors.danger },
-  fillAbstain: { backgroundColor: colors.warning },
   status: { fontSize: typography.label, fontWeight: "700" },
-})
+});

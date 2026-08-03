@@ -360,15 +360,17 @@ export function StudioTab({
   const selectedRegionLinkedTask = selectedRegion?.taskId
     ? tasks.find((t) => t.id === selectedRegion.taskId)
     : undefined;
-  const hasActiveTaskOnSelectedRegion = Boolean(
-    selectedRegionLinkedTask && isTaskActive(selectedRegionLinkedTask.status),
+  const activePageTask = pageTasks.find(
+    (task) => task.pageTaskActive === true || isTaskActive(task.status),
   );
+  const hasActiveTaskOnPage = Boolean(activePageTask);
+  const chapterReviewLocked = chapter?.status === "TANTOU_REVIEW";
   const canCreateTask =
-    permissions.canCreateTask && Boolean(selectedRegion) && !hasActiveTaskOnSelectedRegion;
+    permissions.canCreateTask && Boolean(page) && !hasActiveTaskOnPage && !chapterReviewLocked;
   const canSubmitSelectedTask =
     permissions.canSubmitTask &&
+    !chapterReviewLocked &&
     selectedTask?.assigneeId === user.id &&
-    !selectedTask.blocked &&
     selectedTaskSubmissionState?.canSubmit === true;
   const submitWorkLabel =
     selectedTaskSubmissionState?.mode === "AWAITING_REVIEW"
@@ -382,6 +384,7 @@ export function StudioTab({
     permissions.mode === "mangaka" &&
     series.authorId === user.id &&
     Boolean(page?.fileKey) &&
+    !chapterReviewLocked &&
     !detectPageBubblesMutation.isPending &&
     !whitenPageBubblesMutation.isPending;
   const aiBusy = detectPageBubblesMutation.isPending || whitenPageBubblesMutation.isPending;
@@ -583,7 +586,6 @@ export function StudioTab({
                         pageId: page.id,
                         seriesId: series.id,
                         type: "other",
-                        status: "CONFIRMED",
                         x: rect.x,
                         y: rect.y,
                         width: rect.width,
@@ -638,7 +640,10 @@ export function StudioTab({
               onSubmitWork={() => {
                 const targetTask = selectedTask || selectedRegionLinkedTask;
                 if (targetTask) {
-                  navigate({ to: `/app/tasks/${targetTask.id}` });
+                  navigate({
+                    to: "/app/assistant/tasks/$taskId/studio",
+                    params: { taskId: targetTask.id },
+                  });
                 }
               }}
               canRunAi={canRunPageAi}
@@ -675,7 +680,10 @@ export function StudioTab({
           regions={regions}
           tasks={tasks}
           comments={comments}
-          onCreateTask={() => setTaskDialogOpen(true)}
+          onCreateTask={() => {
+            if (!canCreateTask) return;
+            setTaskDialogOpen(true);
+          }}
           onUploadPages={triggerUpload}
           onAddComment={async (text, blocking) => {
             if (!permissions.canCreateComment) {
@@ -794,7 +802,7 @@ export function StudioTab({
               },
             );
           }}
-          permissions={permissions}
+          permissions={{ ...permissions, canCreateTask }}
           userId={user.id}
           onTaskAction={handleTaskAction}
           onReviewSubmission={handleReviewSubmission}
@@ -808,11 +816,15 @@ export function StudioTab({
         page={page}
         region={selectedRegion}
         members={assistantMembers}
-        hasActiveTaskOnRegion={hasActiveTaskOnSelectedRegion}
+        hasActiveTaskOnPage={hasActiveTaskOnPage}
         rates={activeRates}
         onSubmit={async (data) => {
-          if (!permissions.canCreateTask) {
-            toast.error("This role cannot create production tasks.");
+          if (!canCreateTask) {
+            toast.error(
+              chapterReviewLocked
+                ? "Chapter content is locked during Tantou review."
+                : "A task cannot be created for this page.",
+            );
             return false;
           }
           if (!chapter) return false;
@@ -820,7 +832,6 @@ export function StudioTab({
             const created = await createTaskMutation.mutateAsync({
               chapterId: chapter.id,
               pageId: data.pageId,
-              regionId: data.regionId,
               seriesId: series.id,
               title: data.title,
               type: data.type,
@@ -833,7 +844,7 @@ export function StudioTab({
               description: data.instructions,
               status: "TODO",
             });
-            if (created.regionId) setSelection({ kind: "region", regionId: created.regionId });
+            setSelection({ kind: "task", taskId: created.id });
             toast.success("Task created.");
             return true;
           } catch (e) {

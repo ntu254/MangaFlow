@@ -9,6 +9,7 @@ import {
   StudioTaskModel,
   SubmissionModel,
   SeriesMemberModel,
+  SeriesInviteModel,
   AuditEntryModel,
   MaterialModel,
   UserModel,
@@ -39,6 +40,7 @@ import { applyChapterAction, seriesProposalSummary } from "../services/workflow.
 import { chapterReadiness } from "../services/chapter-readiness.service.js";
 import { findChapterBlockingComments } from "../services/chapter-review.service.js";
 import { findAssistantAssignmentBlockers } from "../services/assignment-workload.service.js";
+import { runWorkflowTransaction } from "../services/workflow-support.service.js";
 import { paginationFromQuery, requireActor, slugify, validateAction } from "./helpers.js";
 import {
   parseBody,
@@ -56,7 +58,6 @@ import {
   reorderPagesSchema,
 } from "../validators/chapter.schema.js";
 import {
-  addMemberSchema,
   inviteAssistantSchema,
   updateMemberSchema,
 } from "../validators/team.schema.js";
@@ -106,8 +107,6 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   let filter: Record<string, any> = await actorSeriesScopeFilter(actor, "read");
   if (actor.role === "MANGAKA") {
     filter.authorId = actor.id;
-  } else if (actor.role === "EDITOR") {
-    filter.editorId = actor.id;
   } else if (actor.role === "ASSISTANT") {
     const memberships = await SeriesMemberModel.find({ userId: actor.id, status: "active" }).lean();
     const seriesIds = memberships.map((m: any) => m.seriesId);
@@ -117,8 +116,6 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
   if (mine) {
     if (actor.role === "MANGAKA") {
       filter.authorId = actor.id;
-    } else if (actor.role === "EDITOR") {
-      filter.editorId = actor.id;
     } else if (actor.role === "ASSISTANT") {
       const memberships = await SeriesMemberModel.find({
         userId: actor.id,
@@ -240,10 +237,11 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
       );
     }
     const updated = await SeriesModel.findOneAndUpdate(
-      { id: seriesId },
+      { id: seriesId, status: (series as any).status },
       { $set: { status: "ONGOING", startedAt: nowIso(), updatedAt: nowIso() } },
       { returnDocument: "after" },
     ).lean();
+    if (!updated) throw new AppError(409, "Series changed while starting production.", "CONFLICT");
     await audit(req, "series.start_production", "series", seriesId, {
       previousStatus: (series as any).status,
       nextStatus: "ONGOING",
@@ -253,8 +251,16 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
   }
 
   const isPublic = PUBLIC_SERIES_STATUSES.has(String((series as any).status));
+  const currentStatus = String((series as any).status);
 
   if (action === "UNPUBLISH") {
+    if (!["ONGOING", "PUBLISHED", "PUBLIC"].includes(currentStatus)) {
+      throw new AppError(
+        409,
+        `Cannot unpublish a series from ${currentStatus}.`,
+        "INVALID_TRANSITION",
+      );
+    }
     if (!isAssignedTantou) {
       throw new AppError(
         403,
@@ -263,6 +269,16 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
       );
     }
   } else if (action === "ARCHIVE") {
+    if (currentStatus === "ARCHIVED") {
+      throw new AppError(409, "Series is already archived.", "INVALID_TRANSITION");
+    }
+    if (!["PLANNING", "PRE_PRODUCTION", "ONGOING", "PUBLISHED", "PUBLIC"].includes(currentStatus)) {
+      throw new AppError(
+        409,
+        `Cannot archive a series from ${currentStatus}.`,
+        "INVALID_TRANSITION",
+      );
+    }
     if (isPublic) {
       if (!isAssignedTantou) {
         throw new AppError(
@@ -289,15 +305,20 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
 
   const status = action === "UNPUBLISH" ? "HIATUS" : action === "ARCHIVE" ? "ARCHIVED" : null;
   if (!status) throw new AppError(400, "Unknown series lifecycle action.", "INVALID_ACTION");
-  const patch: Record<string, unknown> = { status, updatedAt: nowIso() };
+  const patch: Record<string, unknown> = {
+    status,
+    visibility: "UNLISTED",
+    updatedAt: nowIso(),
+  };
   if (action === "ARCHIVE") patch.archivedAt = nowIso();
   if (action === "UNPUBLISH") patch.unpublishedAt = nowIso();
 
   const updated = await SeriesModel.findOneAndUpdate(
-    { id: seriesId },
+    { id: seriesId, status: currentStatus },
     { $set: patch },
     { returnDocument: "after" },
   ).lean();
+  if (!updated) throw new AppError(409, "Series changed while applying lifecycle action.", "CONFLICT");
   await audit(req, `series.${action.toLowerCase()}`, "series", seriesId, {
     previousStatus: (series as any).status,
     nextStatus: status,
@@ -327,6 +348,7 @@ export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
       {
         $set: {
           status: "ARCHIVED",
+          visibility: "UNLISTED",
           archivedAt: nowIso(),
           deletedAt: nowIso(),
           updatedAt: nowIso(),
@@ -472,40 +494,32 @@ export const listMembers = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
   await assertCanReadSeriesById(actor, seriesId);
   const members = await SeriesMemberModel.find({ seriesId }).lean();
-  ok(res, members);
+  const userIds = [...new Set(members.map((member: any) => String(member.userId)))];
+  const users = await UserModel.find({ id: { $in: userIds } })
+    .select({ id: 1, name: 1, email: 1, role: 1, active: 1 })
+    .lean();
+  const usersById = new Map(users.map((user: any) => [String(user.id), user]));
+  ok(
+    res,
+    members.map((member: any) => {
+      const user = usersById.get(String(member.userId));
+      return {
+        ...member,
+        userName: user?.name ?? null,
+        userEmail: user?.email ?? null,
+        userRole: user?.role ?? null,
+        userActive: user?.active !== false,
+      };
+    }),
+  );
 });
 
 export const addMember = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const seriesId = String(req.params.seriesId);
-  await assertCanMutateSeriesById(actor, seriesId);
-  const body = parseBody(addMemberSchema, req);
-  const allowedFields = [
-    "userId",
-    "role",
-    "scope",
-    "status",
-    "assignedChapterIds",
-    "assignedTaskIds",
-  ];
-  const patch = pickAllowedFields(body as Record<string, unknown>, allowedFields);
-  const newMember = await SeriesMemberModel.create({
-    id: body.id ?? id("sm"),
-    seriesId,
-    ...patch,
-    assignedChapterIds: Array.isArray(patch.assignedChapterIds) ? patch.assignedChapterIds : [],
-    assignedTaskIds: Array.isArray(patch.assignedTaskIds) ? patch.assignedTaskIds : [],
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  });
-  if (String(patch.role) === "assistant") {
-    await SeriesModel.updateOne(
-      { id: seriesId },
-      { $addToSet: { assistantIds: body.userId }, $set: { updatedAt: nowIso() } },
-    );
-  }
-  await audit(req, "series.member_add", "series", seriesId, { userId: body.userId });
-  created(res, newMember);
+  throw new AppError(
+    410,
+    "Direct team membership creation is retired. Create an invite and let the Assistant accept it.",
+    "INVITE_ACCEPTANCE_REQUIRED",
+  );
 });
 
 export const updateMember = asyncRoute(async (req: AuthedRequest, res) => {
@@ -515,12 +529,9 @@ export const updateMember = asyncRoute(async (req: AuthedRequest, res) => {
   await assertCanMutateSeriesById(actor, seriesId);
   const body = parseBody(updateMemberSchema, req);
   const allowedFields = [
-    "role",
     "scope",
-    "status",
     "assignedChapterIds",
     "assignedTaskIds",
-    "metadata",
   ];
   const patch = pickAllowedFields(body as Record<string, unknown>, allowedFields);
   const updated = await SeriesMemberModel.findOneAndUpdate(
@@ -588,32 +599,162 @@ export const inviteAssistant = asyncRoute(async (req: AuthedRequest, res) => {
   const existing = await SeriesMemberModel.findOne({
     seriesId,
     userId: (user as any).id,
+    role: "assistant",
+    status: "active",
   }).lean();
   if (existing) {
     throw new AppError(409, "Assistant is already a member.", "ALREADY_MEMBER");
   }
 
-  const newMember = await SeriesMemberModel.create({
-    id: id("sm"),
+  const pending = await SeriesInviteModel.findOne({
     seriesId,
     userId: (user as any).id,
+    status: "PENDING",
+  }).lean();
+  if (pending) throw new AppError(409, "Assistant already has a pending invite.", "INVITE_PENDING");
+
+  const invite = await SeriesInviteModel.create({
+    id: id("invite"),
+    seriesId,
+    userId: (user as any).id,
+    email: body.email,
     role: "assistant",
     scope: body.scope ?? "Full chapter",
-    status: "active",
-    assignedChapterIds: [],
-    assignedTaskIds: [],
+    invitedById: actor.id,
+    status: "PENDING",
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     createdAt: nowIso(),
     updatedAt: nowIso(),
   });
-  await SeriesModel.updateOne(
-    { id: seriesId },
-    { $addToSet: { assistantIds: (user as any).id }, $set: { updatedAt: nowIso() } },
-  );
   await audit(req, "series.assistant_invite", "series", seriesId, {
     userId: (user as any).id,
     email: body.email,
   });
-  created(res, newMember);
+  created(res, invite);
+});
+
+export const listSeriesInvites = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
+  const seriesId = typeof req.params.seriesId === "string" ? req.params.seriesId : undefined;
+  if (seriesId) {
+    await assertCanReadSeriesById(actor, seriesId);
+    ok(res, await SeriesInviteModel.find({ seriesId }).sort({ createdAt: -1 }).lean());
+    return;
+  }
+  ok(
+    res,
+    await SeriesInviteModel.find({
+      userId: actor.id,
+      status: "PENDING",
+      $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+    })
+      .sort({ createdAt: -1 })
+      .lean(),
+  );
+});
+
+export const acceptSeriesInvite = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
+  if (actor.role !== "ASSISTANT") throw new AppError(403, "Only an Assistant can accept this invite.", "FORBIDDEN");
+  const inviteId = String(req.params.inviteId);
+  const invite = await SeriesInviteModel.findOne({ id: inviteId, userId: actor.id, status: "PENDING" }).lean();
+  if (!invite) throw new AppError(404, "Pending invite not found.", "INVITE_NOT_FOUND");
+  if ((invite as any).expiresAt && new Date((invite as any).expiresAt).getTime() <= Date.now()) {
+    await SeriesInviteModel.updateOne(
+      { id: inviteId, status: "PENDING" },
+      { $set: { status: "EXPIRED", updatedAt: new Date() } },
+    );
+    throw new AppError(409, "This invite has expired.", "INVITE_EXPIRED");
+  }
+  const user = (await UserModel.findOne({ id: actor.id }).lean()) as any;
+  if (!user || user.role !== "ASSISTANT" || user.active === false) {
+    throw new AppError(409, "Assistant account is inactive.", "USER_INACTIVE");
+  }
+  const now = nowIso();
+  const member = await runWorkflowTransaction(async (session) => {
+    const series = (await SeriesModel.findOne({ id: (invite as any).seriesId })
+      .session(session)
+      .lean()) as any;
+    if (!series || series.deletedAt || String(series.status) === "ARCHIVED") {
+      throw new AppError(
+        409,
+        "This series is no longer accepting team members.",
+        "SERIES_NOT_ACCEPTING_MEMBERS",
+      );
+    }
+
+    const current = await SeriesInviteModel.findOneAndUpdate(
+      {
+        id: inviteId,
+        userId: actor.id,
+        status: "PENDING",
+        $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+      },
+      { $set: { status: "ACCEPTED", acceptedAt: new Date(), updatedAt: new Date() } },
+      { returnDocument: "after", session },
+    ).lean();
+    if (!current) throw new AppError(409, "Invite was already processed.", "INVITE_ALREADY_PROCESSED");
+    const existingMember = await SeriesMemberModel.findOne({
+      seriesId: (invite as any).seriesId,
+      userId: actor.id,
+      role: "assistant",
+    }).session(session).lean();
+    let acceptedMember: any;
+    if (existingMember) {
+      acceptedMember = await SeriesMemberModel.findOneAndUpdate(
+        { id: (existingMember as any).id },
+        { $set: { status: "active", scope: (invite as any).scope, updatedAt: now } },
+        { returnDocument: "after", session },
+      ).lean();
+    } else {
+      const [createdMember] = await SeriesMemberModel.create([{
+        id: id("sm"),
+        seriesId: (invite as any).seriesId,
+        userId: actor.id,
+        role: "assistant",
+        scope: (invite as any).scope,
+        status: "active",
+        assignedChapterIds: [],
+        assignedTaskIds: [],
+        createdAt: now,
+        updatedAt: now,
+      }], { session });
+      acceptedMember = createdMember.toObject();
+    }
+    const seriesUpdate = await SeriesModel.updateOne(
+      { id: (invite as any).seriesId },
+      { $addToSet: { assistantIds: actor.id }, $set: { updatedAt: now } },
+      { session },
+    );
+    if (seriesUpdate.matchedCount !== 1) {
+      throw new AppError(
+        409,
+        "This series is no longer accepting team members.",
+        "SERIES_NOT_ACCEPTING_MEMBERS",
+      );
+    }
+    return acceptedMember;
+  });
+  await audit(req, "series.assistant_invite_accept", "series", String((invite as any).seriesId), {
+    inviteId,
+    userId: actor.id,
+  });
+  created(res, member);
+});
+
+export const declineSeriesInvite = asyncRoute(async (req: AuthedRequest, res) => {
+  const actor = requireActor(req);
+  if (actor.role !== "ASSISTANT") throw new AppError(403, "Only an Assistant can decline this invite.", "FORBIDDEN");
+  const updated = await SeriesInviteModel.findOneAndUpdate(
+    { id: String(req.params.inviteId), userId: actor.id, status: "PENDING" },
+    { $set: { status: "DECLINED", declinedAt: new Date(), updatedAt: new Date() } },
+    { returnDocument: "after" },
+  ).lean();
+  if (!updated) throw new AppError(404, "Pending invite not found.", "INVITE_NOT_FOUND");
+  await audit(req, "series.assistant_invite_decline", "series", String((updated as any).seriesId), {
+    inviteId: String(req.params.inviteId),
+  });
+  ok(res, updated);
 });
 
 // Chapters (standalone)
@@ -706,21 +847,12 @@ export const getChapterReadiness = asyncRoute(async (req: AuthedRequest, res) =>
   const chapter = await ChapterModel.findOne({ id: chapterId }).lean();
   if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
   await assertCanReadChapter(actor, chapter);
-  const pageIds = ((chapter as any).pages ?? []).map((page: any) => page.id);
-  const [tasks, submissions, materials] = await Promise.all([
+  const [tasks, submissions] = await Promise.all([
     StudioTaskModel.find({ chapterId }).lean(),
     SubmissionModel.find({ chapterId }).lean(),
-    MaterialModel.find({
-      $and: [
-        { $or: [{ chapterId }, { pageId: { $in: pageIds } }] },
-        {
-          $or: [{ fileKey: { $exists: true, $ne: "" } }, { url: { $exists: true, $ne: "" } }],
-        },
-      ],
-    }).lean(),
   ]);
   const comments = await findChapterBlockingComments(chapter, tasks, submissions, ["RESOLVED"]);
-  ok(res, chapterReadiness(chapter, comments, tasks, submissions, materials));
+  ok(res, chapterReadiness(chapter, comments, tasks, submissions));
 });
 
 export const listChapterReviews = asyncRoute(async (req: AuthedRequest, res) => {
@@ -758,10 +890,13 @@ export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {
     uploadedAt: nowIso(),
   };
 
-  await ChapterModel.updateOne(
-    { id: chapterId },
+  const pageCreate = await ChapterModel.updateOne(
+    { id: chapterId, status: { $in: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"] } },
     { $push: { pages: newPage }, $set: { updatedAt: nowIso() } },
   );
+  if (pageCreate.matchedCount !== 1) {
+    throw new AppError(409, "Chapter content is locked while Tantou review is active.", "CHAPTER_REVIEW_LOCKED");
+  }
 
   created(res, newPage);
 });
@@ -789,7 +924,13 @@ export const updatePage = asyncRoute(async (req: AuthedRequest, res) => {
     return p;
   });
 
-  await ChapterModel.updateOne({ id: chapter.id }, { $set: { pages, updatedAt: now } });
+  const pageUpdate = await ChapterModel.updateOne(
+    { id: chapter.id, status: { $in: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"] } },
+    { $set: { pages, updatedAt: now } },
+  );
+  if (pageUpdate.matchedCount !== 1) {
+    throw new AppError(409, "Chapter content is locked while Tantou review is active.", "CHAPTER_REVIEW_LOCKED");
+  }
   const updatedPage = pages.find((p: any) => p.id === pageId);
   ok(res, updatedPage);
 });
@@ -827,7 +968,13 @@ export const reorderChapterPages = asyncRoute(async (req: AuthedRequest, res) =>
     pageNumber: position + 1,
     updatedAt: now,
   }));
-  await ChapterModel.updateOne({ id: chapterId }, { $set: { pages, updatedAt: now } });
+  const reorderUpdate = await ChapterModel.updateOne(
+    { id: chapterId, status: { $in: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"] } },
+    { $set: { pages, updatedAt: now } },
+  );
+  if (reorderUpdate.matchedCount !== 1) {
+    throw new AppError(409, "Chapter content is locked while Tantou review is active.", "CHAPTER_REVIEW_LOCKED");
+  }
   await audit(req, "CHAPTER_PAGES_REORDERED", "chapter", chapterId, { orderedPageIds });
   ok(res, pages);
 });
@@ -848,7 +995,13 @@ export const deletePage = asyncRoute(async (req: AuthedRequest, res) => {
       pageNumber: position + 1,
       updatedAt: now,
     }));
-  await ChapterModel.updateOne({ id: chapter.id }, { $set: { pages, updatedAt: now } });
+  const deleteUpdate = await ChapterModel.updateOne(
+    { id: chapter.id, status: { $in: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"] } },
+    { $set: { pages, updatedAt: now } },
+  );
+  if (deleteUpdate.matchedCount !== 1) {
+    throw new AppError(409, "Chapter content is locked while Tantou review is active.", "CHAPTER_REVIEW_LOCKED");
+  }
   ok(res, { id: pageId });
 });
 

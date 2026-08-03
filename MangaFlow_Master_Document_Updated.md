@@ -43,24 +43,22 @@ MangaFlow is a manga creation workflow and publishing-management platform. It co
 - Assistant participation occurs through Task → Submission, not Chapter ownership.
 - AI results are not human approval.
 - Earnings tracking is not payroll or payment processing.
-- New EIC tie-break voting is retired; ties create fresh Board re-votes.
+- Tied Board rounds create fresh Board re-votes; there is no special tie-break role.
 
 ## 4. Roles and Responsibilities
 
 | Role | Primary responsibility | Explicit boundary |
 |---|---|---|
-| `ADMIN` | User-account lifecycle, Chair/EIC designation, managed notifications, read-only dashboards, RateTable, and development-only demo data | Does not execute editorial, production, governance, ranking-import, file-download, or payroll workflow actions |
+| `ADMIN` | User-account lifecycle, managed notifications, read-only dashboards, RateTable, and development-only demo data | Does not execute editorial, production, governance, ranking-import, file-download, or payroll workflow actions |
 | `MANGAKA` | Creates Proposals; owns Series and Chapter production; manages Pages, Regions, Materials, Tasks, and Submission review | Only the owning Mangaka may submit or resubmit a Chapter for Tantou review |
 | `ASSISTANT` | Performs assigned Tasks, submits work, handles revision loops, and views own earnings | Participates through Task → Submission, not through Chapter ownership or direct Chapter submission |
 | `EDITOR` | Reviews Proposals and Chapters, acts as assigned Tantou, manages publication scheduling | Cannot self-approve a production Chapter; blocking-comment authority is assignment-scoped |
 | `BOARD` | Governs Proposal decisions through VotingSessions and imports ranking data | Votes only in the current `OPEN` session; Chair-only operations are separately guarded |
 
 
-Special designations:
+Special designation:
 
-- `isChair` is valid only for an active `BOARD` user.
-- `isEditorInChief` is valid only for an active `EDITOR` user.
-- Designation reassignment clears the previous holder atomically.
+- `isChair` is valid only for an active `BOARD` user and controls VotingSession lifecycle.
 
 
 ## 5. Flowchart Presentation Standard
@@ -142,7 +140,7 @@ flowchart LR
 |---|---|---|
 | Proposal Board decision | Active `OPEN` session, snapshotted electorate/quorum, valid votes | No quorum, cancelled session, tied electorate requiring a fresh re-vote |
 | Series start | Source Proposal exists and is `APPROVED`; lifecycle transition is valid | `PROPOSAL_NOT_APPROVED`, `INVALID_TRANSITION` |
-| Chapter submission | Actor is owning Mangaka; Series is `ONGOING`; source Proposal approved; Pages have assets; Tasks and Submissions approved; no unresolved blockers; Materials are usable | `MANGAKA_OWNER_REQUIRED`, `PAGE_IMAGE_REQUIRED`, `TASKS_NOT_MANGAKA_APPROVED`, `BLOCKING_COMMENTS_UNRESOLVED`, `REVIEW_MATERIAL_NOT_ACTIVE` |
+| Chapter submission | Actor is owning Mangaka; Series is `ONGOING`; source Proposal approved; Pages have assets; Tasks and Submissions approved; no unresolved blockers | `MANGAKA_OWNER_REQUIRED`, `PAGE_IMAGE_REQUIRED`, `TASKS_NOT_MANGAKA_APPROVED`, `BLOCKING_COMMENTS_UNRESOLVED` |
 | Chapter approval | Current frozen review snapshot; targeted revisions replaced; blocking comments verified as `RESOLVED` | `ADDRESSED` alone is insufficient for approval; self-approval is blocked |
 | Publication | Chapter is `READY_FOR_PUBLICATION`; Publication is scheduled and due | `PUBLICATION_NOT_DUE`; postponement cancels the Publication while Chapter remains ready |
 
@@ -163,9 +161,9 @@ flowchart LR
 12. AI output is never treated as human-approved content.
 13. A cancelled VotingSession returns its Proposal to `PENDING_BOARD`.
 14. Only the assigned Tantou may raise, resolve, or reopen blocking comments.
-15. Material status transitions are actor-guarded; approved Materials are immutable.
+15. Supporting Materials are optional status-free attachments owned by the Mangaka.
 16. Admin does not perform editorial, production, or governance workflow actions.
-17. The active Board has three to five seats, exactly one active Chair, and at most one active EIC.
+17. The active Board has three to five seats and exactly one active Chair.
 18. Every VotingSession snapshots the active Board electorate and quorum.
 19. `READY_FOR_PUBLICATION` is reachable only through `EDITOR_APPROVE`.
 20. Mangaka owns Page evidence; Tantou reviews the frozen snapshot without editing it.
@@ -240,20 +238,18 @@ Role-specific routes additionally use:
 
 ### Special Designation Management (Canonical)
 
-Admin manages user accounts and may assign the two special designations through the
-normal user-update function:
+Admin manages user accounts and the Board Chair designation through the normal user-update
+function:
 
 - `role = BOARD` may have `isChair = true`.
-- `role = EDITOR` may have `isEditorInChief = true`.
 - A non-BOARD user must not retain `isChair`.
-- A non-EDITOR user must not retain `isEditorInChief`.
 - The active Board roster contains three to five users.
-- At most one active Board Chair and one active EIC may exist at a time.
+- Exactly one active Board Chair may exist at a time.
 - Reassigning a designation must clear it from the previous holder atomically.
-- Deactivating or changing the role of a current Chair/EIC must clear the incompatible flag.
+- Deactivating or changing the role of a current Chair must clear the incompatible flag.
 
 Assigning these flags is account administration only. Admin does not create or close
-VotingSessions, vote, cast a tie-break, claim Proposals, review Chapters, or perform
+VotingSessions, vote, claim Proposals, review Chapters, or perform
 any workflow action on behalf of the designated user.
 
 ### Key Files
@@ -375,7 +371,6 @@ to that new session.
 | Create/close/cancel Board session | BOARD Chair |
 | Vote in active Proposal round | BOARD, against the `OPEN` session only |
 | View historical `TIED` or `TIE_BREAK_REQUIRED` record | BOARD, EDITOR |
-| New EIC tie-break | Not supported; retired with `410 TIE_BREAK_RETIRED` |
 
 ### Invariants
 
@@ -388,7 +383,7 @@ to that new session.
 ### Historical compatibility
 
 Existing `TIE_BREAK_REQUIRED` Proposal/session records remain readable for audit and display.
-They do not authorize new weighted EIC tie-break requests. All new tied Proposal rounds become
+They do not authorize any special weighted tie-break request. All new tied Proposal rounds become
 terminal `TIED` history and receive a fresh `OPEN` Board re-vote.
 
 
@@ -481,7 +476,7 @@ has been removed.
 
 ### Canonical Decision — FLOW-GAP-04 (Resolved)
 Series routes no longer accept `ADMIN` for any lifecycle action. Admin is limited to
-user account lifecycle and Chair/EIC designation management. Series lifecycle
+user account lifecycle and Chair designation management. Series lifecycle
 permissions belong to the owning Mangaka and assigned Tantou, enforced by the
 per-action matrix above (`series.controller.ts:270-384`). Implemented by CT-11.
 
@@ -517,7 +512,7 @@ per-action matrix above (`series.controller.ts:270-384`). Implemented by CT-11.
 
 ### Description
 Chapters go through a canonical lifecycle: PLANNED -> IN_PRODUCTION -> TANTOU_REVIEW
--> REVISION_REQUIRED (loop) -> READY_FOR_PUBLICATION -> PUBLISHED (+ ARCHIVED).
+-> REVISION_REQUIRED (loop) -> READY_FOR_PUBLICATION -> PUBLISHED.
 Scheduling lives on the Publication entity, not on the chapter itself.
 
 ### Flowchart
@@ -570,17 +565,12 @@ flowchart LR
 | `REVISION_REQUIRED` | Editor requested changes |
 | `READY_FOR_PUBLICATION` | Approved, awaiting schedule/publish |
 | `PUBLISHED` | Published |
-| `ARCHIVED` | Archived |
 
 ### Chapter Actions (from `backend/src/types.ts:121-134`)
 
 `START_DRAFT`, `START_ASSISTANT_WORK`, `SUBMIT_REVIEW`, `REQUEST_REVISION`,
 `REJECT`, `RESUBMIT`, `EDITOR_APPROVE`, `SCHEDULE`, `POSTPONE`,
-`PUBLISH`, `REASSIGN`, `ARCHIVE`
-
-`ARCHIVE` persists `status: ARCHIVED` and archive metadata. It is available to
-the assigned Tantou Editor for any non-archived chapter; repeated archive
-attempts return `409 INVALID_TRANSITION`.
+`PUBLISH`, `PUBLISH_EARLY`, `REASSIGN`
 
 ### Role Access
 
@@ -592,7 +582,7 @@ attempts return `409 INVALID_TRANSITION`.
 | REQUEST_REVISION, REJECT | EDITOR (assigned Tantou) | `workflow.service.ts:1713-1714` |
 | EDITOR_APPROVE | EDITOR (assigned Tantou); current frozen snapshot and all blockers `RESOLVED` | `workflow.service.ts` |
 | SCHEDULE, POSTPONE, PUBLISH | EDITOR | `publication.service.ts` |
-| REASSIGN, ARCHIVE | EDITOR | `workflow.service.ts:1731-1732` |
+| REASSIGN | EDITOR | `workflow.service.ts` |
 
 ### Self-Approval Block
 Editor cannot review their own production chapter (`workflow.service.ts:1748-1753`):
@@ -633,13 +623,9 @@ inaccurate and are corrected above.
 > owning Mangaka and returns `MANGAKA_OWNER_REQUIRED` for a non-owning Mangaka.
 > Assigned chapter access alone is not sufficient to submit the whole Chapter.
 
-#### Material readiness for review (canonical — already enforced)
-Before `TANTOU_REVIEW`, review materials must be usable: status `ACTIVE` or
-`APPROVED`, with an accessible file (`fileKey`/`url`), scoped to the chapter or its
-pages (`chapter-review.service.ts`, `REVIEW_MATERIAL_NOT_ACTIVE`). See
-[07-material-management.md](07-material-management.md). `APPROVED` is written by
-the assigned Tantou only through the guarded material transition API; the owner or
-an assigned Tantou may move a material to `ACTIVE` or `ARCHIVED`.
+#### Supporting Materials do not gate review
+Supporting Materials are optional attachments. Chapter readiness depends on Pages,
+Assistant Tasks/Submissions, blocking Comments, and the frozen review snapshot.
 
 #### TECH-FINDING-06 — Generic `FORBIDDEN` vs ownership codes
 **Status: Resolved.** The affected ownership/assignment failures now use the
@@ -736,7 +722,8 @@ flowchart LR
 
 | Action                        | Allowed Roles      | Guard                        |
 | ----------------------------- | ------------------ | ---------------------------- |
-| START, BLOCK, UNBLOCK, REOPEN | Assigned ASSISTANT | `task-submission.service.ts` |
+| ACCEPT, REJECT                | Assigned ASSISTANT | Assignment decision required before work starts |
+| START, REOPEN | Assigned ASSISTANT | `task-submission.service.ts` |
 | CANCEL, REASSIGN              | MANGAKA            | `task-submission.service.ts` |
 
 (`SUBMIT` via the actions endpoint is deprecated → use `POST /api/tasks/:taskId/submit`.)
@@ -750,10 +737,11 @@ action endpoint:
 | Request revision | `POST /api/submissions/:submissionId/request-revision` | Owning MANGAKA            |
 | Reject           | `POST /api/submissions/:submissionId/reject`           | Owning MANGAKA            |
 
-The generic Task-action aliases `APPROVE`, `MANGAKA_APPROVE`, `REQUEST_REVISION`,
-`REJECT`, and `EDITOR_APPROVE` have been removed from `TASK_ACTIONS`. Requests using
-them return `400 INVALID_ACTION`; the canonical Submission endpoints remain the
-only submission decision contract
+The generic Task-action review aliases `APPROVE`, `MANGAKA_APPROVE`,
+`REQUEST_REVISION`, and `EDITOR_APPROVE` have been removed from `TASK_ACTIONS`.
+`REJECT` remains only as the assigned Assistant's assignment decision; it is not
+a Submission review decision. Review aliases return `400 INVALID_ACTION`; the
+canonical Submission endpoints remain the only submission decision contract
 ([TECH-FINDING-04](#tech-finding-04--deprecated-decision-aliases-in-task_actions)).
 
 ### Idempotency
@@ -783,7 +771,7 @@ from the client. `EarningModel.findOneAndUpdate({ sourceKey })` with `$setOnInse
 | Current submission changed since read     | 409  | `CURRENT_SUBMISSION_CONFLICT`          | Implemented (`workflow.service.ts:2291`) |
 | Idempotency key reused, different payload | 409  | `IDEMPOTENCY_KEY_REUSED`               | Implemented (`:2303-2307`)               |
 | Task not assigned to actor                | 403  | `TASK_NOT_ASSIGNED`                    | Implemented                              |
-| START while task is blocked               | 409  | `TASK_BLOCKED`                         | Implemented                              |
+| BLOCK / MARK_BLOCKED / UNBLOCK action    | 400  | `INVALID_ACTION`                       | Retired; use assignment rejection or Mangaka reassignment |
 | Invalid Task/Submission transition        | 409  | `INVALID_TRANSITION`                   | Implemented (`:2285`)                    |
 
 ### Region Locking (see [14-regions.md](14-regions.md))
@@ -799,7 +787,7 @@ A Task locks its Region at **creation** (`ASSIGNED` + `LOCKED` + `activeTaskId`,
 
 Live E2E exercises the Assistant-scoped Studio and Mangaka Review Queue:
 
-1. Assigned Assistant opens a blocked task, performs `UNBLOCK -> START`, and uploads a real file.
+1. Assigned Assistant opens an accepted TODO task, performs `START`, and uploads a real file.
 2. `POST /api/tasks/:taskId/submit` returns `201`; the task becomes `SUBMITTED`
    and the Studio upload panel becomes read-only.
 3. The submission appears in the owning Mangaka's Review Queue.
@@ -842,7 +830,7 @@ canonical `CURRENT_SUBMISSION_CONFLICT` code (HTTP 409). The prior generic
 ### Description
 
 The Board votes through `VotingSession` records. A Chair opens a session, Board members cast
-`APPROVE`, `REJECT`, or `ABSTAIN`, and the Chair closes the active session. A tied round is
+`APPROVE` or `REJECT`; members who have not voted remain pending. The Chair closes the active session. A tied round is
 terminal `TIED` history; closing it creates a new empty `OPEN` re-vote session using the same
 Proposal snapshot, electorate, and quorum. The active Board has three to five seats; opening a
 session snapshots the roster and requires at least three members and exactly one active Chair.
@@ -908,7 +896,7 @@ the session's `eligibleVoterIds` or quorum.
   newly created `OPEN` re-vote session.
 - Finalized, no-quorum, and cancelled sessions clear the active pointers as appropriate.
 - Historical `TIE_BREAK_REQUIRED` records remain visible for compatibility, but the client must
-  not send new EIC tie-break requests.
+  not send new special tie-break requests.
 
 ### Role Access
 
@@ -918,7 +906,6 @@ the session's `eligibleVoterIds` or quorum.
 | Cast vote (`OPEN` only) | BOARD | Proposal `VOTE` action |
 | Start re-vote after tie | System, within Chair close transaction | Governance service |
 | View historical `TIED` or `TIE_BREAK_REQUIRED` session | BOARD, EDITOR | Decision/session history |
-| Cast EIC tie-break | Nobody for new Proposal flows | Retired route returns `410 TIE_BREAK_RETIRED` |
 | Add/edit/delete notes | EDITOR, BOARD | VotingSession controller |
 
 ### Invariants
@@ -934,111 +921,41 @@ the session's `eligibleVoterIds` or quorum.
 
 Legacy `TIE_BREAK_REQUIRED` records and their display labels are retained so existing audits and
 seeded history remain readable. They are not an active Proposal path: new ties use `TIED` plus a
-fresh `OPEN` re-vote, with no weighted Editor-in-Chief action.
+fresh `OPEN` re-vote, with no weighted special-role action.
 
 
 ---
 
-## 07. Material Management
+## 07. Supporting Materials
 
 > **Canonical source:** `07-material-management(8).md`
 
 ### Description
-Materials are versioned file attachments scoped to PROPOSAL, SERIES, CHAPTER, or PAGE.
-They support scoped CRUD and immutable version history. Admin has no Material access.
+Supporting Materials are optional versioned attachments scoped to a Proposal, Series,
+Chapter, or Page. They provide context only and have no review or status lifecycle.
 
 ### Flowchart
 
 ```mermaid
 flowchart LR
-    S((Start)) --> A[Create DRAFT Material]
-    A --> B[Choose Scope: Proposal, Series, Chapter or Page]
-    B --> C[Upload and Attach File]
-    C --> D[Add or Replace Version]
-    D --> E1[Activate Material]
-    E1 --> F[Send Material to Review]
-    F --> D1{Tantou Decision?}
-    D1 -->|Revision| G[Return to ACTIVE]
-    G --> D
-    D1 -->|Approve| H[Set APPROVED]
-    H --> I[Lock Approved Record as Immutable]
-    I --> E((End))
-    C --> D2{Archive Material?}
-    D2 -->|Yes| J[Set ARCHIVED]
-    J --> E
-    D2 -->|No| D
-
-    classDef default fill:#FFFFFF,stroke:#6B7280,stroke-width:1.5px,color:#991B1B;
-    classDef terminal fill:#111827,stroke:#DC2626,stroke-width:3px,color:#FFFFFF;
-    classDef decision fill:#FFF7ED,stroke:#DC2626,stroke-width:2px,color:#991B1B;
-    classDef success fill:#F0FDF4,stroke:#16A34A,stroke-width:1.5px,color:#166534;
-    classDef error fill:#FEF2F2,stroke:#DC2626,stroke-width:1.5px,color:#991B1B;
-    class S,E terminal;
-    class D1,D2 decision;
-    class H,I success;
-    class J error;
-    linkStyle default stroke:#374151,stroke-width:1.5px;
+    S((Start)) --> A[Owning Mangaka chooses parent scope]
+    A --> B[Upload attachment]
+    B --> C[Edit metadata or add a file version]
+    C --> D[Editor or Board reads with parent visibility]
+    C --> E[Owning Mangaka deletes when no longer needed]
+    D --> F((End))
+    E --> F
 ```
 
-### Material Status Values (from `backend/src/db/models.ts:1063-1067`)
+### No Material lifecycle
 
-| Status | Description |
-|--------|-------------|
-| `DRAFT` | Initial state |
-| `ACTIVE` | Active material (usable for review) |
-| `IN_REVIEW` | Under review |
-| `APPROVED` | Accepted by the chapter-readiness guard |
-| `ARCHIVED` | Archived |
+Material does not accept `DRAFT`, `ACTIVE`, `IN_REVIEW`, `APPROVED`, or `ARCHIVED`.
+It never gates Chapter review, Tantou replacement, publication, or Board decisions.
+Review feedback belongs to Proposal/Chapter review comments. Manuscripts remain
+separate Proposal versions.
 
-### Material Readiness for Chapter Review
-A material is usable when sending a Chapter to Tantou review if: status is `ACTIVE`
-or `APPROVED`, it has an accessible file (`fileKey`/`url`), and it is scoped to the
-chapter or one of its pages. Enforced in `sendChapterToEditorReview`
-(`chapter-review.service.ts`, error `REVIEW_MATERIAL_NOT_ACTIVE`). See
-[04-chapter-workflow.md](04-chapter-workflow.md).
-
-Material status is a first-class field. Normal `PATCH /api/materials/:id` accepts
-the canonical status values, but workflow transitions are actor-guarded:
-
-| Transition | Authorized actor |
-|---|---|
-| `DRAFT -> ACTIVE` | owning Mangaka or assigned Tantou |
-| `ACTIVE -> IN_REVIEW` | owning Mangaka or assigned Tantou |
-| `IN_REVIEW -> ACTIVE` | owning Mangaka or assigned Tantou (revision) |
-| `ACTIVE`/`IN_REVIEW -> APPROVED` | assigned Tantou only |
-| any non-archived status -> `ARCHIVED` | owning Mangaka or assigned Tantou |
-
-`DRAFT -> APPROVED` is rejected with `409 INVALID_TRANSITION`. A Mangaka or an
-unassigned Editor receives `403 TANTOU_ASSIGNMENT_REQUIRED` when attempting
-approval. An approved Material is immutable: `POST /api/materials/:id/versions`
-returns `409 APPROVED_MATERIAL_IMMUTABLE`; replacement work starts as a new
-`DRAFT` Material so the approved record remains auditable. Deleting an approved
-Material is also rejected with the same `409 APPROVED_MATERIAL_IMMUTABLE` code.
-The web library hides both **Replace** and **Delete** for approved records.
-
-### Verified frontend lifecycle
-
-The live E2E contract covers the complete production path:
-
-1. Owning Mangaka creates a `DRAFT` Material with a real uploaded file and Chapter scope.
-2. Mangaka appends version 2, then advances `DRAFT -> ACTIVE -> IN_REVIEW`.
-3. Assigned Tantou advances `IN_REVIEW -> APPROVED`.
-4. The approved record exposes neither Replace nor Delete in the UI.
-5. A direct delete attempt is rejected with `409 APPROVED_MATERIAL_IMMUTABLE`, and
-   the approved record remains visible.
-
-#### Material `APPROVED` reachability (Resolved)
-- The Material model supports `APPROVED` (`db/models.ts`).
-- The Chapter readiness guard accepts `ACTIVE` **or** `APPROVED`
-  (`workflow.service.ts:1471-1490`).
-- `assertCanTransitionMaterialToApproved` requires the assigned Tantou, while
-  generic mutation remains owner/assignment scoped (`authorization.service.ts`).
-- The canonical patch endpoint enforces the transition matrix and returns
-  `TANTOU_ASSIGNMENT_REQUIRED`/`INVALID_TRANSITION` for the guarded cases.
-- The web material library reads the first-class API status and exposes the full
-  canonical status set.
-- `migrate:material-status --dry-run` promotes legacy `metadata.status` safely;
-  invalid values stop the migration and a second run is idempotent.
+The dry-run-first `migrate:material-attachments` migration removes archived legacy
+records and strips status fields from retained attachments.
 
 ### Material Scope
 `PROPOSAL`, `SERIES`, `CHAPTER`, `PAGE` — controls ownership and visibility.
@@ -1047,13 +964,13 @@ The live E2E contract covers the complete production path:
 
 | Action | Allowed Roles | Guard |
 |--------|--------------|-------|
-| Create, Patch, Add version, Delete | EDITOR, MANGAKA | Scoped guard; approved records cannot be versioned or deleted |
-| List | All (scoped by authorization) | `material.routes.ts:7` |
+| Create, Patch, Add version, Delete | Owning MANGAKA | Parent ownership guard |
+| List | Authenticated actors | Parent visibility guard |
 
 ### Key Files
 - `backend/src/controllers/material.controller.ts` — scoped CRUD handlers
 - `backend/src/routes/material.routes.ts` — route registration
-- `backend/src/db/models.ts:999-1076` — MaterialRecord, MaterialVersion, materialSchema
+- `backend/src/db/models.ts` — MaterialRecord, MaterialVersion, materialSchema
 - `backend/src/validators/material.schema.ts` — Zod validation schemas
 
 
@@ -1605,7 +1522,7 @@ flowchart LR
     H --> D2{Page Asset Check Passes?}
     D2 -->|No| X1[Return PAGE_IMAGE_REQUIRED]
     X1 --> D
-    D2 -->|Yes| I[Set Pages to TANTOU_REVIEW]
+    D2 -->|Yes| I[Set Chapter to TANTOU_REVIEW<br/>Keep Pages UPLOADED and lock editing]
     I --> D3{Tantou Decision?}
     D3 -->|Revision| J[Set REVISION_REQUIRED]
     J --> K[Replace Targeted Page Asset]
@@ -1828,13 +1745,13 @@ Release history is retained in audit entries.
 
 | API Role | Web Role | Description |
 |----------|----------|-------------|
-| `ADMIN` | `admin` | User account lifecycle and Chair/EIC designation management; also owns managed notifications, read-only dashboards, RateTable, and dev-only demo data. No editorial/production/governance workflow authority (FLOW-GAP-04 — Resolved) |
+| `ADMIN` | `admin` | User account lifecycle and Chair designation management; also owns managed notifications, read-only dashboards, RateTable, and dev-only demo data. No editorial/production/governance workflow authority (FLOW-GAP-04 — Resolved) |
 | `MANGAKA` | `mangaka` | Creator: proposals, series authorship, chapter production, task review |
 | `ASSISTANT` | `assistant` | Receives tasks, submits work, tracks earnings |
 | `EDITOR` | `editor` | Reviews proposals/chapters, Tantou editor, publication scheduling |
 | `BOARD` | `board` | Votes on proposals, governance, at-risk decisions |
 
-Special flags: `isChair` (Board), `isEditorInChief` (Editor).
+Special flag: `isChair` (Board).
 
 ---
 
@@ -1863,15 +1780,15 @@ Invariants that must hold across the system. ✅ = enforced in current code;
 14. ✅ Only the assigned Tantou may create/raise/resolve/reopen a blocking comment;
     resolve/reopen require an assigned `editorId`, and reopen starts only from
     `ADDRESSED`/`RESOLVED` (**FLOW-GAP-01**/**FLOW-GAP-03** — Resolved).
-15. ✅ Material status is first-class and transition-guarded: owning Mangaka or
-    assigned Tantou may activate/archive; assigned Tantou alone may approve.
+15. ✅ Supporting Materials are optional status-free attachments; only the owning
+    Mangaka mutates them and they never gate another workflow.
 16. ✅ Admin cannot execute editorial or production workflow actions (rankings
     import, tantou assignment, series lifecycle, proposal claim/archive, material
     or payroll routes, workflow overrides, file download); Admin retains only
-    account lifecycle, Chair/EIC designation, managed notifications, read-only
+    account lifecycle, Chair designation, managed notifications, read-only
     dashboards, RateTable, and dev-only demo data (**FLOW-GAP-04** — Resolved).
 17. ✅ At most five Board seats are active; exactly one active Board Chair and
-    one active EIC may exist. Designation reassignment is transactional.
+    exist. Designation reassignment is transactional.
 18. ✅ Every new VotingSession snapshots the current active Board electorate;
     no seed/demo user IDs are used as the live roster.
 19. ✅ `MARK_READY` is removed. A Chapter reaches
@@ -1898,7 +1815,6 @@ technical debt with no business-rule conflict.
 | FLOW-GAP-01 | **Resolved.** Blocking-comment write authority not restricted to assigned Tantou | `studio.controller.ts:151-161,435-441` (`assertCanRaiseBlockingComment` gating `createComment`/`patchComment`) | [12](12-comments.md#flow-gap-01--blocking-comment-write-authority) |
 | FLOW-GAP-02 | **Resolved.** VotingSession cancel restores Proposal to `PENDING_BOARD` (transactional, fail-closed) | `proposal-governance.service.ts` (`cancelVotingSession`); `voting.controller.ts:245` | [02](02-proposal-lifecycle.md#flow-gap-02--votingsession-cancel-must-restore-the-proposal) |
 | FLOW-GAP-03 | **Resolved.** Comment resolve/reopen requires the assigned Tantou; reopen requires `ADDRESSED`/`RESOLVED` source status | `studio.controller.ts` (`assertCanResolveTantouBlockingComment`, `assertCanReopenTantouBlockingComment`) | [12](12-comments.md#flow-gap-03--comment-resolvereopen-assignment-guard) |
-| FLOW-GAP-05 | **Resolved.** Chair/EIC compatibility and uniqueness were documented but not enforced | `admin.service.ts`; partial unique indexes in `models.ts`; `admin.test.ts` | [01](01-authentication.md#special-designation-management-canonical) |
 | FLOW-GAP-06 | **Resolved.** VotingSession electorate used hard-coded seed IDs | `activeBoardElectorate()`; `voting.controller.ts`; `board.test.ts` | [06](06-board-governance.md) |
 | FLOW-GAP-07 | **Resolved.** `MARK_READY` bypassed canonical Chapter review | `types.ts`; `workflow.service.ts`; `workflow.test.ts` | [04](04-chapter-workflow.md) |
 | FLOW-GAP-08 | **Resolved.** Tantou could mutate Page evidence and `ADDRESSED` could pass approval without verification | `authorization.service.ts`; `chapter-readiness.service.ts`; `workflow.service.ts` | [04](04-chapter-workflow.md), [12](12-comments.md), [13](13-pages.md) |
@@ -1922,7 +1838,8 @@ and snapshotted; client monetary fields are rejected. See
 ### Current implementation status (2026-07-26)
 
 TECH-FINDING-01 through TECH-FINDING-07 are resolved in the current branch. The
-Chapter `ARCHIVE` transition and Supabase residual cleanup are also resolved.
+redundant Chapter `ARCHIVE` transition has been removed; Chapters follow the
+parent Series lifecycle. Supabase residual cleanup is also resolved.
 The legacy comment/material/region migrations must be run against the deployed
 database before rollout; see `docs/CODE-TODO.md` for the operational commands.
 Admin workflow-scope reduction (FLOW-GAP-04 / CT-11) is implemented: the
@@ -1975,17 +1892,16 @@ service names are the canonical current owners.
 | Proposal action | `POST /api/proposals/:id/actions/:action` | `proposal.controller.ts:170` | MANGAKA, EDITOR, BOARD |
 | - SUBMIT | (action) | `workflow.service.ts:629` | MANGAKA (author) |
 | - CLAIM | (action) | `workflow.service.ts:645` | EDITOR |
-| - RELEASE_CLAIM | (action) | `workflow.service.ts:710` | EDITOR (EIC only) |
-| - REASSIGN_CLAIM | (action) | `workflow.service.ts:736` | EDITOR (EIC only) |
+| - RELEASE_CLAIM | (action) | `workflow.service.ts:710` | EDITOR (claim owner) |
 | - REQUEST_CHANGES | (action) | `workflow.service.ts:765` | EDITOR |
 | - FORWARD | (action) | `workflow.service.ts:815` | EDITOR |
 | - REJECT | (action) | `workflow.service.ts:850` | EDITOR |
 | - RECALL | (action) | `workflow.service.ts:881` | EDITOR |
-| - VOTE | (action) | `workflow.service.ts:892` | BOARD, EDITOR (EIC tie-break) |
+| - VOTE | (action) | `workflow.service.ts:892` | BOARD |
 | - WITHDRAW | (action) | `workflow.service.ts:1012` | MANGAKA (author) |
 | - RESUBMIT | (action) | `workflow.service.ts:1029` | MANGAKA (author) |
 | - EDIT | (action) | `workflow.service.ts:1113` | MANGAKA (author) |
-| - ARCHIVE | (action) | `workflow.service.ts:1158` | Owning MANGAKA or EDITOR (EIC); requires non-empty `reason` |
+| - ARCHIVE | (action) | `workflow.service.ts:1158` | Owning MANGAKA; requires non-empty `reason` |
 
 ---
 
@@ -2081,8 +1997,6 @@ service names are the canonical current owners.
 | Task action | `POST /api/studio/tasks/:taskId/actions/:action` | `studio.controller.ts:398` | EDITOR, MANGAKA, ASSISTANT |
 | - START | (action) | `workflow.service.ts:2105` | Assigned ASSISTANT |
 | - CANCEL | (action) | `workflow.service.ts:2144` | MANGAKA |
-| - BLOCK / MARK_BLOCKED | (action) | `workflow.service.ts:2152` | Assigned ASSISTANT |
-| - UNBLOCK | (action) | `workflow.service.ts:2159` | Assigned ASSISTANT |
 | - REASSIGN | (action) | `workflow.service.ts:2165` | MANGAKA |
 | - REOPEN | (action) | `workflow.service.ts:2098` | Assigned ASSISTANT |
 | Send to editor review | `POST /api/studio/chapters/:chapterId/send-editor-review` | `studio.controller.ts:409` | MANGAKA |
@@ -2107,19 +2021,18 @@ service names are the canonical current owners.
 
 ---
 
-### 11. Materials
+### 11. Supporting Materials
 
 | Capability | Method + Route | Key Files | Roles |
 |---|---|---|---|
-| List materials | `GET /api/materials` | `material.controller.ts:17` | Non-Admin roles (scoped) |
-| Create material | `POST /api/materials` | `material.controller.ts:26` | EDITOR, MANGAKA |
-| Patch material | `PATCH /api/materials/:id` | `material.controller.ts:59` | EDITOR, MANGAKA |
-| Add material version | `POST /api/materials/:id/versions` | `material.controller.ts:71` | EDITOR, MANGAKA |
-| Delete material | `DELETE /api/materials/:id` | `material.controller.ts:94` | EDITOR, MANGAKA |
+| List attachments | `GET /api/materials` | `material.controller.ts` | Authenticated, parent-scoped |
+| Create attachment | `POST /api/materials` | `material.controller.ts` | Owning MANGAKA |
+| Patch metadata | `PATCH /api/materials/:id` | `material.controller.ts` | Owning MANGAKA |
+| Add attachment version | `POST /api/materials/:id/versions` | `material.controller.ts` | Owning MANGAKA |
+| Delete attachment | `DELETE /api/materials/:id` | `material.controller.ts` | Owning MANGAKA |
 
-Material status transitions are enforced by `material.controller.ts` and
-`authorization.service.ts`; legacy `metadata.status` is handled by the explicit
-`migrate:material-status` dry-run/apply script.
+Material has no status or review workflow. `migrate:material-attachments` removes
+archived legacy records and strips status fields from retained attachments.
 
 ---
 
@@ -2128,7 +2041,7 @@ Material status transitions are enforced by `material.controller.ts` and
 `GET/POST /api/admin/materials`, `POST /api/admin/materials/:id/replace`,
 `/archive`, `/restore` and their handlers were **deleted** by CT-11
 (FLOW-GAP-04 — Resolved). Materials are managed exclusively through
-`/api/materials*` by the owning Mangaka or assigned Tantou (see §11).
+`/api/materials*` by the owning Mangaka (see §11).
 
 ---
 
@@ -2142,7 +2055,6 @@ Material status transitions are enforced by `material.controller.ts` and
 | Patch voting session | `PATCH /api/voting-sessions/:id` | `voting.controller.ts:256` | BOARD (Chair) |
 | Close session | `POST /api/voting-sessions/:id/close` | `voting.controller.ts:292` | BOARD (Chair) |
 | Cancel session | `POST /api/voting-sessions/:id/cancel` | `voting.controller.ts:298` | BOARD (Chair) |
-| Tie-break vote | `POST /api/voting-sessions/:id/tie-break` | `voting.controller.ts:370` | EDITOR with `isEditorInChief=true` |
 | Add session note | `POST /api/voting-sessions/:id/notes` | `voting.controller.ts:302` | EDITOR, BOARD |
 | Patch session note | `PATCH /api/voting-sessions/:id/notes/:noteId` | `voting.controller.ts:324` | EDITOR, BOARD (author) |
 | Delete session note | `DELETE /api/voting-sessions/:id/notes/:noteId` | `voting.controller.ts:351` | EDITOR, BOARD (author) |
@@ -2156,7 +2068,6 @@ Material status transitions are enforced by `material.controller.ts` and
 |---|---|---|---|
 | List notifications | `GET /api/notifications` | `notification.controller.ts:33` | All (authed) |
 | Mark read | `POST /api/notifications/:id/read` | `notification.controller.ts:44` | Owner only |
-| Archive notification | `POST /api/notifications/:id/archive` | `notification.controller.ts:59` | Owner only |
 
 ---
 
@@ -2199,8 +2110,8 @@ Material status transitions are enforced by `material.controller.ts` and
 | Capability | Method + Route | Key Files | Roles |
 |---|---|---|---|
 | Get series editor | `GET /api/series/:seriesId/editor` | `tantou.controller.ts:7` | All (authed) |
-| Assign series editor | `POST /api/series/:seriesId/editor` | `tantou.controller.ts:13` | EDITOR (EIC only) |
-| Remove series editor | `DELETE /api/series/:seriesId/editor` | `tantou.controller.ts:20` | EDITOR (EIC only) |
+| Assign series editor | `POST /api/series/:seriesId/editor` | `tantou.controller.ts:13` | Owning MANGAKA |
+| Remove series editor | `DELETE /api/series/:seriesId/editor` | `tantou.controller.ts:20` | Owning MANGAKA |
 
 ---
 
@@ -2273,7 +2184,7 @@ earnings) remains.
 
 | Capability | Method + Route | Key Files | Roles |
 |---|---|---|---|
-| Editor review queue | `GET /api/editor/manuscripts/review-queue` | `mobile.controller.ts:17` | EDITOR |
+| Editor Proposal review queue | `GET /api/editor/proposals/review-queue` | `mobile.controller.ts` | EDITOR |
 | Start review | `POST /api/editor/series/:seriesId/start-review` | `mobile.controller.ts:49` | EDITOR |
 | Request revision | `POST /api/editor/series/:seriesId/request-revision` | `mobile.controller.ts:52` | EDITOR |
 | Reject series | `POST /api/editor/series/:seriesId/reject` | `mobile.controller.ts:55` | EDITOR |
@@ -2282,7 +2193,6 @@ earnings) remains.
 | Get board votes | `GET /api/board/series/:seriesId/votes` | `mobile.controller.ts:24` | BOARD, EDITOR |
 | Cast vote | `POST /api/board/series/:seriesId/votes` | `mobile.controller.ts:67` | BOARD |
 | Finalize decision | `POST /api/board/series/:seriesId/decisions/finalize` | `mobile.controller.ts:70` | BOARD (Chair) |
-| Tie-break decision | `POST /api/board/series/:seriesId/decisions/tie-break` | `mobile.controller.ts:81` | EDITOR with `isEditorInChief=true` |
 | At-risk decision | `POST /api/board/series/:seriesId/at-risk-decisions` | `mobile.controller.ts:85` | BOARD (Chair) |
 
 ---
@@ -2345,10 +2255,10 @@ the reader receives display URLs only and never signed working-file URLs.
 
 | No. | Source file | Coverage |
 |---:|---|---|
-| 01 | `01-authentication(7).md` | Authentication, JWT sessions, role gates, Chair/EIC designation |
+| 01 | `01-authentication(7).md` | Authentication, JWT sessions, role gates, Chair designation |
 | 02 | `02-proposal-lifecycle(9).md` | Proposal statuses, Editor review, Board hand-off and re-votes |
 | 03 | `03-series-lifecycle(9).md` | Series promotion, production, hiatus/archive and ownership |
-| 04 | `04-chapter-workflow(8).md` | Chapter readiness, review loop, publication and archive |
+| 04 | `04-chapter-workflow(8).md` | Chapter readiness, review loop and publication |
 | 05 | `05-assistant-submission(6).md` | Assistant Task and Submission lifecycle, idempotency and earnings trigger |
 | 06 | `06-board-governance(8).md` | Board roster, quorum, VotingSession closure and re-votes |
 | 07 | `07-material-management(8).md` | Material scopes, versions, statuses and immutability |

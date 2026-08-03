@@ -9,13 +9,11 @@ export interface BoardVote {
   createdAt: string;
   weight: number;
   isChair: boolean;
-  isEditorInChief: boolean;
 }
 
 export interface BoardTally {
   approve: number;
   reject: number;
-  abstain: number;
   total: number;
   status: "APPROVED" | "REJECTED" | "TIE_BREAK" | null;
   reason: string;
@@ -35,7 +33,6 @@ export interface BoardQueueItem {
   voteSummary: {
     approve: number;
     reject: number;
-    abstain: number;
     pending: number;
     eligible: number;
     quorum: number;
@@ -99,8 +96,7 @@ export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem 
     voteSummary: {
       approve: Number(vs.approve ?? 0),
       reject: Number(vs.reject ?? 0),
-      abstain: Number(vs.abstain ?? 0),
-      pending: Math.max(0, 5 - Number(vs.total ?? raw.voteCount ?? 0)),
+      pending: Math.max(0, Number(vs.eligible ?? 5) - Number(vs.total ?? raw.voteCount ?? 0)),
       eligible: Number(vs.eligible ?? 5),
       quorum: Number(vs.quorum ?? 3),
       canFinalize: Boolean(vs.canFinalize ?? raw.canFinalize ?? false),
@@ -117,16 +113,17 @@ export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem 
 
 export function mapBoardVotes(raw: Record<string, unknown>): BoardVotesResult {
   const votes =
-    (raw.votes as Record<string, unknown>[] | undefined)?.map((v) => ({
-      memberId: String(v.memberId ?? v.voterId ?? ""),
-      memberName: String(v.memberName ?? v.voterName ?? ""),
-      decision: (v.decision as VoteDecision) ?? "ABSTAIN",
-      comment: v.comment ? String(v.comment) : undefined,
-      createdAt: String(v.createdAt ?? v.votedAt ?? ""),
-      weight: Number(v.weight ?? 1),
-      isChair: Boolean(v.isChair ?? false),
-      isEditorInChief: Boolean(v.isEditorInChief ?? false),
-    })) ?? [];
+    (raw.votes as Record<string, unknown>[] | undefined)
+      ?.filter((v) => v.decision === "APPROVE" || v.decision === "REJECT")
+      .map((v) => ({
+        memberId: String(v.memberId ?? v.voterId ?? ""),
+        memberName: String(v.memberName ?? v.voterName ?? ""),
+        decision: v.decision as VoteDecision,
+        comment: v.comment ? String(v.comment) : undefined,
+        createdAt: String(v.createdAt ?? v.votedAt ?? ""),
+        weight: Number(v.weight ?? 1),
+        isChair: Boolean(v.isChair ?? false),
+      })) ?? [];
 
   const tally = (raw.tally as Record<string, unknown>) ?? {};
   return {
@@ -138,7 +135,6 @@ export function mapBoardVotes(raw: Record<string, unknown>): BoardVotesResult {
     tally: {
       approve: Number(tally.approve ?? 0),
       reject: Number(tally.reject ?? 0),
-      abstain: Number(tally.abstain ?? 0),
       total: Number(tally.total ?? 0),
       status: (tally.status as BoardTally["status"]) ?? null,
       reason: String(tally.reason ?? ""),

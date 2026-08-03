@@ -22,15 +22,13 @@ export function publicUser(user: {
   email: string;
   role: Role;
   isChair?: boolean;
-  isEditorInChief?: boolean;
 }): AuthUser {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
-    isChair: user.isChair,
-    isEditorInChief: user.isEditorInChief
+    isChair: user.isChair
   };
 }
 

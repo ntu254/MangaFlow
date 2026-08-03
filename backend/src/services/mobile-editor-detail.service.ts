@@ -2,7 +2,6 @@ import { AppError } from "../lib/http.js";
 import type { RequestActor } from "../types.js";
 import {
   ChapterModel,
-  MaterialModel,
   ProposalModel,
   PublicationModel,
   SeriesModel,
@@ -11,6 +10,7 @@ import {
 } from "../db/models.js";
 import { chapterReadiness } from "./chapter-readiness.service.js";
 import { findChapterBlockingComments } from "./chapter-review.service.js";
+import { assertCanReadChapter } from "./authorization.service.js";
 import type {
   MobileWorkflowAction,
   MobileWorkflowActionDescriptor,
@@ -41,33 +41,25 @@ export interface EditorChapterContext {
   series: any;
   tasks: any[];
   submissions: any[];
-  materials: any[];
   blockingComments: any[];
   readiness: ReturnType<typeof chapterReadiness>;
 }
 
 export async function loadEditorChapterContext(chapter: any): Promise<EditorChapterContext> {
   const chapterId = chapter.id;
-  const pageIds = (chapter.pages ?? []).map((page: any) => page.id).filter(Boolean);
-  const [series, tasks, submissions, materials] = await Promise.all([
+  const [series, tasks, submissions] = await Promise.all([
     SeriesModel.findOne({ id: chapter.seriesId }).lean(),
     StudioTaskModel.find({ chapterId }).lean(),
     SubmissionModel.find({ chapterId }).lean(),
-    MaterialModel.find({
-      $and: [
-        { $or: [{ chapterId }, { pageId: { $in: pageIds } }] },
-        { $or: [{ fileKey: { $exists: true, $ne: "" } }, { url: { $exists: true, $ne: "" } }] },
-      ],
-    }).lean(),
   ]);
-  // All blocking comments authored by the assigned Tantou, including RESOLVED
-  // ones. This doubles as the review-screen display list, so RESOLVED
-  // comments must stay visible for COMMENT_REOPEN — chapterReadiness's
-  // allCommentsResolved check already treats a RESOLVED comment as passing,
-  // so including it here does not change the readiness result.
-  const blockingComments = await findChapterBlockingComments(chapter, tasks, submissions, []);
-  const readiness = chapterReadiness(chapter, blockingComments, tasks, submissions, materials);
-  return { chapter, series, tasks, submissions, materials, blockingComments, readiness };
+  // Unresolved blocking comments in the chapter's production scope. The
+  // current Tantou is not used as an author filter so reassignment cannot
+  // make an old blocker disappear.
+  const blockingComments = await findChapterBlockingComments(chapter, tasks, submissions, [
+    "RESOLVED",
+  ]);
+  const readiness = chapterReadiness(chapter, blockingComments, tasks, submissions);
+  return { chapter, series, tasks, submissions, blockingComments, readiness };
 }
 
 function isAssignedTantou(actor: RequestActor, series: any): boolean {
@@ -177,6 +169,7 @@ export async function getEditorChapterDetail(actor: RequestActor, chapterId: str
   }
   const chapter = (await ChapterModel.findOne({ id: chapterId }).lean()) as any;
   if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  await assertCanReadChapter(actor, chapter);
   const context = await loadEditorChapterContext(chapter);
   const publication = (await PublicationModel.findOne({ chapterId }).lean()) as any;
 
@@ -246,6 +239,17 @@ export function proposalActions(
       requiresReason: false,
     }),
     describeAction({
+      action: "RELEASE_CLAIM",
+      enabled: claimedByMe,
+      disabledReason: claimedByMe
+        ? null
+        : claimedByOther
+          ? "Only the Editor who owns the claim can release it."
+          : "This proposal has no active claim.",
+      requiresConfirmation: true,
+      requiresReason: false,
+    }),
+    describeAction({
       action: "REQUEST_CHANGES",
       enabled: claimedByMe,
       disabledReason: claimReason,
@@ -299,7 +303,6 @@ export async function getEditorProposalDetail(actor: RequestActor, proposalId: s
       ? {
           id: currentManuscript.id ?? `${value.id}-manuscript`,
           version: currentManuscript.version ?? manuscripts.length,
-          status: currentManuscript.status ?? "SUBMITTED",
         }
       : null,
     version: currentManuscript?.version ?? (manuscripts.length || null),

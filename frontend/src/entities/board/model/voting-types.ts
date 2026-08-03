@@ -27,7 +27,6 @@ export type SessionProposalOutcome = {
   decision: SessionOutcomeDecision;
   approve: number;
   reject: number;
-  abstain: number;
   tieBreakBy?: string;
   tieBreakByName?: string;
   tieBreakDecision?: VoteDecision;
@@ -104,7 +103,7 @@ export const SESSION_STATUS_HELP: Record<
   },
   TIE_BREAK_REQUIRED: {
     description: "Legacy tie-break history. It is kept for audit and is read-only.",
-    nextStep: "No EIC action is required; current ties use a fresh Board re-vote.",
+    nextStep: "No special tie-break action is required; current ties use a fresh Board re-vote.",
   },
   FINALIZED: {
     description: "The Board decision is complete and this round is immutable.",
@@ -134,5 +133,3 @@ export const OUTCOME_LABEL: Record<SessionOutcomeDecision, string> = {
   NO_QUORUM: "No Quorum",
   PENDING: "Pending",
 };
-
-export const EIC_TIEBREAK_WEIGHT = 2;

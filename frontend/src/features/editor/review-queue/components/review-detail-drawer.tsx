@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { PenTool } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+} from "@/components/ui/modal";
 import type { ReviewItem } from "../../model/editor-access";
 import { formatDateTime } from "@/shared/lib/format-date";
 import { PriorityPill } from "@/entities/submission";
@@ -17,19 +23,19 @@ export function ReviewDetailDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+    <Modal open={open} onOpenChange={onOpenChange}>
+      <ModalContent className="max-w-md max-h-[90vh] overflow-y-auto">
         {!item ? null : (
-          <div className="space-y-5">
-            <header className="border-b border-border pb-4">
+          <div className="space-y-4">
+            <ModalHeader>
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Review detail
+                Review detail · {item.kind}
               </p>
-              <h2 className="mt-1 font-serif text-2xl">{item.title}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {item.kind} - {item.submittedBy}
-              </p>
-            </header>
+              <ModalTitle className="text-xl font-bold font-serif">{item.title}</ModalTitle>
+              <ModalDescription className="text-xs text-muted-foreground">
+                Submitted by {item.submittedBy}
+              </ModalDescription>
+            </ModalHeader>
 
             <section className="grid grid-cols-2 gap-2 text-xs">
               <Info label="Status" value={<ReviewStatusPill status={item.status} />} />
@@ -45,13 +51,13 @@ export function ReviewDetailDrawer({
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Review SLA
               </p>
-              <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="mt-2 flex items-center justify-between gap-3">
                 <span className="text-xs text-muted-foreground">Deadline risk</span>
                 <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   {item.deadline ? "Tracked" : "No deadline"}
                 </span>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Use the full review route for annotations, checklist, feedback, and decision
                 actions.
               </p>
@@ -69,10 +75,12 @@ export function ReviewDetailDrawer({
             ) : null}
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </ModalContent>
+    </Modal>
   );
 }
+
+export { ReviewDetailDrawer as ReviewDetailModal };
 
 function Info({ label, value }: { label: string; value: ReactNode }) {
   return (

@@ -152,7 +152,7 @@ function canShowAssistantSubmissionPanel(
 }
 
 function isAssistantTaskReadOnly(task: StudioTask, userId: string): boolean {
-  return task.assigneeId !== userId || task.blocked === true || task.status !== "IN_PROGRESS";
+  return task.assigneeId !== userId || task.status !== "IN_PROGRESS";
 }
 
 function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; readOnly: boolean }) {
@@ -369,8 +369,6 @@ function InspectorBody({
   onTaskAction,
   onReviewSubmission,
 }: Props) {
-  const [blockReason, setBlockReason] = useState("");
-  const [isBlockExpanded, setIsBlockExpanded] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
   const [isRevisionNoteExpanded, setIsRevisionNoteExpanded] = useState(false);
 
@@ -595,17 +593,6 @@ function InspectorBody({
           <SectionTitle>{task.title}</SectionTitle>
           <Pill className={TASK_STATUS_BADGE[task.status]}>{task.status}</Pill>
         </div>
-        {task.blocked && (
-          <div className="mb-3 flex items-start gap-2 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-            <div>
-              <p className="font-bold">Task Blocked</p>
-              <p className="text-[11px] leading-tight">
-                Reason: {task.blockedReason || "Unspecified"}
-              </p>
-            </div>
-          </div>
-        )}
         <div className="divide-y divide-border/60">
           <Field label="ID" value={<code className="text-[11px]">{task.id}</code>} />
           <Field label="Type" value={REGION_TYPE_LABEL[task.type]} />
@@ -614,7 +601,7 @@ function InspectorBody({
           <Field label="Due" value={formatDate(task.dueAt)} />
           <Field
             label="Target"
-            value={`Page ${page?.index ?? "—"} · Region ${task.regionId?.slice(-4) ?? "—"}`}
+            value={`Page ${page?.index ?? "—"}${task.regionId ? ` · Legacy region ${task.regionId.slice(-4)}` : ""}`}
           />
           {task.pageId ? (
             <Field
@@ -677,98 +664,31 @@ function InspectorBody({
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Task Lifecycle
             </h4>
-            {task.blocked ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-9 w-full gap-1.5 text-xs"
-                onClick={() => onTaskAction?.(task.id, "unblock")}
-              >
-                Unblock Task
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                {task.status === "TODO" ? (
-                  <Button
-                    size="sm"
-                    className="h-9 w-full gap-1.5 text-xs"
-                    onClick={() => onTaskAction?.(task.id, "start")}
-                  >
-                    Start Work
-                  </Button>
-                ) : null}
+            <div className="space-y-2">
+              {task.status === "TODO" ? (
+                <Button
+                  size="sm"
+                  className="h-9 w-full gap-1.5 text-xs"
+                  onClick={() => onTaskAction?.(task.id, "start")}
+                >
+                  Start Work
+                </Button>
+              ) : null}
 
-                {[
-                  "REVISION_REQUESTED",
-                  "MANGAKA_REVISION_REQUESTED",
-                  "EDITOR_REVISION_REQUESTED",
-                ].includes(task.status) ? (
-                  <Button
-                    size="sm"
-                    className="h-9 w-full gap-1.5 text-xs"
-                    onClick={() => onTaskAction?.(task.id, "reopen")}
-                  >
-                    Reopen Task
-                  </Button>
-                ) : null}
-
-                {task.status === "TODO" || task.status === "IN_PROGRESS" ? (
-                  !isBlockExpanded ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-9 w-full text-xs"
-                      onClick={() => setIsBlockExpanded(true)}
-                    >
-                      Block Task
-                    </Button>
-                  ) : (
-                    <div className="space-y-2 rounded border border-amber-300 bg-amber-50/50 p-2 dark:border-amber-900/50 dark:bg-amber-950/20">
-                      <Label
-                        htmlFor={`block-reason-${task.id}`}
-                        className="text-[10px] font-bold text-amber-900 dark:text-amber-200"
-                      >
-                        Blocking reason
-                      </Label>
-                      <Input
-                        id={`block-reason-${task.id}`}
-                        value={blockReason}
-                        onChange={(event) => setBlockReason(event.target.value)}
-                        placeholder="Explain what is blocking this task..."
-                        className="h-8 text-xs text-foreground"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 flex-1 text-xs"
-                          onClick={() => {
-                            setIsBlockExpanded(false);
-                            setBlockReason("");
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="h-8 flex-1 bg-amber-700 text-xs text-white hover:bg-amber-800"
-                          disabled={blockReason.trim().length < 3}
-                          onClick={() => {
-                            onTaskAction?.(task.id, "block", {
-                              blockedReason: blockReason.trim(),
-                            });
-                            setIsBlockExpanded(false);
-                            setBlockReason("");
-                          }}
-                        >
-                          Confirm Block
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                ) : null}
-              </div>
-            )}
+              {[
+                "REVISION_REQUESTED",
+                "MANGAKA_REVISION_REQUESTED",
+                "EDITOR_REVISION_REQUESTED",
+              ].includes(task.status) ? (
+                <Button
+                  size="sm"
+                  className="h-9 w-full gap-1.5 text-xs"
+                  onClick={() => onTaskAction?.(task.id, "reopen")}
+                >
+                  Reopen Task
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : null}
 

@@ -19,10 +19,6 @@ const BE_LABELS: Record<string, { ok: string; fail: string }> = {
     ok: "No blocking comments on page/region/task/submission",
     fail: "Unresolved blocking comments (page/region/task/submission)",
   },
-  reviewMaterialActive: {
-    ok: "Review materials are ACTIVE or APPROVED",
-    fail: "Review materials are not ACTIVE or APPROVED",
-  },
 };
 
 export function ChapterReadiness({

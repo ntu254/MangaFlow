@@ -22,7 +22,6 @@ const TYPE_LABEL: Record<ProposalEvent["type"], string> = {
   WITHDRAW: "withdrew proposal",
   CLAIM: "claimed review",
   RELEASE_CLAIM: "released claim",
-  REASSIGN_CLAIM: "reassigned claim",
   EDIT: "updated",
   TIE_BREAK: "moved to tie-break",
   MANUSCRIPT_UPLOAD: "uploaded manuscript",

@@ -12,7 +12,6 @@ export const DEFAULT_BOARD_ELIGIBLE_VOTER_IDS = [
   "u-board-5",
 ];
 export const BOARD_QUORUM = 3;
-export const EIC_TIEBREAK_WEIGHT = 2;
 
 export async function activeBoardElectorate() {
   const voters = await UserModel.find({
@@ -53,47 +52,57 @@ export function evaluateBoardTally(
   quorum = BOARD_QUORUM,
   eligibleVoterCount = BOARD_TOTAL,
 ) {
-  const approve = votes
+  // Legacy ABSTAIN records may still exist in old databases. They are not a
+  // valid decision in the current workflow and must not count toward quorum,
+  // majority, or the all-members-voted tie condition.
+  const validVotes = votes.filter(
+    (vote) => vote.decision === "APPROVE" || vote.decision === "REJECT",
+  );
+  const approve = validVotes
     .filter((vote) => vote.decision === "APPROVE")
     .reduce((sum, vote) => sum + Number(vote.weight ?? 1), 0);
-  const reject = votes
+  const reject = validVotes
     .filter((vote) => vote.decision === "REJECT")
     .reduce((sum, vote) => sum + Number(vote.weight ?? 1), 0);
-  const abstain = votes.filter((vote) => vote.decision === "ABSTAIN").length;
-  const total = votes.length;
+  const total = validVotes.length;
 
-  if (approve >= quorum)
+  if (total < quorum) {
     return {
       approve,
       reject,
-      abstain,
+      total,
+      status: null,
+      reason: `Waiting for quorum (${total}/${quorum} votes).`,
+    };
+  }
+  if (approve > reject)
+    return {
+      approve,
+      reject,
       total,
       status: "APPROVED" as ProposalStatus,
-      reason: `Quorum ${approve} APPROVE >= ${quorum}.`,
+      reason: `Board majority ${approve} APPROVE to ${reject} REJECT.`,
     };
-  if (reject >= quorum)
+  if (reject > approve)
     return {
       approve,
       reject,
-      abstain,
       total,
       status: "REJECTED" as ProposalStatus,
-      reason: `Quorum ${reject} REJECT >= ${quorum}.`,
+      reason: `Board majority ${reject} REJECT to ${approve} APPROVE.`,
     };
   if (total >= eligibleVoterCount && approve === reject) {
     return {
       approve,
       reject,
-      abstain,
       total,
       status: "TIE_BREAK" as ProposalStatus,
-      reason: "Split vote. Editor-in-chief tie-break required.",
+      reason: "Split vote. The Board must start a fresh re-vote.",
     };
   }
   return {
     approve,
     reject,
-    abstain,
     total,
     status: null,
     reason: `Waiting for more votes (${total}/${eligibleVoterCount}).`,
@@ -109,6 +118,5 @@ export function normalizeBoardVote(vote: any) {
     createdAt: vote.createdAt ?? vote.votedAt ?? nowIso(),
     weight: Number(vote.weight ?? 1),
     isChair: Boolean(vote.isChair ?? false),
-    isEditorInChief: Boolean(vote.isEditorInChief ?? false),
   };
 }

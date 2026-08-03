@@ -40,7 +40,7 @@ import { UsersTable } from "./users-table";
 
 type RoleFilter = "ALL" | Role;
 type StatusFilter = "ALL" | "ACTIVE" | "DEACTIVATED";
-type PrivilegeFilter = "ALL" | "CHAIR" | "EDITOR";
+type PrivilegeFilter = "ALL" | "CHAIR";
 
 const ROWS_PER_PAGE = 10;
 
@@ -91,7 +91,7 @@ export function AdminUsersPage() {
       })
       .filter((user) => {
         if (privilegeFilter === "ALL") return true;
-        return privilegeFilter === "CHAIR" ? user.isChair === true : user.isEditorInChief === true;
+        return user.isChair === true;
       })
       .filter((user) => !needle || `${user.name} ${user.email}`.toLowerCase().includes(needle));
   }, [users, query, roleFilter, statusFilter, privilegeFilter]);
@@ -240,7 +240,6 @@ export function AdminUsersPage() {
               >
                 <SelectItem value="ALL">All Privileges</SelectItem>
                 <SelectItem value="CHAIR">Chair</SelectItem>
-                <SelectItem value="EDITOR">Editor-in-Chief</SelectItem>
               </FilterSelect>
             </>
           }

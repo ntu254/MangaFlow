@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Eye, Megaphone, RefreshCw, RotateCcw, Users } from "lucide-react";
+import { Bell, Eye, Megaphone, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -27,7 +27,6 @@ import {
   SearchToolbar,
   SortableHeader,
   StateBlock,
-  StatusPill,
 } from "@/shared/ui";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 import { toast } from "sonner";
@@ -41,7 +40,6 @@ import { BroadcastDetailSheet, type BroadcastDetail } from "./broadcast-detail-s
 import { CreateBroadcastDialog } from "./create-broadcast-dialog";
 
 type AudienceFilter = "ALL" | "ALL_USERS" | "ROLE" | "USER";
-type StatusFilter = "ALL" | "SENT" | "ARCHIVED";
 const ROWS_PER_PAGE = 10;
 
 function groupBroadcasts(items: ManagedNotification[]): BroadcastDetail[] {
@@ -71,7 +69,6 @@ export function AdminNotificationsPage() {
   const [selected, setSelected] = useState<BroadcastDetail | null>(null);
   const [search, setSearch] = useState("");
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>("ALL");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [page, setPage] = useState(1);
 
   const broadcasts = useMemo(() => groupBroadcasts(managedItems), [managedItems]);
@@ -88,13 +85,9 @@ export function AdminNotificationsPage() {
         (audienceFilter === "ALL_USERS" && broadcast.audienceType === "ALL") ||
         (audienceFilter === "ROLE" && broadcast.audienceType === "ROLE") ||
         (audienceFilter === "USER" && broadcast.audienceType === "USER");
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "ARCHIVED" && Boolean(broadcast.archivedAt)) ||
-        (statusFilter === "SENT" && !broadcast.archivedAt);
-      return matchesSearch && matchesAudience && matchesStatus;
+      return matchesSearch && matchesAudience;
     });
-  }, [audienceFilter, broadcasts, search, statusFilter]);
+  }, [audienceFilter, broadcasts, search]);
   const {
     sorted: sortedBroadcasts,
     sortKey,
@@ -112,24 +105,21 @@ export function AdminNotificationsPage() {
             : "Specific user",
       recipients: (broadcast) => broadcast.recipientCount,
       priority: (broadcast) => broadcast.priority ?? "NORMAL",
-      status: (broadcast) => (broadcast.archivedAt ? "archived" : "sent"),
       sentAt: (broadcast) => new Date(broadcast.sentAt ?? broadcast.createdAt),
     },
     { key: "sentAt", direction: "desc" },
   );
-  useEffect(() => setPage(1), [audienceFilter, search, statusFilter, sortKey, sortDirection]);
+  useEffect(() => setPage(1), [audienceFilter, search, sortKey, sortDirection]);
   useEffect(() => {
     const lastPage = Math.max(1, Math.ceil(filteredBroadcasts.length / ROWS_PER_PAGE));
     setPage((currentPage) => Math.min(currentPage, lastPage));
   }, [filteredBroadcasts.length]);
 
-  const activeCount = broadcasts.filter((broadcast) => !broadcast.archivedAt).length;
-  const archivedCount = broadcasts.filter((broadcast) => Boolean(broadcast.archivedAt)).length;
   const recipientCount = broadcasts.reduce(
     (total, broadcast) => total + broadcast.recipientCount,
     0,
   );
-  const hasFilters = Boolean(search) || audienceFilter !== "ALL" || statusFilter !== "ALL";
+  const hasFilters = Boolean(search) || audienceFilter !== "ALL";
   const visibleBroadcasts = sortedBroadcasts.slice(
     (page - 1) * ROWS_PER_PAGE,
     page * ROWS_PER_PAGE,
@@ -145,13 +135,13 @@ export function AdminNotificationsPage() {
     );
   }
 
-  const archive = (broadcast: BroadcastDetail) => {
+  const deleteBroadcast = (broadcast: BroadcastDetail) => {
     deleteNotification.mutate(broadcast.id, {
       onSuccess: () => {
-        toast.success("Broadcast archived.");
+        toast.success("Broadcast deleted.");
         setSelected(null);
       },
-      onError: (archiveError) => toast.error(mapAdminError(archiveError)),
+      onError: (deleteError) => toast.error(mapAdminError(deleteError)),
     });
   };
 
@@ -181,25 +171,19 @@ export function AdminNotificationsPage() {
           }
         />
 
-        <MetricGrid className="mt-7 md:grid-cols-3">
+        <MetricGrid className="mt-7 md:grid-cols-2">
           <MetricCard
             icon={<Bell className="size-5" />}
             label="Total broadcasts"
             value={broadcasts.length}
-            hint="All sent and archived messages"
+            hint="All sent messages"
           />
           <MetricCard
             icon={<Megaphone className="size-5" />}
-            label="Active"
-            value={activeCount}
-            hint="Visible to recipients"
-            tone="success"
-          />
-          <MetricCard
-            icon={<Users className="size-5" />}
             label="Recipients reached"
             value={recipientCount}
-            hint={`${archivedCount} archived broadcast${archivedCount === 1 ? "" : "s"}`}
+            hint="Across all broadcasts"
+            tone="success"
           />
         </MetricGrid>
 
@@ -224,19 +208,6 @@ export function AdminNotificationsPage() {
                   <SelectItem value="USER">Specific user</SelectItem>
                 </SelectContent>
               </Select>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-              >
-                <SelectTrigger className="h-10 w-[140px] rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px] shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="SENT">Sent</SelectItem>
-                  <SelectItem value="ARCHIVED">Archived</SelectItem>
-                </SelectContent>
-              </Select>
             </>
           }
           actions={
@@ -247,7 +218,6 @@ export function AdminNotificationsPage() {
               onClick={() => {
                 setSearch("");
                 setAudienceFilter("ALL");
-                setStatusFilter("ALL");
               }}
               className="h-10 gap-2 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] shadow-sm"
             >
@@ -257,7 +227,7 @@ export function AdminNotificationsPage() {
           }
         />
 
-        <DataTable className="mt-5" isLoading={isLoading} skeletonRows={6} skeletonColumns={7}>
+        <DataTable className="mt-5" isLoading={isLoading} skeletonRows={6} skeletonColumns={6}>
           {error ? (
             <div className="p-5">
               <StateBlock
@@ -326,15 +296,6 @@ export function AdminNotificationsPage() {
                     </TableHead>
                     <TableHead className="font-serif text-[14px] font-semibold text-[var(--admin-ink)]">
                       <SortableHeader
-                        label="Status"
-                        sortKey="status"
-                        activeSortKey={sortKey}
-                        direction={sortDirection}
-                        onSort={toggleSort}
-                      />
-                    </TableHead>
-                    <TableHead className="font-serif text-[14px] font-semibold text-[var(--admin-ink)]">
-                      <SortableHeader
                         label="Sent"
                         sortKey="sentAt"
                         activeSortKey={sortKey}
@@ -342,9 +303,9 @@ export function AdminNotificationsPage() {
                         onSort={toggleSort}
                       />
                     </TableHead>
-                  <TableHead className="pr-5 text-center font-serif text-[14px] font-semibold text-[var(--admin-ink)]">
-                    Actions
-                  </TableHead>
+                    <TableHead className="pr-5 text-center font-serif text-[14px] font-semibold text-[var(--admin-ink)]">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -373,9 +334,6 @@ export function AdminNotificationsPage() {
                       </TableCell>
                       <TableCell className="text-xs text-[var(--admin-muted)]">
                         {broadcast.priority ?? "NORMAL"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusPill status={broadcast.archivedAt ? "locked" : "ready"} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs text-[var(--admin-faint)]">
                         {formatDateTime(broadcast.sentAt ?? broadcast.createdAt)}
@@ -418,8 +376,8 @@ export function AdminNotificationsPage() {
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
-        onArchive={() => selected && archive(selected)}
-        archiving={deleteNotification.isPending}
+        onDelete={() => selected && deleteBroadcast(selected)}
+        deleting={deleteNotification.isPending}
       />
     </PageFrame>
   );

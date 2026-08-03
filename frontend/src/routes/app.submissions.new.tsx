@@ -1,9 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { NewProposalPage } from "@/features/proposals/create";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/submissions/new")({
-  head: () => ({
-    meta: [{ title: "New Series Proposal — MangaFlow Studio" }],
-  }),
-  component: NewProposalPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/proposals/new" });
+  },
 });

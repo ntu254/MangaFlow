@@ -20,7 +20,7 @@ The mobile experience will not copy the complete web application. It will use a 
 The current mobile implementation has grown from a mock-oriented shell into a partially live client. It now calls real endpoints, but it still has several alignment risks:
 
 - Mobile-specific mapping code uses loosely typed payloads and reconstructs presentation state from ad hoc fields.
-- Some mobile copy and screen ownership do not reflect canonical governance. New ties no longer expose an Editor-in-Chief action; closing a tied round atomically opens a fresh Board re-vote.
+- Some mobile copy and screen ownership do not reflect canonical governance. New ties expose no special editor action; closing a tied round atomically opens a fresh Board re-vote.
 - Several source-based tests assert strings and endpoint hints rather than executable behavior.
 - The app can present fallback reference data near live data, which risks making unavailable or stale workflows look actionable.
 - The current dashboard-first structure gives equal visual weight to summaries and actions, while the primary mobile need is resolving the next important decision.
@@ -224,7 +224,7 @@ Supported actions:
 - Reject with required reason.
 - Forward to Board with the backend-required publication cadence and note.
 
-Self-review, claim, EIC, and assignment guards remain backend-owned.
+Self-review, claim, and assignment guards remain backend-owned.
 
 ### Chapter review
 

@@ -33,7 +33,7 @@ export const seriesApi = {
   chapterReviews: (chapterId: string) => apiRequest(`/chapters/${chapterId}/reviews`),
   // Tantou Editor
   getEditor: (seriesId: string) => apiRequest(`/series/${seriesId}/editor`),
-  assignEditor: (seriesId: string, body: { editorId: string; editorName: string }) =>
+  assignEditor: (seriesId: string, body: { editorId: string }) =>
     apiRequest(`/series/${seriesId}/editor`, { method: "POST", body }),
   removeEditor: (seriesId: string) =>
     apiRequest(`/series/${seriesId}/editor`, { method: "DELETE" }),

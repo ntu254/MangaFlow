@@ -21,8 +21,7 @@ export function buildBoardQueue(proposals: SeriesProposal[]) {
     )
     .map((proposal) => {
       const votes = summarizeVotes(proposal);
-      const needsFinalize =
-        proposal.status === "PENDING_BOARD" && votes.total >= BOARD_TOTAL && !votes.status;
+      const needsFinalize = proposal.status === "PENDING_BOARD" && Boolean(votes.status);
       return {
         proposal,
         votes,
