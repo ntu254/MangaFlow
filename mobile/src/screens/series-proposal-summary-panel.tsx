@@ -1,33 +1,59 @@
 import { Text, View, StyleSheet } from "react-native"
 import { MFBadge, MFCard, MFDetailList, MFEmptyState } from "@/components/mf"
+import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import type { SeriesProposalSummary, Tone } from "@/domain/workflow"
+import type { ReviewFile } from "@/domain/review-files"
 import { colors, spacing } from "@/design/tokens"
 
 export function SeriesProposalSummaryPanel({
   summary,
   loading,
   role,
+  files,
+  filesLoading = false,
+  filesError,
 }: {
   summary: SeriesProposalSummary | null
   loading: boolean
   role: "editor" | "board"
+  files: ReviewFile[]
+  filesLoading?: boolean
+  filesError?: string | null
 }) {
   if (loading) {
     return (
-      <MFCard>
-        <Text style={styles.kicker}>Live proposal summary</Text>
-        <Text style={styles.muted}>Loading read-only series summary from GET /api/series/:seriesId/summary...</Text>
-      </MFCard>
+      <>
+        <MFCard>
+          <Text style={styles.kicker}>Live proposal summary</Text>
+          <Text style={styles.muted}>Loading read-only series summary from GET /api/series/:seriesId/summary...</Text>
+        </MFCard>
+        <SubmittedFilesPanel
+          files={files}
+          role={role}
+          title="Submitted proposal files"
+          loading={filesLoading}
+          errorText={filesError}
+        />
+      </>
     )
   }
 
   if (!summary) {
     return (
-      <MFEmptyState
-        title="No proposal summary"
-        subtitle="The review queue is still usable; summary details appear when the live read endpoint responds."
-        icon="file-text"
-      />
+      <>
+        <MFEmptyState
+          title="No proposal summary"
+          subtitle="The review queue is still usable; summary details appear when the live read endpoint responds."
+          icon="file-text"
+        />
+        <SubmittedFilesPanel
+          files={files}
+          role={role}
+          title="Submitted proposal files"
+          loading={filesLoading}
+          errorText={filesError}
+        />
+      </>
     )
   }
 
@@ -83,6 +109,13 @@ export function SeriesProposalSummaryPanel({
           icon: "scale-balance",
         },
       ]} />
+      <SubmittedFilesPanel
+        files={files}
+        role={role}
+        title="Submitted proposal files"
+        loading={filesLoading}
+        errorText={filesError}
+      />
     </>
   )
 }

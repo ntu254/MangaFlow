@@ -19,6 +19,28 @@ const viewerSource = readFileSync(
   new URL("../components/review-file-viewer.tsx", import.meta.url),
   "utf8",
 );
+const boardHookSource = readFileSync(
+  new URL("../hooks/use-board-mobile-flow.ts", import.meta.url),
+  "utf8",
+);
+const editorHookSource = readFileSync(
+  new URL("../hooks/use-editor-mobile-flow.ts", import.meta.url),
+  "utf8",
+);
+const proposalPanelSource = readFileSync(
+  new URL("../screens/series-proposal-summary-panel.tsx", import.meta.url),
+  "utf8",
+);
+const editorScreenSource = readFileSync(
+  new URL("../screens/editor-screens.tsx", import.meta.url),
+  "utf8",
+);
+const readmeSource = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+const contextSource = readFileSync(new URL("../../MOBILE_AGENT_CONTEXT.md", import.meta.url), "utf8");
+const fileFlowSource = readFileSync(
+  new URL("../../../docs/business-flows/11-file-management.md", import.meta.url),
+  "utf8",
+);
 
 test("review-file lease refreshes before a 900-second URL expires", () => {
   const lease = { url: "https://signed.example/file", expiresAtMs: 900_000 };
@@ -73,4 +95,29 @@ test("viewer refreshes one expired URL before showing Retry", () => {
   assert.match(viewerSource, /hasRetriedRef/);
   assert.match(viewerSource, /shouldRefreshLease/);
   assert.match(viewerSource, /Retry/);
+});
+
+test("viewer ignores stale leases and opens an externally refreshed URL", () => {
+  assert.match(viewerSource, /requestVersionRef/);
+  assert.match(viewerSource, /requestVersion !== requestVersionRef\.current/);
+  assert.match(viewerSource, /let activeLease = lease/);
+  assert.match(viewerSource, /await Linking\.openURL\(activeLease\.url\)/);
+});
+
+test("Board proposal detail loads proposal files only", () => {
+  assert.match(boardHookSource, /getReviewFiles\("proposal", selectedSeries\.id, "board"\)/);
+  assert.doesNotMatch(boardHookSource, /getReviewFiles\("chapter"/);
+  assert.match(proposalPanelSource, /SubmittedFilesPanel/);
+});
+
+test("Editor mounts proposal and chapter submitted-file panels", () => {
+  assert.match(editorHookSource, /getReviewFiles\("proposal", selectedManuscript\.id, "editor"\)/);
+  assert.match(editorHookSource, /getReviewFiles\("chapter", chapterId, "editor"\)/);
+  assert.match(editorScreenSource, /SubmittedFilesPanel/);
+});
+
+test("mobile documentation records file renewal and role boundaries", () => {
+  assert.match(readmeSource, /900-second/);
+  assert.match(contextSource, /Board.*proposal.*only/is);
+  assert.match(fileFlowSource, /Mobile submitted-file review/);
 });

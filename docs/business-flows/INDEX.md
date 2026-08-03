@@ -369,7 +369,8 @@ Material status transitions are enforced by `material.controller.ts` and
 |---|---|---|---|
 | Presign upload | `POST /api/files/presign-upload` | `series.controller.ts:831` | EDITOR, MANGAKA, ASSISTANT |
 | Presign download | `POST /api/files/presign-download` | `series.controller.ts:861` | BOARD, EDITOR, MANGAKA, ASSISTANT |
-| Display URL | `POST /api/files/display-url` | `series.controller.ts:869` | EDITOR, MANGAKA, ASSISTANT |
+| List review files | `GET /api/review-files/:context/:id` | `review-file.controller.ts` | BOARD (Proposal only), EDITOR (scoped Proposal/Chapter) |
+| Display URL | `POST /api/files/display-url` | `series.controller.ts:869` | BOARD (visible Proposal key only), EDITOR, MANGAKA, ASSISTANT |
 | Local upload (PUT) | `PUT /api/files/local-upload/:token` | `file-token.controller.ts:34` | All (token-authed) |
 | Display file (GET) | `GET /api/files/display/:token` | `file-token.controller.ts:46` | All (token-authed) |
 

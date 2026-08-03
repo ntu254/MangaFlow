@@ -24,6 +24,7 @@ import type { EditorReadinessCheck } from "@/domain/workflow";
 import { MFIcon, type IconName } from "@/design/icons";
 import { colors, radius, spacing } from "@/design/tokens";
 import { useEditorMobileFlow } from "@/hooks/use-editor-mobile-flow";
+import { SubmittedFilesPanel } from "@/components/submitted-files-panel";
 import {
   EditorFinalApprovalDecisionPanel,
   EditorProposalDecisionPanel,
@@ -147,6 +148,9 @@ export function EditorManuscriptsScreen() {
             summary={flow.selectedProposalSummary}
             loading={flow.proposalSummaryLoading}
             role="editor"
+            files={flow.selectedProposalFiles}
+            filesLoading={flow.proposalFilesLoading}
+            filesError={flow.proposalFilesError}
           />
           <EditorProposalDecisionPanel
             item={selected}
@@ -410,6 +414,13 @@ function EditorSubmissionReviewDetail({ flow }: { flow: ReturnType<typeof useEdi
                 tone: item.linkedCommentCount > 0 ? "warning" : "success",
               },
             ]}
+          />
+          <SubmittedFilesPanel
+            files={flow.selectedChapterFiles}
+            role="editor"
+            title="Submitted chapter files"
+            loading={flow.chapterFilesLoading}
+            errorText={flow.chapterFilesError}
           />
           <EditorFinalApprovalDecisionPanel
             item={item}

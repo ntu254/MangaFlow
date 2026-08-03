@@ -11,17 +11,25 @@ export function SubmittedFilesPanel({
   files,
   role,
   title = "Submitted files",
+  loading = false,
+  errorText,
 }: {
   files: ReviewFile[];
   role: MobileApiRole;
   title?: string;
+  loading?: boolean;
+  errorText?: string | null;
 }) {
   const [selectedFile, setSelectedFile] = useState<ReviewFile | null>(null);
 
   return (
     <View style={styles.panel}>
       <Text accessibilityRole="header" style={styles.title}>{title}</Text>
-      {files.length === 0 ? (
+      {loading ? (
+        <Text style={styles.empty}>Loading submitted files…</Text>
+      ) : errorText ? (
+        <Text style={styles.empty}>{errorText}</Text>
+      ) : files.length === 0 ? (
         <Text style={styles.empty}>No submitted files are available for this review.</Text>
       ) : (
         <View style={styles.list}>

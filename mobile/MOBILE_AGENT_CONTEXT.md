@@ -13,18 +13,13 @@ Do not add Admin, Mangaka, or Assistant mobile surfaces unless a new story and c
 
 Read these before changing mobile:
 
-- `AGENTS.md`
 - `mobile/README.md`
-- `mobile/UI-mobile_Requirement.md`
-- `docs/product/overview.md`
-- `docs/product/requirements.md`
-- `docs/product/user-flow.md`
-- `docs/contracts/main.md`
-- `docs/contracts/workflow-status.md`
-- `docs/contracts/ui-main.md`
-- `docs/contracts/ui-review.md`
-- `docs/contracts/ui-board.md`
-- Relevant role contracts such as `manuscript-review.md`, `submission-review.md`, `comment-resolution.md`, `board-approval.md`, and `publication-ranking.md`
+- `docs/business-flows/INDEX.md`
+- `docs/business-flows/02-proposal-lifecycle.md`
+- `docs/business-flows/04-chapter-workflow.md`
+- `docs/business-flows/05-assistant-submission.md`
+- `docs/business-flows/06-board-governance.md`
+- `docs/business-flows/11-file-management.md`
 
 ## Mobile Architecture
 
@@ -43,6 +38,9 @@ mobile/src/hooks/
 
 mobile/src/screens/
   Thin role screens composed from shared mobile UI primitives.
+
+mobile/src/components/{submitted-files-panel,review-file-viewer}.tsx
+  Role-scoped submitted-file list and short-lived preview UI.
 ```
 
 ## Mock/API Boundary
@@ -51,6 +49,7 @@ mobile/src/screens/
 - Mock actions may update local UI messages only.
 - Do not implement backend permissions, workflow transitions, readiness calculation, ranking formula, payroll, or signed URL access in mobile.
 - Mobile may display backend-owned results, such as publication readiness checklist output, but must not recompute them.
+- Review-file metadata is safe to keep in view state. A display URL is obtained lazily, stays only in memory, is refreshed 30 seconds before its 900-second lifetime, and is never mocked or persisted.
 
 ## Role Flows
 
@@ -59,6 +58,7 @@ mobile/src/screens/
 - Home: action cards, queues, priority readiness summary, recent activity.
 - Manuscript review: proposal queue, selected proposal preview, mock actions `request-revision`, `reject`, `forward-to-board`.
 - Final approval: consolidated Chapter review only; Assistant submissions are read-only reference context.
+- Submitted-file review: permitted Proposal files and assigned Chapter files; every open re-runs backend authorization.
 - Comments: lifecycle `OPEN -> FIXED_BY_ASSISTANT -> VERIFIED_BY_MANGAKA -> RESOLVED_BY_EDITOR`.
 - Readiness: displays mock `PublicationReadinessService` output with item-level pass/fail reasons.
 
@@ -66,6 +66,7 @@ mobile/src/screens/
 
 - Home: pending votes, tie-break queue, ranking, at-risk queue.
 - Series reviews: `BOARD_REVIEW` proposals and vote options `APPROVE`, `REJECT`, `NEEDS_REVISION`.
+- Submitted-file review: Proposal files only. Never add Board access to Chapter, Page, Task, Submission, or production Material files.
 - Tie-break: only visible as Board Chair resolution when mock decision status is `TIE_BREAK_REQUIRED`.
 - Ranking: imported ranking preview with readerScore in the contract range.
 - At-risk: manual decisions `CONTINUE`, `WARNING`, `REQUEST_IMPROVEMENT_PLAN`, `CANCEL`; cancellation is never automatic.
@@ -83,6 +84,7 @@ mobile/src/screens/
 - `MF-HIOS-102`: Mobile action panel componentization. Editor proposal/final approval actions live in `mobile/src/screens/editor-action-panels.tsx`; Board vote/tie-break/at-risk action panels live in `mobile/src/screens/board-action-panels.tsx` so confirmation copy and future endpoint hints stay near the action boundary.
 - `MF-HIOS-103`: Mobile action visual polish. Shared action buttons, segmented controls, status chips, confirmation panels, readiness blockers, ranking rows, handoff, and profile surfaces now use aligned mobile touch targets and readable labels while preserving mock-only action boundaries.
 - `MF-HIOS-104`: Mobile edge-case visual QA. Shared queue empty states, long-label clamps, wrapped action rows, readiness rows, ranking rows, comment rows, badges, tabs, and action pills are hardened for narrow mobile widths without changing workflow behavior.
+- Mobile submitted-file review: Board Proposal and assigned Editor Proposal/Chapter metadata are listed in review details. Image/PDF preview URLs are requested on demand, refreshed before expiry, and remain backend-authorized.
 
 ## Forbidden Shortcuts
 

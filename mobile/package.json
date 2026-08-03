@@ -50,7 +50,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "npx tsc --noEmit",
-    "test": "jest --runInBand --forceExit",
+    "test": "npm run test:legacy && jest --runInBand --forceExit --passWithNoTests",
     "test:watch": "jest --watch",
     "test:legacy": "node --no-warnings --experimental-strip-types --test ./src/__tests__/mobile-data.test.mjs ./src/__tests__/mobile-file-review.test.mjs",
     "build": "expo export --platform web --output-dir dist"

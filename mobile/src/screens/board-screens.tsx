@@ -62,7 +62,14 @@ export function BoardReviewsScreen() {
       </View>
       {selected ? (
         <>
-          <SeriesProposalSummaryPanel summary={flow.selectedProposalSummary} loading={flow.proposalSummaryLoading} role="board" />
+          <SeriesProposalSummaryPanel
+            summary={flow.selectedProposalSummary}
+            loading={flow.proposalSummaryLoading}
+            role="board"
+            files={flow.selectedProposalFiles}
+            filesLoading={flow.proposalFilesLoading}
+            filesError={flow.proposalFilesError}
+          />
           <BoardVotePanel item={selected} onVote={flow.startVote} onFinalize={flow.startFinalizeDecision} />
         </>
       ) : null}

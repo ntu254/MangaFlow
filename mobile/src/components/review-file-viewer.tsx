@@ -28,35 +28,49 @@ export function ReviewFileViewer({
   const [lease, setLease] = useState<FileUrlLease | null>(null);
   const [status, setStatus] = useState<ViewerStatus>("loading");
   const hasRetriedRef = useRef(false);
+  const requestVersionRef = useRef(0);
 
   const clearAndClose = useCallback(() => {
+    requestVersionRef.current += 1;
     setLease(null);
     onClose();
   }, [onClose]);
 
-  const acquireUrl = useCallback(async () => {
-    if (!file) return;
+  const acquireUrl = useCallback(async (): Promise<FileUrlLease | null> => {
+    if (!file) return null;
+    const requestVersion = ++requestVersionRef.current;
     setStatus("loading");
     try {
       const nextLease = await openReviewFile(file, role);
+      if (requestVersion !== requestVersionRef.current) return null;
       setLease(nextLease);
       setStatus("ready");
+      return nextLease;
     } catch (error) {
+      if (requestVersion !== requestVersionRef.current) return null;
       if (error instanceof MobileFileReviewHttpError && error.status === 403) {
         setLease(null);
         setStatus("denied");
         clearAndClose();
-        return;
+        return null;
       }
       setStatus(error instanceof MobileFileReviewHttpError && error.status === 404 ? "unavailable" : "error");
+      return null;
     }
   }, [clearAndClose, file, role]);
 
   useEffect(() => {
-    if (!visible || !file) return;
+    if (!visible || !file) {
+      requestVersionRef.current += 1;
+      setLease(null);
+      return;
+    }
     hasRetriedRef.current = false;
     setLease(null);
     void acquireUrl();
+    return () => {
+      requestVersionRef.current += 1;
+    };
   }, [acquireUrl, file, visible]);
 
   const refreshAfterFailure = useCallback(() => {
@@ -78,12 +92,14 @@ export function ReviewFileViewer({
   const openExternally = useCallback(async () => {
     if (!lease || !file) return;
     try {
+      let activeLease = lease;
       if (shouldRefreshLease(lease, Date.now())) {
         hasRetriedRef.current = false;
-        await acquireUrl();
-        return;
+        const refreshedLease = await acquireUrl();
+        if (!refreshedLease) return;
+        activeLease = refreshedLease;
       }
-      await Linking.openURL(lease.url);
+      await Linking.openURL(activeLease.url);
     } catch {
       refreshAfterFailure();
     }

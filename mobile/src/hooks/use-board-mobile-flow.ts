@@ -12,6 +12,7 @@ import {
   type BoardHomePayload,
   type MobileWorkflowDataSource,
 } from "@/services/mobile-workflow-data-source";
+import { getReviewFiles, type ReviewFile } from "@/services/mobile-file-review";
 
 export function useBoardMobileFlow(
   dataSource: MobileWorkflowDataSource = mobileWorkflowDataSource,
@@ -27,6 +28,9 @@ export function useBoardMobileFlow(
   const [selectedProposalSummary, setSelectedProposalSummary] =
     useState<SeriesProposalSummary | null>(null);
   const [proposalSummaryLoading, setProposalSummaryLoading] = useState(false);
+  const [selectedProposalFiles, setSelectedProposalFiles] = useState<ReviewFile[]>([]);
+  const [proposalFilesLoading, setProposalFilesLoading] = useState(false);
+  const [proposalFilesError, setProposalFilesError] = useState<string | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState(boardSeries[0]?.id ?? "");
   const [selectedAtRiskId, setSelectedAtRiskId] = useState(atRiskTitles[0]?.id ?? "");
   const [selectedRankingId, setSelectedRankingId] = useState(boardRankings[0]?.id ?? "");
@@ -116,6 +120,35 @@ export function useBoardMobileFlow(
       cancelled = true;
     };
   }, [dataSource, loading, selectedSeries?.id]);
+
+  useEffect(() => {
+    if (loading || !selectedSeries?.id) {
+      setSelectedProposalFiles([]);
+      setProposalFilesError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setProposalFilesLoading(true);
+    setProposalFilesError(null);
+    void getReviewFiles("proposal", selectedSeries.id, "board")
+      .then((files) => {
+        if (!cancelled) setSelectedProposalFiles(files);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSelectedProposalFiles([]);
+          setProposalFilesError("Submitted files could not be loaded for this proposal.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProposalFilesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, selectedSeries?.id]);
 
   const selectedAtRiskCase = useMemo(
     () => atRiskCases.find((item) => item.id === selectedAtRiskId) ?? atRiskCases[0],
@@ -273,6 +306,9 @@ export function useBoardMobileFlow(
     selectedSeries,
     selectedProposalSummary,
     proposalSummaryLoading,
+    selectedProposalFiles,
+    proposalFilesLoading,
+    proposalFilesError,
     selectedAtRiskCase,
     selectedRanking,
     selectedSeriesId,
