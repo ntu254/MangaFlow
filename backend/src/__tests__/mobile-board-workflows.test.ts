@@ -78,13 +78,13 @@ describe("mobile board workflows", () => {
     expect(typeof detail.body.data.tally.canFinalize).toBe("boolean");
   });
 
-  it("retires the legacy mobile tie-break alias with 410", async () => {
+  it("does not expose a separate mobile tie-break command", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
     await request(createApp())
       .post("/api/board/series/p-005/decisions/tie-break")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .send({ value: "APPROVE" })
-      .expect(410);
+      .expect(404);
   });
 
   it("serves read-only rankings and denies the board inbox to an editor", async () => {

@@ -20,9 +20,15 @@ import { looseSchema } from "./schema.js";
 import { PublicationModel } from "./models/publication.model.js";
 export type { PublicationRecord } from "./models/publication.model.js";
 import { EarningItemModel, EarningModel } from "./models/earning.model.js";
-export type { EarningItemRecord, EarningRecord } from "./models/earning.model.js";
+export type {
+  EarningItemRecord,
+  EarningRecord,
+} from "./models/earning.model.js";
 import { RateTableModel } from "./models/rate-table.model.js";
-export type { RateTableRecord, RateTableStatus } from "./models/rate-table.model.js";
+export type {
+  RateTableRecord,
+  RateTableStatus,
+} from "./models/rate-table.model.js";
 
 /* ------------------------------------------------------------------ */
 /*  User                                                                */
@@ -35,7 +41,6 @@ export type UserRecord = {
   passwordHash: string;
   role: Role;
   isChair?: boolean;
-  isEditorInChief?: boolean;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -43,7 +48,13 @@ export type UserRecord = {
 
 const userSchema = looseSchema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
   passwordHash: { type: String, required: true },
   role: {
     type: String,
@@ -53,7 +64,6 @@ const userSchema = looseSchema({
   },
   active: { type: Boolean, default: true, index: true },
   isChair: { type: Boolean, default: false },
-  isEditorInChief: { type: Boolean, default: false },
 });
 userSchema.index(
   { isChair: 1 },
@@ -61,14 +71,6 @@ userSchema.index(
     unique: true,
     name: "one_active_board_chair",
     partialFilterExpression: { role: "BOARD", active: true, isChair: true },
-  },
-);
-userSchema.index(
-  { isEditorInChief: 1 },
-  {
-    unique: true,
-    name: "one_active_editor_in_chief",
-    partialFilterExpression: { role: "EDITOR", active: true, isEditorInChief: true },
   },
 );
 
@@ -191,7 +193,6 @@ export type NotificationRecord = {
   actionUrl?: string;
   batchId?: string;
   readAt?: Date;
-  archivedAt?: Date;
   createdAt: Date;
 };
 
@@ -200,16 +201,23 @@ const notificationSchema = looseSchema({
   kind: { type: String, required: true },
   title: { type: String, required: true },
   message: { type: String, required: true },
-  audienceType: { type: String, enum: ["USER", "ROLE", "ALL"], default: "USER" },
+  audienceType: {
+    type: String,
+    enum: ["USER", "ROLE", "ALL"],
+    default: "USER",
+  },
   audienceRole: { type: String },
   createdById: { type: String },
   createdByName: { type: String },
   sentAt: { type: Date },
-  priority: { type: String, enum: ["LOW", "NORMAL", "HIGH"], default: "NORMAL" },
+  priority: {
+    type: String,
+    enum: ["LOW", "NORMAL", "HIGH"],
+    default: "NORMAL",
+  },
   actionUrl: { type: String },
   batchId: { type: String, index: true },
   readAt: { type: Date },
-  archivedAt: { type: Date },
   createdAt: { type: Date, default: Date.now, index: true },
 });
 
@@ -231,7 +239,6 @@ export type ProposalVoteEmbedded = {
   createdAt?: Date;
   weight?: number;
   isChair?: boolean;
-  isEditorInChief?: boolean;
 };
 
 export type ProposalHistoryEntry = {
@@ -392,7 +399,11 @@ const proposalVoteSchema = looseSchema({
   voterId: { type: String, required: true, index: true },
   voterName: { type: String, required: true },
   voterRole: { type: String, required: true },
-  decision: { type: String, required: true, enum: ["APPROVE", "REJECT", "ABSTAIN"] },
+  decision: {
+    type: String,
+    required: true,
+    enum: ["APPROVE", "REJECT"],
+  },
   comment: { type: String },
   votedAt: { type: Date, required: true, default: Date.now },
   weight: { type: Number, default: 1 },
@@ -471,7 +482,7 @@ const seriesSchema = looseSchema({
   sourceProposalVersionId: { type: String, index: true },
   visibility: {
     type: String,
-    enum: ["PRIVATE", "PUBLIC", "UNLISTED", "ARCHIVED"],
+    enum: ["PRIVATE", "PUBLIC", "UNLISTED"],
     default: "PRIVATE",
   },
   publishedAt: { type: Date },
@@ -546,9 +557,6 @@ export type ChapterRecord = {
   readyByEditorId?: string;
   scheduledById?: string;
   publishedById?: string;
-  archivedAt?: Date;
-  archivedById?: string;
-  archiveReason?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -570,7 +578,6 @@ const chapterSchema = looseSchema({
       "READY_FOR_PUBLICATION",
       // Scheduling lives on Publication.status, never on the chapter.
       "PUBLISHED",
-      "ARCHIVED",
     ],
     index: true,
   },
@@ -588,9 +595,6 @@ const chapterSchema = looseSchema({
   readyByEditorId: { type: String },
   scheduledById: { type: String },
   publishedById: { type: String },
-  archivedAt: { type: Date },
-  archivedById: { type: String },
-  archiveReason: { type: String },
 });
 
 // Business rule: unique chapter number within a series
@@ -673,6 +677,11 @@ export type StudioTaskRecord = {
   chapterId?: string;
   pageId?: string;
   seriesId?: string;
+  /** New task contract: every new assignment targets exactly one page. */
+  targetScope?: "PAGE" | "REGION";
+  /** True while the page has an active assignment in the new page-level flow. */
+  pageTaskActive?: boolean;
+  /** @deprecated Regions are annotation/coordinate references, not task units. */
   regionId?: string;
   title?: string;
   description?: string;
@@ -681,6 +690,19 @@ export type StudioTaskRecord = {
   dueAt?: Date;
   assigneeId?: string;
   assigneeName?: string;
+  assignmentStatus?: "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";
+  assignmentAcceptedAt?: Date;
+  assignmentAcceptedById?: string;
+  assignmentRejectedAt?: Date;
+  assignmentRejectedById?: string;
+  assignmentRejectedReason?: string;
+  reassigned?: boolean;
+  reassignedFromId?: string;
+  reassignedFromName?: string;
+  reassignedToId?: string;
+  reassignedToName?: string;
+  reassignedAt?: Date;
+  reassignmentReason?: string;
   status: StudioTaskStatus;
   currentSubmissionId?: string;
   isRequired?: boolean;
@@ -691,9 +713,6 @@ export type StudioTaskRecord = {
   rateSnapshot?: number;
   estimatedAmount?: number;
   currency?: string;
-  blocked?: boolean;
-  blockedReason?: string;
-  blockedBy?: string;
   instructions?: string;
   metadata?: Record<string, unknown>;
   // Lifecycle timestamps
@@ -715,6 +734,9 @@ const studioTaskSchema = looseSchema({
   chapterId: { type: String, index: true },
   pageId: { type: String },
   seriesId: { type: String, index: true },
+  targetScope: { type: String, enum: ["PAGE", "REGION"] },
+  pageTaskActive: { type: Boolean, index: true },
+  // @deprecated Kept only for reading/migrating legacy region-scoped tasks.
   regionId: { type: String },
   title: { type: String },
   description: { type: String },
@@ -723,6 +745,25 @@ const studioTaskSchema = looseSchema({
   dueAt: { type: Date, index: true },
   assigneeId: { type: String, index: true },
   assigneeName: { type: String },
+  // Legacy tasks without this field are treated as ACCEPTED by the workflow service.
+  assignmentStatus: {
+    type: String,
+    enum: ["UNASSIGNED", "PENDING", "ACCEPTED", "REJECTED"],
+    default: "ACCEPTED",
+    index: true,
+  },
+  assignmentAcceptedAt: { type: Date },
+  assignmentAcceptedById: { type: String },
+  assignmentRejectedAt: { type: Date },
+  assignmentRejectedById: { type: String },
+  assignmentRejectedReason: { type: String },
+  reassigned: { type: Boolean },
+  reassignedFromId: { type: String },
+  reassignedFromName: { type: String },
+  reassignedToId: { type: String },
+  reassignedToName: { type: String },
+  reassignedAt: { type: Date },
+  reassignmentReason: { type: String },
   status: {
     type: String,
     default: "TODO",
@@ -748,7 +789,6 @@ const studioTaskSchema = looseSchema({
     ],
     index: true,
   },
-  blocked: { type: Boolean, default: false },
   currentSubmissionId: { type: String, index: true },
   isRequired: { type: Boolean, default: true, index: true },
   workUnitType: { type: String },
@@ -758,8 +798,6 @@ const studioTaskSchema = looseSchema({
   rateSnapshot: { type: Number },
   estimatedAmount: { type: Number },
   currency: { type: String, default: "VND" },
-  blockedReason: { type: String },
-  blockedBy: { type: String },
   instructions: { type: String },
   metadata: { type: Schema.Types.Mixed },
   startedAt: { type: Date },
@@ -774,9 +812,17 @@ const studioTaskSchema = looseSchema({
   cancelReason: { type: String },
 });
 
-studioTaskSchema.index({ assigneeId: 1, status: 1 });
+studioTaskSchema.index({ assigneeId: 1, assignmentStatus: 1, status: 1 });
 studioTaskSchema.index({ chapterId: 1, status: 1 });
 studioTaskSchema.index({ regionId: 1, status: 1 });
+studioTaskSchema.index(
+  { pageId: 1 },
+  {
+    unique: true,
+    name: "studio_task_one_active_page_assignment",
+    partialFilterExpression: { pageTaskActive: true, pageId: { $exists: true } },
+  },
+);
 studioTaskSchema.index({ priority: 1, status: 1 });
 studioTaskSchema.index({ chapterId: 1, isRequired: 1, status: 1 });
 
@@ -830,7 +876,11 @@ const studioCommentSchema = looseSchema({
   body: { type: String },
   /** @deprecated map to body */
   text: { type: String },
-  status: { type: String, default: "OPEN", enum: ["OPEN", "ADDRESSED", "RESOLVED", "REOPENED"] },
+  status: {
+    type: String,
+    default: "OPEN",
+    enum: ["OPEN", "ADDRESSED", "RESOLVED", "REOPENED"],
+  },
   /** Primary field */
   isBlocking: { type: Boolean, default: false },
 });
@@ -957,11 +1007,20 @@ const submissionSchema = looseSchema({
   reviewedAt: { type: Date },
 });
 
-submissionSchema.index({ taskId: 1, version: 1 }, { unique: true, sparse: true });
-submissionSchema.index({ taskId: 1, submissionVersion: 1 }, { unique: true, sparse: true });
+submissionSchema.index(
+  { taskId: 1, version: 1 },
+  { unique: true, sparse: true },
+);
+submissionSchema.index(
+  { taskId: 1, submissionVersion: 1 },
+  { unique: true, sparse: true },
+);
 submissionSchema.index(
   { taskId: 1, idempotencyKey: 1 },
-  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+  {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $type: "string" } },
+  },
 );
 submissionSchema.index({ taskId: 1, status: 1 });
 submissionSchema.index({ assistantId: 1, submittedAt: -1 });
@@ -1002,7 +1061,6 @@ export type MaterialRecord = {
   type?: string;
   category?: string;
   description?: string;
-  status?: string;
   tags?: string[];
   fileKey?: string;
   url?: string;
@@ -1030,11 +1088,6 @@ const materialSchema = looseSchema({
   type: { type: String },
   category: { type: String },
   description: { type: String },
-  status: {
-    type: String,
-    enum: ["DRAFT", "ACTIVE", "IN_REVIEW", "APPROVED", "ARCHIVED"],
-    default: "DRAFT",
-  },
   tags: [{ type: String }],
   fileKey: { type: String },
   url: { type: String },
@@ -1077,7 +1130,6 @@ export type VotingSessionRecord = {
   rules?: {
     approveThreshold?: number;
     rejectThreshold?: number;
-    allowAbstain?: boolean;
   };
   createdById: string;
   createdByName: string;
@@ -1091,7 +1143,6 @@ export type VotingSessionRecord = {
     decision?: string;
     approveCount?: number;
     rejectCount?: number;
-    abstainCount?: number;
     finalReason?: string;
   }[];
   notes?: Record<string, unknown>[];
@@ -1104,8 +1155,18 @@ const votingSessionSchema = looseSchema({
   mode: { type: String },
   status: { type: String, default: "DRAFT", index: true },
   version: { type: Number, default: 1 },
-  result: { type: String, enum: ["APPROVED", "REJECTED", null], default: null, index: true },
-  targetType: { type: String, enum: ["PROPOSAL"], default: "PROPOSAL", index: true },
+  result: {
+    type: String,
+    enum: ["APPROVED", "REJECTED", null],
+    default: null,
+    index: true,
+  },
+  targetType: {
+    type: String,
+    enum: ["PROPOSAL"],
+    default: "PROPOSAL",
+    index: true,
+  },
   proposalId: { type: String, index: true },
   proposalVersionId: { type: String, index: true },
   reVoteOfSessionId: { type: String },
@@ -1119,7 +1180,6 @@ const votingSessionSchema = looseSchema({
   rules: {
     approveThreshold: { type: Number },
     rejectThreshold: { type: Number },
-    allowAbstain: { type: Boolean, default: true },
   },
   createdById: { type: String, required: true, index: true },
   createdByName: { type: String },
@@ -1171,7 +1231,12 @@ const boardDecisionSchema = looseSchema({
   votingSessionId: { type: String, required: true, unique: true, index: true },
   proposalId: { type: String, required: true, index: true },
   proposalVersionId: { type: String, required: true, index: true },
-  result: { type: String, required: true, enum: ["APPROVED", "REJECTED"], index: true },
+  result: {
+    type: String,
+    required: true,
+    enum: ["APPROVED", "REJECTED"],
+    index: true,
+  },
   eligibleVoterSnapshot: [{ type: String }],
   quorumSnapshot: { type: Number },
   tallySnapshot: { type: Schema.Types.Mixed },
@@ -1219,7 +1284,10 @@ const proposalVersionSchema = looseSchema({
   frozenById: { type: String },
   frozenAt: { type: Date },
 });
-proposalVersionSchema.index({ proposalId: 1, proposalVersionId: 1 }, { unique: true });
+proposalVersionSchema.index(
+  { proposalId: 1, proposalVersionId: 1 },
+  { unique: true },
+);
 
 /* ------------------------------------------------------------------ */
 /*  ChapterReview                                                       */
@@ -1231,7 +1299,13 @@ export type ChapterReviewRecord = {
   seriesId: string;
   chapterVersionId: string;
   pageVersionIds: { pageId: string; pageVersionId: string }[];
-  status: "OPEN" | "APPROVED" | "REVISION_REQUESTED" | "REJECTED" | "STALE" | "INVALIDATED";
+  status:
+    | "OPEN"
+    | "APPROVED"
+    | "REVISION_REQUESTED"
+    | "REJECTED"
+    | "STALE"
+    | "INVALIDATED";
   createdById: string;
   createdAt: Date;
   decidedById?: string;
@@ -1248,7 +1322,14 @@ const chapterReviewSchema = looseSchema({
   pageVersionIds: [Schema.Types.Mixed],
   status: {
     type: String,
-    enum: ["OPEN", "APPROVED", "REVISION_REQUESTED", "REJECTED", "STALE", "INVALIDATED"],
+    enum: [
+      "OPEN",
+      "APPROVED",
+      "REVISION_REQUESTED",
+      "REJECTED",
+      "STALE",
+      "INVALIDATED",
+    ],
     default: "OPEN",
     index: true,
   },
@@ -1303,7 +1384,11 @@ const rankingSchema = looseSchema({
   movement: { type: Number },
   status: { type: String, default: "DRAFT" },
   atRisk: { type: Boolean, default: false },
-  source: { type: String, enum: ["MANUAL", "CSV_IMPORT", "API"], default: "MANUAL" },
+  source: {
+    type: String,
+    enum: ["MANUAL", "CSV_IMPORT", "API"],
+    default: "MANUAL",
+  },
   importBatchId: { type: String, index: true },
   importedById: { type: String },
   importedAt: { type: Date },
@@ -1410,36 +1495,119 @@ const seriesMemberSchema = looseSchema({
 
 // Unique membership per series per user per role
 seriesMemberSchema.index({ seriesId: 1, userId: 1, role: 1 }, { unique: true });
+// Tantou is a single active assignment per Series. Keep the invariant in the
+// database as well as in the service so concurrent assignments cannot create
+// two active Editors.
+seriesMemberSchema.index(
+  { seriesId: 1, role: 1, status: 1 },
+  {
+    unique: true,
+    name: "one_active_tantou_per_series",
+    partialFilterExpression: { role: "editor", status: "active" },
+  },
+);
+
+/* ------------------------------------------------------------------ */
+/*  SeriesInvite                                                       */
+/* ------------------------------------------------------------------ */
+
+const seriesInviteSchema = looseSchema({
+  seriesId: { type: String, required: true, index: true },
+  userId: { type: String, required: true, index: true },
+  email: { type: String, required: true, lowercase: true, trim: true },
+  role: { type: String, enum: ["assistant"], default: "assistant" },
+  scope: { type: String, default: "Full chapter" },
+  invitedById: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ["PENDING", "ACCEPTED", "DECLINED", "REVOKED", "EXPIRED"],
+    default: "PENDING",
+    index: true,
+  },
+  acceptedAt: { type: Date },
+  declinedAt: { type: Date },
+  expiresAt: { type: Date },
+});
+seriesInviteSchema.index({ seriesId: 1, userId: 1, status: 1 });
 
 /* ------------------------------------------------------------------ */
 /*  Model exports                                                       */
 /* ------------------------------------------------------------------ */
 
 export const UserModel = mongoose.model<any>("User", userSchema);
-export const RefreshSessionModel = mongoose.model<any>("RefreshSession", refreshSessionSchema);
+export const RefreshSessionModel = mongoose.model<any>(
+  "RefreshSession",
+  refreshSessionSchema,
+);
 export const ProposalModel = mongoose.model<any>("Proposal", proposalSchema);
-export const ProposalVoteModel = mongoose.model<any>("ProposalVote", proposalVoteSchema);
+export const ProposalVoteModel = mongoose.model<any>(
+  "ProposalVote",
+  proposalVoteSchema,
+);
 export const SeriesModel = mongoose.model<any>("Series", seriesSchema);
 export const ChapterModel = mongoose.model<any>("Chapter", chapterSchema);
 export { PublicationModel };
-export const StudioRegionModel = mongoose.model<any>("StudioRegion", studioRegionSchema);
-export const StudioTaskModel = mongoose.model<any>("StudioTask", studioTaskSchema);
-export const StudioCommentModel = mongoose.model<any>("StudioComment", studioCommentSchema);
-export const SubmissionModel = mongoose.model<any>("Submission", submissionSchema);
+export const StudioRegionModel = mongoose.model<any>(
+  "StudioRegion",
+  studioRegionSchema,
+);
+export const StudioTaskModel = mongoose.model<any>(
+  "StudioTask",
+  studioTaskSchema,
+);
+export const StudioCommentModel = mongoose.model<any>(
+  "StudioComment",
+  studioCommentSchema,
+);
+export const SubmissionModel = mongoose.model<any>(
+  "Submission",
+  submissionSchema,
+);
 export const MaterialModel = mongoose.model<any>("Material", materialSchema);
-export const VotingSessionModel = mongoose.model<any>("VotingSession", votingSessionSchema);
-export const BoardDecisionModel = mongoose.model<any>("BoardDecision", boardDecisionSchema);
-export const ProposalVersionModel = mongoose.model<any>("ProposalVersion", proposalVersionSchema);
-export const ChapterReviewModel = mongoose.model<any>("ChapterReview", chapterReviewSchema);
-export const NotificationModel = mongoose.model<any>("Notification", notificationSchema);
+export const VotingSessionModel = mongoose.model<any>(
+  "VotingSession",
+  votingSessionSchema,
+);
+export const BoardDecisionModel = mongoose.model<any>(
+  "BoardDecision",
+  boardDecisionSchema,
+);
+export const ProposalVersionModel = mongoose.model<any>(
+  "ProposalVersion",
+  proposalVersionSchema,
+);
+export const ChapterReviewModel = mongoose.model<any>(
+  "ChapterReview",
+  chapterReviewSchema,
+);
+export const NotificationModel = mongoose.model<any>(
+  "Notification",
+  notificationSchema,
+);
 export const AuditEntryModel = mongoose.model<any>("AuditEntry", auditSchema);
-export const OutboxEventModel = mongoose.model<any>("OutboxEvent", outboxEventSchema);
+export const OutboxEventModel = mongoose.model<any>(
+  "OutboxEvent",
+  outboxEventSchema,
+);
 export const RankingModel = mongoose.model<any>("Ranking", rankingSchema);
-export const RankingImportModel = mongoose.model<any>("RankingImport", rankingImportSchema);
+export const RankingImportModel = mongoose.model<any>(
+  "RankingImport",
+  rankingImportSchema,
+);
 export { EarningItemModel, EarningModel };
 export { RateTableModel };
-export const AiProcessingModel = mongoose.model<any>("AiProcessing", aiProcessingSchema);
-export const SeriesMemberModel = mongoose.model<any>("SeriesMember", seriesMemberSchema);
+export const AiProcessingModel = mongoose.model<any>(
+  "AiProcessing",
+  aiProcessingSchema,
+);
+export const SeriesMemberModel = mongoose.model<any>(
+  "SeriesMember",
+  seriesMemberSchema,
+);
+export const SeriesInviteModel = mongoose.model<any>(
+  "SeriesInvite",
+  seriesInviteSchema,
+);
 
 export const allMutableModels = [
   UserModel,
@@ -1468,6 +1636,7 @@ export const allMutableModels = [
   RateTableModel,
   AiProcessingModel,
   SeriesMemberModel,
+  SeriesInviteModel,
 ] as const;
 
 export function stripMongo<T>(value: T): T {

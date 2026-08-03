@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
+import { ProposalModel, StudioCommentModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 import { mobileInboxSchema } from "../mobile/mobile-work-item.contract.js";
 
@@ -47,7 +48,68 @@ describe("mobile inbox projections", () => {
     expect(actions.every((action: any) => action.action !== "EDITOR_APPROVE")).toBe(true);
   });
 
-  it("returns only Board vote work with a VOTE action in the foundation slice", async () => {
+  it("exposes RELEASE_CLAIM only to the Editor who owns the claim", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    const proposal = await ProposalModel.findOne({
+      status: { $in: ["PENDING_EDITOR", "EDITOR_REVIEWING", "RESUBMITTED"] },
+    });
+    expect(proposal).toBeTruthy();
+
+    await ProposalModel.updateOne(
+      { id: (proposal as any).id },
+      {
+        $set: {
+          claimedByEditorId: editor.user.id,
+          claimedByEditorName: "Tanaka Akira",
+          claimedAt: new Date(),
+        },
+      },
+    );
+
+    const response = await request(createApp())
+      .get("/api/editor/inbox")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+    const item = response.body.data.items.find(
+      (candidate: any) => candidate.entityId === (proposal as any).id,
+    );
+    expect(item).toBeTruthy();
+    expect(item.actions).toContainEqual(
+      expect.objectContaining({ action: "RELEASE_CLAIM", enabled: true }),
+    );
+  });
+
+  it("shows addressed blocking comments created by a previous Tantou", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    await StudioCommentModel.create({
+      id: "comment-previous-tantou",
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-4",
+      targetType: "CHAPTER",
+      targetId: "ch-s-berserk-prod-4",
+      authorId: "u-previous-editor",
+      authorName: "Previous Editor",
+      authorRole: "editor",
+      body: "Please verify this correction.",
+      status: "ADDRESSED",
+      isBlocking: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const response = await request(createApp())
+      .get("/api/editor/inbox")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(
+      response.body.data.items.some(
+        (item: any) => item.kind === "COMMENT_REVIEW" && item.entityId === "comment-previous-tantou",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns Board vote and re-vote work with a VOTE action", async () => {
     const board = await loginAs("sato@beachread.jp");
     const response = await request(createApp())
       .get("/api/board/inbox")
@@ -56,7 +118,9 @@ describe("mobile inbox projections", () => {
 
     expect(response.body.data.role).toBe("BOARD");
     expect(response.body.data.items.length).toBeGreaterThan(0);
-    expect(response.body.data.items.every((item: any) => item.kind === "BOARD_VOTE")).toBe(true);
+    expect(
+      response.body.data.items.every((item: any) => ["BOARD_VOTE", "BOARD_REVOTE"].includes(item.kind)),
+    ).toBe(true);
     expect(() => mobileInboxSchema.parse(response.body.data)).not.toThrow();
     const actions = response.body.data.items.flatMap((item: any) => item.actions);
     expect(actions.some((action: any) => action.action === "VOTE")).toBe(true);

@@ -23,6 +23,7 @@ type PlannedUpdate = {
   model: "task" | "submission" | "chapter";
   id: string;
   patch: Record<string, unknown>;
+  unset?: Record<string, "">;
 };
 
 const args = new Set(process.argv.slice(2));
@@ -153,23 +154,39 @@ function canonicalSubmissionStatus(submission: any, unmapped: ReportRow[]) {
   return null;
 }
 
-function canonicalChapterStatus(status: string) {
+function canonicalChapterStatus(chapter: any) {
+  const status = String(chapter.status);
   const map: Record<string, string> = {
     PLANNED: "PLANNED",
     DRAFTING: "IN_PRODUCTION",
     ASSISTANT_WORKING: "IN_PRODUCTION",
     IN_PRODUCTION: "IN_PRODUCTION",
-    MANGAKA_REVIEW: "MANGAKA_REVIEW",
+    MANGAKA_REVIEW: "IN_PRODUCTION",
     EDITOR_REVIEW: "TANTOU_REVIEW",
     TANTOU_REVIEW: "TANTOU_REVIEW",
     REVISION: "REVISION_REQUIRED",
     REVISION_REQUIRED: "REVISION_REQUIRED",
     EDITOR_APPROVED: "READY_FOR_PUBLICATION",
     READY_FOR_PUBLICATION: "READY_FOR_PUBLICATION",
-    SCHEDULED: "SCHEDULED",
+    SCHEDULED: "READY_FOR_PUBLICATION",
     PUBLISHED: "PUBLISHED",
-    ARCHIVED: "ARCHIVED",
   };
+  if (status === "ARCHIVED") {
+    if (chapter.publishedAt) return "PUBLISHED";
+    if (
+      chapter.readyForPublicationAt ||
+      chapter.readyByEditorId ||
+      chapter.scheduledAt ||
+      (Array.isArray(chapter.pages) &&
+        chapter.pages.length > 0 &&
+        chapter.pages.every((page: any) => page.status === "FINALIZED"))
+    ) {
+      return "READY_FOR_PUBLICATION";
+    }
+    return Array.isArray(chapter.pages) && chapter.pages.length > 0
+      ? "IN_PRODUCTION"
+      : "PLANNED";
+  }
   return map[status] ?? null;
 }
 
@@ -360,9 +377,17 @@ async function main() {
   }
 
   for (const chapter of chapters as any[]) {
-    const nextStatus = canonicalChapterStatus(String(chapter.status));
+    const nextStatus = canonicalChapterStatus(chapter);
     if (nextStatus && nextStatus !== chapter.status) {
-      updates.push({ model: "chapter", id: chapter.id, patch: { status: nextStatus } });
+      updates.push({
+        model: "chapter",
+        id: chapter.id,
+        patch: { status: nextStatus },
+        unset:
+          chapter.status === "ARCHIVED"
+            ? { archivedAt: "", archivedById: "", archiveReason: "" }
+            : undefined,
+      });
     } else if (!nextStatus) {
       unmapped.push({
         type: "chapter",
@@ -410,7 +435,14 @@ async function main() {
     for (const update of updates) {
       if (update.model === "task") await StudioTaskModel.updateOne({ id: update.id }, { $set: update.patch });
       if (update.model === "submission") await SubmissionModel.updateOne({ id: update.id }, { $set: update.patch });
-      if (update.model === "chapter") await ChapterModel.updateOne({ id: update.id }, { $set: update.patch });
+      if (update.model === "chapter") {
+        await ChapterModel.updateOne(
+          { id: update.id },
+          update.unset
+            ? { $set: update.patch, $unset: update.unset }
+            : { $set: update.patch },
+        );
+      }
     }
     console.log(JSON.stringify({ applied: updates.length, backupPath }, null, 2));
   }

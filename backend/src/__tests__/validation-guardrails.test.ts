@@ -46,6 +46,10 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateMany(
+      { id: { $in: ["ch-s-berserk-prod-4", "ch-s-berserk-prod-5"] } },
+      { $set: { status: "IN_PRODUCTION", "pages.$[].status": "UPLOADED" } },
+    );
   });
 
   afterAll(async () => {
@@ -99,17 +103,17 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
   });
 
   it("rejects POST /materials with unknown fields when strict schema is applied", async () => {
-    const editor = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
     const res = await request(createApp())
       .post("/api/materials")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ seriesId: "s-berserk-prod", title: "Guardrail material" })
       .expect(201);
 
     const materialId = res.body.data.id;
     const patchRes = await request(createApp())
       .patch(`/api/materials/${materialId}`)
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ authorId: "hacked", status: "APPROVED" })
       .expect(400);
     expect(patchRes.body.code).toBe("VALIDATION_ERROR");
@@ -169,7 +173,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     expect(approveRes.body.code).toBe("FORBIDDEN");
   });
 
-  it("blocks non-editor/non-mangaka from material creation (RBAC)", async () => {
+  it("blocks non-Mangaka from Supporting Material creation", async () => {
     const assistant = await loginAs("sato@beachread.jp");
     await request(createApp())
       .post("/api/materials")
@@ -596,6 +600,10 @@ describe("MF-027 Assistant Task Studio Live Submission Flow", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-4" },
+      { $set: { status: "IN_PRODUCTION", "pages.$[].status": "UPLOADED" } },
+    );
     // Seed a task assigned to u-assist (jun@beachread.jp)
     await StudioTaskModel.create({
       id: "tsk-mf027-test",
@@ -767,6 +775,10 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-4" },
+      { $set: { status: "IN_PRODUCTION", "pages.$[].status": "UPLOADED" } },
+    );
     // Seed tasks for review queue tests
     await StudioTaskModel.create({
       id: "tsk-review-q",

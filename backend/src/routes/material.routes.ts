@@ -5,9 +5,9 @@ import { listMaterials, createMaterial, patchMaterial, addMaterialVersion, delet
 const router = Router();
 
 router.get("/materials", listMaterials);
-router.post("/materials", requireExactRole("EDITOR", "MANGAKA") as any, createMaterial);
-router.patch("/materials/:id", requireExactRole("EDITOR", "MANGAKA") as any, patchMaterial);
-router.post("/materials/:id/versions", requireExactRole("EDITOR", "MANGAKA") as any, addMaterialVersion);
-router.delete("/materials/:id", requireExactRole("EDITOR", "MANGAKA") as any, deleteMaterial);
+router.post("/materials", requireExactRole("MANGAKA") as any, createMaterial);
+router.patch("/materials/:id", requireExactRole("MANGAKA") as any, patchMaterial);
+router.post("/materials/:id/versions", requireExactRole("MANGAKA") as any, addMaterialVersion);
+router.delete("/materials/:id", requireExactRole("MANGAKA") as any, deleteMaterial);
 
 export default router;

@@ -10,7 +10,6 @@ export const createRegionSchema = z
     y: z.number().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
-    status: z.string().optional(),
     label: z.string().max(200).optional(),
     metadata: z.any().optional(),
   })
@@ -26,7 +25,6 @@ export const patchRegionSchema = z
     y: z.number().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
-    status: z.string().optional(),
     label: z.string().max(200).optional(),
     metadata: z.any().optional(),
   })
@@ -36,7 +34,7 @@ export const createStudioTaskSchema = z
   .object({
     seriesId: z.string().optional(),
     chapterId: z.string().optional(),
-    pageId: z.string().optional(),
+    pageId: z.string().min(1, "pageId is required."),
     regionId: z.string().optional(),
     assigneeId: z.string().min(1, "assigneeId is required."),
     assigneeName: z.string().optional(),
@@ -51,7 +49,6 @@ export const createStudioTaskSchema = z
     rateCode: z.string().min(2).max(64).optional(),
     quantity: z.number().positive().optional(),
     currency: z.string().optional(),
-    status: z.string().optional(),
     metadata: z.any().optional(),
   })
   .strict();
@@ -75,7 +72,6 @@ export const patchStudioTaskSchema = z
     rateCode: z.string().min(2).max(64).optional(),
     quantity: z.number().positive().optional(),
     currency: z.string().optional(),
-    status: z.string().optional(),
     metadata: z.any().optional(),
   })
   .strict();
@@ -97,7 +93,6 @@ export const createCommentSchema = z
     text: z.string().min(1).max(5000).optional(),
     // Primary blocking flag
     isBlocking: z.boolean().optional(),
-    status: z.enum(["OPEN", "ADDRESSED", "RESOLVED", "REOPENED"]).optional(),
   })
   .strict();
 
@@ -107,7 +102,6 @@ export const patchCommentSchema = z
     /** @deprecated use body */
     text: z.string().min(1).max(5000).optional(),
     isBlocking: z.boolean().optional(),
-    status: z.enum(["OPEN", "ADDRESSED", "RESOLVED", "REOPENED"]).optional(),
   })
   .strict();
 

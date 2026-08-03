@@ -13,8 +13,10 @@ import {
   RankingModel,
   SeriesModel,
   StudioCommentModel,
+  StudioTaskModel,
   VotingSessionModel,
 } from "../db/models.js";
+import { actorSeriesScopeFilter } from "./authorization.service.js";
 import {
   chapterPublicationActions,
   chapterReviewActions,
@@ -82,6 +84,17 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
         action: "CLAIM",
         enabled: !claimedByMe && !claimedByOther,
         disabledReason: claimedByMe ? "You already claimed this proposal." : claimedReason,
+        requiresConfirmation: true,
+        requiresReason: false,
+      }),
+      action({
+        action: "RELEASE_CLAIM",
+        enabled: claimedByMe,
+        disabledReason: claimedByMe
+          ? null
+          : claimedByOther
+            ? "Only the Editor who owns the claim can release it."
+            : "This proposal has no active claim.",
         requiresConfirmation: true,
         requiresReason: false,
       }),
@@ -282,25 +295,55 @@ export async function getEditorMobileInbox(actor: RequestActor): Promise<MobileI
   const proposals = await editorReviewQueue();
 
   // Chapters for series this Editor is the assigned Tantou on.
-  const editorSeries = await SeriesModel.find({ editorId: actor.id }).select({ id: 1 }).lean();
+  const editorSeries = await SeriesModel.find(await actorSeriesScopeFilter(actor, "read"))
+    .select({ id: 1 })
+    .lean();
   const seriesIds = editorSeries.map((series: any) => series.id);
-  const chapters = seriesIds.length
-    ? await ChapterModel.find({
-        seriesId: { $in: seriesIds },
-        status: { $in: ["TANTOU_REVIEW", "READY_FOR_PUBLICATION"] },
-      })
-        .sort({ updatedAt: -1 })
-        .lean()
-    : [];
+  const [chapters, scopedChapters, scopedTasks] = seriesIds.length
+    ? await Promise.all([
+        ChapterModel.find({
+          seriesId: { $in: seriesIds },
+          status: { $in: ["TANTOU_REVIEW", "READY_FOR_PUBLICATION"] },
+        })
+          .sort({ updatedAt: -1 })
+          .lean(),
+        ChapterModel.find({ seriesId: { $in: seriesIds } }).select({ id: 1, pages: 1 }).lean(),
+        StudioTaskModel.find({ seriesId: { $in: seriesIds } }).select({ id: 1 }).lean(),
+      ])
+    : [[], [], []];
   const reviewChapters = chapters.filter((chapter: any) => chapter.status === "TANTOU_REVIEW");
   const publishChapters = chapters.filter(
     (chapter: any) => chapter.status === "READY_FOR_PUBLICATION",
   );
 
-  // Unresolved blocking comments this Editor authored that await verification.
+  const scopedChapterIds = scopedChapters.map((chapter: any) => chapter.id);
+  const scopedPageIds = scopedChapters.flatMap((chapter: any) =>
+    ((chapter.pages ?? []) as any[]).map((page) => page?.id).filter(Boolean),
+  );
+  const scopedTaskIds = scopedTasks.map((task: any) => task.id);
+
+  // Unresolved blocking comments in the Editor's active Tantou scope that
+  // await verification. The author is intentionally not filtered: after a
+  // Tantou replacement, blockers created by the previous Editor remain part
+  // of the current Series workload.
   const blockingComments = await StudioCommentModel.find({
-    authorId: actor.id,
-    $or: [{ isBlocking: true }, { blocking: true }],
+    $and: [
+      {
+        $or: [
+          { seriesId: { $in: seriesIds } },
+          { chapterId: { $in: scopedChapterIds } },
+          { pageId: { $in: scopedPageIds } },
+          {
+            targetType: "CHAPTER",
+            targetId: { $in: scopedChapterIds },
+          },
+          { targetType: "PAGE", targetId: { $in: scopedPageIds } },
+          { taskId: { $in: scopedTaskIds } },
+          { targetType: "TASK", targetId: { $in: scopedTaskIds } },
+        ],
+      },
+      { $or: [{ isBlocking: true }, { blocking: true }] },
+    ],
     status: { $in: ["ADDRESSED", "RESOLVED"] },
   })
     .sort({ updatedAt: -1 })

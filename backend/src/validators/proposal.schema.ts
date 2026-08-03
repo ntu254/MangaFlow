@@ -25,19 +25,11 @@ export const PROPOSAL_STATUSES = [
 
 export const CHAPTER_STATUSES = [
   "PLANNED",
-  "DRAFTING",
-  "ASSISTANT_WORKING",
-  "MANGAKA_REVIEW",
-  "EDITOR_REVIEW",
-  "REVISION",
-  "EDITOR_APPROVED",
+  "IN_PRODUCTION",
+  "TANTOU_REVIEW",
+  "REVISION_REQUIRED",
   "READY_FOR_PUBLICATION",
-  "SCHEDULED",
   "PUBLISHED",
-  "ARCHIVED",
-  // Legacy values kept for backward compat
-  "IN_REVIEW",
-  "APPROVED",
 ] as const;
 
 export const TASK_STATUSES = [
@@ -66,7 +58,7 @@ export const SUBMISSION_STATUSES = [
 
 export const SUBMISSION_REVIEW_STAGES = ["MANGAKA_REVIEW", "EDITOR_REVIEW", "FINAL"] as const;
 
-export const VOTE_DECISIONS = ["APPROVE", "REJECT", "ABSTAIN"] as const;
+export const VOTE_DECISIONS = ["APPROVE", "REJECT"] as const;
 
 export const CHAPTER_ACTIONS = [
   "START_DRAFT",
@@ -78,7 +70,6 @@ export const CHAPTER_ACTIONS = [
   "SCHEDULE",
   "PUBLISH",
   "REASSIGN",
-  "ARCHIVE",
 ] as const;
 
 export const PROPOSAL_ACTIONS = [
@@ -87,7 +78,6 @@ export const PROPOSAL_ACTIONS = [
   "EDIT",
   "CLAIM",
   "RELEASE_CLAIM",
-  "REASSIGN_CLAIM",
   "UPDATE_EDITORIAL_CHECKLIST",
   "REQUEST_CHANGES",
   "RESUBMIT",
@@ -102,6 +92,18 @@ export const PROPOSAL_ACTIONS = [
 // ---------------------------------------------------------------------------
 // Proposal schemas
 // ---------------------------------------------------------------------------
+
+const statusFreeProposalFileSchema = z
+  .record(z.string(), z.unknown())
+  .superRefine((value, ctx) => {
+    if (Object.prototype.hasOwnProperty.call(value, "status")) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["status"],
+        message: "Manuscripts and Supporting Materials do not have a lifecycle status.",
+      });
+    }
+  });
 
 export const createProposalSchema = z
   .object({
@@ -118,8 +120,8 @@ export const createProposalSchema = z
     coverUrl: z.string().optional(),
     coverFileKey: z.string().optional(),
     sampleChapterUrl: z.string().optional(),
-    manuscripts: z.array(z.any()).optional(),
-    materials: z.array(z.any()).optional(),
+    manuscripts: z.array(statusFreeProposalFileSchema).optional(),
+    materials: z.array(statusFreeProposalFileSchema).optional(),
     hook: z.string().optional(),
     mainCharacters: z.string().optional(),
     originalWorkConfirmed: z.boolean().optional(),
@@ -141,8 +143,8 @@ export const patchProposalSchema = z
     coverUrl: z.string().optional(),
     coverFileKey: z.string().optional(),
     sampleChapterUrl: z.string().optional(),
-    manuscripts: z.array(z.any()).optional(),
-    materials: z.array(z.any()).optional(),
+    manuscripts: z.array(statusFreeProposalFileSchema).optional(),
+    materials: z.array(statusFreeProposalFileSchema).optional(),
     hook: z.string().optional(),
     mainCharacters: z.string().optional(),
     originalWorkConfirmed: z.boolean().optional(),
@@ -160,8 +162,6 @@ export const proposalActionSchema = z.object({
   editorRecommendation: z.string().max(5000).optional(),
   rejectReason: z.string().max(5000).optional(),
   forceStatus: z.enum(PROPOSAL_STATUSES).optional(),
-  editorId: z.string().optional(),
-  editorName: z.string().optional(),
   sessionId: z.string().optional(),
   voteDecision: z.enum(VOTE_DECISIONS).optional(),
   value: z.enum(VOTE_DECISIONS).optional(),
@@ -194,8 +194,8 @@ export const proposalActionSchema = z.object({
   coverUrl: z.string().optional(),
   coverFileKey: z.string().optional(),
   sampleChapterUrl: z.string().optional(),
-  manuscripts: z.array(z.any()).optional(),
-  materials: z.array(z.any()).optional(),
+  manuscripts: z.array(statusFreeProposalFileSchema).optional(),
+  materials: z.array(statusFreeProposalFileSchema).optional(),
   hook: z.string().optional(),
   mainCharacters: z.string().optional(),
   originalWorkConfirmed: z.boolean().optional(),

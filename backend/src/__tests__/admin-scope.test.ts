@@ -3,7 +3,7 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { NotificationModel, ProposalModel, SeriesModel } from "../db/models.js";
+import { NotificationModel, ProposalModel, SeriesModel, ChapterModel } from "../db/models.js";
 
 let mongo: MongoMemoryReplSet;
 
@@ -94,10 +94,48 @@ describe("CT-11 admin scope reduction", () => {
     await request(createApp())
       .post("/api/notifications/notification-owner-only/archive")
       .set("Authorization", `Bearer ${admin.accessToken}`)
-      .expect(403);
+      .expect(404);
   });
 
-  describe("Tantou assign/remove is EIC-only", () => {
+  it("deletes an admin broadcast batch instead of archiving its notifications", async () => {
+    await NotificationModel.create([
+      {
+        id: "notification-delete-batch-1",
+        userId: "u-mangaka",
+        kind: "admin.broadcast",
+        title: "Batch cleanup",
+        message: "First recipient",
+        batchId: "batch-delete-notification",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "notification-delete-batch-2",
+        userId: "u-editor",
+        kind: "admin.broadcast",
+        title: "Batch cleanup",
+        message: "Second recipient",
+        batchId: "batch-delete-notification",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    const admin = await loginAs("admin@beachread.jp");
+
+    const response = await request(createApp())
+      .delete("/api/admin/notifications/notification-delete-batch-1")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data).toMatchObject({
+      id: "notification-delete-batch-1",
+      batchId: "batch-delete-notification",
+      deletedCount: 2,
+    });
+    expect(await NotificationModel.countDocuments({ batchId: "batch-delete-notification" })).toBe(0);
+  });
+
+  describe("Tantou assign/remove is owning-Mangaka-only", () => {
     it("rejects ADMIN assigning a Tantou (403)", async () => {
       const admin = await loginAs("admin@beachread.jp");
       await request(createApp())
@@ -124,20 +162,6 @@ describe("CT-11 admin scope reduction", () => {
         .expect(403);
     });
 
-    it("allows the Editor-in-Chief to remove and reassign a Tantou", async () => {
-      const eic = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .delete("/api/series/s-vinland-prod/editor")
-        .set("Authorization", `Bearer ${eic.accessToken}`)
-        .expect(200);
-
-      const response = await request(createApp())
-        .post("/api/series/s-vinland-prod/editor")
-        .set("Authorization", `Bearer ${eic.accessToken}`)
-        .send({ editorId: "u-mobile-editor", editorName: "Mobile Editor" })
-        .expect(200);
-      expect(response.body.data.userId).toBe("u-mobile-editor");
-    });
   });
 
   describe("Series lifecycle §3.1 matrix", () => {
@@ -211,11 +235,14 @@ describe("CT-11 admin scope reduction", () => {
     it("allows the assigned Tantou to archive a published series", async () => {
       await makeSeries("s-admin-scope-archive-public-ok", "ONGOING");
       const tantou = await loginAs("editor@mangaflow.local");
-      await request(createApp())
+      const response = await request(createApp())
         .post("/api/series/s-admin-scope-archive-public-ok/actions/ARCHIVE")
         .set("Authorization", `Bearer ${tantou.accessToken}`)
         .send({})
         .expect(200);
+
+      expect(response.body.data.status).toBe("ARCHIVED");
+      expect(response.body.data.visibility).toBe("UNLISTED");
     });
 
     it("allows the owning Mangaka to archive a series that was never published", async () => {
@@ -239,7 +266,55 @@ describe("CT-11 admin scope reduction", () => {
     });
   });
 
-  describe("Proposal RELEASE_CLAIM/REASSIGN_CLAIM is EIC-only", () => {
+  describe("Archived series is immutable", () => {
+    async function makeArchivedSeries(id: string) {
+      await SeriesModel.create({
+        id,
+        slug: id,
+        title: `Archived series ${id}`,
+        authorId: "u-mangaka",
+        authorName: "Inoue Takehiko",
+        editorId: "u-mobile-editor",
+        editorName: "Mobile Editor",
+        status: "ARCHIVED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    it("rejects PATCH on an archived series (409 SERIES_ARCHIVED)", async () => {
+      await makeArchivedSeries("s-admin-scope-archived-patch");
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const response = await request(createApp())
+        .patch("/api/series/s-admin-scope-archived-patch")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ title: "Renamed after archive" })
+        .expect(409);
+      expect(response.body.code).toBe("SERIES_ARCHIVED");
+    });
+
+    it("rejects PATCH on a chapter of an archived series (409 SERIES_ARCHIVED)", async () => {
+      await makeArchivedSeries("s-admin-scope-archived-chapter");
+      await ChapterModel.create({
+        id: "ch-admin-scope-archived",
+        seriesId: "s-admin-scope-archived-chapter",
+        number: 1,
+        title: "Archived chapter",
+        status: "PLANNED",
+        pages: [],
+        history: [],
+      });
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const response = await request(createApp())
+        .patch("/api/chapters/ch-admin-scope-archived")
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({ title: "Edited after archive" })
+        .expect(409);
+      expect(response.body.code).toBe("SERIES_ARCHIVED");
+    });
+  });
+
+  describe("Proposal claim release is restricted to the claiming Editor", () => {
     async function makeClaimedProposal(id: string) {
       await ProposalModel.create({
         id,
@@ -265,28 +340,19 @@ describe("CT-11 admin scope reduction", () => {
         .expect(403);
     });
 
-    it("rejects a non-chief Editor releasing a claim (403)", async () => {
+    it("allows the claiming Editor to release a claim", async () => {
       await makeClaimedProposal("prop-admin-scope-release-editor");
       const editor = await loginAs("editor@mangaflow.local");
       await request(createApp())
         .post("/api/proposals/prop-admin-scope-release-editor/actions/RELEASE_CLAIM")
         .set("Authorization", `Bearer ${editor.accessToken}`)
         .send({})
-        .expect(403);
-    });
-
-    it("allows the Editor-in-Chief to release a claim", async () => {
-      await makeClaimedProposal("prop-admin-scope-release-eic");
-      const eic = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .post("/api/proposals/prop-admin-scope-release-eic/actions/RELEASE_CLAIM")
-        .set("Authorization", `Bearer ${eic.accessToken}`)
-        .send({})
         .expect(200);
     });
+
   });
 
-  describe("Proposal ARCHIVE is owning Mangaka or EIC, with a required reason", () => {
+  describe("Proposal ARCHIVE is owning Mangaka-only, with a required reason", () => {
     async function makeArchivableProposal(id: string, authorId = "u-mangaka") {
       await ProposalModel.create({
         id,
@@ -348,15 +414,6 @@ describe("CT-11 admin scope reduction", () => {
       expect(response.body.data.archiveReason).toBe("No longer relevant");
     });
 
-    it("allows the Editor-in-Chief to archive with a reason", async () => {
-      await makeArchivableProposal("prop-admin-scope-archive-eic");
-      const eic = await loginAs("tanaka@beachread.jp");
-      await request(createApp())
-        .post("/api/proposals/prop-admin-scope-archive-eic/actions/ARCHIVE")
-        .set("Authorization", `Bearer ${eic.accessToken}`)
-        .send({ reason: "Superseded" })
-        .expect(200);
-    });
   });
 
   describe("File presign-download no longer bypassed by ADMIN", () => {

@@ -22,6 +22,7 @@ async function findPublicSeries(slug: string) {
   const series = await SeriesModel.findOne({
     slug,
     visibility: "PUBLIC",
+    status: { $nin: ["ARCHIVED", "HIATUS"] },
     deletedAt: { $exists: false },
   }).lean();
   if (!series) {

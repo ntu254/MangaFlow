@@ -410,11 +410,3 @@ export const deleteSessionNote = asyncRoute(async (req: AuthedRequest, res) => {
   });
   ok(res, { id: noteId });
 });
-
-export const tieBreak = asyncRoute(async (_req: AuthedRequest, _res) => {
-  throw new AppError(
-    410,
-    "Editor-in-chief tie-break voting has been retired; tied sessions now open a re-vote.",
-    "TIE_BREAK_RETIRED",
-  );
-});

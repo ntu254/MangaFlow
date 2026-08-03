@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import {
@@ -13,7 +13,7 @@ import {
 } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 async function loginAs(email: string) {
   const response = await request(createApp())
@@ -63,7 +63,7 @@ async function seedAssignmentFixture() {
 
 describe("assignment removal workload guards", () => {
   beforeAll(async () => {
-    mongo = await MongoMemoryServer.create();
+    mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     await mongoose.connect(mongo.getUri());
   });
 
@@ -124,7 +124,7 @@ describe("assignment removal workload guards", () => {
     expect(await SeriesModel.exists({ id: "series-removal", assistantIds: "u-assist" })).toBeNull();
   });
 
-  it("blocks Tantou removal for every open editorial workload category", async () => {
+  it("blocks Tantou removal for every open Chapter, Comment, or Submission workload", async () => {
     await ChapterModel.create({
       id: "chapter-removal-review",
       seriesId: "series-removal",
@@ -149,15 +149,6 @@ describe("assignment removal workload guards", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    await MaterialModel.create({
-      id: "material-removal-review",
-      seriesId: "series-removal",
-      title: "Material under review",
-      kind: "reference",
-      status: "IN_REVIEW",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
     await SubmissionModel.create({
       id: "submission-removal-review",
       seriesId: "series-removal",
@@ -167,17 +158,16 @@ describe("assignment removal workload guards", () => {
       updatedAt: new Date(),
     });
 
-    const editorInChief = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
     const response = await request(createApp())
       .delete("/api/series/series-removal/editor")
-      .set("Authorization", `Bearer ${editorInChief.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(409);
 
     expect(response.body.code).toBe("EDITOR_WORKLOAD_EXISTS");
     expect(response.body.data.blockers).toEqual([
       { kind: "CHAPTER", id: "chapter-removal-review", status: "TANTOU_REVIEW" },
       { kind: "COMMENT", id: "comment-removal-blocker", status: "OPEN" },
-      { kind: "MATERIAL", id: "material-removal-review", status: "IN_REVIEW" },
       { kind: "SUBMISSION", id: "submission-removal-review", status: "MANGAKA_APPROVED" },
     ]);
     expect((await SeriesModel.findOne({ id: "series-removal" }).lean() as any)?.editorId).toBe("u-editor");
@@ -185,15 +175,69 @@ describe("assignment removal workload guards", () => {
   });
 
   it("removes Tantou after the editorial workload is cleared", async () => {
-    const editorInChief = await loginAs("tanaka@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
     await request(createApp())
       .delete("/api/series/series-removal/editor")
-      .set("Authorization", `Bearer ${editorInChief.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(200);
 
     expect(await SeriesMemberModel.findOne({ id: "member-editor-removal" }).lean()).toMatchObject({
       status: "inactive",
     });
     expect((await SeriesModel.findOne({ id: "series-removal" }).lean() as any)?.editorId).toBe("");
+  });
+
+  it("does not treat a legacy Material status as Tantou workload", async () => {
+    await MaterialModel.create({
+      id: "material-removal-legacy-status",
+      seriesId: "series-removal",
+      title: "Legacy reference",
+      kind: "reference",
+      status: "IN_REVIEW",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const mangaka = await loginAs("inoue@beachread.jp");
+    await request(createApp())
+      .delete("/api/series/series-removal/editor")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(200);
+  });
+
+  it("blocks Tantou removal when workload is linked through chapter or target relations", async () => {
+    await ChapterModel.create({
+      id: "chapter-removal-relational",
+      seriesId: "series-removal",
+      number: 2,
+      title: "Relational workload chapter",
+      status: "IN_PRODUCTION",
+      pages: [{ id: "page-removal-relational", pageNumber: 1 }],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await StudioCommentModel.create({
+      id: "comment-removal-target-only",
+      targetType: "CHAPTER",
+      targetId: "chapter-removal-relational",
+      authorId: "u-editor",
+      authorName: "Tanaka Akira",
+      authorRole: "EDITOR",
+      body: "Target-only blocker",
+      isBlocking: true,
+      status: "OPEN",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const response = await request(createApp())
+      .delete("/api/series/series-removal/editor")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(409);
+
+    expect(response.body.code).toBe("EDITOR_WORKLOAD_EXISTS");
+    expect(response.body.data.blockers).toEqual([
+      { kind: "COMMENT", id: "comment-removal-target-only", status: "OPEN" },
+    ]);
   });
 });

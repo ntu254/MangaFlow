@@ -43,6 +43,7 @@ describe("mobile work item contract", () => {
     ]);
     expect(mobileWorkflowActionSchema.options).toEqual([
       "CLAIM",
+      "RELEASE_CLAIM",
       "REQUEST_CHANGES",
       "REJECT",
       "FORWARD",

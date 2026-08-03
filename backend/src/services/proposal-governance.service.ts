@@ -100,9 +100,9 @@ export async function closeVotingSession(
         eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)),
     );
     const tally = evaluateBoardTally(proposalVotes, quorum, eligibleVoterIds.length);
-    const approved = tally.approve >= quorum;
-    const rejected = tally.reject >= quorum;
-    const allEligibleVoted = proposalVotes.length >= eligibleVoterIds.length;
+    const approved = tally.status === "APPROVED";
+    const rejected = tally.status === "REJECTED";
+    const allEligibleVoted = tally.total >= eligibleVoterIds.length;
     const tied = allEligibleVoted && tally.approve === tally.reject;
     const decision = approved
       ? "APPROVED"
@@ -116,7 +116,6 @@ export async function closeVotingSession(
       decision,
       approveCount: tally.approve,
       rejectCount: tally.reject,
-      abstainCount: tally.abstain,
       finalReason: decision === "NO_QUORUM" ? "Voting session closed without quorum." : undefined,
     };
   });

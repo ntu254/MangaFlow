@@ -2,6 +2,7 @@ import { PublicationModel, SeriesModel } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { AppError } from "../lib/http.js";
 import type { AuthedRequest } from "../types.js";
+import type { ClientSession } from "mongoose";
 import { audit, notifyMany } from "./audit.service.js";
 import { normalizePublicationType } from "./proposal-lifecycle.service.js";
 
@@ -25,6 +26,7 @@ export async function scheduleChapterPublication(
   series: any,
   chapterId: string,
   payload: any,
+  session?: ClientSession,
 ) {
   if (!payload.scheduledAt) {
     throw new AppError(400, "scheduledAt is required.", "VALIDATION_ERROR");
@@ -38,8 +40,8 @@ export async function scheduleChapterPublication(
     "Series publicationType is required before scheduling.",
   );
   assertPublishableSeries(series);
-  await PublicationModel.findOneAndUpdate(
-    { chapterId },
+  const scheduled = await PublicationModel.findOneAndUpdate(
+    { chapterId, status: { $in: ["DRAFT", "CANCELLED", "SCHEDULED"] } },
     {
       $set: {
         seriesId: chapter.seriesId,
@@ -51,12 +53,13 @@ export async function scheduleChapterPublication(
       },
       $setOnInsert: { id: id("pub"), createdAt: nowIso() },
     },
-    { upsert: true, returnDocument: "after" },
+    { upsert: true, returnDocument: "after", ...(session ? { session } : {}) },
   );
+  if (!scheduled) throw new AppError(409, "Chapter publication state changed.", "CONFLICT");
   await audit(req, "PUBLICATION_SCHEDULED", "publication", chapterId, {
     scheduledAt: scheduledAt.toISOString(),
     publicationType,
-  });
+  }, session);
   await notifyMany([
     {
       userId: series.authorId,
@@ -64,7 +67,7 @@ export async function scheduleChapterPublication(
       title: "Publication scheduled",
       message: `${chapter.title} is scheduled for publication.`,
     },
-  ]);
+  ], session);
   return { scheduledAt, publicationType };
 }
 
@@ -72,13 +75,16 @@ export async function postponeChapterPublication(
   req: AuthedRequest,
   chapterId: string,
   fromStatus: string,
+  session?: ClientSession,
 ) {
-  const publication = await PublicationModel.findOne({ chapterId, status: "SCHEDULED" }).lean();
+  const publicationQuery = PublicationModel.findOne({ chapterId, status: "SCHEDULED" });
+  if (session) publicationQuery.session(session);
+  const publication = await publicationQuery.lean();
   if (!publication) {
     throw new AppError(409, "No scheduled publication exists.", "PUBLICATION_NOT_SCHEDULED");
   }
-  await PublicationModel.updateOne(
-    { chapterId },
+  const result = await PublicationModel.updateOne(
+    { chapterId, status: "SCHEDULED" },
     {
       $set: {
         status: "CANCELLED",
@@ -87,11 +93,15 @@ export async function postponeChapterPublication(
         updatedAt: nowIso(),
       },
     },
+    session ? { session } : undefined,
   );
+  if (result.modifiedCount !== 1) {
+    throw new AppError(409, "Publication state changed while postponing.", "CONFLICT");
+  }
   await audit(req, "CHAPTER_POSTPONED", "chapter", chapterId, {
     fromStatus,
     toStatus: "READY_FOR_PUBLICATION",
-  });
+  }, session);
 }
 
 export async function publishChapter(
@@ -101,8 +111,11 @@ export async function publishChapter(
   chapterId: string,
   fromStatus: string,
   allowEarly = false,
+  session?: ClientSession,
 ) {
-  const publication = await PublicationModel.findOne({ chapterId, status: "SCHEDULED" }).lean();
+  const publicationQuery = PublicationModel.findOne({ chapterId, status: "SCHEDULED" });
+  if (session) publicationQuery.session(session);
+  const publication = await publicationQuery.lean();
   if (!publication) {
     throw new AppError(
       409,
@@ -117,8 +130,8 @@ export async function publishChapter(
   }
   assertPublishableSeries(series);
   const publishedAt = new Date();
-  await PublicationModel.updateOne(
-    { chapterId },
+  const publicationResult = await PublicationModel.updateOne(
+    { chapterId, status: "SCHEDULED" },
     {
       $set: {
         status: "PUBLISHED",
@@ -127,7 +140,11 @@ export async function publishChapter(
         updatedAt: nowIso(),
       },
     },
+    session ? { session } : undefined,
   );
+  if (publicationResult.modifiedCount !== 1) {
+    throw new AppError(409, "Publication state changed while publishing.", "CONFLICT");
+  }
   await SeriesModel.updateOne(
     { id: chapter.seriesId },
     {
@@ -137,13 +154,14 @@ export async function publishChapter(
         updatedAt: nowIso(),
       },
     },
+    session ? { session } : undefined,
   );
   await audit(req, "CHAPTER_PUBLISHED", "chapter", chapterId, {
     fromStatus,
     toStatus: "PUBLISHED",
     publishedEarly: isEarly,
     scheduledAt: scheduledAt.toISOString(),
-  });
+  }, session);
   await notifyMany([
     {
       userId: series.authorId,
@@ -151,7 +169,7 @@ export async function publishChapter(
       title: "Chapter published",
       message: `${chapter.title} has been published${isEarly ? " early" : ""}.`,
     },
-  ]);
+  ], session);
   return publishedAt;
 }
 

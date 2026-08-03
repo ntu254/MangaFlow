@@ -24,7 +24,6 @@ export const createMaterialSchema = z
 export const patchMaterialSchema = z
   .object({
     chapterId: z.string().nullable().optional(),
-    status: z.enum(["DRAFT", "ACTIVE", "IN_REVIEW", "APPROVED", "ARCHIVED"]).optional(),
     kind: z.string().optional(),
     title: z.string().min(1).max(200).optional(),
     type: z.string().optional(),

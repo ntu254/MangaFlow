@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
-import { AuditEntryModel, RateTableModel, StudioTaskModel } from "../db/models.js";
+import { AuditEntryModel, ChapterModel, RateTableModel, StudioTaskModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryServer;
@@ -23,6 +23,16 @@ describe("Rate table and task price snapshot contract", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-5" },
+      {
+        $set: {
+          status: "IN_PRODUCTION",
+          "pages.$[].status": "UPLOADED",
+          "pages.$[].fileKey": "tests/source-page.jpg",
+        },
+      },
+    );
   });
 
   afterAll(async () => {
@@ -76,7 +86,7 @@ describe("Rate table and task price snapshot contract", () => {
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({
         chapterId: "ch-s-berserk-prod-5",
-        pageId: "ch-s-berserk-prod-5-p1",
+        pageId: "ch-s-berserk-prod-5-p2",
         assigneeId: "u-assist",
         title: "Server-priced task",
         rateCode: "speech_bubble",
@@ -86,6 +96,8 @@ describe("Rate table and task price snapshot contract", () => {
       .expect(201);
 
     expect(response.body.data).toMatchObject({
+      targetScope: "PAGE",
+      pageTaskActive: true,
       rateCode: "SPEECH_BUBBLE",
       rateVersion: 1,
       rateSnapshot: 25,
@@ -100,7 +112,7 @@ describe("Rate table and task price snapshot contract", () => {
     const app = createApp();
     const base = {
       chapterId: "ch-s-berserk-prod-5",
-      pageId: "ch-s-berserk-prod-5-p1",
+      pageId: "ch-s-berserk-prod-5-p2",
       assigneeId: "u-assist",
       title: "Invalid price task",
     };
@@ -127,7 +139,7 @@ describe("Rate table and task price snapshot contract", () => {
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({
         chapterId: "ch-s-berserk-prod-5",
-        pageId: "ch-s-berserk-prod-5-p1",
+        pageId: "ch-s-berserk-prod-5-p2",
         assigneeId: "u-assist",
         title: "Immutable rate task",
         rateCode: "SPEECH_BUBBLE",
@@ -144,6 +156,67 @@ describe("Rate table and task price snapshot contract", () => {
     expect(response.body.code).toBe("RATE_SNAPSHOT_IMMUTABLE");
     const stored = await StudioTaskModel.findOne({ id: task.body.data.id }).lean();
     expect(stored).toMatchObject({ rateCode: "SPEECH_BUBBLE", rateSnapshot: 25 });
+  });
+
+  it("allows only one active page task and rejects region-scoped task creation", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const app = createApp();
+    const body = {
+      chapterId: "ch-s-berserk-prod-5",
+      pageId: "ch-s-berserk-prod-5-p3",
+      assigneeId: "u-assist",
+      title: "One page, one task",
+      rateCode: "SPEECH_BUBBLE",
+    };
+
+    const first = await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send(body)
+      .expect(201);
+
+    const duplicate = await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send(body)
+      .expect(409);
+    expect(duplicate.body.code).toBe("PAGE_HAS_ACTIVE_TASK");
+    expect(await StudioTaskModel.countDocuments({ pageId: body.pageId })).toBe(1);
+    expect(first.body.data).toMatchObject({ targetScope: "PAGE", pageTaskActive: true });
+
+    const regionAttempt = await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ ...body, pageId: "ch-s-berserk-prod-5-p4", regionId: "reg-001" })
+      .expect(400);
+    expect(regionAttempt.body.code).toBe("REGION_TASKS_RETIRED");
+  });
+
+  it("makes concurrent task creation on one page first-writer-wins", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const app = createApp();
+    const body = {
+      chapterId: "ch-s-berserk-prod-5",
+      pageId: "ch-s-berserk-prod-5-p5",
+      assigneeId: "u-assist",
+      title: "Concurrent page task",
+      rateCode: "SPEECH_BUBBLE",
+    };
+
+    const responses = await Promise.all(
+      [1, 2].map((suffix) =>
+        request(app)
+          .post("/api/studio/tasks")
+          .set("Authorization", `Bearer ${mangaka.accessToken}`)
+          .send({ ...body, title: `${body.title} ${suffix}` }),
+      ),
+    );
+
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    expect(responses.find((response) => response.status === 409)?.body.code).toBe(
+      "PAGE_HAS_ACTIVE_TASK",
+    );
+    expect(await StudioTaskModel.countDocuments({ pageId: body.pageId })).toBe(1);
   });
 
   it("keeps seeded rates available for the demo user flow", async () => {

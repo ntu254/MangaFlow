@@ -2,7 +2,6 @@ import { Router } from "express";
 import {
   listNotifications,
   markRead,
-  archiveNotification,
   listRankings,
   listSeriesRankings,
   importRankings
@@ -13,7 +12,6 @@ const router = Router();
 
 router.get("/notifications", listNotifications);
 router.post("/notifications/:id/read", markRead);
-router.post("/notifications/:id/archive", archiveNotification);
 
 // Rankings (originally registered inside registerNotifications)
 router.get("/rankings", requireExactRole("BOARD", "EDITOR", "MANGAKA") as any, listRankings);

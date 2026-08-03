@@ -46,6 +46,45 @@ async function notifyOnce(event: OutboxEvent, userId: string, title: string, mes
 async function deliverTaskEvent(event: OutboxEvent) {
   const task = (await StudioTaskModel.findOne({ id: event.aggregateId }).lean()) as any;
   const series = await seriesForTask(task);
+  if (event.type === "task.assigned") {
+    const assistantId = String(event.payload?.assistantId ?? task?.assigneeId ?? "");
+    if (assistantId) {
+      await notifyOnce(
+        event,
+        assistantId,
+        event.type,
+        `Task ${event.aggregateId} was assigned to you.`,
+      );
+    }
+    return;
+  }
+  if (event.type === "task.reassigned" || event.type === "task.cancelled") {
+    const assistantId = String(event.payload?.assistantId ?? task?.assigneeId ?? "");
+    if (assistantId) {
+      await notifyOnce(
+        event,
+        assistantId,
+        event.type,
+        event.type === "task.reassigned"
+          ? `Task ${event.aggregateId} was assigned to you.`
+          : `Task ${event.aggregateId} was cancelled.`,
+      );
+    }
+    return;
+  }
+  if (
+    (event.type === "task.assignment.accepted" ||
+      event.type === "task.assignment.rejected") &&
+    series?.authorId
+  ) {
+    await notifyOnce(
+      event,
+      String(series.authorId),
+      event.type,
+      `Task ${event.aggregateId} assignment was ${event.type.endsWith("accepted") ? "accepted" : "rejected"}.`,
+    );
+    return;
+  }
   if (!series?.authorId) return;
   const verb = event.type === "task.reopened" ? "reopened for revision" : "received new work";
   await notifyOnce(
@@ -92,7 +131,15 @@ async function deliverBoardEvent(event: OutboxEvent) {
 
 export const deliverOutboxEvent: OutboxDeliveryHandler = async (rawEvent) => {
   const event = rawEvent as OutboxEvent;
-  if (event.type === "task.submitted" || event.type === "task.reopened") {
+  if (
+    event.type === "task.submitted" ||
+    event.type === "task.reopened" ||
+    event.type === "task.assigned" ||
+    event.type === "task.reassigned" ||
+    event.type === "task.cancelled" ||
+    event.type === "task.assignment.accepted" ||
+    event.type === "task.assignment.rejected"
+  ) {
     await deliverTaskEvent(event);
     return;
   }

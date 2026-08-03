@@ -9,7 +9,6 @@ export type AuthUser = {
   email: string;
   role: Role;
   isChair?: boolean;
-  isEditorInChief?: boolean;
 };
 
 export type RequestActor = AuthUser & {
@@ -70,7 +69,7 @@ export type VotingSessionStatus =
   | "FINALIZED"
   | "CANCELLED";
 
-export type VoteDecision = "APPROVE" | "REJECT" | "ABSTAIN";
+export type VoteDecision = "APPROVE" | "REJECT";
 
 export type ProposalAction =
   | "SUBMIT"
@@ -78,7 +77,6 @@ export type ProposalAction =
   | "EDIT"
   | "CLAIM"
   | "RELEASE_CLAIM"
-  | "REASSIGN_CLAIM"
   | "UPDATE_EDITORIAL_CHECKLIST"
   | "REQUEST_CHANGES"
   | "RESUBMIT"
@@ -95,7 +93,6 @@ export const PROPOSAL_ACTIONS: readonly ProposalAction[] = [
   "EDIT",
   "CLAIM",
   "RELEASE_CLAIM",
-  "REASSIGN_CLAIM",
   "UPDATE_EDITORIAL_CHECKLIST",
   "REQUEST_CHANGES",
   "RESUBMIT",
@@ -114,7 +111,7 @@ export const PROPOSAL_ACTIONS: readonly ProposalAction[] = [
 /**
  * Canonical chapter lifecycle:
  *   PLANNED → IN_PRODUCTION → TANTOU_REVIEW ⇄ REVISION_REQUIRED
- *           → READY_FOR_PUBLICATION → PUBLISHED (+ ARCHIVED)
+ *           → READY_FOR_PUBLICATION → PUBLISHED
  *
  * Scheduling is NOT a chapter status: a chapter stays READY_FOR_PUBLICATION
  * while its Publication is SCHEDULED, and only becomes PUBLISHED when it
@@ -129,8 +126,7 @@ export type ChapterStatus =
   | "TANTOU_REVIEW"
   | "REVISION_REQUIRED"
   | "READY_FOR_PUBLICATION"
-  | "PUBLISHED"
-  | "ARCHIVED";
+  | "PUBLISHED";
 
 export type ChapterAction =
   | "START_DRAFT"
@@ -144,8 +140,7 @@ export type ChapterAction =
   | "POSTPONE"
   | "PUBLISH"
   | "PUBLISH_EARLY"
-  | "REASSIGN"
-  | "ARCHIVE";
+  | "REASSIGN";
 
 export const CHAPTER_ACTIONS: readonly ChapterAction[] = [
   "START_DRAFT",
@@ -160,7 +155,6 @@ export const CHAPTER_ACTIONS: readonly ChapterAction[] = [
   "PUBLISH",
   "PUBLISH_EARLY",
   "REASSIGN",
-  "ARCHIVE",
 ];
 
 // ---------------------------------------------------------------------------
@@ -170,11 +164,6 @@ export const CHAPTER_ACTIONS: readonly ChapterAction[] = [
 export const PAGE_STATUSES = [
   "PENDING_UPLOAD",
   "UPLOADED",
-  "REGIONING",
-  "IN_PRODUCTION",
-  "MANGAKA_REVIEW",
-  "REVISION_REQUIRED",
-  "TANTOU_REVIEW",
   "FINALIZED",
 ] as const;
 
@@ -199,23 +188,24 @@ export type StudioTaskStatus =
   | "EDITOR_REVISION_REQUESTED"
   | "EDITOR_APPROVED";
 
+export type TaskAssignmentStatus =
+  "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";
+
 export type TaskAction =
+  | "ACCEPT"
+  | "REJECT"
   | "START"
   | "SUBMIT"
   | "CANCEL"
-  | "BLOCK"
-  | "MARK_BLOCKED"
-  | "UNBLOCK"
   | "REOPEN"
   | "REASSIGN";
 
 export const TASK_ACTIONS: readonly TaskAction[] = [
+  "ACCEPT",
+  "REJECT",
   "START",
   "SUBMIT",
   "CANCEL",
-  "BLOCK",
-  "MARK_BLOCKED",
-  "UNBLOCK",
   "REOPEN",
   "REASSIGN",
 ];
@@ -235,19 +225,15 @@ export type SubmissionStatus =
   | "EDITOR_APPROVED"
   | "EDITOR_REVISION_REQUESTED";
 
-export type SubmissionReviewStage = "MANGAKA_REVIEW" | "EDITOR_REVIEW" | "FINAL";
+export type SubmissionReviewStage =
+  "MANGAKA_REVIEW" | "EDITOR_REVIEW" | "FINAL";
 
 // ---------------------------------------------------------------------------
 // Earning
 // ---------------------------------------------------------------------------
 
 export type EarningItemStatus =
-  | "PENDING"
-  | "APPROVED"
-  | "VOIDED"
-  | "EARNED"
-  | "ADJUSTED"
-  | "REVERSED";
+  "PENDING" | "APPROVED" | "VOIDED" | "EARNED" | "ADJUSTED" | "REVERSED";
 
 export type EarningStatus =
   | "PENDING"
@@ -258,7 +244,8 @@ export type EarningStatus =
   | "ADJUSTED"
   | "REVERSED";
 
-export type PublicationStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CANCELLED";
+export type PublicationStatus =
+  "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CANCELLED";
 
 // ---------------------------------------------------------------------------
 // Ranking
@@ -266,7 +253,8 @@ export type PublicationStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED" | "CANCELLED
 
 export type RankingSource = "MANUAL" | "CSV_IMPORT" | "API";
 
-export type RankingImportStatus = "PENDING" | "VALIDATED" | "IMPORTED" | "FAILED";
+export type RankingImportStatus =
+  "PENDING" | "VALIDATED" | "IMPORTED" | "FAILED";
 
 // ---------------------------------------------------------------------------
 // Notification
@@ -286,13 +274,14 @@ export type RegionLockStatus = "UNLOCKED" | "LOCKED";
 // Comment
 // ---------------------------------------------------------------------------
 
-export type CommentTargetType = "CHAPTER" | "PAGE" | "REGION" | "TASK" | "SUBMISSION";
+export type CommentTargetType =
+  "CHAPTER" | "PAGE" | "REGION" | "TASK" | "SUBMISSION";
 
 // ---------------------------------------------------------------------------
 // Series
 // ---------------------------------------------------------------------------
 
-export type SeriesVisibility = "PRIVATE" | "PUBLIC" | "UNLISTED" | "ARCHIVED";
+export type SeriesVisibility = "PRIVATE" | "PUBLIC" | "UNLISTED";
 
 // ---------------------------------------------------------------------------
 // Shared

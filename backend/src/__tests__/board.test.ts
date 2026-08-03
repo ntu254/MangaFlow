@@ -329,7 +329,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
     expect(response.body.data.eligibleVoterIds).not.toContain("u-board-5");
   });
 
-  it("POST /api/board/series/:id/votes lets a Board member update their own session vote", async () => {
+  it("POST /api/board/series/:id/votes rejects a duplicate vote in the same session", async () => {
     await ProposalModel.create({
       id: "proposal-dup-test",
       title: "Duplicate Vote Test",
@@ -361,11 +361,14 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       .post("/api/board/series/proposal-dup-test/votes")
       .set("Authorization", `Bearer ${board.accessToken}`)
       .send({ voteDecision: "REJECT", sessionId })
-      .expect(200);
+      .expect(409)
+      .expect((res) => {
+        expect(res.body.code).toBe("VOTE_ALREADY_CAST");
+      });
 
     const votes = await ProposalVoteModel.find({ proposalId: "proposal-dup-test", sessionId }).lean();
     expect(votes).toHaveLength(1);
-    expect((votes[0] as any).decision).toBe("REJECT");
+    expect((votes[0] as any).decision).toBe("APPROVE");
   });
 
   it("POST /api/voting-sessions/:id/cancel restores its proposal without deleting vote history", async () => {
@@ -451,7 +454,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       .expect(403);
   });
 
-  it("retires the Board-series EIC tie-break command", async () => {
+  it("opens a fresh Board re-vote after a tied session", async () => {
     await ProposalModel.create({
       id: "proposal-tie-test",
       title: "Tie Break Test",
@@ -489,17 +492,12 @@ describe("MF-030A Board Queue Live Submission Review", () => {
         expect(res.body.data.status).toBe("TIED");
       });
 
-    const editorInChief = await loginAs("tanaka@beachread.jp");
-    const res = await request(createApp())
-      .post("/api/board/series/proposal-tie-test/decisions/tie-break")
-      .set("Authorization", `Bearer ${editorInChief.accessToken}`)
-      .send({ voteDecision: "APPROVE", sessionId })
-      .expect(410);
-
-    expect(res.body.code).toBe("TIE_BREAK_RETIRED");
+    const revote = (await VotingSessionModel.findOne({ reVoteOfSessionId: sessionId }).lean()) as any;
+    expect(revote?.status).toBe("OPEN");
+    expect(revote?.proposalId).toBe("proposal-tie-test");
   });
 
-  it("retires the VotingSession EIC tie-break command", async () => {
+  it("does not expose a separate VotingSession tie-break command", async () => {
     await ProposalModel.create({
       id: "proposal-tie-approve-test",
       title: "Retired Tie Break Test",
@@ -521,14 +519,13 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       .send({ proposalId: "proposal-tie-approve-test" })
       .expect(201);
     const sessionId = session.body.data.id;
-    const eic = await loginAs("tanaka@beachread.jp");
     const response = await request(createApp())
       .post(`/api/voting-sessions/${sessionId}/tie-break`)
-      .set("Authorization", `Bearer ${eic.accessToken}`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
       .send({ proposalId: "proposal-tie-approve-test", voteDecision: "APPROVE" })
-      .expect(410);
+      .expect(404);
 
-    expect(response.body.code).toBe("TIE_BREAK_RETIRED");
+    expect(response.body.code ?? response.body.message).toBeDefined();
   });
 
   it("POST /api/board/series/:id/decisions/finalize closes VotingSession for BOARD", async () => {

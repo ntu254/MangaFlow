@@ -6,6 +6,7 @@ import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
 import {
   MaterialModel,
+  ChapterModel,
   SeriesModel,
   StudioCommentModel,
   StudioTaskModel,
@@ -34,6 +35,16 @@ describe("authorization perimeter", () => {
 
   beforeEach(async () => {
     await seedDatabase();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-5" },
+      {
+        $set: {
+          status: "IN_PRODUCTION",
+          "pages.$[].status": "UPLOADED",
+          "pages.$[].fileKey": "tests/source-page.jpg",
+        },
+      },
+    );
   }, 30_000);
 
   afterAll(async () => {
@@ -64,7 +75,7 @@ describe("authorization perimeter", () => {
       .expect(403);
 
     await request(createApp())
-      .get("/api/editor/manuscripts/review-queue")
+      .get("/api/editor/proposals/review-queue")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .expect(403);
   });
@@ -131,6 +142,7 @@ describe("authorization perimeter", () => {
       .set("Authorization", `Bearer ${owner.accessToken}`)
       .send({
         chapterId: "ch-s-berserk-prod-5",
+        pageId: "ch-s-berserk-prod-5-p1",
         assigneeId: "u-editor",
         title: "Invalid editor assignment",
       })
@@ -148,12 +160,13 @@ describe("authorization perimeter", () => {
       .send({
         seriesId: "s-vinland-prod",
         chapterId: "ch-s-berserk-prod-5",
+        pageId: "ch-s-berserk-prod-5-p1",
         assigneeId: "u-assist-2",
         title: "Conflicting task scope",
       })
       .expect(400);
 
-    expect(response.body.code).toBe("TASK_SERIES_MISMATCH");
+    expect(response.body.code).toBe("TARGET_MISMATCH");
   });
 
   it("rejects an unresolved secondary task target", async () => {
@@ -168,9 +181,9 @@ describe("authorization perimeter", () => {
         assigneeId: "u-assist",
         title: "Task with missing page",
       })
-      .expect(404);
+      .expect(400);
 
-    expect(response.body.code).toBe("PAGE_NOT_FOUND");
+    expect(response.body.code).toBe("REGION_TASKS_RETIRED");
   });
 
   it("rejects reassigning a task to a non-assistant series member", async () => {
@@ -232,9 +245,9 @@ describe("authorization perimeter", () => {
         chapterId: "ch-s-berserk-prod-5",
         pageId: "ch-s-berserk-prod-5-p1",
       })
-      .expect(403);
+      .expect(400);
 
-    expect(response.body.code).toBe("ASSIGNEE_NOT_ELIGIBLE");
+    expect(response.body.code).toBe("TARGET_MISMATCH");
   });
 
   it("keeps task comments scoped to the assigned assistant", async () => {

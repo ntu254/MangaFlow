@@ -228,7 +228,7 @@ describe("Admin RBAC and mutations", () => {
       expect((chairs[0] as any).id).toBe("u-board-2");
     });
 
-    it("clears incompatible designations when role or active state changes", async () => {
+    it("clears incompatible Board Chair designation when role changes", async () => {
       const admin = await loginAs("admin@beachread.jp");
       await request(createApp())
         .patch("/api/admin/users/u-board")
@@ -243,10 +243,7 @@ describe("Admin RBAC and mutations", () => {
         .patch("/api/admin/users/u-editor")
         .set("Authorization", `Bearer ${admin.accessToken}`)
         .send({ active: false })
-        .expect(200)
-        .expect((response) => {
-          expect(response.body.data.isEditorInChief).toBe(false);
-        });
+        .expect(200);
     });
 
     it("rejects a designation that is incompatible with the target role", async () => {

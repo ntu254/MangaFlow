@@ -13,7 +13,7 @@ export const getSeriesEditor = asyncRoute(async (req: AuthedRequest, res) => {
 export const assignSeriesEditor = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId);
   const body = parseBody(assignEditorSchema, req);
-  const member = await assignTantouEditor(req, seriesId, body.editorId, body.editorName);
+  const member = await assignTantouEditor(req, seriesId, body.editorId);
   ok(res, member);
 });
 

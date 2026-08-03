@@ -8,7 +8,6 @@ import {
   patchVotingSession,
   closeSession,
   cancelSession,
-  tieBreak,
   addSessionNote,
   patchSessionNote,
   deleteSessionNote,
@@ -23,7 +22,6 @@ router.post("/voting-sessions", requireExactBoardChair as any, createVotingSessi
 router.patch("/voting-sessions/:id", requireExactBoardChair as any, patchVotingSession);
 router.post("/voting-sessions/:id/close", requireExactBoardChair as any, closeSession);
 router.post("/voting-sessions/:id/cancel", requireExactBoardChair as any, cancelSession);
-router.post("/voting-sessions/:id/tie-break", requireExactRole("EDITOR") as any, tieBreak);
 router.post(
   "/voting-sessions/:id/notes",
   requireExactRole("EDITOR", "BOARD") as any,

@@ -24,12 +24,23 @@ async function main() {
   await mongoose.connect(mongoUri);
   const regions = mongoose.connection.db!.collection("studioregions");
   const records = await regions
-    .find({ lockStatus: "RELEASED" })
-    .project({ id: 1, lockStatus: 1 })
+    .find({
+      $or: [
+        { lockStatus: "RELEASED" },
+        {
+          lockedByTaskId: { $exists: true, $nin: [null, ""] },
+          $or: [{ lockStatus: "UNLOCKED" }, { activeTaskId: null }, { activeTaskId: { $exists: false } }],
+        },
+      ],
+    })
+    .project({ id: 1, lockStatus: 1, activeTaskId: 1, lockedByTaskId: 1 })
     .toArray();
   const plans = records.map((record) => ({
     record,
-    plan: planRegionLockMigration(record),
+    plan:
+      record.lockStatus === "RELEASED"
+        ? planRegionLockMigration(record)
+        : { action: "MIGRATE" as const, set: { lockStatus: "UNLOCKED" as const } },
   }));
   const matches = plans.filter(({ plan }) => plan.action === "MIGRATE").length;
 
@@ -42,7 +53,10 @@ async function main() {
   for (const { record, plan } of plans) {
     if (plan.action !== "MIGRATE") continue;
     const filter = record.id ? { id: record.id } : { _id: record._id };
-    const result = await regions.updateOne(filter, { $set: plan.set });
+    const result = await regions.updateOne(filter, {
+      $set: { ...plan.set, activeTaskId: null },
+      $unset: { lockedByTaskId: "", lockedAt: "" },
+    });
     migrated += result.modifiedCount;
   }
   console.log(`Migrated ${migrated} StudioRegion document(s) to UNLOCKED.`);

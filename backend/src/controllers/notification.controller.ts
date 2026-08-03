@@ -36,7 +36,7 @@ export const listNotifications = asyncRoute(async (req: AuthedRequest, res) => {
     req,
     res,
     NotificationModel,
-    { userId: actor.id, archivedAt: { $exists: false } },
+    { userId: actor.id },
     { createdAt: -1 },
   );
 });
@@ -52,21 +52,6 @@ export const markRead = asyncRoute(async (req: AuthedRequest, res) => {
     res,
     await patchById(req, NotificationModel, String(req.params.id), "notification.read", {
       readAt: new Date(),
-    }),
-  );
-});
-
-export const archiveNotification = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const notification = await NotificationModel.findOne({ id: String(req.params.id) }).lean();
-  if (!notification) throw new AppError(404, "Notification not found.", "NOTIFICATION_NOT_FOUND");
-  if ((notification as any).userId !== actor.id) {
-    throw new AppError(403, "You do not have permission to modify this notification.", "FORBIDDEN");
-  }
-  ok(
-    res,
-    await patchById(req, NotificationModel, String(req.params.id), "notification.archive", {
-      archivedAt: new Date(),
     }),
   );
 });

@@ -44,7 +44,10 @@ export async function notify(
   });
 }
 
-export async function notifyMany(items: { userId: string; kind: string; message: string; title?: string }[]) {
+export async function notifyMany(
+  items: { userId: string; kind: string; message: string; title?: string }[],
+  session?: ClientSession,
+) {
   if (items.length === 0) return;
   await NotificationModel.insertMany(
     items.map((item) => ({
@@ -54,7 +57,8 @@ export async function notifyMany(items: { userId: string; kind: string; message:
       title: item.title ?? item.kind.replace(/\./g, " "),
       message: item.message,
       createdAt: new Date()
-    }))
+    })),
+    session ? { session } : {},
   );
 }
 

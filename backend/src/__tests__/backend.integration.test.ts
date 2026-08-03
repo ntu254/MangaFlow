@@ -43,13 +43,17 @@ describe("MangaFlow backend live contract", () => {
 
   async function createUploadedPage(accessToken: string, pageId: string) {
     const app = createApp();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-4" },
+      { $set: { status: "IN_PRODUCTION", "pages.$[].status": "UPLOADED" } },
+    );
     const uploadRes = await request(app)
       .post("/api/files/presign-upload")
       .set("Authorization", `Bearer ${accessToken}`)
       .send({
         fileName: `${pageId}.png`,
         contentType: "image/png",
-        folder: "chapters/ch-s-berserk-prod-5/pages",
+        folder: "chapters/ch-s-berserk-prod-4/pages",
       })
       .expect(200);
 
@@ -61,7 +65,7 @@ describe("MangaFlow backend live contract", () => {
       .expect(204);
 
     await request(app)
-      .post("/api/chapters/ch-s-berserk-prod-5/pages")
+      .post("/api/chapters/ch-s-berserk-prod-4/pages")
       .set("Authorization", `Bearer ${accessToken}`)
       .send({
         id: pageId,
@@ -113,7 +117,7 @@ describe("MangaFlow backend live contract", () => {
       });
 
     await request(createApp())
-      .get("/api/editor/manuscripts/review-queue")
+      .get("/api/editor/proposals/review-queue")
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .expect(200)
       .expect((response) => {
@@ -394,7 +398,7 @@ describe("MangaFlow backend live contract", () => {
     // POST /materials accepts a minimal valid owned target.
     const matRes = await request(createApp())
       .post("/api/materials")
-      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ seriesId: "s-berserk-prod", title: "Integration material" })
       .expect(201);
     expect(matRes.body.data.id).toBeDefined();

@@ -8,7 +8,6 @@ export const createUserSchema = z
     role: z.enum(["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD"]),
     active: z.boolean().optional(),
     isChair: z.boolean().optional(),
-    isEditorInChief: z.boolean().optional(),
   })
   .strict();
 
@@ -19,7 +18,6 @@ export const updateUserSchema = z
     role: z.enum(["ADMIN", "MANGAKA", "ASSISTANT", "EDITOR", "BOARD"]).optional(),
     active: z.boolean().optional(),
     isChair: z.boolean().optional(),
-    isEditorInChief: z.boolean().optional(),
     reason: z.string().min(8).max(500).optional(),
   })
   .strict();

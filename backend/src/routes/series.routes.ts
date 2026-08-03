@@ -15,6 +15,9 @@ import {
   updateMember,
   removeMember,
   inviteAssistant,
+  listSeriesInvites,
+  acceptSeriesInvite,
+  declineSeriesInvite,
   getChapter,
   patchChapter,
   chapterAction,
@@ -35,6 +38,9 @@ const router = Router();
 
 // Series
 router.get("/series", listSeries);
+router.get("/series/invites", listSeriesInvites);
+router.post("/series/invites/:inviteId/accept", requireExactRole("ASSISTANT") as any, acceptSeriesInvite);
+router.post("/series/invites/:inviteId/decline", requireExactRole("ASSISTANT") as any, declineSeriesInvite);
 router.get("/series/:id", getSeries);
 router.patch("/series/:id", requireExactRole("EDITOR", "MANGAKA") as any, patchSeries);
 router.post(
@@ -66,6 +72,7 @@ router.post(
   requireExactRole("EDITOR", "MANGAKA") as any,
   inviteAssistant,
 );
+router.get("/series/:seriesId/invites", listSeriesInvites);
 
 // Chapters (standalone)
 router.get("/chapters", requireRole("EDITOR", "MANGAKA", "ASSISTANT") as any, listChapters);

@@ -302,9 +302,20 @@ export function createAiHandlers(aiServiceUrl: string) {
           : item,
       );
       const attached = await ChapterModel.updateOne(
-        { id: (chapter as any).id, "pages.id": pageId },
+        {
+          id: (chapter as any).id,
+          status: { $in: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"] },
+          "pages.id": pageId,
+        },
         { $set: { pages, updatedAt: nowIso() } },
       );
+      if (attached.matchedCount < 1) {
+        throw new AppError(
+          409,
+          "Chapter content is locked while Tantou review is active.",
+          "CHAPTER_REVIEW_LOCKED",
+        );
+      }
       if (attached.modifiedCount < 1) {
         throw new AppError(409, "AI output could not be attached to the current page.", "AI_ATTACH_FAILED");
       }

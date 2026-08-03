@@ -62,4 +62,12 @@ describe("mobile editor chapter actions parity", () => {
       .set("Authorization", `Bearer ${board.accessToken}`)
       .expect(403);
   });
+
+  it("denies chapter detail to an Editor who is not the active Tantou", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    await request(createApp())
+      .get(`/api/editor/chapters/${BLOCKED_CHAPTER}/detail`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(403);
+  });
 });

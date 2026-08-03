@@ -94,7 +94,6 @@ export const deleteUser = asyncRoute(async (req: AuthedRequest, res) => {
 export const listManagedNotifications = asyncRoute(async (req: AuthedRequest, res) => {
   const filters = {
     targetRole: typeof req.query.targetRole === "string" ? req.query.targetRole : undefined,
-    status: typeof req.query.status === "string" ? req.query.status : undefined,
     type: typeof req.query.type === "string" ? req.query.type : undefined,
   };
   ok(res, await adminService.listManagedNotifications(filters));

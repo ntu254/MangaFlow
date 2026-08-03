@@ -5,8 +5,6 @@ import { audit } from "../services/audit.service.js";
 import {
   assertCanMutateMaterialById,
   assertCanMutateMaterialTarget,
-  assertCanTransitionMaterialAsOwnerOrTantou,
-  assertCanTransitionMaterialToApproved,
   materialScopeFilter,
   mergeScope,
 } from "../services/authorization.service.js";
@@ -18,10 +16,6 @@ import {
   addMaterialVersionSchema,
 } from "../validators/material.schema.js";
 import type { AuthedRequest } from "../types.js";
-import {
-  assertMaterialStatus,
-  isMaterialTransitionAllowed,
-} from "../services/material-status.service.js";
 
 export const listMaterials = asyncRoute(async (req: AuthedRequest, res) =>
   paginated(
@@ -75,7 +69,6 @@ export const patchMaterial = asyncRoute(async (req: AuthedRequest, res) => {
     "type",
     "category",
     "description",
-    "status",
     "fileKey",
     "url",
     "thumbnailUrl",
@@ -84,29 +77,9 @@ export const patchMaterial = asyncRoute(async (req: AuthedRequest, res) => {
     "tags",
     "metadata",
   ];
-  const patch = sanitizePatch(body as Record<string, unknown>, allowedFields, {
-    rejectStatus: false,
-  });
+  const patch = sanitizePatch(body as Record<string, unknown>, allowedFields);
   const existing = (await MaterialModel.findOne({ id: String(req.params.id) }).lean()) as any;
   if (!existing) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
-  if (patch.status !== undefined) {
-    const targetStatus = assertMaterialStatus(patch.status);
-    patch.status = targetStatus;
-    const currentStatus = assertMaterialStatus(existing.status);
-    if (targetStatus === currentStatus) {
-      delete patch.status;
-    } else if (!isMaterialTransitionAllowed(currentStatus, targetStatus)) {
-      throw new AppError(
-        409,
-        `Material cannot transition from ${currentStatus} to ${targetStatus}.`,
-        "INVALID_TRANSITION",
-      );
-    } else if (targetStatus === "APPROVED") {
-      await assertCanTransitionMaterialToApproved(actor, existing);
-    } else if (["ACTIVE", "IN_REVIEW", "ARCHIVED"].includes(targetStatus)) {
-      await assertCanTransitionMaterialAsOwnerOrTantou(actor, existing);
-    }
-  }
   await assertCanMutateMaterialById(actor, String(req.params.id));
   if (body.chapterId) {
     await assertCanMutateMaterialTarget(actor, { chapterId: body.chapterId });
@@ -120,13 +93,6 @@ export const addMaterialVersion = asyncRoute(async (req: AuthedRequest, res) => 
   rejectProtectedFields(body as Record<string, unknown>);
   const material = await MaterialModel.findOne({ id: String(req.params.id) });
   if (!material) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
-  if (String((material as any).status) === "APPROVED") {
-    throw new AppError(
-      409,
-      "Approved Material versions are immutable; create a new DRAFT material for replacement work.",
-      "APPROVED_MATERIAL_IMMUTABLE",
-    );
-  }
   const nextVersion = Number((material as any).currentVersion ?? 0) + 1;
   const version = {
     id: id("matv"),
@@ -149,13 +115,6 @@ export const deleteMaterial = asyncRoute(async (req: AuthedRequest, res) => {
   const materialId = String(req.params.id);
   const existing = await MaterialModel.findOne({ id: materialId });
   if (!existing) throw new AppError(404, "Material not found.", "MATERIAL_NOT_FOUND");
-  if (String((existing as any).status) === "APPROVED") {
-    throw new AppError(
-      409,
-      "Approved Materials are immutable and cannot be deleted; archive the approved record instead.",
-      "APPROVED_MATERIAL_IMMUTABLE",
-    );
-  }
   await MaterialModel.deleteOne({ id: materialId });
   await audit(req, "material.delete", "material", materialId);
   ok(res, { id: materialId });

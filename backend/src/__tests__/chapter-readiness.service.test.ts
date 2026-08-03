@@ -6,6 +6,22 @@ import {
 } from "../services/chapter-readiness.service.js";
 
 describe("Chapter readiness bounded context", () => {
+  it("does not expose or enforce a Supporting Material readiness check", () => {
+    const result = chapterReadiness(
+      {
+        id: "chapter-material-independent",
+        status: "IN_PRODUCTION",
+        pages: [{ id: "page-1", fileKey: "r2/page.png", status: "UPLOADED" }],
+      },
+      [],
+      [],
+      [],
+    );
+
+    expect(result.items.map((item) => item.key)).not.toContain("reviewMaterialActive");
+    expect(result.ready).toBe(true);
+  });
+
   it("recognizes durable and legacy uploaded page assets", () => {
     expect(pageHasUploadedAsset({ fileKey: "r2/chapter/page.png", status: "UPLOADED" })).toBe(true);
     expect(
@@ -25,7 +41,6 @@ describe("Chapter readiness bounded context", () => {
       [],
       [],
       [],
-      [],
     );
 
     expect(result.ready).toBe(true);
@@ -42,7 +57,6 @@ describe("Chapter readiness bounded context", () => {
     const result = chapterReadiness(
       chapter,
       [{ id: "comment-1", isBlocking: true, status: "OPEN" }],
-      [],
       [],
       [],
     );
@@ -71,7 +85,6 @@ describe("Chapter readiness bounded context", () => {
         { id: "sub-r", taskId: "task-rejected", status: "REJECTED" },
         { id: "sub-ok", taskId: "task-ok", status: "MANGAKA_APPROVED" },
       ],
-      [],
     );
 
     expect(result.items.find((item) => item.key === "allTasksApproved")?.passed).toBe(true);
@@ -85,10 +98,9 @@ describe("Chapter readiness bounded context", () => {
         id: "chapter-addressed",
         status: "TANTOU_REVIEW",
         reviewSnapshot: { chapterVersionId: "v1" },
-        pages: [{ id: "page-1", fileKey: "r2/page.png", status: "TANTOU_REVIEW" }],
+        pages: [{ id: "page-1", fileKey: "r2/page.png", status: "UPLOADED" }],
       },
       [{ id: "comment-addressed", isBlocking: true, status: "ADDRESSED" }],
-      [],
       [],
       [],
     );

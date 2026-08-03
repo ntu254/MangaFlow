@@ -6,10 +6,13 @@ import {
   StudioTaskModel,
   StudioCommentModel,
   SubmissionModel,
+  SeriesMemberModel,
 } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
+import { createOutboxEvent } from "../services/workflow-support.service.js";
 import {
+  assertChapterContentUnlocked,
   assertCanMutateChapterById,
   assertCanMutateRegion,
   assertCanMutateSeriesById,
@@ -32,8 +35,6 @@ import { resolveActiveRate } from "../services/rate-table.service.js";
 import {
   requireActor,
   filterFromQuery,
-  createLoose,
-  patchLoose,
   patchById,
   paginated,
   validateAction,
@@ -51,11 +52,17 @@ import {
 import { TASK_ACTIONS } from "../types.js";
 import type { AuthedRequest } from "../types.js";
 
-async function assertCanMutateStudioTarget(req: AuthedRequest, body: Record<string, unknown>) {
+async function assertCanMutateStudioTarget(
+  req: AuthedRequest,
+  body: Record<string, unknown>,
+) {
   const actor = requireActor(req);
   if (typeof body.regionId === "string") {
-    const region = await StudioRegionModel.findOne({ id: body.regionId }).lean();
-    if (!region) throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
+    const region = await StudioRegionModel.findOne({
+      id: body.regionId,
+    }).lean();
+    if (!region)
+      throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
     await assertCanMutateRegion(actor, region);
     return;
   }
@@ -78,6 +85,120 @@ async function assertCanMutateStudioTarget(req: AuthedRequest, body: Record<stri
   );
 }
 
+async function assertStudioTargetConsistency(body: Record<string, unknown>) {
+  const seriesId =
+    typeof body.seriesId === "string" ? body.seriesId : undefined;
+  const chapterId =
+    typeof body.chapterId === "string" ? body.chapterId : undefined;
+  const pageId = typeof body.pageId === "string" ? body.pageId : undefined;
+  const regionId =
+    typeof body.regionId === "string" ? body.regionId : undefined;
+  const taskId = typeof body.taskId === "string" ? body.taskId : undefined;
+
+  let chapter: any = chapterId
+    ? await ChapterModel.findOne({ id: chapterId }).lean()
+    : pageId
+      ? await ChapterModel.findOne({ "pages.id": pageId }).lean()
+      : null;
+  let regionTarget: any = null;
+  if (chapterId && !chapter)
+    throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+
+  if (regionId) {
+    regionTarget = (await StudioRegionModel.findOne({
+      id: regionId,
+    }).lean()) as any;
+    if (!regionTarget)
+      throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
+    if (!chapter)
+      chapter = await ChapterModel.findOne({
+        id: regionTarget.chapterId,
+      }).lean();
+    if (
+      seriesId &&
+      regionTarget.seriesId &&
+      String(regionTarget.seriesId) !== seriesId
+    ) {
+      throw new AppError(
+        400,
+        "Target references belong to different series.",
+        "TARGET_MISMATCH",
+      );
+    }
+    if (
+      chapterId &&
+      regionTarget.chapterId &&
+      String(regionTarget.chapterId) !== chapterId
+    ) {
+      throw new AppError(
+        400,
+        "Target references belong to different chapters.",
+        "TARGET_MISMATCH",
+      );
+    }
+  }
+  if (taskId) {
+    const task = (await StudioTaskModel.findOne({ id: taskId }).lean()) as any;
+    if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
+    if (!chapter && task.chapterId)
+      chapter = await ChapterModel.findOne({ id: task.chapterId }).lean();
+    if (seriesId && task.seriesId && String(task.seriesId) !== seriesId) {
+      throw new AppError(
+        400,
+        "Target references belong to different series.",
+        "TARGET_MISMATCH",
+      );
+    }
+    if (chapterId && task.chapterId && String(task.chapterId) !== chapterId) {
+      throw new AppError(
+        400,
+        "Task references belong to a different chapter.",
+        "TARGET_MISMATCH",
+      );
+    }
+    if (pageId && task.pageId && String(task.pageId) !== pageId) {
+      throw new AppError(
+        400,
+        "Task references belong to a different page.",
+        "TARGET_MISMATCH",
+      );
+    }
+    if (regionId && task.regionId && String(task.regionId) !== regionId) {
+      throw new AppError(
+        400,
+        "Task references belong to a different region.",
+        "TARGET_MISMATCH",
+      );
+    }
+  }
+  if (pageId) {
+    if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
+    const page = ((chapter as any).pages ?? []).find(
+      (item: any) => String(item.id) === pageId,
+    );
+    if (!page) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
+  }
+  if (
+    regionTarget &&
+    pageId &&
+    regionTarget.pageId &&
+    String(regionTarget.pageId) !== pageId
+  ) {
+    throw new AppError(
+      400,
+      "Target references belong to different pages.",
+      "TARGET_MISMATCH",
+    );
+  }
+  if (chapter && seriesId && String((chapter as any).seriesId) !== seriesId) {
+    throw new AppError(
+      400,
+      "Target references belong to different series.",
+      "TARGET_MISMATCH",
+    );
+  }
+}
+
 function isUsableSourceUrl(value: unknown) {
   if (typeof value !== "string") return false;
   const url = value.trim();
@@ -97,7 +218,8 @@ async function assertTaskPageHasSource(body: Record<string, unknown>) {
   }).lean()) as any;
   const page = chapter?.pages?.find((item: any) => item.id === body.pageId);
   if (!page) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
-  const hasFileKey = typeof page.fileKey === "string" && page.fileKey.trim().length > 0;
+  const hasFileKey =
+    typeof page.fileKey === "string" && page.fileKey.trim().length > 0;
   if (!hasFileKey && !isUsableSourceUrl(page.fileUrl ?? page.imageUrl)) {
     throw new AppError(
       409,
@@ -108,7 +230,11 @@ async function assertTaskPageHasSource(body: Record<string, unknown>) {
 }
 
 function rejectWorkflowStatusPatch(body: unknown) {
-  if (body && typeof body === "object" && ("status" in body || "state" in body)) {
+  if (
+    body &&
+    typeof body === "object" &&
+    ("status" in body || "state" in body)
+  ) {
     throw new AppError(
       400,
       "Status cannot be changed directly. Use the appropriate action endpoint.",
@@ -122,35 +248,54 @@ async function resolveCommentSeries(comment: any) {
     return SeriesModel.findOne({ id: String(comment.seriesId) }).lean();
   }
   if (comment.chapterId) {
-    const chapter = (await ChapterModel.findOne({ id: String(comment.chapterId) }).lean()) as any;
-    if (chapter?.seriesId) return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
+    const chapter = (await ChapterModel.findOne({
+      id: String(comment.chapterId),
+    }).lean()) as any;
+    if (chapter?.seriesId)
+      return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
   }
   if (comment.pageId || (comment.targetType === "PAGE" && comment.targetId)) {
     const pageId = String(comment.pageId ?? comment.targetId);
-    const chapter = (await ChapterModel.findOne({ "pages.id": pageId }).lean()) as any;
-    if (chapter?.seriesId) return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
+    const chapter = (await ChapterModel.findOne({
+      "pages.id": pageId,
+    }).lean()) as any;
+    if (chapter?.seriesId)
+      return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
   }
   if (comment.targetType === "CHAPTER" && comment.targetId) {
-    const chapter = (await ChapterModel.findOne({ id: String(comment.targetId) }).lean()) as any;
-    if (chapter?.seriesId) return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
+    const chapter = (await ChapterModel.findOne({
+      id: String(comment.targetId),
+    }).lean()) as any;
+    if (chapter?.seriesId)
+      return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
   }
-  if (comment.regionId || (comment.targetType === "REGION" && comment.targetId)) {
+  if (
+    comment.regionId ||
+    (comment.targetType === "REGION" && comment.targetId)
+  ) {
     const region = (await StudioRegionModel.findOne({
       id: String(comment.regionId ?? comment.targetId),
     }).lean()) as any;
     if (region?.chapterId) {
-      const chapter = (await ChapterModel.findOne({ id: String(region.chapterId) }).lean()) as any;
-      if (chapter?.seriesId) return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
+      const chapter = (await ChapterModel.findOne({
+        id: String(region.chapterId),
+      }).lean()) as any;
+      if (chapter?.seriesId)
+        return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
     }
   }
   if (comment.taskId || (comment.targetType === "TASK" && comment.targetId)) {
     const task = (await StudioTaskModel.findOne({
       id: String(comment.taskId ?? comment.targetId),
     }).lean()) as any;
-    if (task?.seriesId) return SeriesModel.findOne({ id: String(task.seriesId) }).lean();
+    if (task?.seriesId)
+      return SeriesModel.findOne({ id: String(task.seriesId) }).lean();
     if (task?.chapterId) {
-      const chapter = (await ChapterModel.findOne({ id: String(task.chapterId) }).lean()) as any;
-      if (chapter?.seriesId) return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
+      const chapter = (await ChapterModel.findOne({
+        id: String(task.chapterId),
+      }).lean()) as any;
+      if (chapter?.seriesId)
+        return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
     }
   }
   if (comment.targetType === "SUBMISSION" && comment.targetId) {
@@ -160,13 +305,19 @@ async function resolveCommentSeries(comment: any) {
     if (submission?.seriesId)
       return SeriesModel.findOne({ id: String(submission.seriesId) }).lean();
     const task = submission?.taskId
-      ? ((await StudioTaskModel.findOne({ id: String(submission.taskId) }).lean()) as any)
+      ? ((await StudioTaskModel.findOne({
+          id: String(submission.taskId),
+        }).lean()) as any)
       : null;
-    if (task?.seriesId) return SeriesModel.findOne({ id: String(task.seriesId) }).lean();
+    if (task?.seriesId)
+      return SeriesModel.findOne({ id: String(task.seriesId) }).lean();
     const chapterId = submission?.chapterId ?? task?.chapterId;
     if (chapterId) {
-      const chapter = (await ChapterModel.findOne({ id: String(chapterId) }).lean()) as any;
-      if (chapter?.seriesId) return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
+      const chapter = (await ChapterModel.findOne({
+        id: String(chapterId),
+      }).lean()) as any;
+      if (chapter?.seriesId)
+        return SeriesModel.findOne({ id: String(chapter.seriesId) }).lean();
     }
   }
   return null;
@@ -180,11 +331,15 @@ function isTantouBlockingComment(comment: any, series?: any) {
   return (
     isBlockingComment(comment) &&
     (String(comment.authorRole ?? "").toUpperCase() === "EDITOR" ||
-      (series?.editorId && String(series.editorId) === String(comment.authorId)))
+      (series?.editorId &&
+        String(series.editorId) === String(comment.authorId)))
   );
 }
 
-async function assertAssignedTantouCanManageBlockingComment(req: AuthedRequest, comment: any) {
+async function assertAssignedTantouCanManageBlockingComment(
+  req: AuthedRequest,
+  comment: any,
+) {
   const actor = requireActor(req);
   if (actor.role !== "EDITOR") {
     throw new AppError(
@@ -194,7 +349,21 @@ async function assertAssignedTantouCanManageBlockingComment(req: AuthedRequest, 
     );
   }
   const series = (await resolveCommentSeries(comment)) as any;
-  if (!series?.editorId || String(series.editorId) !== actor.id) {
+  const tantouMembership = series
+    ? await SeriesMemberModel.findOne({
+        seriesId: series.id,
+        userId: actor.id,
+        role: "editor",
+      }).lean()
+    : null;
+  const hasLegacySeriesAssignment =
+    !tantouMembership &&
+    series &&
+    String(series.editorId ?? "") === String(actor.id);
+  if (
+    (tantouMembership as any)?.status !== "active" &&
+    !hasLegacySeriesAssignment
+  ) {
     throw new AppError(
       403,
       "Only the assigned Tantou can manage this comment.",
@@ -203,7 +372,10 @@ async function assertAssignedTantouCanManageBlockingComment(req: AuthedRequest, 
   }
 }
 
-async function assertMangakaCanAddressComment(req: AuthedRequest, comment: any) {
+async function assertMangakaCanAddressComment(
+  req: AuthedRequest,
+  comment: any,
+) {
   const actor = requireActor(req);
   if (actor.role !== "MANGAKA") {
     throw new AppError(
@@ -214,7 +386,11 @@ async function assertMangakaCanAddressComment(req: AuthedRequest, comment: any) 
   }
   const series = (await resolveCommentSeries(comment)) as any;
   if (!isTantouBlockingComment(comment, series)) {
-    throw new AppError(403, "Only Tantou blocking comments can be marked addressed.", "FORBIDDEN");
+    throw new AppError(
+      403,
+      "Only Tantou blocking comments can be marked addressed.",
+      "FORBIDDEN",
+    );
   }
   if (!series || series.authorId !== actor.id) {
     throw new AppError(
@@ -228,7 +404,11 @@ async function assertMangakaCanAddressComment(req: AuthedRequest, comment: any) 
 async function assertEditorCanManageComment(req: AuthedRequest, comment: any) {
   const actor = requireActor(req);
   if (actor.role !== "EDITOR") {
-    throw new AppError(403, "Only Tantou can resolve or reopen blocking comments.", "FORBIDDEN");
+    throw new AppError(
+      403,
+      "Only Tantou can resolve or reopen blocking comments.",
+      "FORBIDDEN",
+    );
   }
   const series = (await resolveCommentSeries(comment)) as any;
   if (!isTantouBlockingComment(comment, series)) {
@@ -247,39 +427,76 @@ export const listRegions = asyncRoute(async (req: AuthedRequest, res) =>
     req,
     res,
     StudioRegionModel,
-    mergeScope(filterFromQuery(req), await productionScopeFilter(requireActor(req), "read")),
+    mergeScope(
+      filterFromQuery(req),
+      await productionScopeFilter(requireActor(req), "read"),
+    ),
     { updatedAt: -1 },
   ),
 );
 export const createRegion = asyncRoute(async (req: AuthedRequest, res) => {
   if (req.actor?.role !== "MANGAKA") {
-    throw new AppError(403, "Only Mangaka can create production regions.", "FORBIDDEN");
+    throw new AppError(
+      403,
+      "Only Mangaka can create production regions.",
+      "FORBIDDEN",
+    );
   }
   const body = parseBody(createRegionSchema, req);
+  if (!body.chapterId)
+    throw new AppError(
+      400,
+      "chapterId is required for a region.",
+      "VALIDATION_ERROR",
+    );
+  await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
-  created(res, await createLoose(req, StudioRegionModel, "region", "studio_region.create"));
+  const region = await StudioRegionModel.create({
+    id: id("region"),
+    ...body,
+    status: "CONFIRMED",
+    lockStatus: "UNLOCKED",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  });
+  await audit(req, "studio_region.create", "region", region.id);
+  created(res, region);
 });
 export const patchRegions = asyncRoute(async (req: AuthedRequest, res) => {
-  if (req.actor?.role !== "MANGAKA") {
-    throw new AppError(403, "Only Mangaka can edit production regions.", "FORBIDDEN");
-  }
-  rejectWorkflowStatusPatch(req.body);
-  const targetId = String(req.body?.regionId ?? req.body?.id ?? "");
-  const region = await StudioRegionModel.findOne({ id: targetId }).lean();
-  if (!region) throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
-  await assertCanMutateRegion(requireActor(req), region);
-  ok(res, await patchLoose(req, StudioRegionModel, "regionId", "studio_region.update"));
+  throw new AppError(
+    410,
+    "Bulk region patching is retired. Use the single-region endpoint.",
+    "ENDPOINT_DEPRECATED",
+  );
 });
 export const patchRegion = asyncRoute(async (req: AuthedRequest, res) => {
   if (req.actor?.role !== "MANGAKA") {
-    throw new AppError(403, "Only Mangaka can edit production regions.", "FORBIDDEN");
+    throw new AppError(
+      403,
+      "Only Mangaka can edit production regions.",
+      "FORBIDDEN",
+    );
   }
   const body = parseBody(patchRegionSchema, req);
   rejectWorkflowStatusPatch(body);
-  const existing = await StudioRegionModel.findOne({ id: String(req.params.id) }).lean();
-  if (!existing) throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
+  const existing = (await StudioRegionModel.findOne({
+    id: String(req.params.id),
+  }).lean()) as any;
+  if (!existing)
+    throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
   await assertCanMutateRegion(requireActor(req), existing);
+  if (
+    (body.seriesId || body.chapterId || body.pageId) &&
+    (existing.activeTaskId || existing.lockedByTaskId || existing.taskId)
+  ) {
+    throw new AppError(
+      409,
+      "Assigned regions cannot change their target.",
+      "REGION_ASSIGNED",
+    );
+  }
   if (body.seriesId || body.chapterId || body.pageId) {
+    await assertStudioTargetConsistency(body as Record<string, unknown>);
     await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
   }
   const allowedFields = [
@@ -299,19 +516,38 @@ export const patchRegion = asyncRoute(async (req: AuthedRequest, res) => {
   });
   ok(
     res,
-    await patchById(req, StudioRegionModel, String(req.params.id), "studio_region.update", patch),
+    await patchById(
+      req,
+      StudioRegionModel,
+      String(req.params.id),
+      "studio_region.update",
+      patch,
+    ),
   );
 });
 export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
   if (req.actor?.role !== "MANGAKA") {
-    throw new AppError(403, "Only Mangaka can delete production regions.", "FORBIDDEN");
+    throw new AppError(
+      403,
+      "Only Mangaka can delete production regions.",
+      "FORBIDDEN",
+    );
   }
   const id = String(req.params.id);
   const region = (await StudioRegionModel.findOne({ id }).lean()) as any;
   if (!region) throw new AppError(404, "Region not found.", "REGION_NOT_FOUND");
   await assertCanMutateRegion(requireActor(req), region);
-  if (region.activeTaskId || region.lockedByTaskId || region.taskId || region.submissionId) {
-    throw new AppError(409, "Assigned regions cannot be deleted.", "REGION_ASSIGNED");
+  if (
+    region.activeTaskId ||
+    region.lockedByTaskId ||
+    region.taskId ||
+    region.submissionId
+  ) {
+    throw new AppError(
+      409,
+      "Assigned regions cannot be deleted.",
+      "REGION_ASSIGNED",
+    );
   }
   await StudioRegionModel.deleteOne({ id });
   await audit(req, "studio_region.delete", "region", id);
@@ -319,6 +555,23 @@ export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 // Tasks
+const PAGE_TASK_TERMINAL_STATUSES = [
+  "REJECTED",
+  "CANCELLED",
+  "MANGAKA_APPROVED",
+  "EDITOR_APPROVED",
+  "COMPLETED",
+];
+
+function isDuplicatePageTaskError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: unknown }).code === 11000,
+  );
+}
+
 export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
   const filter = filterFromQuery(req);
   if (req.actor?.role === "ASSISTANT") {
@@ -334,14 +587,28 @@ export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(createStudioTaskSchema, req);
+  if (body.regionId) {
+    throw new AppError(
+      400,
+      "Tasks are assigned to pages. Regions are only used for comments and coordinates.",
+      "REGION_TASKS_RETIRED",
+    );
+  }
+  await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
-  await assertTaskPageHasSource(body as Record<string, unknown>);
 
   let assigneeName = body.assigneeName;
   if (body.assigneeId) {
     const assignee = await assertTaskAssigneeEligible(body, body.assigneeId);
     assigneeName = (assignee as any).name;
   }
+
+  const taskChapter = await ChapterModel.findOne({ "pages.id": body.pageId })
+    .select({ status: 1 })
+    .lean();
+  if (!taskChapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  assertChapterContentUnlocked(taskChapter);
+  await assertTaskPageHasSource(body as Record<string, unknown>);
 
   if (!body.rateCode) {
     throw new AppError(
@@ -356,9 +623,29 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const rateSnapshot = Number(rate.amount);
   const estimatedAmount = quantity * rateSnapshot;
   const taskId = id("task");
+  const activePageTask = await StudioTaskModel.findOne({
+    pageId: body.pageId,
+    $or: [
+      { pageTaskActive: true },
+      {
+        pageTaskActive: { $exists: false },
+        status: { $nin: PAGE_TASK_TERMINAL_STATUSES },
+      },
+    ],
+  }).lean();
+  if (activePageTask) {
+    throw new AppError(
+      409,
+      "This page already has an active task.",
+      "PAGE_HAS_ACTIVE_TASK",
+    );
+  }
   const taskBody = {
     ...body,
+    targetScope: "PAGE",
+    pageTaskActive: true,
     assigneeName,
+    assignmentStatus: body.assigneeId ? "PENDING" : "UNASSIGNED",
     isRequired: body.isRequired ?? true,
     rateCode: rate.code,
     rateVersion: rate.version,
@@ -369,53 +656,6 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
     currency: rate.currency,
   };
 
-  let claimedRegion = false;
-  if (body.regionId) {
-    const activeTask = await StudioTaskModel.findOne({
-      regionId: body.regionId,
-      status: { $nin: ["REJECTED", "CANCELLED"] },
-    }).lean();
-    if (activeTask) {
-      throw new AppError(409, "This region already has an active task.", "REGION_HAS_ACTIVE_TASK");
-    }
-
-    const claimed = await StudioRegionModel.findOneAndUpdate(
-      {
-        id: body.regionId,
-        $and: [
-          {
-            $or: [
-              { activeTaskId: { $exists: false } },
-              { activeTaskId: null },
-              { activeTaskId: "" },
-            ],
-          },
-          {
-            $or: [
-              { lockedByTaskId: { $exists: false } },
-              { lockedByTaskId: null },
-              { lockedByTaskId: "" },
-            ],
-          },
-        ],
-      },
-      {
-        $set: {
-          taskId,
-          activeTaskId: taskId,
-          lockStatus: "LOCKED",
-          status: "ASSIGNED",
-          updatedAt: nowIso(),
-        },
-      },
-      { returnDocument: "after" },
-    ).lean();
-    if (!claimed) {
-      throw new AppError(409, "This region already has an active task.", "REGION_HAS_ACTIVE_TASK");
-    }
-    claimedRegion = true;
-  }
-
   try {
     const task = await StudioTaskModel.create({
       id: taskId,
@@ -424,20 +664,17 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
       updatedAt: nowIso(),
     });
     await audit(req, "studio_task.create", "task", task.id);
+    await createOutboxEvent("task.assigned", "task", task.id, {
+      taskId: task.id,
+      assistantId: task.assigneeId,
+    });
     created(res, task);
   } catch (error) {
-    if (claimedRegion && body.regionId) {
-      await StudioRegionModel.updateOne(
-        { id: body.regionId, taskId },
-        {
-          $set: {
-            taskId: null,
-            activeTaskId: null,
-            lockStatus: "UNLOCKED",
-            status: "CONFIRMED",
-            updatedAt: nowIso(),
-          },
-        },
+    if (isDuplicatePageTaskError(error)) {
+      throw new AppError(
+        409,
+        "This page already has an active task.",
+        "PAGE_HAS_ACTIVE_TASK",
       );
     }
     throw error;
@@ -452,7 +689,9 @@ export const patchTasks = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(patchStudioTaskSchema, req);
-  const existing = await StudioTaskModel.findOne({ id: String(req.params.id) }).lean();
+  const existing = await StudioTaskModel.findOne({
+    id: String(req.params.id),
+  }).lean();
   if (!existing) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   await assertCanMutateTask(requireActor(req), existing);
   rejectWorkflowStatusPatch(body);
@@ -470,7 +709,19 @@ export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
       "PROTECTED_FIELD",
     );
   }
+  if ("quantity" in body) {
+    throw new AppError(
+      409,
+      "Task quantity is fixed when the page task is created.",
+      "TASK_PRICING_IMMUTABLE",
+    );
+  }
   if (body.seriesId || body.chapterId || body.pageId) {
+    await assertStudioTargetConsistency({
+      taskId: String((existing as any).id),
+      ...(existing as any),
+      ...(body as any),
+    });
     await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
   }
   const allowedFields = [
@@ -483,7 +734,6 @@ export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
     "priority",
     "dueAt",
     "isRequired",
-    "quantity",
     "metadata",
   ];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields);
@@ -493,17 +743,15 @@ export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
       String((existing as any).assigneeId),
     );
   }
-  if ("quantity" in patch) {
-    const current = (await StudioTaskModel.findOne({ id: String(req.params.id) }).lean()) as any;
-    if (!current) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
-    const quantity = Number(patch.quantity ?? current.quantity ?? 1);
-    const rateSnapshot = Number(patch.rateSnapshot ?? current.rateSnapshot ?? 0);
-    patch.quantity = quantity;
-    patch.estimatedAmount = quantity * rateSnapshot;
-  }
   ok(
     res,
-    await patchById(req, StudioTaskModel, String(req.params.id), "studio_task.update", patch),
+    await patchById(
+      req,
+      StudioTaskModel,
+      String(req.params.id),
+      "studio_task.update",
+      patch,
+    ),
   );
 });
 export const getTaskDetail = asyncRoute(async (req: AuthedRequest, res) =>
@@ -533,15 +781,20 @@ export const listComments = asyncRoute(async (req: AuthedRequest, res) => {
     req,
     res,
     StudioCommentModel,
-    mergeScope(filterFromQuery(req), await commentScopeFilter(requireActor(req))),
+    mergeScope(
+      filterFromQuery(req),
+      await commentScopeFilter(requireActor(req)),
+    ),
     { createdAt: -1 },
   );
 });
 export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const body = parseBody(createCommentSchema, req);
+  await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanReadCommentTarget(actor, body);
-  if (isBlockingComment(body)) await assertAssignedTantouCanManageBlockingComment(req, body);
+  if (isBlockingComment(body))
+    await assertAssignedTantouCanManageBlockingComment(req, body);
   const comment = await StudioCommentModel.create({
     id: id("cmt"),
     ...body,
@@ -550,7 +803,7 @@ export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
     authorRole: actor.role,
     text: body.text ?? body.body,
     body: body.body ?? body.text,
-    status: body.status ?? "OPEN",
+    status: "OPEN",
     createdAt: nowIso(),
   });
   await audit(req, "comment.create", "comment", (comment as any).id);
@@ -558,7 +811,10 @@ export const createComment = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const replyToComment = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  const parent = (await assertCanReadCommentById(actor, String(req.params.commentId))) as any;
+  const parent = (await assertCanReadCommentById(
+    actor,
+    String(req.params.commentId),
+  )) as any;
   const body = parseBody(replyCommentSchema, req);
   const text = String(body.body ?? body.text).trim();
   const reply = await StudioCommentModel.create({
@@ -588,54 +844,92 @@ export const replyToComment = asyncRoute(async (req: AuthedRequest, res) => {
 });
 export const patchComment = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  const comment = await assertCanReadCommentById(actor, String(req.params.commentId));
+  const comment = await assertCanReadCommentById(
+    actor,
+    String(req.params.commentId),
+  );
   if ((comment as any).authorId !== actor.id) {
-    throw new AppError(403, "Only the comment author can edit this comment.", "FORBIDDEN");
+    throw new AppError(
+      403,
+      "Only the comment author can edit this comment.",
+      "FORBIDDEN",
+    );
   }
   const body = parseBody(patchCommentSchema, req);
-  const allowedFields = ["text", "body", "type", "severity", "isBlocking", "metadata"];
+  const allowedFields = [
+    "text",
+    "body",
+    "type",
+    "severity",
+    "isBlocking",
+    "metadata",
+  ];
   const patch = sanitizePatch(body as Record<string, unknown>, allowedFields, {
     rejectStatus: false,
   });
   if (isBlockingComment({ ...comment, ...patch })) {
-    await assertAssignedTantouCanManageBlockingComment(req, { ...comment, ...patch });
+    await assertAssignedTantouCanManageBlockingComment(req, {
+      ...comment,
+      ...patch,
+    });
   }
   ok(
     res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.update", patch),
+    await patchById(
+      req,
+      StudioCommentModel,
+      String(req.params.commentId),
+      "comment.update",
+      patch,
+    ),
   );
 });
 export const resolveComment = asyncRoute(async (req: AuthedRequest, res) => {
   const comment = (await StudioCommentModel.findOne({
     id: String(req.params.commentId),
   }).lean()) as any;
-  if (!comment) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+  if (!comment)
+    throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
   await assertEditorCanManageComment(req, comment);
   ok(
     res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.resolved", {
-      status: "RESOLVED",
-    }),
+    await patchById(
+      req,
+      StudioCommentModel,
+      String(req.params.commentId),
+      "comment.resolved",
+      {
+        status: "RESOLVED",
+      },
+    ),
   );
 });
 export const addressComment = asyncRoute(async (req: AuthedRequest, res) => {
   const comment = (await StudioCommentModel.findOne({
     id: String(req.params.commentId),
   }).lean()) as any;
-  if (!comment) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+  if (!comment)
+    throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
   await assertMangakaCanAddressComment(req, comment);
   ok(
     res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.addressed", {
-      status: "ADDRESSED",
-    }),
+    await patchById(
+      req,
+      StudioCommentModel,
+      String(req.params.commentId),
+      "comment.addressed",
+      {
+        status: "ADDRESSED",
+      },
+    ),
   );
 });
 export const reopenComment = asyncRoute(async (req: AuthedRequest, res) => {
   const comment = (await StudioCommentModel.findOne({
     id: String(req.params.commentId),
   }).lean()) as any;
-  if (!comment) throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
+  if (!comment)
+    throw new AppError(404, "Comment not found.", "COMMENT_NOT_FOUND");
   await assertEditorCanManageComment(req, comment);
   if (!["ADDRESSED", "RESOLVED"].includes(comment.status)) {
     throw new AppError(
@@ -646,13 +940,21 @@ export const reopenComment = asyncRoute(async (req: AuthedRequest, res) => {
   }
   ok(
     res,
-    await patchById(req, StudioCommentModel, String(req.params.commentId), "comment.reopened", {
-      status: "REOPENED",
-    }),
+    await patchById(
+      req,
+      StudioCommentModel,
+      String(req.params.commentId),
+      "comment.reopened",
+      {
+        status: "REOPENED",
+      },
+    ),
   );
 });
 export const listTaskComments = asyncRoute(async (req: AuthedRequest, res) => {
-  const task = await StudioTaskModel.findOne({ id: String(req.params.taskId) }).lean();
+  const task = await StudioTaskModel.findOne({
+    id: String(req.params.taskId),
+  }).lean();
   if (!task) throw new AppError(404, "Task not found.", "TASK_NOT_FOUND");
   await assertCanReadTask(requireActor(req), task);
   ok(

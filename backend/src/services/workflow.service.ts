@@ -5,6 +5,7 @@ import {
   ProposalModel,
   ProposalVoteModel,
   SeriesModel,
+  SeriesMemberModel,
   StudioCommentModel,
   StudioRegionModel,
   StudioTaskModel,
@@ -180,9 +181,9 @@ function assertProposalAction(
       requireExactRole(actor, ["EDITOR"]);
       return;
     case "RELEASE_CLAIM":
-    case "REASSIGN_CLAIM":
-      if (!(actor.role === "EDITOR" && actor.isEditorInChief)) {
-        throw new AppError(403, "You do not have permission for this action.", "FORBIDDEN");
+      requireExactRole(actor, ["EDITOR"]);
+      if (proposal.claimedByEditorId !== actor.id) {
+        throw new AppError(403, "Only the Editor who claimed this review can release it.", "FORBIDDEN");
       }
       return;
     case "REQUEST_CHANGES":
@@ -220,8 +221,7 @@ function assertProposalAction(
       );
     case "ARCHIVE": {
       const isOwningMangaka = actor.role === "MANGAKA" && proposal.authorId === actor.id;
-      const isEic = actor.role === "EDITOR" && actor.isEditorInChief;
-      if (!isOwningMangaka && !isEic) {
+      if (!isOwningMangaka) {
         throw new AppError(403, "You do not have permission for this action.", "FORBIDDEN");
       }
       const reason =
@@ -380,35 +380,6 @@ export async function applyProposalAction(
       });
       break;
 
-    case "REASSIGN_CLAIM":
-      if (
-        !["SUBMITTED", "TANTOU_REVIEW", "PENDING_EDITOR", "EDITOR_REVIEWING"].includes(
-          proposal.status,
-        )
-      ) {
-        throw new AppError(
-          400,
-          "The current status does not allow this action.",
-          "INVALID_TRANSITION",
-        );
-      }
-      if (!payload.editorId || !payload.editorName) {
-        throw new AppError(400, "editorId and editorName are required.", "VALIDATION_ERROR");
-      }
-      patch.status = "EDITOR_REVIEWING";
-      patch.claimedByEditorId = payload.editorId;
-      patch.claimedByEditorName = payload.editorName;
-      patch.claimedAt = new Date();
-      patch.reviewStartedAt = new Date();
-      patch.assignedEditorId = payload.editorId;
-      patch.assignedEditorName = payload.editorName;
-      notifications.push({
-        userId: proposal.authorId,
-        kind: "proposal.reassigned",
-        message: `${proposal.title} review was reassigned to ${payload.editorName}.`,
-      });
-      break;
-
     case "UPDATE_EDITORIAL_CHECKLIST": {
       if (!["EDITOR_REVIEWING", "RESUBMITTED"].includes(proposal.status)) {
         throw new AppError(
@@ -561,13 +532,6 @@ export async function applyProposalAction(
       break;
 
     case "VOTE": {
-      if (actor.role === "EDITOR" && actor.isEditorInChief) {
-        throw new AppError(
-          410,
-          "Editor-in-chief tie-break voting has been retired; tied sessions now open a re-vote.",
-          "TIE_BREAK_RETIRED",
-        );
-      }
       if (proposal.status !== "BOARD_REVIEW")
         throw new AppError(409, "Proposal is not open for voting.", "INVALID_TRANSITION");
       const decision = normalizeVote(payload.voteDecision ?? payload.value ?? payload.decision);
@@ -608,6 +572,18 @@ export async function applyProposalAction(
       if (!eligibleVoterIds.includes(actor.id)) {
         throw new AppError(403, "You are not eligible to vote in this VotingSession.", "FORBIDDEN");
       }
+      const existingVote = await ProposalVoteModel.findOne({
+        sessionId,
+        proposalId: proposal.id,
+        voterId: actor.id,
+      }).lean();
+      if (existingVote) {
+        throw new AppError(
+          409,
+          "Each Board member may vote only once per voting round.",
+          "VOTE_ALREADY_CAST",
+        );
+      }
       const sessionVersion = String((session as any).proposalVersionId ?? "");
       const proposalVersion = proposalCurrentVersion(proposal);
       if (sessionVersion && sessionVersion !== proposalVersion) {
@@ -628,15 +604,22 @@ export async function applyProposalAction(
         votedAt: new Date(),
         weight: 1,
         isChair: actor.isChair,
-        isEditorInChief: actor.isEditorInChief,
       };
+      const currentSessionVotes = await ProposalVoteModel.find({
+        sessionId,
+        proposalId: proposal.id,
+      }).lean();
       const votes = [
-        ...(proposal.votes ?? []).filter(
-          (item: any) => normalizeBoardVote(item).memberId !== actor.id,
-        ),
+        ...currentSessionVotes
+          .filter((item: any) => String(item.voterId ?? item.memberId) !== actor.id)
+          .map(normalizeBoardVote),
         vote,
       ];
-      const tally = evaluateBoardTally(votes);
+      const tally = evaluateBoardTally(
+        votes,
+        Number((session as any).quorum ?? BOARD_QUORUM),
+        eligibleVoterIds.length,
+      );
 
       // Keep a denormalized read cache only; VotingSession remains the source of truth.
       patch.votes = votes;
@@ -651,24 +634,34 @@ export async function applyProposalAction(
         if (!updatedSession) {
           throw new AppError(409, "Voting session changed while casting vote.", "VERSION_CONFLICT");
         }
-        await ProposalVoteModel.findOneAndUpdate(
-          { sessionId, proposalId: proposal.id, voterId: actor.id },
-          {
-            $set: {
-              sessionId,
-              proposalId: proposal.id,
-              voterId: actor.id,
-              voterName: actor.name,
-              voterRole: actor.role,
-              decision,
-              comment: payload.comment ?? payload.note,
-              votedAt: new Date(),
-              weight: vote.weight,
-            },
-            $setOnInsert: { id: id("pv") },
-          },
-          { upsert: true, session: tx },
-        );
+        try {
+          await ProposalVoteModel.create(
+            [
+              {
+                id: id("pv"),
+                sessionId,
+                proposalId: proposal.id,
+                voterId: actor.id,
+                voterName: actor.name,
+                voterRole: actor.role,
+                decision,
+                comment: payload.comment ?? payload.note,
+                votedAt: new Date(),
+                weight: vote.weight,
+              },
+            ],
+            { session: tx },
+          );
+        } catch (error: any) {
+          if (error?.code === 11000) {
+            throw new AppError(
+              409,
+              "Each Board member may vote only once per voting round.",
+              "VOTE_ALREADY_CAST",
+            );
+          }
+          throw error;
+        }
       });
 
       notifications.push({
@@ -678,7 +671,7 @@ export async function applyProposalAction(
       });
       await audit(req, "BOARD_VOTE_CAST", "proposal", proposalId, {
         decision,
-        tally: { approve: tally.approve, reject: tally.reject, abstain: tally.abstain },
+        tally: { approve: tally.approve, reject: tally.reject },
       });
       break;
     }
@@ -842,7 +835,13 @@ export async function applyProposalAction(
 
   const nextStatus = (patch.status as ProposalStatus | undefined) ?? fromStatus;
   const fullEvent = { ...event, toStatus: nextStatus };
-  await ProposalModel.updateOne({ id: proposalId }, { $set: patch, $push: { history: fullEvent } });
+  const proposalTransition = await ProposalModel.updateOne(
+    { id: proposalId, status: fromStatus },
+    { $set: patch, $push: { history: fullEvent } },
+  );
+  if (proposalTransition.modifiedCount !== 1) {
+    throw new AppError(409, "Proposal changed while applying action.", "CONFLICT");
+  }
 
   if (!["SUBMIT", "CLAIM", "REQUEST_CHANGES", "FORWARD"].includes(action)) {
     // Generic audit for actions not already audited above
@@ -888,11 +887,10 @@ export async function applyProposalAction(
 }
 
 function normalizeVote(value: unknown): VoteDecision {
-  if (value === "APPROVE" || value === "REJECT" || value === "ABSTAIN") return value;
-  if (value === "NEEDS_REVISION") return "REJECT";
+  if (value === "APPROVE" || value === "REJECT") return value;
   throw new AppError(
     400,
-    "Vote decision must be APPROVE, REJECT, ABSTAIN, or NEEDS_REVISION.",
+    "Vote decision must be APPROVE or REJECT.",
     "VALIDATION_ERROR",
   );
 }
@@ -923,6 +921,7 @@ export async function applyChapterAction(
   const isEditor = actor.role === "EDITOR";
   const isMangakaOrEditor = actor.role === "EDITOR" || actor.role === "MANGAKA";
   const fromStatus = chapter.status as ChapterStatus;
+  let pendingReviewComment: Record<string, unknown> | undefined;
 
   // SUBMIT_REVIEW (first review) and RESUBMIT (after a requested revision) share
   // the same domain function so both freeze a fresh review snapshot and land in
@@ -971,7 +970,6 @@ export async function applyChapterAction(
     PUBLISH: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
     PUBLISH_EARLY: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
     REASSIGN: { editor: true },
-    ARCHIVE: { editor: true },
   };
 
   const rule = transition[action];
@@ -1085,24 +1083,6 @@ export async function applyChapterAction(
     }
   }
 
-  if (action === "SCHEDULE") {
-    await scheduleChapterPublication(req, chapter, series, chapterId, payload);
-  }
-  if (action === "POSTPONE") {
-    await postponeChapterPublication(req, chapterId, fromStatus);
-  }
-  if (action === "PUBLISH" || action === "PUBLISH_EARLY") {
-    const publishedAt = await publishChapter(
-      req,
-      chapter,
-      series,
-      chapterId,
-      fromStatus,
-      action === "PUBLISH_EARLY",
-    );
-    patch.publishedAt = publishedAt;
-    patch.publishedById = actor.id;
-  }
   if (action === "EDITOR_APPROVE") {
     const publicationType = normalizePublicationType((series as any).publicationType);
     if (!publicationType) {
@@ -1117,18 +1097,6 @@ export async function applyChapterAction(
     }
     patch.readyForPublicationAt = new Date();
     patch.readyByEditorId = actor.id;
-    await audit(req, "CHAPTER_MARKED_READY", "chapter", chapterId, {
-      fromStatus,
-      toStatus: "READY_FOR_PUBLICATION",
-    });
-    await notifyMany([
-      {
-        userId: (series as any).authorId,
-        kind: "CHAPTER_READY_FOR_PUBLICATION",
-        title: "Chapter ready for publication",
-        message: `${chapter.title} is ready for publication scheduling.`,
-      },
-    ]);
   }
   if (action === "REQUEST_REVISION" || action === "REJECT") {
     const note = payload.feedback ?? payload.reason ?? payload.reviewNote ?? payload.comment;
@@ -1156,7 +1124,7 @@ export async function applyChapterAction(
         createdAt: nowIso(),
       },
     ];
-    await StudioCommentModel.create({
+    pendingReviewComment = {
       id: id("cmt"),
       seriesId: chapter.seriesId,
       chapterId,
@@ -1173,26 +1141,28 @@ export async function applyChapterAction(
       status: "OPEN",
       createdAt: nowIso(),
       updatedAt: nowIso(),
-    });
+    };
   }
   if (action === "REASSIGN") {
     if (!payload.newAssigneeId)
       throw new AppError(400, "New assignee is required.", "VALIDATION_ERROR");
     const newAssignee = await UserModel.findOne({ id: payload.newAssigneeId }).lean();
     if (!newAssignee) throw new AppError(404, "Assignee not found.", "ASSIGNEE_NOT_FOUND");
+    if (!(newAssignee as any).active || !["ASSISTANT", "MANGAKA"].includes(String((newAssignee as any).role))) {
+      throw new AppError(403, "Chapter assignee must be an active Mangaka or Assistant.", "ASSIGNEE_NOT_ELIGIBLE");
+    }
+    if ((newAssignee as any).role === "ASSISTANT") {
+      const member = await SeriesMemberModel.findOne({
+        seriesId: chapter.seriesId,
+        userId: payload.newAssigneeId,
+        role: "assistant",
+        status: "active",
+      }).lean();
+      if (!member) throw new AppError(403, "Assistant must be an active Series member.", "ASSIGNEE_NOT_ELIGIBLE");
+    }
     patch.assigneeId = payload.newAssigneeId;
     patch.assigneeName = (newAssignee as any).name;
   }
-  if (action === "ARCHIVE") {
-    if (fromStatus === "ARCHIVED") {
-      throw new AppError(409, "Chapter is already archived.", "INVALID_TRANSITION");
-    }
-    patch.status = "ARCHIVED";
-    patch.archivedAt = new Date();
-    patch.archivedById = actor.id;
-    patch.archiveReason = payload.reason ?? "";
-  }
-
   const event = {
     id: id("ce"),
     chapterId,
@@ -1205,7 +1175,51 @@ export async function applyChapterAction(
     comment: payload.comment ?? payload.reviewNote,
     createdAt: nowIso(),
   };
-  await ChapterModel.updateOne({ id: chapterId }, { $set: patch, $push: { history: event } });
+  return runWorkflowTransaction(async (session) => {
+    if (action === "SCHEDULE") {
+      await scheduleChapterPublication(req, chapter, series, chapterId, payload, session);
+    }
+    if (action === "POSTPONE") {
+      await postponeChapterPublication(req, chapterId, fromStatus, session);
+    }
+    if (action === "PUBLISH" || action === "PUBLISH_EARLY") {
+      const publishedAt = await publishChapter(
+        req,
+        chapter,
+        series,
+        chapterId,
+        fromStatus,
+        action === "PUBLISH_EARLY",
+        session,
+      );
+      patch.publishedAt = publishedAt;
+      patch.publishedById = actor.id;
+    }
+    if (action === "EDITOR_APPROVE") {
+      await audit(req, "CHAPTER_MARKED_READY", "chapter", chapterId, {
+        fromStatus,
+        toStatus: "READY_FOR_PUBLICATION",
+      }, session);
+      await notifyMany([
+        {
+          userId: (series as any).authorId,
+          kind: "CHAPTER_READY_FOR_PUBLICATION",
+          title: "Chapter ready for publication",
+          message: `${chapter.title} is ready for publication scheduling.`,
+        },
+      ], session);
+    }
+  const updatedChapter = await ChapterModel.findOneAndUpdate(
+    { id: chapterId, status: fromStatus },
+    { $set: patch, $push: { history: event } },
+    { returnDocument: "after", session },
+  ).lean();
+  if (!updatedChapter) {
+    throw new AppError(409, "Chapter changed while applying action.", "CONFLICT");
+  }
+  if (pendingReviewComment) {
+    await StudioCommentModel.create([pendingReviewComment], { session });
+  }
   const reviewDecisionStatus = chapterReviewDecisionStatus(action);
   if (reviewDecisionStatus) {
     await ChapterReviewModel.findOneAndUpdate(
@@ -1219,7 +1233,7 @@ export async function applyChapterAction(
           updatedAt: nowIso(),
         },
       },
-      { returnDocument: "after" },
+      { returnDocument: "after", session },
     );
   }
   if (action === "EDITOR_APPROVE") {
@@ -1228,35 +1242,36 @@ export async function applyChapterAction(
       status: "FINALIZED",
       updatedAt: nowIso(),
     }));
-    await ChapterModel.updateOne({ id: chapterId }, { $set: { pages } });
+    await ChapterModel.updateOne(
+      { id: chapterId, status: "READY_FOR_PUBLICATION" },
+      { $set: { pages } },
+      { session },
+    );
     await audit(req, "CHAPTER_TANTOU_APPROVED", "chapter", chapterId, {
       pageIds: pages.map((page: any) => page.id),
-    });
+    }, session);
     await StudioRegionModel.updateMany(
       { chapterId, status: "APPROVED" },
       { $set: { status: "DONE", updatedAt: nowIso() } },
+      { session },
     );
   }
   if (action === "REQUEST_REVISION" || action === "REJECT") {
-    const pages = (chapter.pages ?? []).map((page: any) => ({
-      ...page,
-      status: "REVISION_REQUIRED",
-      updatedAt: nowIso(),
-    }));
-    await ChapterModel.updateOne({ id: chapterId }, { $set: { pages } });
     await audit(
       req,
       action === "REJECT" ? "CHAPTER_TANTOU_REJECTED" : "CHAPTER_TANTOU_REVISION_REQUESTED",
       "chapter",
       chapterId,
       { targetType: payload.targetType, targetId: payload.targetId },
+      session,
     );
   }
   await audit(req, `chapter.${action.toLowerCase()}`, "chapter", chapterId, {
     fromStatus,
     toStatus: event.toStatus,
+  }, session);
+  return toObject(await ChapterModel.findOne({ id: chapterId }).session(session).lean());
   });
-  return toObject(await ChapterModel.findOne({ id: chapterId }).lean());
 }
 
 export async function dashboardSummary(role: string) {
@@ -1269,7 +1284,7 @@ export async function dashboardSummary(role: string) {
   if (role === "editor") {
     return {
       reviewQueue: {
-        manuscripts: proposals.filter((p: any) =>
+        proposals: proposals.filter((p: any) =>
           ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED", "RESUBMITTED"].includes(
             p.status,
           ),
@@ -1340,7 +1355,6 @@ export async function editorReviewQueue() {
     manuscript: (proposal.manuscripts ?? [])[proposal.manuscripts?.length - 1] ?? {
       id: `${proposal.id}-manuscript`,
       version: 1,
-      status: "SUBMITTED",
     },
     priority: index === 0 ? "high" : "normal",
   }));
@@ -1363,9 +1377,17 @@ export async function boardQueue() {
     }).lean(),
     ProposalVoteModel.find({ proposalId: { $in: proposalIds } }).lean(),
   ]);
-  const sessionByProposal = new Map(
-    sessions.map((session: any) => [String(session.proposalId), session]),
-  );
+  // A proposal can retain historical TIE_BREAK_REQUIRED sessions. Prefer the
+  // currently open re-vote and only fall back to the newest historical round.
+  const sessionByProposal = new Map<string, any>();
+  for (const session of [...sessions].sort((left: any, right: any) => {
+    const leftOpen = left.status === "OPEN" ? 1 : 0;
+    const rightOpen = right.status === "OPEN" ? 1 : 0;
+    return rightOpen - leftOpen || String(right.openedAt ?? "").localeCompare(String(left.openedAt ?? ""));
+  })) {
+    const proposalKey = String((session as any).proposalId);
+    if (!sessionByProposal.has(proposalKey)) sessionByProposal.set(proposalKey, session);
+  }
   const proposalItems = proposals.map((proposal: any) => {
     const session = sessionByProposal.get(String(proposal.id));
     const eligibleVoterIds =
@@ -1380,11 +1402,11 @@ export async function boardQueue() {
     ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)));
     const quorum = Number((session as any)?.quorum ?? BOARD_QUORUM);
     const tally = evaluateBoardTally(votes, quorum, eligibleVoterIds.length);
-    const canFinalize =
-      Boolean(session) &&
-      (tally.approve >= quorum || tally.reject >= quorum || tally.total >= eligibleVoterIds.length);
+    const canFinalize = Boolean(session) && Boolean(tally.status);
     const sessionStatus = String((session as any)?.status ?? "");
-    const isTieBreak = sessionStatus === "TIE_BREAK_REQUIRED" || proposal.status === "TIE_BREAK";
+    const isTieBreak = session
+      ? sessionStatus === "TIE_BREAK_REQUIRED"
+      : proposal.status === "TIE_BREAK";
     return {
       id: proposal.id,
       seriesId: proposal.id,

@@ -61,8 +61,7 @@ export async function loadBoardSessionContext(
     .filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)))
     .map(normalizeBoardVote);
   const tally = evaluateBoardTally(votes, quorum, eligibleVoterIds.length);
-  const canFinalize =
-    tally.approve >= quorum || tally.reject >= quorum || tally.total >= eligibleVoterIds.length;
+  const canFinalize = Boolean(tally.status) || tally.total >= eligibleVoterIds.length;
   const myVote =
     rawVotes.find((vote: any) => String(vote.voterId ?? vote.memberId) === actor.id) ?? null;
   return { session, eligibleVoterIds, quorum, votes, tally, canFinalize, myVote };
