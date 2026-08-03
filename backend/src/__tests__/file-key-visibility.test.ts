@@ -28,23 +28,10 @@ describe("editor file-key visibility", () => {
       { id: "p-002" },
       {
         $set: {
-          status: "PENDING_EDITOR",
+          status: "PENDING_BOARD",
           coverFileKey: "proposals/p-002/cover.png",
-          manuscripts: [
-            {
-              id: "ms-p-002-v1",
-              version: 1,
-              fileKey: "proposals/p-002/manuscript-v1.pdf",
-            },
-          ],
-          materials: [
-            {
-              id: "mat-p-002-pages",
-              kind: "SAMPLE_PAGES",
-              title: "Sample pages",
-              fileKey: "proposals/p-002/sample-pages.pdf",
-            },
-          ],
+          manuscripts: [{ id: "ms-p-002-v1", version: 1, fileKey: "proposals/p-002/manuscript-v1.pdf" }],
+          materials: [{ id: "mat-p-002-pages", kind: "SAMPLE_PAGES", title: "Sample pages", fileKey: "proposals/p-002/sample-pages.pdf" }],
         },
       },
     );
@@ -82,5 +69,18 @@ describe("editor file-key visibility", () => {
         .send({ key })
         .expect(200);
     }
+  });
+  it("allows a Board user to resolve a visible review file but not a draft file", async () => {
+    const board = await loginAs("board@beachread.jp");
+    await request(createApp())
+      .post("/api/files/display-url")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ key: "proposals/p-002/cover.png", fileName: "cover.png" })
+      .expect(200);
+    await request(createApp())
+      .post("/api/files/display-url")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .send({ key: "proposals/p-001/cover.png", fileName: "cover.png" })
+      .expect(403);
   });
 });
