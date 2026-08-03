@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 import { MFIcon, type IconName } from "@/design/icons"
-import type { MetricItem, QueueItem, Role, SeriesCard, Tone } from "@/data/mobile-data"
+import type { MetricItem, QueueItem, Role, SeriesCard, Tone } from "@/domain/workflow"
 
 const toneColors: Record<Tone, { fg: string; bg: string }> = {
   primary: { fg: colors.primary, bg: colors.primarySoft },
