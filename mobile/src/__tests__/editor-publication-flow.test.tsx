@@ -41,14 +41,18 @@ function renderScreen() {
 }
 
 describe("EditorPublishScreen", () => {
-  afterEach(() => jest.clearAllMocks())
+  beforeEach(() => jest.useFakeTimers().setSystemTime(new Date(2026, 7, 12, 14, 34)))
+  afterEach(() => {
+    jest.useRealTimers()
+    jest.clearAllMocks()
+  })
 
-  it("rejects a past schedule date client-side", async () => {
+  it("disables a past schedule date client-side", async () => {
     renderScreen()
     fireEvent.press(await screen.findByRole("button", { name: "Schedule publication" }))
-    fireEvent.changeText(await screen.findByLabelText("Scheduled date and time"), "2020-01-01T00:00")
-    fireEvent.press(screen.getByRole("button", { name: "Confirm schedule publication" }))
-    expect(await screen.findByText("Scheduled time must be a future date.")).toBeVisible()
+    fireEvent.press(screen.getByRole("button", { name: "Hour 14" }))
+    fireEvent.press(screen.getByRole("button", { name: "Minute 34" }))
+    expect(screen.getByRole("button", { name: "Confirm schedule publication" })).toBeDisabled()
     expect(mocked.scheduleChapterPublication).not.toHaveBeenCalled()
   })
 
@@ -56,7 +60,8 @@ describe("EditorPublishScreen", () => {
     mocked.scheduleChapterPublication.mockResolvedValue(undefined)
     renderScreen()
     fireEvent.press(await screen.findByRole("button", { name: "Schedule publication" }))
-    fireEvent.changeText(await screen.findByLabelText("Scheduled date and time"), "2099-01-01T00:00")
+    fireEvent.press(screen.getByRole("button", { name: "Hour 14" }))
+    fireEvent.press(screen.getByRole("button", { name: "Minute 35" }))
     fireEvent.press(screen.getByRole("button", { name: "Confirm schedule publication" }))
     await waitFor(() =>
       expect(mocked.scheduleChapterPublication).toHaveBeenCalledWith(
