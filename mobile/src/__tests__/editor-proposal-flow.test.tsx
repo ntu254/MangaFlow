@@ -130,4 +130,25 @@ describe("EditorProposalDetailScreen", () => {
       }),
     )
   })
+
+  it("shows a claimed-by-another-editor checklist without editable controls", async () => {
+    mocked.getEditorProposalDetail.mockResolvedValue({
+      ...detailFixture,
+      claim: {
+        claimedByEditorId: "u-other-editor",
+        claimedByEditorName: "Other Editor",
+        claimedByMe: false,
+      },
+    })
+    render(
+      <TestQueryProvider>
+        <EditorProposalDetailScreen proposalId="p-002" />
+      </TestQueryProvider>,
+    )
+
+    expect(await screen.findByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+  })
 })

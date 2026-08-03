@@ -106,7 +106,7 @@ export function EditorProposalDetailScreen({
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Editorial checklist</Text>
             <Text style={styles.body}>{checklistComplete}/6 complete</Text>
-            {checklistDraft ? (
+            {data.claim.claimedByMe ? (
               <>
                 <ChecklistControls checklist={checklistDraft} onChange={setChecklistDraft} />
                 <Pressable
