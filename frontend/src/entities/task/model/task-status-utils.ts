@@ -1,11 +1,6 @@
 import type { StudioTask, StudioTaskStatus } from "@/entities/series/model/studio-types";
 
-export type VisualTaskStatus =
-  | StudioTaskStatus
-  | "BLOCKED"
-  | "OVERDUE"
-  | "REASSIGNED"
-  | "CANCELLED";
+export type VisualTaskStatus = StudioTaskStatus | "OVERDUE" | "REASSIGNED" | "CANCELLED";
 
 type UnknownTask = Partial<StudioTask> & Record<string, unknown>;
 
@@ -34,11 +29,6 @@ export function isTaskOverdue(task: unknown): boolean {
   return Number.isFinite(due) && due < Date.now();
 }
 
-export function getTaskBlockedReason(task: unknown): string | null {
-  const data = asTask(task);
-  return stringOrNull(data.blockedReason ?? data.blockerReason ?? data.waitingReason);
-}
-
 export function getTaskReassignmentSummary(task: unknown): string | null {
   const data = asTask(task);
   const from = stringOrNull(data.reassignedFromName ?? data.reassignedFrom);
@@ -52,7 +42,7 @@ export function getTaskReassignmentSummary(task: unknown): string | null {
     reason ? `Reason: ${reason}` : null,
     date ? `Date: ${new Date(date).toLocaleDateString("vi-VN")}` : null,
   ];
-  return parts.filter(Boolean).join(" · ");
+  return parts.filter(Boolean).join(" - ");
 }
 
 export function getVisualTaskStatus(task: unknown): VisualTaskStatus {
@@ -62,8 +52,6 @@ export function getVisualTaskStatus(task: unknown): VisualTaskStatus {
   if (data.cancelled === true || data.cancelledAt || statusLike === "CANCELLED") return "CANCELLED";
   if (data.reassigned === true || data.reassignedAt || data.reassignmentHistory)
     return "REASSIGNED";
-  if (data.blocked === true || data.blockedBy || data.waitingFor || getTaskBlockedReason(data))
-    return "BLOCKED";
   if (isTaskOverdue(data)) return "OVERDUE";
   return status ?? "TODO";
 }
@@ -84,7 +72,7 @@ export function getTaskStatusTone(
     status === "REASSIGNED"
   )
     return "warning";
-  if (status === "BLOCKED" || status === "OVERDUE" || status === "REJECTED") return "danger";
+  if (status === "OVERDUE" || status === "REJECTED") return "danger";
   if (status === "CANCELLED") return "muted";
   return "default";
 }
@@ -107,30 +95,18 @@ export function getVisualTaskStatusClass(status: VisualTaskStatus): string {
 export function getTaskEdgeSummary(task: unknown): string | null {
   const data = asTask(task);
   const visual = getVisualTaskStatus(data);
-  if (visual === "BLOCKED") {
-    const reason = getTaskBlockedReason(data) ?? "Blocked reason unavailable";
-    const waitingFor = stringOrNull(data.waitingFor);
-    const blockedBy = stringOrNull(data.blockedBy);
-    return [
-      reason,
-      blockedBy ? `Blocked by: ${blockedBy}` : null,
-      waitingFor ? `Waiting for: ${waitingFor}` : null,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-  }
   if (visual === "OVERDUE") {
     const dueAt = stringOrNull(data.dueAt ?? data.dueDate);
     const days = dueAt
       ? Math.max(1, Math.ceil((Date.now() - new Date(dueAt).getTime()) / 86_400_000))
       : null;
     return [
-      `Due: ${dueAt ? new Date(dueAt).toLocaleDateString("vi-VN") : "—"}`,
+      `Due: ${dueAt ? new Date(dueAt).toLocaleDateString("vi-VN") : "-"}`,
       days ? `${days} day(s) overdue` : null,
       data.assigneeName ? `Assigned: ${data.assigneeName}` : null,
     ]
       .filter(Boolean)
-      .join(" · ");
+      .join(" - ");
   }
   if (visual === "REASSIGNED") return getTaskReassignmentSummary(data) ?? "Task reassigned";
   if (visual === "CANCELLED") return "This task has been cancelled.";

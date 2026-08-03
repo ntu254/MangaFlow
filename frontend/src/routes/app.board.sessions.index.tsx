@@ -25,16 +25,13 @@ function VotingSessionsList() {
   );
 
   if (!user) return null;
-  const canAccess =
-    user.role === "admin" ||
-    user.role === "editor" ||
-    (user.role === "board" && isBoardChair(user.id));
+  const canAccess = user.role === "editor" || user.role === "board";
   if (!canAccess) {
     return (
       <div className="mx-auto max-w-2xl space-y-3 text-center">
         <h1 className="font-serif text-3xl">Access Denied</h1>
         <p className="text-sm text-muted-foreground">
-          Only Admin, Chair, or Editor can view voting sessions.
+          Only Board members and Editors can view voting sessions.
         </p>
         <Link to="/app/board" className="text-xs underline">
           Back to board
@@ -43,7 +40,7 @@ function VotingSessionsList() {
     );
   }
 
-  const canCreate = user.role === "editor" || user.role === "admin" || user.role === "board";
+  const canCreate = user.role === "board" && isBoardChair(user.id);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -54,8 +51,8 @@ function VotingSessionsList() {
           </p>
           <h1 className="mt-1 font-serif text-4xl">Voting sessions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Each card is one voting round. Open rounds accept votes; tied rounds create a new
-            Board re-vote automatically.
+            Each card is one voting round. Open rounds accept votes; tied rounds create a new Board
+            re-vote automatically.
           </p>
         </div>
         {canCreate ? (
@@ -75,7 +72,9 @@ function VotingSessionsList() {
         </div>
         <div>
           <p className="font-bold text-fuchsia-800">TIED</p>
-          <p className="mt-1 text-muted-foreground">This round is history; a new re-vote is active.</p>
+          <p className="mt-1 text-muted-foreground">
+            This round is history; a new re-vote is active.
+          </p>
         </div>
         <div>
           <p className="font-bold text-blue-800">FINALIZED</p>
@@ -85,7 +84,15 @@ function VotingSessionsList() {
 
       <nav className="flex flex-wrap gap-1">
         {(
-          ["ALL", "OPEN", "TIED", "TIE_BREAK_REQUIRED", "FINALIZED", "NO_QUORUM", "CANCELLED"] as const
+          [
+            "ALL",
+            "OPEN",
+            "TIED",
+            "TIE_BREAK_REQUIRED",
+            "FINALIZED",
+            "NO_QUORUM",
+            "CANCELLED",
+          ] as const
         ).map((f) => (
           <button
             key={f}
@@ -120,7 +127,8 @@ function VotingSessionsList() {
               <SessionCard
                 session={vs}
                 reVoteSession={sessions.find(
-                  (candidate) => candidate.reVoteOfSessionId === vs.id && candidate.status === "OPEN",
+                  (candidate) =>
+                    candidate.reVoteOfSessionId === vs.id && candidate.status === "OPEN",
                 )}
               />
             </li>

@@ -110,7 +110,7 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <main className="space-y-4">
           <ProposalSummaryCard proposal={mergedProposal} />
-          <CreativeMaterialsReadonly proposal={mergedProposal} user={user} />
+          <CreativeMaterialsReadonly proposal={mergedProposal} />
           <EditorRecommendationCard proposal={mergedProposal} />
           <section className="grid gap-4 md:grid-cols-2">
             <RiskAssessmentCard proposal={mergedProposal} />
@@ -126,10 +126,25 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
             </div>
           </section>
           <section className="rounded-md border border-border bg-card p-4">
-            <VoteProgress proposal={mergedProposal} />
+            <VoteProgress
+              proposal={mergedProposal}
+              tally={votesData?.tally}
+              eligible={votesData?.eligibleVoterIds?.length}
+            />
           </section>
-          <VoteTally votes={votes} status={proposalRaw.status} />
-          <DecisionHistory proposal={mergedProposal} />
+          <VoteTally
+            votes={votes}
+            status={proposalRaw.status}
+            tally={votesData?.tally}
+            quorum={votesData?.quorum}
+            eligible={votesData?.eligibleVoterIds?.length}
+          />
+          <DecisionHistory
+            proposal={mergedProposal}
+            tally={votesData?.tally}
+            quorum={votesData?.quorum}
+            eligible={votesData?.eligibleVoterIds?.length}
+          />
         </main>
         <aside>
           <VotingPanel proposal={mergedProposal} />

@@ -55,7 +55,6 @@ const editorUser: AdminUserRow = {
   name: "Tanaka Akira",
   email: "tanaka@beachread.jp",
   role: "editor",
-  isEditorInChief: true,
   scope: "FULL_SERIES",
   status: "ACTIVE",
   lastActiveAt: "2026-06-24T08:48:00.000Z",

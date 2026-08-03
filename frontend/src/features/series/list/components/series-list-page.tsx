@@ -1,5 +1,23 @@
-// Hallmark - pre-emit critique: P5 H5 E4 S5 R5 V4
-// Hallmark - genre: product - macrostructure: Workbench register - design-system: existing tokens
+// DESIGN CONTRACT — /app/series register
+// THESIS: The production register shows the operator which series needs their
+// next decision, in a queue they can sort, filter, and scan in one pass; it
+// refuses the cream editorial palette of the admin-* tokens in favor of the
+// light register world shared by /app/proposals and the role dashboards.
+// OWN-WORLD: standard MangaFlow tokens (white --card, paper --background,
+// neutral --border, ink --primary), serif register title, metric strip with
+// tinted icon chips, high-density table with muted uppercase tracked header,
+// compact tinted action pills, dashed-light empty states.
+// STORY: an operator lands, reads four KPI tiles, sees up to four priority
+// tiles for series needing attention, then searches, filters by status and
+// workflow, sorts any column, and pages a dense register.
+// FIRST VIEWPORT: header bar (serif "Series Register" + subtitle, ink primary
+// "Create proposal", bordered secondary actions); metric strip of four tiles;
+// priority tiles; search + two selects + sortable table with cover thumbnails
+// and per-row action pills.
+// FORM: port of the established proposals/dashboard visual world into this
+// surface; no new visual system.
+// FINISH: unreviewed and undocumented is unfinished; this build ends with the
+// finish review, the verdict, and DESIGN.md.
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
 import { STATUS_LABEL as PROPOSAL_STATUS_LABEL } from "@/entities/proposal/model/proposal-types";
 import {
@@ -30,20 +48,12 @@ import { useProposalsQuery } from "@/features/proposals";
 import { deriveProductionSummary } from "../../detail/model/series-production-helpers";
 import { useAuth } from "@/shared/auth";
 import {
-  ActionButton,
   DataPagination,
   DataTable,
-  EmptyState,
-  FilterSelect,
-  PageHeader,
-  SearchToolbar,
+  ResolvedImage,
   SortableHeader,
-  StateBlock,
-  StatCard,
   StatusPill,
   Surface,
-  TextButton,
-  ResolvedImage,
 } from "@/shared/ui";
 import {
   Table,
@@ -53,7 +63,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SelectItem } from "@/components/ui/select";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -62,18 +71,20 @@ import {
   BookOpen,
   CalendarClock,
   CheckCircle2,
+  ChevronRight,
   Eye,
-  Flag,
+  FileText,
   Layers,
   Plus,
   RefreshCw,
+  Search,
   SearchX,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 type StatusFilter = ProductionSeriesStatus | "ALL";
-type WorkflowFilter = "ALL" | "REVIEW_NEEDED" | "OVERDUE" | "BLOCKED" | "WAITING_EDITOR";
+type WorkflowFilter = "ALL" | "REVIEW_NEEDED" | "OVERDUE" | "REVISION_NEEDED" | "WAITING_EDITOR";
 type SortableSeriesKey =
   | "priority"
   | "title"
@@ -96,7 +107,7 @@ type SeriesRow = {
   totalCount: number;
   openTaskCount: number;
   overdueTaskCount: number;
-  blockedTaskCount: number;
+  revisionTaskCount: number;
   pendingReviewCount: number;
   waitingEditorCount: number;
   nextDeadline: string | null;
@@ -133,7 +144,7 @@ const WORKFLOW_LABEL: Record<WorkflowFilter, string> = {
   ALL: "All workflow",
   REVIEW_NEEDED: "Review needed",
   OVERDUE: "Overdue",
-  BLOCKED: "Blocked",
+  REVISION_NEEDED: "Revision needed",
   WAITING_EDITOR: "Waiting editor",
 };
 
@@ -174,7 +185,6 @@ function getActionTab(action: SeriesPrimaryAction): string {
       return "chapters";
     case "open_proposal":
       return "proposal";
-    case "view_task_board":
     case "open_studio":
       return "studio";
     case "view_publication":
@@ -199,7 +209,7 @@ function formatUpdated(value: string): string {
 
 function getPriority(row: {
   overdueTaskCount: number;
-  blockedTaskCount: number;
+  revisionTaskCount: number;
   pendingReviewCount: number;
   nextDeadlineMs: number | null;
 }): { label: string; score: number } {
@@ -208,7 +218,8 @@ function getPriority(row: {
     row.nextDeadlineMs == null ? Infinity : Math.ceil((row.nextDeadlineMs - now) / 86400000);
 
   if (row.overdueTaskCount > 0) return { label: "Overdue", score: 500 + row.overdueTaskCount };
-  if (row.blockedTaskCount > 0) return { label: "Blocked", score: 400 + row.blockedTaskCount };
+  if (row.revisionTaskCount > 0)
+    return { label: "Revision needed", score: 400 + row.revisionTaskCount };
   if (row.pendingReviewCount > 0) {
     return { label: "Review", score: 300 + row.pendingReviewCount };
   }
@@ -240,14 +251,7 @@ function getSeriesRows({
     const progressPct = Math.min(100, Math.round((publishedCount / target) * 100));
     const openTaskCount = tasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status)).length;
     const overdueTaskCount = summary.overdueTaskCount;
-    const blockedTaskCount =
-      summary.blockedTaskCount +
-      tasks.filter(
-        (task) =>
-          task.blocked ||
-          task.status === "MANGAKA_REVISION_REQUESTED" ||
-          task.status === "EDITOR_REVISION_REQUESTED",
-      ).length;
+    const revisionTaskCount = summary.revisionTaskCount;
     const waitingEditorCount = chapters.filter(
       (chapter) => chapter.status === "TANTOU_REVIEW",
     ).length;
@@ -263,7 +267,7 @@ function getSeriesRows({
       : "No active chapter";
     const priority = getPriority({
       overdueTaskCount,
-      blockedTaskCount,
+      revisionTaskCount,
       pendingReviewCount,
       nextDeadlineMs,
     });
@@ -280,7 +284,7 @@ function getSeriesRows({
       totalCount,
       openTaskCount,
       overdueTaskCount,
-      blockedTaskCount,
+      revisionTaskCount,
       pendingReviewCount,
       waitingEditorCount,
       nextDeadline,
@@ -437,8 +441,8 @@ export function SeriesListPage() {
             return row.pendingReviewCount > 0;
           case "OVERDUE":
             return row.overdueTaskCount > 0;
-          case "BLOCKED":
-            return row.blockedTaskCount > 0;
+          case "REVISION_NEEDED":
+            return row.revisionTaskCount > 0;
           case "WAITING_EDITOR":
             return row.waitingEditorCount > 0;
           case "ALL":
@@ -456,7 +460,7 @@ export function SeriesListPage() {
       title: (row) => row.series.title,
       status: (row) => row.series.status,
       progress: (row) => row.progressPct,
-      openWork: (row) => row.openTaskCount + row.blockedTaskCount + row.overdueTaskCount,
+      openWork: (row) => row.openTaskCount + row.revisionTaskCount + row.overdueTaskCount,
       review: (row) => row.pendingReviewCount,
       deadline: (row) => row.nextDeadlineMs,
       team: (row) => row.series.editorName,
@@ -489,17 +493,13 @@ export function SeriesListPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-7xl space-y-6">
-        <PageHeader
-          eyebrow="Production"
-          title="Series register"
-          description="Loading series, proposal, and production signals..."
-        />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Surface key={index} className="h-[72px] animate-pulse" />
+            <div key={index} className="h-24 rounded-xl bg-muted/30 animate-pulse" />
           ))}
         </div>
-        <Surface className="h-[420px] animate-pulse" />
+        <div className="h-[420px] rounded-xl bg-muted/25 animate-pulse" />
       </div>
     );
   }
@@ -507,16 +507,23 @@ export function SeriesListPage() {
   if (isError) {
     return (
       <div className="mx-auto max-w-7xl space-y-6">
-        <PageHeader
-          eyebrow="Production"
-          title="Series register"
-          description="Manage approved series and proposal handoffs."
-        />
-        <StateBlock
-          tone="danger"
-          title="Unable to load series data"
-          description={mapApiError(error)}
-        />
+        <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground">
+              Series Register
+            </h1>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Manage approved series and proposal handoffs.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <div>
+            <p className="text-xs font-bold text-destructive">Unable to load series data</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{mapApiError(error)}</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -526,80 +533,111 @@ export function SeriesListPage() {
   const hasOnlyPendingProposals = pendingProposals.length > 0 && rows.length === 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7">
-      <PageHeader
-        eyebrow="Production"
-        title="Series register"
-        description="A focused queue for approved series, deadline risk, review load, and proposal handoff."
-      >
-        <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
-          <Plus className="size-4" />
-          Create proposal
-        </ActionButton>
-        <Link
-          to="/app/submissions"
-          className="inline-flex h-10 items-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 text-[13px] font-semibold text-[var(--admin-ink)] shadow-sm hover:bg-[var(--admin-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          Proposals
-        </Link>
-        <TextButton onClick={() => refetch()}>
-          <RefreshCw className="size-4" />
-          Refresh
-        </TextButton>
-      </PageHeader>
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Header Bar */}
+      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground">
+            Series Register
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            A focused queue for approved series, deadline risk, review load, and proposal handoff.
+          </p>
+        </div>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<Layers className="size-4" />}
-          tone="blue"
-          label="Active series"
-          value={kpis.activeCount}
-          hint={`${rows.length} approved total`}
-        />
-        <StatCard
-          icon={<Eye className="size-4" />}
-          tone={kpis.pendingReviewCount ? "amber" : "neutral"}
-          label="Review load"
-          value={kpis.pendingReviewCount || "-"}
-          hint={kpis.pendingReviewCount ? "Items awaiting decision" : "No review queue"}
-        />
-        <StatCard
-          icon={<AlertTriangle className="size-4" />}
-          tone={kpis.overdueCount ? "rose" : "neutral"}
-          label="Overdue tasks"
-          value={kpis.overdueCount || "-"}
-          hint={kpis.overdueCount ? "Needs triage" : "On schedule"}
-        />
-        <StatCard
-          icon={<CalendarClock className="size-4" />}
-          tone="emerald"
-          label="Next deadline"
-          value={kpis.nextDeadline ?? "-"}
-          hint={kpis.nextDeadline ? "Nearest active work" : "No active due date"}
-        />
-      </section>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/app/proposals/new"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-95 shrink-0"
+          >
+            <Plus className="size-4" /> Create Proposal
+          </Link>
+          <Link
+            to="/app/proposals"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-xs transition-colors hover:bg-muted"
+          >
+            Proposals
+          </Link>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-xs transition-colors hover:bg-muted"
+          >
+            <RefreshCw className="size-3.5" />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Metric Strip */}
+      <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/80 bg-card/60 p-3 text-xs sm:grid-cols-4">
+        <div className="flex items-center gap-2.5 rounded-lg border border-border/40 bg-background/80 p-2.5">
+          <div className="grid size-8 shrink-0 place-items-center rounded-md bg-indigo-500/10 font-bold text-indigo-700 dark:text-indigo-400">
+            <Layers className="size-4" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">Active Series</p>
+            <p className="text-base font-bold tracking-tight">{kpis.activeCount}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 rounded-lg border border-border/40 bg-background/80 p-2.5">
+          <div className="grid size-8 shrink-0 place-items-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400">
+            <Eye className="size-4" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">Review Load</p>
+            <p className="text-base font-bold tracking-tight">{kpis.pendingReviewCount || "-"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 rounded-lg border border-border/40 bg-background/80 p-2.5">
+          <div className="grid size-8 shrink-0 place-items-center rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400">
+            <AlertTriangle className="size-4" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">Overdue Tasks</p>
+            <p className="text-base font-bold tracking-tight">{kpis.overdueCount || "-"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 rounded-lg border border-border/40 bg-background/80 p-2.5">
+          <div className="grid size-8 shrink-0 place-items-center rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+            <CalendarClock className="size-4" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground">Next Deadline</p>
+            <p className="text-base font-bold tracking-tight">{kpis.nextDeadline ?? "-"}</p>
+          </div>
+        </div>
+      </div>
 
       {hasNoItemsAtAll ? (
-        <EmptyState
+        <EmptyRegisterState
+          icon={<FileText className="size-5" />}
           title="You have no series proposals yet."
           description="Create the first proposal and upload a manuscript or sample pages for Editor review."
           action={
-            <ActionButton tone="primary" onClick={() => navigate({ to: "/app/submissions/new" })}>
-              <Plus className="size-4" />
-              Create proposal
-            </ActionButton>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/app/proposals/new" })}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-95"
+            >
+              <Plus className="size-4" /> Create Proposal
+            </button>
           }
         />
       ) : hasOnlyPendingProposals ? (
-        <EmptyState
+        <EmptyRegisterState
+          icon={<BookOpen className="size-5" />}
           title="No approved series yet."
           description="Your proposal work is still in Draft, Editor review, or Board approval. Once approved, it becomes production work here."
           action={
             <Link
-              to="/app/submissions"
-              className="inline-flex h-10 items-center rounded-[6px] bg-[var(--admin-navy)] px-4 text-[13px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
+              to="/app/proposals"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-xs transition-colors hover:bg-muted"
             >
-              Open proposals
+              Open Proposals
             </Link>
           }
         />
@@ -613,64 +651,79 @@ export function SeriesListPage() {
             </section>
           ) : null}
 
-          <Surface className="space-y-4 overflow-hidden p-3 sm:p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <Surface className="space-y-4 overflow-hidden rounded-xl border-border/80 p-4 shadow-xs">
+            <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-[18px] font-semibold text-[var(--admin-ink)]">
-                  Production register
-                </h2>
-                <p className="mt-1 text-[13px] text-[var(--admin-muted)]">
+                <h2 className="text-sm font-bold text-foreground">Production Register</h2>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                   Sort each operational column, then page through the filtered result.
                 </p>
               </div>
               {isFiltered ? (
-                <TextButton onClick={clearFilters} className="h-9 px-3">
-                  <SearchX className="size-4" />
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <SearchX className="size-3.5" />
                   Clear filters
-                </TextButton>
+                </button>
               ) : null}
             </div>
 
-            <SearchToolbar
-              query={query}
-              onQueryChange={setQuery}
-              placeholder="Search title, owner, editor, genre..."
-              filters={
-                <>
-                  <FilterSelect
-                    value={statusFilter}
-                    onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-                  >
-                    {STATUSES.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {STATUS_LABEL[status]}
-                      </SelectItem>
-                    ))}
-                  </FilterSelect>
-                  <FilterSelect
-                    value={workflowFilter}
-                    onValueChange={(value) => setWorkflowFilter(value as WorkflowFilter)}
-                  >
-                    {Object.entries(WORKFLOW_LABEL).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </FilterSelect>
-                </>
-              }
-            />
+            {/* Search & Filter Controls */}
+            <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search title, owner, editor, genre..."
+                  aria-label="Search series"
+                  className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  aria-label="Filter by series status"
+                  className="h-9 rounded-md border border-input bg-background px-3 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {STATUS_LABEL[status]}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={workflowFilter}
+                  onChange={(e) => setWorkflowFilter(e.target.value as WorkflowFilter)}
+                  aria-label="Filter by workflow"
+                  className="h-9 rounded-md border border-input bg-background px-3 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {Object.entries(WORKFLOW_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <div className="hidden lg:block">
               <DataTable
                 isEmpty={sorted.length === 0}
                 emptyTitle="No matching series"
                 emptyDescription="Adjust search, status, or workflow filters."
-                className="shadow-none"
+                className="shadow-none border-none"
                 stateClassName="min-h-[220px]"
               >
-                <Table>
-                  <TableHeader>
+                <Table className="text-xs">
+                  <TableHeader className="bg-muted/40 uppercase tracking-wider text-[10px] font-semibold text-muted-foreground border-b border-border">
                     <TableRow>
                       <TableHead className="min-w-[280px]">
                         <SortableHeader
@@ -747,7 +800,7 @@ export function SeriesListPage() {
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="divide-y divide-border">
                     {pagedRows.map((row) => (
                       <SeriesTableRow key={row.series.id} row={row} />
                     ))}
@@ -767,7 +820,8 @@ export function SeriesListPage() {
 
             <div className="space-y-3 lg:hidden">
               {sorted.length === 0 ? (
-                <EmptyState
+                <EmptyRegisterState
+                  icon={<SearchX className="size-5" />}
                   title="No matching series"
                   description="Adjust search, status, or workflow filters."
                 />
@@ -794,33 +848,68 @@ export function SeriesListPage() {
   );
 }
 
+function EmptyRegisterState({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/40 px-6 py-12 text-center">
+      <div className="grid size-10 place-items-center rounded-lg border border-border/60 bg-background text-muted-foreground">
+        {icon}
+      </div>
+      <h3 className="mt-3 font-serif text-lg font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">{description}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
 function PriorityTile({ row }: { row: SeriesRow }) {
   const tone =
     row.overdueTaskCount > 0
-      ? "border-rose-200 bg-rose-50/60"
-      : row.blockedTaskCount > 0
-        ? "border-amber-200 bg-amber-50/70"
-        : "border-[var(--admin-border)] bg-[var(--admin-surface)]";
+      ? {
+          card: "border-rose-200 bg-rose-50/50 dark:border-rose-500/30 dark:bg-rose-500/10",
+          badge: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+        }
+      : row.revisionTaskCount > 0
+        ? {
+            card: "border-amber-200 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/10",
+            badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+          }
+        : {
+            card: "border-border/80 bg-card",
+            badge: "bg-muted text-muted-foreground",
+          };
 
   return (
     <Link
       to="/app/series/$slug/$tab"
       params={{ slug: row.series.slug, tab: row.actionTab }}
-      className={`rounded-[6px] border p-3 transition hover:-translate-y-0.5 hover:border-[var(--admin-navy)] ${tone}`}
+      className={`rounded-xl border p-4 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md ${tone.card}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold text-[var(--admin-ink)]">
-            {row.series.title}
-          </p>
-          <p className="mt-1 text-[11px] text-[var(--admin-muted)]">{row.priorityLabel}</p>
+          <p className="truncate text-[13px] font-bold text-foreground">{row.series.title}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{row.currentChapterLabel}</p>
         </div>
-        <Flag className="size-4 shrink-0 text-[var(--admin-faint)]" />
+        <span
+          className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${tone.badge}`}
+        >
+          {row.priorityLabel}
+        </span>
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-[var(--admin-muted)]">
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
         <span>{row.nextDeadline ? formatDeadline(row.nextDeadline) : "No due date"}</span>
-        <span className="font-semibold text-[var(--admin-ink)]">
+        <span className="inline-flex items-center gap-0.5 font-semibold text-foreground">
           {PRIMARY_ACTION_LABEL[row.primaryAction]}
+          <ChevronRight className="size-3" />
         </span>
       </div>
     </Link>
@@ -831,10 +920,10 @@ function SeriesTableRow({ row }: { row: SeriesRow }) {
   const cover = row.series.coverUrl || row.series.coverFileKey;
 
   return (
-    <TableRow className="align-top">
+    <TableRow className="hover:bg-muted/30 transition-colors align-top">
       <TableCell>
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-16 w-11 shrink-0 place-items-center overflow-hidden rounded-[4px] border border-[var(--admin-border)] bg-[var(--admin-hover)] font-serif text-[15px] font-semibold text-[var(--admin-muted)]">
+          <div className="grid h-10 w-7 shrink-0 place-items-center overflow-hidden rounded border border-border/60 bg-muted font-serif text-[10px] font-semibold text-muted-foreground">
             {cover ? (
               <ResolvedImage
                 fileKey={row.series.coverFileKey}
@@ -851,18 +940,21 @@ function SeriesTableRow({ row }: { row: SeriesRow }) {
             <Link
               to="/app/series/$slug/$tab"
               params={{ slug: row.series.slug, tab: "overview" }}
-              className="block truncate text-[14px] font-semibold text-[var(--admin-ink)] hover:underline"
+              className="block max-w-[30ch] truncate text-xs font-bold text-foreground transition-colors hover:text-primary hover:underline"
             >
               {row.series.title}
             </Link>
-            <p className="mt-0.5 line-clamp-1 max-w-[34ch] text-[12px] text-[var(--admin-muted)]">
+            <p className="mt-0.5 line-clamp-1 max-w-[32ch] text-[11px] text-muted-foreground">
               {row.currentChapterLabel}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--admin-faint)]">
+            <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <BookOpen className="size-3" />
               <span>{CADENCE_LABEL[row.series.cadence]}</span>
-              <span>{row.series.genres.slice(0, 2).join(", ") || "No genre"}</span>
-            </div>
+              <span>·</span>
+              <span className="line-clamp-1">
+                {row.series.genres.slice(0, 2).join(", ") || "No genre"}
+              </span>
+            </p>
           </div>
         </div>
       </TableCell>
@@ -870,7 +962,7 @@ function SeriesTableRow({ row }: { row: SeriesRow }) {
         <div className="space-y-1">
           <StatusPill status={row.series.status.toLowerCase()} />
           {row.proposal ? (
-            <p className="text-[11px] text-[var(--admin-faint)]">
+            <p className="text-[11px] text-muted-foreground">
               Proposal: {PROPOSAL_STATUS_LABEL[row.proposal.status]}
             </p>
           ) : null}
@@ -878,15 +970,15 @@ function SeriesTableRow({ row }: { row: SeriesRow }) {
       </TableCell>
       <TableCell>
         <div className="min-w-[128px] space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] text-[var(--admin-muted)]">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>
               {row.publishedCount}/{row.series.targetChapters || row.totalCount || 0}
             </span>
-            <span>{row.progressPct}%</span>
+            <span className="font-medium text-foreground">{row.progressPct}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--admin-hover)]">
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-[var(--admin-navy)]"
+              className="h-full rounded-full bg-primary"
               style={{ width: `${row.progressPct}%` }}
             />
           </div>
@@ -896,43 +988,45 @@ function SeriesTableRow({ row }: { row: SeriesRow }) {
         <WorkloadCell row={row} />
       </TableCell>
       <TableCell>
-        <div className="space-y-1 text-[12px] text-[var(--admin-muted)]">
-          <p className="font-medium text-[var(--admin-ink)]">{row.pendingReviewCount || "-"}</p>
-          {row.waitingEditorCount > 0 ? <p>{row.waitingEditorCount} editor handoff</p> : null}
+        <div className="space-y-1 text-[11px] text-muted-foreground">
+          <p className="font-medium text-foreground">{row.pendingReviewCount || "-"}</p>
+          {row.waitingEditorCount > 0 ? (
+            <p>
+              {row.waitingEditorCount} editor handoff{row.waitingEditorCount > 1 ? "s" : ""}
+            </p>
+          ) : null}
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1 text-[12px]">
-          <p className="font-medium text-[var(--admin-ink)]">{formatShortDate(row.nextDeadline)}</p>
+        <div className="space-y-1 text-[11px]">
+          <p className="font-medium text-foreground">{formatShortDate(row.nextDeadline)}</p>
           {row.nextDeadline ? (
-            <p className="text-[11px] text-[var(--admin-muted)]">
-              {formatDeadline(row.nextDeadline)}
-            </p>
+            <p className="text-[11px] text-muted-foreground">{formatDeadline(row.nextDeadline)}</p>
           ) : (
-            <p className="text-[11px] text-[var(--admin-faint)]">Not scheduled</p>
+            <p className="text-[11px] text-muted-foreground">Not scheduled</p>
           )}
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1 text-[12px] text-[var(--admin-muted)]">
-          <p className="font-medium text-[var(--admin-ink)]">{row.series.editorName}</p>
+        <div className="space-y-1 text-[11px] text-muted-foreground">
+          <p className="font-medium text-foreground">{row.series.editorName}</p>
           <p className="flex items-center gap-1">
             <Users className="size-3" />
             {row.series.assistantIds.length} assistants
           </p>
         </div>
       </TableCell>
-      <TableCell className="text-[12px] text-[var(--admin-muted)]">
+      <TableCell className="text-[11px] text-muted-foreground">
         {formatUpdated(row.series.updatedAt)}
       </TableCell>
       <TableCell className="text-right">
         <Link
           to="/app/series/$slug/$tab"
           params={{ slug: row.series.slug, tab: row.actionTab }}
-          className="inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-[var(--admin-navy)] px-3 text-[12px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-all hover:bg-primary/20"
         >
           {PRIMARY_ACTION_LABEL[row.primaryAction]}
-          <ArrowRight className="size-3.5" />
+          <ChevronRight className="size-3" />
         </Link>
       </TableCell>
     </TableRow>
@@ -944,21 +1038,19 @@ function MobileSeriesCard({ row }: { row: SeriesRow }) {
     <Link
       to="/app/series/$slug/$tab"
       params={{ slug: row.series.slug, tab: row.actionTab }}
-      className="block min-w-0 overflow-hidden rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3"
+      className="block min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card p-4 shadow-xs"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-semibold text-[var(--admin-ink)]">
-            {row.series.title}
-          </p>
-          <p className="mt-1 line-clamp-1 text-[12px] text-[var(--admin-muted)]">
+          <p className="truncate text-[13px] font-bold text-foreground">{row.series.title}</p>
+          <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
             {row.currentChapterLabel}
           </p>
         </div>
         <StatusPill status={row.series.status.toLowerCase()} className="shrink-0" />
       </div>
 
-      <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 text-[12px]">
+      <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
         <MobileMetric label="Progress" value={`${row.progressPct}%`} />
         <MobileMetric label="Open work" value={row.openTaskCount || "-"} />
         <MobileMetric label="Review" value={row.pendingReviewCount || "-"} />
@@ -968,9 +1060,9 @@ function MobileSeriesCard({ row }: { row: SeriesRow }) {
         />
       </div>
 
-      <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-[var(--admin-border)] pt-3 text-[12px]">
-        <span className="min-w-0 truncate text-[var(--admin-muted)]">{row.series.editorName}</span>
-        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-[var(--admin-ink)]">
+      <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-border/60 pt-3 text-[11px]">
+        <span className="min-w-0 truncate text-muted-foreground">{row.series.editorName}</span>
+        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-foreground">
           {PRIMARY_ACTION_LABEL[row.primaryAction]}
           <ArrowRight className="size-3.5" />
         </span>
@@ -979,13 +1071,13 @@ function MobileSeriesCard({ row }: { row: SeriesRow }) {
   );
 }
 
-function MobileMetric({ label, value }: { label: string; value: React.ReactNode }) {
+function MobileMetric({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="min-w-0 rounded-[5px] border border-[var(--admin-border)] bg-[var(--admin-page)]/60 p-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--admin-faint)]">
+    <div className="min-w-0 rounded-lg border border-border/60 bg-background p-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 font-semibold text-[var(--admin-ink)]">{value}</p>
+      <p className="mt-1 font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -1006,32 +1098,34 @@ function MobilePagination({
   const lastRow = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-page)]/60 p-2 text-[12px] text-[var(--admin-muted)]">
-      <TextButton
-        className="h-8 px-2 text-[12px]"
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-border/80 bg-card p-2 text-xs text-muted-foreground">
+      <button
+        type="button"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
+        className="rounded-md border border-border bg-background px-2.5 py-1 font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
       >
         Prev
-      </TextButton>
+      </button>
       <span className="min-w-0 text-center">
         {firstRow}-{lastRow} of {total}
       </span>
-      <TextButton
-        className="h-8 px-2 text-[12px]"
+      <button
+        type="button"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
+        className="rounded-md border border-border bg-background px-2.5 py-1 font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
-      </TextButton>
+      </button>
     </div>
   );
 }
 
 function WorkloadCell({ row }: { row: SeriesRow }) {
-  if (row.openTaskCount === 0 && row.blockedTaskCount === 0 && row.overdueTaskCount === 0) {
+  if (row.openTaskCount === 0 && row.revisionTaskCount === 0 && row.overdueTaskCount === 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-[12px] text-[var(--admin-muted)]">
+      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
         <CheckCircle2 className="size-3.5 text-[var(--role-editor)]" />
         Clear
       </span>
@@ -1046,8 +1140,8 @@ function WorkloadCell({ row }: { row: SeriesRow }) {
       {row.overdueTaskCount > 0 ? (
         <WorkloadBadge tone="locked" label={`${row.overdueTaskCount} overdue`} />
       ) : null}
-      {row.blockedTaskCount > 0 ? (
-        <WorkloadBadge tone="risk" label={`${row.blockedTaskCount} blocked`} />
+      {row.revisionTaskCount > 0 ? (
+        <WorkloadBadge tone="risk" label={`${row.revisionTaskCount} revision needed`} />
       ) : null}
     </div>
   );

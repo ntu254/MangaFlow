@@ -9,16 +9,15 @@ import {
 } from "../../api/assistant-queries";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { formatDateTime } from "@/shared/lib/format-date";
-import { NotificationDetailSheet, useArchiveNotificationMutation } from "@/features/notifications";
+import { NotificationDetailSheet } from "@/features/notifications";
 
 export function AssistantNotificationsPage() {
   const { data: items = [], isLoading } = useNotificationsQuery();
   const markRead = useMarkReadMutation();
-  const archive = useArchiveNotificationMutation();
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailItem = items.find((item) => item.id === detailId);
 
-  const visible = useMemo(() => items.filter((n) => !n.archivedAt), [items]);
+  const visible = useMemo(() => items, [items]);
   const unreadCount = visible.filter((n) => !n.readAt).length;
 
   const today: NotificationRecord[] = [];
@@ -96,13 +95,7 @@ export function AssistantNotificationsPage() {
             onError: (error) => toast.error(mapNotificationError(error)),
           })
         }
-        onArchive={(id) =>
-          archive.mutate(id, {
-            onSuccess: () => setDetailId(null),
-            onError: (error) => toast.error(mapNotificationError(error)),
-          })
-        }
-        busy={markRead.isPending || archive.isPending}
+        busy={markRead.isPending}
       />
     </div>
   );

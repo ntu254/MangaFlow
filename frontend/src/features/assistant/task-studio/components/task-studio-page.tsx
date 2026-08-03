@@ -1,13 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { mapApiMaterialToSeriesMaterial } from "@/entities/proposal/model/map-material";
 import type { SeriesMaterial } from "@/entities/series/model/series-types";
@@ -15,7 +6,6 @@ import { REGION_TYPE_LABEL, UNSUPPORTED_MVP } from "@/entities/series/model/stud
 import {
   buildTaskContext,
   deadlineRisk,
-  getTaskBlockedReason,
   getTaskStatusLabel,
   getVisualTaskStatus,
   getVisualTaskStatusClass,
@@ -39,7 +29,7 @@ import { formatDate } from "@/shared/lib/format-date";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Ban, CheckCircle2, ExternalLink, Play, RefreshCw, Send } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import { SubmissionHistory } from "./submission-history";
 import { TaskBriefPanel } from "./task-brief-panel";
@@ -72,16 +62,12 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
   const { data: comments = [] } = useTaskCommentsQuery(task?.id ?? "");
   const taskActionMutation = useStudioTaskActionMutation(taskId);
   const reopenTaskMutation = useReopenTaskMutation(taskId);
-  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-  const [blockReason, setBlockReason] = useState("");
   const { data: rawMaterials = [] } = useSeriesMaterialsQuery(seriesId);
   const materials = useMemo(() => rawMaterials.map(mapApiMaterialToSeriesMaterial), [rawMaterials]);
   const { data: submissions = [] } = useTaskSubmissionsQuery(task?.id ?? "");
   const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
   const page = ctx?.chapter?.pages.find((p) => p.id === task?.pageId);
-  const region = task?.regionId
-    ? regions.find((r) => r.id === task.regionId)
-    : regions.find((r) => r.pageId === task?.pageId && r.type === task?.type);
+  const region = task?.regionId ? regions.find((r) => r.id === task.regionId) : undefined;
   const taskComments = useMemo(
     () => comments.filter((c) => c.taskId === task?.id || c.pageId === task?.pageId),
     [comments, task],
@@ -202,6 +188,37 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
     );
   }
 
+  function acceptWork() {
+    if (!task) return;
+    taskActionMutation.mutate(
+      { action: "ACCEPT", chapterId: task.chapterId, pageId: task.pageId },
+      {
+        onSuccess: () => toast.success("Task accepted."),
+        onError: (error) =>
+          toast.error(error instanceof Error ? error.message : "Could not accept task."),
+      },
+    );
+  }
+
+  function rejectWork() {
+    if (!task) return;
+    const reason = window.prompt("Why are you rejecting this task?")?.trim();
+    if (!reason) return;
+    taskActionMutation.mutate(
+      {
+        action: "REJECT",
+        payload: { reason },
+        chapterId: task.chapterId,
+        pageId: task.pageId,
+      },
+      {
+        onSuccess: () => toast.success("Task rejected and sent back for reassignment."),
+        onError: (error) =>
+          toast.error(error instanceof Error ? error.message : "Could not reject task."),
+      },
+    );
+  }
+
   function reopenWork() {
     if (!task) return;
     reopenTaskMutation.mutate(
@@ -210,39 +227,6 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
         onSuccess: () => toast.success("Task reopened. Submit new work from the Submit tab."),
         onError: (error) =>
           toast.error(error instanceof Error ? error.message : "Could not reopen task."),
-      },
-    );
-  }
-
-  function blockWork() {
-    if (!task || blockReason.trim().length < 3) return;
-    taskActionMutation.mutate(
-      {
-        action: "block",
-        payload: { blockedReason: blockReason.trim() },
-        chapterId: task.chapterId,
-        pageId: task.pageId,
-      },
-      {
-        onSuccess: () => {
-          setBlockDialogOpen(false);
-          setBlockReason("");
-          toast.success("Task blocked.");
-        },
-        onError: (error) =>
-          toast.error(error instanceof Error ? error.message : "Could not block task."),
-      },
-    );
-  }
-
-  function unblockWork() {
-    if (!task) return;
-    taskActionMutation.mutate(
-      { action: "unblock", chapterId: task.chapterId, pageId: task.pageId },
-      {
-        onSuccess: () => toast.success("Task unblocked."),
-        onError: (error) =>
-          toast.error(error instanceof Error ? error.message : "Could not unblock task."),
       },
     );
   }
@@ -379,59 +363,14 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
           <BottomActions
             task={task}
             readOnly={readOnly}
+            onAccept={acceptWork}
+            onReject={rejectWork}
             onStart={startWork}
             onReopen={reopenWork}
-            onBlock={() => setBlockDialogOpen(true)}
-            onUnblock={unblockWork}
             actionBusy={reopenTaskMutation.isPending || taskActionMutation.isPending}
           />
         </footer>
       </div>
-
-      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Block task</DialogTitle>
-            <DialogDescription>
-              Record the dependency preventing progress. The task stays assigned and can be resumed
-              after it is unblocked.
-            </DialogDescription>
-          </DialogHeader>
-          <div>
-            <label
-              htmlFor="assistant-task-block-reason"
-              className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground"
-            >
-              Blocking reason
-            </label>
-            <Textarea
-              id="assistant-task-block-reason"
-              value={blockReason}
-              onChange={(event) => setBlockReason(event.target.value)}
-              placeholder="Explain what is blocking this task..."
-              rows={4}
-              className="mt-2"
-            />
-          </div>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setBlockDialogOpen(false)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold hover:bg-muted"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={blockWork}
-              disabled={blockReason.trim().length < 3 || taskActionMutation.isPending}
-              className="rounded-md bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800 disabled:opacity-50"
-            >
-              {taskActionMutation.isPending ? "Blocking..." : "Confirm block"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
@@ -439,23 +378,21 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
 function BottomActions({
   task,
   readOnly,
+  onAccept,
+  onReject,
   onStart,
   onReopen,
-  onBlock,
-  onUnblock,
   actionBusy,
 }: {
   task: import("@/entities/series/model/studio-types").StudioTask;
   readOnly: boolean;
+  onAccept: () => void;
+  onReject: () => void;
   onStart: () => void;
   onReopen: () => void;
-  onBlock: () => void;
-  onUnblock: () => void;
   actionBusy: boolean;
 }) {
   const visualStatus = getVisualTaskStatus(task);
-  const isBlocked = visualStatus === "BLOCKED";
-  const blockedReason = getTaskBlockedReason(task) ?? "Task is blocked";
 
   if (visualStatus === "CANCELLED") {
     return (
@@ -474,23 +411,40 @@ function BottomActions({
   if (readOnly) {
     return <span className="text-xs text-muted-foreground">View only — task is closed.</span>;
   }
+  if (task.assignmentStatus === "PENDING") {
+    return (
+      <>
+        <span className="mr-auto text-xs text-muted-foreground">
+          Review the brief, then accept or reject this assignment.
+        </span>
+        <button
+          type="button"
+          onClick={onReject}
+          disabled={actionBusy}
+          className="inline-flex items-center gap-1.5 rounded-md border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+        >
+          Reject
+        </button>
+        <button
+          type="button"
+          onClick={onAccept}
+          disabled={actionBusy}
+          className="inline-flex items-center gap-1.5 rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+        >
+          <CheckCircle2 className="size-3.5" /> Accept
+        </button>
+      </>
+    );
+  }
+  if (task.assignmentStatus === "REJECTED") {
+    return (
+      <span className="mr-auto text-xs font-semibold text-rose-700">
+        View only — this assignment was rejected and is waiting for reassignment.
+      </span>
+    );
+  }
   if (task.status === "TODO") {
-    if (isBlocked) {
-      return (
-        <>
-          <span className="max-w-xl text-xs text-amber-800">Blocked: {blockedReason}</span>
-          <button
-            type="button"
-            onClick={onUnblock}
-            disabled={actionBusy}
-            className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:opacity-50"
-          >
-            {actionBusy ? "Unblocking..." : "Unblock Task"}
-          </button>
-        </>
-      );
-    }
-    const btn = (
+    return (
       <button
         onClick={onStart}
         disabled={actionBusy}
@@ -499,46 +453,13 @@ function BottomActions({
         <Play className="size-3.5" /> Start Work
       </button>
     );
-
-    return (
-      <>
-        <button
-          type="button"
-          onClick={onBlock}
-          disabled={actionBusy}
-          className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50"
-        >
-          <Ban className="size-3.5" /> Block Task
-        </button>
-        {btn}
-      </>
-    );
   }
   if (task.status === "IN_PROGRESS") {
-    if (isBlocked) {
-      return (
-        <>
-          <span className="max-w-xl text-xs text-amber-800">Blocked: {blockedReason}</span>
-          <button
-            type="button"
-            onClick={onUnblock}
-            disabled={actionBusy}
-            className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:opacity-50"
-          >
-            {actionBusy ? "Unblocking..." : "Unblock Task"}
-          </button>
-        </>
-      );
-    }
     const btn = (
       <button
         onClick={() => undefined}
         disabled
-        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ${
-          isBlocked
-            ? "border border-border bg-background text-muted-foreground opacity-60 cursor-not-allowed"
-            : "border border-border bg-background text-muted-foreground opacity-60 cursor-not-allowed"
-        }`}
+        className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground opacity-60"
       >
         <Send className="size-3.5" /> Use Submit tab
       </button>
@@ -547,14 +468,6 @@ function BottomActions({
     return (
       <>
         <DisabledAction label="Save Draft (use Submit tab)" />
-        <button
-          type="button"
-          onClick={onBlock}
-          disabled={actionBusy}
-          className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50"
-        >
-          <Ban className="size-3.5" /> Block Task
-        </button>
         {btn}
       </>
     );
@@ -567,12 +480,8 @@ function BottomActions({
     const btn = (
       <button
         onClick={onReopen}
-        disabled={isBlocked || actionBusy}
-        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ${
-          isBlocked
-            ? "border border-border bg-background text-muted-foreground opacity-60 cursor-not-allowed"
-            : "bg-foreground text-background hover:opacity-90"
-        }`}
+        disabled={actionBusy}
+        className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-60"
       >
         <RefreshCw className="size-3.5" /> {actionBusy ? "Reopening..." : "Reopen Task"}
       </button>
@@ -581,18 +490,7 @@ function BottomActions({
     return (
       <>
         <DisabledAction label="Feedback lifecycle uses canonical review actions" />
-        {isBlocked ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>{btn}</div>
-              </TooltipTrigger>
-              <TooltipContent>{blockedReason}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          btn
-        )}
+        {btn}
       </>
     );
   }

@@ -41,7 +41,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "EDITOR_REVISION_REQUESTED", label: "Editor revision" },
   { key: "MANGAKA_APPROVED", label: "Approved" },
   { key: "EDITOR_APPROVED", label: "Editor approved" },
-  { key: "BLOCKED", label: "Blocked" },
   { key: "OVERDUE", label: "Overdue" },
   { key: "REASSIGNED", label: "Reassigned" },
   { key: "CANCELLED", label: "Cancelled" },

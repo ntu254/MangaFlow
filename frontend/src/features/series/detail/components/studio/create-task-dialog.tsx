@@ -52,7 +52,6 @@ type Submit = (data: {
   priority: "low" | "normal" | "high";
   instructions: string;
   pageId: string;
-  regionId?: string;
 }) => boolean | Promise<boolean>;
 
 type Props = {
@@ -62,7 +61,7 @@ type Props = {
   page: ChapterPage | undefined;
   region: StudioRegion | undefined;
   members: User[];
-  hasActiveTaskOnRegion: boolean;
+  hasActiveTaskOnPage: boolean;
   rates: RateTableEntry[];
   onSubmit: Submit;
 };
@@ -74,7 +73,7 @@ export function CreateTaskDialog({
   page,
   region,
   members,
-  hasActiveTaskOnRegion,
+  hasActiveTaskOnPage,
   rates,
   onSubmit,
 }: Props) {
@@ -86,9 +85,7 @@ export function CreateTaskDialog({
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
   const [instructions, setInstructions] = useState("");
   const selectedRate = rates.find((rate) => rate.code === rateCode);
-  // This dialog creates a task for one selected page/region. Batch tasks can
-  // still use quantity through the API, but this single-unit flow must remain
-  // unambiguous for the assistant and payroll calculation.
+  // One assistant task is always one page and one payable unit.
   const quantity = 1;
   const estimatedAmount = selectedRate ? selectedRate.amount : 0;
   const pageHasSource = Boolean(
@@ -131,8 +128,8 @@ export function CreateTaskDialog({
       );
       return;
     }
-    if (hasActiveTaskOnRegion) {
-      toast.error("This region has an active task.");
+    if (hasActiveTaskOnPage) {
+      toast.error("This page has an active task.");
       return;
     }
     const assignee = members.find((m) => m.id === assigneeId);
@@ -147,7 +144,6 @@ export function CreateTaskDialog({
       priority,
       instructions,
       pageId: page.id,
-      regionId: region?.id,
     });
     if (ok) onOpenChange(false);
   };
@@ -159,15 +155,15 @@ export function CreateTaskDialog({
           <DialogTitle className="font-serif text-2xl">Create Task</DialogTitle>
           <DialogDescription>
             {chapter
-              ? `Chapter ${chapter.number} · Page ${page?.index ?? "—"}${region ? ` · ${region.label ?? "Region"}` : ""}`
+              ? `Chapter ${chapter.number} · Page ${page?.index ?? "—"}`
               : "Create a new task for assistant"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 space-y-3">
-          {hasActiveTaskOnRegion ? (
+          {hasActiveTaskOnPage ? (
             <div className="rounded border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900">
-              This region has an active task.
+              This page has an active task.
             </div>
           ) : null}
           {!pageHasSource ? (
@@ -277,10 +273,7 @@ export function CreateTaskDialog({
               size="sm"
               onClick={submit}
               disabled={
-                !pageHasSource ||
-                hasActiveTaskOnRegion ||
-                members.length === 0 ||
-                rates.length === 0
+                !pageHasSource || hasActiveTaskOnPage || members.length === 0 || rates.length === 0
               }
             >
               Create task

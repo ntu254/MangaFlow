@@ -905,9 +905,8 @@ test.describe.serial("live cross-role business chain", () => {
     ["board member 2", SEEDED.board2, "Approve"],
     ["board member 3", SEEDED.board3, "Reject"],
     ["board member 4", SEEDED.board4, "Reject"],
-    ["board member 5", SEEDED.board5, "Abstain"],
   ] as const) {
-    test(`${member} casts ${decision.toUpperCase()} in the split-vote session`, async ({
+    test(`${member} casts ${decision.toUpperCase()} in the partial-vote session`, async ({
       page,
     }) => {
       await login(page, ...credentials);
@@ -923,7 +922,7 @@ test.describe.serial("live cross-role business chain", () => {
     });
   }
 
-  test("Board Chair closes the split vote into TIE_BREAK_REQUIRED", async ({ page }) => {
+  test("Board Chair closes the partial vote without quorum", async ({ page }) => {
     await login(page, ...SEEDED.chair);
     await page.goto(`/app/board/${tieProposalId}`);
     const closeResponsePromise = page.waitForResponse(
@@ -936,52 +935,15 @@ test.describe.serial("live cross-role business chain", () => {
     const closeResponse = await closeResponsePromise;
     const closePayload = await closeResponse.json();
     expect(closeResponse.status()).toBe(200);
-    expect(closePayload.data.status).toBe("TIE_BREAK_REQUIRED");
+    expect(closePayload.data.status).toBe("NO_QUORUM");
   });
 
-  test("Editor-in-chief casts the weighted tie-break vote through the session UI", async ({
-    page,
-  }) => {
-    await login(page, ...SEEDED.editor);
-    await page.goto(`/app/board/sessions/${tieSessionId}`);
-    await expect(
-      page.getByRole("heading", { name: "Tie-break panel (Editor-in-chief)" }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: /Break tie.*Approve/ }).click();
-    await page.getByPlaceholder(/Decision reason/).fill("Approve after editorial risk review.");
-    const tieBreakResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/board/series/${tieProposalId}/decisions/tie-break`) &&
-        response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "Confirm tie-break", exact: true }).click();
-    expect((await tieBreakResponsePromise).status()).toBe(200);
-    await expect(page.getByText("Tie broken.", { exact: true })).toBeVisible();
-    await screenshot(page, "12-eic-tie-break-approved");
-  });
-
-  test("Board Chair finalizes the tie-broken session and provisions the Series", async ({
-    page,
-  }) => {
+  test("Board members cannot vote after a no-quorum close", async ({ page }) => {
     await login(page, ...SEEDED.chair);
     await page.goto(`/app/board/${tieProposalId}`);
-    const closeResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/voting-sessions/${tieSessionId}`) &&
-        response.url().endsWith("/close") &&
-        response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "Close VotingSession" }).click();
-    const closeResponse = await closeResponsePromise;
-    const closePayload = await closeResponse.json();
-    expect(closeResponse.status()).toBe(200);
-    expect(closePayload.data.status).toBe("FINALIZED");
-
-    await clearSession(page);
-    await login(page, ...SEEDED.mangaka);
-    await page.goto("/app/series");
-    await expect(page.locator("a").filter({ hasText: tieProposalTitle }).first()).toBeVisible();
-    await screenshot(page, "13-tie-break-series-provisioned");
+    await expect(page.getByRole("heading", { name: tieProposalTitle })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Submit vote", exact: true })).toHaveCount(0);
+    await screenshot(page, "12-board-no-quorum-closed");
   });
 });
 
@@ -1196,15 +1158,13 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
   await screenshot(page, "34-mangaka-approved-region-task");
 });
 
-test("Mangaka versions a Material and Editor approves it as an immutable record", async ({
-  page,
-}) => {
+test("Mangaka versions a Supporting Material while Editor remains read-only", async ({ page }) => {
   const materialTitle = "E2E Harbor Reference";
   await login(page, ...SEEDED.mangaka);
   await page.goto("/app/series/berserk-prod/materials");
-  await page.getByRole("button", { name: "Upload material", exact: true }).click();
+  await page.getByRole("button", { name: "Add attachment", exact: true }).click();
 
-  const createDialog = page.getByRole("dialog", { name: "Upload Material" });
+  const createDialog = page.getByRole("dialog", { name: "Add supporting attachment" });
   await createDialog.getByLabel("Title").fill(materialTitle);
   await createDialog.getByLabel("Type").selectOption("reference");
   await createDialog.getByLabel("Linked chapter").selectOption("ch-s-berserk-prod-5");
@@ -1239,18 +1199,8 @@ test("Mangaka versions a Material and Editor approves it as an immutable record"
   expect((await versionResponse).status()).toBe(200);
   await expect(detail.getByText("v2", { exact: true }).first()).toBeVisible();
 
-  const statusSelect = detail.locator("select").first();
-  for (const status of ["ACTIVE", "IN_REVIEW"] as const) {
-    const patchResponse = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/materials/${materialId}`) &&
-        response.request().method() === "PATCH",
-    );
-    await statusSelect.selectOption(status);
-    expect((await patchResponse).status()).toBe(200);
-  }
-  await expect(statusSelect).toHaveValue("IN_REVIEW");
-  await screenshot(page, "35-material-version-in-review");
+  await expect(detail.getByText("Status", { exact: true })).toHaveCount(0);
+  await screenshot(page, "35-supporting-material-versioned");
 
   await clearSession(page);
   await login(page, ...SEEDED.editor);
@@ -1259,16 +1209,8 @@ test("Mangaka versions a Material and Editor approves it as an immutable record"
   detail = page.locator("aside").filter({ hasText: materialTitle });
   await expect(detail).toBeVisible();
 
-  const approveResponse = page.waitForResponse(
-    (response) =>
-      response.url().endsWith(`/api/materials/${materialId}`) &&
-      response.request().method() === "PATCH",
-  );
-  await detail.locator("select").first().selectOption("APPROVED");
-  expect((await approveResponse).status()).toBe(200);
-  await expect(detail.locator("select").first()).toHaveValue("APPROVED");
   await expect(detail.getByRole("button", { name: "Replace", exact: true })).toHaveCount(0);
-  await screenshot(page, "36-editor-approved-material");
+  await screenshot(page, "36-editor-readonly-supporting-material");
 
   const card = page
     .locator("div.group")
@@ -1278,20 +1220,20 @@ test("Mangaka versions a Material and Editor approves it as an immutable record"
   await expect(page.getByRole("menuitem", { name: "Delete", exact: true })).toHaveCount(0);
   await page.keyboard.press("Escape");
 
-  const deleteAttempt = await page.evaluate(
+  const mutationAttempt = await page.evaluate(
     async ({ id, apiOrigin }) => {
       const raw = window.localStorage.getItem("beachread-api-tokens");
       const tokens = raw ? JSON.parse(raw) : null;
       const response = await fetch(`${apiOrigin}/api/materials/${id}`, {
-        method: "DELETE",
+        method: "PATCH",
+        body: JSON.stringify({ title: "Editor rewrite" }),
         headers: { Authorization: `Bearer ${tokens?.accessToken ?? ""}` },
       });
       return { status: response.status, body: await response.json() };
     },
     { id: materialId, apiOrigin: API_ORIGIN },
   );
-  expect(deleteAttempt.status).toBe(409);
-  expect(deleteAttempt.body.code).toBe("APPROVED_MATERIAL_IMMUTABLE");
+  expect(mutationAttempt.status).toBe(403);
   await expect(page.getByRole("img", { name: materialTitle }).first()).toBeVisible();
 });
 

@@ -1,14 +1,7 @@
 import { MaterialsViewer } from "@/entities/proposal";
-import type { User } from "@/shared/auth";
 import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
 
-export function CreativeMaterialsReadonly({
-  proposal,
-  user,
-}: {
-  proposal: SeriesProposal;
-  user: User;
-}) {
+export function CreativeMaterialsReadonly({ proposal }: { proposal: SeriesProposal }) {
   return (
     <section className="rounded-md border border-border bg-card p-4">
       <div className="mb-3">
@@ -19,7 +12,7 @@ export function CreativeMaterialsReadonly({
           Board review is read-only. No page editing or task creation here.
         </p>
       </div>
-      <MaterialsViewer proposal={proposal} user={user} />
+      <MaterialsViewer proposal={proposal} />
     </section>
   );
 }

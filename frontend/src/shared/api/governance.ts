@@ -3,7 +3,6 @@ import type {
   CreateVotingSessionRequest,
   UpdateVotingSessionRequest,
   CastVoteRequest,
-  TieBreakRequest,
   AtRiskDecisionRequest,
 } from "./services";
 
@@ -28,8 +27,6 @@ export const boardApi = {
   getVotes: (seriesId: string) => apiRequest(`/board/series/${seriesId}/votes`),
   castVote: (seriesId: string, body: CastVoteRequest) =>
     apiRequest(`/board/series/${seriesId}/votes`, { method: "POST", body }),
-  tieBreak: (seriesId: string, body: TieBreakRequest) =>
-    apiRequest(`/board/series/${seriesId}/decisions/tie-break`, { method: "POST", body }),
   atRiskDecision: (seriesId: string, body: AtRiskDecisionRequest) =>
     apiRequest(`/board/series/${seriesId}/at-risk-decisions`, { method: "POST", body }),
   rankings: () => apiRequest("/rankings"),

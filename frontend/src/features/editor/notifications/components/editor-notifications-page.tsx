@@ -5,7 +5,6 @@ import {
   useMarkReadMutation,
   mapNotificationError,
   NotificationDetailSheet,
-  useArchiveNotificationMutation,
 } from "@/features/notifications";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { PageHeader } from "@/shared/ui";
@@ -14,10 +13,9 @@ import { formatDateTime } from "@/shared/lib/format-date";
 export function EditorNotificationsPage() {
   const { data: items = [], isLoading } = useNotificationsQuery();
   const markRead = useMarkReadMutation();
-  const archive = useArchiveNotificationMutation();
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  const visible = useMemo(() => items.filter((n) => !n.archivedAt), [items]);
+  const visible = useMemo(() => items, [items]);
   const detailItem = items.find((item) => item.id === detailId);
 
   if (isLoading)
@@ -79,13 +77,7 @@ export function EditorNotificationsPage() {
             onError: (error) => toast.error(mapNotificationError(error)),
           })
         }
-        onArchive={(id) =>
-          archive.mutate(id, {
-            onSuccess: () => setDetailId(null),
-            onError: (error) => toast.error(mapNotificationError(error)),
-          })
-        }
-        busy={markRead.isPending || archive.isPending}
+        busy={markRead.isPending}
       />
     </div>
   );

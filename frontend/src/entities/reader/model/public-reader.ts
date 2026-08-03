@@ -1,8 +1,4 @@
-import {
-  ApiRequestError,
-  apiBaseUrl,
-  apiRequest,
-} from "@/shared/api/client";
+import { ApiRequestError, apiBaseUrl, apiRequest } from "@/shared/api/client";
 
 export type PublicChapterSummary = {
   id: string;

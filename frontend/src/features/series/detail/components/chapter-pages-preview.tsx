@@ -183,7 +183,7 @@ export function ChapterPagesPreview({
               key={p.id}
               page={p}
               compact={compact}
-              canReplace={canUpload && p.status === "REVISION_REQUIRED"}
+              canReplace={canUpload && p.status !== "FINALIZED"}
               canManage={canUpload}
               canMoveLeft={index > 0}
               canMoveRight={index < chapter.pages.length - 1}
@@ -290,7 +290,11 @@ function PageThumbnail({
           className="absolute inset-x-1 top-1 inline-flex items-center justify-center gap-1 rounded bg-background/95 px-1.5 py-1 text-[9px] font-semibold text-foreground shadow-sm hover:bg-background disabled:opacity-50"
         >
           <Replace className="size-2.5" />
-          {replacing ? "Replacing..." : "Replace revision"}
+          {replacing
+            ? "Replacing..."
+            : page.status === "PENDING_UPLOAD"
+              ? "Upload page"
+              : "Replace page"}
         </button>
       ) : null}
       {canManage ? (

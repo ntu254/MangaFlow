@@ -17,10 +17,7 @@ import { toSeriesMaterialApiPatch } from "../src/features/series/detail/model/se
 import { toTaskRatePayload } from "../src/features/series/detail/model/task-payload";
 import { deriveTaskStudioSubmissionState } from "../src/entities/task/model/submission-state";
 import { getSafeNotificationActionUrl } from "../src/features/notifications/model/notification-action";
-import {
-  markNotificationArchivedInList,
-  markNotificationReadInList,
-} from "../src/shared/lib/notification-cache";
+import { markNotificationReadInList } from "../src/shared/lib/notification-cache";
 import {
   isRankingAtRisk,
   mapRankingToAtRiskReview,
@@ -150,30 +147,30 @@ test.describe("canonical business-flow contracts", () => {
     ).toBe(true);
   });
 
-  test("material mapping prefers top-level ACTIVE and APPROVED status", () => {
+  test("Supporting Material mapping ignores legacy lifecycle status", () => {
     const base = {
       id: "material-1",
       seriesId: "series-1",
       title: "Reference",
       kind: "reference",
-      metadata: { status: "DRAFT" },
+      metadata: { status: "ARCHIVED" },
       versions: [],
       createdAt: "2026-07-26T00:00:00.000Z",
       updatedAt: "2026-07-26T00:00:00.000Z",
     } satisfies MaterialItem;
-    expect(mapApiMaterialToSeriesMaterial({ ...base, status: "ACTIVE" }).status).toBe("ACTIVE");
-    expect(mapApiMaterialToSeriesMaterial({ ...base, status: "APPROVED" }).status).toBe("APPROVED");
+    expect(
+      mapApiMaterialToSeriesMaterial({ ...base, status: "ACTIVE" } as MaterialItem),
+    ).not.toHaveProperty("status");
   });
 
-  test("material status patch is top-level and note remains metadata", () => {
-    expect(toSeriesMaterialApiPatch({ status: "ACTIVE", note: "Approved reference" })).toEqual({
+  test("Supporting Material patch contains metadata only and no status", () => {
+    expect(toSeriesMaterialApiPatch({ note: "Updated reference" })).toEqual({
       title: undefined,
-      status: "ACTIVE",
       tags: undefined,
       chapterId: undefined,
-      metadata: { note: "Approved reference" },
+      metadata: { note: "Updated reference" },
     });
-    expect(toSeriesMaterialApiPatch({ status: "APPROVED" })).not.toHaveProperty("metadata.status");
+    expect(toSeriesMaterialApiPatch({})).not.toHaveProperty("status");
   });
 
   test("task creation sends a rate code and quantity at the top level", () => {
@@ -245,8 +242,8 @@ test.describe("canonical business-flow contracts", () => {
     expect(next[1].readAt).toBeUndefined();
   });
 
-  test("archiving one notification does not hide the rest of the inbox", () => {
-    const next = markNotificationArchivedInList(
+  test("notification state only tracks whether each item was read", () => {
+    const next = markNotificationReadInList(
       [
         { id: "notification-1", message: "First", createdAt: "2026-07-29T08:00:00.000Z" },
         { id: "notification-2", message: "Second", createdAt: "2026-07-29T09:00:00.000Z" },
@@ -255,8 +252,9 @@ test.describe("canonical business-flow contracts", () => {
       "2026-07-29T10:00:00.000Z",
     );
 
-    expect(next[0].archivedAt).toBe("2026-07-29T10:00:00.000Z");
-    expect(next[1].archivedAt).toBeUndefined();
+    expect(next[0].readAt).toBe("2026-07-29T10:00:00.000Z");
+    expect(next[1].readAt).toBeUndefined();
+    expect(next[0]).not.toHaveProperty("archivedAt");
   });
 });
 

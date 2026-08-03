@@ -30,7 +30,6 @@ export type StudioPermissionSet = {
   canAssignTask: boolean;
   canReassignTask: boolean;
   canCancelTask: boolean;
-  canMarkBlockedTask: boolean;
   canReopenTask: boolean;
   canSubmitTask: boolean;
   canReviewSubmission: boolean;
@@ -78,7 +77,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canAssignTask: ownsSeries,
       canReassignTask: ownsSeries,
       canCancelTask: ownsSeries,
-      canMarkBlockedTask: ownsSeries,
       canReopenTask: ownsSeries,
       canSubmitTask: false,
       canReviewSubmission: ownsSeries,
@@ -119,7 +117,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canAssignTask: false,
       canReassignTask: false,
       canCancelTask: false,
-      canMarkBlockedTask: false,
       canReopenTask: false,
       canSubmitTask: assignedToSeries,
       canReviewSubmission: false,
@@ -160,7 +157,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canAssignTask: false,
       canReassignTask: false,
       canCancelTask: false,
-      canMarkBlockedTask: false,
       canReopenTask: false,
       canSubmitTask: false,
       canReviewSubmission: assignedEditor,
@@ -199,7 +195,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canAssignTask: false,
       canReassignTask: false,
       canCancelTask: false,
-      canMarkBlockedTask: false,
       canReopenTask: false,
       canSubmitTask: false,
       canReviewSubmission: false,
@@ -237,7 +232,6 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
     canAssignTask: false,
     canReassignTask: false,
     canCancelTask: false,
-    canMarkBlockedTask: false,
     canReopenTask: false,
     canSubmitTask: false,
     canReviewSubmission: false,

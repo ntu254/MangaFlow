@@ -4,7 +4,7 @@ import path from "node:path";
 const ASSISTANT = ["jun@beachread.jp", "jun@beachread.jp"] as const;
 const MANGAKA = ["inoue@beachread.jp", "inoue@beachread.jp"] as const;
 const TASK_ID = "tsk-002";
-const TASK_TITLE = "Blocked task for testing";
+const TASK_TITLE = "Lettering task awaiting work";
 const sampleImage = path.resolve("public/assets/covers/onepiece.jpg");
 
 let firstSubmissionId = "";
@@ -64,20 +64,9 @@ async function openMangakaReview(page: Page) {
 }
 
 test.describe.serial("live Assistant task lifecycle", () => {
-  test("Assistant opens a blocked task, unblocks it, and starts work", async ({ page }) => {
+  test("Assistant opens an assigned task and starts work", async ({ page }) => {
     await login(page, ...ASSISTANT);
     await openTaskStudio(page);
-    await expect(page.getByRole("button", { name: "Start Work", exact: true })).toHaveCount(0);
-    await expect(page.getByText(/Waiting for raw scanned pages from Mangaka/)).toBeVisible();
-
-    const unblockResponse = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/studio/tasks/${TASK_ID}/actions/unblock`) &&
-        response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "Unblock Task", exact: true }).click();
-    expect((await unblockResponse).status()).toBe(200);
-    await expect(page.getByRole("button", { name: "Start Work", exact: true })).toBeVisible();
 
     const startResponse = page.waitForResponse(
       (response) =>
@@ -86,37 +75,18 @@ test.describe.serial("live Assistant task lifecycle", () => {
     );
     await page.getByRole("button", { name: "Start Work", exact: true }).click();
     expect((await startResponse).status()).toBe(200);
-    await expect(page.getByRole("button", { name: "Block Task", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Block Task", exact: true })).toHaveCount(0);
     await page.screenshot({
       path: path.resolve("artifacts/e2e-live/screenshots/14-assistant-task-started.png"),
       fullPage: true,
     });
   });
 
-  test("Assistant blocks in-progress work with a reason and unblocks it", async ({ page }) => {
+  test("Assistant task studio exposes no block controls", async ({ page }) => {
     await login(page, ...ASSISTANT);
     await page.goto(`/app/assistant/tasks/${TASK_ID}/studio`);
-    await page.getByRole("button", { name: "Block Task", exact: true }).click();
-    await page
-      .getByLabel("Blocking reason")
-      .fill("The lettering reference is missing from the production package.");
-    const blockResponse = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/studio/tasks/${TASK_ID}/actions/block`) &&
-        response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "Confirm Block", exact: true }).click();
-    expect((await blockResponse).status()).toBe(200);
-    await expect(page.getByText(/The lettering reference is missing/)).toBeVisible();
-
-    const unblockResponse = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/studio/tasks/${TASK_ID}/actions/unblock`) &&
-        response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "Unblock Task", exact: true }).click();
-    expect((await unblockResponse).status()).toBe(200);
-    await expect(page.getByRole("button", { name: "Block Task", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Block Task", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Unblock Task", exact: true })).toHaveCount(0);
   });
 
   test("Assistant uploads and submits work for Mangaka review", async ({ page }) => {

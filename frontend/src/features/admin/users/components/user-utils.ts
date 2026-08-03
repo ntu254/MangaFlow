@@ -30,6 +30,5 @@ export function isLastAdmin(user: AdminUser, users: AdminUser[]) {
 
 export function privilegeLabel(user: AdminUser) {
   if (user.isChair) return "Chair";
-  if (user.isEditorInChief) return "Editor-in-Chief";
   return "-";
 }

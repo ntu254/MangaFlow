@@ -18,7 +18,7 @@ import { StatCard } from "@/shared/ui/stat-card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { formatDate } from "@/shared/lib/format-date";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
-import { EarningDetailSheet } from "./earning-detail-sheet";
+import { EarningDetailModal } from "./earning-detail-modal";
 
 export function EarningsPage() {
   const user = useAuth((s) => s.user);
@@ -228,7 +228,7 @@ export function EarningsPage() {
           </div>
         </>
       )}
-      <EarningDetailSheet
+      <EarningDetailModal
         earning={detailEarning}
         task={detailTask}
         chapter={detailChapter}

@@ -1,4 +1,10 @@
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+} from "@/components/ui/modal";
 import type { StudioTask } from "@/entities/series/model/studio-types";
 import {
   SUBMISSION_STATUS_BADGE,
@@ -278,7 +284,7 @@ export function SubmissionsPage() {
         />
       ) : null}
 
-      <SubmissionDetailDrawer
+      <SubmissionDetailModal
         submission={selected}
         getTask={(id) => tasks.find((t) => t.id === id)}
         open={!!selected}
@@ -288,7 +294,7 @@ export function SubmissionsPage() {
   );
 }
 
-function SubmissionDetailDrawer({
+function SubmissionDetailModal({
   submission,
   getTask,
   open,
@@ -308,26 +314,22 @@ function SubmissionDetailDrawer({
   const t = getTask(submission.taskId);
   const isImage = isImageFile(submission);
   const isPdf =
-    submission.mimeType === "application/pdf" || submission.fileName?.toLowerCase().endsWith(".pdf");
+    submission.mimeType === "application/pdf" ||
+    submission.fileName?.toLowerCase().endsWith(".pdf");
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full max-w-md overflow-y-auto p-0 sm:max-w-md">
-        <div className="flex items-start justify-between border-b border-border p-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              {submission.versionLabel} · {SUBMISSION_STATUS_LABEL[submission.status]}
-            </p>
-            <p className="mt-1 font-serif text-xl">{t?.title ?? submission.taskId}</p>
-          </div>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-        <div className="space-y-3 p-4 text-xs">
+    <Modal open={open} onOpenChange={onOpenChange}>
+      <ModalContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <ModalHeader>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            {submission.versionLabel} · {SUBMISSION_STATUS_LABEL[submission.status]}
+          </p>
+          <ModalTitle className="text-xl font-bold font-serif">
+            {t?.title ?? submission.taskId}
+          </ModalTitle>
+          <ModalDescription className="sr-only">Submission detail view</ModalDescription>
+        </ModalHeader>
+
+        <div className="space-y-3 pt-2 text-xs">
           <section className="overflow-hidden rounded-md border border-border bg-muted/20">
             <div className="flex items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -402,17 +404,15 @@ function SubmissionDetailDrawer({
             </Link>
           ) : null}
         </div>
-      </SheetContent>
-    </Sheet>
+      </ModalContent>
+    </Modal>
   );
 }
 
 function isImageFile(submission: AssistantSubmission) {
   const mimeType = submission.mimeType?.toLowerCase();
   const fileName = submission.fileName?.toLowerCase() ?? "";
-  return Boolean(
-    mimeType?.startsWith("image/") || /\.(?:png|jpe?g|webp|gif|bmp)$/.test(fileName),
-  );
+  return Boolean(mimeType?.startsWith("image/") || /\.(?:png|jpe?g|webp|gif|bmp)$/.test(fileName));
 }
 
 function Row({ k, v }: { k: string; v: string }) {

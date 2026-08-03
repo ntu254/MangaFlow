@@ -87,7 +87,7 @@ export function ImageCompare({
     const onlyLabel = hasBefore ? beforeLabel : afterLabel;
     return (
       <div
-        className={`relative overflow-hidden rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface-muted,#0000000a)] ${className ?? ""}`}
+        className={`relative overflow-hidden rounded-[6px] border border-border bg-muted/30 ${className ?? ""}`}
       >
         <ResolvedImage
           fileKey={only.fileKey}
@@ -106,7 +106,7 @@ export function ImageCompare({
         ref={containerRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        className="relative max-h-[640px] cursor-ew-resize touch-none select-none overflow-hidden rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface-muted,#0000000a)]"
+        className="relative max-h-[640px] cursor-ew-resize touch-none select-none overflow-hidden rounded-[6px] border border-border bg-muted/30"
       >
         {/* Base layer: before */}
         <ResolvedImage
@@ -137,7 +137,7 @@ export function ImageCompare({
           className="pointer-events-none absolute inset-y-0 z-10 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
           style={{ left: `${position}%` }}
         >
-          <span className="absolute top-1/2 left-1/2 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[10px] font-semibold text-[var(--admin-ink)] shadow">
+          <span className="absolute top-1/2 left-1/2 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-white text-[10px] font-semibold text-foreground shadow">
             ⇄
           </span>
         </div>

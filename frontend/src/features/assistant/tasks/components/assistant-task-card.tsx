@@ -91,11 +91,7 @@ export function AssistantTaskCard({
           onClick={(e) => e.stopPropagation()}
           className="inline-flex h-9 flex-1 items-center justify-center rounded-[5px] bg-[var(--admin-navy)] px-3 text-[11px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-60"
         >
-          {visualStatus === "CANCELLED"
-            ? "View only"
-            : visualStatus === "BLOCKED"
-              ? "Open blocked task"
-              : TASK_ACTION_LABEL[action]}
+          {visualStatus === "CANCELLED" ? "View only" : TASK_ACTION_LABEL[action]}
         </OpenTaskStudioAction>
         <button
           type="button"

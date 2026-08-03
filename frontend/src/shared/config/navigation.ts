@@ -22,9 +22,8 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   mangaka: [
     ...SHARED,
-    { to: "/app/submissions", label: "Proposals", group: "Production" },
+    { to: "/app/proposals", label: "Proposals", group: "Production" },
     { to: "/app/series", label: "My Series", group: "Production" },
-    { to: "/app/tasks", label: "Task Board", group: "Production" },
     { to: "/app/mangaka/submissions/review", label: "Review Queue", group: "Production" },
     { to: "/app/rankings", label: "Rankings", group: "Insights" },
   ],

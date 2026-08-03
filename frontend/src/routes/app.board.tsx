@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { getPersistedAuthUser, isEditorInChief } from "@/shared/auth";
+import { getPersistedAuthUser } from "@/shared/auth";
 
 export const Route = createFileRoute("/app/board")({
   head: () => ({
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/app/board")({
   beforeLoad: () => {
     if (typeof window === "undefined") return;
     const user = getPersistedAuthUser();
-    if (user?.role && user.role !== "board" && !isEditorInChief(user)) {
+    if (user?.role && user.role !== "board") {
       throw redirect({ to: "/app/dashboard" });
     }
   },

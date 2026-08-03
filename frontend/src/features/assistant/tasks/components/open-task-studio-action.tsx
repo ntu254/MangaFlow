@@ -15,7 +15,11 @@ export function OpenTaskStudioAction({ task, className, onClick, children }: Pro
   const navigate = useNavigate();
   const mutation = useStudioTaskActionMutation(task.id);
 
-  if (task.status !== "TODO" || task.blocked) {
+  if (
+    task.assignmentStatus === "PENDING" ||
+    task.assignmentStatus === "REJECTED" ||
+    task.status !== "TODO"
+  ) {
     return (
       <Link
         to="/app/assistant/tasks/$taskId/studio"

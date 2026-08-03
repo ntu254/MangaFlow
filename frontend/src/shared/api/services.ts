@@ -1,7 +1,5 @@
 import { apiRequest } from "./client";
 
-export type MaterialStatus = "DRAFT" | "ACTIVE" | "IN_REVIEW" | "APPROVED" | "ARCHIVED";
-
 export interface CreateProposalRequest {
   title: string;
   description: string;
@@ -47,7 +45,6 @@ export interface UpdateRegionRequest {
 export interface CreateTaskRequest {
   chapterId: string;
   pageId: string;
-  regionId?: string;
   title: string;
   type: string;
   assigneeId: string;
@@ -100,7 +97,6 @@ export interface CreateMaterialRequest {
   proposalId?: string;
   title?: string;
   kind?: string;
-  status?: MaterialStatus;
   type?: string;
   category?: string;
   description?: string;
@@ -117,7 +113,6 @@ export interface CreateMaterialRequest {
 export interface UpdateMaterialRequest {
   title?: string;
   kind?: string;
-  status?: MaterialStatus;
   chapterId?: string | null;
   type?: string;
   category?: string;
@@ -154,7 +149,7 @@ export interface UpdateVotingSessionRequest {
 }
 
 export interface CastVoteRequest {
-  decision: "APPROVE" | "REJECT" | "ABSTAIN";
+  decision: "APPROVE" | "REJECT";
   reason?: string;
   [key: string]: unknown;
 }

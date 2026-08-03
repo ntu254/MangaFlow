@@ -88,7 +88,7 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
   const backLink = (
     <Link
       to="/app/mangaka/submissions/review"
-      className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--admin-faint)] transition-colors hover:text-[var(--admin-ink)]"
+      className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="size-3.5" />
       Review Queue
@@ -162,7 +162,6 @@ export function SubmissionReview({ submissionId }: { submissionId: string }) {
   return (
     <SubmissionReviewWorkspace
       backLink={backLink}
-      eyebrow="Submission review"
       title={task?.title ?? submission.taskId}
       subtitle={
         <>

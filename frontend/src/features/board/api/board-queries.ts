@@ -72,7 +72,7 @@ export function useCastBoardVoteMutation() {
     {
       seriesId: string;
       body: {
-        voteDecision: VoteDecision;
+        voteDecision: "APPROVE" | "REJECT";
         comment?: string;
         sessionId?: string;
         expectedVersion?: number;
@@ -153,9 +153,9 @@ export { useCreateVotingSessionMutation } from "../sessions/api/sessions.queries
 // `err.message` silently never hits and falls through to the raw server string.
 const BOARD_ERROR_MESSAGE: Record<string, string> = {
   DUPLICATE_VOTE: "You have already voted on this proposal.",
+  VOTE_ALREADY_CAST: "You have already voted in this round.",
   INVALID_TRANSITION: "Current status does not allow voting.",
   PROPOSAL_NOT_FOUND: "Proposal not found.",
-  EIC_REQUIRED: "Only the Editor-in-chief can break a tie.",
   BOARD_CHAIR_REQUIRED: "Only the Board Chair can perform this action.",
   FORBIDDEN: "You do not have permission for this action.",
   SESSION_ID_REQUIRED:

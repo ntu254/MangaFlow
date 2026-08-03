@@ -4,7 +4,6 @@ import type {
   MaterialItem,
   ProductionSeries,
   SeriesRanking,
-  SeriesMaterialStatus,
 } from "@/entities/series/model/series-types";
 import {
   seriesKeys,
@@ -62,6 +61,11 @@ export interface DbMember {
   role: string;
   scope?: string;
   status: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  userRole?: string | null;
+  userActive?: boolean;
+  createdAt?: string;
 }
 
 export interface SeriesActivityEntry {
@@ -113,8 +117,6 @@ export function mapApiError(err: unknown): string {
       return "All assistant tasks and submissions must be approved by Mangaka first.";
     if (code === "BLOCKING_COMMENTS_UNRESOLVED")
       return "Blocking comments must be resolved before editor review.";
-    if (code === "REVIEW_MATERIAL_NOT_ACTIVE")
-      return "Review materials must be ACTIVE or APPROVED before editor review.";
     if (code === "NOT_FOUND" || code === "PROPOSAL_NOT_FOUND") return "Proposal not found.";
     if (err instanceof ApiRequestError && err.status >= 500) {
       return err.requestId
@@ -341,18 +343,6 @@ export function useDeletePageMutation(chapterId: string, seriesId?: string) {
   });
 }
 
-export function useAddMemberMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<DbMember, Error, { userId: string; role?: string; scope?: string }>({
-    mutationFn: (body) =>
-      apiRequest<DbMember>(`/series/${seriesId}/members`, { method: "POST", body }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.members(seriesId) });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(seriesId) });
-    },
-  });
-}
-
 export function useUpdateMemberMutation(seriesId: string, memberId: string) {
   const queryClient = useQueryClient();
   return useMutation<DbMember, Error, Partial<DbMember>>({
@@ -390,7 +380,7 @@ export function useRemoveMemberMutation(seriesId: string, memberId: string) {
 
 export function useAssignEditorMutation(seriesId: string) {
   const queryClient = useQueryClient();
-  return useMutation<TantouEditor, Error, { editorId: string; editorName: string }>({
+  return useMutation<TantouEditor, Error, { editorId: string }>({
     mutationFn: (body) => seriesApi.assignEditor(seriesId, body) as Promise<TantouEditor>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: seriesKeys.editor(seriesId) });
@@ -544,7 +534,7 @@ export interface CreateSeriesMaterialInput {
   url?: string;
   mimeType?: string;
   size?: number;
-  /** Additional display metadata; workflow status is top-level. */
+  /** Additional attachment display metadata. */
   metadata?: Record<string, unknown>;
 }
 
@@ -593,7 +583,6 @@ export function useAddSeriesMaterialVersionMutation(seriesId: string) {
 export interface UpdateSeriesMaterialInput {
   materialId: string;
   title?: string;
-  status?: SeriesMaterialStatus;
   tags?: string[];
   chapterId?: string | null;
   metadata?: Record<string, unknown>;
@@ -681,7 +670,6 @@ export function useCreateStudioRegionMutation() {
       chapterId: string;
       seriesId?: string;
       type: string;
-      status?: string;
       x: number;
       y: number;
       width: number;
@@ -795,7 +783,6 @@ export function useCreateStudioTaskMutation() {
     {
       chapterId: string;
       pageId: string;
-      regionId?: string;
       seriesId?: string;
       title: string;
       type: string;
@@ -819,11 +806,6 @@ export function useCreateStudioTaskMutation() {
         queryKey: studioKeys.tasks({ pageId: variables.pageId }),
       });
       queryClient.invalidateQueries({ queryKey: studioKeys.all });
-      if (variables.regionId) {
-        queryClient.invalidateQueries({
-          queryKey: studioKeys.regions({ pageId: variables.pageId }),
-        });
-      }
     },
   });
 }

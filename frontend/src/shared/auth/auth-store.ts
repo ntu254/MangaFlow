@@ -14,7 +14,6 @@ export type User = {
   role: Role;
   avatar?: string;
   isChair?: boolean;
-  isEditorInChief?: boolean;
 };
 
 type AuthState = {
@@ -79,7 +78,6 @@ const DEMO_USERS: Record<Role, User> = {
     name: "Tanaka Akira",
     email: "tanaka@beachread.jp",
     role: "editor",
-    isEditorInChief: true,
   },
   board: {
     id: "u-board",
@@ -123,7 +121,6 @@ export function findUserById(id: string): User | undefined {
       name: "Tanaka Akira",
       email: "tanaka@beachread.jp",
       role: "editor",
-      isEditorInChief: true,
     };
   return (
     BOARD_MEMBERS.find((u) => u.id === id) ??
@@ -134,10 +131,6 @@ export function findUserById(id: string): User | undefined {
 
 export function isBoardChair(userId: string) {
   return BOARD_MEMBERS.find((m) => m.id === userId)?.isChair === true;
-}
-
-export function isEditorInChief(user: { isEditorInChief?: boolean } | null | undefined): boolean {
-  return user?.isEditorInChief === true;
 }
 
 export const useAuth = create<AuthState>()(

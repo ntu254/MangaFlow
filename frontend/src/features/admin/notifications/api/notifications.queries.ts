@@ -16,8 +16,13 @@ export type ManagedNotification = {
   createdByName?: string;
   sentAt?: string;
   readAt?: string;
-  archivedAt?: string;
   createdAt: string;
+};
+
+export type DeleteManagedNotificationResult = {
+  id: string;
+  batchId?: string;
+  deletedCount: number;
 };
 
 export function useAdminNotificationsQuery(options: { enabled?: boolean } = {}) {
@@ -31,9 +36,9 @@ export function useAdminNotificationsQuery(options: { enabled?: boolean } = {}) 
 
 export function useAdminNotificationDeleteMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ManagedNotification, Error, string>({
+  return useMutation<DeleteManagedNotificationResult, Error, string>({
     mutationFn: (notificationId) =>
-      adminApi.deleteNotification(notificationId) as Promise<ManagedNotification>,
+      adminApi.deleteNotification(notificationId) as Promise<DeleteManagedNotificationResult>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.notifications() });
     },

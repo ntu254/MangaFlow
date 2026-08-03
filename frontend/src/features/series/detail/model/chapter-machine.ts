@@ -85,8 +85,7 @@ export function checkChapterAction(
         return { ok: false, reason: "Can only publish from READY_FOR_PUBLICATION." };
       return { ok: true };
     case "REASSIGN":
-      if (user.role !== "admin" && user.role !== "editor")
-        return { ok: false, reason: "Editor/admin only." };
+      if (user.role !== "editor") return { ok: false, reason: "Editor only." };
       if (chapter.status === "PUBLISHED")
         return { ok: false, reason: "Chapter already published." };
       return { ok: true };

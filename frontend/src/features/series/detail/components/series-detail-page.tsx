@@ -14,7 +14,6 @@ import { ChapterDetailWorkspace } from "./chapter-detail-workspace";
 import { ChapterKpiStrip } from "./chapter-kpi-strip";
 import { ChapterTable } from "./chapter-table";
 import { PublicationCalendar } from "./publication-calendar";
-import { SeriesMaterialsLibrary } from "./series-materials-library";
 import { EditTitleButton, SeriesHeaderActions, SeriesOverview } from "./series-overview";
 import { SeriesProposalTab } from "./series-proposal-tab";
 import { SeriesRankingsTab } from "./series-rankings-tab";
@@ -22,21 +21,13 @@ import { StudioTab } from "./studio-tab";
 import { TeamPanel } from "./team-panel";
 import { ResolvedImage } from "@/shared/ui";
 
-const TABS = [
-  "overview",
-  "proposal",
-  "chapters",
-  "materials",
-  "rankings",
-  "calendar",
-  "team",
-] as const;
-type Tab = (typeof TABS)[number];
-const TAB_LABEL: Record<Tab, string> = {
+const TABS = ["overview", "proposal", "chapters", "rankings", "calendar", "team"] as const;
+type NavTab = (typeof TABS)[number];
+type Tab = NavTab | "studio";
+const TAB_LABEL: Record<NavTab, string> = {
   overview: "Overview",
   proposal: "Proposal",
   chapters: "Chapters",
-  materials: "Materials",
   rankings: "Rankings",
   calendar: "Calendar",
   team: "Team",
@@ -72,7 +63,6 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
 
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [chapterView, setChapterView] = useState<"list" | "detail">("list");
-  const [studioOpen, setStudioOpen] = useState(false);
 
   const goTab = (t: Tab) => {
     setChapterView("list");
@@ -109,25 +99,21 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
     );
   }
 
-  if (studioOpen) {
+  const studioPermissions = getStudioPermissions(user, series);
+  const canEnterStudio = studioPermissions.canEnterStudio && !isLocked;
+
+  // /studio is a real tab URL; users without studio access fall back to overview.
+  const effectiveTab: Tab = tab === "studio" && !canEnterStudio ? "overview" : tab;
+
+  if (effectiveTab === "studio") {
     return (
-      <StudioTab
-        series={series}
-        chapters={chapters}
-        user={user}
-        onBack={() => setStudioOpen(false)}
-      />
+      <StudioTab series={series} chapters={chapters} user={user} onBack={() => goTab("overview")} />
     );
   }
 
   const next = chapters.find((c) => c.status === "READY_FOR_PUBLICATION");
-  const canCreate =
-    user.role === "admin" ||
-    user.role === "editor" ||
-    (user.role === "mangaka" && user.id === series.authorId);
+  const canCreate = user.role === "mangaka" && user.id === series.authorId;
   const published = chapters.filter((c) => c.status === "PUBLISHED");
-  const studioPermissions = getStudioPermissions(user, series);
-  const canEnterStudio = studioPermissions.canEnterStudio && !isLocked;
 
   const visibleTabs = isLocked ? (["proposal", "overview", "rankings"] as const) : TABS;
 
@@ -192,7 +178,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
           <button
-            onClick={() => canEnterStudio && setStudioOpen(true)}
+            onClick={() => canEnterStudio && goTab("studio")}
             disabled={!canEnterStudio}
             title={
               isLocked
@@ -217,7 +203,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
             to="/app/series/$slug/$tab"
             params={{ slug, tab: t }}
             className={`-mb-px border-b-2 px-3 py-2 text-xs font-semibold uppercase tracking-widest ${
-              tab === t
+              effectiveTab === t
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
@@ -227,13 +213,13 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
         ))}
       </nav>
 
-      {tab === "overview" ? (
+      {effectiveTab === "overview" ? (
         <SeriesOverview series={series} chapters={chapters} setTab={goTab} />
       ) : null}
 
-      {tab === "proposal" ? <SeriesProposalTab series={series} /> : null}
+      {effectiveTab === "proposal" ? <SeriesProposalTab series={series} /> : null}
 
-      {tab === "chapters" && chapterView === "list" ? (
+      {effectiveTab === "chapters" && chapterView === "list" ? (
         <div className="space-y-4">
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -253,7 +239,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
         </div>
       ) : null}
 
-      {tab === "chapters" && chapterView === "detail" && selected ? (
+      {effectiveTab === "chapters" && chapterView === "detail" && selected ? (
         <ChapterDetailWorkspace
           chapter={selected}
           series={series}
@@ -261,19 +247,17 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
           user={user}
           onBack={() => setChapterView("list")}
           canEnterStudio={canEnterStudio}
-          onOpenStudio={() => setStudioOpen(true)}
+          onOpenStudio={() => goTab("studio")}
         />
       ) : null}
 
-      {tab === "calendar" ? (
+      {effectiveTab === "calendar" ? (
         <PublicationCalendar series={allSeries ?? []} chapters={chapters} seriesId={series.id} />
       ) : null}
 
-      {tab === "materials" ? <SeriesMaterialsLibrary series={series} chapters={chapters} /> : null}
+      {effectiveTab === "rankings" ? <SeriesRankingsTab series={series} /> : null}
 
-      {tab === "rankings" ? <SeriesRankingsTab series={series} /> : null}
-
-      {tab === "team" ? <TeamPanel series={series} chapters={chapters} /> : null}
+      {effectiveTab === "team" ? <TeamPanel series={series} chapters={chapters} /> : null}
     </div>
   );
 }

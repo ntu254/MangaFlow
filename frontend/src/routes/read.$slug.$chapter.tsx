@@ -40,9 +40,7 @@ export const Route = createFileRoute("/read/$slug/$chapter")({
   notFoundComponent: () => (
     <main className="mx-auto max-w-3xl px-6 py-24 text-center">
       <h1 className="font-serif text-4xl">Chapter not found</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        This chapter has not been published.
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">This chapter has not been published.</p>
       <Link to="/read" className="mt-4 inline-block text-sm text-accent underline">
         Back to catalog
       </Link>

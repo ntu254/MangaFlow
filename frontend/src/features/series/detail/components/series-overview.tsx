@@ -52,7 +52,7 @@ type ChapterReadiness = {
   items: Array<{ key: string; passed: boolean; reason: string }>;
 };
 
-type Tab = "overview" | "chapters" | "materials" | "calendar" | "team";
+type Tab = "overview" | "chapters" | "calendar" | "team";
 
 export function SeriesOverview({
   series,
@@ -127,21 +127,16 @@ export function SeriesHeaderActions({
   const deleteSeries = useDeleteSeriesMutation(series.id);
   const isPublic = ["ONGOING", "COMPLETED", "PUBLISHED", "PUBLIC"].includes(series.status);
   const hasPublishedChapters = chapters.some((chapter) => chapter.status === "PUBLISHED");
-  const canArchive =
-    !!user && (user.role === "admin" || user.role === "editor") && series.status !== "ARCHIVED";
-  const canUnpublish = canArchive && isPublic;
-  const canDelete =
-    !!user &&
-    !isPublic &&
-    (user.role === "admin" || (user.role === "mangaka" && user.id === series.authorId));
-  // Mirrors the backend's START_PRODUCTION guard (series.controller.ts) — series owner,
-  // Editor, or Admin can move a Board-approved series out of PRE_PRODUCTION/PLANNING.
+  const isOwner = !!user && user.role === "mangaka" && user.id === series.authorId;
+  const isAssignedTantou = !!user && user.role === "editor" && user.id === series.editorId;
+  const canArchive = !!user && series.status !== "ARCHIVED" && (isOwner || isAssignedTantou);
+  const canUnpublish = isAssignedTantou && isPublic;
+  const canDelete = !!user && !isPublic && isOwner;
+  // Production can start only by the owner or the currently assigned Tantou.
   const canStartProduction =
     !!user &&
     ["PRE_PRODUCTION", "PLANNING"].includes(series.status) &&
-    (user.role === "admin" ||
-      user.role === "editor" ||
-      (user.role === "mangaka" && user.id === series.authorId));
+    (isOwner || isAssignedTantou);
   const busy = lifecycle.isPending || deleteSeries.isPending;
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -617,7 +612,7 @@ function QuickActionsCard({
     {
       icon: <ListPlus className="h-5 w-5" />,
       label: "Create Task",
-      onClick: () => navigate({ to: "/app/tasks" }),
+      onClick: () => setTab("chapters"),
       disabled: false,
     },
     {

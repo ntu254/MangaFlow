@@ -1,7 +1,5 @@
 import {
   mapNotificationError,
-  useArchiveAllMutation,
-  useArchiveNotificationMutation,
   useMarkAllReadMutation,
   useMarkReadMutation,
   useNotificationsQuery,
@@ -23,17 +21,15 @@ function timeAgo(iso: string) {
 export function NotificationsPage() {
   const { data: allItems = [], isLoading } = useNotificationsQuery();
   const markRead = useMarkReadMutation();
-  const archive = useArchiveNotificationMutation();
-  const [tab, setTab] = useState<"inbox" | "read" | "archived">("inbox");
+  const [tab, setTab] = useState<"inbox" | "read">("inbox");
   const [kindFilter, setKindFilter] = useState<string>("ALL");
   const [selected, setSelected] = useState<string[]>([]);
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailItem = allItems.find((item) => item.id === detailId);
 
   const items = useMemo(() => {
-    if (tab === "inbox") return allItems.filter((n) => !n.archivedAt && !n.readAt);
-    if (tab === "read") return allItems.filter((n) => !n.archivedAt && n.readAt);
-    return allItems.filter((n) => !!n.archivedAt);
+    if (tab === "inbox") return allItems.filter((n) => !n.readAt);
+    return allItems.filter((n) => !!n.readAt);
   }, [allItems, tab]);
 
   const kinds = useMemo(() => Array.from(new Set(allItems.map((n) => n.kind))).sort(), [allItems]);
@@ -43,15 +39,12 @@ export function NotificationsPage() {
     return items.filter((n) => n.kind === kindFilter);
   }, [items, kindFilter]);
 
-  const inboxCount = allItems.filter((n) => !n.archivedAt && !n.readAt).length;
-  const readCount = allItems.filter((n) => !n.archivedAt && n.readAt).length;
-  const archivedCount = allItems.filter((n) => !!n.archivedAt).length;
+  const inboxCount = allItems.filter((n) => !n.readAt).length;
+  const readCount = allItems.filter((n) => !!n.readAt).length;
 
-  const unreadIds = allItems.filter((n) => !n.archivedAt && !n.readAt).map((n) => n.id);
-  const readUnarchivedIds = allItems.filter((n) => !n.archivedAt && n.readAt).map((n) => n.id);
+  const unreadIds = allItems.filter((n) => !n.readAt).map((n) => n.id);
 
   const markAllReadMutation = useMarkAllReadMutation();
-  const archiveAllMutation = useArchiveAllMutation();
 
   const handleMarkAllRead = async () => {
     if (unreadIds.length === 0) return;
@@ -64,20 +57,6 @@ export function NotificationsPage() {
       }
     } catch {
       toast.error("Could not mark all notifications as read.");
-    }
-  };
-
-  const handleArchiveAllRead = async () => {
-    if (readUnarchivedIds.length === 0) return;
-    try {
-      const result = await archiveAllMutation.mutateAsync({ notificationIds: readUnarchivedIds });
-      if (result.errorCount > 0) {
-        toast.error(`${result.errorCount} notifications could not be archived.`);
-      } else {
-        toast.success("All read notifications archived.");
-      }
-    } catch {
-      toast.error("Could not archive all read notifications.");
     }
   };
 
@@ -95,24 +74,17 @@ export function NotificationsPage() {
       >
         <button
           onClick={handleMarkAllRead}
-          disabled={unreadIds.length === 0 || markRead.isPending}
+          disabled={unreadIds.length === 0 || markAllReadMutation.isPending}
           className="rounded border border-border bg-card px-3 py-1.5 text-xs disabled:opacity-40"
         >
           Mark all read
-        </button>
-        <button
-          onClick={handleArchiveAllRead}
-          disabled={readUnarchivedIds.length === 0 || archive.isPending}
-          className="rounded border border-border bg-card px-3 py-1.5 text-xs disabled:opacity-40"
-        >
-          Archive all read
         </button>
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-border bg-card text-xs">
-          {(["inbox", "read", "archived"] as const).map((t) => {
-            const count = t === "inbox" ? inboxCount : t === "read" ? readCount : archivedCount;
+          {(["inbox", "read"] as const).map((t) => {
+            const count = t === "inbox" ? inboxCount : readCount;
             return (
               <button
                 key={t}
@@ -158,20 +130,6 @@ export function NotificationsPage() {
             >
               Mark read
             </button>
-            <button
-              onClick={async () => {
-                const results = await Promise.allSettled(
-                  selected.map((id) => archive.mutateAsync(id)),
-                );
-                const failed = results.filter((r) => r.status === "rejected");
-                if (failed.length > 0) toast.error(`${failed.length} failed.`);
-                else toast.success("Archived.");
-                setSelected([]);
-              }}
-              className="rounded border border-border bg-card px-2 py-1 text-[11px]"
-            >
-              Archive
-            </button>
           </div>
         ) : null}
       </div>
@@ -199,7 +157,7 @@ export function NotificationsPage() {
             {filtered.map((n) => (
               <li
                 key={n.id}
-                className={`flex items-start gap-3 p-3 text-sm ${!n.readAt && !n.archivedAt ? "bg-amber-50/60" : ""}`}
+                className={`flex items-start gap-3 p-3 text-sm ${!n.readAt ? "bg-amber-50/60" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -225,7 +183,7 @@ export function NotificationsPage() {
                   >
                     Details
                   </button>
-                  {!n.readAt && !n.archivedAt ? (
+                  {!n.readAt ? (
                     <button
                       onClick={() =>
                         markRead.mutate(n.id, {
@@ -237,18 +195,6 @@ export function NotificationsPage() {
                       Read
                     </button>
                   ) : null}
-                  {n.archivedAt ? null : (
-                    <button
-                      onClick={() =>
-                        archive.mutate(n.id, {
-                          onError: (e) => toast.error(mapNotificationError(e)),
-                        })
-                      }
-                      className="rounded border border-border bg-background px-2 py-0.5 text-[10px]"
-                    >
-                      Archive
-                    </button>
-                  )}
                 </div>
               </li>
             ))}
@@ -265,13 +211,7 @@ export function NotificationsPage() {
             onError: (error) => toast.error(mapNotificationError(error)),
           })
         }
-        onArchive={(id) =>
-          archive.mutate(id, {
-            onSuccess: () => setDetailId(null),
-            onError: (error) => toast.error(mapNotificationError(error)),
-          })
-        }
-        busy={markRead.isPending || archive.isPending}
+        busy={markRead.isPending}
       />
     </div>
   );

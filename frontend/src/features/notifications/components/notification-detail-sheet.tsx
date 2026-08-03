@@ -1,4 +1,4 @@
-import { Archive, ArrowUpRight, Bell, Check } from "lucide-react";
+import { ArrowUpRight, Bell, Check } from "lucide-react";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatDateTime } from "@/shared/lib/format-date";
 import type { NotificationRecord } from "../api/notifications-queries";
@@ -9,14 +9,12 @@ export function NotificationDetailSheet({
   open,
   onOpenChange,
   onMarkRead,
-  onArchive,
   busy = false,
 }: {
   notification?: NotificationRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMarkRead?: (id: string) => void;
-  onArchive?: (id: string) => void;
   busy?: boolean;
 }) {
   const actionUrl = getSafeNotificationActionUrl(notification?.actionUrl ?? notification?.link);
@@ -49,12 +47,7 @@ export function NotificationDetailSheet({
 
             <dl className="mt-6 grid grid-cols-2 gap-3">
               <Detail label="Priority" value={notification.priority ?? "NORMAL"} />
-              <Detail
-                label="Status"
-                value={
-                  notification.archivedAt ? "Archived" : notification.readAt ? "Read" : "Unread"
-                }
-              />
+              <Detail label="Status" value={notification.readAt ? "Read" : "Unread"} />
               <Detail label="Sender" value={notification.createdByName ?? "MangaFlow system"} />
               <Detail
                 label="Audience"
@@ -84,7 +77,7 @@ export function NotificationDetailSheet({
         ) : null}
 
         <SheetFooter className="border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
-          {notification && !notification.readAt && !notification.archivedAt && onMarkRead ? (
+          {notification && !notification.readAt && onMarkRead ? (
             <button
               type="button"
               onClick={() => onMarkRead(notification.id)}
@@ -92,16 +85,6 @@ export function NotificationDetailSheet({
               className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-semibold hover:bg-muted disabled:opacity-50"
             >
               <Check className="size-3.5" /> Mark as read
-            </button>
-          ) : null}
-          {notification && !notification.archivedAt && onArchive ? (
-            <button
-              type="button"
-              onClick={() => onArchive(notification.id)}
-              disabled={busy}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-semibold hover:bg-muted disabled:opacity-50"
-            >
-              <Archive className="size-3.5" /> Archive
             </button>
           ) : null}
         </SheetFooter>

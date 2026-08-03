@@ -95,6 +95,8 @@ export type StudioTaskStatus =
   | "REJECTED"
   | "CANCELLED";
 
+export type TaskAssignmentStatus = "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";
+
 export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
   TODO: "bg-zinc-200 text-zinc-800 border-zinc-300",
   IN_PROGRESS: "bg-amber-100 text-amber-900 border-amber-300",
@@ -116,7 +118,9 @@ export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
  * which is where the real approval flow ends today) still counts as active.
  */
 export function isTaskActive(status: StudioTaskStatus): boolean {
-  return status !== "REJECTED" && status !== "CANCELLED";
+  return !["REJECTED", "CANCELLED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "COMPLETED"].includes(
+    status,
+  );
 }
 
 export type StudioTask = {
@@ -124,11 +128,16 @@ export type StudioTask = {
   seriesId?: string;
   chapterId: string;
   pageId: string;
+  targetScope?: "PAGE" | "REGION";
+  pageTaskActive?: boolean;
   regionId?: string;
   title: string;
   type: RegionType;
   assigneeId: string;
   assigneeName: string;
+  assignmentStatus?: TaskAssignmentStatus;
+  assignmentRejectedReason?: string;
+  assignmentRejectedAt?: string;
   dueAt: string;
   priority: "low" | "normal" | "high";
   instructions: string;
@@ -141,12 +150,12 @@ export type StudioTask = {
   createdAt: string;
   hidden?: boolean;
   locked?: boolean;
-  blocked?: boolean;
-  blockedReason?: string;
-  blockedBy?: string;
   waitingFor?: string;
   reassigned?: boolean;
+  reassignedFromId?: string;
   reassignedFromName?: string;
+  reassignedToId?: string;
+  reassignedToName?: string;
   reassignedAt?: string;
   reassignmentReason?: string;
   cancelled?: boolean;

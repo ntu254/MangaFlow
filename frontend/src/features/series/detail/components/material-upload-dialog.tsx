@@ -164,7 +164,7 @@ export function MaterialUploadDialog({
             note: undefined,
           },
         });
-        toast.success("Material added.");
+        toast.success("Supporting attachment added.");
       }
       onOpenChange(false);
     } catch (e) {
@@ -187,12 +187,14 @@ export function MaterialUploadDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {replaceTarget ? `Upload new version — ${replaceTarget.title}` : "Upload Material"}
+            {replaceTarget
+              ? `Upload new version — ${replaceTarget.title}`
+              : "Add supporting attachment"}
           </DialogTitle>
           <DialogDescription>
             {replaceTarget
               ? `Current version: v${replaceTarget.currentVersion}. New file will become v${replaceTarget.currentVersion + 1}.`
-              : "Resources used throughout series production."}
+              : "Optional references that support series or chapter production."}
           </DialogDescription>
         </DialogHeader>
 

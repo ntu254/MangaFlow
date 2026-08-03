@@ -68,13 +68,12 @@ export function EditorDashboard() {
   }, [allItems, submissionItems, myChapters, comments]);
 
   const myNotifs = useMemo(
-    () => (user ? notifItems.filter((n) => n.userId === user.id && !n.archivedAt).slice(0, 6) : []),
+    () => (user ? notifItems.filter((n) => n.userId === user.id).slice(0, 6) : []),
     [notifItems, user],
   );
 
   const myUnreadNotifs = useMemo(
-    () =>
-      user ? notifItems.filter((n) => n.userId === user.id && !n.archivedAt && !n.readAt) : [],
+    () => (user ? notifItems.filter((n) => n.userId === user.id && !n.readAt) : []),
     [notifItems, user],
   );
 
