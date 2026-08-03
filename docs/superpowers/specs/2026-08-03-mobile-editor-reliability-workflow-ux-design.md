@@ -4,8 +4,8 @@
 
 Make the approved mobile Editor workflow dependable and explainable: diagnose
 inbox failures without exposing internal payloads, make the six-item editorial
-checklist explicit, and distinguish Editor activity from Board governance
-history.
+checklist explicit, distinguish Editor activity from Board governance history,
+and make notifications a real fifth navigation tab for both roles.
 
 ## Scope
 
@@ -21,6 +21,8 @@ history.
   checklist is complete (6/6). The backend remains the authoritative guard.
 - Give Editor history and Board history distinct role-specific presentation
   models and visual language without changing either existing read endpoint.
+- Replace the decorative header notification bell with a fifth bottom tab for
+  authenticated Editor and Board notifications.
 
 ## Non-goals
 
@@ -29,6 +31,7 @@ history.
 - No demo fallback after a live inbox failure.
 - No exposure of response payloads, bearer tokens, or stack traces in support
   diagnostics.
+- No automatic navigation through notification action URLs in this scope.
 
 ## Queue reliability and diagnostics
 
@@ -91,6 +94,26 @@ mapper functions, labels, icons, metrics, and empty states. Editor summary data
 and Board decision-history data are never mapped through one shared business
 activity model.
 
+## Notifications tab
+
+Both Editor and Board bottom navigation gains **Notifications** as its fifth
+tab, positioned after History. The existing decorative bell and hard-coded
+header count are removed; the header retains only identity and account controls.
+
+The tab reads the authenticated `GET /notifications` endpoint and renders the
+notification title, message, kind, priority, time, and read/unread state. The
+bottom-tab bell shows the server-derived unread count. It refreshes with the
+tab and pull-to-refresh state; a notification list has explicit loading, empty,
+and recoverable error surfaces.
+
+Tapping an unread notification sends `POST /notifications/:id/read`. On
+success, React Query updates or invalidates the notification list and unread
+badge. On failure, the notification remains unread and the user receives a
+retryable error. Entering the tab alone never marks all notifications read.
+`actionUrl` is displayed neither as a deep link nor as a navigation command in
+this scope, because mobile has no approved destination contract for every
+notification kind.
+
 ## Testing and verification
 
 - Unit-test normalized inbox diagnostics for HTTP, network, and Zod-contract
@@ -103,6 +126,9 @@ activity model.
 - Test the server rejection remains visible if a stale client attempts Forward.
 - Test Editor and Board history mappers/screens independently, including their
   empty states and Board re-vote lineage.
+- Test both role tab sets contain Notifications as the fifth entry, the header
+  has no decorative bell, unread badge derivation, read mutation success and
+  failure, and notification loading/empty/error states.
 - Run mobile tests, TypeScript lint, Expo web build, and `git diff --check`.
 
 ## Acceptance criteria
@@ -114,3 +140,6 @@ activity model.
    checklist is 6/6, and the backend still rejects incomplete/stale attempts.
 4. Editor and Board History visibly communicate different business purposes and
    consume separate role-specific presentation models.
+5. Editor and Board can read and explicitly mark their own notifications from
+   the fifth bottom tab; unread badge counts come from live notification data,
+   not a hard-coded header value.
