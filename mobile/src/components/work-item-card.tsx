@@ -39,16 +39,27 @@ export function WorkItemCard({
   item: MobileWorkItem
   onSelect: (item: MobileWorkItem) => void
 }) {
+  if (item.kind === "PUBLICATION" && !item.chapterContext) {
+    throw new Error("Publication work item is missing chapter context.")
+  }
+
+  const publicationContext = item.kind === "PUBLICATION" ? item.chapterContext : undefined
   const badges = [
     { key: "status", label: item.status },
     ...item.blockers.slice(0, 1).map((blocker) => ({ key: blocker.code, label: blocker.label })),
   ].slice(0, 2)
-  const eyebrow = `${WORK_TYPE_LABEL[item.kind]} · ${normalizedObjectName(item)}`
+  const eyebrow = publicationContext
+    ? `Publication · Chapter ${publicationContext.chapterNumber}`
+    : `${WORK_TYPE_LABEL[item.kind]} · ${normalizedObjectName(item)}`
+  const title = publicationContext?.seriesTitle ?? item.title
+  const subtitle = publicationContext
+    ? `${publicationContext.chapterTitle} · ${item.subtitle}`
+    : item.subtitle
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open ${item.title}, ${item.status}, ${item.priority.reason}`}
+      accessibilityLabel={`Open ${title}, ${item.status}, ${item.priority.reason}`}
       onPress={() => onSelect(item)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -60,10 +71,10 @@ export function WorkItemCard({
         {eyebrow}
       </Text>
       <Text style={styles.title} numberOfLines={2}>
-        {item.title}
+        {title}
       </Text>
       <Text style={styles.subtitle} numberOfLines={1}>
-        {item.subtitle}
+        {subtitle}
       </Text>
       <View style={styles.badgeRow}>
         {badges.map((badge) => (

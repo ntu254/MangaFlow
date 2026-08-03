@@ -58,20 +58,37 @@ describe("Queue-first Today surfaces", () => {
   })
 
   it("makes publication work explicit with a normalized chapter context", () => {
-    const publication = {
-      ...urgentProposalFixture,
-      id: "PUBLICATION:c-012",
-      kind: "PUBLICATION" as const,
-      entityType: "CHAPTER" as const,
-      title: "Chapter 12",
-      subtitle: "Neon District",
+    const publication: MobileWorkItem = {
+      id: "PUBLICATION:ch-s-berserk-prod-4",
+      kind: "PUBLICATION",
+      entityType: "CHAPTER",
+      entityId: "ch-s-berserk-prod-4",
+      title: "Echoes",
+      subtitle: "Scheduled",
+      status: "SCHEDULED",
+      version: null,
+      priority: { level: "NORMAL", reason: "Publication decision", dueAt: null },
+      blockers: [],
+      actions: [
+        { action: "SCHEDULE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+        { action: "POSTPONE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+        { action: "PUBLISH", enabled: false, disabledReason: "Publication is scheduled for a future date; postpone first to publish now.", requiresConfirmation: true, requiresReason: false },
+      ],
+      summary: { scheduledAt: "2026-08-07T09:00:00.000Z" },
+      chapterContext: {
+        seriesId: "s-berserk-prod",
+        seriesTitle: "Berserk: Lost Chapters",
+        chapterId: "ch-s-berserk-prod-4",
+        chapterNumber: 4,
+        chapterTitle: "Echoes",
+      },
     }
 
     render(<WorkItemCard item={publication} onSelect={jest.fn()} />)
 
-    expect(screen.getByText("Publication · Chapter 12")).toBeVisible()
-    expect(screen.getByText("Chapter 12")).toBeVisible()
-    expect(screen.getByText("Neon District")).toBeVisible()
+    expect(screen.getByText("Publication · Chapter 4")).toBeVisible()
+    expect(screen.getByText("Berserk: Lost Chapters")).toBeVisible()
+    expect(screen.getByText("Echoes · Scheduled")).toBeVisible()
   })
 
   it("keeps publication actions compact, accessible, and single-line", () => {

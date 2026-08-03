@@ -242,7 +242,7 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
     entityType: "CHAPTER",
     entityId: String(chapter.id),
     status: String(status),
-    version: typeof chapter.number === "number" ? chapter.number : null,
+    version: null,
     title: chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`,
     subtitle: status === "SCHEDULED" ? "Scheduled" : "Ready to schedule",
     priority: { level: "NORMAL", reason: "Publication decision", dueAt: null },
@@ -252,6 +252,13 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
       scheduledAt: (publication as any)?.scheduledAt
         ? new Date((publication as any).scheduledAt).toISOString()
         : null,
+    },
+    chapterContext: {
+      seriesId: String(chapter.seriesId),
+      seriesTitle: String((series as any).title),
+      chapterId: String(chapter.id),
+      chapterNumber: Number(chapter.number),
+      chapterTitle: String(chapter.title),
     },
   };
 }

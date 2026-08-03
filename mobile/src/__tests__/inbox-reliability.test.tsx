@@ -40,6 +40,13 @@ const editorInbox: MobileInbox = {
       entityType: "CHAPTER",
       entityId: "c-002",
       title: "Publication item",
+      chapterContext: {
+        seriesId: "s-002",
+        seriesTitle: "Neon District",
+        chapterId: "c-002",
+        chapterNumber: 2,
+        chapterTitle: "Publication item",
+      },
     }),
   ],
 }
@@ -126,7 +133,7 @@ describe("Editor tabs as filters over one inbox", () => {
 
     expect(screen.getByText("Proposal item")).toBeVisible()
     expect(screen.queryByText("Chapter item")).toBeNull()
-    expect(screen.getByText("Publication item")).toBeVisible()
+    expect(screen.getByText("Publication · Chapter 2")).toBeVisible()
   })
 
   it("filters Reviews to proposal and chapter review work", () => {
@@ -134,14 +141,14 @@ describe("Editor tabs as filters over one inbox", () => {
 
     expect(screen.getByText("Proposal item")).toBeVisible()
     expect(screen.getByText("Chapter item")).toBeVisible()
-    expect(screen.queryByText("Publication item")).toBeNull()
+    expect(screen.queryByText("Publication · Chapter 2")).toBeNull()
   })
 
   it("filters Publish to publication work without a second request", () => {
     const refetch = jest.fn()
     render(<EditorWorkspace tab="publish" inbox={inboxQuery({ data: editorInbox, refetch })} />)
 
-    expect(screen.getByText("Publication item")).toBeVisible()
+    expect(screen.getByText("Publication · Chapter 2")).toBeVisible()
     expect(screen.queryByText("Proposal item")).toBeNull()
     expect(screen.queryByText("Chapter item")).toBeNull()
     // Tabs are client-side filters over the one authenticated inbox read.
