@@ -1,11 +1,12 @@
 import { Image } from "expo-image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { MFIcon } from "@/design/icons";
 import { colors, radius, spacing } from "@/design/tokens";
 import { REFRESH_SKEW_MS, shouldRefreshLease, type FileUrlLease, type ReviewFile } from "@/domain/review-files";
+import { pdfPreviewHtml } from "@/components/pdf-preview-html";
 import { openReviewFile } from "@/services/mobile-file-review";
 import { MobileApiError } from "@/services/mobile-api-error";
 
@@ -129,6 +130,11 @@ export function ReviewFileViewer({
   }, [acquireUrl, file, lease, refreshAfterFailure]);
 
   const sourceUrl = lease?.url;
+  const pdfSource = sourceUrl && Platform.OS === "android"
+    ? { html: pdfPreviewHtml(sourceUrl) }
+    : sourceUrl
+      ? { uri: sourceUrl }
+      : undefined;
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={clearAndClose}>
       <View style={styles.screen}>
@@ -158,7 +164,20 @@ export function ReviewFileViewer({
           <Image source={{ uri: sourceUrl }} contentFit="contain" style={styles.preview} onError={refreshAfterFailure} accessibilityLabel={`Preview of ${file.name}`} />
         ) : null}
         {status === "ready" && sourceUrl && file?.previewKind === "pdf" ? (
-          <WebView key={sourceUrl} source={{ uri: sourceUrl }} style={styles.preview} onError={refreshAfterFailure} onHttpError={refreshAfterFailure} />
+          <WebView
+            key={sourceUrl}
+            testID="pdf-file-preview"
+            source={pdfSource}
+            style={styles.preview}
+            originWhitelist={["*"]}
+            cacheEnabled={false}
+            incognito
+            onError={refreshAfterFailure}
+            onHttpError={refreshAfterFailure}
+            onMessage={(event) => {
+              if (event.nativeEvent.data === "pdf-preview-error") refreshAfterFailure();
+            }}
+          />
         ) : null}
         {status === "ready" && sourceUrl && file?.previewKind === "external" ? (
           <View style={styles.external}>

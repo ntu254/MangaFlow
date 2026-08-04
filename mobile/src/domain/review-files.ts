@@ -21,13 +21,12 @@ export interface FileUrlLease {
 export const DEFAULT_LEASE_MS = 8 * 60 * 1000;
 export const REFRESH_SKEW_MS = 30 * 1000;
 
-// iOS renders PDF inline through WKWebView. Android's WebView has no built-in
-// PDF renderer, and react-native-webview has no web implementation, so both
-// route to the external hand-off instead of an empty preview.
+// iOS renders PDF inline through WKWebView. Android uses the PDF.js WebView
+// viewer, while web has no react-native-webview implementation.
 export function derivePreviewKind(mimeType: string, platform: ReviewPreviewPlatform): ReviewPreviewKind {
   const normalizedMimeType = mimeType.trim().toLowerCase();
   if (normalizedMimeType.startsWith("image/")) return "image";
-  if (normalizedMimeType === "application/pdf") return platform === "ios" ? "pdf" : "external";
+  if (normalizedMimeType === "application/pdf") return platform === "ios" || platform === "android" ? "pdf" : "external";
   return "external";
 }
 
