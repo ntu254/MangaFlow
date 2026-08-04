@@ -113,16 +113,28 @@ export function BoardSessionDetailScreen({
         },
       );
     } else {
-      cancel.mutate(undefined, {
-        onError: handleMutationError,
-        onSuccess: () => {
-          setSuccessMessage(
-            "Session cancelled. The proposal returned to the Board queue.",
-          );
-          setPendingChair(null);
-          setSheetError(null);
+      if (!versionReady) {
+        setSheetError(
+          "Session version is unavailable. Refresh before cancelling.",
+        );
+        return;
+      }
+      cancel.mutate(
+        {
+          expectedVersion: data.session.version as number,
+          note: note || undefined,
         },
-      });
+        {
+          onError: handleMutationError,
+          onSuccess: () => {
+            setSuccessMessage(
+              "Session cancelled. The proposal returned to the Board queue.",
+            );
+            setPendingChair(null);
+            setSheetError(null);
+          },
+        },
+      );
     }
   };
 
