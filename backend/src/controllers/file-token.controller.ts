@@ -13,6 +13,7 @@ function contentTypeFor(key: string, fallback?: string) {
   if (ext === ".png") return "image/png";
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   if (ext === ".webp") return "image/webp";
+  if (ext === ".pdf") return "application/pdf";
   return "application/octet-stream";
 }
 

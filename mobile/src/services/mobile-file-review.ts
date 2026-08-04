@@ -1,3 +1,4 @@
+import { Platform } from "react-native"
 import {
   DEFAULT_LEASE_MS,
   derivePreviewKind,
@@ -28,7 +29,7 @@ export async function getReviewFiles(
 
   return files.map((file) => ({
     ...file,
-    previewKind: derivePreviewKind(file.mimeType),
+    previewKind: derivePreviewKind(file.mimeType, Platform.OS),
   }))
 }
 
