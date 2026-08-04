@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native"
+import { ScrollView, Text } from "react-native"
 import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-screen"
 import { TestQueryProvider } from "@/test/test-query-provider"
 import { MobileApiError } from "@/services/mobile-api-error"
@@ -78,6 +79,22 @@ function renderScreen(detail: EditorProposalDetail = forwardReadyFixture) {
 
 describe("EditorProposalDetailScreen", () => {
   afterEach(() => jest.clearAllMocks())
+
+  it("renders submitted files before Forward to Board in the detail scroll content", async () => {
+    renderScreen()
+
+    await screen.findByRole("button", { name: "Forward to Board" })
+    const scrollContent = screen.UNSAFE_getByType(ScrollView)
+    const textInScroll = scrollContent
+      .findAllByType(Text)
+      .map((node) => node.props.children)
+      .filter((children): children is string => typeof children === "string")
+
+    expect(textInScroll.indexOf("Submitted files")).toBeGreaterThanOrEqual(0)
+    expect(textInScroll.indexOf("Forward to Board")).toBeGreaterThan(
+      textInScroll.indexOf("Submitted files"),
+    )
+  })
 
   it("shows Board-awaiting state instead of stale editor actions", async () => {
     renderScreen({

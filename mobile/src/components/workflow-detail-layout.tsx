@@ -2,18 +2,18 @@ import type { ReactNode } from "react"
 import { ScrollView, StyleSheet, Text, View } from "react-native"
 import { colors, spacing, typography } from "@/design/tokens"
 
-// Shared detail scaffold: a scrollable body with a header, and a sticky action
-// bar pinned to the bottom.
+// Shared detail scaffold: a scrollable body with a header and optional actions
+// following the detail content.
 export function WorkflowDetailLayout({
   title,
   subtitle,
   children,
-  actionBar,
+  actions,
 }: {
   title: string
   subtitle?: string
   children: ReactNode
-  actionBar?: ReactNode
+  actions?: ReactNode
 }) {
   return (
     <View style={styles.root}>
@@ -23,8 +23,8 @@ export function WorkflowDetailLayout({
         </Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         {children}
+        {actions}
       </ScrollView>
-      {actionBar}
     </View>
   )
 }

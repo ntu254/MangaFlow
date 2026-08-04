@@ -166,7 +166,7 @@ export function EditorProposalDetailScreen({
       <WorkflowDetailLayout
         title={data.proposal.title}
         subtitle={`${data.proposal.status} · ${data.proposal.requestedPublicationType}`}
-        actionBar={<WorkflowActionBar actions={visibleActions} onAction={onAction} busyAction={busyAction} />}
+        actions={<WorkflowActionBar actions={visibleActions} onAction={onAction} busyAction={busyAction} />}
       >
         {readOnlyStatus ? (
           <WorkflowState
