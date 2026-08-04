@@ -45,6 +45,7 @@ export function BoardSessionDetailScreen({
     return (
       <WorkflowState
         kind="error"
+        context="this voting session"
         error={detail.error as Error}
         onRetry={() => void detail.refetch()}
       />

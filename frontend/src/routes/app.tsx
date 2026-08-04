@@ -1,4 +1,4 @@
-import { useNotificationsQuery } from "@/features/notifications";
+import { useNotificationsUnreadCount } from "@/features/notifications";
 import { getPersistedAuthUser, isBoardChair, ROLE_LABEL, useAuth } from "@/shared/auth";
 import { NAV_BY_ROLE } from "@/shared/config/navigation";
 import {
@@ -49,9 +49,9 @@ function AppLayout() {
   const logout = useAuth((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: notifItems = [] } = useNotificationsQuery();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const unread = notifItems.filter((n) => !n.readAt).length;
+  // Server-derived count, so the badge stays right past the first loaded page.
+  const unread = useNotificationsUnreadCount();
 
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 1024px)");

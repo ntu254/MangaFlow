@@ -237,6 +237,7 @@ export { bootstrapApi, proposalsApi, seriesApi } from "./workflow";
 export { studioApi, assistantApi, materialsApi } from "./production";
 export { boardApi } from "./governance";
 export { adminApi, assistantEarningsApi, notificationsApi } from "./account";
+export type { NotificationListResponse } from "./account";
 export { rateTableApi } from "./rate-table";
 export type {
   CreateRateTableRequest,

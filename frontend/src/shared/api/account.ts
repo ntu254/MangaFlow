@@ -44,7 +44,29 @@ export const assistantEarningsApi = {
   list: () => apiRequest("/assistant/earnings"),
 };
 
+/**
+ * Envelope returned by `GET /notifications`. The item type stays generic so this
+ * shared module does not have to reach into the feature layer for the record shape.
+ */
+export type NotificationListResponse<T> = {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  unreadTotal: number;
+};
+
 export const notificationsApi = {
-  list: () => apiRequest("/notifications"),
+  list: <T>(filters?: { page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.page) params.set("page", String(filters.page));
+    if (filters?.limit) params.set("limit", String(filters.limit));
+    const qs = params.toString();
+    return apiRequest<NotificationListResponse<T>>(`/notifications${qs ? `?${qs}` : ""}`);
+  },
   read: (id: string) => apiRequest(`/notifications/${id}/read`, { method: "POST", body: {} }),
 };

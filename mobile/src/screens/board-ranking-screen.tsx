@@ -38,6 +38,7 @@ export function BoardRankingScreen({
     return (
       <WorkflowState
         kind="error"
+        context="the ranking snapshot"
         error={rankings.error}
         onRetry={() => void rankings.refetch()}
       />

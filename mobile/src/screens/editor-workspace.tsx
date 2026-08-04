@@ -44,22 +44,16 @@ export function EditorWorkspace({
     ) : <EditorHistoryScreen />
   }
 
-  const filter = (item: MobileWorkItem): boolean => {
-    if (tab === "reviews") return item.kind === "PROPOSAL_REVIEW" || item.kind === "CHAPTER_REVIEW"
-    if (tab === "publish") return item.kind === "PUBLICATION"
-    return true // today: everything
-  }
-
   const filteredInbox: MobileInbox | undefined = inbox.data
-    ? { ...inbox.data, items: inbox.data.items.filter(filter) }
+    ? { ...inbox.data, items: filterEditorInbox(tab, inbox.data.items) }
     : undefined
 
   const emptyByTab: Record<string, { title: string; description: string }> = {
-    today: { title: "No decisions need your attention.", description: "New work will appear here." },
+    priority: { title: "No priority work right now.", description: "Review your full workspaces for planned tasks." },
     reviews: { title: "No reviews right now.", description: "Proposals and chapters to review appear here." },
     publish: { title: "Nothing to publish.", description: "Chapters ready to schedule or publish appear here." },
   }
-  const empty = emptyByTab[tab] ?? emptyByTab.today
+  const empty = emptyByTab[tab] ?? emptyByTab.priority
 
   return (
     <TodayQueue
@@ -72,8 +66,16 @@ export function EditorWorkspace({
       onSelect={setSelected}
       emptyTitle={empty.title}
       emptyDescription={empty.description}
+      context="Editor work"
     />
   )
+}
+
+export function filterEditorInbox(tab: string, items: MobileWorkItem[]): MobileWorkItem[] {
+  if (tab === "priority") return items.filter((item) => item.priority.level === "URGENT" || item.priority.level === "HIGH")
+  if (tab === "reviews") return items.filter((item) => item.kind === "PROPOSAL_REVIEW" || item.kind === "CHAPTER_REVIEW" || item.kind === "COMMENT_REVIEW")
+  if (tab === "publish") return items.filter((item) => item.kind === "PUBLICATION")
+  return []
 }
 
 function EditorDetail({ item, onBack }: { item: MobileWorkItem; onBack: () => void }) {

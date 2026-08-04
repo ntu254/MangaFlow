@@ -8,6 +8,28 @@ const PRIORITY_COLOR: Record<MobileWorkItem["priority"]["level"], string> = {
   NORMAL: colors.outline,
 }
 
+const WORK_TYPE_LABEL: Record<MobileWorkItem["kind"], string> = {
+  PROPOSAL_REVIEW: "Proposal review",
+  CHAPTER_REVIEW: "Chapter review",
+  COMMENT_REVIEW: "Comment review",
+  PUBLICATION: "Publication",
+  BOARD_VOTE: "Board vote",
+  SESSION_FINALIZE: "Session finalization",
+  BOARD_REVOTE: "Board revote",
+  AT_RISK: "At risk",
+}
+
+function normalizedObjectName(item: MobileWorkItem) {
+  const objectType = item.entityType
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+  const title = item.title.trim()
+
+  return title.toLowerCase().startsWith(objectType.toLowerCase()) ? title : `${objectType} ${title}`
+}
+
 // Read-only queue card. Consequential actions live on the detail surface, never
 // here, so a card only opens its item. Shows at most two status/blocker badges.
 export function WorkItemCard({
@@ -17,15 +39,27 @@ export function WorkItemCard({
   item: MobileWorkItem
   onSelect: (item: MobileWorkItem) => void
 }) {
+  if (item.kind === "PUBLICATION" && !item.chapterContext) {
+    throw new Error("Publication work item is missing chapter context.")
+  }
+
+  const publicationContext = item.kind === "PUBLICATION" ? item.chapterContext : undefined
   const badges = [
     { key: "status", label: item.status },
     ...item.blockers.slice(0, 1).map((blocker) => ({ key: blocker.code, label: blocker.label })),
   ].slice(0, 2)
+  const eyebrow = publicationContext
+    ? `Publication · Chapter ${publicationContext.chapterNumber}`
+    : `${WORK_TYPE_LABEL[item.kind]} · ${normalizedObjectName(item)}`
+  const title = publicationContext?.seriesTitle ?? item.title
+  const subtitle = publicationContext
+    ? `${publicationContext.chapterTitle} · ${item.subtitle}`
+    : item.subtitle
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open ${item.title}, ${item.status}, ${item.priority.reason}`}
+      accessibilityLabel={`Open ${title}, ${item.status}, ${item.priority.reason}`}
       onPress={() => onSelect(item)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -33,11 +67,14 @@ export function WorkItemCard({
         <View style={[styles.priorityDot, { backgroundColor: PRIORITY_COLOR[item.priority.level] }]} />
         <Text style={styles.reason}>{item.priority.reason}</Text>
       </View>
+      <Text style={styles.eyebrow} numberOfLines={1}>
+        {eyebrow}
+      </Text>
       <Text style={styles.title} numberOfLines={2}>
-        {item.title}
+        {title}
       </Text>
       <Text style={styles.subtitle} numberOfLines={1}>
-        {item.subtitle}
+        {subtitle}
       </Text>
       <View style={styles.badgeRow}>
         {badges.map((badge) => (
@@ -64,6 +101,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   priorityDot: { width: 8, height: 8, borderRadius: radius.full },
   reason: { fontSize: typography.label, color: colors.textMuted, fontWeight: "600" },
+  eyebrow: { fontSize: typography.label, color: colors.textMuted, fontWeight: "700" },
   title: { fontSize: typography.title, color: colors.text, fontWeight: "700" },
   subtitle: { fontSize: typography.body, color: colors.textMuted },
   badgeRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs, flexWrap: "wrap" },
