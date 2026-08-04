@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth, findUserById } from "@/shared/auth";
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
+import { isTaskActive, type StudioTask } from "@/entities/series/model/studio-types";
 import { StatCard } from "@/shared/ui/stat-card";
 import {
   useSeriesMembersQuery,
@@ -24,6 +25,7 @@ import {
   useTantouEditorQuery,
   useAssignEditorMutation,
   useRemoveEditorMutation,
+  useStudioTasksQuery,
   mapApiError,
   type DbMember,
   type TantouEditor,
@@ -53,6 +55,7 @@ type MemberRow = {
   presence: Presence;
   joined: string;
   load: number; // 0..100
+  hasProductionTasks?: boolean;
 };
 
 function hash(s: string): number {
@@ -206,6 +209,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
 
   const { data: dbMembers = [] } = useSeriesMembersQuery(series.id);
   const { data: tantouEditor } = useTantouEditorQuery(series.id);
+  const { data: seriesTasks = [] } = useStudioTasksQuery({ seriesId: series.id });
   const isAssignedTantou =
     !!user &&
     user.role === "editor" &&
@@ -262,6 +266,11 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   const members: MemberRow[] = useMemo(() => {
     const editor = editorOf(series, tantouEditor);
     const list: MemberRow[] = [ownerOf(series), ...(editor ? [editor] : [])];
+    const busyIds = new Set(
+      seriesTasks
+        .filter((t: StudioTask) => t.assigneeId && isTaskActive(t.status))
+        .map((t: StudioTask) => t.assigneeId),
+    );
     dbMembers.forEach((dbM: DbMember) => {
       if (dbM.role === "editor" || dbM.status !== "active") return;
       const u = findUserById(dbM.userId);
@@ -270,9 +279,15 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
       const email = dbM.userEmail ?? u?.email ?? "—";
 
       const mappedScope: Scope =
-        dbM.scope === "Full chapter" || dbM.scope === "full_series" || dbM.scope === "FULL_SERIES"
+        dbM.accessScope === "FULL_SERIES" ||
+        dbM.scope === "Full chapter" ||
+        dbM.scope === "full_series" ||
+        dbM.scope === "FULL_SERIES"
           ? "FULL SERIES"
-          : dbM.scope === "Task only" || dbM.scope === "TASK_ONLY" || dbM.scope === "TASK ONLY"
+          : dbM.accessScope === "TASK_ONLY" ||
+            dbM.scope === "Task only" ||
+            dbM.scope === "TASK_ONLY" ||
+            dbM.scope === "TASK ONLY"
             ? "TASK ONLY"
             : "READ ONLY";
 
@@ -287,11 +302,12 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         avatar: u?.avatar,
         kind,
         scope: mappedScope,
+        hasProductionTasks: busyIds.has(dbM.userId),
         ...m,
       });
     });
     return list;
-  }, [series, dbMembers, tantouEditor]);
+  }, [series, dbMembers, tantouEditor, seriesTasks]);
 
   const assistantsList = members.filter((m) => m.kind === "ASSISTANT");
   const taskOnlyList = members.filter((m) => m.kind === "TASK-ONLY");
@@ -902,9 +918,15 @@ function MemberDetail({
         {canEdit ? (
           <button
             onClick={onRemove}
-            className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md border border-rose-300 bg-background px-2 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50"
+            disabled={member.hasProductionTasks}
+            title={
+              member.hasProductionTasks
+                ? "Deactivate this assistant after their production tasks are done."
+                : undefined
+            }
+            className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md border border-rose-300 bg-background px-2 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-background"
           >
-            <Ban className="size-3" /> Deactivate
+            <Ban className="size-3.5" /> Deactivate
           </button>
         ) : null}
       </div>

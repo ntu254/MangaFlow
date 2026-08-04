@@ -19,7 +19,8 @@ export function VoteTally({
   tally?: BoardTallySnapshot;
   eligible?: number;
 }) {
-  const tally = serverTally ?? evaluateBoardTally(votes, quorum);
+  const safeVotes = votes ?? [];
+  const tally = serverTally ?? evaluateBoardTally(safeVotes, quorum);
   const approve = tally.approve;
   const reject = tally.reject;
   return (
@@ -31,9 +32,9 @@ export function VoteTally({
         <Tally label="Approve" count={approve} tone="emerald" />
         <Tally label="Reject" count={reject} tone="rose" />
       </div>
-      {votes.length > 0 ? (
+      {safeVotes.length > 0 ? (
         <ul className="mt-4 space-y-1.5 text-xs">
-          {votes.map((v) => (
+          {safeVotes.map((v) => (
             <li
               key={v.voterId}
               className="flex items-center justify-between gap-2 border-t border-border/60 pt-1.5"

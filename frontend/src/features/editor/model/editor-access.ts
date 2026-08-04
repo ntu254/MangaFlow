@@ -214,6 +214,10 @@ export function seriesForEditor(series: ProductionSeries[], editorId: string): P
 }
 
 export function buildSubmissionReviewItems(submissions: AssistantSubmission[]): ReviewItem[] {
+  // Sprint 1.3 — submissions remain eligible for editor review after
+  // the Mangaka signs off. The task itself is the entity that walks
+  // MANGAKA_APPROVED → EDITOR_APPROVED → COMPLETED; the submission row
+  // stays at `MANGAKA_APPROVED` until the editor decides it.
   return submissions
     .filter((s) => s.status === "MANGAKA_APPROVED")
     .map((s) => {

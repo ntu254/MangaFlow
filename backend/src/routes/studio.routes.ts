@@ -56,7 +56,7 @@ router.get("/tasks/:taskId", getTaskDetail);
 router.get("/studio/tasks/:taskId", getTaskDetailAlias);
 router.post(
   "/studio/tasks/:taskId/actions/:action",
-  requireExactRole("MANGAKA", "ASSISTANT") as any,
+  requireExactRole("MANGAKA", "ASSISTANT", "EDITOR") as any,
   taskAction,
 );
 

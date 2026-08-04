@@ -35,6 +35,7 @@ import {
   REGION_STATUS_BADGE,
   REGION_TYPE_LABEL,
   TASK_STATUS_BADGE,
+  isTaskActive,
 } from "@/entities/series/model/studio-types";
 import { useCreateSubmissionMutation, useTaskSubmissionsQuery } from "../../../api/series-queries";
 import { MaterialDownloadLink } from "../material-file-controls";
@@ -52,6 +53,7 @@ type Props = {
   comments: StudioComment[];
   onCreateTask: () => void;
   onUploadPages: () => void;
+  onSelectTask?: (taskId: string) => void;
   onAddComment: (text: string, blocking: boolean) => boolean | Promise<boolean>;
   onReplyComment: (parent: StudioComment, body: string) => boolean | Promise<boolean>;
   onDiscardRegion: (id: string) => void;
@@ -456,6 +458,7 @@ function InspectorBody({
   tasks,
   comments,
   onCreateTask,
+  onSelectTask,
   onAddComment,
   onDiscardRegion,
   onSetCommentStatus,
@@ -577,7 +580,6 @@ function InspectorBody({
             value={<Pill className={REGION_STATUS_BADGE[region.status]}>{region.status}</Pill>}
           />
           <Field label="Comments Count" value={regionComments.length} />
-          <Field label="Page Tasks" value={pageTasks.length} />
           <Field
             label="Page Assignment"
             value={
@@ -596,6 +598,32 @@ function InspectorBody({
               )
             }
           />
+        </div>
+
+        <div className="mt-3 rounded-md border border-border bg-background">
+          <p className="border-b border-border/60 px-3 py-2 text-xs font-semibold text-muted-foreground">
+            Page tasks ({pageTasks.length})
+          </p>
+          {pageTasks.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted-foreground">
+              No tasks on this page yet.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/60">
+              {pageTasks.map((task) => (
+                <li key={task.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectTask?.(task.id)}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/40"
+                  >
+                    <span className="min-w-0 truncate text-xs font-medium">{task.title}</span>
+                    <Pill className={TASK_STATUS_BADGE[task.status]}>{task.status}</Pill>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <details className="mt-3 rounded-md border border-border bg-background px-3 py-2 text-xs">
@@ -644,8 +672,14 @@ function InspectorBody({
         {permissions.canDeleteRegion ? (
           <button
             type="button"
+            disabled={pageTasks.some((t) => isTaskActive(t.status))}
+            title={
+              pageTasks.some((t) => isTaskActive(t.status))
+                ? "Discard this region only after its production tasks are done."
+                : undefined
+            }
             onClick={() => onDiscardRegion(region.id)}
-            className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-destructive hover:underline"
+            className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
           >
             <Trash2 className="h-3 w-3" /> Discard region
           </button>

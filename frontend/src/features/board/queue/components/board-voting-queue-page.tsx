@@ -13,7 +13,7 @@ export function BoardVotingQueuePage() {
   if (!user) return null;
 
   const proposalItems = (queueItems ?? []).filter(
-    (item): item is BoardQueueItem => item.seriesStatus !== "AT_RISK",
+    (item): item is BoardQueueItem => item.riskStatus !== "AT_RISK",
   );
 
   return (

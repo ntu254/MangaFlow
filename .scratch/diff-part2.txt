@@ -1,0 +1,1000 @@
+﻿+                <span className="size-2 rounded-full bg-amber-500 animate-pulse" /> Under Editor Review
++              </span>
++            ) : chapter.status === "READY_FOR_PUBLICATION" ? (
++              <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
++                <Check className="size-3.5" /> Ready for Publication
++              </span>
++            ) : chapter.status === "PUBLISHED" ? (
++              <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400">
++                Published
++              </span>
++            ) : chapter.pages.length === 0 && canUpload ? (
++              <button
++                onClick={() => fileRef.current?.click()}
++                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-all hover:bg-primary/90"
++              >
++                <Upload className="size-3.5" /> Upload Pages
++              </button>
++            ) : (
++              <button
++                onClick={submitReview}
++                disabled={chapterActionMutation.isPending || sendEditorReviewMutation.isPending}
++                aria-disabled={!canSubmit}
++                title={
++                  canSubmit
++                    ? isResubmission
++                      ? "Resubmit to Editor"
++                      : "Send to Editor Review"
++                    : (submitDisabledReason ?? UNSUPPORTED)
++                }
++                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
++                  canSubmit
++                    ? "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
++                    : "bg-muted text-muted-foreground border border-border"
++                }`}
++              >
++                <Send className="size-3.5" />
++                {isResubmission ? "Resubmit to Editor" : "Submit to Editor Review"}
++              </button>
++            )}
++
+             {/* More menu */}
+             <DropdownMenu>
+               <DropdownMenuTrigger asChild>
+@@ -296,7 +314,12 @@ export function ChapterDetailWorkspace({
+               </DropdownMenuTrigger>
+               <DropdownMenuContent align="end" className="w-48">
+                 {allowedActions
+-                  .filter((action) => action !== "SUBMIT_REVIEW" && action !== "RESUBMIT")
++                  .filter(
++                    (action) =>
++                      action !== "SUBMIT_REVIEW" &&
++                      action !== "RESUBMIT" &&
++                      action !== "START_DRAFT",
++                  )
+                   .map((a) => {
+                     const c = checkChapterAction(a, user, chapter, series);
+                     const disabledBySelfApproval =
+@@ -361,7 +384,7 @@ export function ChapterDetailWorkspace({
+               </div>
+               <div className="flex justify-between">
+                 <dt className="text-muted-foreground">Pages</dt>
+-                <dd className="font-semibold">{chapter.pages.length}</dd>
++                <dd className="font-semibold">{chapter.pages.length} / {chapter.targetPages ?? 20}</dd>
+               </div>
+               <div className="flex justify-between">
+                 <dt className="text-muted-foreground">Revision round</dt>
+diff --git a/frontend/src/features/series/detail/components/chapter-form-dialog.tsx b/frontend/src/features/series/detail/components/chapter-form-dialog.tsx
+index 06acff1e..776a1fd6 100644
+--- a/frontend/src/features/series/detail/components/chapter-form-dialog.tsx
++++ b/frontend/src/features/series/detail/components/chapter-form-dialog.tsx
+@@ -30,6 +30,7 @@ export function ChapterFormDialog({
+   const createChapterMutation = useCreateChapterMutation(series.id);
+   const [number, setNumber] = useState(nextNumber);
+   const [title, setTitle] = useState("");
++  const [targetPages, setTargetPages] = useState(20);
+   const [draftDue, setDraftDue] = useState("");
+   const [reviewDue, setReviewDue] = useState("");
+ 
+@@ -43,6 +44,7 @@ export function ChapterFormDialog({
+       {
+         number,
+         title: title.trim(),
++        targetPages: targetPages || 20,
+         // Chapter ownership stays with the Mangaka. Assistant assignment is
+         // created separately per page/region in Studio.
+         assigneeId: series.authorId,
+@@ -53,7 +55,7 @@ export function ChapterFormDialog({
+       },
+       {
+         onSuccess: () => {
+-          toast.success(`Chapter ${number} created.`);
++          toast.success(`Chapter ${number} created (${targetPages || 20} planned pages).`);
+           setTitle("");
+           setNumber(number + 1);
+           onClose();
+@@ -71,20 +73,33 @@ export function ChapterFormDialog({
+         <DialogHeader>
+           <DialogTitle>Create new chapter ΓÇö {series.title}</DialogTitle>
+           <DialogDescription>
+-            Set up the chapter and initial production deadlines. Assign assistants later from Studio
+-            tasks.
++            Set up the chapter, estimated page count, and production deadlines. Assign assistants later from Studio tasks.
+           </DialogDescription>
+         </DialogHeader>
+         <div className="grid gap-3">
+-          <div>
+-            <Label htmlFor="ch-num">Chapter #</Label>
+-            <Input
+-              id="ch-num"
+-              type="number"
+-              value={number}
+-              min={1}
+-              onChange={(e) => setNumber(parseInt(e.target.value, 10) || 1)}
+-            />
++          <div className="grid grid-cols-3 gap-3">
++            <div className="col-span-2">
++              <Label htmlFor="ch-num">Chapter #</Label>
++              <Input
++                id="ch-num"
++                type="number"
++                value={number}
++                min={1}
++                onChange={(e) => setNumber(parseInt(e.target.value, 10) || 1)}
++              />
++            </div>
++            <div>
++              <Label htmlFor="ch-pages">Target Pages</Label>
++              <Input
++                id="ch-pages"
++                type="number"
++                value={targetPages}
++                min={1}
++                max={200}
++                onChange={(e) => setTargetPages(parseInt(e.target.value, 10) || 20)}
++                placeholder="20"
++              />
++            </div>
+           </div>
+           <div>
+             <Label htmlFor="ch-title">Title</Label>
+diff --git a/frontend/src/features/series/detail/components/chapter-pages-preview.tsx b/frontend/src/features/series/detail/components/chapter-pages-preview.tsx
+index de6241a3..3eb2360e 100644
+--- a/frontend/src/features/series/detail/components/chapter-pages-preview.tsx
++++ b/frontend/src/features/series/detail/components/chapter-pages-preview.tsx
+@@ -1,16 +1,25 @@
+ import { useRef, useState } from "react";
+ import { toast } from "sonner";
+-import { ChevronLeft, ChevronRight, Replace, Trash2, Upload } from "lucide-react";
++import { Check, ChevronLeft, ChevronRight, MoreVertical, Pencil, Replace, Trash2, Upload, X } from "lucide-react";
+ import { useAuth } from "@/shared/auth";
+ import type { Chapter, ChapterPage } from "@/entities/series/model/series-types";
++import {
++  DropdownMenu,
++  DropdownMenuContent,
++  DropdownMenuItem,
++  DropdownMenuSeparator,
++  DropdownMenuTrigger,
++} from "@/components/ui/dropdown-menu";
+ import {
+   useDeletePageMutation,
+   useReorderPagesMutation,
+   useUpdatePageMutation,
+   useUploadPageMutation,
++  usePatchChapterMutation,
+   mapApiError,
+ } from "../../api/series-queries";
+ import { uploadFileToR2 } from "@/shared/lib/r2-upload";
++import { isRenderableFileUrl } from "@/shared/lib/file-url";
+ import { ResolvedImage } from "@/shared/ui";
+ 
+ const PREVIEW_COUNT = 10;
+@@ -29,9 +38,13 @@ export function ChapterPagesPreview({
+   const uploadPageMutation = useUploadPageMutation(chapter.id, chapter.seriesId);
+   const reorderPagesMutation = useReorderPagesMutation(chapter.id, chapter.seriesId);
+   const deletePageMutation = useDeletePageMutation(chapter.id, chapter.seriesId);
++  const patchChapterMutation = usePatchChapterMutation(chapter.id, chapter.seriesId);
+   const inputRef = useRef<HTMLInputElement>(null);
+   const replaceInputRef = useRef<HTMLInputElement>(null);
+   const [replaceTarget, setReplaceTarget] = useState<ChapterPage | null>(null);
++  const [isEditingTarget, setIsEditingTarget] = useState(false);
++  const [targetInputValue, setTargetInputValue] = useState(chapter.targetPages ?? 20);
++
+   const updatePageMutation = useUpdatePageMutation(
+     replaceTarget?.id ?? "",
+     chapter.id,
+@@ -128,27 +141,135 @@ export function ChapterPagesPreview({
+     }
+   };
+ 
+-  const limit = expanded ? EXPANDED_COUNT : PREVIEW_COUNT;
+-  const pages = chapter.pages.slice(0, limit);
+-  const placeholders = Math.max(0, limit - pages.length);
+-  const target = Math.max(chapter.pages.length, limit);
++  const targetPages = chapter.targetPages ?? (chapter.pages.length > 20 ? chapter.pages.length : 20);
++  const pages = expanded ? chapter.pages : chapter.pages.slice(0, PREVIEW_COUNT);
++  const percent = Math.min(100, Math.round((chapter.pages.length / targetPages) * 100));
++
++  const saveTargetPages = () => {
++    if (targetInputValue < 1 || targetInputValue > 200) {
++      toast.error("Target pages must be between 1 and 200");
++      return;
++    }
++    patchChapterMutation.mutate(
++      { targetPages: targetInputValue },
++      {
++        onSuccess: () => {
++          toast.success(`Chapter target updated to ${targetInputValue} pages.`);
++          setIsEditingTarget(false);
++        },
++        onError: (err) => toast.error(mapApiError(err)),
++      },
++    );
++  };
++
++  const isExceeded = chapter.pages.length > targetPages;
++  const extraPages = chapter.pages.length - targetPages;
++
++  const quickSyncTarget = () => {
++    patchChapterMutation.mutate(
++      { targetPages: chapter.pages.length },
++      {
++        onSuccess: () => {
++          toast.success(`Target updated to match current ${chapter.pages.length} pages.`);
++        },
++        onError: (err) => toast.error(mapApiError(err)),
++      },
++    );
++  };
+ 
+   return (
+     <div className="flex h-full flex-col">
+-      <div className="mb-3 flex items-center justify-between gap-2">
+-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+-          Pages uploaded ({chapter.pages.length} / {target})
+-        </p>
+-        <div className="flex items-center gap-2">
++      <div className="mb-4 flex flex-col gap-2 border-b border-border/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
++        <div>
++          <div className="flex flex-wrap items-center gap-2">
++            <p className="text-xs font-bold uppercase tracking-wider text-foreground">
++              Pages uploaded ({chapter.pages.length} / {targetPages} planned)
++            </p>
++            {isExceeded && (
++              <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
++                +{extraPages} over target
++              </span>
++            )}
++            {canUpload && !isEditingTarget && (
++              <button
++                type="button"
++                onClick={() => {
++                  setTargetInputValue(targetPages);
++                  setIsEditingTarget(true);
++                }}
++                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground hover:underline"
++                title="Edit target page count for this chapter"
++              >
++                <Pencil className="size-3" /> Edit target
++              </button>
++            )}
++            {canUpload && isExceeded && !isEditingTarget && (
++              <button
++                type="button"
++                onClick={quickSyncTarget}
++                disabled={patchChapterMutation.isPending}
++                className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline disabled:opacity-50"
++                title="Sync target count to match current uploaded page count"
++              >
++                Sync target to {chapter.pages.length}
++              </button>
++            )}
++          </div>
++
++          {isEditingTarget ? (
++            <div className="mt-2 flex items-center gap-1.5">
++              <span className="text-xs font-medium text-muted-foreground">Target pages:</span>
++              <input
++                type="number"
++                min={1}
++                max={200}
++                value={targetInputValue}
++                onChange={(e) => setTargetInputValue(parseInt(e.target.value, 10) || 1)}
++                className="w-16 rounded border border-border bg-background px-2 py-0.5 text-xs font-semibold focus:outline-hidden focus:ring-1 focus:ring-primary"
++              />
++              <button
++                type="button"
++                onClick={saveTargetPages}
++                disabled={patchChapterMutation.isPending}
++                className="inline-flex items-center rounded bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
++              >
++                <Check className="mr-1 size-3" /> Save
++              </button>
++              <button
++                type="button"
++                onClick={() => setIsEditingTarget(false)}
++                className="inline-flex items-center rounded border border-border bg-background px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted"
++              >
++                <X className="size-3" />
++              </button>
++            </div>
++          ) : (
++            <div className="mt-1 flex items-center gap-2">
++              <div className="h-1.5 w-36 overflow-hidden rounded-full bg-muted">
++                <div
++                  className={`h-full transition-all duration-300 ${
++                    isExceeded ? "bg-amber-500" : "bg-emerald-500"
++                  }`}
++                  style={{ width: `${percent}%` }}
++                />
++              </div>
++              <span className="text-[10px] font-semibold text-muted-foreground">
++                {isExceeded ? "100% (Target reached)" : `${percent}% complete`}
++              </span>
++            </div>
++          )}
++        </div>
++
++        <div className="flex items-center gap-2 self-end sm:self-auto">
+           {canUpload ? (
+             <>
+               <button
+                 disabled={uploadPageMutation.isPending}
+                 onClick={() => inputRef.current?.click()}
+-                className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-[10px] font-semibold hover:bg-muted disabled:opacity-50"
++                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs transition-colors hover:bg-muted disabled:opacity-50"
+               >
+-                <Upload className="size-3" />{" "}
+-                {uploadPageMutation.isPending ? "Uploading..." : "Upload"}
++                <Upload className="size-3.5" />
++                {uploadPageMutation.isPending ? "Uploading..." : "Upload Pages"}
+               </button>
+               <input
+                 ref={inputRef}
+@@ -167,16 +288,21 @@ export function ChapterPagesPreview({
+               />
+             </>
+           ) : null}
+-          <button className="text-[11px] font-semibold text-accent hover:underline">
+-            View all
+-          </button>
+         </div>
+       </div>
++
+       {chapter.pages.length === 0 && !canUpload ? (
+-        <p className="text-xs text-muted-foreground">No pages yet.</p>
++        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/40 py-12 text-center">
++          <p className="text-xs font-semibold text-foreground">No pages uploaded yet</p>
++          <p className="mt-1 text-[11px] text-muted-foreground">Draft pages will appear here once uploaded.</p>
++        </div>
+       ) : (
+         <div
+-          className={compact ? "grid grid-cols-6 gap-1.5 lg:grid-cols-8" : "grid grid-cols-5 gap-2"}
++          className={
++            compact
++              ? "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
++              : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
++          }
+         >
+           {pages.map((p, index) => (
+             <PageThumbnail
+@@ -201,18 +327,23 @@ export function ChapterPagesPreview({
+               onDelete={() => deletePage(p)}
+             />
+           ))}
+-          {Array.from({ length: placeholders }).map((_, i) => (
++
++          {canUpload && (
+             <div
+-              key={`ph-${i}`}
+-              className={
+-                compact
+-                  ? "flex aspect-[3/4] items-center justify-center rounded border border-dashed border-border text-[10px] text-muted-foreground/60"
+-                  : "flex aspect-[2/3] items-center justify-center rounded border border-dashed border-border text-[10px] text-muted-foreground/60"
+-              }
++              onClick={() => inputRef.current?.click()}
++              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/40 p-3 text-center transition-all hover:border-primary/50 hover:bg-muted/30 ${
++                compact ? "aspect-[3/4]" : "aspect-[2/3]"
++              }`}
+             >
+-              {chapter.pages.length + i + 1}
++              <div className="grid size-8 place-items-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-transform group-hover:scale-105 group-hover:text-primary">
++                <Upload className="size-4" />
++              </div>
++              <p className="mt-2 text-xs font-semibold text-foreground">
++                + Add Page {chapter.pages.length + 1}
++              </p>
++              <p className="mt-0.5 text-[10px] text-muted-foreground">Upload image</p>
+             </div>
+-          ))}
++          )}
+         </div>
+       )}
+     </div>
+@@ -246,13 +377,17 @@ function PageThumbnail({
+   onMoveRight: () => void;
+   onDelete: () => void;
+ }) {
+-  const imageSrc = page.fileUrl ?? page.imageUrl;
++  const imageSrc = isRenderableFileUrl(page.fileUrl)
++    ? page.fileUrl
++    : isRenderableFileUrl(page.imageUrl)
++      ? page.imageUrl
++      : (page.fileUrl ?? page.imageUrl);
+   const pageIndex = page.index ?? page.pageNumber ?? 0;
+ 
+   return (
+     <div
+       data-page-id={page.id}
+-      className={`relative flex flex-col items-center justify-center overflow-hidden rounded border border-border bg-muted/40 ${
++      className={`group relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-muted/30 transition-all hover:shadow-xs ${
+         compact ? "aspect-[3/4]" : "aspect-[2/3]"
+       }`}
+     >
+@@ -261,7 +396,7 @@ function PageThumbnail({
+           fileKey={page.fileKey}
+           fallbackUrl={imageSrc}
+           alt={`page ${pageIndex}`}
+-          className="size-full object-cover"
++          className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+           fallback={
+             <span className="text-sm font-bold text-muted-foreground/60">
+               {String(pageIndex).padStart(2, "0")}
+@@ -279,58 +414,69 @@ function PageThumbnail({
+           {String(pageIndex).padStart(2, "0")}
+         </span>
+       )}
+-      <span className="absolute bottom-0 left-0 right-0 bg-background/80 py-0.5 text-center text-[9px] tabular-nums text-muted-foreground">
+-        {String(pageIndex).padStart(2, "0")}
+-      </span>
+-      {canReplace ? (
+-        <button
+-          type="button"
+-          disabled={replacing}
+-          onClick={onReplace}
+-          className="absolute inset-x-1 top-1 inline-flex items-center justify-center gap-1 rounded bg-background/95 px-1.5 py-1 text-[9px] font-semibold text-foreground shadow-sm hover:bg-background disabled:opacity-50"
+-        >
+-          <Replace className="size-2.5" />
+-          {replacing
+-            ? "Replacing..."
+-            : page.status === "PENDING_UPLOAD"
+-              ? "Upload page"
+-              : "Replace page"}
+-        </button>
+-      ) : null}
+-      {canManage ? (
+-        <div className="absolute inset-x-1 bottom-4 flex items-center justify-center gap-0.5 rounded bg-background/95 p-0.5 shadow-sm">
+-          <button
+-            type="button"
+-            aria-label={`Move page ${pageIndex} left`}
+-            title="Move left"
+-            disabled={!canMoveLeft || managing}
+-            onClick={onMoveLeft}
+-            className="rounded p-1 text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+-          >
+-            <ChevronLeft className="size-3" />
+-          </button>
+-          <button
+-            type="button"
+-            aria-label={`Move page ${pageIndex} right`}
+-            title="Move right"
+-            disabled={!canMoveRight || managing}
+-            onClick={onMoveRight}
+-            className="rounded p-1 text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+-          >
+-            <ChevronRight className="size-3" />
+-          </button>
+-          <button
+-            type="button"
+-            aria-label={`Delete page ${pageIndex}`}
+-            title="Delete page"
+-            disabled={managing}
+-            onClick={onDelete}
+-            className="rounded p-1 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+-          >
+-            <Trash2 className="size-3" />
+-          </button>
++
++      {/* Top Left Action Menu */}
++      {(canReplace || canManage) && (
++        <div className="absolute left-1.5 top-1.5 z-10">
++          <DropdownMenu>
++            <DropdownMenuTrigger asChild>
++              <button
++                type="button"
++                className="flex size-7 items-center justify-center rounded-lg border border-border/60 bg-background/90 text-foreground shadow-2xs backdrop-blur-md transition-all hover:bg-background hover:scale-105 active:scale-95"
++                title="Page actions"
++              >
++                <MoreVertical className="size-3.5" />
++              </button>
++            </DropdownMenuTrigger>
++            <DropdownMenuContent align="start" className="w-44">
++              {canReplace && (
++                <DropdownMenuItem
++                  disabled={replacing}
++                  onClick={onReplace}
++                  className="cursor-pointer text-xs"
++                >
++                  <Replace className="mr-2 size-3.5" />
++                  {replacing ? "Replacing..." : "Replace page"}
++                </DropdownMenuItem>
++              )}
++              {canManage && (
++                <>
++                  <DropdownMenuItem
++                    disabled={!canMoveLeft || managing}
++                    onClick={onMoveLeft}
++                    className="cursor-pointer text-xs"
++                  >
++                    <ChevronLeft className="mr-2 size-3.5" />
++                    Move left
++                  </DropdownMenuItem>
++                  <DropdownMenuItem
++                    disabled={!canMoveRight || managing}
++                    onClick={onMoveRight}
++                    className="cursor-pointer text-xs"
++                  >
++                    <ChevronRight className="mr-2 size-3.5" />
++                    Move right
++                  </DropdownMenuItem>
++                  <DropdownMenuSeparator />
++                  <DropdownMenuItem
++                    disabled={managing}
++                    onClick={onDelete}
++                    className="cursor-pointer text-xs text-destructive focus:bg-destructive/10 focus:text-destructive"
++                  >
++                    <Trash2 className="mr-2 size-3.5" />
++                    Delete page
++                  </DropdownMenuItem>
++                </>
++              )}
++            </DropdownMenuContent>
++          </DropdownMenu>
+         </div>
+-      ) : null}
++      )}
++
++      {/* Bottom Page Number Badge */}
++      <span className="absolute bottom-1.5 right-1.5 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-foreground shadow-2xs backdrop-blur-xs">
++        P.{String(pageIndex).padStart(2, "0")}
++      </span>
+     </div>
+   );
+ }
+diff --git a/frontend/src/features/series/detail/components/series-detail-page.tsx b/frontend/src/features/series/detail/components/series-detail-page.tsx
+index bc03becb..9577b172 100644
+--- a/frontend/src/features/series/detail/components/series-detail-page.tsx
++++ b/frontend/src/features/series/detail/components/series-detail-page.tsx
+@@ -145,7 +145,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
+           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+             {SERIES_STATUS_LABEL[series.status]}
+           </p>
+-          <h1 className="mt-1 flex items-center font-serif text-4xl">
++          <h1 className="mt-1 flex max-w-3xl items-center font-serif text-3xl font-bold tracking-tight line-clamp-2">
+             {series.title}
+             <EditTitleButton />
+           </h1>
+@@ -172,7 +172,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
+             </span>
+             <span>
+               <span className="font-semibold text-foreground">Progress:</span> {published.length}/
+-              {series.targetChapters}
++              {series.targetChapters} ch
+             </span>
+           </div>
+         </div>
+diff --git a/frontend/src/features/series/detail/components/series-proposal-tab.tsx b/frontend/src/features/series/detail/components/series-proposal-tab.tsx
+index 191fd143..a7494cec 100644
+--- a/frontend/src/features/series/detail/components/series-proposal-tab.tsx
++++ b/frontend/src/features/series/detail/components/series-proposal-tab.tsx
+@@ -2,17 +2,19 @@ import { useState } from "react";
+ import { Link } from "@tanstack/react-router";
+ import {
+   AlertCircle,
+-  ArrowRight,
++  BookOpen,
++  Clock,
+   Download,
+-  ExternalLink,
+   Eye,
+   FileText,
+-  GitCompare,
++  Layers,
+   MessageSquare,
+-  MoreVertical,
+   Pencil,
+-  Send,
++  ShieldCheck,
++  Sparkles,
+   Upload,
++  ChevronDown,
++  ChevronUp,
+ } from "lucide-react";
+ import { useAuth } from "@/shared/auth";
+ import type {
+@@ -24,7 +26,6 @@ import { AUDIENCE_LABEL } from "@/entities/proposal/model/proposal-types";
+ import { ProposalStatusPill } from "@/entities/proposal";
+ import { ResubmitDialog } from "@/features/proposals";
+ import { EmptyState } from "@/shared/ui/empty-state";
+-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+ import { formatDate, formatDateTime } from "@/shared/lib/format-date";
+ import { checkAction } from "@/entities/proposal";
+ import type { ProductionSeries } from "@/entities/series/model/series-types";
+@@ -34,6 +35,19 @@ import { cn } from "@/shared/lib/cn";
+ import { SortableHeader } from "@/shared/ui";
+ import { useSortableData } from "@/shared/lib/use-sortable-data";
+ import { MaterialDownloadLink } from "./material-file-controls";
++import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
++import { ResolvedImage } from "@/shared/ui";
++import { isRenderableFileUrl } from "@/shared/lib/file-url";
++
++type ProposalTabKey = "overview" | "materials" | "history";
++
++type PreviewItemDef = {
++  fileName: string;
++  fileKey?: string | null;
++  fileUrl?: string | null;
++  version?: number;
++  kindLabel?: string;
++};
+ 
+ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
+   const user = useAuth((s) => s.user);
+@@ -41,7 +55,9 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
+   const { data: tantouEditor } = useTantouEditorQuery(series.id);
+   const actionMutation = useProposalActionMutation(series.proposalId ?? "", series.id);
+   const [resubmitOpen, setResubmitOpen] = useState(false);
+-  const [showAllFeedback, setShowAllFeedback] = useState(false);
++  const [advancedOpen, setAdvancedOpen] = useState(false);
++  const [activeTab, setActiveTab] = useState<ProposalTabKey>("overview");
++  const [previewItem, setPreviewItem] = useState<PreviewItemDef | null>(null);
+ 
+   if (!user) return null;
+ 
+@@ -49,29 +65,15 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
+     return (
+       <EmptyState
+         title="Series not linked to a proposal"
+-        description="This series is not linked to a proposal. A proposal can be created or linked in a separate workflow."
+-        action={
+-          <span className="text-xs text-muted-foreground">
+-            Creating or linking a proposal will be available in the next story.
+-          </span>
+-        }
++        description="This series is not linked to an active editorial proposal. A proposal can be created or linked in a separate workflow."
+       />
+     );
+   }
+ 
+   if (isLoading) {
+     return (
+-      <div className="space-y-5">
+-        <div className="grid gap-5 lg:grid-cols-3">
+-          {Array.from({ length: 3 }).map((_, i) => (
+-            <div key={i} className="h-48 animate-pulse rounded-xl border border-border bg-card" />
+-          ))}
+-        </div>
+-        <div className="grid gap-5 lg:grid-cols-2">
+-          {Array.from({ length: 2 }).map((_, i) => (
+-            <div key={i} className="h-40 animate-pulse rounded-xl border border-border bg-card" />
+-          ))}
+-        </div>
++      <div className="space-y-6">
++        <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+       </div>
+     );
+   }
+@@ -86,8 +88,8 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
+         description={msg}
+         action={
+           is403 || is404 ? (
+-            <Link to="/app/submissions" className="text-xs underline">
+-              View proposals list
++            <Link to="/app/submissions" className="text-xs underline font-semibold">
++              View all submissions
+             </Link>
+           ) : null
+         }
+@@ -96,57 +98,71 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
+   }
+ 
+   if (!proposal) {
+-    return (
+-      <EmptyState
+-        title="Series not linked to a proposal"
+-        description="This series is not linked to a proposal. A proposal can be created or linked in a separate workflow."
+-        action={
+-          <span className="text-xs text-muted-foreground">
+-            Creating or linking a proposal will be available in the next story.
+-          </span>
+-        }
+-      />
+-    );
++    return <EmptyState title="Proposal details unavailable" description="Proposal record could not be found." />;
+   }
+ 
+   const canResubmit = checkAction("RESUBMIT", user, proposal).ok;
+   const canEdit = checkAction("EDIT", user, proposal).ok;
++  const latestVersion = (proposal.manuscripts ?? []).reduce((m, v) => Math.max(m, v.version), 1);
++  const feedbackEntries = buildFeedbackEntries(proposal);
++  const materialsCount = (proposal.manuscripts ?? []).length + (proposal.materials ?? []).length;
+ 
+   return (
+-    <div className="space-y-5">
+-      {/* Row 1 ΓÇö Status / Summary / Feedback */}
+-      <div className="grid gap-5 lg:grid-cols-3">
+-        <StatusCard
+-          proposal={proposal}
+-          canEdit={canEdit}
+-          canResubmit={canResubmit}
+-          onResubmit={() => setResubmitOpen(true)}
+-          tantouEditor={tantouEditor}
+-        />
+-        <SummaryCard proposal={proposal} />
+-        <RecentFeedbackCard
+-          proposal={proposal}
+-          onShowAll={() => setShowAllFeedback((v) => !v)}
+-          showAll={showAllFeedback}
+-        />
+-      </div>
+-
+-      {/* Row 2 ΓÇö Creative materials / Version history */}
+-      <div className="grid gap-5 lg:grid-cols-2">
+-        <CreativeMaterialsTable proposal={proposal} />
+-        <VersionHistoryTable proposal={proposal} />
+-      </div>
+-
+-      {/* Row 3 ΓÇö Quick actions */}
+-      <QuickActionsGrid
+-        proposal={proposal}
+-        canEdit={canEdit}
+-        canResubmit={canResubmit}
+-        onResubmit={() => setResubmitOpen(true)}
+-      />
++    <div className="space-y-6">
++      {/* Unified Executive Proposal Workspace Card */}
++      <section className="rounded-2xl border border-border/80 bg-card shadow-2xs overflow-hidden">
++        {/* Sub-Tab Navigation Bar */}
++        <div className="flex flex-wrap items-center gap-1 border-b border-border/60 bg-muted/20 px-4 pt-3">
++          <TabButton
++            active={activeTab === "overview"}
++            onClick={() => setActiveTab("overview")}
++            icon={<BookOpen className="size-3.5" />}
++            label="Overview & Pitch Dossier"
++          />
++          <TabButton
++            active={activeTab === "materials"}
++            onClick={() => setActiveTab("materials")}
++            icon={<FileText className="size-3.5" />}
++            label="Creative Assets & Manuscripts"
++            count={materialsCount}
++          />
++          <TabButton
++            active={activeTab === "history"}
++            onClick={() => setActiveTab("history")}
++            icon={<Clock className="size-3.5" />}
++            label="Version Audit Trail"
++            count={(proposal.manuscripts ?? []).length}
++          />
++        </div>
+ 
+-      {showAllFeedback ? <FullFeedbackPanel proposal={proposal} /> : null}
++        {/* Sub-Tab Content View */}
++        <div className="p-5 md:p-6">
++          {activeTab === "overview" ? (
++            <OverviewAndPitchSection
++              proposal={proposal}
++              tantouEditor={tantouEditor}
++              canEdit={canEdit}
++              canResubmit={canResubmit}
++              onResubmit={() => setResubmitOpen(true)}
++              latestVersion={latestVersion}
++              advancedOpen={advancedOpen}
++              onToggleAdvanced={() => setAdvancedOpen((v) => !v)}
++            />
++          ) : activeTab === "materials" ? (
++            <CreativeMaterialsSection
++              proposal={proposal}
++              onPreview={(item) => setPreviewItem(item)}
++            />
++          ) : (
++            <VersionHistorySection
++              proposal={proposal}
++              onPreview={(item) => setPreviewItem(item)}
++            />
++          )}
++        </div>
++      </section>
+ 
++      {/* Resubmit Modal Dialog */}
+       <ResubmitDialog
+         proposal={proposal}
+         user={user}
+@@ -154,209 +170,342 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
+         onClose={() => setResubmitOpen(false)}
+         onResubmit={(payload) => actionMutation.mutateAsync({ action: "RESUBMIT", payload })}
+       />
++
++      {/* File Preview Dialog */}
++      <FilePreviewDialog
++        item={previewItem}
++        open={Boolean(previewItem)}
++        onClose={() => setPreviewItem(null)}
++      />
+     </div>
+   );
+ }
+ 
+-// ---------------- Section helpers ----------------
++// ---------------- Tab Button Component ----------------
+ 
+-function SectionHeader({
+-  index,
+-  title,
+-  action,
++function TabButton({
++  active,
++  onClick,
++  icon,
++  label,
++  count,
+ }: {
+-  index: number;
+-  title: string;
+-  action?: React.ReactNode;
++  active: boolean;
++  onClick: () => void;
++  icon: React.ReactNode;
++  label: string;
++  count?: number;
+ }) {
+   return (
+-    <div className="mb-3 flex items-center justify-between gap-2">
+-      <div className="flex items-center gap-2">
+-        <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
+-          {index}
++    <button
++      type="button"
++      onClick={onClick}
++      className={cn(
++        "flex items-center gap-2 rounded-t-xl px-4 py-2.5 text-xs font-semibold transition-all border-b-2",
++        active
++          ? "border-primary bg-card text-primary shadow-xs"
++          : "border-transparent text-muted-foreground hover:bg-card/50 hover:text-foreground",
++      )}
++    >
++      {icon}
++      <span>{label}</span>
++      {count != null ? (
++        <span
++          className={cn(
++            "rounded-full px-2 py-0.5 text-[10px] font-bold",
++            active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
++          )}
++        >
++          {count}
+         </span>
+-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
++      ) : null}
++    </button>
++  );
++}
++
++// ---------------- Merged Tab 1: Overview & Pitch Section ----------------
++
++function OverviewAndPitchSection({
++  proposal,
++  tantouEditor,
++  canEdit,
++  canResubmit,
++  onResubmit,
++  latestVersion,
++  advancedOpen,
++  onToggleAdvanced,
++}: {
++  proposal: SeriesProposal;
++  tantouEditor?: TantouEditor | null;
++  canEdit: boolean;
++  canResubmit: boolean;
++  onResubmit: () => void;
++  latestVersion: number;
++  advancedOpen: boolean;
++  onToggleAdvanced: () => void;
++}) {
++  return (
++    <div className="grid gap-6 lg:grid-cols-3">
++      {/* Left Column (2 cols): Pitch Dossier */}
++      <div className="space-y-6 lg:col-span-2">
++        <SectionCard title="Editorial Pitch Dossier" icon={<Sparkles className="size-4 text-primary" />}>
++          {proposal.logline ? (
++            <div className="relative mb-5 overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-4 text-foreground/90">
++              <div className="absolute top-0 left-0 h-full w-1.5 bg-primary" />
++              <p className="text-xs font-bold uppercase tracking-wider text-primary mb-1">
++                Core Logline
++              </p>
++              <p className="text-sm font-medium leading-relaxed text-foreground">
++                {proposal.logline}
++              </p>
++            </div>
++          ) : null}
++
++          {proposal.hook ? (
++            <div className="mb-5 space-y-1">
++              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
++                Commercial Hook / Unique Selling Point
++              </h4>
++              <p className="text-xs leading-relaxed text-foreground/90 bg-muted/30 p-3 rounded-lg border border-border/50">
++                {proposal.hook}
++              </p>
++            </div>
++          ) : null}
++
++          <div className="space-y-4">
++            <div>
++              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
++                Synopsis
++              </h4>
++              <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90 bg-card p-4 rounded-xl border border-border/70 shadow-2xs">
++                {proposal.synopsis || "No synopsis provided."}
++              </p>
++            </div>
++
++            {proposal.mainCharacters ? (
++              <div>
++                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
++                  Character Profiles & Dynamics
++                </h4>
++                <div className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90 bg-card p-4 rounded-xl border border-border/70 shadow-2xs">
++                  {proposal.mainCharacters}
++                </div>
++              </div>
++            ) : null}
++          </div>
++
++          {/* Advanced Production Details Accordion */}
++          {hasAdvancedDetails(proposal.advanced) ? (
++            <div className="mt-5 border-t border-border/70 pt-4">
++              <button
++                type="button"
++                onClick={onToggleAdvanced}
++                className="flex w-full items-center justify-between text-xs font-semibold text-foreground hover:text-primary transition-colors"
++              >
++                <span className="flex items-center gap-1.5">
++                  <Layers className="size-3.5 text-primary" /> Advanced Production & World Specs
++                </span>
++                {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
++              </button>
++
++              {advancedOpen ? (
++                <div className="mt-3 grid gap-3 text-xs md:grid-cols-2">
++                  <AdvBox label="World Setting" value={proposal.advanced?.worldSetting} />
++                  <AdvBox label="Series Direction" value={proposal.advanced?.seriesDirection} />
++                  <AdvBox label="Production Plan" value={proposal.advanced?.productionPlan} />
++                  <AdvBox label="Assistant Requirements" value={proposal.advanced?.assistantNeeds} />
++                  <AdvBox label="Comparable Titles" value={proposal.advanced?.comparableTitles} />
++                  <AdvBox label="AI Tool Disclosures" value={proposal.advanced?.aiDisclosure} />
++                </div>
++              ) : null}
++            </div>
++          ) : null}
++        </SectionCard>
++      </div>
++
++      {/* Right Column (1 col): Proposal Status & Feedback Feed */}
++      <div className="space-y-6 lg:col-span-1">
++        <ProposalOverviewCard
++          proposal={proposal}
++          tantouEditor={tantouEditor}
++          canEdit={canEdit}
++          canResubmit={canResubmit}
++          onResubmit={onResubmit}
++          latestVersion={latestVersion}
++        />
++        <FeedbackFeedCard proposal={proposal} />
+       </div>
+-      {action}
+     </div>
+   );
+ }
+ 
+-function Card({ className, children }: { className?: string; children: React.ReactNode }) {
++// ---------------- Section Container ----------------
++
++function SectionCard({
++  title,
++  icon,
++  children,
++}: {
++  title: string;
++  icon?: React.ReactNode;
++  children: React.ReactNode;
++}) {
+   return (
+-    <section className={cn("rounded-xl border border-border bg-card p-5", className)}>
++    <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs transition-all md:p-6">
++      <div className="mb-4 flex items-center justify-between gap-2 border-b border-border/50 pb-3">
++        <div className="flex items-center gap-2">
++          {icon}
++          <h3 className="text-sm font-bold text-foreground">{title}</h3>
++        </div>
++      </div>

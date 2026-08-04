@@ -53,9 +53,11 @@ export function useImportRankingsMutation() {
     onSuccess: () => {
       // Refresh the ranking list, the At-risk queue, and the board read model
       // so the imported period (and any new at-risk signals) appear immediately.
-      for (const key of rankingImportInvalidations()) {
-        queryClient.invalidateQueries({ queryKey: key });
-      }
+      return Promise.all(
+        rankingImportInvalidations().map((key) =>
+          queryClient.invalidateQueries({ queryKey: key }),
+        ),
+      );
     },
   });
 }

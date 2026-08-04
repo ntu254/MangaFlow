@@ -27,7 +27,13 @@ export interface BoardQueueItem {
   votingSessionId: string | null;
   proposalVersionId: string | null;
   expectedVersion: number | null;
+  // Sprint 1.2 — `riskStatus` is the canonical split for the at-risk
+  // dimension. For proposals on the queue this is always "NORMAL"; the
+  // interface stays union-compatible with `AtRiskQueueItem` so the same
+  // hook can return either shape without a runtime crash.
   seriesStatus: string;
+  riskStatus?: "NORMAL" | "AT_RISK";
+  riskEvaluatedAt?: string | null;
   voteSummary: {
     approve: number;
     reject: number;
@@ -47,7 +53,15 @@ export interface AtRiskQueueItem {
   seriesId: string;
   seriesTitle: string;
   title: string;
-  seriesStatus: "AT_RISK";
+  // Sprint 1.2 — riskStatus is the canonical risk dimension; seriesStatus
+  // carries the real lifecycle status (ONGOING / PAUSED / ARCHIVED / …).
+  // `riskEvaluatedAt` lets the UI render "Evaluated …" without re-fetching.
+  seriesStatus: string;
+  /** Sprint 2 — API-001 canonical alias for the real lifecycle status. */
+  lifecycleStatus?: string;
+  riskStatus: "AT_RISK";
+  riskEvaluatedAt?: string | null;
+  riskSourceRankingPeriod?: string | null;
   decisionStatus: "PENDING";
   updatedAt: string;
 }
@@ -65,13 +79,24 @@ export interface BoardVotesResult {
 }
 
 export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem | AtRiskQueueItem {
-  if (raw.seriesStatus === "AT_RISK") {
+  // Sprint 1.2: the canonical signal for "this queue item is a risk review"
+  // is `riskStatus === "AT_RISK"`. The legacy `seriesStatus === "AT_RISK"`
+  // sentinel is no longer returned from the backend; the new split is
+  //   seriesStatus: real lifecycle (ONGOING / PAUSED / …)
+  //   riskStatus:   risk dimension (NORMAL / AT_RISK)
+  if (raw.riskStatus === "AT_RISK") {
     return {
       id: String(raw.id ?? raw.seriesId),
       seriesId: String(raw.seriesId),
       seriesTitle: String(raw.seriesTitle ?? raw.title ?? ""),
       title: String(raw.seriesTitle ?? raw.title ?? ""),
-      seriesStatus: "AT_RISK",
+      seriesStatus: String(raw.seriesStatus ?? "ONGOING"),
+      lifecycleStatus: String(raw.lifecycleStatus ?? raw.seriesStatus ?? "ONGOING"),
+      riskStatus: "AT_RISK",
+      riskEvaluatedAt: raw.riskEvaluatedAt ? String(raw.riskEvaluatedAt) : null,
+      riskSourceRankingPeriod: raw.riskSourceRankingPeriod
+        ? String(raw.riskSourceRankingPeriod)
+        : null,
       decisionStatus: "PENDING",
       updatedAt: String(raw.updatedAt ?? ""),
     };
@@ -88,6 +113,9 @@ export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem 
     genres: Array.isArray(raw.genres) ? raw.genres.map(String) : [],
     decisionStatus: "PENDING",
     seriesStatus: String(raw.seriesStatus ?? "BOARD_REVIEW"),
+    lifecycleStatus: String(raw.lifecycleStatus ?? raw.seriesStatus ?? "BOARD_REVIEW"),
+    riskStatus: raw.riskStatus === "AT_RISK" ? "AT_RISK" : "NORMAL",
+    riskEvaluatedAt: raw.riskEvaluatedAt ? String(raw.riskEvaluatedAt) : null,
     voteSummary: {
       approve: Number(summary.approve ?? 0),
       reject: Number(summary.reject ?? 0),

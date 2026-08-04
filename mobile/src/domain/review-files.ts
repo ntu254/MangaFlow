@@ -1,4 +1,5 @@
 export type ReviewPreviewKind = "image" | "pdf" | "external";
+export type ReviewPreviewPlatform = "ios" | "android" | "web" | "windows" | "macos";
 
 export interface ReviewFile {
   id: string;
@@ -20,10 +21,13 @@ export interface FileUrlLease {
 export const DEFAULT_LEASE_MS = 8 * 60 * 1000;
 export const REFRESH_SKEW_MS = 30 * 1000;
 
-export function derivePreviewKind(mimeType: string): ReviewPreviewKind {
+// iOS renders PDF inline through WKWebView. Android's WebView has no built-in
+// PDF renderer, and react-native-webview has no web implementation, so both
+// route to the external hand-off instead of an empty preview.
+export function derivePreviewKind(mimeType: string, platform: ReviewPreviewPlatform): ReviewPreviewKind {
   const normalizedMimeType = mimeType.trim().toLowerCase();
   if (normalizedMimeType.startsWith("image/")) return "image";
-  if (normalizedMimeType === "application/pdf") return "pdf";
+  if (normalizedMimeType === "application/pdf") return platform === "ios" ? "pdf" : "external";
   return "external";
 }
 

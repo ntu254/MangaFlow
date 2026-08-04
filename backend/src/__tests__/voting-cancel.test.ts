@@ -108,4 +108,41 @@ describe("CT-02 voting-session cancel restores Proposal", () => {
     expect(after.status).not.toBe("CANCELLED");
     expect(after.version).toBe(before.version);
   });
+
+  it("rejects a non-Chair board member from cancelling, closing, or tie-resolving a session", async () => {
+    const chair = await loginAs("board@beachread.jp");
+    const member = await loginAs("sato@beachread.jp");
+    const sessionId = await openSession(chair.accessToken, "prop-cancel-6");
+    const app = createApp();
+
+    const cancel = await request(app).post(`/api/voting-sessions/${sessionId}/cancel`)
+      .set("Authorization", `Bearer ${member.accessToken}`).send({}).expect(403);
+    expect(cancel.body.code).toBe("BOARD_CHAIR_REQUIRED");
+
+    const close = await request(app).post(`/api/voting-sessions/${sessionId}/close`)
+      .set("Authorization", `Bearer ${member.accessToken}`).send({}).expect(403);
+    expect(close.body.code).toBe("BOARD_CHAIR_REQUIRED");
+
+    const tie = await request(app).post(`/api/voting-sessions/${sessionId}/resolve-tie`)
+      .set("Authorization", `Bearer ${member.accessToken}`).send({ decision: "APPROVE", reason: "nope" }).expect(403);
+    expect(tie.body.code).toBe("BOARD_CHAIR_REQUIRED");
+
+    expect((await VotingSessionModel.findOne({ id: sessionId }).lean() as any).status).toBe("OPEN");
+  });
+
+  it("rejects a non-Chair board member from creating or patching sessions", async () => {
+    const member = await loginAs("sato@beachread.jp");
+    const app = createApp();
+
+    const create = await request(app).post("/api/voting-sessions")
+      .set("Authorization", `Bearer ${member.accessToken}`).send({ proposalId: "prop-cancel-7" }).expect(403);
+    expect(create.body.code).toBe("BOARD_CHAIR_REQUIRED");
+
+    const chair = await loginAs("board@beachread.jp");
+    const sessionId = await openSession(chair.accessToken, "prop-cancel-7");
+
+    const patch = await request(app).patch(`/api/voting-sessions/${sessionId}`)
+      .set("Authorization", `Bearer ${member.accessToken}`).send({ title: "Hijack" }).expect(403);
+    expect(patch.body.code).toBe("BOARD_CHAIR_REQUIRED");
+  });
 });

@@ -12,6 +12,7 @@ import {
 } from "../db/models.js";
 import { AppError } from "../lib/http.js";
 import type { RequestActor } from "../types.js";
+import { env } from "../config/env.js";
 
 const BOARD_VISIBLE_PROPOSAL_STATUSES = new Set([
   "PENDING_BOARD",
@@ -161,6 +162,31 @@ export function assertChapterContentUnlocked(chapter: any) {
       409,
       "Chapter content can only change during planning, production, or revision.",
       "CHAPTER_CONTENT_LOCKED",
+    );
+  }
+}
+
+/**
+ * Workflow integrity invariant: a chapter can only accept pages once it is
+ * actively in production. PLANNED chapters must go through `applyChapterAction`
+ * with `START_DRAFT` (which is audited, versioned, and outbox-published) before
+ * any page is created. This prevents editors from bootstrapping a chapter by
+ * creating the first page and accidentally bypassing the START_DRAFT guard.
+ *
+ * Controlled by the `MF_PAGE_CREATE_GUARD` flag so legacy data and dev seed
+ * flows can opt out while the migration to the new invariant is in flight.
+ */
+export function assertChapterAcceptsPages(chapter: any) {
+  if (!env.MF_PAGE_CREATE_GUARD) return;
+  const status = String(chapter?.status);
+  const allowed = ["IN_PRODUCTION", "REVISION_REQUIRED"];
+  if (!allowed.includes(status)) {
+    throw new AppError(
+      409,
+      `Chapter must be ${allowed.join(" | ")} to accept pages. ` +
+        `Current status: ${status || "UNKNOWN"}. ` +
+        `Call START_DRAFT first.`,
+      "CHAPTER_NOT_IN_PRODUCTION",
     );
   }
 }

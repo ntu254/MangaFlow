@@ -252,6 +252,21 @@ export function isStudioToolAllowed(permissions: StudioPermissionSet, tool: Stud
   return permissions.allowedTools.includes(tool);
 }
 
+export function assistantVisiblePageIds(
+  chapters: Chapter[],
+  tasks: StudioTask[],
+  userId: string,
+) {
+  const pageIds = new Set<string>();
+  chapters.forEach((chapter) =>
+    chapter.pages.forEach((page) => {
+      if (page.pageAssignment?.assistantId === userId) pageIds.add(page.id);
+    }),
+  );
+  tasks.filter((task) => task.assigneeId === userId).forEach((task) => pageIds.add(task.pageId));
+  return pageIds;
+}
+
 export function filterStudioChaptersForRole(
   chapters: Chapter[],
   tasks: StudioTask[],
@@ -259,14 +274,7 @@ export function filterStudioChaptersForRole(
   userId: string,
 ) {
   if (permissions.mode !== "assistant") return chapters;
-  const assignedPageIds = new Set(
-    chapters.flatMap((chapter) =>
-      chapter.pages
-        .filter((page) => page.pageAssignment?.assistantId === userId)
-        .map((page) => page.id),
-    ),
-  );
-  tasks.filter((t) => t.assigneeId === userId).forEach((task) => assignedPageIds.add(task.pageId));
+  const assignedPageIds = assistantVisiblePageIds(chapters, tasks, userId);
   return chapters
     .map((chapter) => ({
       ...chapter,
@@ -280,16 +288,14 @@ export function filterStudioRegionsForRole(
   tasks: StudioTask[],
   permissions: StudioPermissionSet,
   userId: string,
+  visiblePageIds?: Set<string>,
 ) {
   if (!permissions.canViewRegions) return [];
   if (permissions.mode !== "assistant") return regions;
-  const assignedRegionIds = new Set(
-    tasks.filter((task) => task.assigneeId === userId).map((task) => task.id),
-  );
-  return regions.filter(
-    (region) =>
-      region.taskId ? assignedRegionIds.has(region.taskId) : false,
-  );
+  const pageIds =
+    visiblePageIds ??
+    new Set(tasks.filter((task) => task.assigneeId === userId).map((task) => task.pageId));
+  return regions.filter((region) => pageIds.has(region.pageId));
 }
 
 export function filterStudioTasksForRole(

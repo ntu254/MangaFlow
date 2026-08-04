@@ -142,6 +142,25 @@ describe("BoardSessionDetailScreen", () => {
     )
   })
 
+  it("visually distinguishes the selected publication cadence from the unselected one", async () => {
+    renderScreen({
+      ...votableSession,
+      tally: { ...votableSession.tally, approve: 3, canFinalize: true },
+      actions: [
+        { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_FINALIZE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+      ],
+    })
+    const monthly = await screen.findByRole("button", { name: "Set monthly cadence" })
+    const weekly = screen.getByRole("button", { name: "Set weekly cadence" })
+    const flatten = (style: unknown) => Object.assign({}, ...(Array.isArray(style) ? style : [style]))
+    const monthlyStyle = flatten(monthly.props.style)
+    const weeklyStyle = flatten(weekly.props.style)
+
+    // MONTHLY is the default cadence and must read as visually selected.
+    expect(monthlyStyle.backgroundColor).not.toBe(weeklyStyle.backgroundColor)
+  })
+
   it("keeps finalize disabled with the backend reason before quorum", async () => {
     renderScreen({
       ...votableSession,

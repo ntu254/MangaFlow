@@ -1,6 +1,9 @@
 import type { StudioTaskStatus } from "@/entities/series/model/studio-types";
 
-export type TaskStatusLabelKey = StudioTaskStatus | "COMPLETED" | "OPEN" | "REVISION_REQUESTED";
+export type TaskStatusLabelKey =
+  | StudioTaskStatus
+  | "OPEN"
+  | "REVISION_REQUESTED";
 
 export type {
   AssistantAccessScope,
@@ -22,12 +25,13 @@ export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
   SUBMITTED: "Submitted",
+  REVISION_REQUESTED: "Revision Requested",
   MANGAKA_APPROVED: "Mangaka Approved",
+  EDITOR_APPROVED: "Editor Approved",
+  COMPLETED: "Completed",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
-  COMPLETED: "Completed",
   OPEN: "To Do",
-  REVISION_REQUESTED: "Revision Requested",
 };
 
 export type TaskActionKind =
@@ -62,7 +66,10 @@ export function primaryActionForTaskStatus(status: StudioTaskStatus): TaskAction
     case "REVISION_REQUESTED":
       return "FIX_AND_RESUBMIT";
     case "MANGAKA_APPROVED":
+    case "EDITOR_APPROVED":
       return "VIEW_APPROVED";
+    case "COMPLETED":
+      return "VIEW_COMPLETED";
     case "REJECTED":
       return "VIEW_REASON";
     default:

@@ -1,4 +1,4 @@
-﻿import type { StudioTaskStatus } from "@/entities/series/model/studio-types";
+import type { StudioTaskStatus } from "@/entities/series/model/studio-types";
 
 export type AssistantAccessScope = "FULL_SERIES_ASSISTANT" | "TASK_ONLY_ASSISTANT";
 
@@ -35,6 +35,7 @@ export type AssistantSubmission = {
   taskId: string;
   chapterId?: string;
   assistantId: string;
+  assistantName?: string;
   version: number;
   versionLabel: string;
   fileKey?: string;

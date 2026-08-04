@@ -69,34 +69,49 @@ export const PAGE_STATUS_LABEL: Record<PageStatus, string> = {
 // StudioTask
 // ---------------------------------------------------------------------------
 
+// Sprint 1.3 — task lifecycle is now
+//   TODO → IN_PROGRESS → SUBMITTED → MANGAKA_APPROVED → EDITOR_APPROVED → COMPLETED
+// Only REJECTED / CANCELLED short-circuit; MANGAKA_APPROVED is no longer
+// the final terminal status because the editor has to confirm the submission
+// for earnings to be cut and the page to be reassigned.
 export const STUDIO_TASK_STATUSES = [
   "TODO",
   "IN_PROGRESS",
   "SUBMITTED",
   "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
+  "EDITOR_APPROVED",
+  "COMPLETED",
   "REJECTED",
   "CANCELLED",
 ] as const;
 
 export type StudioTaskStatusV2 = (typeof STUDIO_TASK_STATUSES)[number];
 
-export type TaskStatusLabelKey = StudioTaskStatusV2 | "COMPLETED" | "OPEN" | "REVISION_REQUESTED";
+export type TaskStatusLabelKey =
+  | StudioTaskStatusV2
+  | "OPEN"
+  | "REVISION_REQUESTED";
 
 export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
   SUBMITTED: "Submitted",
+  REVISION_REQUESTED: "Revision Requested",
   MANGAKA_APPROVED: "Mangaka Approved",
+  EDITOR_APPROVED: "Editor Approved",
+  COMPLETED: "Completed",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
-  COMPLETED: "Completed",
   OPEN: "To Do",
-  REVISION_REQUESTED: "Revision Requested",
 };
 
-/** Task is considered "done" (eligible for earning) */
-export const TASK_DONE_STATUSES = new Set(["MANGAKA_APPROVED"]);
+/**
+ * Task is "done" once the editor has confirmed the submission. The legacy
+ * `MANGAKA_APPROVED`-only signal is no longer sufficient because the page
+ * can still be reassigned before the editor approves.
+ */
+export const TASK_DONE_STATUSES = new Set(["COMPLETED", "EDITOR_APPROVED"]);
 
 /** Task is in an active/pending state (still needs work) */
 export const TASK_ACTIVE_STATUSES = new Set([
@@ -105,10 +120,16 @@ export const TASK_ACTIVE_STATUSES = new Set([
   "SUBMITTED",
   "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
+  "EDITOR_APPROVED",
 ]);
 
-/** Task is terminal and cannot change */
-export const TASK_TERMINAL_STATUSES = new Set(["MANGAKA_APPROVED", "REJECTED", "CANCELLED"]);
+/** Task is terminal and cannot change. Mirrors the backend guard in
+ * `page-assignment.service.ts → PAGE_TASK_TERMINAL_STATUSES`. */
+export const TASK_TERMINAL_STATUSES = new Set([
+  "COMPLETED",
+  "REJECTED",
+  "CANCELLED",
+]);
 
 // ---------------------------------------------------------------------------
 // Submission

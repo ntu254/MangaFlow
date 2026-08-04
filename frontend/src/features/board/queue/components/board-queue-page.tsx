@@ -53,7 +53,7 @@ export function BoardQueuePage() {
   const [page, setPage] = useState(1);
 
   const boardItems = useMemo(
-    () => (items ?? []).filter((i): i is BoardQueueItem => i.seriesStatus !== "AT_RISK"),
+    () => (items ?? []).filter((i): i is BoardQueueItem => i.riskStatus !== "AT_RISK"),
     [items],
   );
 

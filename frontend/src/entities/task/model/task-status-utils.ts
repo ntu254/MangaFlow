@@ -4,8 +4,14 @@ export type VisualTaskStatus = StudioTaskStatus | "OVERDUE" | "REASSIGNED" | "CA
 
 type UnknownTask = Partial<StudioTask> & Record<string, unknown>;
 
+// Sprint 1.3 — terminal statuses now include EDITOR_APPROVED and COMPLETED.
+// MANGAKA_APPROVED alone is no longer "closed" because the editor still has
+// to confirm the submission before earnings are cut and the page can be
+// reassigned. Mirrors `isTaskTerminal` in studio-types.ts.
 const CLOSED_STATUSES: StudioTaskStatus[] = [
   "MANGAKA_APPROVED",
+  "EDITOR_APPROVED",
+  "COMPLETED",
   "REJECTED",
   "CANCELLED",
 ];

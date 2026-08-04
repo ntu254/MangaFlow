@@ -1,4 +1,4 @@
-import { chapterKeys, seriesKeys, studioKeys } from "@/entities/series";
+import { chapterKeys, seriesKeys, studioKeys } from "@/entities/series/model/series-types";
 
 /**
  * Pure query-key sets for Studio mutation cache invalidation.
@@ -35,6 +35,7 @@ export function submissionReviewInvalidations(scope: SubmissionReviewScope) {
     keys.push(studioKeys.task(scope.taskId));
   }
   if (scope.chapterId) {
+    keys.push(chapterKeys.detail(scope.chapterId));
     keys.push(chapterKeys.readiness(scope.chapterId));
     keys.push(chapterKeys.pages(scope.chapterId));
   }
@@ -64,6 +65,7 @@ export function pageAssignmentInvalidations(scope: PageAssignmentScope) {
   const keys: unknown[] = [studioKeys.all];
   if (scope.chapterId) {
     keys.push(chapterKeys.detail(scope.chapterId));
+    keys.push(chapterKeys.readiness(scope.chapterId));
     keys.push(chapterKeys.pages(scope.chapterId));
   }
   if (scope.seriesId) {

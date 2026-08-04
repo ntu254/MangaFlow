@@ -20,8 +20,11 @@ function riskFromScore(score: number): RiskLevel {
   return score < 3.5 ? "CRITICAL" : "HIGH";
 }
 
+// Sprint 1.2 — the at-risk signal is now the boolean `atRisk` flag returned
+// from the ranking pipeline. The previous `status === "AT_RISK"` sentinel
+// is no longer emitted by the backend (risk now lives on Series.riskStatus).
 export function isRankingAtRisk(ranking: SeriesRanking) {
-  return ranking.atRisk === true || ranking.status === "AT_RISK";
+  return ranking.atRisk === true;
 }
 
 export function mapRankingToAtRiskReview(ranking: SeriesRanking): AtRiskReview {

@@ -118,7 +118,11 @@ function usePageImageUrl(page: ChapterPage | undefined) {
       const whitened = page.metadata?.aiWhitened;
       if (whitened?.fileKey) {
         try {
-          const fresh = await filesApi.presignDownload(whitened.fileKey);
+          const fresh = await filesApi.presignDownload({
+            key: whitened.fileKey,
+            resourceType: "PAGE",
+            resourceId: page.id,
+          });
           if (!cancelled) setUrl(fresh.publicUrl ?? fresh.downloadUrl);
           return;
         } catch {
@@ -132,7 +136,11 @@ function usePageImageUrl(page: ChapterPage | undefined) {
 
       if (page.fileKey) {
         try {
-          const fresh = await filesApi.presignDownload(page.fileKey);
+          const fresh = await filesApi.presignDownload({
+            key: page.fileKey,
+            resourceType: "PAGE",
+            resourceId: page.id,
+          });
           if (!cancelled) setUrl(fresh.publicUrl ?? fresh.downloadUrl);
           return;
         } catch {
@@ -159,6 +167,7 @@ type Props = {
   page: ChapterPage | undefined;
   regions: StudioRegion[];
   comments: StudioComment[];
+  taskPageIds?: Set<string>;
   tool: StudioTool;
   selection: StudioSelection;
   onSelect: (sel: StudioSelection) => void;
@@ -177,6 +186,7 @@ export default function KonvaPageCanvas({
   page,
   regions,
   comments,
+  taskPageIds,
   tool,
   selection,
   onSelect,
@@ -497,8 +507,8 @@ export default function KonvaPageCanvas({
                     width={170}
                   />
                 </Group>
-                {/* Task badge */}
-                {r.taskId ? (
+                {/* Task badge: shown when the page has any task (region.taskId is legacy-only) */}
+                {taskPageIds?.has(r.pageId) ? (
                   <Group x={r.x + r.width - 36} y={r.y + 8} listening={false}>
                     <Rect width={32} height={20} fill="#0f172a" cornerRadius={10} />
                     <Text

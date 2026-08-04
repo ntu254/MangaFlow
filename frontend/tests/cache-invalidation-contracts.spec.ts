@@ -37,6 +37,7 @@ test.describe("Studio mutation cache invalidation", () => {
     expect(includesKey(keys, ["submissions", "byTask", "task-1"])).toBe(true);
     expect(includesKey(keys, ["submissions", "task", "task-1"])).toBe(true);
     expect(includesKey(keys, ["series", "detail", "series-1", "chapters"])).toBe(true);
+    expect(includesKey(keys, ["chapters", "detail", "chapter-1"])).toBe(true);
     expect(includesKey(keys, ["chapters", "detail", "chapter-1", "readiness"])).toBe(true);
     expect(includesKey(keys, ["chapters", "detail", "chapter-1", "pages"])).toBe(true);
   });
@@ -52,6 +53,7 @@ test.describe("Studio mutation cache invalidation", () => {
     const keys = pageAssignmentInvalidations({ chapterId: "chapter-1", seriesId: "series-1" });
     expect(keys).toContainEqual(["studio"]);
     expect(includesKey(keys, ["chapters", "detail", "chapter-1"])).toBe(true);
+    expect(includesKey(keys, ["chapters", "detail", "chapter-1", "readiness"])).toBe(true);
     expect(includesKey(keys, ["chapters", "detail", "chapter-1", "pages"])).toBe(true);
     expect(includesKey(keys, ["series", "detail", "series-1", "chapters"])).toBe(true);
   });
@@ -70,12 +72,15 @@ test.describe("Board mutation cache invalidation", () => {
     expect(includesKey(keys, ["series", "detail", "series-1"])).toBe(true);
     expect(includesKey(keys, ["series", "detail", "series-1", "chapters"])).toBe(true);
     expect(includesKey(keys, ["series", "mine"])).toBe(true);
+    expect(includesKey(keys, ["submissions", "editorReviewQueue"])).toBe(true);
+    expect(includesKey(keys, ["submissions", "mangakaReviewQueue", {}])).toBe(true);
   });
 
-  test("ranking import refreshes ranking list, periods, and the board queue", () => {
+  test("ranking import refreshes ranking list, periods, series, and the board queue", () => {
     const keys = rankingImportInvalidations();
     expect(keys).toContainEqual(["rankings"]);
     expect(includesKey(keys, ["rankings", "periods"])).toBe(true);
+    expect(keys).toContainEqual(["series"]);
     expect(includesKey(keys, ["board", "queue"])).toBe(true);
     expect(includesKey(keys, ["board", "decisions"])).toBe(true);
   });

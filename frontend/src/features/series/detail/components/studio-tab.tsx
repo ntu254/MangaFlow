@@ -37,6 +37,7 @@ import {
   type StudioTool,
 } from "@/entities/series/model/studio-types";
 import {
+  assistantVisiblePageIds,
   canResolveStudioComment,
   filterStudioChaptersForRole,
   filterStudioCommentsForRole,
@@ -151,9 +152,13 @@ export function StudioTab({
     () => filterStudioChaptersForRole(chapters, tasks, permissions, user.id),
     [chapters, tasks, permissions, user.id],
   );
+  const visiblePageIds = useMemo(
+    () => assistantVisiblePageIds(chapters, tasks, user.id),
+    [chapters, tasks, user.id],
+  );
   const regions = useMemo(
-    () => filterStudioRegionsForRole(allRegionsRaw, tasks, permissions, user.id),
-    [allRegionsRaw, tasks, permissions, user.id],
+    () => filterStudioRegionsForRole(allRegionsRaw, tasks, permissions, user.id, visiblePageIds),
+    [allRegionsRaw, tasks, permissions, user.id, visiblePageIds],
   );
   const comments = useMemo(
     () => filterStudioCommentsForRole(allCommentsRaw, tasks, permissions),
@@ -359,9 +364,6 @@ export function StudioTab({
   const { data: selectedTaskSubmissions = [] } = useTaskSubmissionsQuery(selectedTask?.id ?? "");
   const selectedTaskSubmissionState = selectedTask
     ? deriveTaskStudioSubmissionState(selectedTask, selectedTaskSubmissions)
-    : undefined;
-  const selectedRegionLinkedTask = selectedRegion?.taskId
-    ? tasks.find((t) => t.id === selectedRegion.taskId)
     : undefined;
   const chapterReviewLocked = chapter?.status === "TANTOU_REVIEW";
   const canCreateTask =
@@ -573,6 +575,7 @@ export function StudioTab({
                   page={page}
                   regions={regions}
                   comments={comments}
+                  taskPageIds={new Set(tasks.map((task) => task.pageId))}
                   tool={tool}
                   selection={selection}
                   onSelect={setSelection}
@@ -640,11 +643,10 @@ export function StudioTab({
               canSubmitWork={canSubmitSelectedTask}
               submitWorkLabel={submitWorkLabel}
               onSubmitWork={() => {
-                const targetTask = selectedTask || selectedRegionLinkedTask;
-                if (targetTask) {
+                if (selectedTask) {
                   navigate({
                     to: "/app/assistant/tasks/$taskId/studio",
-                    params: { taskId: targetTask.id },
+                    params: { taskId: selectedTask.id },
                   });
                 }
               }}
@@ -682,6 +684,7 @@ export function StudioTab({
           regions={regions}
           tasks={tasks}
           comments={comments}
+          onSelectTask={(taskId) => setSelection({ kind: "task", taskId })}
           onCreateTask={() => {
             if (!canCreateTask) return;
             setTaskDialogOpen(true);
@@ -693,27 +696,42 @@ export function StudioTab({
               return false;
             }
             if (!chapter || !page) return false;
-            const linkedTask =
-              selection.kind === "task"
-                ? tasks.find((task) => task.id === selection.taskId)
-                : selectedRegionLinkedTask;
+            const selectedComment =
+              selection.kind === "comment"
+                ? comments.find((comment) => comment.id === selection.commentId)
+                : undefined;
             const target =
-              selection.kind === "region" && selectedRegion
+              selection.kind === "task" && selectedTask
                 ? {
-                    targetType: "REGION" as const,
-                    targetId: selectedRegion.id,
-                    regionId: selectedRegion.id,
+                    targetType: "TASK" as const,
+                    targetId: selectedTask.id,
+                    taskId: selectedTask.id,
                   }
-                : linkedTask
+                : selection.kind === "region" && selectedRegion
                   ? {
-                      targetType: "TASK" as const,
-                      targetId: linkedTask.id,
-                      taskId: linkedTask.id,
+                      targetType: "REGION" as const,
+                      targetId: selectedRegion.id,
+                      regionId: selectedRegion.id,
                     }
-                  : {
-                      targetType: "PAGE" as const,
-                      targetId: page.id,
-                    };
+                  : selectedComment?.targetType && selectedComment.targetId
+                    ? {
+                        targetType: selectedComment.targetType as
+                          | "TASK"
+                          | "REGION"
+                          | "PAGE"
+                          | "CHAPTER",
+                        targetId: selectedComment.targetId,
+                        ...(selectedComment.taskId
+                          ? { taskId: selectedComment.taskId }
+                          : {}),
+                        ...(selectedComment.regionId
+                          ? { regionId: selectedComment.regionId }
+                          : {}),
+                      }
+                    : {
+                        targetType: "PAGE" as const,
+                        targetId: page.id,
+                      };
             try {
               await createCommentMutation.mutateAsync({
                 ...target,

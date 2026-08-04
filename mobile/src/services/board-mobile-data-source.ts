@@ -5,61 +5,79 @@ import { z } from "zod";
 // Board detail reads and canonical vote command. Mobile sends expectedVersion
 // for optimistic concurrency; it never computes tally/quorum/result.
 
-export interface BoardActionDescriptor {
-  action: string;
-  enabled: boolean;
-  disabledReason: string | null;
-  requiresConfirmation: boolean;
-  requiresReason: boolean;
-}
+const boardActionDescriptorSchema = z.object({
+  action: z.string(),
+  enabled: z.boolean(),
+  disabledReason: z.string().nullable(),
+  requiresConfirmation: z.boolean(),
+  requiresReason: z.boolean(),
+});
+export type BoardActionDescriptor = z.infer<typeof boardActionDescriptorSchema>;
 
-export interface BoardSessionDetail {
-  session: {
-    id: string;
-    title: string;
-    status: string;
-    version: number | null;
-    proposalId: string | null;
-    proposalVersionId?: string | null;
-    reVoteOfSessionId: string | null;
-    isReVote: boolean;
-    votingRound: number;
-    tiePolicy: "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
-    tieResolution: "PENDING" | "APPROVED" | "REJECTED" | "RETURNED_TO_BOARD";
-    scheduledFor?: string | null;
-    closesAt?: string | null;
-  };
-  proposal: {
-    id: string;
-    title: string;
-    status: string;
-    version?: string | number | null;
-    editorRecommendation?: string | null;
-    requestedPublicationType?: string | null;
-  } | null;
-  tally: {
-    approve: number;
-    reject: number;
-    total: number;
-    quorum: number;
-    eligible: number;
-    canFinalize: boolean;
-  };
-  myVote: { decision: string | null } | null;
-  currentUserVote?: { decision: string | null; note?: string | null } | null;
-  previousRound?: {
-    id: string;
-    status: string;
-    proposalVersionId?: string | null;
-  } | null;
-  notes?: Array<{
-    id: string;
-    authorName?: string;
-    text: string;
-    createdAt?: string;
-  }>;
-  actions: BoardActionDescriptor[];
-}
+// The shape mobile actually trusts for optimistic concurrency (expectedVersion
+// comes from session.version) and Chair finalize eligibility (tally). This is
+// parsed, not just type-asserted, so a contract drift fails closed with a
+// retryable error instead of handing a bad version/tally to a vote or close.
+const boardSessionDetailSchema = z.object({
+  session: z.object({
+    id: z.string(),
+    title: z.string(),
+    status: z.string(),
+    version: z.number().nullable(),
+    proposalId: z.string().nullable(),
+    proposalVersionId: z.string().nullable().optional(),
+    reVoteOfSessionId: z.string().nullable(),
+    isReVote: z.boolean(),
+    votingRound: z.number(),
+    tiePolicy: z.enum(["CHAIR_DECIDES", "REJECT", "RETURN_TO_BOARD"]),
+    tieResolution: z.enum(["PENDING", "APPROVED", "REJECTED", "RETURNED_TO_BOARD"]),
+    scheduledFor: z.string().nullable().optional(),
+    closesAt: z.string().nullable().optional(),
+  }),
+  proposal: z
+    .object({
+      id: z.string(),
+      title: z.string(),
+      status: z.string(),
+      version: z.union([z.string(), z.number()]).nullable().optional(),
+      editorRecommendation: z.string().nullable().optional(),
+      requestedPublicationType: z.string().nullable().optional(),
+    })
+    .nullable(),
+  tally: z.object({
+    approve: z.number(),
+    reject: z.number(),
+    total: z.number(),
+    quorum: z.number(),
+    eligible: z.number(),
+    canFinalize: z.boolean(),
+  }),
+  myVote: z.object({ decision: z.string().nullable() }).nullable(),
+  currentUserVote: z
+    .object({ decision: z.string().nullable(), note: z.string().nullable().optional() })
+    .nullable()
+    .optional(),
+  previousRound: z
+    .object({
+      id: z.string(),
+      status: z.string(),
+      proposalVersionId: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  notes: z
+    .array(
+      z.object({
+        id: z.string(),
+        authorName: z.string().optional(),
+        text: z.string(),
+        createdAt: z.string().optional(),
+      }),
+    )
+    .optional(),
+  actions: z.array(boardActionDescriptorSchema),
+});
+export type BoardSessionDetail = z.infer<typeof boardSessionDetailSchema>;
 
 export type BoardVoteValue = "APPROVE" | "REJECT";
 
@@ -100,9 +118,9 @@ export async function getBoardSessionDetail(
   sessionId: string,
 ): Promise<BoardSessionDetail> {
   const [detail, rawSession] = await Promise.all([
-    mobileApi.request<BoardSessionDetail>(
-      `/board/sessions/${sessionId}/detail`,
-    ),
+    mobileApi
+      .request(`/board/sessions/${sessionId}/detail`)
+      .then((value) => boardSessionDetailSchema.parse(value)),
     mobileApi
       .request(`/voting-sessions/${sessionId}`)
       .then((value) => rawBoardSessionSchema.parse(value)),

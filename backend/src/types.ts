@@ -156,6 +156,8 @@ export type StudioTaskStatus =
   | "SUBMITTED"
   | "REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
+  | "EDITOR_APPROVED"
+  | "COMPLETED"
   | "REJECTED"
   | "CANCELLED";
 
@@ -168,7 +170,9 @@ export type TaskAction =
   | "START"
   | "CANCEL"
   | "REOPEN"
-  | "REASSIGN";
+  | "REASSIGN"
+  | "EDITOR_APPROVE"
+  | "COMPLETE";
 
 export const TASK_ACTIONS: readonly TaskAction[] = [
   "ACCEPT",
@@ -177,6 +181,8 @@ export const TASK_ACTIONS: readonly TaskAction[] = [
   "CANCEL",
   "REOPEN",
   "REASSIGN",
+  "EDITOR_APPROVE",
+  "COMPLETE",
 ];
 
 // ---------------------------------------------------------------------------

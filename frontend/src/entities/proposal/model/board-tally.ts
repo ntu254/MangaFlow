@@ -14,7 +14,8 @@ export function evaluateBoardTally(
   quorum = Math.ceil(BOARD_TOTAL / 2),
   eligibleVoterCount = BOARD_TOTAL,
 ): TallyResult {
-  const validVotes = votes.filter(
+  const safeVotes = votes ?? [];
+  const validVotes = safeVotes.filter(
     (vote) => vote.decision === "APPROVE" || vote.decision === "REJECT",
   );
   const approve = validVotes
@@ -66,6 +67,6 @@ export function evaluateBoardTally(
     reject,
     total,
     status: null,
-      reason: `Waiting for more votes (${total}/${eligibleVoterCount}).`,
+    reason: `Waiting for more votes (${total}/${eligibleVoterCount}).`,
   };
 }

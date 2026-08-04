@@ -2,17 +2,19 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
-  ArrowRight,
+  BookOpen,
+  Clock,
   Download,
-  ExternalLink,
   Eye,
   FileText,
-  GitCompare,
+  Layers,
   MessageSquare,
-  MoreVertical,
   Pencil,
-  Send,
+  ShieldCheck,
+  Sparkles,
   Upload,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import type {
@@ -24,7 +26,6 @@ import { AUDIENCE_LABEL } from "@/entities/proposal/model/proposal-types";
 import { ProposalStatusPill } from "@/entities/proposal";
 import { ResubmitDialog } from "@/features/proposals";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDate, formatDateTime } from "@/shared/lib/format-date";
 import { checkAction } from "@/entities/proposal";
 import type { ProductionSeries } from "@/entities/series/model/series-types";
@@ -34,6 +35,19 @@ import { cn } from "@/shared/lib/cn";
 import { SortableHeader } from "@/shared/ui";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 import { MaterialDownloadLink } from "./material-file-controls";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ResolvedImage } from "@/shared/ui";
+import { isRenderableFileUrl } from "@/shared/lib/file-url";
+
+type ProposalTabKey = "overview" | "materials" | "history";
+
+type PreviewItemDef = {
+  fileName: string;
+  fileKey?: string | null;
+  fileUrl?: string | null;
+  version?: number;
+  kindLabel?: string;
+};
 
 export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   const user = useAuth((s) => s.user);
@@ -41,7 +55,9 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   const { data: tantouEditor } = useTantouEditorQuery(series.id);
   const actionMutation = useProposalActionMutation(series.proposalId ?? "", series.id);
   const [resubmitOpen, setResubmitOpen] = useState(false);
-  const [showAllFeedback, setShowAllFeedback] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProposalTabKey>("overview");
+  const [previewItem, setPreviewItem] = useState<PreviewItemDef | null>(null);
 
   if (!user) return null;
 
@@ -49,29 +65,15 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
     return (
       <EmptyState
         title="Series not linked to a proposal"
-        description="This series is not linked to a proposal. A proposal can be created or linked in a separate workflow."
-        action={
-          <span className="text-xs text-muted-foreground">
-            Creating or linking a proposal will be available in the next story.
-          </span>
-        }
+        description="This series is not linked to an active editorial proposal. A proposal can be created or linked in a separate workflow."
       />
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-5">
-        <div className="grid gap-5 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-xl border border-border bg-card" />
-          ))}
-        </div>
-        <div className="grid gap-5 lg:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="h-40 animate-pulse rounded-xl border border-border bg-card" />
-          ))}
-        </div>
+      <div className="space-y-6">
+        <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
       </div>
     );
   }
@@ -86,8 +88,8 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
         description={msg}
         action={
           is403 || is404 ? (
-            <Link to="/app/submissions" className="text-xs underline">
-              View proposals list
+            <Link to="/app/submissions" className="text-xs underline font-semibold">
+              View all submissions
             </Link>
           ) : null
         }
@@ -96,57 +98,71 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   }
 
   if (!proposal) {
-    return (
-      <EmptyState
-        title="Series not linked to a proposal"
-        description="This series is not linked to a proposal. A proposal can be created or linked in a separate workflow."
-        action={
-          <span className="text-xs text-muted-foreground">
-            Creating or linking a proposal will be available in the next story.
-          </span>
-        }
-      />
-    );
+    return <EmptyState title="Proposal details unavailable" description="Proposal record could not be found." />;
   }
 
   const canResubmit = checkAction("RESUBMIT", user, proposal).ok;
   const canEdit = checkAction("EDIT", user, proposal).ok;
+  const latestVersion = (proposal.manuscripts ?? []).reduce((m, v) => Math.max(m, v.version), 1);
+  const feedbackEntries = buildFeedbackEntries(proposal);
+  const materialsCount = (proposal.manuscripts ?? []).length + (proposal.materials ?? []).length;
 
   return (
-    <div className="space-y-5">
-      {/* Row 1 — Status / Summary / Feedback */}
-      <div className="grid gap-5 lg:grid-cols-3">
-        <StatusCard
-          proposal={proposal}
-          canEdit={canEdit}
-          canResubmit={canResubmit}
-          onResubmit={() => setResubmitOpen(true)}
-          tantouEditor={tantouEditor}
-        />
-        <SummaryCard proposal={proposal} />
-        <RecentFeedbackCard
-          proposal={proposal}
-          onShowAll={() => setShowAllFeedback((v) => !v)}
-          showAll={showAllFeedback}
-        />
-      </div>
+    <div className="space-y-6">
+      {/* Unified Executive Proposal Workspace Card */}
+      <section className="rounded-2xl border border-border/80 bg-card shadow-2xs overflow-hidden">
+        {/* Sub-Tab Navigation Bar */}
+        <div className="flex flex-wrap items-center gap-1 border-b border-border/60 bg-muted/20 px-4 pt-3">
+          <TabButton
+            active={activeTab === "overview"}
+            onClick={() => setActiveTab("overview")}
+            icon={<BookOpen className="size-3.5" />}
+            label="Overview & Pitch Dossier"
+          />
+          <TabButton
+            active={activeTab === "materials"}
+            onClick={() => setActiveTab("materials")}
+            icon={<FileText className="size-3.5" />}
+            label="Creative Assets & Manuscripts"
+            count={materialsCount}
+          />
+          <TabButton
+            active={activeTab === "history"}
+            onClick={() => setActiveTab("history")}
+            icon={<Clock className="size-3.5" />}
+            label="Version Audit Trail"
+            count={(proposal.manuscripts ?? []).length}
+          />
+        </div>
 
-      {/* Row 2 — Creative materials / Version history */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <CreativeMaterialsTable proposal={proposal} />
-        <VersionHistoryTable proposal={proposal} />
-      </div>
+        {/* Sub-Tab Content View */}
+        <div className="p-5 md:p-6">
+          {activeTab === "overview" ? (
+            <OverviewAndPitchSection
+              proposal={proposal}
+              tantouEditor={tantouEditor}
+              canEdit={canEdit}
+              canResubmit={canResubmit}
+              onResubmit={() => setResubmitOpen(true)}
+              latestVersion={latestVersion}
+              advancedOpen={advancedOpen}
+              onToggleAdvanced={() => setAdvancedOpen((v) => !v)}
+            />
+          ) : activeTab === "materials" ? (
+            <CreativeMaterialsSection
+              proposal={proposal}
+              onPreview={(item) => setPreviewItem(item)}
+            />
+          ) : (
+            <VersionHistorySection
+              proposal={proposal}
+              onPreview={(item) => setPreviewItem(item)}
+            />
+          )}
+        </div>
+      </section>
 
-      {/* Row 3 — Quick actions */}
-      <QuickActionsGrid
-        proposal={proposal}
-        canEdit={canEdit}
-        canResubmit={canResubmit}
-        onResubmit={() => setResubmitOpen(true)}
-      />
-
-      {showAllFeedback ? <FullFeedbackPanel proposal={proposal} /> : null}
-
+      {/* Resubmit Modal Dialog */}
       <ResubmitDialog
         proposal={proposal}
         user={user}
@@ -154,209 +170,342 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
         onClose={() => setResubmitOpen(false)}
         onResubmit={(payload) => actionMutation.mutateAsync({ action: "RESUBMIT", payload })}
       />
+
+      {/* File Preview Dialog */}
+      <FilePreviewDialog
+        item={previewItem}
+        open={Boolean(previewItem)}
+        onClose={() => setPreviewItem(null)}
+      />
     </div>
   );
 }
 
-// ---------------- Section helpers ----------------
+// ---------------- Tab Button Component ----------------
 
-function SectionHeader({
-  index,
-  title,
-  action,
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
 }: {
-  index: number;
-  title: string;
-  action?: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count?: number;
 }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
-          {index}
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 rounded-t-xl px-4 py-2.5 text-xs font-semibold transition-all border-b-2",
+        active
+          ? "border-primary bg-card text-primary shadow-xs"
+          : "border-transparent text-muted-foreground hover:bg-card/50 hover:text-foreground",
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+      {count != null ? (
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[10px] font-bold",
+            active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+          )}
+        >
+          {count}
         </span>
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      ) : null}
+    </button>
+  );
+}
+
+// ---------------- Merged Tab 1: Overview & Pitch Section ----------------
+
+function OverviewAndPitchSection({
+  proposal,
+  tantouEditor,
+  canEdit,
+  canResubmit,
+  onResubmit,
+  latestVersion,
+  advancedOpen,
+  onToggleAdvanced,
+}: {
+  proposal: SeriesProposal;
+  tantouEditor?: TantouEditor | null;
+  canEdit: boolean;
+  canResubmit: boolean;
+  onResubmit: () => void;
+  latestVersion: number;
+  advancedOpen: boolean;
+  onToggleAdvanced: () => void;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      {/* Left Column (2 cols): Pitch Dossier */}
+      <div className="space-y-6 lg:col-span-2">
+        <SectionCard title="Editorial Pitch Dossier" icon={<Sparkles className="size-4 text-primary" />}>
+          {proposal.logline ? (
+            <div className="relative mb-5 overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-4 text-foreground/90">
+              <div className="absolute top-0 left-0 h-full w-1.5 bg-primary" />
+              <p className="text-xs font-bold uppercase tracking-wider text-primary mb-1">
+                Core Logline
+              </p>
+              <p className="text-sm font-medium leading-relaxed text-foreground">
+                {proposal.logline}
+              </p>
+            </div>
+          ) : null}
+
+          {proposal.hook ? (
+            <div className="mb-5 space-y-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Commercial Hook / Unique Selling Point
+              </h4>
+              <p className="text-xs leading-relaxed text-foreground/90 bg-muted/30 p-3 rounded-lg border border-border/50">
+                {proposal.hook}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Synopsis
+              </h4>
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90 bg-card p-4 rounded-xl border border-border/70 shadow-2xs">
+                {proposal.synopsis || "No synopsis provided."}
+              </p>
+            </div>
+
+            {proposal.mainCharacters ? (
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Character Profiles & Dynamics
+                </h4>
+                <div className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90 bg-card p-4 rounded-xl border border-border/70 shadow-2xs">
+                  {proposal.mainCharacters}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Advanced Production Details Accordion */}
+          {hasAdvancedDetails(proposal.advanced) ? (
+            <div className="mt-5 border-t border-border/70 pt-4">
+              <button
+                type="button"
+                onClick={onToggleAdvanced}
+                className="flex w-full items-center justify-between text-xs font-semibold text-foreground hover:text-primary transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Layers className="size-3.5 text-primary" /> Advanced Production & World Specs
+                </span>
+                {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              </button>
+
+              {advancedOpen ? (
+                <div className="mt-3 grid gap-3 text-xs md:grid-cols-2">
+                  <AdvBox label="World Setting" value={proposal.advanced?.worldSetting} />
+                  <AdvBox label="Series Direction" value={proposal.advanced?.seriesDirection} />
+                  <AdvBox label="Production Plan" value={proposal.advanced?.productionPlan} />
+                  <AdvBox label="Assistant Requirements" value={proposal.advanced?.assistantNeeds} />
+                  <AdvBox label="Comparable Titles" value={proposal.advanced?.comparableTitles} />
+                  <AdvBox label="AI Tool Disclosures" value={proposal.advanced?.aiDisclosure} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </SectionCard>
       </div>
-      {action}
+
+      {/* Right Column (1 col): Proposal Status & Feedback Feed */}
+      <div className="space-y-6 lg:col-span-1">
+        <ProposalOverviewCard
+          proposal={proposal}
+          tantouEditor={tantouEditor}
+          canEdit={canEdit}
+          canResubmit={canResubmit}
+          onResubmit={onResubmit}
+          latestVersion={latestVersion}
+        />
+        <FeedbackFeedCard proposal={proposal} />
+      </div>
     </div>
   );
 }
 
-function Card({ className, children }: { className?: string; children: React.ReactNode }) {
+// ---------------- Section Container ----------------
+
+function SectionCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <section className={cn("rounded-xl border border-border bg-card p-5", className)}>
+    <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs transition-all md:p-6">
+      <div className="mb-4 flex items-center justify-between gap-2 border-b border-border/50 pb-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="text-sm font-bold text-foreground">{title}</h3>
+        </div>
+      </div>
       {children}
     </section>
   );
 }
 
-// ---------------- 1. Status ----------------
+function AdvBox({ label, value }: { label: string; value?: string }) {
+  if (!value || !value.trim()) return null;
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+      <span className="text-[11px] font-bold text-muted-foreground">{label}</span>
+      <p className="mt-1 text-xs text-foreground/90 leading-normal">{value}</p>
+    </div>
+  );
+}
 
-function StatusCard({
+function hasAdvancedDetails(adv?: Record<string, string>): boolean {
+  if (!adv) return false;
+  return Object.values(adv).some((v) => v && String(v).trim().length > 0);
+}
+
+// ---------------- Proposal Overview & Status ----------------
+
+function ProposalOverviewCard({
   proposal,
+  tantouEditor,
   canEdit,
   canResubmit,
   onResubmit,
-  tantouEditor,
+  latestVersion,
 }: {
   proposal: SeriesProposal;
+  tantouEditor?: TantouEditor | null;
   canEdit: boolean;
   canResubmit: boolean;
   onResubmit: () => void;
-  tantouEditor?: TantouEditor | null;
+  latestVersion: number;
 }) {
-  const submitEvents = proposal.history.filter((h) => h.type === "SUBMIT" || h.type === "RESUBMIT");
+  const submitEvents = (proposal.history ?? []).filter((h) => h.type === "SUBMIT" || h.type === "RESUBMIT");
   const lastSubmit = submitEvents[submitEvents.length - 1];
-  const latestVersion = proposal.manuscripts.reduce((m, v) => Math.max(m, v.version), 0);
-  const status = proposal.status;
-  const alertMsg = STATUS_ALERT[status];
+  const editorName = tantouEditor?.userName ?? proposal.assignedEditorName;
+  const alertMsg = STATUS_ALERT[proposal.status];
 
   return (
-    <Card>
-      <SectionHeader index={1} title="Proposal Status" />
+    <SectionCard title="Proposal Overview & Status" icon={<ShieldCheck className="size-4 text-emerald-500" />}>
       <div className="space-y-4">
-        <ProposalStatusPill status={status} size="lg" />
-        <dl className="space-y-2 text-xs">
-          <Row label="Current version">v{latestVersion || 1}</Row>
-          <Row label="Submission date">
-            {lastSubmit ? formatDate(lastSubmit.createdAt) : "Not submitted"}
-          </Row>
-          <Row label="Reviewer">
-            {(tantouEditor?.userName ?? proposal.assignedEditorName) ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold uppercase">
-                  {initials(tantouEditor?.userName ?? proposal.assignedEditorName ?? "")}
+        {/* Status Badge & Version */}
+        <div className="flex items-center justify-between rounded-xl bg-muted/40 p-3 border border-border/60">
+          <span className="text-xs text-muted-foreground font-medium">Status</span>
+          <div className="flex items-center gap-1.5">
+            <ProposalStatusPill status={proposal.status} />
+            <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+              v{latestVersion}.0
+            </span>
+          </div>
+        </div>
+
+        {/* Metadata Details */}
+        <div className="space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Assigned Editor:</span>
+            <span className="font-semibold text-foreground">
+              {editorName ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold uppercase text-primary">
+                    {editorName.slice(0, 2).toUpperCase()}
+                  </span>
+                  {editorName}
                 </span>
-                {tantouEditor?.userName ?? proposal.assignedEditorName}
-              </span>
-            ) : (
-              "—"
-            )}
-          </Row>
-          <Row label="Last updated">{formatDateTime(proposal.updatedAt)}</Row>
-        </dl>
+              ) : (
+                "Unassigned"
+              )}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Submission Date:</span>
+            <span className="font-semibold text-foreground">
+              {lastSubmit ? formatDate(lastSubmit.createdAt) : "Not submitted"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Last Updated:</span>
+            <span className="font-semibold text-foreground">{formatDate(proposal.updatedAt)}</span>
+          </div>
+
+          <div className="flex items-start justify-between gap-2 border-t border-border/50 pt-2.5">
+            <span className="text-muted-foreground shrink-0">Genres:</span>
+            <span className="font-semibold text-foreground text-right">
+              {proposal.genres.join(", ") || "—"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Target Audience:</span>
+            <span className="font-semibold text-foreground">
+              {AUDIENCE_LABEL[proposal.targetAudience] ?? proposal.targetAudience}
+            </span>
+          </div>
+        </div>
 
         {alertMsg ? (
-          <div className="flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-2.5 text-[11px] text-orange-900">
-            <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+          <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <span>{alertMsg}</span>
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
+        {/* Primary Action Buttons */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
           {canEdit ? (
             <Link
               to="/app/submissions/$id"
               params={{ id: proposal.id }}
-              className="inline-flex items-center gap-1.5 rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:bg-foreground/90"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-2xs transition-all hover:bg-primary/90"
             >
-              <Pencil className="size-3.5" /> Edit proposal
+              <Pencil className="size-3.5" /> Edit Proposal Content
             </Link>
           ) : null}
           {canResubmit ? (
             <button
               type="button"
               onClick={onResubmit}
-              className="inline-flex items-center gap-1.5 rounded border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold hover:bg-muted shadow-2xs transition-all"
             >
-              <Upload className="size-3.5" /> Resubmit
+              <Upload className="size-3.5 text-primary" /> Resubmit Revision
             </button>
           ) : null}
           <Link
             to="/app/submissions/$id"
             params={{ id: proposal.id }}
-            className="inline-flex items-center gap-1.5 rounded border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold hover:bg-muted shadow-2xs transition-all"
           >
-            <Eye className="size-3.5" /> View details
+            <Eye className="size-3.5" /> View Submissions Dossier
           </Link>
         </div>
       </div>
-    </Card>
+    </SectionCard>
   );
 }
 
 const STATUS_ALERT: Partial<Record<ProposalStatus, string>> = {
-  CHANGES_REQUESTED: "Storyboard needs updating and resubmission.",
-  REJECTED: "Proposal has been rejected. See feedback for details.",
-  DRAFT: "Complete and submit to Editor.",
+  CHANGES_REQUESTED: "Editor requested revisions on your storyboard/manuscript.",
+  REJECTED: "Proposal has been rejected by Editorial. Review feedback below.",
+  DRAFT: "Draft created. Complete details and submit to Editor.",
 };
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-start gap-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-foreground">{children}</dd>
-    </div>
-  );
-}
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-// ---------------- 2. Summary ----------------
-
-function SummaryCard({ proposal }: { proposal: SeriesProposal }) {
-  const adv = proposal.advanced ?? {};
-  const advEntries = [
-    ["World setting", adv.worldSetting],
-    ["Series direction", adv.seriesDirection],
-    ["Production plan", adv.productionPlan],
-    ["Assistant needs", adv.assistantNeeds],
-    ["Comparable titles", adv.comparableTitles],
-    ["AI disclosure", adv.aiDisclosure],
-  ].filter(([, v]) => v && String(v).trim());
-
-  return (
-    <Card>
-      <SectionHeader index={2} title="Proposal Summary" />
-      <dl className="space-y-2.5 text-xs">
-        <SummaryRow label="Title">{proposal.title}</SummaryRow>
-        <SummaryRow label="Genre">{proposal.genres.join(", ") || "—"}</SummaryRow>
-        <SummaryRow label="Target audience">{AUDIENCE_LABEL[proposal.targetAudience]}</SummaryRow>
-        {proposal.logline ? <SummaryRow label="Logline">{proposal.logline}</SummaryRow> : null}
-        {proposal.hook ? (
-          <SummaryRow label="Hook / Selling point">{proposal.hook}</SummaryRow>
-        ) : null}
-        <SummaryRow label="Short synopsis">{proposal.synopsis || "—"}</SummaryRow>
-        {proposal.mainCharacters ? (
-          <SummaryRow label="Main characters">{proposal.mainCharacters}</SummaryRow>
-        ) : null}
-      </dl>
-      {advEntries.length > 0 ? (
-        <details className="mt-3 rounded border border-border bg-background">
-          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/60">
-            Advanced details
-          </summary>
-          <dl className="space-y-2 border-t border-border p-3 text-xs">
-            {advEntries.map(([label, value]) => (
-              <SummaryRow key={label as string} label={label as string}>
-                {value as string}
-              </SummaryRow>
-            ))}
-          </dl>
-        </details>
-      ) : null}
-    </Card>
-  );
-}
-
-function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,110px)_minmax(0,1fr)] items-start gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="whitespace-pre-wrap text-foreground/90">{children}</dd>
-    </div>
-  );
-}
-
-// ---------------- 3. Recent feedback ----------------
+// ---------------- Feedback Feed ----------------
 
 type FeedbackEntry = {
   id: string;
@@ -367,21 +516,25 @@ type FeedbackEntry = {
 };
 
 function buildFeedbackEntries(proposal: SeriesProposal): FeedbackEntry[] {
-  const fromEditor = proposal.requestedChanges.map((r) => ({
+  const requestedChanges = proposal.requestedChanges ?? [];
+  const votes = proposal.votes ?? [];
+
+  const fromEditor = requestedChanges.map((r) => ({
     id: `r-${r.id}`,
     source: "EDITOR" as const,
     authorName: r.editorName,
     createdAt: r.createdAt,
     body:
       r.comment ||
-      r.items
+      (r.items ?? [])
         .map((it) => it.text)
         .filter(Boolean)
         .join(" · ") ||
       "Editor requested changes.",
   }));
-  const fromBoard = proposal.votes
-    .filter((v) => v.comment && v.comment.trim())
+
+  const fromBoard = votes
+    .filter((v) => v && v.comment && v.comment.trim())
     .map((v) => ({
       id: `b-${v.voterId}-${v.createdAt}`,
       source: "BOARD" as const,
@@ -389,116 +542,50 @@ function buildFeedbackEntries(proposal: SeriesProposal): FeedbackEntry[] {
       createdAt: v.createdAt,
       body: v.comment!,
     }));
+
   return [...fromEditor, ...fromBoard].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
-function RecentFeedbackCard({
-  proposal,
-  showAll,
-  onShowAll,
-}: {
-  proposal: SeriesProposal;
-  showAll: boolean;
-  onShowAll: () => void;
-}) {
+function FeedbackFeedCard({ proposal }: { proposal: SeriesProposal }) {
   const entries = buildFeedbackEntries(proposal);
-  const recent = entries.slice(0, 3);
 
   return (
-    <Card>
-      <SectionHeader
-        index={3}
-        title="Recent Feedback"
-        action={
-          entries.length > 0 ? (
-            <button
-              type="button"
-              onClick={onShowAll}
-              className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
-            >
-              {showAll ? "Show less" : "View all"} <ArrowRight className="size-3" />
-            </button>
-          ) : null
-        }
-      />
-      {recent.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No feedback from Editor or Board yet.</p>
+    <SectionCard title="Editorial & Board Feedback" icon={<MessageSquare className="size-4 text-blue-500" />}>
+      {entries.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2">No feedback from Editor or Board yet.</p>
       ) : (
-        <ul className="space-y-3">
-          {recent.map((e) => (
-            <li
+        <div className="space-y-3">
+          {entries.map((e) => (
+            <div
               key={e.id}
-              className="space-y-1 border-b border-border pb-3 last:border-b-0 last:pb-0"
+              className="rounded-xl border border-border/70 bg-card p-3.5 shadow-2xs space-y-1.5"
             >
-              <div className="flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center justify-between text-xs">
                 <span className="inline-flex items-center gap-1.5">
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                      "rounded-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
                       e.source === "EDITOR"
-                        ? "bg-amber-100 text-amber-900"
-                        : "bg-indigo-100 text-indigo-900",
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                        : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20",
                     )}
                   >
                     {e.source}
                   </span>
                   <span className="font-semibold text-foreground">{e.authorName}</span>
                 </span>
-                <span className="text-muted-foreground">{formatDate(e.createdAt)}</span>
+                <span className="text-[11px] text-muted-foreground">{formatDate(e.createdAt)}</span>
               </div>
-              <p className="line-clamp-2 text-xs text-foreground/90">{e.body}</p>
-              <Link
-                to="/app/submissions/$id"
-                params={{ id: proposal.id }}
-                className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
-              >
-                View details <ArrowRight className="size-3" />
-              </Link>
-            </li>
+              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">{e.body}</p>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
-function FullFeedbackPanel({ proposal }: { proposal: SeriesProposal }) {
-  const entries = buildFeedbackEntries(proposal);
-  return (
-    <Card>
-      <SectionHeader index={3} title="All Feedback" />
-      {entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No feedback yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {entries.map((e) => (
-            <li key={e.id} className="rounded border border-border bg-background p-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="inline-flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-                      e.source === "EDITOR"
-                        ? "bg-amber-100 text-amber-900"
-                        : "bg-indigo-100 text-indigo-900",
-                    )}
-                  >
-                    {e.source}
-                  </span>
-                  <span className="font-semibold">{e.authorName}</span>
-                </span>
-                <span className="text-muted-foreground">{formatDateTime(e.createdAt)}</span>
-              </div>
-              <p className="mt-1.5 whitespace-pre-wrap text-sm text-foreground/90">{e.body}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
-// ---------------- 4. Creative materials ----------------
+// ---------------- Creative Materials Section ----------------
 
 type MaterialRowDef = {
   key: string;
@@ -519,160 +606,177 @@ const MATERIAL_ROWS: MaterialRowDef[] = [
   },
   {
     key: "manuscript",
-    label: "Sample manuscript",
+    label: "Sample Manuscript",
     kindLabel: "Manuscript",
     required: true,
     manuscripts: true,
   },
   {
     key: "character",
-    label: "Character sheet",
+    label: "Character Sheet",
     kindLabel: "Character Sheet",
     materialKind: "character",
   },
   {
     key: "reference",
-    label: "Reference materials",
+    label: "Reference Materials",
     kindLabel: "Reference",
     materialKind: "reference",
   },
 ];
 
-function CreativeMaterialsTable({ proposal }: { proposal: SeriesProposal }) {
-  const latestVersion = proposal.manuscripts.reduce((m, v) => Math.max(m, v.version), 0);
+function CreativeMaterialsSection({
+  proposal,
+  onPreview,
+}: {
+  proposal: SeriesProposal;
+  onPreview: (item: PreviewItemDef) => void;
+}) {
+  const manuscripts = proposal.manuscripts ?? [];
+  const materials = proposal.materials ?? [];
+  const latestVersion = manuscripts.reduce((m, v) => Math.max(m, v.version), 1);
 
   return (
-    <Card>
-      <SectionHeader index={4} title="Creative materials" />
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            <tr className="border-b border-border">
-              <th className="px-2 py-2">Type</th>
-              <th className="px-2 py-2">Filename</th>
-              <th className="px-2 py-2">Version</th>
-              <th className="px-2 py-2">Upload date</th>
-              <th className="px-2 py-2 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {MATERIAL_ROWS.map((def) => {
-              const items = def.manuscripts
-                ? proposal.manuscripts
-                    .slice()
-                    .sort((a, b) => b.version - a.version)
-                    .map((m) => ({
-                      id: m.id,
-                      name: m.fileName,
-                      version: m.version,
-                      uploadedAt: m.uploadedAt,
-                      url: m.fileUrl,
-                      isLatest: m.version === latestVersion,
-                    }))
-                : proposal.materials
-                    .filter((m) => m.kind === def.materialKind)
-                    .map((m) => ({
-                      id: m.id,
-                      name: m.fileName,
-                      version: undefined as number | undefined,
-                      uploadedAt: m.uploadedAt,
-                      url: m.fileUrl,
-                      isLatest: false,
-                    }));
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+          <tr>
+            <th className="px-3 py-2.5">Asset Type</th>
+            <th className="px-3 py-2.5">File Name</th>
+            <th className="px-3 py-2.5">Version</th>
+            <th className="px-3 py-2.5">Uploaded</th>
+            <th className="px-3 py-2.5 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/50">
+          {MATERIAL_ROWS.map((def) => {
+            const items = def.manuscripts
+              ? manuscripts
+                  .slice()
+                  .sort((a, b) => b.version - a.version)
+                  .map((m) => ({
+                    id: m.id,
+                    name: m.fileName,
+                    version: m.version,
+                    uploadedAt: m.uploadedAt,
+                    url: m.fileUrl,
+                    fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
+                    isLatest: m.version === latestVersion,
+                    kindLabel: def.kindLabel,
+                  }))
+              : materials
+                  .filter((m) => m.kind === def.materialKind)
+                  .map((m) => ({
+                    id: m.id,
+                    name: m.fileName,
+                    version: undefined as number | undefined,
+                    uploadedAt: m.uploadedAt,
+                    url: m.fileUrl,
+                    fileKey: m.fileKey,
+                    isLatest: false,
+                    kindLabel: def.kindLabel,
+                  }));
 
-              if (items.length === 0) {
-                return (
-                  <tr key={def.key} className="border-b border-border/60 last:border-b-0">
-                    <td className="px-2 py-2.5 align-top">
-                      <MaterialLabel label={def.label} required={def.required} />
-                    </td>
-                    <td className="px-2 py-2.5 text-muted-foreground" colSpan={3}>
-                      Not uploaded
-                    </td>
-                    <td className="px-2 py-2.5 text-right text-muted-foreground">—</td>
-                  </tr>
-                );
-              }
-
-              return items.map((it, idx) => (
-                <tr key={it.id} className="border-b border-border/60 last:border-b-0">
-                  <td className="px-2 py-2.5 align-top">
-                    {idx === 0 ? <MaterialLabel label={def.label} required={def.required} /> : null}
+            if (items.length === 0) {
+              return (
+                <tr key={def.key} className="hover:bg-muted/30">
+                  <td className="px-3 py-3 font-semibold text-foreground">
+                    {def.label}
+                    {def.required ? (
+                      <span className="ml-1.5 text-[10px] font-bold text-rose-500">(Required)</span>
+                    ) : null}
                   </td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate font-medium">{it.name}</span>
-                    </div>
-                    <div className="mt-0.5 text-[10px] text-muted-foreground">{def.kindLabel}</div>
+                  <td className="px-3 py-3 text-muted-foreground italic" colSpan={3}>
+                    Not uploaded
                   </td>
-                  <td className="px-2 py-2.5">
-                    {it.version != null ? (
-                      <span
-                        className={cn(
-                          "inline-flex items-center rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold",
-                          it.isLatest && "border-emerald-300 bg-emerald-50 text-emerald-900",
-                        )}
-                      >
-                        v{it.version}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2.5 text-muted-foreground">{formatDate(it.uploadedAt)}</td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex items-center justify-end gap-1">
-                      <a
-                        href={it.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-accent hover:bg-muted"
-                      >
-                        <Eye className="size-3" /> View
-                      </a>
-                      <a
-                        href={it.url}
-                        download
-                        className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[11px] hover:bg-muted"
-                      >
-                        <Download className="size-3" /> Download
-                      </a>
-                      <button
-                        type="button"
-                        disabled
-                        className="inline-flex cursor-not-allowed items-center rounded p-1 text-muted-foreground opacity-50"
-                        title="More options (coming soon)"
-                      >
-                        <MoreVertical className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
+                  <td className="px-3 py-3 text-right text-muted-foreground">—</td>
                 </tr>
-              ));
-            })}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  );
-}
+              );
+            }
 
-function MaterialLabel({ label, required }: { label: string; required?: boolean }) {
-  return (
-    <div>
-      <p className="font-semibold text-foreground">{label}</p>
-      {required ? <p className="text-[10px] font-semibold text-rose-600">(Required)</p> : null}
+            return items.map((it, idx) => (
+              <tr key={it.id} className="hover:bg-muted/30">
+                <td className="px-3 py-3 align-top">
+                  {idx === 0 ? (
+                    <div>
+                      <span className="font-semibold text-foreground">{def.label}</span>
+                      {def.required ? (
+                        <span className="ml-1.5 text-[10px] font-bold text-rose-500">(Required)</span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="size-3.5 shrink-0 text-primary" />
+                    <span className="font-medium text-foreground">{it.name}</span>
+                  </div>
+                </td>
+                <td className="px-3 py-3">
+                  {it.version != null ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold",
+                        it.isLatest
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "border-border bg-muted text-muted-foreground",
+                      )}
+                    >
+                      v{it.version}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-muted-foreground">{formatDate(it.uploadedAt)}</td>
+                <td className="px-3 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onPreview({
+                          fileName: it.name,
+                          fileKey: it.fileKey,
+                          fileUrl: it.url,
+                          version: it.version,
+                          kindLabel: it.kindLabel,
+                        })
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-muted shadow-2xs transition-all"
+                    >
+                      <Eye className="size-3 text-primary" /> View Preview
+                    </button>
+                    <MaterialDownloadLink
+                      fileKey={it.fileKey}
+                      fallbackUrl={it.url}
+                      fileName={it.name}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-muted shadow-2xs transition-all"
+                    >
+                      <Download className="size-3" /> Download
+                    </MaterialDownloadLink>
+                  </div>
+                </td>
+              </tr>
+            ));
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-// ---------------- 5. Version history ----------------
+// ---------------- Version History Section ----------------
 
-function VersionHistoryTable({ proposal }: { proposal: SeriesProposal }) {
-  const baseVersions = proposal.manuscripts.slice().sort((a, b) => b.version - a.version);
-  const submitEvents = proposal.history.filter((h) => h.type === "SUBMIT" || h.type === "RESUBMIT");
-  const latest = baseVersions[0]?.version ?? 0;
+function VersionHistorySection({
+  proposal,
+  onPreview,
+}: {
+  proposal: SeriesProposal;
+  onPreview: (item: PreviewItemDef) => void;
+}) {
+  const manuscripts = proposal.manuscripts ?? [];
+  const baseVersions = manuscripts.slice().sort((a, b) => b.version - a.version);
+
   const {
     sorted: versions,
     sortKey,
@@ -688,16 +792,15 @@ function VersionHistoryTable({ proposal }: { proposal: SeriesProposal }) {
   );
 
   return (
-    <Card>
-      <SectionHeader index={5} title="Version History" />
+    <div>
       {versions.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No versions yet.</p>
+        <p className="text-xs text-muted-foreground py-4 text-center">No version history records found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              <tr className="border-b border-border">
-                <th className="px-2 py-2">
+            <thead className="text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+              <tr>
+                <th className="px-3 py-2.5">
                   <SortableHeader
                     label="Version"
                     sortKey="version"
@@ -706,207 +809,142 @@ function VersionHistoryTable({ proposal }: { proposal: SeriesProposal }) {
                     onSort={toggleSort}
                   />
                 </th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2">
+                <th className="px-3 py-2.5">File Name</th>
+                <th className="px-3 py-2.5">File Size</th>
+                <th className="px-3 py-2.5">
                   <SortableHeader
-                    label="Submitted at"
+                    label="Uploaded Date"
                     sortKey="uploadedAt"
                     activeSortKey={sortKey}
                     direction={sortDirection}
                     onSort={toggleSort}
                   />
                 </th>
-                <th className="px-2 py-2">Reviewed by</th>
-                <th className="px-2 py-2">Feedback</th>
-                <th className="px-2 py-2 text-right">Action</th>
+                <th className="px-3 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {versions.map((v) => {
-                const isLatest = v.version === latest;
-                const ev = submitEvents.find((e) => e.createdAt >= v.uploadedAt);
-                const feedbackCount = proposal.requestedChanges.filter(
-                  (r) =>
-                    r.createdAt >= v.uploadedAt &&
-                    (!r.resolvedInVersion || r.resolvedInVersion >= v.version),
-                ).length;
-                const status: ProposalStatus = isLatest
-                  ? proposal.status
-                  : feedbackCount > 0
-                    ? "CHANGES_REQUESTED"
-                    : "REJECTED";
-                const reviewer =
-                  isLatest && proposal.status === "PENDING_EDITOR"
-                    ? null
-                    : proposal.assignedEditorName;
-
-                return (
-                  <tr
-                    key={v.id}
-                    className={cn(
-                      "border-b border-border/60 last:border-b-0",
-                      isLatest && "bg-muted/40",
-                    )}
-                  >
-                    <td className="px-2 py-2.5 font-semibold">v{v.version}</td>
-                    <td className="px-2 py-2.5">
-                      <ProposalStatusPill status={status} />
-                    </td>
-                    <td className="px-2 py-2.5 text-muted-foreground">
-                      {ev ? formatDate(ev.createdAt) : formatDate(v.uploadedAt)}
-                    </td>
-                    <td className="px-2 py-2.5 text-muted-foreground">
-                      {reviewer ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold uppercase">
-                            {initials(reviewer)}
-                          </span>
-                          {reviewer}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-2 py-2.5 text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <MessageSquare className="size-3" /> {feedbackCount}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2.5 text-right">
-                      <MaterialDownloadLink
-                        fileKey={v.fileKey}
-                        fallbackUrl={v.fileUrl}
-                        fileName={v.fileName}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:underline"
-                      >
-                        View
-                      </MaterialDownloadLink>
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-border/50">
+              {versions.map((m) => (
+                <tr key={m.id} className="hover:bg-muted/30">
+                  <td className="px-3 py-3">
+                    <span className="font-bold text-foreground">v{m.version}</span>
+                  </td>
+                  <td className="px-3 py-3 font-medium text-foreground">{m.fileName}</td>
+                  <td className="px-3 py-3 text-muted-foreground">
+                    {m.sizeKB ? `${Math.round(m.sizeKB)} KB` : "—"}
+                  </td>
+                  <td className="px-3 py-3 text-muted-foreground">{formatDate(m.uploadedAt)}</td>
+                  <td className="px-3 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onPreview({
+                          fileName: m.fileName,
+                          fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
+                          fileUrl: m.fileUrl,
+                          version: m.version,
+                          kindLabel: "Sample Manuscript",
+                        })
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-muted shadow-2xs transition-all"
+                    >
+                      <Eye className="size-3 text-primary" /> View Manuscript
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
-    </Card>
-  );
-}
-
-// ---------------- 6. Quick actions ----------------
-
-function QuickActionsGrid({
-  proposal,
-  canEdit,
-  canResubmit,
-  onResubmit,
-}: {
-  proposal: SeriesProposal;
-  canEdit: boolean;
-  canResubmit: boolean;
-  onResubmit: () => void;
-}) {
-  const versions = proposal.manuscripts.length;
-
-  return (
-    <Card>
-      <SectionHeader index={6} title="Quick Actions" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <QuickAction
-          icon={<Pencil className="size-4" />}
-          title="Edit proposal"
-          description="Open proposal to update content."
-          to={{ to: "/app/submissions/$id", params: { id: proposal.id } }}
-          disabled={!canEdit}
-          disabledReason="Proposal cannot be edited at this time."
-        />
-        <QuickAction
-          icon={<Upload className="size-4" />}
-          title="Upload revision"
-          description="Upload a new storyboard or manuscript file."
-          onClick={onResubmit}
-          disabled={!canResubmit}
-          disabledReason="Only available when Editor requests changes."
-        />
-        <QuickAction
-          icon={<GitCompare className="size-4" />}
-          title="Compare versions"
-          description="View changes between versions."
-          disabled={versions < 2}
-          disabledReason="Need at least 2 versions to compare."
-        />
-        <QuickAction
-          icon={<Send className="size-4" />}
-          title="Resubmit proposal"
-          description="Submit for editor review."
-          onClick={onResubmit}
-          disabled={!canResubmit}
-          disabledReason="Only available when Editor requests changes."
-        />
-      </div>
-    </Card>
-  );
-}
-
-function QuickAction({
-  icon,
-  title,
-  description,
-  to,
-  onClick,
-  disabled,
-  disabledReason,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  to?: { to: "/app/submissions/$id"; params: { id: string } };
-  onClick?: () => void;
-  disabled?: boolean;
-  disabledReason?: string;
-}) {
-  const body = (
-    <div
-      className={cn(
-        "flex h-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition",
-        disabled ? "cursor-not-allowed opacity-50" : "hover:border-foreground/30 hover:bg-muted/50",
-      )}
-    >
-      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground">
-          {title}
-          {!disabled ? <ArrowRight className="size-3.5 text-muted-foreground" /> : null}
-        </p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{description}</p>
-      </div>
     </div>
   );
+}
 
-  if (disabled) {
-    return (
-      <TooltipProvider delayDuration={150}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>{body}</div>
-          </TooltipTrigger>
-          {disabledReason ? <TooltipContent>{disabledReason}</TooltipContent> : null}
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-  if (to) {
-    return (
-      <Link to={to.to} params={to.params} className="block">
-        {body}
-      </Link>
-    );
-  }
+// ---------------- File Preview Modal Dialog ----------------
+
+function FilePreviewDialog({
+  item,
+  open,
+  onClose,
+}: {
+  item: PreviewItemDef | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!item) return null;
+
+  const isImage =
+    Boolean(item.fileName.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i)) ||
+    Boolean(item.fileUrl?.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i));
+  const isPdf =
+    Boolean(item.fileName.match(/\.pdf$/i)) || Boolean(item.fileUrl?.match(/\.pdf$/i));
+
   return (
-    <button type="button" onClick={onClick} className="block w-full text-left">
-      {body}
-    </button>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-3xl overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-xl">
+        <DialogHeader className="border-b border-border/60 bg-muted/30 px-6 py-4 pr-12">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <FileText className="size-4 text-primary" />
+              <DialogTitle className="text-sm font-bold text-foreground">
+                {item.fileName}
+              </DialogTitle>
+              {item.version != null ? (
+                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  v{item.version}
+                </span>
+              ) : null}
+            </div>
+            <MaterialDownloadLink
+              fileKey={item.fileKey}
+              fallbackUrl={item.fileUrl}
+              fileName={item.fileName}
+              className="mr-6 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-2xs hover:bg-primary/90"
+            >
+              <Download className="size-3.5" /> Download File
+            </MaterialDownloadLink>
+          </div>
+        </DialogHeader>
+
+        <div className="flex min-h-[380px] max-h-[75vh] w-full flex-col items-center justify-center overflow-auto bg-muted/10 p-6">
+          {isImage ? (
+            <ResolvedImage
+              fileKey={item.fileKey}
+              fallbackUrl={item.fileUrl}
+              alt={item.fileName}
+              className="max-h-[65vh] w-auto max-w-full rounded-lg object-contain shadow-md"
+              fallback={
+                <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+                  <FileText className="size-8 opacity-40 text-primary" />
+                  <p>Image preview unavailable for this sample asset.</p>
+                </div>
+              }
+            />
+          ) : isPdf && isRenderableFileUrl(item.fileUrl) ? (
+            <iframe
+              src={item.fileUrl!}
+              title={item.fileName}
+              className="h-[60vh] w-full rounded-lg border border-border shadow-xs"
+            />
+          ) : (
+            <div className="flex max-w-md flex-col items-center text-center space-y-3 p-8 rounded-xl border border-border/80 bg-card shadow-2xs">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <FileText className="size-7" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-foreground">{item.fileName}</h4>
+                {item.kindLabel ? (
+                  <p className="text-xs text-muted-foreground font-medium">{item.kindLabel}</p>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                This document is part of the project proposal assets. Click download above to view or save full manuscript contents.
+              </p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

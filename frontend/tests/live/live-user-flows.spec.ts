@@ -1059,6 +1059,20 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
   expect((await uploadResponse).status()).toBe(201);
   await expect(page.getByRole("button", { name: "Draw Region", exact: true })).toBeVisible();
 
+  const assignSelect = page
+    .locator("select")
+    .filter({ has: page.getByRole("option", { name: "Select assistant" }) });
+  await expect(assignSelect).toBeVisible();
+  const assignPageResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/studio/pages/") &&
+      response.url().endsWith("/assignment") &&
+      response.request().method() === "POST",
+  );
+  await assignSelect.selectOption("u-assist");
+  expect((await assignPageResponse).status()).toBe(201);
+  await expect(page.getByText(/Suzuki Jun · PENDING/)).toBeVisible();
+
   await page.getByRole("button", { name: "Draw Region", exact: true }).click();
   const canvas = page.locator("canvas").last();
   await expect(canvas).toBeVisible();
@@ -1080,7 +1094,6 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
   const dialog = page.getByRole("dialog", { name: "Create Task" });
   await expect(dialog).toBeVisible();
   await dialog.getByPlaceholder("Clean Background", { exact: true }).fill(taskTitle);
-  await dialog.locator("select").nth(1).selectOption("u-assist");
   await dialog.locator('input[type="number"]').fill("1");
   await dialog
     .locator('input[type="date"]')
@@ -1107,6 +1120,17 @@ test("Mangaka assigns a drawn Region, then Assistant submits and Mangaka approve
   await expect(page.getByText(taskTitle, { exact: true }).first()).toBeVisible();
   await page.goto(`/app/assistant/tasks/${taskId}/studio`);
   await expect(page.getByRole("heading", { name: taskTitle, exact: true })).toBeVisible();
+
+  const acceptTaskButton = page.getByRole("button", { name: "Accept", exact: true });
+  if (await acceptTaskButton.isVisible()) {
+    const acceptResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/studio/tasks/${taskId}/actions/accept`) &&
+        response.request().method() === "POST",
+    );
+    await acceptTaskButton.click();
+    expect((await acceptResponse).status()).toBe(200);
+  }
 
   const startResponse = page.waitForResponse(
     (response) =>

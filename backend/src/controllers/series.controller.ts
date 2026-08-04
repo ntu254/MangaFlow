@@ -19,7 +19,7 @@ import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
 import { presignR2Download, presignR2Upload } from "../services/r2.service.js";
 import { createDisplayUrl, createLocalUploadUrl } from "../services/file-access.service.js";
-import { assertFileKeyVisible } from "../services/studio-access.service.js";
+import { assertFileKeyVisible, assertFileAccess } from "../services/studio-access.service.js";
 import {
   assertCanMutateChapterById,
   assertCanMutateChapter,
@@ -33,6 +33,7 @@ import {
   assertCanReadChapterById,
   assertCanReadSeries,
   assertCanReadSeriesById,
+  assertChapterAcceptsPages,
   actorSeriesScopeFilter,
   mergeScope,
 } from "../services/authorization.service.js";
@@ -57,6 +58,7 @@ import {
   patchPageSchema,
   reorderPagesSchema,
 } from "../validators/chapter.schema.js";
+import { presignDownloadSchema, displayUrlSchema } from "../validators/file.schema.js";
 import {
   inviteAssistantSchema,
   updateMemberSchema,
@@ -321,6 +323,27 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
   if (action === "ARCHIVE") patch.archivedAt = nowIso();
   if (action === "UNPUBLISH") patch.unpublishedAt = nowIso();
 
+  // Sprint 2.5 (PUB-001): cancelling scheduled publications on archive is the
+  // canonical guarantee that the publication runner will never push content
+  // for an archived series. We cancel before the status flip to keep the
+  // decision recoverable for audit, then patch Series inside the same logical
+  // step so an archive that fails on the Series write does not orphan the
+  // cancellation.
+  let cancelledPublications = 0;
+  if (action === "ARCHIVE") {
+    const cancelResult = await PublicationModel.updateMany(
+      { seriesId, status: { $in: ["DRAFT", "SCHEDULED"] } },
+      {
+        $set: {
+          status: "CANCELLED",
+          cancelledReason: "Series archived",
+          updatedAt: nowIso(),
+        },
+      },
+    );
+    cancelledPublications = Number(cancelResult.modifiedCount ?? 0);
+  }
+
   const updated = await SeriesModel.findOneAndUpdate(
     { id: seriesId, status: currentStatus },
     { $set: patch },
@@ -330,8 +353,9 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
   await audit(req, `series.${action.toLowerCase()}`, "series", seriesId, {
     previousStatus: (series as any).status,
     nextStatus: status,
+    cancelledPublications,
   });
-  ok(res, updated);
+  ok(res, { ...updated, cancelledPublications });
 });
 
 export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
@@ -425,6 +449,7 @@ export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) =>
     seriesId: String(req.params.id),
     number: Number(body.number ?? 1),
     title: body.title ?? "Untitled chapter",
+    targetPages: Number(body.targetPages ?? 20),
     status: "PLANNED",
     // A chapter belongs to the series' Mangaka. Assistant assignment happens
     // later on StudioTask records, at page/region level.
@@ -765,6 +790,7 @@ export const patchChapter = asyncRoute(async (req: AuthedRequest, res) => {
   const allowedFields = [
     "title",
     "number",
+    "targetPages",
     "summary",
     "draftDueAt",
     "reviewDueAt",
@@ -865,6 +891,11 @@ export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {
   const chapter = await ChapterModel.findOne({ id: chapterId });
   if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
   await assertCanMutateChapterContent(actor, chapter);
+  // Workflow integrity: only chapters in IN_PRODUCTION or REVISION_REQUIRED
+  // accept pages. To create the first page on a PLANNED chapter, the client
+  // must call POST /api/chapters/:id/actions with action=START_DRAFT first,
+  // which routes through applyChapterAction and produces audit + outbox.
+  assertChapterAcceptsPages(chapter);
 
   const body = parseBody(createPageSchema, req);
   rejectStatusOverride(body as Record<string, unknown>);
@@ -885,13 +916,24 @@ export const createChapterPage = asyncRoute(async (req: AuthedRequest, res) => {
   };
 
   const pageCreate = await ChapterModel.updateOne(
-    { id: chapterId, status: { $in: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"] } },
-    { $push: { pages: newPage }, $set: { updatedAt: nowIso() } },
+    { id: chapterId, status: { $in: ["IN_PRODUCTION", "REVISION_REQUIRED"] } },
+    {
+      $push: { pages: newPage },
+      $set: { updatedAt: nowIso() },
+    },
   );
   if (pageCreate.matchedCount !== 1) {
-    throw new AppError(409, "Chapter content is locked while Tantou review is active.", "CHAPTER_REVIEW_LOCKED");
+    throw new AppError(
+      409,
+      "Chapter status changed while creating the page. Refresh and retry.",
+      "CHAPTER_STATE_CONFLICT",
+    );
   }
 
+  await audit(req, "chapter.page.created", "chapter", chapterId, {
+    pageId: newPage.id,
+    pageNumber: newPage.pageNumber,
+  });
   created(res, newPage);
 });
 
@@ -1031,22 +1073,14 @@ export const presignUpload = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const presignDownload = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  const key = req.body.key;
-  if (!key) throw new AppError(400, "key is required.", "VALIDATION_ERROR");
-  await assertFileKeyVisible(actor, String(key));
-  ok(res, await presignR2Download(String(key)));
+  const body = parseBody(presignDownloadSchema, req);
+  await assertFileAccess(actor, body);
+  ok(res, await presignR2Download(body.key));
 });
 
 export const displayUrl = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  const key = req.body.key;
-  if (!key) throw new AppError(400, "key is required.", "VALIDATION_ERROR");
-  await assertFileKeyVisible(actor, String(key));
-  ok(
-    res,
-    createDisplayUrl(
-      String(key),
-      typeof req.body.fileName === "string" ? req.body.fileName : undefined,
-    ),
-  );
+  const body = parseBody(displayUrlSchema, req);
+  await assertFileAccess(actor, body);
+  ok(res, createDisplayUrl(body.key, body.fileName));
 });

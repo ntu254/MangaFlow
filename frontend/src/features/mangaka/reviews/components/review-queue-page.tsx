@@ -59,6 +59,7 @@ type Row = {
   taskTitle: string;
   seriesTitle: string;
   chapterNumber?: number;
+  assistantName: string;
 };
 
 type TabKey = "ALL" | "NEEDS_REVIEW" | "APPROVED" | "REVISION" | "REJECTED";
@@ -88,11 +89,13 @@ export function ReviewQueuePage() {
     return submissions.map((sub) => {
       const task = tasks.find((t) => t.id === sub.taskId);
       const ctx = task ? buildTaskContext(task, chapters, seriesList) : undefined;
+      const assistantName = sub.assistantName || task?.assigneeName || sub.assistantId;
       return {
         sub,
         taskTitle: task?.title ?? sub.taskId,
         seriesTitle: ctx?.series?.title ?? "—",
         chapterNumber: ctx?.chapter?.number,
+        assistantName,
       };
     });
   }, [submissions, tasks, chapters, seriesList]);
@@ -123,6 +126,7 @@ export function ReviewQueuePage() {
       (row) =>
         row.taskTitle.toLowerCase().includes(needle) ||
         row.seriesTitle.toLowerCase().includes(needle) ||
+        row.assistantName.toLowerCase().includes(needle) ||
         row.sub.assistantId.toLowerCase().includes(needle) ||
         row.sub.versionLabel.toLowerCase().includes(needle),
     );
@@ -132,7 +136,7 @@ export function ReviewQueuePage() {
     filtered,
     {
       task: (row) => row.taskTitle,
-      assistant: (row) => row.sub.assistantId,
+      assistant: (row) => row.assistantName,
       version: (row) => row.sub.version,
       status: (row) => row.sub.status,
       submitted: (row) => (row.sub.submittedAt ? new Date(row.sub.submittedAt) : undefined),
@@ -395,7 +399,7 @@ function QueueRow({ row }: { row: Row }) {
           </p>
         </div>
       </TableCell>
-      <TableCell className="text-muted-foreground">{row.sub.assistantId}</TableCell>
+      <TableCell className="text-muted-foreground">{row.assistantName}</TableCell>
       <TableCell className="font-semibold text-foreground">{row.sub.versionLabel}</TableCell>
       <TableCell>
         <ReviewStatusPill status={row.sub.status} />
@@ -436,7 +440,7 @@ function MobileQueueCard({ row }: { row: Row }) {
       </div>
 
       <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
-        <MobileMetric label="Assistant" value={row.sub.assistantId} />
+        <MobileMetric label="Assistant" value={row.assistantName} />
         <MobileMetric label="Version" value={row.sub.versionLabel} />
         <MobileMetric label="Submitted" value={timeAgo(row.sub.submittedAt)} />
         <MobileMetric label="File" value={missingFile ? "Missing" : "Attached"} />

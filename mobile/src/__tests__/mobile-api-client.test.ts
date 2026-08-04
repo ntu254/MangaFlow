@@ -5,6 +5,7 @@ describe("mobile api client", () => {
   afterEach(() => {
     mobileApi.setAccessToken(null)
     mobileApi.setRefreshHandler(null)
+    mobileApi.setSessionExpiredHandler(null)
     jest.restoreAllMocks()
   })
 
@@ -53,6 +54,54 @@ describe("mobile api client", () => {
     expect((fetchMock.mock.calls[1][1].headers as Record<string, string>).Authorization).toBe(
       "Bearer renewed-token",
     )
+  })
+
+  it("shares one refresh call across concurrent 401s instead of firing one per request", async () => {
+    let resolveRefresh!: (token: string) => void
+    const refreshPromise = new Promise<string>((resolve) => {
+      resolveRefresh = resolve
+    })
+    const refreshHandler = jest.fn().mockReturnValue(refreshPromise)
+    mobileApi.setRefreshHandler(refreshHandler)
+
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: false, code: "UNAUTHENTICATED" }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: false, code: "UNAUTHENTICATED" }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: { source: "a" } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: { source: "b" } }), { status: 200 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const requestA = mobileApi.request<{ source: string }>("/editor/inbox")
+    const requestB = mobileApi.request<{ source: string }>("/board/inbox")
+
+    // Let both requests reach their 401 branch and call into the shared
+    // refresh before the refresh call itself resolves.
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    resolveRefresh("renewed-token")
+
+    const [dataA, dataB] = await Promise.all([requestA, requestB])
+
+    expect(dataA.source).toBe("a")
+    expect(dataB.source).toBe("b")
+    expect(refreshHandler).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+  })
+
+  it("signs the session out when the refresh handler cannot renew an expired session", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: false, code: "UNAUTHENTICATED" }), { status: 401 }),
+    )
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    mobileApi.setRefreshHandler(async () => null)
+    const onSessionExpired = jest.fn()
+    mobileApi.setSessionExpiredHandler(onSessionExpired)
+
+    await expect(mobileApi.request("/editor/inbox")).rejects.toBeInstanceOf(MobileApiError)
+
+    expect(onSessionExpired).toHaveBeenCalledTimes(1)
   })
 
   it("does not throw MobileApiError as generic Error for callers branching on code", async () => {
