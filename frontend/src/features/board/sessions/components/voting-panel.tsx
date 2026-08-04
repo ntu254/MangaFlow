@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { RestrictedActionTooltip } from "@/entities/access";
 import { DecisionEffectPreview } from "@/entities/proposal";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/shared/auth";
+import { useAuth, isBoardChair } from "@/shared/auth";
 import { canShowAction } from "@/entities/access/model/permission-guard";
 import { SeparationOfDutiesWarning } from "@/entities/access";
 import type {
@@ -106,7 +106,7 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
     );
   };
 
-  const canFinalizeRole = user.role === "board";
+  const canFinalizeRole = user.role === "board" && isBoardChair(user.id);
   const isDecided = ["APPROVED", "REJECTED", "WITHDRAWN"].includes(proposal.status);
   const finalizeLocked = finalize.isPending || finalize.isSuccess || isDecided;
   const canFinalize =

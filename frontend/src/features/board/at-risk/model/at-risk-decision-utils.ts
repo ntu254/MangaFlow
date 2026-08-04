@@ -26,7 +26,7 @@ export function getAtRiskDecisionEffect(decision: VisualAtRiskDecision): string 
     case "CHANGE_FORMAT":
       return "Updates the series publication cadence immediately.";
     case "CANCEL":
-      return "Records a cancellation decision for follow-up; a reason is required.";
+      return "Archives the series, removes it from public view (UNLISTED), and cancels all scheduled publications. A reason is required.";
   }
 }
 

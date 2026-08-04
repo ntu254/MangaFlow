@@ -134,8 +134,14 @@ describe("authorization perimeter", () => {
       .expect(400);
   });
 
-  it("rejects assigning a task to a non-assistant series member", async () => {
+  it("rejects assigning a task to someone other than the page's assigned assistant", async () => {
     const owner = await loginAs("inoue@beachread.jp");
+
+    await request(createApp())
+      .post("/api/studio/pages/ch-s-berserk-prod-5-p1/assignment")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ assistantId: "u-assist" })
+      .expect(201);
 
     const response = await request(createApp())
       .post("/api/studio/tasks")
@@ -146,6 +152,18 @@ describe("authorization perimeter", () => {
         assigneeId: "u-editor",
         title: "Invalid editor assignment",
       })
+      .expect(409);
+
+    expect(response.body.code).toBe("PAGE_ASSIGNMENT_MISMATCH");
+  });
+
+  it("rejects assigning a page to a user who is not an active assistant series member", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+
+    const response = await request(createApp())
+      .post("/api/studio/pages/ch-s-berserk-prod-5-p1/assignment")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ assistantId: "u-editor" })
       .expect(403);
 
     expect(response.body.code).toBe("ASSIGNEE_NOT_ELIGIBLE");

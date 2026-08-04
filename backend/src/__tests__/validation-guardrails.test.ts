@@ -557,6 +557,21 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
     expect(page.fileKey).toBeFalsy();
     expect(String(page.fileUrl)).toMatch(/^metadata:/);
 
+    await ChapterModel.updateOne(
+      { id: chapterId, "pages.id": page.id },
+      {
+        $set: {
+          "pages.$.pageAssignment": {
+            assistantId: "u-assist",
+            assistantName: "Suzuki Jun",
+            status: "ACCEPTED",
+            assignedAt: new Date(),
+            acceptedAt: new Date(),
+          },
+        },
+      },
+    );
+
     const rates = await request(createApp())
       .get("/api/rates/active")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)

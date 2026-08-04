@@ -162,4 +162,32 @@ describe("at-risk decision service", () => {
       .send({ rankingId: AT_RISK_RANKING, decision: "CONTINUE" })
       .expect(403);
   });
+
+  it("accepts a live Chair who is not the demo chair", async () => {
+    // Promote u-board-2 via the admin API (atomically demotes u-board), then
+    // record a decision as the newly designated Chair. This proves the chair
+    // gate reads the user's isChair field rather than a fixed demo identity.
+    const admin = await loginAs("admin@beachread.jp");
+    await request(createApp())
+      .patch("/api/admin/users/u-board-2")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ isChair: true })
+      .expect(200);
+
+    const newChair = await loginAs("sato@beachread.jp");
+    await request(createApp())
+      .post(`/api/board/series/${SERIES}/at-risk-decisions`)
+      .set("Authorization", `Bearer ${newChair.accessToken}`)
+      .send({ rankingId: AT_RISK_RANKING, decision: "WARNING", note: "Promoted chair review." })
+      .expect(200);
+
+    await expect(RankingModel.findOne({ id: AT_RISK_RANKING }).lean()).resolves.toMatchObject({
+      metadata: {
+        atRiskDecision: {
+          decision: "WARNING",
+          decidedById: "u-board-2",
+        },
+      },
+    });
+  });
 });

@@ -40,7 +40,7 @@ export type RankingImportJob = {
   id: string;
   periodId: string;
   fileName: string;
-  status: "PENDING" | "VALIDATED" | "FAILED" | "FINALIZED";
+  status: "PENDING" | "VALIDATED" | "IMPORTED" | "FAILED" | "FINALIZED";
   rowCount: number;
   errors: string[];
   createdAt: string;

@@ -16,6 +16,7 @@ import type {
   StudioTask as OriginalStudioTask,
   StudioComment,
   StudioRegion,
+  PageAssignment,
 } from "@/entities/series/model/studio-types";
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
 import { ApiRequestError, apiRequest, hasApiTokens } from "@/shared/api/client";
@@ -25,6 +26,11 @@ import { useAuth } from "@/shared/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { getCommentManagementRequest } from "../detail/model/comment-actions";
+import {
+  pageAssignmentInvalidations,
+  studioTaskActionInvalidations,
+  submissionReviewInvalidations,
+} from "../model/mutation-invalidations";
 export {
   rankingKeys,
   useMySeriesQuery,
@@ -411,10 +417,8 @@ export function useTaskActionMutation(taskId: string, chapterId?: string) {
         body: payload,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
-      queryClient.invalidateQueries({ queryKey: ["studio-tasks"] });
-      if (chapterId) {
-        queryClient.invalidateQueries({ queryKey: chapterKeys.readiness(chapterId) });
+      for (const key of studioTaskActionInvalidations(taskId, chapterId)) {
+        queryClient.invalidateQueries({ queryKey: key as never });
       }
     },
   });
@@ -441,30 +445,8 @@ export function useSubmissionReviewMutation() {
       });
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: submissionKeys.all });
-      if (variables.submissionId) {
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.detail(variables.submissionId),
-        });
-      }
-      if (variables.taskId) {
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.byTask(variables.taskId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.task(variables.taskId),
-        });
-        queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
-        queryClient.invalidateQueries({ queryKey: ["studio-tasks"] });
-      }
-      if (variables.chapterId) {
-        queryClient.invalidateQueries({ queryKey: chapterKeys.readiness(variables.chapterId) });
-        // Approval promotes the submission asset to the chapter page, so refresh
-        // the page-backed views ("Pages uploaded" preview, before/after compare).
-        queryClient.invalidateQueries({ queryKey: chapterKeys.pages(variables.chapterId) });
-      }
-      if (variables.seriesId) {
-        queryClient.invalidateQueries({ queryKey: seriesKeys.chapters(variables.seriesId) });
+      for (const key of submissionReviewInvalidations(variables)) {
+        queryClient.invalidateQueries({ queryKey: key as never });
       }
     },
   });
@@ -784,8 +766,6 @@ export function useCreateStudioTaskMutation() {
       seriesId?: string;
       title: string;
       type: string;
-      assigneeId: string;
-      assigneeName: string;
       rateCode: string;
       quantity?: number;
       dueAt: string;
@@ -982,6 +962,32 @@ function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
     default:
       return "PENDING";
   }
+}
+
+export function useAssignPageMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<PageAssignment, Error, { pageId: string; assistantId: string; chapterId?: string; seriesId?: string }>({
+    mutationFn: ({ pageId, assistantId }) =>
+      apiRequest<PageAssignment>(`/studio/pages/${pageId}/assignment`, { method: "POST", body: { assistantId } }),
+    onSuccess: async (_data, variables) => {
+      for (const key of pageAssignmentInvalidations(variables)) {
+        await queryClient.invalidateQueries({ queryKey: key as never });
+      }
+    },
+  });
+}
+
+export function usePageAssignmentActionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<PageAssignment, Error, { pageId: string; action: "ACCEPT" | "REJECT" | "RELEASE"; reason?: string; chapterId?: string; seriesId?: string }>({
+    mutationFn: ({ pageId, action, reason }) =>
+      apiRequest<PageAssignment>(`/studio/pages/${pageId}/assignment/actions/${action}`, { method: "POST", body: reason ? { reason } : {} }),
+    onSuccess: async (_data, variables) => {
+      for (const key of pageAssignmentInvalidations(variables)) {
+        await queryClient.invalidateQueries({ queryKey: key as never });
+      }
+    },
+  });
 }
 
 export function useTaskSubmissionsQuery(taskId: string) {

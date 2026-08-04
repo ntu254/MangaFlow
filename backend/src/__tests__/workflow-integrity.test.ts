@@ -112,12 +112,24 @@ describe("workflow integrity guards", () => {
     );
 
     const response = await request(createApp())
-      .post("/api/series/s-berserk-prod/actions/ARCHIVE")
+      .post("/api/series/s-berserk-prod/actions/START_PRODUCTION")
       .set("Authorization", `Bearer ${owner.accessToken}`)
       .send({})
       .expect(409);
 
     expect(response.body.code).toBe("INVALID_TRANSITION");
+  });
+
+  it("rejects direct archive of an active series (Board at-risk only)", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+
+    const response = await request(createApp())
+      .post("/api/series/s-berserk-prod/actions/ARCHIVE")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({})
+      .expect(403);
+
+    expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
   });
 
   it("requires the assigned Assistant to accept a new task before starting it", async () => {

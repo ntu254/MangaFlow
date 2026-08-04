@@ -23,16 +23,20 @@ describe("Rate table and task price snapshot contract", () => {
 
   beforeEach(async () => {
     await seedDatabase();
-    await ChapterModel.updateOne(
-      { id: "ch-s-berserk-prod-5" },
-      {
-        $set: {
-          status: "IN_PRODUCTION",
-          "pages.$[].status": "UPLOADED",
-          "pages.$[].fileKey": "tests/source-page.jpg",
-        },
+    const chapter = (await ChapterModel.findOne({ id: "ch-s-berserk-prod-5" }).lean()) as any;
+    await ChapterModel.updateOne({ id: chapter.id }, {
+      $set: {
+        status: "IN_PRODUCTION",
+        pages: chapter.pages.map((page: any) => ({
+          ...page,
+          status: "UPLOADED",
+          fileKey: "tests/source-page.jpg",
+          pageAssignment: page.id === "ch-s-berserk-prod-5-p2"
+            ? { assistantId: "u-assist", assistantName: "Suzuki Jun", status: "ACCEPTED", assignedAt: new Date(), acceptedAt: new Date() }
+            : page.pageAssignment,
+        })),
       },
-    );
+    });
   });
 
   afterAll(async () => {
@@ -157,14 +161,18 @@ describe("Rate table and task price snapshot contract", () => {
     expect(stored).toMatchObject({ rateCode: "SPEECH_BUBBLE", rateSnapshot: 25 });
   });
 
-  it("allows only one active page task and rejects region-scoped task creation", async () => {
+  it("allows many tasks under one page assignment and rejects region-scoped task creation", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const app = createApp();
+    await request(app)
+      .post("/api/studio/pages/ch-s-berserk-prod-5-p3/assignment")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ assistantId: "u-assist" })
+      .expect(201);
     const body = {
       chapterId: "ch-s-berserk-prod-5",
       pageId: "ch-s-berserk-prod-5-p3",
-      assigneeId: "u-assist",
-      title: "One page, one task",
+      title: "Many tasks on one page",
       rateCode: "SPEECH_BUBBLE",
     };
 
@@ -177,11 +185,18 @@ describe("Rate table and task price snapshot contract", () => {
     const duplicate = await request(app)
       .post("/api/studio/tasks")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
-      .send(body)
-      .expect(409);
-    expect(duplicate.body.code).toBe("PAGE_HAS_ACTIVE_TASK");
-    expect(await StudioTaskModel.countDocuments({ pageId: body.pageId })).toBe(1);
+      .send({ ...body, title: "Second task" })
+      .expect(201);
+    expect(await StudioTaskModel.countDocuments({ pageId: body.pageId })).toBe(2);
     expect(first.body.data).toMatchObject({ pageTaskActive: true });
+    expect(duplicate.body.data).toMatchObject({ assigneeId: "u-assist" });
+
+    const wrongAssistant = await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ ...body, assigneeId: "u-assist-2", title: "Wrong assistant" })
+      .expect(409);
+    expect(wrongAssistant.body.code).toBe("PAGE_ASSIGNMENT_MISMATCH");
 
     const regionAttempt = await request(app)
       .post("/api/studio/tasks")
@@ -191,7 +206,7 @@ describe("Rate table and task price snapshot contract", () => {
     expect(regionAttempt.body.code).toBe("REGION_TASKS_RETIRED");
   });
 
-  it("makes concurrent task creation on one page first-writer-wins", async () => {
+  it("requires a page assignment before task creation", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const app = createApp();
     const body = {
@@ -202,20 +217,12 @@ describe("Rate table and task price snapshot contract", () => {
       rateCode: "SPEECH_BUBBLE",
     };
 
-    const responses = await Promise.all(
-      [1, 2].map((suffix) =>
-        request(app)
-          .post("/api/studio/tasks")
-          .set("Authorization", `Bearer ${mangaka.accessToken}`)
-          .send({ ...body, title: `${body.title} ${suffix}` }),
-      ),
-    );
-
-    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
-    expect(responses.find((response) => response.status === 409)?.body.code).toBe(
-      "PAGE_HAS_ACTIVE_TASK",
-    );
-    expect(await StudioTaskModel.countDocuments({ pageId: body.pageId })).toBe(1);
+    const response = await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send(body)
+      .expect(409);
+    expect(response.body.code).toBe("PAGE_ASSIGNMENT_REQUIRED");
   });
 
   it("keeps seeded rates available for the demo user flow", async () => {

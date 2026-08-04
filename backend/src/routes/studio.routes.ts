@@ -13,6 +13,8 @@ import {
   getTaskDetail,
   getTaskDetailAlias,
   taskAction,
+  assignPage,
+  pageAssignmentAction,
   sendEditorReview,
   listComments,
   createComment,
@@ -40,6 +42,12 @@ router.patch("/studio/regions/:id", requireExactRole("MANGAKA") as any, patchReg
 router.delete("/studio/regions/:id", requireExactRole("MANGAKA") as any, deleteRegion);
 
 // Tasks
+router.post("/studio/pages/:pageId/assignment", requireExactRole("MANGAKA") as any, assignPage);
+router.post(
+  "/studio/pages/:pageId/assignment/actions/:action",
+  requireExactRole("MANGAKA", "ASSISTANT") as any,
+  pageAssignmentAction,
+);
 router.get("/studio/tasks", listTasks);
 router.post("/studio/tasks", requireExactRole("MANGAKA") as any, createTask);
 router.patch("/studio/tasks", requireExactRole("MANGAKA") as any, patchTasks);

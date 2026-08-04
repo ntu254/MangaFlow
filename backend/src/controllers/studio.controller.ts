@@ -44,11 +44,20 @@ import {
   createRegionSchema,
   patchRegionSchema,
   createStudioTaskSchema,
+  assignPageSchema,
+  pageAssignmentActionSchema,
   patchStudioTaskSchema,
   createCommentSchema,
   patchCommentSchema,
   replyCommentSchema,
 } from "../validators/studio.schema.js";
+import {
+  applyPageAssignmentAction,
+  assignPage as assignPageToAssistant,
+  assertCurrentPageAssignment,
+  currentPageAssignment,
+  getPageContext,
+} from "../services/page-assignment.service.js";
 import { TASK_ACTIONS } from "../types.js";
 import type { AuthedRequest } from "../types.js";
 
@@ -548,20 +557,27 @@ export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 // Tasks
-const PAGE_TASK_TERMINAL_STATUSES = [
-  "REJECTED",
-  "CANCELLED",
-  "MANGAKA_APPROVED",
-];
+export const assignPage = asyncRoute(async (req: AuthedRequest, res) => {
+  const body = parseBody(assignPageSchema, req);
+  await assertCanMutateStudioPage(requireActor(req), String(req.params.pageId));
+  const assignment = await assignPageToAssistant(String(req.params.pageId), body.assistantId);
+  await audit(req, "studio_page.assignment_create", "page", String(req.params.pageId), {
+    assistantId: body.assistantId,
+  });
+  created(res, assignment);
+});
 
-function isDuplicatePageTaskError(error: unknown) {
-  return Boolean(
-    error &&
-      typeof error === "object" &&
-      "code" in error &&
-      (error as { code?: unknown }).code === 11000,
+export const pageAssignmentAction = asyncRoute(async (req: AuthedRequest, res) => {
+  const body = parseBody(pageAssignmentActionSchema, req);
+  const assignment = await applyPageAssignmentAction(
+    requireActor(req),
+    String(req.params.pageId),
+    String(req.params.action),
+    body.reason ?? body.rejectReason,
   );
-}
+  await audit(req, `studio_page.assignment_${String(req.params.action).toLowerCase()}`, "page", String(req.params.pageId));
+  ok(res, assignment);
+});
 
 export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
   const filter = filterFromQuery(req);
@@ -588,11 +604,16 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
 
-  let assigneeName = body.assigneeName;
-  if (body.assigneeId) {
-    const assignee = await assertTaskAssigneeEligible(body, body.assigneeId);
-    assigneeName = (assignee as any).name;
+  const { page: taskPage } = await getPageContext(body.pageId);
+  const pageAssignment = currentPageAssignment(taskPage);
+  if (!pageAssignment || pageAssignment.status === "RELEASED") {
+    throw new AppError(409, "Assign an assistant to this page before creating tasks.", "PAGE_ASSIGNMENT_REQUIRED");
   }
+  if (body.assigneeId && String(body.assigneeId) !== String(pageAssignment.assistantId)) {
+    throw new AppError(409, "Task assignee must match the page assignment.", "PAGE_ASSIGNMENT_MISMATCH");
+  }
+  const assigneeId = pageAssignment.assistantId;
+  const assigneeName = pageAssignment.assistantName;
 
   const taskChapter = await ChapterModel.findOne({ "pages.id": body.pageId })
     .select({ status: 1 })
@@ -614,28 +635,12 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const rateSnapshot = Number(rate.amount);
   const estimatedAmount = quantity * rateSnapshot;
   const taskId = id("task");
-  const activePageTask = await (StudioTaskModel as any).findOne({
-    pageId: body.pageId,
-    $or: [
-      { pageTaskActive: true },
-      {
-        pageTaskActive: { $exists: false },
-        status: { $nin: PAGE_TASK_TERMINAL_STATUSES },
-      },
-    ],
-  }).lean();
-  if (activePageTask) {
-    throw new AppError(
-      409,
-      "This page already has an active task.",
-      "PAGE_HAS_ACTIVE_TASK",
-    );
-  }
   const taskBody = {
     ...body,
+    assigneeId,
     pageTaskActive: true,
     assigneeName,
-    assignmentStatus: body.assigneeId ? "PENDING" : "UNASSIGNED",
+    assignmentStatus: pageAssignment.status === "ACCEPTED" ? "ACCEPTED" : "PENDING",
     isRequired: body.isRequired ?? true,
     rateCode: rate.code,
     rateVersion: rate.version,
@@ -646,29 +651,18 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
     currency: rate.currency,
   };
 
-  try {
-    const task = await (StudioTaskModel as any).create({
-      id: taskId,
-      ...taskBody,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    await audit(req, "studio_task.create", "task", task.id);
-    await createOutboxEvent("task.assigned", "task", task.id, {
-      taskId: task.id,
-      assistantId: task.assigneeId,
-    });
-    created(res, task);
-  } catch (error) {
-    if (isDuplicatePageTaskError(error)) {
-      throw new AppError(
-        409,
-        "This page already has an active task.",
-        "PAGE_HAS_ACTIVE_TASK",
-      );
-    }
-    throw error;
-  }
+  const task = await (StudioTaskModel as any).create({
+    id: taskId,
+    ...taskBody,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  });
+  await audit(req, "studio_task.create", "task", task.id);
+  await createOutboxEvent("task.assigned", "task", task.id, {
+    taskId: task.id,
+    assistantId: task.assigneeId,
+  });
+  created(res, task);
 });
 export const patchTasks = asyncRoute(async (req: AuthedRequest, res) => {
   throw new AppError(

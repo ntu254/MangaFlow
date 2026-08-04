@@ -69,7 +69,8 @@ export function AtRiskDecisionPanel({ review }: { review: AtRiskReview }) {
           ) : null}
         </dl>
         <p className="text-xs text-[var(--admin-muted)]">
-          The decision is saved in the governance record. It does not automatically change the
+          The decision is saved in the governance record. CANCEL archives the series and cancels
+          its publication schedule immediately; other decisions do not automatically change the
           series status.
         </p>
         <Link to="/app/board/decisions" className="text-xs font-semibold underline">

@@ -124,8 +124,9 @@ export function AtRiskReviewsPage() {
     >
       <div className="space-y-4">
         <Notice icon={<ShieldAlert className="size-5" />} title="Governance notice">
-          Rankings only generate risk signals as a basis for evaluation and do not automatically
-          cancel a series. All status changes must be performed manually by the board.
+          Rankings only generate risk signals as a basis for evaluation. A CANCEL decision archives
+          the series, unlists it, and cancels its publication schedule immediately; other decisions
+          are recorded without changing the series status.
         </Notice>
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <QueueTable

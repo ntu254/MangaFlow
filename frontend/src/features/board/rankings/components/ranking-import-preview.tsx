@@ -19,8 +19,12 @@ export function RankingImportPreview({ jobs }: { jobs: RankingImportJob[] }) {
                 <span className="font-semibold">{job.fileName}</span>
                 <span className="ml-2 text-muted-foreground">{job.rowCount} rows</span>
               </span>
-              <span className="font-mono text-[10px] uppercase text-muted-foreground">
-                {job.status}
+              <span
+                className={`font-mono text-[10px] uppercase ${
+                  job.status === "IMPORTED" ? "text-emerald-600" : "text-muted-foreground"
+                }`}
+              >
+                {job.status === "IMPORTED" ? `Imported · ${job.periodId}` : job.status}
               </span>
             </li>
           ))}

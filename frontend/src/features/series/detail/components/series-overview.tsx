@@ -5,14 +5,12 @@ import {
   Pencil,
   Share2,
   MoreHorizontal,
-  Archive,
   Upload,
   ListPlus,
   PencilRuler,
   ClipboardCheck,
   Send,
   Trash2,
-  EyeOff,
   FileText,
   Calendar as CalendarIcon,
   CheckCircle2,
@@ -129,9 +127,12 @@ export function SeriesHeaderActions({
   const hasPublishedChapters = chapters.some((chapter) => chapter.status === "PUBLISHED");
   const isOwner = !!user && user.role === "mangaka" && user.id === series.authorId;
   const isAssignedTantou = !!user && user.role === "editor" && user.id === series.editorId;
-  const canArchive = !!user && series.status !== "ARCHIVED" && (isOwner || isAssignedTantou);
-  const canUnpublish = isAssignedTantou && isPublic;
-  const canDelete = !!user && !isPublic && isOwner;
+  // Active series are only ever cancelled by the Board through an At-risk CANCEL
+  // decision; Archive/Unpublish are not available to Mangaka or Tantou.
+  const canArchive = false;
+  const canUnpublish = false;
+  const canDelete =
+    !!user && ["PRE_PRODUCTION", "PLANNING"].includes(series.status) && isOwner && !hasPublishedChapters;
   // Production can start only by the owner or the currently assigned Tantou.
   const canStartProduction =
     !!user &&
@@ -140,20 +141,6 @@ export function SeriesHeaderActions({
   const busy = lifecycle.isPending || deleteSeries.isPending;
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
-
-  const handleLifecycle = (action: "archive" | "unpublish") => {
-    const label = action === "archive" ? "archive" : "unpublish";
-    lifecycle.mutate(action, {
-      onSuccess: () => {
-        toast.success(`Series ${label} request completed.`);
-        setArchiveDialogOpen(false);
-        setUnpublishDialogOpen(false);
-      },
-      onError: (err) => toast.error(err instanceof Error ? err.message : `Cannot ${label} series.`),
-    });
-  };
 
   const handleStartProduction = () => {
     lifecycle.mutate("start_production", {
@@ -186,26 +173,6 @@ export function SeriesHeaderActions({
         >
           <Rocket className="h-3.5 w-3.5" />{" "}
           {lifecycle.isPending ? "Starting..." : "Start production"}
-        </button>
-      ) : null}
-      {canUnpublish ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setUnpublishDialogOpen(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
-        >
-          <EyeOff className="h-3.5 w-3.5" /> Unpublish
-        </button>
-      ) : null}
-      {canArchive ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setArchiveDialogOpen(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
-        >
-          <Archive className="h-3.5 w-3.5" /> Archive
         </button>
       ) : null}
       {canDelete ? (
@@ -246,30 +213,6 @@ export function SeriesHeaderActions({
         variant="danger"
         onConfirm={handleDelete}
         isLoading={deleteSeries.isPending}
-      />
-
-      <ConfirmDialog
-        open={archiveDialogOpen}
-        onOpenChange={setArchiveDialogOpen}
-        title="Archive Series"
-        description="This series will be moved to archive status. It will no longer appear in active series lists."
-        impactExplanation="Published chapters and submissions will be preserved but the series will be hidden from production views."
-        confirmLabel="Archive Series"
-        variant="danger"
-        onConfirm={() => handleLifecycle("archive")}
-        isLoading={lifecycle.isPending}
-      />
-
-      <ConfirmDialog
-        open={unpublishDialogOpen}
-        onOpenChange={setUnpublishDialogOpen}
-        title="Unpublish Series"
-        description="This series will be set to hiatus status. It will be removed from public view."
-        impactExplanation="Published chapters will remain accessible to users who have direct links, but the series will be hidden from discovery."
-        confirmLabel="Unpublish Series"
-        variant="danger"
-        onConfirm={() => handleLifecycle("unpublish")}
-        isLoading={lifecycle.isPending}
       />
     </div>
   );

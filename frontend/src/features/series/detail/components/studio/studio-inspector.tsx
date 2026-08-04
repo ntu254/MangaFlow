@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Bell,
-  Calendar as CalendarIcon,
   Download,
-  ExternalLink,
   MessageSquare,
   MoreHorizontal,
   Plus,
@@ -26,6 +24,7 @@ import { formatDate, formatDateTime } from "@/shared/lib/format-date";
 import type { Chapter, ChapterPage } from "@/entities/series/model/series-types";
 import type {
   StudioComment,
+  PageAssignment,
   StudioRegion,
   StudioSelection,
   StudioTask,
@@ -33,7 +32,6 @@ import type {
 import type { StudioPermissionSet } from "../../model/studio-permissions";
 import { canResolveStudioComment } from "../../model/studio-permissions";
 import {
-  isTaskActive,
   REGION_STATUS_BADGE,
   REGION_TYPE_LABEL,
   TASK_STATUS_BADGE,
@@ -67,6 +65,11 @@ type Props = {
     action: "approve" | "reject" | "request-revision",
     note?: string,
   ) => void;
+  pageAssignment?: PageAssignment;
+  assistantMembers?: Array<{ id: string; name: string }>;
+  onAssignPage?: (assistantId: string) => void;
+  onPageAssignmentAction?: (action: "ACCEPT" | "REJECT" | "RELEASE", reason?: string) => void;
+  pageAssignmentBusy?: boolean;
 };
 export function StudioInspector(props: Props) {
   return (
@@ -121,6 +124,100 @@ function Pill({ children, className = "" }: { children: React.ReactNode; classNa
     >
       {children}
     </span>
+  );
+}
+
+const PAGE_ASSIGNMENT_STATUS_BADGE: Record<PageAssignment["status"], string> = {
+  PENDING: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200",
+  ACCEPTED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200",
+  RELEASED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
+};
+
+function pageAssignmentForPage(
+  chapter: Chapter | undefined,
+  pageId: string,
+): PageAssignment | undefined {
+  const page = chapter?.pages.find((candidate) => String(candidate.id) === String(pageId));
+  return page?.pageAssignment;
+}
+
+function PageAssignmentBlock({
+  pageAssignment,
+  assistantMembers = [],
+  mode,
+  busy,
+  userId,
+  onAssignPage,
+  onPageAssignmentAction,
+}: {
+  pageAssignment?: PageAssignment;
+  assistantMembers: Array<{ id: string; name: string }>;
+  mode: string;
+  busy?: boolean;
+  userId: string;
+  onAssignPage?: (assistantId: string) => void;
+  onPageAssignmentAction?: (action: "ACCEPT" | "REJECT" | "RELEASE", reason?: string) => void;
+}) {
+  return (
+    <div>
+      <p className="font-semibold">Page assignment</p>
+      <p className="mt-1 text-muted-foreground">
+        {pageAssignment ? `${pageAssignment.assistantName} · ${pageAssignment.status}` : "Not assigned"}
+      </p>
+      {mode === "mangaka" && onAssignPage ? (
+        <div className="mt-2 space-y-2">
+          <select
+            className="h-8 w-full rounded border border-border bg-background px-2"
+            value={pageAssignment?.assistantId ?? ""}
+            onChange={(event) => onAssignPage(event.target.value)}
+            disabled={
+              pageAssignment?.status === "PENDING" ||
+              pageAssignment?.status === "ACCEPTED" ||
+              busy
+            }
+          >
+            <option value="">Select assistant</option>
+            {assistantMembers.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
+          {pageAssignment?.status === "ACCEPTED" ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-full"
+              disabled={busy}
+              onClick={() => onPageAssignmentAction?.("RELEASE")}
+            >
+              Release page
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {mode === "assistant" && pageAssignment?.status === "PENDING" ? (
+        <div className="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            className="h-8 flex-1"
+            disabled={busy}
+            onClick={() => onPageAssignmentAction?.("ACCEPT")}
+          >
+            Accept
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 flex-1"
+            disabled={busy}
+            onClick={() => onPageAssignmentAction?.("REJECT", window.prompt("Reason") ?? "")}
+          >
+            Reject
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -367,6 +464,11 @@ function InspectorBody({
   userId,
   onTaskAction,
   onReviewSubmission,
+  pageAssignment,
+  assistantMembers = [],
+  onAssignPage,
+  onPageAssignmentAction,
+  pageAssignmentBusy,
 }: Props) {
   const [revisionNote, setRevisionNote] = useState("");
   const [isRevisionNoteExpanded, setIsRevisionNoteExpanded] = useState(false);
@@ -402,6 +504,17 @@ function InspectorBody({
         <Field label="Tasks" value={pageTasks.length} />
         <Field label="Comments" value={pageComments.length} />
         <Field label="Blocking" value={blocking} />
+        <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs">
+          <PageAssignmentBlock
+            pageAssignment={pageAssignment}
+            assistantMembers={assistantMembers}
+            mode={permissions.mode}
+            busy={pageAssignmentBusy}
+            userId={userId}
+            onAssignPage={onAssignPage}
+            onPageAssignmentAction={onPageAssignmentAction}
+          />
+        </div>
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
       </div>
     );
@@ -410,9 +523,9 @@ function InspectorBody({
   if (selection.kind === "region") {
     const region = regions.find((r) => r.id === selection.regionId);
     if (!region) return <Empty>Region has been deleted.</Empty>;
-    const linked = region.taskId ? tasks.find((t) => t.id === region.taskId) : undefined;
-    const hasActive = Boolean(linked && isTaskActive(linked.status));
-    const initials = (linked?.assigneeName ?? "?")
+    const pageTasks = tasks.filter((t) => t.pageId === region.pageId);
+    const pageAssignment = pageAssignmentForPage(chapter, region.pageId);
+    const initials = (pageAssignment?.assistantName ?? "?")
       .split(/\s+/)
       .map((p) => p[0])
       .join("")
@@ -464,52 +577,20 @@ function InspectorBody({
             value={<Pill className={REGION_STATUS_BADGE[region.status]}>{region.status}</Pill>}
           />
           <Field label="Comments Count" value={regionComments.length} />
+          <Field label="Page Tasks" value={pageTasks.length} />
           <Field
-            label="Linked Task"
+            label="Page Assignment"
             value={
-              linked ? (
-                <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
-                  {linked.id.toUpperCase().slice(0, 10)}
-                  <ExternalLink className="h-3 w-3" />
-                </span>
-              ) : (
-                "—"
-              )
-            }
-          />
-          <Field
-            label="Assignee"
-            value={
-              linked?.assigneeName ? (
+              pageAssignment ? (
                 <span className="inline-flex items-center gap-1.5">
                   <Avatar className="h-5 w-5">
                     <AvatarFallback className="text-[9px]">{initials}</AvatarFallback>
                   </Avatar>
-                  <span>{linked.assigneeName}</span>
+                  <span>{pageAssignment.assistantName}</span>
+                  <Pill className={PAGE_ASSIGNMENT_STATUS_BADGE[pageAssignment.status]}>
+                    {pageAssignment.status}
+                  </Pill>
                 </span>
-              ) : (
-                "—"
-              )
-            }
-          />
-          <Field
-            label="Due Date"
-            value={
-              linked?.dueAt ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  {formatDate(linked.dueAt)}
-                </span>
-              ) : (
-                "—"
-              )
-            }
-          />
-          <Field
-            label="Task Status"
-            value={
-              linked ? (
-                <Pill className={TASK_STATUS_BADGE[linked.status]}>{linked.status}</Pill>
               ) : (
                 "—"
               )
@@ -527,36 +608,36 @@ function InspectorBody({
           </p>
         </details>
 
-        {linked ? (
-          <div className="mt-3">
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Instructions</p>
-            <div className="rounded-md border border-border bg-background px-3 py-2 text-xs leading-relaxed text-foreground/90">
-              {linked.instructions || "—"}
-            </div>
-            {canShowAssistantSubmissionPanel(linked, permissions, userId) ? (
-              <div className="mt-3 rounded-md border border-border bg-background">
-                <AssistantTaskSubmissionPanel
-                  task={linked}
-                  readOnly={isAssistantTaskReadOnly(linked, userId)}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs">
+          <PageAssignmentBlock
+            pageAssignment={pageAssignment}
+            assistantMembers={assistantMembers}
+            mode={permissions.mode}
+            busy={pageAssignmentBusy}
+            userId={userId}
+            onAssignPage={onAssignPage}
+            onPageAssignmentAction={onPageAssignmentAction}
+          />
+        </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           {permissions.canCreateTask ? (
-            <Button size="sm" className="h-9 gap-1.5" disabled={hasActive} onClick={onCreateTask}>
+            <Button size="sm" className="h-9 gap-1.5" disabled={false} onClick={onCreateTask}>
               <Plus className="h-4 w-4" /> Create Assistant Task
             </Button>
           ) : null}
         </div>
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
 
-        {hasActive ? (
+        {permissions.mode === "assistant" &&
+        pageAssignment &&
+        String(pageAssignment.assistantId) !== userId ? (
           <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <span>This region already has an active task.</span>
+            <span>
+              This page is assigned to {pageAssignment.assistantName}. Other assistants cannot
+              accept or work on tasks from this page.
+            </span>
           </div>
         ) : null}
 

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Chapter, ChapterPage } from "@/entities/series/model/series-types";
-import type { RegionType, StudioRegion } from "@/entities/series/model/studio-types";
+import type { PageAssignment, RegionType, StudioRegion } from "@/entities/series/model/studio-types";
 import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
 import type { User } from "@/shared/auth";
 import type { RateTableEntry } from "@/shared/api/rate-table";
@@ -22,7 +22,6 @@ import { isRenderableFileUrl } from "@/shared/lib/file-url";
 const schema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters."),
   type: z.string().min(1, "Select a Type."),
-  assigneeId: z.string().min(1, "Select an Assignee."),
   rateCode: z.string().min(1, "Select a rate."),
   quantity: z.number().positive("Quantity must be greater than zero."),
   dueAt: z.string().min(1, "Select a Due date."),
@@ -33,7 +32,6 @@ const schema = z.object({
 const FIELD_LABEL: Record<string, string> = {
   title: "Title",
   type: "Type",
-  assigneeId: "Assignee",
   rateCode: "Rate",
   quantity: "Quantity",
   dueAt: "Due date",
@@ -44,8 +42,6 @@ const FIELD_LABEL: Record<string, string> = {
 type Submit = (data: {
   title: string;
   type: RegionType;
-  assigneeId: string;
-  assigneeName: string;
   rateCode: string;
   quantity: number;
   dueAt: string;
@@ -60,8 +56,9 @@ type Props = {
   chapter: Chapter | undefined;
   page: ChapterPage | undefined;
   region: StudioRegion | undefined;
+  pageAssignment?: PageAssignment;
   members: User[];
-  hasActiveTaskOnPage: boolean;
+  hasActiveTaskOnPage?: boolean;
   rates: RateTableEntry[];
   onSubmit: Submit;
 };
@@ -72,14 +69,15 @@ export function CreateTaskDialog({
   chapter,
   page,
   region,
+  pageAssignment,
   members,
-  hasActiveTaskOnPage,
+  hasActiveTaskOnPage = false,
   rates,
   onSubmit,
 }: Props) {
   const [title, setTitle] = useState("");
   const [type, setType] = useState<RegionType>(region?.type ?? "background");
-  const [assigneeId, setAssigneeId] = useState(members[0]?.id ?? "");
+  const [assigneeId, setAssigneeId] = useState("");
   const [rateCode, setRateCode] = useState(rates[0]?.code ?? "");
   const [dueAt, setDueAt] = useState("");
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
@@ -95,11 +93,11 @@ export function CreateTaskDialog({
   useEffect(() => {
     if (open) {
       setType(region?.type ?? "background");
+      setAssigneeId(pageAssignment?.assistantId ?? "");
       setTitle(region ? `${REGION_TYPE_LABEL[region.type]} — ${region.label ?? "Region"}` : "");
-      setAssigneeId(members[0]?.id ?? "");
       setRateCode(rates[0]?.code ?? "");
     }
-  }, [members, open, region, rates]);
+  }, [open, pageAssignment, region, rates]);
 
   const submit = async () => {
     if (!page) {
@@ -110,10 +108,13 @@ export function CreateTaskDialog({
       toast.error("Upload the source page image before assigning assistant work.");
       return;
     }
+    if (!pageAssignment || pageAssignment.status === "RELEASED") {
+      toast.error("Assign an assistant to this page before creating a task.");
+      return;
+    }
     const parsed = schema.safeParse({
       title,
       type,
-      assigneeId,
       rateCode,
       quantity: Number(quantity),
       dueAt,
@@ -128,16 +129,9 @@ export function CreateTaskDialog({
       );
       return;
     }
-    if (hasActiveTaskOnPage) {
-      toast.error("This page has an active task.");
-      return;
-    }
-    const assignee = members.find((m) => m.id === assigneeId);
     const ok = await onSubmit({
       title,
       type,
-      assigneeId,
-      assigneeName: assignee?.name ?? assigneeId,
       rateCode,
       quantity: Number(quantity),
       dueAt: new Date(dueAt).toISOString(),
@@ -161,11 +155,9 @@ export function CreateTaskDialog({
         </DialogHeader>
 
         <div className="mt-4 space-y-3">
-          {hasActiveTaskOnPage ? (
-            <div className="rounded border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900">
-              This page has an active task.
-            </div>
-          ) : null}
+          <div className="rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
+            Page assignment: {pageAssignment ? `${pageAssignment.assistantName} · ${pageAssignment.status}` : "Not assigned"}. Multiple tasks may use this page assignment.
+          </div>
           {!pageHasSource ? (
             <div className="rounded border border-rose-300 bg-rose-50 p-2 text-[11px] text-rose-900">
               This page has no usable source image. Upload the page first; the assistant Canvas
@@ -201,8 +193,8 @@ export function CreateTaskDialog({
             ) : (
               <select
                 className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
+                value={pageAssignment?.assistantId ?? assigneeId}
+                disabled
               >
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -273,7 +265,7 @@ export function CreateTaskDialog({
               size="sm"
               onClick={submit}
               disabled={
-                !pageHasSource || hasActiveTaskOnPage || members.length === 0 || rates.length === 0
+                !pageHasSource || !pageAssignment || pageAssignment.status === "RELEASED" || rates.length === 0
               }
             >
               Create task

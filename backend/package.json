@@ -22,6 +22,8 @@
     "migrate:remove-task-block-state": "tsx src/scripts/migrate-remove-task-block-state.ts",
     "migrate:page-task-contract": "tsx src/scripts/migrate-page-task-contract.ts",
     "migrate:page-task-contract:apply": "tsx src/scripts/migrate-page-task-contract.ts --apply",
+    "migrate:page-assignment": "tsx src/scripts/migrate-page-assignment.ts",
+    "migrate:page-assignment:apply": "tsx src/scripts/migrate-page-assignment.ts --apply",
     "migrate:page-status": "tsx src/scripts/migrate-page-status-canonical.ts",
     "migrate:page-status:apply": "tsx src/scripts/migrate-page-status-canonical.ts --apply",
     "migrate:material-attachments": "tsx src/scripts/migrate-material-attachments.ts",

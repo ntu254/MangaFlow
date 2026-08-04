@@ -129,7 +129,17 @@ export function findUserById(id: string): User | undefined {
   );
 }
 
+/**
+ * Chair check for the current user.
+ *
+ * The live API carries `isChair` on the user profile, so that takes
+ * precedence. The static demo list is only a fallback for demo users.
+ */
 export function isBoardChair(userId: string) {
+  const current = useAuth.getState().user;
+  if (current && current.id === userId && typeof current.isChair === "boolean") {
+    return current.isChair;
+  }
   return BOARD_MEMBERS.find((m) => m.id === userId)?.isChair === true;
 }
 

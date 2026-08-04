@@ -91,6 +91,16 @@ export type StudioTaskStatus =
   | "CANCELLED";
 
 export type TaskAssignmentStatus = "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";
+export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED";
+export type PageAssignment = {
+  assistantId: string;
+  assistantName: string;
+  status: PageAssignmentStatus;
+  assignedAt: string;
+  acceptedAt?: string;
+  releasedAt?: string;
+  rejectedReason?: string;
+};
 
 export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
   TODO: "bg-zinc-200 text-zinc-800 border-zinc-300",
@@ -118,6 +128,7 @@ export type StudioTask = {
   seriesId?: string;
   chapterId: string;
   pageId: string;
+  /** @deprecated compatibility field; page assignment is authoritative. */
   pageTaskActive?: boolean;
   title: string;
   type: RegionType;

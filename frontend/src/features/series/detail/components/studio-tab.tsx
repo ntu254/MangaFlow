@@ -14,6 +14,8 @@ import {
   useCreateCommentMutation,
   useCreateStudioRegionMutation,
   useCreateStudioTaskMutation,
+  useAssignPageMutation,
+  usePageAssignmentActionMutation,
   useStudioRegionsQuery,
   useStudioTasksQuery,
   useSeriesMembersQuery,
@@ -28,11 +30,9 @@ import {
   chapterKeys,
   seriesKeys,
   studioKeys,
-  taskKeys,
 } from "../../api/series-queries";
 import { uploadFileToR2 } from "@/shared/lib/r2-upload";
 import {
-  isTaskActive,
   type StudioSelection,
   type StudioTool,
 } from "@/entities/series/model/studio-types";
@@ -116,7 +116,9 @@ export function StudioTab({
     enabled: basePermissions.canCreateTask,
   });
   const hasAssignedTaskScope =
-    basePermissions.mode === "assistant" && allTasksRaw.some((task) => task.assigneeId === user.id);
+    basePermissions.mode !== "assistant" ||
+    allTasksRaw.some((task) => task.assigneeId === user.id) ||
+    chapters.some((item) => item.pages.some((candidate) => candidate.pageAssignment?.assistantId === user.id));
   const permissions = useMemo(() => {
     if (
       basePermissions.mode !== "assistant" ||
@@ -221,6 +223,8 @@ export function StudioTab({
 
   const createRegionMutation = useCreateStudioRegionMutation();
   const createTaskMutation = useCreateStudioTaskMutation();
+  const assignPageMutation = useAssignPageMutation();
+  const pageAssignmentActionMutation = usePageAssignmentActionMutation();
   const createCommentMutation = useCreateCommentMutation();
   const resolveCommentMutation = useResolveCommentMutation();
   const reopenCommentMutation = useReopenCommentMutation();
@@ -273,9 +277,8 @@ export function StudioTab({
       }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: studioKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["studio-tasks"] });
       if (variables.taskId) {
-        queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
+        queryClient.invalidateQueries({ queryKey: studioKeys.task(variables.taskId) });
       }
     },
   });
@@ -360,13 +363,12 @@ export function StudioTab({
   const selectedRegionLinkedTask = selectedRegion?.taskId
     ? tasks.find((t) => t.id === selectedRegion.taskId)
     : undefined;
-  const activePageTask = pageTasks.find(
-    (task) => task.pageTaskActive === true || isTaskActive(task.status),
-  );
-  const hasActiveTaskOnPage = Boolean(activePageTask);
   const chapterReviewLocked = chapter?.status === "TANTOU_REVIEW";
   const canCreateTask =
-    permissions.canCreateTask && Boolean(page) && !hasActiveTaskOnPage && !chapterReviewLocked;
+    permissions.canCreateTask &&
+    Boolean(page?.pageAssignment) &&
+    page?.pageAssignment?.status !== "RELEASED" &&
+    !chapterReviewLocked;
   const canSubmitSelectedTask =
     permissions.canSubmitTask &&
     !chapterReviewLocked &&
@@ -806,6 +808,23 @@ export function StudioTab({
           userId={user.id}
           onTaskAction={handleTaskAction}
           onReviewSubmission={handleReviewSubmission}
+          pageAssignment={page?.pageAssignment}
+          assistantMembers={assistantMembers}
+          pageAssignmentBusy={assignPageMutation.isPending || pageAssignmentActionMutation.isPending}
+          onAssignPage={(assistantId) => {
+            if (!page || !chapter) return;
+            assignPageMutation.mutate(
+              { pageId: page.id, assistantId, chapterId: chapter.id, seriesId: series.id },
+              { onError: (error) => toast.error(mapApiError(error)) },
+            );
+          }}
+          onPageAssignmentAction={(action, reason) => {
+            if (!page || !chapter) return;
+            pageAssignmentActionMutation.mutate(
+              { pageId: page.id, action, reason, chapterId: chapter.id, seriesId: series.id },
+              { onError: (error) => toast.error(mapApiError(error)) },
+            );
+          }}
         />
       </div>
 
@@ -816,7 +835,7 @@ export function StudioTab({
         page={page}
         region={selectedRegion}
         members={assistantMembers}
-        hasActiveTaskOnPage={hasActiveTaskOnPage}
+        pageAssignment={page?.pageAssignment}
         rates={activeRates}
         onSubmit={async (data) => {
           if (!canCreateTask) {
@@ -835,8 +854,6 @@ export function StudioTab({
               seriesId: series.id,
               title: data.title,
               type: data.type,
-              assigneeId: data.assigneeId,
-              assigneeName: data.assigneeName,
               ...toTaskRatePayload({ rateCode: data.rateCode, quantity: data.quantity }),
               dueAt: data.dueAt,
               priority: data.priority,

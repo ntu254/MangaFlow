@@ -32,6 +32,7 @@ export const boardApi = {
   atRiskDecision: (seriesId: string, body: AtRiskDecisionRequest) =>
     apiRequest(`/board/series/${seriesId}/at-risk-decisions`, { method: "POST", body }),
   rankings: () => apiRequest("/rankings"),
+  rankingPeriods: () => apiRequest("/rankings/periods"),
   importRankings: (body: unknown) => apiRequest("/rankings/import", { method: "POST", body }),
   decisionHistory: () => apiRequest("/board/decisions/history"),
 };

@@ -200,7 +200,7 @@ describe("CT-11 admin scope reduction", () => {
         .expect(403);
     });
 
-    it("rejects the owning Mangaka from unpublishing (Tantou-only)", async () => {
+    it("rejects the owning Mangaka from unpublishing (Board at-risk only)", async () => {
       await makeSeries("s-admin-scope-unpub", "ONGOING");
       const mangaka = await loginAs("inoue@beachread.jp");
       const response = await request(createApp())
@@ -208,20 +208,21 @@ describe("CT-11 admin scope reduction", () => {
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .send({})
         .expect(403);
-      expect(response.body.code).toBe("TANTOU_ASSIGNMENT_REQUIRED");
+      expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
     });
 
-    it("allows the assigned Tantou to unpublish", async () => {
+    it("rejects the assigned Tantou from unpublishing (Board at-risk only)", async () => {
       await makeSeries("s-admin-scope-unpub-ok", "ONGOING");
       const tantou = await loginAs("editor@mangaflow.local");
-      await request(createApp())
+      const response = await request(createApp())
         .post("/api/series/s-admin-scope-unpub-ok/actions/UNPUBLISH")
         .set("Authorization", `Bearer ${tantou.accessToken}`)
         .send({})
-        .expect(200);
+        .expect(403);
+      expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
     });
 
-    it("rejects the owning Mangaka from archiving a published series (Tantou-only once public)", async () => {
+    it("rejects the owning Mangaka from archiving a published series (Board at-risk only)", async () => {
       await makeSeries("s-admin-scope-archive-public", "ONGOING");
       const mangaka = await loginAs("inoue@beachread.jp");
       const response = await request(createApp())
@@ -229,40 +230,50 @@ describe("CT-11 admin scope reduction", () => {
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .send({})
         .expect(403);
-      expect(response.body.code).toBe("TANTOU_ASSIGNMENT_REQUIRED");
+      expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
     });
 
-    it("allows the assigned Tantou to archive a published series", async () => {
+    it("rejects the assigned Tantou from archiving a published series (Board at-risk only)", async () => {
       await makeSeries("s-admin-scope-archive-public-ok", "ONGOING");
       const tantou = await loginAs("editor@mangaflow.local");
       const response = await request(createApp())
         .post("/api/series/s-admin-scope-archive-public-ok/actions/ARCHIVE")
         .set("Authorization", `Bearer ${tantou.accessToken}`)
         .send({})
-        .expect(200);
-
-      expect(response.body.data.status).toBe("ARCHIVED");
-      expect(response.body.data.visibility).toBe("UNLISTED");
+        .expect(403);
+      expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
     });
 
-    it("allows the owning Mangaka to archive a series that was never published", async () => {
+    it("rejects the owning Mangaka from archiving a series that was never published (Board at-risk only)", async () => {
       await makeSeries("s-admin-scope-archive-private", "PLANNING");
       const mangaka = await loginAs("inoue@beachread.jp");
-      await request(createApp())
+      const response = await request(createApp())
         .post("/api/series/s-admin-scope-archive-private/actions/ARCHIVE")
         .set("Authorization", `Bearer ${mangaka.accessToken}`)
         .send({})
-        .expect(200);
+        .expect(403);
+      expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
     });
 
-    it("allows the assigned Tantou to archive a series that was never published", async () => {
+    it("rejects the assigned Tantou from archiving a series that was never published (Board at-risk only)", async () => {
       await makeSeries("s-admin-scope-archive-private-tantou", "PLANNING");
       const tantou = await loginAs("editor@mangaflow.local");
-      await request(createApp())
+      const response = await request(createApp())
         .post("/api/series/s-admin-scope-archive-private-tantou/actions/ARCHIVE")
         .set("Authorization", `Bearer ${tantou.accessToken}`)
         .send({})
-        .expect(200);
+        .expect(403);
+      expect(response.body.code).toBe("BOARD_AT_RISK_REQUIRED");
+    });
+
+    it("rejects a Board member from archiving directly (must go through an at-risk CANCEL decision)", async () => {
+      await makeSeries("s-admin-scope-archive-board", "ONGOING");
+      const board = await loginAs("board@beachread.jp");
+      await request(createApp())
+        .post("/api/series/s-admin-scope-archive-board/actions/ARCHIVE")
+        .set("Authorization", `Bearer ${board.accessToken}`)
+        .send({})
+        .expect(403);
     });
   });
 

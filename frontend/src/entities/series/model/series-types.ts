@@ -1,6 +1,7 @@
 import type { Role } from "@/shared/auth";
 import type { PageStatus } from "@/shared/constants/status-constants";
 import type { SupportingMaterial } from "@/entities/proposal/model/proposal-types";
+import type { PageAssignment } from "./studio-types";
 
 export type ProductionSeriesStatus =
   | "PRE_PRODUCTION"
@@ -65,6 +66,7 @@ export type ChapterPage = {
     };
     [key: string]: unknown;
   };
+  pageAssignment?: PageAssignment;
 };
 
 export type ReviewNote = {

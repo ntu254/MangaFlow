@@ -35,7 +35,7 @@ export const createStudioTaskSchema = z
     seriesId: z.string().optional(),
     chapterId: z.string().optional(),
     pageId: z.string().min(1, "pageId is required."),
-    assigneeId: z.string().min(1, "assigneeId is required."),
+    assigneeId: z.string().min(1).optional(),
     assigneeName: z.string().optional(),
     title: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
@@ -50,6 +50,14 @@ export const createStudioTaskSchema = z
     currency: z.string().optional(),
     metadata: z.any().optional(),
   })
+  .strict();
+
+export const assignPageSchema = z
+  .object({ assistantId: z.string().min(1, "assistantId is required.") })
+  .strict();
+
+export const pageAssignmentActionSchema = z
+  .object({ reason: z.string().max(2000).optional(), rejectReason: z.string().max(2000).optional() })
   .strict();
 
 export const patchStudioTaskSchema = z

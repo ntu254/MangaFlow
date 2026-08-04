@@ -82,13 +82,13 @@ function seriesSlug(input: string, fallback: string) {
 }
 
 async function seriesHasRelatedData(seriesId: string) {
-  const [publishedChapters, submissions, tasks, audits] = await Promise.all([
-    ChapterModel.countDocuments({ seriesId, status: "PUBLISHED" }),
+  const [publishedChapters, submissions, tasks, publications] = await Promise.all([
+    ChapterModel.countDocuments({ seriesId }),
     SubmissionModel.countDocuments({ seriesId }),
     StudioTaskModel.countDocuments({ seriesId }),
-    AuditEntryModel.countDocuments({ entityId: seriesId }),
+    PublicationModel.countDocuments({ seriesId }),
   ]);
-  return publishedChapters > 0 || submissions > 0 || tasks > 0 || audits > 0;
+  return publishedChapters > 0 || submissions > 0 || tasks > 0 || publications > 0;
 }
 
 async function productionScopeForChapters(actor: RequestActor) {
@@ -253,6 +253,14 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
   const isPublic = PUBLIC_SERIES_STATUSES.has(String((series as any).status));
   const currentStatus = String((series as any).status);
 
+  if (action === "ARCHIVE" || action === "UNPUBLISH") {
+    throw new AppError(
+      403,
+      "Active series can only be cancelled by the Board through an At-risk CANCEL decision.",
+      "BOARD_AT_RISK_REQUIRED",
+    );
+  }
+
   if (action === "UNPUBLISH") {
     if (!["ONGOING", "PUBLISHED", "PUBLIC"].includes(currentStatus)) {
       throw new AppError(
@@ -332,8 +340,8 @@ export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
   const series = await SeriesModel.findOne({ id: seriesId }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
 
-  const isPublic = PUBLIC_SERIES_STATUSES.has(String((series as any).status));
-  if (isPublic || actor.role !== "MANGAKA") {
+  const isDraft = ["PRE_PRODUCTION", "PLANNING"].includes(String((series as any).status));
+  if (!isDraft || actor.role !== "MANGAKA") {
     throw new AppError(403, "You do not have permission to delete this series.", "FORBIDDEN");
   }
   if ((series as any).authorId !== actor.id) {
@@ -342,26 +350,12 @@ export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
 
   const hasRelatedData = await seriesHasRelatedData(seriesId);
 
-  if (isPublic || hasRelatedData) {
-    const archived = await SeriesModel.findOneAndUpdate(
-      { id: seriesId },
-      {
-        $set: {
-          status: "ARCHIVED",
-          visibility: "UNLISTED",
-          archivedAt: nowIso(),
-          deletedAt: nowIso(),
-          updatedAt: nowIso(),
-        },
-      },
-      { returnDocument: "after" },
-    ).lean();
-    await audit(req, "series.archive", "series", seriesId, {
-      previousStatus: (series as any).status,
-      hasRelatedData,
-    });
-    ok(res, archived);
-    return;
+  if (hasRelatedData) {
+    throw new AppError(
+      409,
+      "Only a draft or pre-production series without production work can be deleted.",
+      "SERIES_HAS_PRODUCTION_DATA",
+    );
   }
 
   const softDeleted = await SeriesModel.findOneAndUpdate(

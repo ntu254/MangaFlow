@@ -499,6 +499,19 @@ export type ChapterPage = {
   sizeKB?: number;
   uploadedAt?: Date;
   metadata?: Record<string, unknown>;
+  pageAssignment?: PageAssignment;
+};
+
+export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED";
+
+export type PageAssignment = {
+  assistantId: string;
+  assistantName: string;
+  status: PageAssignmentStatus;
+  assignedAt: Date;
+  acceptedAt?: Date;
+  releasedAt?: Date;
+  rejectedReason?: string;
 };
 
 export type ChapterHistoryEntry = {
@@ -770,14 +783,6 @@ const studioTaskSchema = looseSchema({
 
 studioTaskSchema.index({ assigneeId: 1, assignmentStatus: 1, status: 1 });
 studioTaskSchema.index({ chapterId: 1, status: 1 });
-studioTaskSchema.index(
-  { pageId: 1 },
-  {
-    unique: true,
-    name: "studio_task_one_active_page_assignment",
-    partialFilterExpression: { pageTaskActive: true, pageId: { $exists: true } },
-  },
-);
 studioTaskSchema.index({ priority: 1, status: 1 });
 studioTaskSchema.index({ chapterId: 1, isRequired: 1, status: 1 });
 
@@ -1285,6 +1290,7 @@ export type RankingRecord = {
   seriesId: string;
   seriesTitle: string;
   period: string;
+  cadence?: "WEEKLY" | "MONTHLY";
   readerScore?: number;
   voteCount?: number;
   finalScore?: number;
@@ -1305,6 +1311,7 @@ const rankingSchema = looseSchema({
   seriesId: { type: String, required: true, index: true },
   seriesTitle: { type: String },
   period: { type: String, required: true, index: true },
+  cadence: { type: String, enum: ["WEEKLY", "MONTHLY"], index: true },
   readerScore: { type: Number },
   voteCount: { type: Number },
   finalScore: { type: Number },
@@ -1333,6 +1340,7 @@ rankingSchema.index({ period: 1, rank: 1 });
 export type RankingImportRecord = {
   id: string;
   period: string;
+  cadence?: "WEEKLY" | "MONTHLY";
   sourceFileKey?: string;
   sourceFileName?: string;
   importedById: string;
@@ -1349,6 +1357,7 @@ export type RankingImportRecord = {
 
 const rankingImportSchema = looseSchema({
   period: { type: String, required: true, index: true },
+  cadence: { type: String, enum: ["WEEKLY", "MONTHLY"], index: true },
   sourceFileKey: { type: String },
   sourceFileName: { type: String },
   importedById: { type: String, required: true, index: true },

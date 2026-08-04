@@ -11,6 +11,7 @@ import { rankingKeys, seriesKeys } from "@/entities/series";
 import { ApiRequestError, apiRequest } from "@/shared/api/client";
 import { useAuth } from "@/shared/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { atRiskDecisionInvalidations } from "../model/mutation-invalidations";
 
 export const boardKeys = {
   all: ["board"] as const,
@@ -141,11 +142,12 @@ export function useAtRiskDecisionMutation() {
         method: "POST",
         body,
       }),
-    onSuccess: () => {
-      return Promise.all([
-        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
-        queryClient.invalidateQueries({ queryKey: rankingKeys.list() }),
-      ]);
+    onSuccess: (_data, variables) => {
+      return Promise.all(
+        atRiskDecisionInvalidations(variables.seriesId).map((key) =>
+          queryClient.invalidateQueries({ queryKey: key }),
+        ),
+      );
     },
   });
 }

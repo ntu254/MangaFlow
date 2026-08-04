@@ -2072,6 +2072,20 @@ describe("P0 canonical task submission workflow", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    await ChapterModel.updateOne(
+      { id: "chapter-p0-review-lock", "pages.id": "page-p0-review-lock-2" },
+      {
+        $set: {
+          "pages.$.pageAssignment": {
+            assistantId: assistant.user.id,
+            assistantName: "Assistant",
+            status: "ACCEPTED",
+            assignedAt: new Date(),
+            acceptedAt: new Date(),
+          },
+        },
+      },
+    );
 
     const assertReviewLocked = (res: any) => {
       expect(res.body.code).toBe("CHAPTER_REVIEW_LOCKED");

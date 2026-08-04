@@ -1,21 +1,34 @@
 import { useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { RestrictedActionTooltip } from "@/entities/access";
 import { PageShell, PageHeader, PageSection } from "@/shared/layout/page-layout";
 import { CsvFileUploader, CsvPreviewTable, validateCsvRows, type CsvPreviewRow } from "@/shared/ui";
 import { RankingImportPreview } from "./ranking-import-preview";
-import { useImportRankingsMutation, type RankingImportRow } from "../api/rankings.mutations";
-import type { RankingImportJob, RankingPeriod } from "@/entities/board/model/board-types";
+import {
+  useImportRankingsMutation,
+  useRankingPeriodsQuery,
+  type RankingImportRow,
+} from "../api/rankings.mutations";
+import type { RankingImportJob } from "@/entities/board/model/board-types";
 import { RANKING_SOURCES, getRankingSourceLabel } from "../model/ranking-source-utils";
 
-const DEFAULT_PERIODS: RankingPeriod[] = [
-  {
-    id: new Date().toISOString().slice(0, 7),
-    label: "Current month",
-    issue: new Date().toISOString().slice(0, 7),
-    status: "DRAFT",
-  },
-];
+type RankingCadence = "WEEKLY" | "MONTHLY";
+
+function currentPeriodFor(cadence: RankingCadence): string {
+  const now = new Date();
+  if (cadence === "MONTHLY") return now.toISOString().slice(0, 7);
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const week = 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function cadenceLabel(cadence?: RankingCadence): string {
+  return cadence === "WEEKLY" ? "Weekly" : cadence === "MONTHLY" ? "Monthly" : "Imported";
+}
 
 function csvTextToRows(csv: string): Record<string, string>[] {
   const lines = csv
@@ -61,12 +74,41 @@ export function RankingImportPage() {
 
 /** Embeddable import form (no page chrome) — reused inside the Rankings page. */
 export function RankingImportPanel() {
-  const periods = DEFAULT_PERIODS;
-  const [jobs, setJobs] = useState<RankingImportJob[]>([]);
-  const [periodId, setPeriodId] = useState(periods[0]?.id ?? "");
+  const { data: backendPeriods = [] } = useRankingPeriodsQuery();
+  const [cadence, setCadence] = useState<RankingCadence>("MONTHLY");
+  const [periodId, setPeriodId] = useState(() => currentPeriodFor("MONTHLY"));
   const [source, setSource] = useState("SURVEY");
   const [csvText, setCsvText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<RankingImportJob[]>([]);
+
+  const periodOptions = useMemo(() => {
+    const options = new Map<string, { label: string; cadence: RankingCadence; imported: boolean }>();
+    options.set(currentPeriodFor("MONTHLY"), {
+      label: `Current month (${currentPeriodFor("MONTHLY")})`,
+      cadence: "MONTHLY",
+      imported: false,
+    });
+    options.set(currentPeriodFor("WEEKLY"), {
+      label: `Current week (${currentPeriodFor("WEEKLY")})`,
+      cadence: "WEEKLY",
+      imported: false,
+    });
+    for (const period of backendPeriods) {
+      const cad = period.cadence ?? (period.period.match(/^\d{4}-W\d{2}$/) ? "WEEKLY" : "MONTHLY");
+      options.set(period.period, {
+        label: `${period.period} (${cadenceLabel(cad)})`,
+        cadence: cad,
+        imported: true,
+      });
+    }
+    return [...options.entries()];
+  }, [backendPeriods]);
+
+  const switchCadence = (next: RankingCadence) => {
+    setCadence(next);
+    setPeriodId(currentPeriodFor(next));
+  };
 
   const rawRows = useMemo(() => csvTextToRows(csvText), [csvText]);
   const previewRows: CsvPreviewRow[] = useMemo(() => validateCsvRows(rawRows), [rawRows]);
@@ -87,6 +129,7 @@ export function RankingImportPanel() {
     try {
       const result = await importRankings.mutateAsync({
         period: periodId,
+        cadence,
         source,
         fileName: fileName ?? "manual-ranking.csv",
         rows: importRows,
@@ -94,16 +137,16 @@ export function RankingImportPanel() {
       setJobs((current) => [
         {
           id: `ranking-import-${Date.now()}`,
-          periodId,
+          periodId: `${cadence === "WEEKLY" ? "Week" : "Month"} ${periodId}`,
           fileName: result.fileName ?? fileName ?? "manual-ranking.csv",
-          status: "VALIDATED",
+          status: "IMPORTED",
           rowCount: result.imported,
           errors: [],
           createdAt: new Date().toISOString(),
         },
         ...current,
       ]);
-      toast.success(`Imported ${result.imported} ranking rows.`);
+      toast.success(`Imported ${result.imported} ranking rows for ${periodId}.`);
       setCsvText("");
       setFileName(null);
     } catch (error) {
@@ -116,6 +159,18 @@ export function RankingImportPanel() {
       <PageSection>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="text-xs font-semibold">
+            Cadence
+            <select
+              aria-label="Select cadence"
+              value={cadence}
+              onChange={(event) => switchCadence(event.target.value as RankingCadence)}
+              className="mt-1 w-full rounded border border-border bg-background px-3 py-2"
+            >
+              <option value="WEEKLY">Weekly (YYYY-W##)</option>
+              <option value="MONTHLY">Monthly (YYYY-MM)</option>
+            </select>
+          </label>
+          <label className="text-xs font-semibold">
             Period
             <select
               aria-label="Select period"
@@ -123,20 +178,14 @@ export function RankingImportPanel() {
               onChange={(event) => setPeriodId(event.target.value)}
               className="mt-1 w-full rounded border border-border bg-background px-3 py-2"
             >
-              {periods.map((period) => (
-                <option key={period.id} value={period.id}>
-                  {period.label}
-                </option>
-              ))}
+              {periodOptions
+                .filter(([, info]) => info.cadence === cadence)
+                .map(([period, info]) => (
+                  <option key={period} value={period}>
+                    {info.label}
+                  </option>
+                ))}
             </select>
-          </label>
-          <label className="text-xs font-semibold">
-            Issue
-            <input
-              className="mt-1 w-full rounded border border-border bg-background px-3 py-2"
-              value={periods.find((p) => p.id === periodId)?.issue ?? ""}
-              readOnly
-            />
           </label>
           <label className="text-xs font-semibold">
             Ranking Source
@@ -154,6 +203,10 @@ export function RankingImportPanel() {
             </select>
           </label>
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Importing into an existing period re-imports (upserts) its rows and recomputes ranks
+          immediately. There is no separate finalize step in this MVP — imports are live.
+        </p>
 
         <div className="mt-4">
           <CsvFileUploader onFileContent={handleFileContent} disabled={importRankings.isPending} />
@@ -169,16 +222,13 @@ export function RankingImportPanel() {
           >
             {importRankings.isPending
               ? "Submitting..."
-              : `Submit import (${validRowCount} valid rows)`}
+              : `Import (${validRowCount} valid rows)`}
           </button>
-          <RestrictedActionTooltip reason="CALLBACK_MISSING">
-            <button
-              disabled
-              className="rounded bg-foreground px-3 py-2 text-xs font-semibold text-background opacity-40"
-            >
-              Finalize
-            </button>
-          </RestrictedActionTooltip>
+          {jobs[0]?.status === "IMPORTED" ? (
+            <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+              Imported
+            </span>
+          ) : null}
         </div>
       </PageSection>
       <RankingImportPreview jobs={jobs} />

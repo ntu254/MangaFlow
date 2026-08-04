@@ -25,11 +25,24 @@ const rankingImportRowSchema = z
 const rankingImportSchema = z
   .object({
     period: z.string().min(1).max(80),
+    cadence: z.enum(["WEEKLY", "MONTHLY"]).optional(),
     source: z.string().min(1).max(80),
     fileName: z.string().min(1).max(240).optional(),
     rows: z.array(rankingImportRowSchema).min(1).max(500),
   })
   .strict();
+
+function canonicalRankingPeriod(period: string, cadence?: "WEEKLY" | "MONTHLY") {
+  const value = period.trim();
+  const inferred = cadence ?? (value.match(/^\d{4}-W\d{2}$/) ? "WEEKLY" : value.match(/^\d{4}-\d{2}$/) ? "MONTHLY" : undefined);
+  if (inferred === "WEEKLY" && !/^\d{4}-W\d{2}$/.test(value)) {
+    throw new AppError(400, "Weekly periods must use YYYY-W##.", "INVALID_PERIOD");
+  }
+  if (inferred === "MONTHLY" && !/^\d{4}-\d{2}$/.test(value)) {
+    throw new AppError(400, "Monthly periods must use YYYY-MM.", "INVALID_PERIOD");
+  }
+  return { period: value, cadence: inferred };
+}
 
 export const listNotifications = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
@@ -96,6 +109,30 @@ export const listRankings = asyncRoute(async (req: AuthedRequest, res) => {
   await paginated(req, res, RankingModel, filter, { period: -1, rank: 1, finalScore: -1 });
 });
 
+export const listRankingPeriods = asyncRoute(async (req: AuthedRequest, res) => {
+  requireActor(req);
+  const periods = await RankingModel.aggregate([
+    {
+      $group: {
+        _id: "$period",
+        cadence: { $max: "$cadence" },
+        importedAt: { $max: "$importedAt" },
+      },
+    },
+    { $sort: { _id: -1 } },
+    { $limit: 100 },
+    {
+      $project: {
+        _id: 0,
+        period: "$_id",
+        cadence: 1,
+        importedAt: 1,
+      },
+    },
+  ]);
+  ok(res, periods);
+});
+
 export const listSeriesRankings = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const seriesId = String(req.params.seriesId);
@@ -119,6 +156,7 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const body = parseBody(rankingImportSchema, req);
   rejectProtectedFields(body as unknown as Record<string, unknown>);
+  const canonical = canonicalRankingPeriod(body.period, body.cadence);
 
   const batchId = id("rimport");
   const now = nowIso();
@@ -126,7 +164,8 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
   // Create batch record (PENDING)
   await RankingImportModel.create({
     id: batchId,
-    period: body.period,
+    period: canonical.period,
+    cadence: canonical.cadence,
     sourceFileName: body.fileName,
     importedById: actor.id,
     importedByName: actor.name,
@@ -169,12 +208,13 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
 
     // Upsert ranking with importBatchId (Strategy A: upsert on period+seriesId)
     const ranking = await RankingModel.findOneAndUpdate(
-      { seriesId, period: body.period },
+      { seriesId, period: canonical.period },
       {
         $set: {
           seriesId,
           seriesTitle,
-          period: body.period,
+          period: canonical.period,
+          cadence: canonical.cadence,
           readerScore,
           voteCount,
           finalScore,
@@ -217,7 +257,7 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
     throw new AppError(400, errors.join("; "), "RANKING_IMPORT_INVALID");
   }
 
-  const periodRankings = await RankingModel.find({ period: body.period })
+  const periodRankings = await RankingModel.find({ period: canonical.period })
     .sort({ finalScore: -1, voteCount: -1, id: 1 })
     .select("id")
     .lean();
@@ -237,7 +277,8 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
 
   await audit(req, "RANKING_IMPORTED", "ranking_import", batchId, {
     importBatchId: batchId,
-    period: body.period,
+    period: canonical.period,
+    cadence: canonical.cadence,
     totalRows: body.rows.length,
     successRows: imported.length,
     failedRows: errors.length,
@@ -246,7 +287,8 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
 
   created(res, {
     id: batchId,
-    period: body.period,
+    period: canonical.period,
+    cadence: canonical.cadence,
     source: body.source,
     fileName: body.fileName ?? "manual-import.csv",
     rowCount: body.rows.length,

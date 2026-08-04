@@ -24,6 +24,7 @@ import {
   runWorkflowTransaction,
   toObject,
 } from "./workflow-support.service.js";
+import { applyPageAssignmentAction, assertCurrentPageAssignment, currentPageAssignment, getPageContext } from "./page-assignment.service.js";
 
 function ensureActor(req: AuthedRequest) {
   if (!req.actor)
@@ -326,6 +327,21 @@ export async function applyTaskAction(
   const normalizedAction = action.toUpperCase();
   assertTaskActionAllowed(actor, task, action);
   if (actor.role !== "ASSISTANT") await assertCanMutateTask(actor, task);
+  const pageAssignment = task.pageId
+    ? currentPageAssignment((await getPageContext(String(task.pageId))).page)
+    : null;
+  if (pageAssignment && ["START", "REOPEN"].includes(normalizedAction)) {
+    await assertCurrentPageAssignment(task, { requireAccepted: true });
+  }
+  if (pageAssignment && ["ACCEPT", "REJECT"].includes(normalizedAction)) {
+    await applyPageAssignmentAction(
+      actor,
+      String(task.pageId),
+      normalizedAction,
+      payload.reason ?? payload.rejectReason,
+    );
+    return toObject(await StudioTaskModel.findOne({ id: taskId }).lean());
+  }
   if (normalizedAction === "REOPEN") return reopenTaskForRevision(req, taskId);
 
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
@@ -535,6 +551,10 @@ export async function reopenTaskForRevision(
       "Task is not assigned to the current assistant.",
       "TASK_NOT_ASSIGNED",
     );
+  }
+  if (task.pageId) {
+    const assignment = currentPageAssignment((await getPageContext(String(task.pageId))).page);
+    if (assignment) await assertCurrentPageAssignment(task, { requireAccepted: true });
   }
   assertTaskAssignmentAccepted(task);
   if (!isCanonicalRevisionStatus(task.status)) {

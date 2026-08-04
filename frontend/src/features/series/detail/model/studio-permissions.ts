@@ -260,8 +260,13 @@ export function filterStudioChaptersForRole(
 ) {
   if (permissions.mode !== "assistant") return chapters;
   const assignedPageIds = new Set(
-    tasks.filter((t) => t.assigneeId === userId).map((t) => t.pageId),
+    chapters.flatMap((chapter) =>
+      chapter.pages
+        .filter((page) => page.pageAssignment?.assistantId === userId)
+        .map((page) => page.id),
+    ),
   );
+  tasks.filter((t) => t.assigneeId === userId).forEach((task) => assignedPageIds.add(task.pageId));
   return chapters
     .map((chapter) => ({
       ...chapter,

@@ -3,6 +3,7 @@ import {
   listNotifications,
   markRead,
   listRankings,
+  listRankingPeriods,
   listSeriesRankings,
   importRankings
 } from "../controllers/notification.controller.js";
@@ -15,6 +16,7 @@ router.post("/notifications/:id/read", markRead);
 
 // Rankings (originally registered inside registerNotifications)
 router.get("/rankings", requireExactRole("BOARD", "EDITOR", "MANGAKA") as any, listRankings);
+router.get("/rankings/periods", requireRole("BOARD") as any, listRankingPeriods);
 router.post("/rankings/import", requireRole("BOARD") as any, importRankings);
 router.get(
   "/series/:seriesId/rankings",
