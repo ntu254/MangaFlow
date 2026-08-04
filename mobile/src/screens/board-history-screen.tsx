@@ -11,76 +11,46 @@ export function BoardHistoryScreen() {
     return (
       <WorkflowState
         kind="error"
+        context="the governance decision ledger"
         error={history.error}
         onRetry={() => void history.refetch()}
       />
     )
   }
 
-  const rows = history.data ?? []
-  const reVotes = rows.filter((row) => row.status === "TIED")
+  const entries = toBoardLedgerEntries(history.data ?? [])
+  const { votingRounds } = partitionBoardLedger(entries)
+  const sections = groupBoardLedger(entries)
 
   return (
     <>
       <MFHero
         role="board"
-        title="Decision history"
-        subtitle="Immutable Board sessions, outcomes, and manual at-risk decisions."
+        title="Governance Decision Ledger"
+        subtitle="Immutable Board record, separated by voting rounds and governance outcomes."
       />
-      <MFMetricStrip items={[
-        { id: "records", label: "Records", value: String(rows.length), tone: "primary", icon: "file-check" },
-        { id: "ties", label: "Tied rounds", value: String(reVotes.length), tone: "warning", icon: "scale-balance" },
-        { id: "mode", label: "Mode", value: "Read only", tone: "success", icon: "shield-check" },
-      ]} />
-      <SectionTitle title="Immutable records" />
-      {rows.length ? (
-        <MFTimeline items={rows.map((row) => ({
-          id: row.id,
-          title: row.title,
-          subtitle: `${row.type} · ${historyStatus(row.status)} · ${formatDate(row.date)}${lineageText(row.metadata)}`,
-          tone: historyTone(row.status),
-          icon: historyIcon(row.status),
-        }))} />
+      <SectionTitle title={`${entries.length} entries · ${votingRounds.length} voting rounds · Read only`} />
+      <SectionTitle title="Immutable governance records" />
+      {entries.length ? (
+        sections.map((section) => (
+          <Fragment key={section.id}>
+            <SectionTitle title={section.title} />
+            <MFTimeline items={section.items.map((entry) => ({
+              id: entry.id,
+              title: entry.title,
+              subtitle: `${section.tag} · ${entry.recordType} · ${entry.outcome} · ${entry.timeLabel}${entry.lineage ? ` · ${entry.lineage}` : ""}`,
+              tone: entry.tone,
+              icon: entry.icon,
+            }))} />
+          </Fragment>
+        ))
       ) : (
         <MFEmptyState
-          title="No decision history"
-          subtitle="Finalized, tied, cancelled, and at-risk records will appear here."
+          title="No governance decisions recorded"
+          subtitle="Finalized, tied, cancelled, and at-risk Board records will appear here."
           icon="shield-check"
         />
       )}
     </>
   )
-}
-
-function historyStatus(value: string): string {
-  return value.replaceAll("_", " ")
-}
-
-function lineageText(metadata?: Record<string, unknown>): string {
-  if (!metadata) return ""
-  const prior = metadata.reVoteOfSessionId
-  if (typeof prior === "string" && prior) return ` · re-vote of ${prior}`
-  return ""
-}
-
-function historyTone(status: string): "success" | "warning" | "danger" | "primary" {
-  if (status === "APPROVED" || status === "FINALIZED" || status === "CONTINUE") return "success"
-  if (status === "REJECTED" || status === "CANCELLED" || status === "CANCEL") return "danger"
-  if (status === "TIED" || status === "NO_QUORUM" || status === "WARNING") {
-    return "warning"
-  }
-  return "primary"
-}
-
-function historyIcon(status: string): "check-circle" | "alert-triangle" | "scale-balance" | "shield-check" {
-  if (status === "TIED") return "scale-balance"
-  if (historyTone(status) === "danger" || historyTone(status) === "warning") return "alert-triangle"
-  if (historyTone(status) === "success") return "check-circle"
-  return "shield-check"
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "Unknown time"
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
