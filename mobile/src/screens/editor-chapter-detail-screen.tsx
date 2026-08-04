@@ -107,7 +107,7 @@ export function EditorChapterDetailScreen({
       <WorkflowDetailLayout
         title={data.chapter.title}
         subtitle={`${data.chapter.status} · Chapter ${data.chapter.number}`}
-        actionBar={
+        actions={
           <WorkflowActionBar
             actions={data.actions}
             onAction={(descriptor) => {
