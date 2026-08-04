@@ -451,7 +451,9 @@ const styles = StyleSheet.create({
   demoButtonTitle: { color: colors.text, fontSize: 14, fontWeight: "900" },
   demoButtonSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   shellChrome: { paddingHorizontal: spacing.md, gap: spacing.md },
-  body: { flex: 1 },
+  // Keeps the final queue row and static-screen controls clear of MFScreen's
+  // absolutely positioned tab bar, which no longer has a scrolling shell.
+  body: { flex: 1, paddingBottom: 110 },
   sessionStrip: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radius.full, borderWidth: 1, borderColor: colors.outlineVariant, padding: 5 },
   sessionIdentity: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: spacing.xs, paddingLeft: spacing.sm },
   sessionText: { flex: 1, color: colors.textMuted, fontSize: 12, fontWeight: "800" },

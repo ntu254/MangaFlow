@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Image } from "expo-image"
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
+import { Pressable, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
