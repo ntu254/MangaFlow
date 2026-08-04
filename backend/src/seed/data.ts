@@ -361,7 +361,8 @@ function pages(chapterId: string, count: number, status: "UPLOADED" | "FINALIZED
     index: index + 1,
     pageNumber: index + 1,
     fileName: `page-${String(index + 1).padStart(2, "0")}.jpg`,
-    fileUrl: "metadata://signed-url-not-issued",
+    fileUrl: `https://picsum.photos/seed/${chapterId}-${index + 1}/300/420`,
+    imageUrl: `https://picsum.photos/seed/${chapterId}-${index + 1}/300/420`,
     status,
     sizeKB: 310 + index,
     uploadedAt: ago(36)
@@ -421,6 +422,7 @@ export const seedChapters = [
     seriesId: "s-berserk-prod",
     number: 4,
     title: "Echoes",
+    targetPages: 18,
     // Chapter stays READY_FOR_PUBLICATION; the SCHEDULED state lives on its
     // Publication (see seedPublications).
     status: "READY_FOR_PUBLICATION",
@@ -442,6 +444,7 @@ export const seedChapters = [
     seriesId: "s-berserk-prod",
     number: 5,
     title: "Old Wound",
+    targetPages: 18,
     // Canonical: chapter awaiting Tantou (Editor) review. A frozen review
     // snapshot is required before the Editor can approve; an empty page-version
     // list keeps the demo snapshot valid without pinning generated page ids.
@@ -472,6 +475,7 @@ export const seedChapters = [
     seriesId: "s-vinland-prod",
     number: 1,
     title: "New Harbor",
+    targetPages: 22,
     // Canonical: editor-approved chapter ready for publication scheduling.
     status: "READY_FOR_PUBLICATION",
     assigneeId: "u-mangaka",
@@ -986,7 +990,10 @@ export const seedSeriesMembers = [
     seriesId: "s-berserk-prod",
     userId: "u-assist",
     role: "assistant",
+    // Legacy free-text retained so existing controllers keep working.
     scope: "Full chapter",
+    accessScope: "CHAPTER_ONLY",
+    specialization: "GENERAL",
     status: "active",
     assignedChapterIds: ["ch-s-berserk-prod-4", "ch-s-berserk-prod-5"],
     assignedTaskIds: ["tsk-001"],
@@ -999,6 +1006,8 @@ export const seedSeriesMembers = [
     userId: "u-assist",
     role: "assistant",
     scope: "Backgrounds only",
+    accessScope: "TASK_ONLY",
+    specialization: "BACKGROUND",
     status: "active",
     assignedChapterIds: ["ch-s-vinland-prod-1"],
     assignedTaskIds: [],
@@ -1011,6 +1020,8 @@ export const seedSeriesMembers = [
     userId: "u-assist-2",
     role: "assistant",
     scope: "Lineart & Inking",
+    accessScope: "TASK_ONLY",
+    specialization: "INKING",
     status: "active",
     assignedChapterIds: ["ch-s-vinland-prod-1"],
     assignedTaskIds: ["tsk-003"],

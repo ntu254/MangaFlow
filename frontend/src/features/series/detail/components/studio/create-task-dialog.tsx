@@ -58,7 +58,6 @@ type Props = {
   region: StudioRegion | undefined;
   pageAssignment?: PageAssignment;
   members: User[];
-  hasActiveTaskOnPage?: boolean;
   rates: RateTableEntry[];
   onSubmit: Submit;
 };
@@ -71,7 +70,6 @@ export function CreateTaskDialog({
   region,
   pageAssignment,
   members,
-  hasActiveTaskOnPage = false,
   rates,
   onSubmit,
 }: Props) {

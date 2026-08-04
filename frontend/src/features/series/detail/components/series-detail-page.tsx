@@ -145,7 +145,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             {SERIES_STATUS_LABEL[series.status]}
           </p>
-          <h1 className="mt-1 flex items-center font-serif text-4xl">
+          <h1 className="mt-1 flex max-w-3xl items-center font-serif text-3xl font-bold tracking-tight line-clamp-2">
             {series.title}
             <EditTitleButton />
           </h1>
@@ -172,7 +172,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
             </span>
             <span>
               <span className="font-semibold text-foreground">Progress:</span> {published.length}/
-              {series.targetChapters}
+              {series.targetChapters} ch
             </span>
           </div>
         </div>

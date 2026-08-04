@@ -12,9 +12,15 @@ export type WorkloadBlocker = {
 };
 
 const TERMINAL_ASSISTANT_TASK_STATUSES = new Set([
-  "MANGAKA_APPROVED",
+  // See Sprint 1.3: MANGAKA_APPROVED is no longer terminal for an Assistant's
+  // workload. After Mangaka approval the task still has an EDITOR_APPROVED
+  // step before payment clears. Removing an Assistant with MANGAKA_APPROVED
+  // tasks would orphan an earning that needs to follow the original
+  // assignee — block removal until COMPLETED.
+  "COMPLETED",
   "REJECTED",
   "CANCELLED",
+  "EDITOR_APPROVED",
 ]);
 
 export async function findAssistantAssignmentBlockers(

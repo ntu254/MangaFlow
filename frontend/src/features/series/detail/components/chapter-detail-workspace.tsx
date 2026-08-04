@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Check,
   Upload,
   Send,
   PenTool,
@@ -229,7 +230,9 @@ export function ChapterDetailWorkspace({
                 Chapter {String(chapter.number).padStart(3, "0")}
               </h2>
               <ChapterStatusPill status={chapter.status} />
-              <span className="text-xs text-muted-foreground">{chapter.pages.length} pages</span>
+              <span className="text-xs text-muted-foreground">
+                {chapter.pages.length} / {chapter.targetPages ?? 20} pages
+              </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{chapter.title}</p>
           </div>
@@ -249,43 +252,58 @@ export function ChapterDetailWorkspace({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => canEnterStudio && onOpenStudio?.()}
               disabled={!canEnterStudio || !onOpenStudio}
               title={canEnterStudio ? "Open Studio canvas" : "You do not have access to Studio."}
-              className="inline-flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1.5 text-[11px] font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <PenTool className="size-3" /> Studio
+              <PenTool className="size-3.5" /> Studio
             </button>
-            <button
-              onClick={() => canUpload && fileRef.current?.click()}
-              disabled={!canUpload}
-              title={canUpload ? "Upload pages" : UNSUPPORTED}
-              className="inline-flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1.5 text-[11px] font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Upload className="size-3" /> Upload
-            </button>
-            <button
-              onClick={submitReview}
-              disabled={chapterActionMutation.isPending || sendEditorReviewMutation.isPending}
-              aria-disabled={!canSubmit}
-              title={
-                canSubmit
-                  ? isResubmission
-                    ? "Resubmit to Editor"
-                    : "Send to Editor Review"
-                  : (submitDisabledReason ?? UNSUPPORTED)
-              }
-              className={`inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${
-                canSubmit
-                  ? "bg-foreground text-background hover:bg-foreground/90"
-                  : "bg-foreground/40 text-background hover:bg-foreground/50"
-              }`}
-            >
-              <Send className="size-3" />{" "}
-              {isResubmission ? "Resubmit to Editor" : "Send to Editor Review"}
-            </button>
+
+            {/* Smart Dynamic Action Button */}
+            {chapter.status === "TANTOU_REVIEW" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                <span className="size-2 rounded-full bg-amber-500 animate-pulse" /> Under Editor Review
+              </span>
+            ) : chapter.status === "READY_FOR_PUBLICATION" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <Check className="size-3.5" /> Ready for Publication
+              </span>
+            ) : chapter.status === "PUBLISHED" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                Published
+              </span>
+            ) : chapter.pages.length === 0 && canUpload ? (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-all hover:bg-primary/90"
+              >
+                <Upload className="size-3.5" /> Upload Pages
+              </button>
+            ) : (
+              <button
+                onClick={submitReview}
+                disabled={chapterActionMutation.isPending || sendEditorReviewMutation.isPending}
+                aria-disabled={!canSubmit}
+                title={
+                  canSubmit
+                    ? isResubmission
+                      ? "Resubmit to Editor"
+                      : "Send to Editor Review"
+                    : (submitDisabledReason ?? UNSUPPORTED)
+                }
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                  canSubmit
+                    ? "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground border border-border"
+                }`}
+              >
+                <Send className="size-3.5" />
+                {isResubmission ? "Resubmit to Editor" : "Submit to Editor Review"}
+              </button>
+            )}
 
             {/* More menu */}
             <DropdownMenu>
@@ -296,7 +314,12 @@ export function ChapterDetailWorkspace({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 {allowedActions
-                  .filter((action) => action !== "SUBMIT_REVIEW" && action !== "RESUBMIT")
+                  .filter(
+                    (action) =>
+                      action !== "SUBMIT_REVIEW" &&
+                      action !== "RESUBMIT" &&
+                      action !== "START_DRAFT",
+                  )
                   .map((a) => {
                     const c = checkChapterAction(a, user, chapter, series);
                     const disabledBySelfApproval =
@@ -361,7 +384,7 @@ export function ChapterDetailWorkspace({
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Pages</dt>
-                <dd className="font-semibold">{chapter.pages.length}</dd>
+                <dd className="font-semibold">{chapter.pages.length} / {chapter.targetPages ?? 20}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Revision round</dt>

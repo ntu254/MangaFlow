@@ -43,7 +43,7 @@ export function SeriesRankingsPage() {
         views: 0,
         completionRate: 0,
         trend: index < list.length / 3 ? "UP" : row.atRisk ? "DOWN" : "FLAT",
-        risk: row.atRisk || row.status === "AT_RISK" ? "HIGH" : "LOW",
+        risk: row.atRisk ? "HIGH" : "LOW",
         source: "live-api",
         performanceSnapshot: `Reader score ${row.readerScore ?? "—"} with ${row.voteCount ?? 0} votes.`,
         sourceBreakdown: "Backend ranking read model.",

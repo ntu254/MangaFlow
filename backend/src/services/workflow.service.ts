@@ -796,12 +796,38 @@ export async function applyProposalAction(
       break;
 
     case "ARCHIVE":
-      if (["APPROVED"].includes(proposal.status)) {
-        throw new AppError(409, "Approved proposals cannot be archived directly.", "FORBIDDEN");
+      // Sprint 2.6 (PROP-001): archive is a soft-hide for proposals that no
+      // longer need attention from the editor/board queues. APPROVED proposals
+      // drive a production series — never archive them, take the production
+      // down through the board at-risk pipeline instead.
+      if (["APPROVED", "BOARD_REVIEW"].includes(proposal.status)) {
+        throw new AppError(
+          409,
+          "Proposals that are in active review or have driven a series into production cannot be archived directly.",
+          "PROPOSAL_NOT_ARCHIVABLE",
+        );
+      }
+      // PENDING_EDITOR must be withdrawn or released before archive so the
+      // owning Editor does not lose visibility on a proposal they could have
+      // claimed.
+      if (proposal.status === "PENDING_EDITOR" && !payload.releasedForArchive) {
+        throw new AppError(
+          409,
+          "Proposals in PENDING_EDITOR must be withdrawn or released before they can be archived.",
+          "PROPOSAL_ARCHIVE_REQUIRES_RELEASE",
+        );
+      }
+      if (!["DRAFT", "REJECTED", "WITHDRAWN", "CHANGES_REQUESTED", "PENDING_EDITOR", "EDITOR_REVIEWING", "PENDING_BOARD", "ARCHIVED"].includes(proposal.status)) {
+        throw new AppError(
+          409,
+          `Cannot archive a proposal from status ${proposal.status}.`,
+          "PROPOSAL_NOT_ARCHIVABLE",
+        );
       }
       patch.status = "ARCHIVED";
       patch.archivedAt = new Date();
       patch.archivedById = actor.id;
+      patch.archivedByName = actor.name;
       patch.archiveReason = payload.reason ?? payload.archiveReason ?? "";
       break;
   }
@@ -897,6 +923,7 @@ export async function applyChapterAction(
   const isEditor = actor.role === "EDITOR";
   const isMangakaOrEditor = actor.role === "EDITOR" || actor.role === "MANGAKA";
   const fromStatus = chapter.status as ChapterStatus;
+  const currentChapterStatus = fromStatus;
   let pendingReviewComment: Record<string, unknown> | undefined;
 
   // SUBMIT_REVIEW (first review) and RESUBMIT (after a requested revision) share
@@ -945,11 +972,25 @@ export async function applyChapterAction(
     POSTPONE: { from: ["READY_FOR_PUBLICATION"], editor: true },
     PUBLISH: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
     PUBLISH_EARLY: { from: ["READY_FOR_PUBLICATION"], to: "PUBLISHED", editor: true },
-    REASSIGN: { editor: true },
+    // Sprint 2.4: REASSIGN is only valid while the chapter is in active
+    // production, under revision, or still planned. Reassigning during
+    // Tantou review / ready / published invalidates the review snapshot and
+    // the self-approval guard built around the original assignee.
+    REASSIGN: {
+      mangakaOrEditor: true,
+      from: ["PLANNED", "IN_PRODUCTION", "REVISION_REQUIRED"],
+    },
   };
 
   const rule = transition[action];
   if (!rule) throw new AppError(400, `Unknown chapter action: ${action}`, "INVALID_ACTION");
+  if (rule.from && !rule.from.includes(currentChapterStatus)) {
+    throw new AppError(
+      409,
+      `Action ${action} requires status in [${rule.from.join(", ")}]. Current: ${currentChapterStatus}.`,
+      "REASSIGN_NOT_ALLOWED",
+    );
+  }
   if (rule.owner && !isChapterAssignee) {
     throw new AppError(
       403,
@@ -1377,7 +1418,12 @@ export async function boardQueue() {
       seriesId: proposal.id,
       seriesTitle: proposal.title,
       title: proposal.title,
+      // Series lifecycle status — derived from the proposal status for proposals
+      // in the board flow. AT_RISK no longer leaks into this field; that lives
+      // exclusively in `riskStatus` below.
       seriesStatus: "BOARD_REVIEW",
+      riskStatus: "NORMAL",
+      riskEvaluatedAt: null,
       decisionStatus: "PENDING",
       votingSessionId: (session as any)?.id ?? proposal.activeVotingSessionId ?? null,
       proposalVersionId:
@@ -1413,16 +1459,41 @@ export async function boardQueue() {
     $or: [{ atRisk: true }, { status: "AT_RISK" }],
     "metadata.atRiskDecision": { $exists: false },
   }).lean();
+  const atRiskSeriesIds = Array.from(
+    new Set(atRisk.map((rank: any) => rank.seriesId).filter(Boolean)),
+  );
+  const atRiskSeries = await SeriesModel.find({ id: { $in: atRiskSeriesIds } })
+    .select({ id: 1, status: 1 })
+    .lean();
+  const atRiskSeriesMap = new Map(atRiskSeries.map((item: any) => [String(item.id), item]));
   return [
     ...proposalItems,
-    ...atRisk.map((rank: any) => ({
-      id: rank.seriesId,
-      seriesId: rank.seriesId,
-      seriesTitle: rank.seriesTitle,
-      seriesStatus: "AT_RISK",
-      decisionStatus: "PENDING",
-      updatedAt: rank.updatedAt,
-    })),
+    ...atRisk.map((rank: any) => {
+      // Sprint 2 — API-001 — `seriesStatus` is split into two distinct fields
+      // so the UI never confuses a risk flag with a lifecycle change. The
+      // Series row keeps its canonical lifecycle status (ONGOING, PAUSED,
+      // ARCHIVED, ...) and only the risk dimension surfaces as
+      // `riskStatus: "AT_RISK" | "NORMAL"`. `seriesStatus` is kept on the
+      // payload for backwards compatibility but is now sourced from the
+      // Series.status field directly.
+      const series = atRiskSeriesMap.get(String(rank.seriesId));
+      const lifecycleStatus = String(series?.status ?? "ONGOING");
+      const rankPeriod = rank.period ?? rank.evaluatedPeriod ?? null;
+      return {
+        id: rank.seriesId,
+        seriesId: rank.seriesId,
+        seriesTitle: rank.seriesTitle,
+        lifecycleStatus,
+        // @deprecated prefer `lifecycleStatus`; kept so older clients keep
+        // working during the rollout window.
+        seriesStatus: lifecycleStatus,
+        riskStatus: "AT_RISK",
+        riskEvaluatedAt: rank.updatedAt ?? null,
+        riskSourceRankingPeriod: rankPeriod,
+        decisionStatus: "PENDING",
+        updatedAt: rank.updatedAt,
+      };
+    }),
   ];
 }
 

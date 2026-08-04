@@ -173,6 +173,20 @@ function assertTaskActionAllowed(
     }
     return;
   }
+  // Editor approval is the only path that escalates a task from
+  // MANGAKA_APPROVED → EDITOR_APPROVED and from EDITOR_APPROVED → COMPLETED.
+  // The Editor Tantou on the series owns this; ADMIN gets a pass-through so
+  // emergency recoveries still work but are recorded in the audit log.
+  if (normalized === "EDITOR_APPROVE" || normalized === "COMPLETE") {
+    if (actor.role === "ASSISTANT") {
+      throw new AppError(
+        403,
+        "Assistants cannot perform editor-approval actions on tasks.",
+        "FORBIDDEN",
+      );
+    }
+    return;
+  }
   if (actor.role === "ASSISTANT" && task.assigneeId !== actor.id) {
     throw new AppError(
       403,
@@ -413,6 +427,52 @@ export async function applyTaskAction(
       patch.cancelledById = actor.id;
       patch.cancelReason = payload.cancelReason ?? payload.reason ?? "";
       patch.pageTaskActive = false;
+      break;
+    case "EDITOR_APPROVE":
+      // Editor approval gates a task from MANGAKA_APPROVED to EDITOR_APPROVED.
+      // The earning has not been recorded yet — that happens at COMPLETE.
+      if (task.status !== "MANGAKA_APPROVED") {
+        throw new AppError(
+          409,
+          `Task must be in MANGAKA_APPROVED status before editor approval. Current: ${task.status}.`,
+          "INVALID_TRANSITION",
+        );
+      }
+      patch.status = "EDITOR_APPROVED";
+      patch.editorApprovedAt = new Date();
+      patch.editorApprovedById = actor.id;
+      break;
+    case "COMPLETE":
+      // Editor finalises the task. Earning is recorded exactly once here so
+      // corrections can no longer happen silently via re-approval of a stale
+      // submission.
+      if (task.status !== "MANGAKA_APPROVED" && task.status !== "EDITOR_APPROVED") {
+        throw new AppError(
+          409,
+          `Task must be MANGAKA_APPROVED or EDITOR_APPROVED before completion. Current: ${task.status}.`,
+          "INVALID_TRANSITION",
+        );
+      }
+      patch.status = "COMPLETED";
+      patch.completedAt = new Date();
+      patch.completedById = actor.id;
+      patch.pageTaskActive = false;
+      // The earning entry is created via the dedicated service so the
+      // recording respects the idempotency key (submission + task).
+      try {
+        const submission = task.currentSubmissionId
+          ? await SubmissionModel.findOne({ id: String(task.currentSubmissionId) }).lean()
+          : null;
+        await recordTaskEarning(doc, submission);
+      } catch (err: any) {
+        // Earning failures must not abort the task completion — we want the
+        // task to move to COMPLETED so the page is releasable; earnings can be
+        // reconciled through the ledger entry workflow (see EARN-001).
+        console.warn("earning.record_failed", {
+          taskId: task.id,
+          error: err?.message ?? String(err),
+        });
+      }
       break;
     case "REASSIGN": {
       if (task.status !== "TODO") {

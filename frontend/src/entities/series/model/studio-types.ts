@@ -81,12 +81,19 @@ export type StudioRegion = {
   };
 };
 
+// Sprint 1.3 — terminal task lifecycle is now
+//   TODO → IN_PROGRESS → SUBMITTED → MANGAKA_APPROVED → EDITOR_APPROVED → COMPLETED
+// Only REJECTED / CANCELLED short-circuit; MANGAKA_APPROVED alone is no longer
+// terminal because the editor still has to confirm the submission before
+// earnings get cut and the page can be reassigned.
 export type StudioTaskStatus =
   | "TODO"
   | "IN_PROGRESS"
   | "SUBMITTED"
   | "REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
+  | "EDITOR_APPROVED"
+  | "COMPLETED"
   | "REJECTED"
   | "CANCELLED";
 
@@ -108,19 +115,32 @@ export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
   SUBMITTED: "bg-cyan-100 text-cyan-900 border-cyan-300",
   REVISION_REQUESTED: "bg-amber-100 text-amber-900 border-amber-300",
   MANGAKA_APPROVED: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  EDITOR_APPROVED: "bg-emerald-200 text-emerald-950 border-emerald-400",
+  COMPLETED: "bg-emerald-300 text-emerald-950 border-emerald-500",
   REJECTED: "bg-rose-100 text-rose-900 border-rose-300",
   CANCELLED: "bg-rose-100 text-rose-800 border-rose-300",
 };
 
 /**
- * A task blocks a new task from being created on the same region until it's
- * REJECTED or CANCELLED — every other status (including MANGAKA_APPROVED,
- * which is where the real approval flow ends today) still counts as active.
+ * A task blocks a new task from being created on the same region until it
+ * reaches a true terminal status (REJECTED / CANCELLED / COMPLETED).
+ *
+ * Sprint 1.3 — `MANGAKA_APPROVED` is now treated as ACTIVE because the
+ * editor still has to confirm the submission. This is the same set of
+ * statuses the backend considers "in flight" in
+ * `page-assignment.service.ts → PAGE_TASK_TERMINAL_STATUSES`.
  */
 export function isTaskActive(status: StudioTaskStatus): boolean {
-  return !["REJECTED", "CANCELLED", "MANGAKA_APPROVED"].includes(
-    status,
-  );
+  return !["REJECTED", "CANCELLED", "COMPLETED"].includes(status);
+}
+
+/**
+ * True only when the task has reached a terminal state and the page
+ * can be reassigned to a new assistant. Mirrors the backend guard in
+ * `assertPageAssignmentReleaseable`.
+ */
+export function isTaskTerminal(status: StudioTaskStatus): boolean {
+  return ["REJECTED", "CANCELLED", "COMPLETED"].includes(status);
 }
 
 export type StudioTask = {

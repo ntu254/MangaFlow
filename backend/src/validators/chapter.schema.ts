@@ -7,6 +7,7 @@ export const createChapterSchema = z
   .object({
     number: z.number().int().min(1).max(9999).optional(),
     title: z.string().min(1).max(200).optional(),
+    targetPages: z.number().int().min(1).max(200).optional(),
     assigneeId: z.string().optional(),
     assigneeName: z.string().optional(),
     draftDueAt: z.string().optional(),
@@ -19,6 +20,7 @@ export const patchChapterSchema = z
   .object({
     title: z.string().min(1).max(200).optional(),
     number: z.number().int().min(1).max(9999).optional(),
+    targetPages: z.number().int().min(1).max(200).optional(),
     draftDueAt: z.string().optional(),
     reviewDueAt: z.string().optional(),
     scheduledAt: z.string().optional(),

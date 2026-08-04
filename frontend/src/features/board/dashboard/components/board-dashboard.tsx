@@ -13,10 +13,10 @@ export function BoardDashboard() {
   const { data: sessions = [] } = useVotingSessionsQuery();
 
   const proposalItems = queueItems.filter(
-    (item): item is BoardQueueItem => item.seriesStatus !== "AT_RISK",
+    (item): item is BoardQueueItem => item.riskStatus !== "AT_RISK",
   );
   const atRiskItems = queueItems.filter(
-    (item): item is AtRiskQueueItem => item.seriesStatus === "AT_RISK",
+    (item): item is AtRiskQueueItem => item.riskStatus === "AT_RISK",
   );
 
   const pending = proposalItems.filter((item) => item.decisionStatus === "PENDING");

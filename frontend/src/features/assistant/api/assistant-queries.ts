@@ -111,6 +111,7 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
     taskId: toStr(raw.taskId),
     chapterId: toOptStr(raw.chapterId),
     assistantId: toStr(raw.assistantId),
+    assistantName: toOptStr(raw.assistantName),
     version: toNum(raw.version) || 1,
     versionLabel: toStr(raw.versionLabel) || `v${toNum(raw.version) || 1}`,
     fileKey: toOptStr(raw.fileKey),
@@ -360,16 +361,21 @@ export function useCreateSubmissionMutation() {
         },
       }).then(mapSubmissionRecord),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: submissionKeys.all });
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: submissionKeys.all }),
+      ];
       if (variables.taskId) {
-        queryClient.invalidateQueries({
-          queryKey: submissionKeys.task(variables.taskId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: studioKeys.task(variables.taskId),
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({
+            queryKey: submissionKeys.task(variables.taskId),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: studioKeys.task(variables.taskId),
+          }),
+        );
       }
-      queryClient.invalidateQueries({ queryKey: studioKeys.all });
+      invalidations.push(queryClient.invalidateQueries({ queryKey: studioKeys.all }));
+      return Promise.all(invalidations);
     },
   });
 }

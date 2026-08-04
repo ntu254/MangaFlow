@@ -20,7 +20,11 @@ import type {
 import { looseSchema } from "./schema.js";
 import { PublicationModel } from "./models/publication.model.js";
 export type { PublicationRecord } from "./models/publication.model.js";
-import { EarningItemModel, EarningModel } from "./models/earning.model.js";
+import {
+  EarningItemModel,
+  EarningLedgerEntryModel,
+  EarningModel,
+} from "./models/earning.model.js";
 export type {
   EarningItemRecord,
   EarningRecord,
@@ -446,7 +450,16 @@ const seriesSchema = looseSchema({
   genres: [{ type: String }],
   coverUrl: { type: String },
   coverFileKey: { type: String },
-  status: { type: String, default: "PLANNING", index: true },
+  status: {
+    type: String,
+    default: "PLANNING",
+    index: true,
+    // Canonical series lifecycle statuses. AT_RISK must NEVER appear here —
+    // it lives on RankingModel.status and is surfaced to the UI as a
+    // separate `riskStatus` field on the board queue read-model. See
+    // workflow.service.ts `boardQueue()` for the split.
+    enum: ["PLANNING", "ONGOING", "PAUSED", "ARCHIVED", "PRE_PRODUCTION"],
+  },
   publicationType: { type: String, enum: ["WEEKLY", "MONTHLY"], index: true },
   cadence: { type: String },
   startDate: { type: String },
@@ -534,6 +547,7 @@ export type ChapterRecord = {
   seriesId: string;
   number: number;
   title: string;
+  targetPages?: number;
   status: ChapterStatus;
   assigneeId?: string;
   assigneeName?: string;
@@ -545,7 +559,6 @@ export type ChapterRecord = {
   reviewDueAt?: Date;
   scheduledAt?: Date;
   publishedAt?: Date;
-  // New lifecycle fields
   readyForPublicationAt?: Date;
   readyByEditorId?: string;
   scheduledById?: string;
@@ -558,18 +571,16 @@ const chapterSchema = looseSchema({
   seriesId: { type: String, required: true, index: true },
   number: { type: Number, required: true },
   title: { type: String },
+  targetPages: { type: Number, default: 20 },
   status: {
     type: String,
     default: "PLANNED",
-    // Canonical chapter statuses only. Legacy values are converted by
-    // scripts/migrate-chapter-status-canonical.ts before this enum is enforced.
     enum: [
       "PLANNED",
       "IN_PRODUCTION",
       "TANTOU_REVIEW",
       "REVISION_REQUIRED",
       "READY_FOR_PUBLICATION",
-      // Scheduling lives on Publication.status, never on the chapter.
       "PUBLISHED",
     ],
     index: true,
@@ -590,14 +601,8 @@ const chapterSchema = looseSchema({
   publishedById: { type: String },
 });
 
-// Business rule: unique chapter number within a series
 chapterSchema.index({ seriesId: 1, number: 1 }, { unique: true });
 chapterSchema.index({ seriesId: 1, status: 1 });
-
-/* ------------------------------------------------------------------ */
-/*  StudioRegion                                                        */
-/* ------------------------------------------------------------------ */
-
 export type StudioRegionRecord = {
   id: string;
   chapterId: string;
@@ -812,6 +817,14 @@ export type StudioCommentRecord = {
   status?: string;
   /** Primary blocking flag */
   isBlocking?: boolean;
+  // Sprint 3.1 / COM-001 — resolution metadata.
+  resolvedById?: string;
+  resolvedByName?: string;
+  resolvedAt?: Date;
+  reopenedById?: string;
+  reopenedByName?: string;
+  reopenedAt?: Date;
+  resolutionNote?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -843,6 +856,16 @@ const studioCommentSchema = looseSchema({
   },
   /** Primary field */
   isBlocking: { type: Boolean, default: false },
+  // Sprint 3.1 / COM-001 — resolution metadata. resolving and reopening
+  // are both audited so a reader can see who closed the loop and who
+  // decided it was still outstanding.
+  resolvedById: { type: String },
+  resolvedByName: { type: String },
+  resolvedAt: { type: Date },
+  reopenedById: { type: String },
+  reopenedByName: { type: String },
+  reopenedAt: { type: Date },
+  resolutionNote: { type: String },
 });
 
 studioCommentSchema.index({ targetType: 1, targetId: 1 });
@@ -1303,6 +1326,10 @@ export type RankingRecord = {
   importBatchId?: string;
   importedById?: string;
   importedAt?: Date;
+  // Sprint 3.1 / RANK-001 — only the active batch per period is exposed to
+  // read queries. Older batches remain on disk for audit/history but are
+  // filtered out by every ranking read path.
+  active?: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -1328,10 +1355,12 @@ const rankingSchema = looseSchema({
   importBatchId: { type: String, index: true },
   importedById: { type: String },
   importedAt: { type: Date },
+  active: { type: Boolean, default: true, index: true },
 });
 
-rankingSchema.index({ period: 1, seriesId: 1 }, { unique: true });
+rankingSchema.index({ period: 1, seriesId: 1, importBatchId: 1 }, { unique: true });
 rankingSchema.index({ period: 1, rank: 1 });
+rankingSchema.index({ period: 1, active: 1 });
 
 /* ------------------------------------------------------------------ */
 /*  RankingImport (new collection)                                      */
@@ -1421,11 +1450,55 @@ export type SeriesMemberRecord = {
   updatedAt: Date;
 };
 
-const seriesMemberSchema = looseSchema({
+/**
+ * Sprint 2.1 — normalize assistant scoping so the authorization layer no
+ * longer has to guess by string match. Migration: any `SeriesMember.scope`
+ * that is not already one of the enum values is rewritten by
+ * `scripts/migrations/normalize-member-scope.ts` (idempotent).
+ *
+ *   "Full chapter"        → accessScope: "CHAPTER_ONLY", specialization: "GENERAL"
+ *   "Backgrounds only"    → accessScope: "TASK_ONLY",    specialization: "BACKGROUND"
+ *   "Lineart & Inking"    → accessScope: "TASK_ONLY",    specialization: "INKING"
+ *
+ * Keep `scope` (string) on the record for backwards compatibility with
+ * historical migrations; new code reads `accessScope` and `specialization`.
+ */
+export const ASSISTANT_ACCESS_SCOPES = [
+  "FULL_SERIES",
+  "CHAPTER_ONLY",
+  "TASK_ONLY",
+] as const;
+
+export type AssistantAccessScope = (typeof ASSISTANT_ACCESS_SCOPES)[number];
+
+export const ASSISTANT_SPECIALIZATIONS = [
+  "BACKGROUND",
+  "LINE_ART",
+  "INKING",
+  "COLOR",
+  "LETTERING",
+  "GENERAL",
+] as const;
+
+export type AssistantSpecialization = (typeof ASSISTANT_SPECIALIZATIONS)[number];
+
+export const seriesMemberSchema = looseSchema({
   seriesId: { type: String, required: true, index: true },
   userId: { type: String, required: true, index: true },
   role: { type: String, required: true },
+  // Legacy free-string. Kept write-tolerant so historical rows survive; use
+  // `accessScope` + `specialization` for new write paths.
   scope: { type: String },
+  accessScope: {
+    type: String,
+    enum: [...ASSISTANT_ACCESS_SCOPES, null],
+    default: null,
+  },
+  specialization: {
+    type: String,
+    enum: [...ASSISTANT_SPECIALIZATIONS, null],
+    default: null,
+  },
   status: { type: String, default: "active", index: true },
   assignedChapterIds: [{ type: String }],
   assignedTaskIds: [{ type: String }],
@@ -1563,7 +1636,7 @@ export const RankingImportModel = mongoose.model<RankingImportRecord>(
   "RankingImport",
   rankingImportSchema,
 );
-export { EarningItemModel, EarningModel };
+export { EarningItemModel, EarningLedgerEntryModel, EarningModel };
 export { RateTableModel };
 export const AiProcessingModel = mongoose.model<AiProcessingRecord>(
   "AiProcessing",

@@ -30,6 +30,7 @@ export function ChapterFormDialog({
   const createChapterMutation = useCreateChapterMutation(series.id);
   const [number, setNumber] = useState(nextNumber);
   const [title, setTitle] = useState("");
+  const [targetPages, setTargetPages] = useState(20);
   const [draftDue, setDraftDue] = useState("");
   const [reviewDue, setReviewDue] = useState("");
 
@@ -43,6 +44,7 @@ export function ChapterFormDialog({
       {
         number,
         title: title.trim(),
+        targetPages: targetPages || 20,
         // Chapter ownership stays with the Mangaka. Assistant assignment is
         // created separately per page/region in Studio.
         assigneeId: series.authorId,
@@ -53,7 +55,7 @@ export function ChapterFormDialog({
       },
       {
         onSuccess: () => {
-          toast.success(`Chapter ${number} created.`);
+          toast.success(`Chapter ${number} created (${targetPages || 20} planned pages).`);
           setTitle("");
           setNumber(number + 1);
           onClose();
@@ -71,20 +73,33 @@ export function ChapterFormDialog({
         <DialogHeader>
           <DialogTitle>Create new chapter — {series.title}</DialogTitle>
           <DialogDescription>
-            Set up the chapter and initial production deadlines. Assign assistants later from Studio
-            tasks.
+            Set up the chapter, estimated page count, and production deadlines. Assign assistants later from Studio tasks.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <div>
-            <Label htmlFor="ch-num">Chapter #</Label>
-            <Input
-              id="ch-num"
-              type="number"
-              value={number}
-              min={1}
-              onChange={(e) => setNumber(parseInt(e.target.value, 10) || 1)}
-            />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Label htmlFor="ch-num">Chapter #</Label>
+              <Input
+                id="ch-num"
+                type="number"
+                value={number}
+                min={1}
+                onChange={(e) => setNumber(parseInt(e.target.value, 10) || 1)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ch-pages">Target Pages</Label>
+              <Input
+                id="ch-pages"
+                type="number"
+                value={targetPages}
+                min={1}
+                max={200}
+                onChange={(e) => setTargetPages(parseInt(e.target.value, 10) || 20)}
+                placeholder="20"
+              />
+            </div>
           </div>
           <div>
             <Label htmlFor="ch-title">Title</Label>

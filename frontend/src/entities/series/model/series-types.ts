@@ -97,6 +97,7 @@ export type Chapter = {
   seriesId: string;
   number: number;
   title: string;
+  targetPages?: number;
   status: ChapterStatus;
   assigneeId: string;
   assigneeName: string;
@@ -367,9 +368,4 @@ export const studioKeys = {
     regionId?: string;
     taskId?: string;
   }) => [...studioKeys.all, "comments", filters] as const,
-};
-
-export const taskKeys = {
-  all: ["studio-tasks"] as const,
-  detail: (taskId: string) => [...taskKeys.all, "detail", taskId] as const,
 };

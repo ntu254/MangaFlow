@@ -17,6 +17,33 @@ const rawEnv = z
     OUTBOX_BATCH_SIZE: z.coerce.number().int().positive().max(250).default(25),
     OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().max(20).default(5),
     PUBLICATION_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
+  // Workflow integrity guards. Defaults match production behaviour so the
+  // invariant is enforced without extra environment wiring. Dev/test can flip
+  // them off to seed legacy data or reproduce older flows.
+  MF_PAGE_CREATE_GUARD: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  MF_AT_RISK_STATUS_SPLIT: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  MF_TERMINAL_TASK_COMPLETED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  MF_SCOPE_ENUM_V2: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  MF_EARNING_LEDGER_V2: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  MF_COMMENT_REOPEN: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(10_000).default(20),
     R2_REGION: z.string().optional().default("auto"),

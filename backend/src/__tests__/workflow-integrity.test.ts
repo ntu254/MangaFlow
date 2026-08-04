@@ -3,6 +3,7 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import {
+  ChapterModel,
   SeriesInviteModel,
   SeriesModel,
   StudioTaskModel,
@@ -244,5 +245,275 @@ describe("workflow integrity guards", () => {
       .send({ newAssigneeId: "u-assist-2", reason: "Too late" })
       .expect(409);
     expect(afterStart.body.code).toBe("REASSIGN_AFTER_START_NOT_ALLOWED");
+  });
+});
+
+// =============================================================================
+// Sprint 1 — Workflow Integrity Plan
+//   1.1 chapter.createPage must require IN_PRODUCTION/REVISION_REQUIRED
+//   1.2 Series.status must reject AT_RISK and emit riskStatus separately
+//   1.3 Page assignment RELEASE must block until EDITOR_APPROVED/COMPLETED
+// =============================================================================
+
+import { RankingModel, OutboxEventModel } from "../db/models.js";
+
+describe("Sprint 1 workflow integrity: createChapterPage guard (1.1)", () => {
+  beforeAll(async () => {
+    if (!mongo) {
+      mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+      await mongoose.connect(mongo.getUri());
+    }
+  }, 30_000);
+
+  beforeEach(async () => seedDatabase());
+
+  it("refuses to create a page on a PLANNED chapter and never mutates its status", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+    // s-berserk-prod-1 is PLANNED in seed. try to add a page.
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-1" },
+      { $set: { status: "PLANNED" } },
+    );
+
+    const res = await request(createApp())
+      .post("/api/chapters/ch-s-berserk-prod-1/pages")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ pageNumber: 1, fileKey: "tests/page-planned.png" })
+      .expect(409);
+
+    expect(res.body.code).toBe("CHAPTER_NOT_IN_PRODUCTION");
+
+    const chapter = await ChapterModel.findOne({ id: "ch-s-berserk-prod-1" }).lean();
+    expect(chapter?.status).toBe("PLANNED");
+    expect((chapter?.pages ?? []).map((page: any) => page.id)).not.toContain(
+      expect.stringMatching(/^pg-/),
+    );
+  });
+
+  it("accepts createPage on IN_PRODUCTION and audits the creation", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-1" },
+      { $set: { status: "IN_PRODUCTION", pages: [] } },
+    );
+
+    const res = await request(createApp())
+      .post("/api/chapters/ch-s-berserk-prod-1/pages")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ pageNumber: 1, fileKey: "tests/page-in-production.png" })
+      .expect(201);
+
+    expect(res.body.data.status).toBe("UPLOADED");
+    expect(res.body.data.fileKey).toBe("tests/page-in-production.png");
+
+    const chapter = await ChapterModel.findOne({ id: "ch-s-berserk-prod-1" }).lean();
+    expect(chapter?.status).toBe("IN_PRODUCTION");
+    expect((chapter?.pages ?? []).length).toBe(1);
+  });
+
+  it("rejects createPage when chapter is in TANTOU_REVIEW with CHAPTER_REVIEW_LOCKED", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-1" },
+      { $set: { status: "TANTOU_REVIEW", pages: [] } },
+    );
+
+    const res = await request(createApp())
+      .post("/api/chapters/ch-s-berserk-prod-1/pages")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ pageNumber: 1, fileKey: "tests/page-tantou.png" })
+      .expect(409);
+
+    expect(res.body.code).toBe("CHAPTER_REVIEW_LOCKED");
+  });
+});
+
+describe("Sprint 1 workflow integrity: Series risk status split (1.2)", () => {
+  beforeAll(async () => {
+    if (!mongo) {
+      mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+      await mongoose.connect(mongo.getUri());
+    }
+  }, 30_000);
+
+  beforeEach(async () => seedDatabase());
+
+  it("rejects writing Series.status = AT_RISK at the model layer", async () => {
+    let saveError: any = null;
+    try {
+      await SeriesModel.create({
+        id: "s-risk-guard",
+        title: "Risk guard",
+        authorId: "u-mangaka",
+        authorName: "Inoue",
+        status: "AT_RISK",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (err) {
+      saveError = err;
+    }
+    expect(saveError).toBeTruthy();
+    expect(String(saveError?.message ?? "")).toMatch(/AT_RISK|enum/i);
+    const stored = await SeriesModel.findOne({ id: "s-risk-guard" }).lean();
+    expect(stored).toBeNull();
+  });
+
+  it("exposes riskStatus separately on the board queue without leaking into seriesStatus", async () => {
+    const board = await loginAs("board@beachread.jp");
+    // Seed an at-risk ranking paired with a healthy series record.
+    await RankingModel.create({
+      id: "r-p1-board-risk",
+      seriesId: "s-berserk-prod",
+      seriesTitle: "Berserk",
+      period: "2026-08",
+      rank: 88,
+      atRisk: true,
+      status: "AT_RISK",
+      score: 12,
+      metadata: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(createApp())
+      .get("/api/board/queue")
+      .set("Authorization", `Bearer ${board.accessToken}`)
+      .expect(200);
+
+    const atRiskItem = (res.body.data as any[]).find(
+      (item: any) => item.seriesId === "s-berserk-prod",
+    );
+    expect(atRiskItem).toBeDefined();
+    expect(atRiskItem.riskStatus).toBe("AT_RISK");
+    expect(atRiskItem.seriesStatus).not.toBe("AT_RISK");
+    expect(atRiskItem.riskEvaluatedAt).toBeTruthy();
+  });
+});
+
+describe("Sprint 1 workflow integrity: page assignment release (1.3)", () => {
+  beforeAll(async () => {
+    if (!mongo) {
+      mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+      await mongoose.connect(mongo.getUri());
+    }
+  }, 30_000);
+
+  beforeEach(async () => seedDatabase());
+
+  it("blocks RELEASE while a task is MANGAKA_APPROVED awaiting editor review", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+    const pageId = `${"ch-s-berserk-prod-5"}-p6`;
+    // Reset chapter to IN_PRODUCTION with a working page asset.
+    const chapter = await ChapterModel.findOne({ id: "ch-s-berserk-prod-5" }).lean();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-5" },
+      {
+        $set: {
+          status: "IN_PRODUCTION",
+          pages: (chapter?.pages ?? []).map((page: any) => ({
+            ...page,
+            status: "UPLOADED",
+            fileKey: "tests/release-guard.jpg",
+          })),
+        },
+      },
+    );
+
+    // Assign + accept the page first.
+    await request(createApp())
+      .post(`/api/studio/pages/${pageId}/assignment`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ assistantId: "u-assist" })
+      .expect(201);
+    const assistant = await loginAs("jun@beachread.jp");
+    await request(createApp())
+      .post(`/api/studio/pages/${pageId}/assignment/actions/ACCEPT`)
+      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .send({})
+      .expect(200);
+
+    // Now write a task that the Mangaka already approved; it must block RELEASE.
+    await StudioTaskModel.create({
+      id: "task-p1-release-block",
+      pageId,
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-5",
+      assigneeId: "u-assist",
+      status: "MANGAKA_APPROVED",
+      currentSubmissionId: "sub-p1-release-block",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await SubmissionModel.create({
+      id: "sub-p1-release-block",
+      taskId: "task-p1-release-block",
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-5",
+      assistantId: "u-assist",
+      status: "MANGAKA_APPROVED",
+      reviewStage: "MANGAKA_REVIEW",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(createApp())
+      .post(`/api/studio/pages/${pageId}/assignment/actions/RELEASE`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({})
+      .expect(409);
+
+    expect(res.body.code).toBe("PAGE_ASSIGNMENT_HAS_PENDING_EDITOR_REVIEW");
+  });
+
+  it("allows RELEASE after the editor task is COMPLETED", async () => {
+    const owner = await loginAs("inoue@beachread.jp");
+    const pageId = `${"ch-s-berserk-prod-5"}-p7`;
+    const chapter = await ChapterModel.findOne({ id: "ch-s-berserk-prod-5" }).lean();
+    await ChapterModel.updateOne(
+      { id: "ch-s-berserk-prod-5" },
+      {
+        $set: {
+          status: "IN_PRODUCTION",
+          pages: (chapter?.pages ?? []).map((page: any) => ({
+            ...page,
+            status: "UPLOADED",
+            fileKey: "tests/release-ok.jpg",
+          })),
+        },
+      },
+    );
+
+    await request(createApp())
+      .post(`/api/studio/pages/${pageId}/assignment`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ assistantId: "u-assist" })
+      .expect(201);
+    const assistant = await loginAs("jun@beachread.jp");
+    await request(createApp())
+      .post(`/api/studio/pages/${pageId}/assignment/actions/ACCEPT`)
+      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .send({})
+      .expect(200);
+
+    await StudioTaskModel.create({
+      id: "task-p1-release-ok",
+      pageId,
+      seriesId: "s-berserk-prod",
+      chapterId: "ch-s-berserk-prod-5",
+      assigneeId: "u-assist",
+      status: "COMPLETED",
+      currentSubmissionId: "sub-p1-release-ok",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(createApp())
+      .post(`/api/studio/pages/${pageId}/assignment/actions/RELEASE`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({})
+      .expect(200);
+
+    expect(res.body.data.status).toBe("RELEASED");
   });
 });

@@ -9,6 +9,7 @@ import { createApiRouter } from "./routes/index.js";
 import reviewFileRoutes from "./routes/review-file.routes.js";
 import { requireAuth } from "./middleware/auth.js";
 import mongoose from "mongoose";
+import { getMetrics, getMetricsAsText } from "./services/observability.service.js";
 
 export type AppOptions = {
   aiServiceUrl?: string;
@@ -78,6 +79,18 @@ export function createApp(options: AppOptions = {}) {
   });
 
   app.get("/health", (_req, res) => ok(res, { status: "ok", service: "mangaflow-backend" }));
+
+  // Sprint 3.1 / OBS-001 — expose in-process metrics for the dashboard.
+  // JSON is the primary view; the plain-text body is for prometheus
+  // scrapers that expect a one-liner per metric.
+  app.get("/metrics", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ data: getMetrics() });
+  });
+  app.get("/metrics.txt", (_req, res) => {
+    res.setHeader("Content-Type", "text/plain; version=0.0.4");
+    return res.send(getMetricsAsText());
+  });
 
   app.get("/ready", async (_req, res) => {
     const dbState = mongoose.connection.readyState;

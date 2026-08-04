@@ -81,7 +81,9 @@ export function ChapterActionPanel({
         <p className="text-xs text-muted-foreground">No actions available.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {actions.map((a) => {
+          {actions
+            .filter((a) => a !== "START_DRAFT")
+            .map((a) => {
             const c = checkChapterAction(a, user, chapter, series);
             const disabledBySeparation = a === "EDITOR_APPROVE" && selfApprovalBlocked;
             return (

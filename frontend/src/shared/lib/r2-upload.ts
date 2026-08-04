@@ -102,10 +102,13 @@ export async function presignR2Upload(input: {
 }
 
 /** Request a presigned (or public) download URL for a stored key. */
-export async function presignR2Download(fileKey: string): Promise<PresignDownloadResponse> {
+export async function presignR2Download(
+  fileKey: string,
+  resource?: { resourceType?: "PAGE" | "CHAPTER" | "SERIES" | "PROPOSAL" | "MATERIAL" | "SUBMISSION"; resourceId?: string },
+): Promise<PresignDownloadResponse> {
   return apiRequest<PresignDownloadResponse>("/files/presign-download", {
     method: "POST",
-    body: { key: fileKey },
+    body: { key: fileKey, ...(resource ?? {}) },
     auth: true,
   });
 }
@@ -115,8 +118,11 @@ export async function presignR2Download(fileKey: string): Promise<PresignDownloa
  * Prefers a backend public URL, otherwise a presigned download URL.
  * Never returns a private bucket URL directly.
  */
-export async function getPresignedDownloadUrl(fileKey: string): Promise<string> {
-  const res = await presignR2Download(fileKey);
+export async function getPresignedDownloadUrl(
+  fileKey: string,
+  resource?: { resourceType?: "PAGE" | "CHAPTER" | "SERIES" | "PROPOSAL" | "MATERIAL" | "SUBMISSION"; resourceId?: string },
+): Promise<string> {
+  const res = await presignR2Download(fileKey, resource);
   return res.publicUrl ?? res.downloadUrl;
 }
 

@@ -10,7 +10,6 @@ import {
   chapterKeys,
   materialKeys,
   studioKeys,
-  taskKeys,
 } from "@/entities/series/model/series-types";
 import type {
   StudioTask as OriginalStudioTask,
@@ -56,15 +55,27 @@ export {
   chapterKeys,
   materialKeys,
   studioKeys,
-  taskKeys,
 } from "@/entities/series/model/series-types";
 export type { SeriesRanking } from "@/entities/series/model/series-types";
 
+// Sprint 2 — `accessScope` and `specialization` are the canonical fields
+// returned by the backend. `scope` is kept for backward compatibility with
+// existing read paths that still key off the legacy free-text value.
+// The full enum list is exported from `@/entities/series/model/series-types`.
 export interface DbMember {
   id: string;
   seriesId: string;
   userId: string;
   role: string;
+  // Canonical: "FULL_SERIES" | "CHAPTER_ONLY" | "TASK_ONLY"
+  accessScope?: string;
+  // Canonical: "BACKGROUND" | "LINE_ART" | "INKING" | "COLOR" | "LETTERING" | "GENERAL"
+  specialization?: "BACKGROUND" | "LINE_ART" | "INKING" | "COLOR" | "LETTERING" | "GENERAL";
+  /**
+   * @deprecated prefer `accessScope`. Kept for backward compatibility with
+   * older API responses that still emit the legacy free-text value
+   * ("Full chapter" / "Task only" / "Backgrounds only" / …).
+   */
   scope?: string;
   status: string;
   userName?: string | null;
@@ -121,6 +132,14 @@ export function mapApiError(err: unknown): string {
       return "Page image is required before sending to editor review.";
     if (code === "TASKS_NOT_MANGAKA_APPROVED" || code === "SUBMISSIONS_NOT_MANGAKA_APPROVED")
       return "All assistant tasks and submissions must be approved by Mangaka first.";
+    if (code === "PAGE_ASSIGNMENT_HAS_PENDING_EDITOR_REVIEW")
+      return "This page still has tasks waiting for Editor approval — finish the review before reassigning.";
+    if (code === "CHAPTER_NOT_IN_PRODUCTION")
+      return "Start the chapter draft before uploading pages.";
+    if (code === "CHAPTER_LOCKED_FOR_MEMBER_REMOVAL")
+      return "This member has active tasks on the series — finish or reassign them first.";
+    if (code === "PROPOSAL_ARCHIVE_NOT_ALLOWED")
+      return "Active proposals cannot be archived. Withdraw or reject the proposal first.";
     if (code === "BLOCKING_COMMENTS_UNRESOLVED")
       return "Blocking comments must be resolved before editor review.";
     if (code === "NOT_FOUND" || code === "PROPOSAL_NOT_FOUND") return "Proposal not found.";
@@ -250,15 +269,6 @@ export function useRankingsQuery(seriesId: string) {
   });
 }
 
-export function useStudioTaskQuery(taskId: string) {
-  return useQuery<unknown>({
-    queryKey: taskKeys.detail(taskId),
-    queryFn: () => apiRequest<unknown>(`/studio/tasks/${taskId}`),
-    enabled: !!taskId,
-    staleTime: 60000,
-  });
-}
-
 // Mutations
 export function useCreateChapterMutation(seriesId: string) {
   const queryClient = useQueryClient();
@@ -268,6 +278,7 @@ export function useCreateChapterMutation(seriesId: string) {
     {
       number: number;
       title: string;
+      targetPages?: number;
       assigneeId?: string;
       assigneeName?: string;
       draftDueAt?: string;
@@ -279,6 +290,19 @@ export function useCreateChapterMutation(seriesId: string) {
       apiRequest<Chapter>(`/series/${seriesId}/chapters`, { method: "POST", body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: seriesKeys.chapters(seriesId) });
+    },
+  });
+}
+
+export function usePatchChapterMutation(chapterId: string, seriesId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation<Chapter, Error, Partial<Chapter>>({
+    mutationFn: (body) => apiRequest<Chapter>(`/chapters/${chapterId}`, { method: "PATCH", body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chapterKeys.detail(chapterId) });
+      if (seriesId) {
+        queryClient.invalidateQueries({ queryKey: seriesKeys.chapters(seriesId) });
+      }
     },
   });
 }
@@ -417,9 +441,11 @@ export function useTaskActionMutation(taskId: string, chapterId?: string) {
         body: payload,
       }),
     onSuccess: () => {
-      for (const key of studioTaskActionInvalidations(taskId, chapterId)) {
-        queryClient.invalidateQueries({ queryKey: key as never });
-      }
+      return Promise.all(
+        studioTaskActionInvalidations(taskId, chapterId).map((key) =>
+          queryClient.invalidateQueries({ queryKey: key as never }),
+        ),
+      );
     },
   });
 }
@@ -445,9 +471,11 @@ export function useSubmissionReviewMutation() {
       });
     },
     onSuccess: (_data, variables) => {
-      for (const key of submissionReviewInvalidations(variables)) {
-        queryClient.invalidateQueries({ queryKey: key as never });
-      }
+      return Promise.all(
+        submissionReviewInvalidations(variables).map((key) =>
+          queryClient.invalidateQueries({ queryKey: key as never }),
+        ),
+      );
     },
   });
 }
@@ -777,13 +805,15 @@ export function useCreateStudioTaskMutation() {
   >({
     mutationFn: (body) => apiRequest<StudioTask>("/studio/tasks", { method: "POST", body }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: studioKeys.tasks({ chapterId: variables.chapterId }),
-      });
-      queryClient.invalidateQueries({
-        queryKey: studioKeys.tasks({ pageId: variables.pageId }),
-      });
-      queryClient.invalidateQueries({ queryKey: studioKeys.all });
+      return Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: studioKeys.tasks({ chapterId: variables.chapterId }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: studioKeys.tasks({ pageId: variables.pageId }),
+        }),
+        queryClient.invalidateQueries({ queryKey: studioKeys.all }),
+      ]);
     },
   });
 }
@@ -826,13 +856,16 @@ export function useStudioTaskActionMutation(taskId: string) {
         body: payload,
       }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: studioKeys.task(taskId) });
-      queryClient.invalidateQueries({ queryKey: studioKeys.all });
+      const invalidations = [queryClient.invalidateQueries({ queryKey: studioKeys.task(taskId) })];
       if (variables.chapterId) {
-        queryClient.invalidateQueries({
-          queryKey: chapterKeys.readiness(variables.chapterId),
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({
+            queryKey: chapterKeys.readiness(variables.chapterId),
+          }),
+        );
       }
+      invalidations.push(queryClient.invalidateQueries({ queryKey: studioKeys.all }));
+      return Promise.all(invalidations);
     },
   });
 }
@@ -931,6 +964,7 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
     taskId: toStr(raw.taskId),
     chapterId: toOptStr(raw.chapterId),
     assistantId: toStr(raw.assistantId),
+    assistantName: toOptStr(raw.assistantName),
     version: toNum(raw.version) || 1,
     versionLabel: toStr(raw.versionLabel) || `v${toNum(raw.version) || 1}`,
     fileKey: toOptStr(raw.fileKey),

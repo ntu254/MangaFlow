@@ -3,7 +3,22 @@ import { AppError } from "../lib/http.js";
 import type { RequestActor } from "../types.js";
 import { nowIso } from "../domain/ids.js";
 
-export const PAGE_TASK_TERMINAL_STATUSES = ["REJECTED", "CANCELLED", "MANGAKA_APPROVED"];
+/**
+ * Terminal task statuses that should not block a page-assignment release.
+ *
+ * Workflow integrity invariant (Sprint 1.3):
+ *   MANGAKA_APPROVED is NOT terminal — it only means the owning Mangaka
+ *   accepted the submission; an Editor approval step is still required
+ *   before any task can be released. Releasing a page assignment while an
+ *   Editor-approved-but-not-yet-paid task exists lets a new Assistant take
+ *   over the page even though the Earning is still attached to the
+ *   previous assignee.
+ *
+ * EDITOR_APPROVED is the intermediate status: earning is recorded but not
+ * yet paid out. COMPLETED is the only state that releases the assignment
+ * for reassignment without ambiguity about who earned the work.
+ */
+export const PAGE_TASK_TERMINAL_STATUSES = ["REJECTED", "CANCELLED", "COMPLETED"];
 
 function pageOf(chapter: any, pageId: string) {
   return (chapter?.pages ?? []).find((page: any) => String(page.id) === String(pageId));
@@ -99,6 +114,17 @@ export async function applyPageAssignmentAction(
   }
   if (normalized === "RELEASE") {
     if (actor.role !== "MANGAKA") throw new AppError(403, "Only the owning Mangaka can release a page assignment.", "FORBIDDEN");
+    const pendingEditorReview = await (StudioTaskModel as any).findOne({
+      pageId,
+      status: { $in: ["MANGAKA_APPROVED", "EDITOR_APPROVED"] },
+    }).lean();
+    if (pendingEditorReview) {
+      throw new AppError(
+        409,
+        "Wait for the Editor to approve (and the earning to clear) before releasing the assignment.",
+        "PAGE_ASSIGNMENT_HAS_PENDING_EDITOR_REVIEW",
+      );
+    }
     const activeTask = await (StudioTaskModel as any).findOne({
       pageId,
       status: { $nin: PAGE_TASK_TERMINAL_STATUSES },
