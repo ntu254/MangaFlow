@@ -113,16 +113,28 @@ export function BoardSessionDetailScreen({
         },
       );
     } else {
-      cancel.mutate(undefined, {
-        onError: handleMutationError,
-        onSuccess: () => {
-          setSuccessMessage(
-            "Session cancelled. The proposal returned to the Board queue.",
-          );
-          setPendingChair(null);
-          setSheetError(null);
+      if (!versionReady) {
+        setSheetError(
+          "Session version is unavailable. Refresh before cancelling.",
+        );
+        return;
+      }
+      cancel.mutate(
+        {
+          expectedVersion: data.session.version as number,
+          note: note || undefined,
         },
-      });
+        {
+          onError: handleMutationError,
+          onSuccess: () => {
+            setSuccessMessage(
+              "Session cancelled. The proposal returned to the Board queue.",
+            );
+            setPendingChair(null);
+            setSheetError(null);
+          },
+        },
+      );
     }
   };
 
@@ -527,17 +539,19 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: "transparent",
     backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  choiceActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  choiceActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   choiceText: {
     color: colors.primary,
     fontWeight: "800",
     fontSize: typography.body,
   },
-  choiceTextActive: { color: colors.primary },
+  choiceTextActive: { color: colors.surface },
   reason: { fontSize: typography.body, color: colors.textMuted },
   chairButton: {
     minHeight: 44,

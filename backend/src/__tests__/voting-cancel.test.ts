@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
-import { ProposalModel, VotingSessionModel, ProposalVoteModel } from "../db/models.js";
+import { ProposalModel, VotingSessionModel, ProposalVoteModel, AuditEntryModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryReplSet;
@@ -70,10 +70,49 @@ describe("CT-02 voting-session cancel restores Proposal", () => {
     expect(await ProposalVoteModel.countDocuments({ sessionId: s2.body.data.id })).toBe(0);
   });
 
+  it("records the Chair's cancellation note in the audit trail and bumps the session version", async () => {
+    const chair = await loginAs("board@beachread.jp");
+    const sessionId = await openSession(chair.accessToken, "prop-cancel-4");
+    const before = (await VotingSessionModel.findOne({ id: sessionId }).lean()) as any;
+
+    await request(createApp())
+      .post(`/api/voting-sessions/${sessionId}/cancel`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
+      .send({ expectedVersion: before.version, note: "Author withdrew the manuscript." })
+      .expect(200);
+
+    const after = (await VotingSessionModel.findOne({ id: sessionId }).lean()) as any;
+    expect(after.status).toBe("CANCELLED");
+    expect(after.version).toBe(before.version + 1);
+
+    const auditRow = (await AuditEntryModel.findOne({
+      entityType: "voting_session",
+      entityId: sessionId,
+      action: "voting_session.cancel",
+    }).lean()) as any;
+    expect(auditRow?.metadata?.note).toBe("Author withdrew the manuscript.");
+  });
+
+  it("rejects a stale expectedVersion (409) and leaves the session open and unchanged", async () => {
+    const chair = await loginAs("board@beachread.jp");
+    const sessionId = await openSession(chair.accessToken, "prop-cancel-5");
+    const before = (await VotingSessionModel.findOne({ id: sessionId }).lean()) as any;
+
+    await request(createApp())
+      .post(`/api/voting-sessions/${sessionId}/cancel`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
+      .send({ expectedVersion: before.version + 1, note: "Stale Chair view." })
+      .expect(409);
+
+    const after = (await VotingSessionModel.findOne({ id: sessionId }).lean()) as any;
+    expect(after.status).not.toBe("CANCELLED");
+    expect(after.version).toBe(before.version);
+  });
+
   it("rejects a non-Chair board member from cancelling, closing, or tie-resolving a session", async () => {
     const chair = await loginAs("board@beachread.jp");
     const member = await loginAs("sato@beachread.jp");
-    const sessionId = await openSession(chair.accessToken, "prop-cancel-4");
+    const sessionId = await openSession(chair.accessToken, "prop-cancel-6");
     const app = createApp();
 
     const cancel = await request(app).post(`/api/voting-sessions/${sessionId}/cancel`)
@@ -96,11 +135,11 @@ describe("CT-02 voting-session cancel restores Proposal", () => {
     const app = createApp();
 
     const create = await request(app).post("/api/voting-sessions")
-      .set("Authorization", `Bearer ${member.accessToken}`).send({ proposalId: "prop-cancel-5" }).expect(403);
+      .set("Authorization", `Bearer ${member.accessToken}`).send({ proposalId: "prop-cancel-7" }).expect(403);
     expect(create.body.code).toBe("BOARD_CHAIR_REQUIRED");
 
     const chair = await loginAs("board@beachread.jp");
-    const sessionId = await openSession(chair.accessToken, "prop-cancel-5");
+    const sessionId = await openSession(chair.accessToken, "prop-cancel-7");
 
     const patch = await request(app).patch(`/api/voting-sessions/${sessionId}`)
       .set("Authorization", `Bearer ${member.accessToken}`).send({ title: "Hijack" }).expect(403);

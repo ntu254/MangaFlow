@@ -69,7 +69,8 @@ export function useBoardSession(
     onSuccess: invalidate,
   })
   const cancel = useMutation({
-    mutationFn: () => cancelBoardSession(sessionId),
+    mutationFn: (input: { expectedVersion: number; note?: string }) =>
+      cancelBoardSession(sessionId, input),
     onSuccess: invalidate,
   })
   const resolveTie = useMutation({

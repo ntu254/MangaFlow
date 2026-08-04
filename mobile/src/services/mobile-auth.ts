@@ -77,7 +77,6 @@ export async function loginMobile(email: string, password: string): Promise<Mobi
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-mangaflow-e2e": "true",
     },
     body: JSON.stringify({ email, password }),
   })
@@ -153,20 +152,39 @@ export async function restoreMobileSession(): Promise<MobileAuthSession | null> 
   }
 }
 
-export async function logoutMobile(session: MobileAuthSession | null): Promise<void> {
+// Clears the client's local session state only: in-memory token, refresh
+// handler, and stored refresh token. No server call. Shared by an explicit
+// logout and by an expired-session sign-out, where a server round trip would
+// be pointless (the refresh has already been proven dead by the caller).
+export async function clearLocalMobileSession(): Promise<void> {
   mobileApi.setAccessToken(null)
   mobileApi.setRefreshHandler(null)
   await mobileAuthStorage.clearRefreshToken()
+}
+
+export async function logoutMobile(session: MobileAuthSession | null): Promise<void> {
+  // Read the refresh token actually on file before clearing it: after any
+  // refresh, the token in `session` (captured at login) has already been
+  // rotated server-side, so revoking it would be a no-op and the live
+  // session would keep working past "logout".
+  const currentRefreshToken = await mobileAuthStorage.getRefreshToken()
+
+  await clearLocalMobileSession()
 
   if (!session) return
 
-  const apiBaseUrl = getMobileApiBaseUrl()
-  await fetch(`${apiBaseUrl}/auth/logout`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-    body: JSON.stringify({ refreshToken: session.refreshToken }),
-  })
+  try {
+    const apiBaseUrl = getMobileApiBaseUrl()
+    await fetch(`${apiBaseUrl}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({ refreshToken: currentRefreshToken ?? session.refreshToken }),
+    })
+  } catch {
+    // Local session state is already cleared above; a failed best-effort
+    // server-side revoke must not strand the caller mid-logout.
+  }
 }
