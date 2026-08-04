@@ -20,7 +20,9 @@ export function BoardHistoryScreen() {
     )
   }
 
-  const entries = toBoardLedgerEntries(history.data ?? [])
+  const entries = toBoardLedgerEntries(history.data ?? []).filter(
+    (entry) => entry.recordType !== "At-risk decision",
+  )
   const { votingRounds } = partitionBoardLedger(entries)
   const sections = groupBoardLedger(entries)
 
@@ -49,7 +51,7 @@ export function BoardHistoryScreen() {
       ) : (
         <MFEmptyState
           title="No governance decisions recorded"
-          subtitle="Finalized, tied, cancelled, and at-risk Board records will appear here."
+          subtitle="Finalized, tied, and cancelled Board records will appear here."
           icon="shield-check"
         />
       )}

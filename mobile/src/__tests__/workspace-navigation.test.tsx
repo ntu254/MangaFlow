@@ -206,7 +206,7 @@ describe("BoardWorkspace hardware back", () => {
 describe("BoardWorkspace dead-tap feedback", () => {
   afterEach(() => jest.restoreAllMocks())
 
-  it("tells the Chair why an at-risk item without a series reference could not open, instead of doing nothing", async () => {
+  it("does not render at-risk inbox work on the Board today queue", async () => {
     const inbox: MobileInbox = {
       role: "BOARD",
       generatedAt: new Date().toISOString(),
@@ -217,10 +217,9 @@ describe("BoardWorkspace dead-tap feedback", () => {
         <BoardWorkspace tab="today" inbox={inboxQuery(inbox)} isChair />
       </TestQueryProvider>,
     )
-    fireEvent.press(await screen.findByRole("button", { name: /open Neon District/i }))
-
-    expect(await screen.findByText(/Could not open/i)).toBeVisible()
-    // Tapping did not silently open the at-risk decision sheet with bad data.
-    expect(screen.queryByText("Review decision")).toBeNull()
+    expect(await screen.findByText("No Board decisions need your attention.")).toBeVisible()
+    expect(screen.queryByText("At Risk")).toBeNull()
+    expect(screen.queryByRole("button", { name: /review at-risk/i })).toBeNull()
+    expect(screen.queryByRole("button", { name: /open Neon District/i })).toBeNull()
   })
 })

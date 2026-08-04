@@ -14,11 +14,7 @@ import { useBoardRankings } from "@/hooks/use-board-rankings"
 import type { BoardRankingItem } from "@/services/board-mobile-data-source"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
-export function BoardRankingScreen({
-  onOpenAtRisk,
-}: {
-  onOpenAtRisk?: (item: BoardRankingItem) => void
-}) {
+export function BoardRankingScreen() {
   const rankings = useBoardRankings()
   const [search, setSearch] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -54,7 +50,6 @@ export function BoardRankingScreen({
       />
       <MFMetricStrip items={[
         { id: "rows", label: "Ranked", value: String(rankings.data?.items.length ?? 0), tone: "primary", icon: "bar-chart-2" },
-        { id: "risk", label: "At Risk", value: String((rankings.data?.items ?? []).filter((item) => item.atRisk).length), tone: "danger", icon: "alert-triangle" },
         { id: "source", label: "Formula", value: "Backend", tone: "success", icon: "shield-check" },
       ]} />
       <TextInput
@@ -129,32 +124,7 @@ export function BoardRankingScreen({
               tone: "primary",
               icon: "bar-chart-2",
             },
-            {
-              id: "risk",
-              title: selected.atRisk
-                ? selected.decisionStatus === "DECIDED"
-                  ? "Board decision recorded"
-                  : "Manual Board review required"
-                : "No at-risk action",
-              subtitle: selected.atRisk
-                ? selected.decisionStatus === "DECIDED"
-                  ? `Decision: ${selected.decision ?? "recorded"}.`
-                  : "Cancellation is never automatic. The Board Chair must confirm a backend action."
-                : "This row is read-only on mobile.",
-              tone: selected.atRisk ? "danger" : "success",
-              icon: selected.atRisk ? "alert-triangle" : "check-circle",
-            },
           ]} />
-          {selected.atRisk && selected.decisionStatus !== "DECIDED" && onOpenAtRisk ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Review at-risk decision for ${selected.seriesTitle}`}
-              onPress={() => onOpenAtRisk(selected)}
-              style={styles.action}
-            >
-              <Text style={styles.actionText}>Review at-risk decision</Text>
-            </Pressable>
-          ) : null}
         </>
       ) : null}
     </ScrollView>
@@ -208,13 +178,4 @@ const styles = StyleSheet.create({
   rowMain: { flex: 1, minWidth: 0 },
   title: { color: colors.text, fontSize: typography.body, fontWeight: "800" },
   meta: { color: colors.textMuted, fontSize: typography.label, marginTop: 3 },
-  action: {
-    minHeight: 44,
-    borderRadius: radius.full,
-    backgroundColor: colors.dangerSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-  },
-  actionText: { color: colors.danger, fontSize: typography.body, fontWeight: "800" },
 })
