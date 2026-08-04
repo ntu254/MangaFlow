@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 import type { UseQueryResult } from "@tanstack/react-query"
+import { useHardwareBackToClose } from "@/hooks/use-hardware-back"
 import { TodayQueue } from "@/components/today-queue"
 import { WorkflowState } from "@/components/workflow-state"
 import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-screen"
@@ -29,6 +30,8 @@ export function EditorWorkspace({
   useEffect(() => {
     setSelected(null)
   }, [tab])
+
+  useHardwareBackToClose(selected !== null, () => setSelected(null))
 
   if (selected) {
     return <EditorDetail item={selected} onBack={() => setSelected(null)} />
