@@ -2,17 +2,11 @@ import type { Role } from "@/shared/auth";
 
 export type ProposalStatus =
   | "DRAFT"
-  | "SUBMITTED"
-  | "TANTOU_REVIEW"
   | "PENDING_EDITOR"
   | "EDITOR_REVIEWING"
   | "CHANGES_REQUESTED"
-  | "RESUBMITTED"
-  | "READY_FOR_BOARD"
   | "BOARD_REVIEW"
   | "PENDING_BOARD"
-  | "BOARD_VOTING"
-  | "TIE_BREAK"
   | "APPROVED"
   | "REJECTED"
   | "WITHDRAWN"
@@ -24,7 +18,6 @@ export type ProposalStatus =
  */
 export type ProposalUIGroup =
   | "draft"
-  | "submitted"
   | "editor_review"
   | "need_changes"
   | "board_review"
@@ -34,17 +27,11 @@ export type ProposalUIGroup =
 
 export const PROPOSAL_TO_UI_GROUP: Record<ProposalStatus, ProposalUIGroup> = {
   DRAFT: "draft",
-  SUBMITTED: "submitted",
-  TANTOU_REVIEW: "editor_review",
   PENDING_EDITOR: "editor_review",
   EDITOR_REVIEWING: "editor_review",
   CHANGES_REQUESTED: "need_changes",
-  RESUBMITTED: "submitted",
-  READY_FOR_BOARD: "board_review",
   BOARD_REVIEW: "board_review",
   PENDING_BOARD: "board_review",
-  BOARD_VOTING: "board_review",
-  TIE_BREAK: "board_review",
   APPROVED: "approved",
   REJECTED: "rejected",
   WITHDRAWN: "rejected",
@@ -53,7 +40,6 @@ export const PROPOSAL_TO_UI_GROUP: Record<ProposalStatus, ProposalUIGroup> = {
 
 export const PROPOSAL_UI_GROUP_LABEL: Record<ProposalUIGroup, string> = {
   draft: "Draft",
-  submitted: "Submitted",
   editor_review: "Editor Review",
   need_changes: "Need Changes",
   board_review: "Board Review",
@@ -74,13 +60,13 @@ export type ProposalAction =
   | "REJECT"
   | "RECALL"
   | "VOTE"
-  | "FORCE_STATUS";
+;
 
 export type VoteDecision = "APPROVE" | "REJECT";
 
 export type BoardVote = {
-  memberId: string;
-  memberName: string;
+  voterId: string;
+  voterName: string;
   decision: VoteDecision;
   comment?: string;
   createdAt: string;
@@ -108,9 +94,8 @@ export type ProposalEvent = {
     | "CLAIM"
     | "RELEASE_CLAIM"
     | "EDIT"
-    | "TIE_BREAK"
     | "MANUSCRIPT_UPLOAD"
-    | "FORCE_STATUS";
+;
   fromStatus?: ProposalStatus;
   toStatus?: ProposalStatus;
   comment?: string;
@@ -252,17 +237,11 @@ export type BoardTallySnapshot = {
 
 export const STATUS_LABEL: Record<ProposalStatus, string> = {
   DRAFT: "Draft",
-  SUBMITTED: "Submitted",
-  TANTOU_REVIEW: "Tantou Review",
   PENDING_EDITOR: "Awaiting Editor",
   EDITOR_REVIEWING: "Editor Reviewing",
   CHANGES_REQUESTED: "Changes Requested",
-  RESUBMITTED: "Resubmitted",
-  READY_FOR_BOARD: "Ready for Board",
   BOARD_REVIEW: "Board Review",
   PENDING_BOARD: "Pending Board",
-  BOARD_VOTING: "Board Voting",
-  TIE_BREAK: "Historical Tie",
   APPROVED: "Approved",
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",
@@ -271,11 +250,10 @@ export const STATUS_LABEL: Record<ProposalStatus, string> = {
 
 export const STATUS_FLOW: ProposalStatus[] = [
   "DRAFT",
-  "SUBMITTED",
   "PENDING_EDITOR",
   "EDITOR_REVIEWING",
   "PENDING_BOARD",
-  "BOARD_VOTING",
+  "BOARD_REVIEW",
   "APPROVED",
 ];
 

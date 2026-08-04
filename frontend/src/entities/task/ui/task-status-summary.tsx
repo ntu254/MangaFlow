@@ -38,7 +38,7 @@ const ITEMS: Array<{
   },
   {
     id: "revision",
-    statuses: ["MANGAKA_REVISION_REQUESTED", "EDITOR_REVISION_REQUESTED"],
+    statuses: ["REVISION_REQUESTED"],
     label: "Revision",
     tone: "orange",
     icon: <AlertOctagon className="size-4" />,
@@ -52,7 +52,7 @@ const ITEMS: Array<{
   },
   {
     id: "approved",
-    statuses: ["MANGAKA_APPROVED", "EDITOR_APPROVED"],
+    statuses: ["MANGAKA_APPROVED"],
     label: "Approved",
     tone: "emerald",
     icon: <CheckCircle2 className="size-4" />,

@@ -34,7 +34,10 @@
     "migrate:series-visibility:apply": "tsx src/scripts/migrate-series-visibility-canonical.ts --apply",
     "audit:p0-localhost": "tsx src/scripts/p0-localhost-audit.ts",
     "audit:p0-memory": "tsx src/scripts/run-p0-localhost-audit-memory.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:g1": "vitest run src/__tests__/workflow.test.ts src/__tests__/admin-scope.test.ts src/__tests__/admin.test.ts src/__tests__/at-risk-decision.service.test.ts src/__tests__/workflow-integrity.test.ts src/__tests__/rate-table.test.ts src/__tests__/mobile-board-workflows.test.ts src/__tests__/materials-mf032.test.ts src/__tests__/proposal-lifecycle.service.test.ts src/__tests__/baseline-rules.test.ts src/__tests__/board-governance.service.test.ts src/__tests__/workflow-support.test.ts src/__tests__/migration-planners.test.ts",
+    "test:g2": "vitest run src/__tests__/p0-workflow-refactor.test.ts src/__tests__/authorization-perimeter.test.ts src/__tests__/production-completion.test.ts src/__tests__/backend.integration.test.ts src/__tests__/mobile-inbox.test.ts src/__tests__/tantou.test.ts src/__tests__/voting-cancel.test.ts src/__tests__/material-attachment-contract.test.ts src/__tests__/outbox-runner.test.ts src/__tests__/cors-origin.test.ts src/__tests__/mobile-work-item.contract.test.ts src/__tests__/material-status-migration.test.ts src/__tests__/file-access-url.test.ts",
+    "test:g3": "vitest run src/__tests__/validation-guardrails.test.ts src/__tests__/board.test.ts src/__tests__/file-key-visibility.test.ts src/__tests__/comment-authority.test.ts src/__tests__/assignment-removal.test.ts src/__tests__/mobile-editor-workflows.test.ts src/__tests__/review-file.service.test.ts src/__tests__/mobile-editor-chapter-actions.test.ts src/__tests__/dashboard-scope.test.ts src/__tests__/proposal-status-filter.test.ts src/__tests__/auth-validation.test.ts src/__tests__/rate-limit.test.ts src/__tests__/notification-read-model-migration.test.ts src/__tests__/chapter-readiness.service.test.ts"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",

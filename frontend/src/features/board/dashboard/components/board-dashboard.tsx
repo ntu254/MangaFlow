@@ -5,7 +5,7 @@ import { PageHeader } from "@/shared/ui";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { StatCard } from "@/shared/ui/stat-card";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, FileText, Scale, TriangleAlert } from "lucide-react";
+import { CheckCircle2, FileText, TriangleAlert } from "lucide-react";
 import { PageSection, PageShell, SummaryGrid } from "@/shared/layout/page-layout";
 
 export function BoardDashboard() {
@@ -20,7 +20,6 @@ export function BoardDashboard() {
   );
 
   const pending = proposalItems.filter((item) => item.decisionStatus === "PENDING");
-  const tieBreak = proposalItems.filter((item) => item.decisionStatus === "TIE_BREAK_REQUIRED");
   const needsFinalize = proposalItems.filter((item) => item.canFinalize);
 
   return (
@@ -42,12 +41,6 @@ export function BoardDashboard() {
           icon={<CheckCircle2 className="size-4" />}
           label="Needs Finalize"
           value={needsFinalize.length}
-          tone="warning"
-        />
-        <StatCard
-          icon={<Scale className="size-4" />}
-          label="Tie-break"
-          value={tieBreak.length}
           tone="warning"
         />
         <StatCard

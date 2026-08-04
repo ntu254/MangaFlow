@@ -184,9 +184,11 @@ export async function getEditorChapterDetail(actor: RequestActor, chapterId: str
   const context = await loadEditorChapterContext(chapter);
   const publication = (await PublicationModel.findOne({ chapterId }).lean()) as any;
 
-  const inPublication = chapter.status === "READY_FOR_PUBLICATION" || chapter.status === "PUBLISHED";
+  const inPublication = chapter.status === "READY_FOR_PUBLICATION";
   const actions = inPublication
     ? chapterPublicationActions(actor, context.series, publication)
+    : chapter.status === "PUBLISHED"
+      ? []
     : chapterReviewActions(actor, context);
 
   return {
@@ -202,6 +204,8 @@ export async function getEditorChapterDetail(actor: RequestActor, chapterId: str
       id: context.series?.id ?? chapter.seriesId,
       title: context.series?.title ?? "",
       editorId: context.series?.editorId ?? null,
+      publicationType: context.series?.publicationType ?? null,
+      cadence: context.series?.cadence ?? null,
     },
     pages: (chapter.pages ?? []).map((page: any) => ({
       id: page.id,

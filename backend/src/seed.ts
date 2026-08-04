@@ -104,7 +104,7 @@ async function insertSeedData() {
 }
 
 export async function seedDatabase() {
-  await Promise.all(seededModels.map((model) => model.deleteMany({})));
+  await Promise.all(seededModels.map((model) => (model as any).deleteMany({})));
   await insertSeedData();
   return { seeded: true, reset: true };
 }
@@ -115,7 +115,7 @@ export async function seedDatabase() {
  * (re)created when none exist.
  */
 export async function reseedDemoDatabase() {
-  await Promise.all(nonUserSeededModels.map((model) => model.deleteMany({})));
+  await Promise.all(nonUserSeededModels.map((model) => (model as any).deleteMany({})));
   const existingUsers = await UserModel.estimatedDocumentCount();
   if (existingUsers === 0) await insertUsers();
   await insertNonUserSeedData();
@@ -128,7 +128,7 @@ export async function reseedDemoDatabase() {
  * without re-seeding and without touching user accounts.
  */
 export async function clearDemoDatabase() {
-  await Promise.all(nonUserSeededModels.map((model) => model.deleteMany({})));
+  await Promise.all(nonUserSeededModels.map((model) => (model as any).deleteMany({})));
   return { cleared: true, keptUsers: true };
 }
 

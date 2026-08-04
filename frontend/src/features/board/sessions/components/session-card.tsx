@@ -8,15 +8,11 @@ import {
 } from "@/entities/board/model/voting-types";
 
 const STATUS_TONE: Record<VotingSession["status"], string> = {
-  DRAFT: "bg-zinc-100 text-zinc-700",
   OPEN: "bg-emerald-100 text-emerald-900",
-  CLOSED: "bg-zinc-200 text-zinc-800",
   TIED: "bg-fuchsia-100 text-fuchsia-900",
-  TIE_BREAK_REQUIRED: "bg-fuchsia-100 text-fuchsia-900",
   FINALIZED: "bg-blue-100 text-blue-900",
   NO_QUORUM: "bg-amber-100 text-amber-900",
   CANCELLED: "bg-rose-100 text-rose-900",
-  CANCELED: "bg-rose-100 text-rose-900",
 };
 
 export function SessionCard({
@@ -27,10 +23,12 @@ export function SessionCard({
   reVoteSession?: VotingSession;
 }) {
   const statusHelp = SESSION_STATUS_HELP[session.status];
-  const tieCount = session.outcomes.filter((o) => o.decision === "TIE_BREAK_REQUIRED").length;
-  const decided = session.outcomes.filter((o) =>
-    ["APPROVED", "REJECTED", "TIE_BROKEN_APPROVED", "TIE_BROKEN_REJECTED"].includes(o.decision),
-  ).length;
+  const decided = session.outcomes.filter((o) => ["APPROVED", "REJECTED"].includes(o.decision)).length;
+  const chairTiePending =
+    session.status === "TIED" &&
+    session.tiePolicy === "CHAIR_DECIDES" &&
+    (session.tieResolution ?? "PENDING") === "PENDING" &&
+    (session.votingRound ?? (session.reVoteOfSessionId ? 2 : 1)) >= 2;
   return (
     <Link
       to="/app/board/sessions/$sid"
@@ -70,17 +68,18 @@ export function SessionCard({
           <dt className="font-semibold text-foreground">Round</dt>
           <dd>{session.reVoteOfSessionId ? "Re-vote after tie" : "First round"}</dd>
         </div>
-        {tieCount > 0 ? (
-          <div className="col-span-2 mt-1 rounded bg-fuchsia-100 px-2 py-1 text-fuchsia-900">
-            {tieCount} historical tie-break record{tieCount === 1 ? "" : "s"} · read-only
-          </div>
-        ) : null}
         {reVoteSession ? (
           <div className="col-span-2 mt-1 rounded border border-emerald-300 bg-emerald-50 px-2 py-2 text-emerald-950">
             <p className="font-semibold">Fresh Board re-vote is open.</p>
             <p className="mt-0.5 text-[10px]">
               Open this card to review the tie, then use the re-vote session.
             </p>
+          </div>
+        ) : null}
+        {chairTiePending ? (
+          <div className="col-span-2 mt-1 rounded border border-amber-300 bg-amber-50 px-2 py-2 text-amber-950">
+            <p className="font-semibold">Chair decision required.</p>
+            <p className="mt-0.5 text-[10px]">The second tied round cannot open another re-vote.</p>
           </div>
         ) : null}
         {session.scheduledFor ? (

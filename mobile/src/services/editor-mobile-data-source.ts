@@ -119,7 +119,13 @@ export interface EditorChapterDetail {
     status: string
     version: number | null
   }
-  series: { id: string; title: string; editorId: string | null }
+  series: {
+    id: string
+    title: string
+    editorId: string | null
+    publicationType?: "WEEKLY" | "MONTHLY" | null
+    cadence?: string | null
+  }
   pages: Array<{ id: string; pageNumber: number | null; status: string; thumbnailFileKey?: string }>
   readiness: EditorReadiness
   blockers: Array<{ id: string; status: string; body: string; targetType: string; targetId: string }>

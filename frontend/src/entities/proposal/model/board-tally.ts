@@ -12,6 +12,7 @@ export type TallyResult = {
 export function evaluateBoardTally(
   votes: BoardVote[],
   quorum = Math.ceil(BOARD_TOTAL / 2),
+  eligibleVoterCount = BOARD_TOTAL,
 ): TallyResult {
   const validVotes = votes.filter(
     (vote) => vote.decision === "APPROVE" || vote.decision === "REJECT",
@@ -51,13 +52,13 @@ export function evaluateBoardTally(
       reason: `Board majority ${reject} REJECT to ${approve} APPROVE.`,
     };
   }
-  if (total >= BOARD_TOTAL) {
+  if (total >= eligibleVoterCount) {
     return {
       approve,
       reject,
       total,
-      status: "TIE_BREAK",
-      reason: `Tied ${approve}-${reject}. Close this round to open a fresh Board re-vote.`,
+      status: null,
+      reason: `Tied ${approve}-${reject}. The VotingSession tie policy determines the next step.`,
     };
   }
   return {
@@ -65,6 +66,6 @@ export function evaluateBoardTally(
     reject,
     total,
     status: null,
-    reason: `Waiting for more votes (${total}/${BOARD_TOTAL}).`,
+      reason: `Waiting for more votes (${total}/${eligibleVoterCount}).`,
   };
 }

@@ -29,7 +29,7 @@ import {
   reviewRowAccent,
 } from "./review-queue-table";
 
-type TabKey = "ALL" | "NEW" | "NEEDS" | "RESUBMITTED" | "BLOCKING" | "OVERDUE" | "COMPLETED";
+type TabKey = "ALL" | "NEW" | "NEEDS" | "BLOCKING" | "OVERDUE" | "COMPLETED";
 
 const PAGE_SIZE = 8;
 const PRIORITY_ORDER: Record<string, number> = { BLOCKING: 4, HIGH: 3, NORMAL: 2, LOW: 1 };
@@ -42,8 +42,6 @@ function matchesTab(item: ReviewItem, tab: TabKey): boolean {
       return isNewReviewItem(item);
     case "NEEDS":
       return !isItemCompleted(item);
-    case "RESUBMITTED":
-      return Boolean(item.revisionReturned);
     case "BLOCKING":
       return item.priority === "BLOCKING";
     case "OVERDUE":
@@ -79,7 +77,6 @@ export function ReviewQueuePage() {
       ALL: queue.length,
       NEW: queue.filter((i) => matchesTab(i, "NEW")).length,
       NEEDS: queue.filter((i) => matchesTab(i, "NEEDS")).length,
-      RESUBMITTED: queue.filter((i) => matchesTab(i, "RESUBMITTED")).length,
       BLOCKING: queue.filter((i) => matchesTab(i, "BLOCKING")).length,
       OVERDUE: queue.filter((i) => matchesTab(i, "OVERDUE")).length,
       COMPLETED: queue.filter((i) => matchesTab(i, "COMPLETED")).length,
@@ -130,7 +127,6 @@ export function ReviewQueuePage() {
     { key: "ALL", label: "All", count: counts.ALL },
     { key: "NEW", label: "New", count: counts.NEW },
     { key: "NEEDS", label: "Needs Review", count: counts.NEEDS },
-    { key: "RESUBMITTED", label: "Resubmitted", count: counts.RESUBMITTED },
     { key: "BLOCKING", label: "Blocking", count: counts.BLOCKING },
     { key: "OVERDUE", label: "Overdue", count: counts.OVERDUE },
     { key: "COMPLETED", label: "Completed", count: counts.COMPLETED },

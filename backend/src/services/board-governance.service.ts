@@ -1,17 +1,23 @@
 import { nowIso } from "../domain/ids.js";
 import { UserModel } from "../db/models.js";
 import { AppError } from "../lib/http.js";
-import type { ProposalStatus, VoteDecision } from "../types.js";
+import type { ProposalStatus, TiePolicy, VoteDecision } from "../types.js";
 
 export const BOARD_TOTAL = 5;
-export const DEFAULT_BOARD_ELIGIBLE_VOTER_IDS = [
-  "u-board",
-  "u-board-2",
-  "u-board-3",
-  "u-board-4",
-  "u-board-5",
-];
 export const BOARD_QUORUM = 3;
+export const BOARD_MAX_VOTING_ROUND = 2;
+export const BOARD_DEFAULT_TIE_POLICY: TiePolicy = "CHAIR_DECIDES";
+export const BOARD_TIE_POLICIES: readonly TiePolicy[] = [
+  "CHAIR_DECIDES",
+  "REJECT",
+  "RETURN_TO_BOARD",
+];
+
+export function normalizeTiePolicy(value: unknown): TiePolicy {
+  return BOARD_TIE_POLICIES.includes(value as TiePolicy)
+    ? (value as TiePolicy)
+    : BOARD_DEFAULT_TIE_POLICY;
+}
 
 export async function activeBoardElectorate() {
   const voters = await UserModel.find({
@@ -52,9 +58,6 @@ export function evaluateBoardTally(
   quorum = BOARD_QUORUM,
   eligibleVoterCount = BOARD_TOTAL,
 ) {
-  // Legacy ABSTAIN records may still exist in old databases. They are not a
-  // valid decision in the current workflow and must not count toward quorum,
-  // majority, or the all-members-voted tie condition.
   const validVotes = votes.filter(
     (vote) => vote.decision === "APPROVE" || vote.decision === "REJECT",
   );
@@ -96,8 +99,8 @@ export function evaluateBoardTally(
       approve,
       reject,
       total,
-      status: "TIE_BREAK" as ProposalStatus,
-      reason: "Split vote. The Board must start a fresh re-vote.",
+      status: null,
+      reason: "Full-turnout tie. The VotingSession tie policy determines the next step.",
     };
   }
   return {
@@ -111,12 +114,11 @@ export function evaluateBoardTally(
 
 export function normalizeBoardVote(vote: any) {
   return {
-    memberId: String(vote.memberId ?? vote.voterId ?? ""),
-    memberName: String(vote.memberName ?? vote.voterName ?? ""),
+    voterId: String(vote.voterId ?? ""),
+    voterName: String(vote.voterName ?? ""),
     decision: vote.decision as VoteDecision,
     comment: vote.comment,
-    createdAt: vote.createdAt ?? vote.votedAt ?? nowIso(),
+    createdAt: vote.createdAt ?? nowIso(),
     weight: Number(vote.weight ?? 1),
-    isChair: Boolean(vote.isChair ?? false),
   };
 }

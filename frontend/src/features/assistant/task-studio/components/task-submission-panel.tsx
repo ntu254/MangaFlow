@@ -64,7 +64,6 @@ export function TaskSubmissionPanel({
         seriesId: undefined,
         chapterId: task.chapterId,
         pageId: task.pageId,
-        regionId: task.regionId,
         notes: note || undefined,
         fileKey: uploaded?.fileKey,
         fileName: uploaded?.filename,

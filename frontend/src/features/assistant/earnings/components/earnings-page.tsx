@@ -104,14 +104,14 @@ export function EarningsPage() {
             <StatCard
               tone="emerald"
               icon={<Coins className="size-4" />}
-              label="Legacy confirmed"
-              value={totalsFor("CONFIRMED")}
+              label="Reversed"
+              value={totalsFor("REVERSED")}
             />
             <StatCard
               tone="neutral"
               icon={<Coins className="size-4" />}
-              label="Reversed"
-              value={totalsFor("REVERSED", "VOID")}
+              label="Pending"
+              value={totalsFor("PENDING")}
             />
             <StatCard
               tone="violet"
@@ -260,12 +260,11 @@ function formatMoneyTotals(earnings: { amount: number; currency: string }[]) {
     .join(" + ");
 }
 
-function getEarningPeriod(earning: { period?: string; month?: string }) {
-  return earning.period ?? earning.month ?? "unknown";
+function getEarningPeriod(earning: { period?: string }) {
+  return earning.period ?? "unknown";
 }
 
 function getEarningStatus(earning: { status?: string }): EarningStatus {
-  if (earning.status === "VOIDED") return "VOID";
   if (!earning.status) return "EARNED";
   return earning.status as EarningStatus;
 }

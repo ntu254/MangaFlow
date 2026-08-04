@@ -34,42 +34,24 @@ export type ProposalStatus =
   | "APPROVED"
   | "REJECTED"
   | "WITHDRAWN"
-  /**
-   * Legacy intake alias. New submissions write PENDING_EDITOR.
-   * @deprecated
-   */
-  | "SUBMITTED"
-  /**
-   * Legacy revision alias. New resubmissions write PENDING_EDITOR or EDITOR_REVIEWING.
-   * @deprecated
-   */
-  | "RESUBMITTED"
-  /**
-   * Legacy Board-ready alias. New editor forwards write PENDING_BOARD.
-   * @deprecated
-   */
-  | "READY_FOR_BOARD"
-  /**
-   * Legacy denormalized vote state. VotingSession is the source of truth.
-   * @deprecated
-   */
-  | "BOARD_VOTING"
-  /**
-   * Legacy denormalized tie-break state. VotingSessionStatus.TIE_BREAK_REQUIRED is canonical.
-   * @deprecated
-   */
-  | "TIE_BREAK"
   | "ARCHIVED";
 
 export type VotingSessionStatus =
   | "OPEN"
   | "NO_QUORUM"
   | "TIED"
-  | "TIE_BREAK_REQUIRED"
   | "FINALIZED"
   | "CANCELLED";
 
 export type VoteDecision = "APPROVE" | "REJECT";
+
+export type TiePolicy = "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
+
+export type TieResolution =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "RETURNED_TO_BOARD";
 
 export type ProposalAction =
   | "SUBMIT"
@@ -84,7 +66,6 @@ export type ProposalAction =
   | "REJECT"
   | "RECALL"
   | "VOTE"
-  | "FORCE_STATUS"
   | "ARCHIVE";
 
 export const PROPOSAL_ACTIONS: readonly ProposalAction[] = [
@@ -100,7 +81,6 @@ export const PROPOSAL_ACTIONS: readonly ProposalAction[] = [
   "REJECT",
   "RECALL",
   "VOTE",
-  "FORCE_STATUS",
   "ARCHIVE",
 ];
 
@@ -115,10 +95,7 @@ export const PROPOSAL_ACTIONS: readonly ProposalAction[] = [
  *
  * Scheduling is NOT a chapter status: a chapter stays READY_FOR_PUBLICATION
  * while its Publication is SCHEDULED, and only becomes PUBLISHED when it
- * actually publishes. Legacy statuses (DRAFTING, ASSISTANT_WORKING,
- * MANGAKA_REVIEW, EDITOR_REVIEW, REVISION, EDITOR_APPROVED, IN_REVIEW,
- * APPROVED, SCHEDULED) were retired; existing rows are converted by
- * scripts/migrate-chapter-status-canonical.ts.
+ * actually publishes. Existing rows are converted before this type is used.
  */
 export type ChapterStatus =
   | "PLANNED"
@@ -180,13 +157,7 @@ export type StudioTaskStatus =
   | "REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
   | "REJECTED"
-  | "CANCELLED"
-  // Legacy statuses kept for compatibility reads during migration.
-  | "MANGAKA_REVIEWING"
-  | "MANGAKA_REVISION_REQUESTED"
-  | "EDITOR_REVIEWING"
-  | "EDITOR_REVISION_REQUESTED"
-  | "EDITOR_APPROVED";
+  | "CANCELLED";
 
 export type TaskAssignmentStatus =
   "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";
@@ -195,7 +166,6 @@ export type TaskAction =
   | "ACCEPT"
   | "REJECT"
   | "START"
-  | "SUBMIT"
   | "CANCEL"
   | "REOPEN"
   | "REASSIGN";
@@ -204,7 +174,6 @@ export const TASK_ACTIONS: readonly TaskAction[] = [
   "ACCEPT",
   "REJECT",
   "START",
-  "SUBMIT",
   "CANCEL",
   "REOPEN",
   "REASSIGN",
@@ -219,14 +188,7 @@ export type SubmissionStatus =
   | "MANGAKA_APPROVED"
   | "REVISION_REQUESTED"
   | "SUPERSEDED"
-  | "REJECTED"
-  // Legacy statuses kept for compatibility reads during migration.
-  | "MANGAKA_REVISION_REQUESTED"
-  | "EDITOR_APPROVED"
-  | "EDITOR_REVISION_REQUESTED";
-
-export type SubmissionReviewStage =
-  "MANGAKA_REVIEW" | "EDITOR_REVIEW" | "FINAL";
+  | "REJECTED";
 
 // ---------------------------------------------------------------------------
 // Earning

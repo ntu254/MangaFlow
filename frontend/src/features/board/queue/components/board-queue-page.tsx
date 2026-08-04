@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, RefreshCw, Scale, Vote } from "lucide-react";
+import { CheckCircle2, RefreshCw, Vote } from "lucide-react";
 import {
   DataPagination,
   EmptyState,
@@ -21,7 +21,7 @@ import { useBoardQueueQuery } from "../../api/board-queries";
 import type { BoardQueueItem } from "../../model/board-adapters";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 
-type TabKey = "ALL" | "PENDING" | "FINALIZE" | "TIE";
+type TabKey = "ALL" | "PENDING" | "FINALIZE";
 
 const PAGE_SIZE = 8;
 
@@ -42,8 +42,6 @@ function matchesTab(item: BoardQueueItem, tab: TabKey): boolean {
       return status === "PENDING_BOARD" && !needsFinalize(item);
     case "FINALIZE":
       return needsFinalize(item);
-    case "TIE":
-      return item.decisionStatus === "TIE_BREAK_REQUIRED";
   }
 }
 
@@ -64,7 +62,6 @@ export function BoardQueuePage() {
       ALL: boardItems.length,
       PENDING: boardItems.filter((i) => matchesTab(i, "PENDING")).length,
       FINALIZE: boardItems.filter((i) => matchesTab(i, "FINALIZE")).length,
-      TIE: boardItems.filter((i) => matchesTab(i, "TIE")).length,
     }),
     [boardItems],
   );
@@ -110,7 +107,6 @@ export function BoardQueuePage() {
     { key: "ALL", label: "All", count: counts.ALL },
     { key: "PENDING", label: "Pending Vote", count: counts.PENDING },
     { key: "FINALIZE", label: "Needs Finalize", count: counts.FINALIZE },
-    { key: "TIE", label: "Tie-break", count: counts.TIE },
   ];
 
   const columns: QueueColumn<BoardQueueItem>[] = [
@@ -200,13 +196,6 @@ export function BoardQueuePage() {
             hint="Quorum reached"
           />
           <StatCard
-            tone="amber"
-            icon={<Scale className="size-4" />}
-            label="Tie-break"
-            value={counts.TIE}
-            hint="Require resolution"
-          />
-          <StatCard
             tone="violet"
             icon={<CheckCircle2 className="size-4" />}
             label="Active Queue"
@@ -250,13 +239,7 @@ export function BoardQueuePage() {
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSort={toggleSort}
-        getRowAccent={(item): QueueAccent =>
-          item.decisionStatus === "TIE_BREAK_REQUIRED"
-            ? "amber"
-            : needsFinalize(item)
-              ? "emerald"
-              : null
-        }
+        getRowAccent={(item): QueueAccent => (needsFinalize(item) ? "emerald" : null)}
         minWidth={820}
         empty={isLoading ? "Loading queue…" : "No proposals match the current filter."}
       />

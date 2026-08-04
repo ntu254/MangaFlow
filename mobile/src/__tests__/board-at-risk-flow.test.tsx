@@ -32,7 +32,7 @@ describe("AtRiskDecisionSheet", () => {
     expect(screen.getByText("The backend marked this title at risk after the latest ranking review.")).toBeVisible()
     expect(screen.getByRole("button", { name: "Continue" })).toBeVisible()
     expect(screen.getByRole("button", { name: "Warning" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "Request improvement plan" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Change format" })).toBeVisible()
     expect(screen.getByRole("button", { name: "Cancel series" })).toBeVisible()
     expect(screen.queryByRole("button", { name: "Complete" })).toBeNull()
   })
@@ -50,9 +50,9 @@ describe("AtRiskDecisionSheet", () => {
   it("submits a supported non-cancellation decision without a reason", () => {
     const onConfirm = jest.fn()
     renderAtRiskDecision(true, onConfirm)
-    fireEvent.press(screen.getByRole("button", { name: "Request improvement plan" }))
+    fireEvent.press(screen.getByRole("button", { name: "Continue" }))
     fireEvent.press(screen.getByRole("button", { name: "Confirm decision" }))
-    expect(onConfirm).toHaveBeenCalledWith({ decision: "REQUEST_IMPROVEMENT_PLAN", note: undefined })
+    expect(onConfirm).toHaveBeenCalledWith({ decision: "CONTINUE", note: undefined })
   })
 
   it("does not show decision actions to a non-Chair", () => {

@@ -88,6 +88,9 @@ export function EditorPublishScreen({
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Status</Text>
           <Text style={styles.body}>{data.publication?.status ?? "Not scheduled"}</Text>
+          <Text style={styles.body}>
+            Cadence: {data.series.publicationType === "WEEKLY" ? "Weekly" : "Monthly"}
+          </Text>
           {data.publication?.scheduledAt ? (
             <Text style={styles.body}>Scheduled for {data.publication.scheduledAt}</Text>
           ) : null}

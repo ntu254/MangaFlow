@@ -4,17 +4,11 @@ import { STATUS_LABEL } from "@/entities/proposal/model/proposal-types";
 
 const STYLES: Record<ProposalStatus, string> = {
   DRAFT: "bg-zinc-200 text-zinc-800",
-  SUBMITTED: "bg-sky-100 text-sky-900",
-  TANTOU_REVIEW: "bg-amber-100 text-amber-900",
   PENDING_EDITOR: "bg-amber-100 text-amber-900",
   EDITOR_REVIEWING: "bg-amber-200 text-amber-900",
   CHANGES_REQUESTED: "bg-orange-100 text-orange-900",
-  RESUBMITTED: "bg-sky-200 text-sky-900",
-  READY_FOR_BOARD: "bg-indigo-100 text-indigo-900",
   BOARD_REVIEW: "bg-indigo-200 text-indigo-900",
   PENDING_BOARD: "bg-indigo-100 text-indigo-900",
-  BOARD_VOTING: "bg-indigo-200 text-indigo-900",
-  TIE_BREAK: "bg-fuchsia-100 text-fuchsia-900",
   APPROVED: "bg-emerald-100 text-emerald-900",
   REJECTED: "bg-rose-100 text-rose-900",
   WITHDRAWN: "bg-zinc-200 text-zinc-600",

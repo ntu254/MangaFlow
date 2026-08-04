@@ -34,4 +34,4 @@ const publicationSchema = looseSchema({
 publicationSchema.index({ status: 1, scheduledAt: 1 });
 publicationSchema.index({ seriesId: 1, status: 1 });
 
-export const PublicationModel = mongoose.model<any>("Publication", publicationSchema);
+export const PublicationModel = mongoose.model<PublicationRecord>("Publication", publicationSchema);

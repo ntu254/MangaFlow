@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { boardApi } from "@/shared/api/services";
 import { apiRequest } from "@/shared/api/client";
+import { proposalKeys } from "@/features/proposals";
 import { boardKeys } from "../../api/board-queries";
 import type { VotingSession } from "@/entities/board/model/voting-types";
 
@@ -23,7 +24,10 @@ export function useCreateVotingSessionMutation() {
         body,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: proposalKeys.all }),
+      ]);
     },
   });
 }
@@ -35,10 +39,13 @@ export function useUpdateVotingSessionMutation() {
     mutationFn: ({ sessionId, body }) =>
       boardApi.updateSession(sessionId, body) as Promise<VotingSession>,
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
-      queryClient.invalidateQueries({
-        queryKey: [...boardKeys.all, "session", variables.sessionId],
-      });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: proposalKeys.all }),
+        queryClient.invalidateQueries({
+          queryKey: [...boardKeys.all, "session", variables.sessionId],
+        }),
+      ]);
     },
   });
 }
@@ -49,8 +56,10 @@ export function useAddVotingSessionNoteMutation(sessionId: string) {
     mutationFn: (body) =>
       boardApi.addSessionNote(sessionId, body) as Promise<Record<string, unknown>>,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
-      queryClient.invalidateQueries({ queryKey: [...boardKeys.all, "session", sessionId] });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: [...boardKeys.all, "session", sessionId] }),
+      ]);
     },
   });
 }
@@ -60,19 +69,58 @@ export function useCancelVotingSessionMutation() {
   return useMutation<VotingSession, Error, string>({
     mutationFn: (sessionId) => boardApi.cancelSession(sessionId) as Promise<VotingSession>,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: proposalKeys.all }),
+      ]);
     },
   });
 }
 
 export function useCloseVotingSessionMutation() {
   const queryClient = useQueryClient();
-  return useMutation<VotingSession, Error, string>({
-    mutationFn: (sessionId) => boardApi.closeSession(sessionId) as Promise<VotingSession>,
-    onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: boardKeys.sessions() });
-      queryClient.invalidateQueries({ queryKey: [...boardKeys.all, "session", sessionId] });
-      queryClient.invalidateQueries({ queryKey: boardKeys.queue() });
+  return useMutation<
+    VotingSession,
+    Error,
+    {
+      sessionId: string;
+      body?: {
+        expectedVersion?: number;
+        note?: string;
+        publicationType?: "WEEKLY" | "MONTHLY";
+      };
+    }
+  >({
+    mutationFn: ({ sessionId, body }) =>
+      apiRequest<VotingSession>(`/voting-sessions/${sessionId}/close`, {
+        method: "POST",
+        body: body ?? {},
+      }),
+    onSuccess: (_data, { sessionId }) => {
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: proposalKeys.all }),
+        queryClient.invalidateQueries({ queryKey: [...boardKeys.all, "session", sessionId] }),
+      ]);
+    },
+  });
+}
+
+export function useResolveVotingTieMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    VotingSession,
+    Error,
+    { sessionId: string; body: { decision: "APPROVED" | "REJECTED"; note: string; expectedVersion?: number } }
+  >({
+    mutationFn: ({ sessionId, body }) =>
+      boardApi.resolveTie(sessionId, body) as Promise<VotingSession>,
+    onSuccess: (_data, { sessionId }) => {
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: proposalKeys.all }),
+        queryClient.invalidateQueries({ queryKey: [...boardKeys.all, "session", sessionId] }),
+      ]);
     },
   });
 }

@@ -354,7 +354,6 @@ export const studioKeys = {
     seriesId?: string;
     chapterId?: string;
     pageId?: string;
-    regionId?: string;
     assigneeId?: string;
     status?: string;
   }) => [...studioKeys.all, "tasks", filters] as const,

@@ -1,21 +1,19 @@
 import type { VoteDecision } from "@/entities/proposal/model/proposal-types";
-import type { RiskLevel } from "@/entities/board/model/board-types";
 
 export interface BoardVote {
-  memberId: string;
-  memberName: string;
+  voterId: string;
+  voterName: string;
   decision: VoteDecision;
   comment?: string;
   createdAt: string;
   weight: number;
-  isChair: boolean;
 }
 
 export interface BoardTally {
   approve: number;
   reject: number;
   total: number;
-  status: "APPROVED" | "REJECTED" | "TIE_BREAK" | null;
+  status: "APPROVED" | "REJECTED" | null;
   reason: string;
 }
 
@@ -25,7 +23,7 @@ export interface BoardQueueItem {
   seriesTitle: string;
   title: string;
   genres: string[];
-  decisionStatus: "PENDING" | "TIE_BREAK_REQUIRED";
+  decisionStatus: "PENDING";
   votingSessionId: string | null;
   proposalVersionId: string | null;
   expectedVersion: number | null;
@@ -66,11 +64,6 @@ export interface BoardVotesResult {
   eligibleVoterIds: string[];
 }
 
-function mapDecisionStatus(raw: string): "PENDING" | "TIE_BREAK_REQUIRED" {
-  if (raw === "TIE_BREAK_REQUIRED") return "TIE_BREAK_REQUIRED";
-  return "PENDING";
-}
-
 export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem | AtRiskQueueItem {
   if (raw.seriesStatus === "AT_RISK") {
     return {
@@ -81,49 +74,49 @@ export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem 
       seriesStatus: "AT_RISK",
       decisionStatus: "PENDING",
       updatedAt: String(raw.updatedAt ?? ""),
-    } as AtRiskQueueItem;
+    };
   }
 
-  const vs = (raw.voteSummary as Record<string, unknown>) ?? {};
+  const summary = (raw.voteSummary as Record<string, unknown>) ?? {};
+  const eligible = Number(summary.eligible ?? 0);
+  const total = Number(summary.total ?? raw.voteCount ?? 0);
   return {
     id: String(raw.id ?? raw.seriesId),
     seriesId: String(raw.seriesId),
     seriesTitle: String(raw.seriesTitle ?? raw.title ?? ""),
     title: String(raw.seriesTitle ?? raw.title ?? ""),
     genres: Array.isArray(raw.genres) ? raw.genres.map(String) : [],
-    decisionStatus: mapDecisionStatus(String(raw.decisionStatus ?? "PENDING")),
+    decisionStatus: "PENDING",
     seriesStatus: String(raw.seriesStatus ?? "BOARD_REVIEW"),
     voteSummary: {
-      approve: Number(vs.approve ?? 0),
-      reject: Number(vs.reject ?? 0),
-      pending: Math.max(0, Number(vs.eligible ?? 5) - Number(vs.total ?? raw.voteCount ?? 0)),
-      eligible: Number(vs.eligible ?? 5),
-      quorum: Number(vs.quorum ?? 3),
-      canFinalize: Boolean(vs.canFinalize ?? raw.canFinalize ?? false),
+      approve: Number(summary.approve ?? 0),
+      reject: Number(summary.reject ?? 0),
+      pending: Math.max(0, eligible - total),
+      eligible,
+      quorum: Number(summary.quorum ?? 3),
+      canFinalize: Boolean(summary.canFinalize ?? raw.canFinalize ?? false),
     },
-    canFinalize: Boolean(raw.canFinalize ?? vs.canFinalize ?? false),
-    voteCount: Number(raw.voteCount ?? vs.total ?? 0),
+    canFinalize: Boolean(raw.canFinalize ?? summary.canFinalize ?? false),
+    voteCount: Number(raw.voteCount ?? total),
     updatedAt: String(raw.updatedAt ?? ""),
     votingSessionId: raw.votingSessionId ? String(raw.votingSessionId) : null,
     proposalVersionId: raw.proposalVersionId ? String(raw.proposalVersionId) : null,
     expectedVersion: raw.expectedVersion == null ? null : Number(raw.expectedVersion),
     proposalStatus: raw.seriesStatus === "BOARD_REVIEW" ? "BOARD_REVIEW" : "PENDING_BOARD",
-  } as BoardQueueItem;
+  };
 }
 
 export function mapBoardVotes(raw: Record<string, unknown>): BoardVotesResult {
-  const votes =
-    (raw.votes as Record<string, unknown>[] | undefined)
-      ?.filter((v) => v.decision === "APPROVE" || v.decision === "REJECT")
-      .map((v) => ({
-        memberId: String(v.memberId ?? v.voterId ?? ""),
-        memberName: String(v.memberName ?? v.voterName ?? ""),
-        decision: v.decision as VoteDecision,
-        comment: v.comment ? String(v.comment) : undefined,
-        createdAt: String(v.createdAt ?? v.votedAt ?? ""),
-        weight: Number(v.weight ?? 1),
-        isChair: Boolean(v.isChair ?? false),
-      })) ?? [];
+  const votes = ((raw.votes as Record<string, unknown>[] | undefined) ?? [])
+    .filter((vote) => vote.decision === "APPROVE" || vote.decision === "REJECT")
+    .map((vote) => ({
+      voterId: String(vote.voterId ?? ""),
+      voterName: String(vote.voterName ?? ""),
+      decision: vote.decision as VoteDecision,
+      comment: vote.comment ? String(vote.comment) : undefined,
+      createdAt: String(vote.createdAt ?? ""),
+      weight: Number(vote.weight ?? 1),
+    }));
 
   const tally = (raw.tally as Record<string, unknown>) ?? {};
   return {
@@ -141,7 +134,9 @@ export function mapBoardVotes(raw: Record<string, unknown>): BoardVotesResult {
     },
     status: String(raw.status ?? ""),
     quorum: Number(raw.quorum ?? 3),
-    eligibleVoterIds: Array.isArray(raw.eligibleVoterIds) ? raw.eligibleVoterIds.map(String) : [],
+    eligibleVoterIds: Array.isArray(raw.eligibleVoterIds)
+      ? raw.eligibleVoterIds.map(String)
+      : [],
   };
 }
 
@@ -151,7 +146,6 @@ export function getProposalStatusFromQueueItem(
   return item.votingSessionId ? "BOARD_REVIEW" : "PENDING_BOARD";
 }
 
-export function getTabFromQueueItem(item: BoardQueueItem): string {
-  if (item.decisionStatus === "TIE_BREAK_REQUIRED") return "Tie-break";
+export function getTabFromQueueItem(_item: BoardQueueItem): string {
   return "Pending Vote";
 }

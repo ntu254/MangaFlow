@@ -3,7 +3,13 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
-import { AuditEntryModel, NotificationModel, RankingModel } from "../db/models.js";
+import {
+  AuditEntryModel,
+  NotificationModel,
+  PublicationModel,
+  RankingModel,
+  SeriesModel,
+} from "../db/models.js";
 
 let mongo: MongoMemoryReplSet;
 const AT_RISK_RANKING = "rank-002"; // seeded AT_RISK ranking for s-vinland-prod
@@ -32,7 +38,7 @@ describe("at-risk decision service", () => {
     await mongo.stop();
   }, 30_000);
 
-  it.each(["CONTINUE", "WARNING", "REQUEST_IMPROVEMENT_PLAN", "CANCEL"] as const)(
+  it.each(["CONTINUE", "WARNING", "CHANGE_FORMAT", "CANCEL"] as const)(
     "records supported Chair decision %s with an audit trail and notification",
     async (decision) => {
       const chair = await loginAs("board@beachread.jp");
@@ -40,7 +46,12 @@ describe("at-risk decision service", () => {
       const response = await request(createApp())
         .post(`/api/board/series/${SERIES}/at-risk-decisions`)
         .set("Authorization", `Bearer ${chair.accessToken}`)
-        .send({ rankingId: AT_RISK_RANKING, decision, note })
+        .send({
+          rankingId: AT_RISK_RANKING,
+          decision,
+          note,
+          ...(decision === "CHANGE_FORMAT" ? { publicationType: "WEEKLY" } : {}),
+        })
         .expect(200);
 
       expect(response.body.data).toMatchObject({ seriesId: SERIES, rankingId: AT_RISK_RANKING, decision });
@@ -83,6 +94,55 @@ describe("at-risk decision service", () => {
         .expect(400);
       expect(response.body.code).toBe("REASON_REQUIRED");
     }
+  });
+
+  it("changes the series cadence when the Chair selects CHANGE_FORMAT", async () => {
+    const chair = await loginAs("board@beachread.jp");
+    await request(createApp())
+      .post(`/api/board/series/${SERIES}/at-risk-decisions`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
+      .send({
+        rankingId: AT_RISK_RANKING,
+        decision: "CHANGE_FORMAT",
+        publicationType: "WEEKLY",
+        note: "Move to a weekly release.",
+      })
+      .expect(200);
+
+    await expect(SeriesModel.findOne({ id: SERIES }).lean()).resolves.toMatchObject({
+      publicationType: "WEEKLY",
+      cadence: "weekly",
+    });
+  });
+
+  it("archives the series and cancels scheduled publications on CANCEL", async () => {
+    const now = new Date();
+    await PublicationModel.create({
+      id: "pub-risk-001",
+      seriesId: SERIES,
+      chapterId: "ch-risk-001",
+      status: "SCHEDULED",
+      scheduledAt: new Date(now.getTime() + 86_400_000),
+      createdAt: now,
+      updatedAt: now,
+    });
+    const chair = await loginAs("board@beachread.jp");
+
+    await request(createApp())
+      .post(`/api/board/series/${SERIES}/at-risk-decisions`)
+      .set("Authorization", `Bearer ${chair.accessToken}`)
+      .send({ rankingId: AT_RISK_RANKING, decision: "CANCEL", note: "Low ranking." })
+      .expect(200);
+
+    await expect(SeriesModel.findOne({ id: SERIES }).lean()).resolves.toMatchObject({
+      status: "ARCHIVED",
+      visibility: "UNLISTED",
+      archivedById: "u-board",
+      archiveReason: "BOARD_AT_RISK",
+    });
+    await expect(PublicationModel.findOne({ id: "pub-risk-001" }).lean()).resolves.toMatchObject({
+      status: "CANCELLED",
+    });
   });
 
   it("rejects a ranking that is not at risk", async () => {

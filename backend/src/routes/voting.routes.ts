@@ -7,6 +7,7 @@ import {
   createVotingSession,
   patchVotingSession,
   closeSession,
+  resolveTie,
   cancelSession,
   addSessionNote,
   patchSessionNote,
@@ -21,6 +22,7 @@ router.get("/voting-sessions/:id", requireRole("BOARD", "EDITOR") as any, getVot
 router.post("/voting-sessions", requireExactBoardChair as any, createVotingSession);
 router.patch("/voting-sessions/:id", requireExactBoardChair as any, patchVotingSession);
 router.post("/voting-sessions/:id/close", requireExactBoardChair as any, closeSession);
+router.post("/voting-sessions/:id/resolve-tie", requireExactBoardChair as any, resolveTie);
 router.post("/voting-sessions/:id/cancel", requireExactBoardChair as any, cancelSession);
 router.post(
   "/voting-sessions/:id/notes",

@@ -16,15 +16,11 @@ import { PROPOSAL_ACTIONS } from "../types.js";
 
 const PROPOSAL_STATUSES = new Set<ProposalStatus>([
   "DRAFT",
-  "SUBMITTED",
   "PENDING_EDITOR",
   "EDITOR_REVIEWING",
   "CHANGES_REQUESTED",
-  "RESUBMITTED",
   "PENDING_BOARD",
   "BOARD_REVIEW",
-  "BOARD_VOTING",
-  "TIE_BREAK",
   "APPROVED",
   "REJECTED",
   "WITHDRAWN",
@@ -82,7 +78,7 @@ export const createProposal = asyncRoute(async (req: AuthedRequest, res) => {
   rejectProtectedFields(body as Record<string, unknown>);
   const proposalId = id("p");
   const slugBase = slugify(body.slug?.trim() || body.title || "proposal") || "proposal";
-  const proposal = await ProposalModel.create({
+  const proposal = await (ProposalModel as any).create({
     id: proposalId,
     // Proposal slugs are identifiers, not title-only labels. Including the
     // generated id prevents duplicate titles and empty client slugs from
@@ -101,7 +97,6 @@ export const createProposal = asyncRoute(async (req: AuthedRequest, res) => {
     coverFileKey: body.coverFileKey,
     sampleChapterUrl: body.sampleChapterUrl ?? "metadata://sample",
     status: "DRAFT",
-    votes: [],
     history: [
       {
         id: id("pe"),

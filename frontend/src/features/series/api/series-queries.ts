@@ -738,7 +738,6 @@ export function useStudioTasksQuery(filters: {
   seriesId?: string;
   chapterId?: string;
   pageId?: string;
-  regionId?: string;
   assigneeId?: string;
   status?: string;
 }) {
@@ -746,7 +745,6 @@ export function useStudioTasksQuery(filters: {
   if (filters.seriesId) params.set("seriesId", filters.seriesId);
   if (filters.chapterId) params.set("chapterId", filters.chapterId);
   if (filters.pageId) params.set("pageId", filters.pageId);
-  if (filters.regionId) params.set("regionId", filters.regionId);
   if (filters.assigneeId) params.set("assigneeId", filters.assigneeId);
   if (filters.status) params.set("status", filters.status);
   const qs = params.toString();
@@ -973,23 +971,16 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
 function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
   switch (raw) {
     case "PENDING":
-    case "SUBMITTED":
-    case "IN_REVIEW":
-      return "SUBMITTED";
     case "REVISION_REQUESTED":
-    case "MANGAKA_REVISION_REQUESTED":
-    case "EDITOR_REVISION_REQUESTED":
       return "REVISION_REQUESTED";
     case "MANGAKA_APPROVED":
       return "MANGAKA_APPROVED";
-    case "EDITOR_APPROVED":
-      return "EDITOR_APPROVED";
-    case "APPROVED":
-      return "APPROVED";
     case "REJECTED":
       return "REJECTED";
+    case "SUPERSEDED":
+      return "SUPERSEDED";
     default:
-      return "DRAFT";
+      return "PENDING";
   }
 }
 
@@ -1036,7 +1027,6 @@ export function useCreateSubmissionMutation() {
       seriesId?: string;
       chapterId?: string;
       pageId?: string;
-      regionId?: string;
       fileKey?: string;
       fileName?: string;
       fileUrl?: string;
@@ -1046,7 +1036,7 @@ export function useCreateSubmissionMutation() {
       notes?: string;
       intent?: "DRAFT" | "SUBMIT";
       version?: number;
-      status?: "DRAFT" | "SUBMITTED";
+      status?: "PENDING" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "REJECTED" | "SUPERSEDED";
       expectedCurrentSubmissionId?: string | null;
       idempotencyKey?: string;
     }

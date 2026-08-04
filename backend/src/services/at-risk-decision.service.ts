@@ -1,15 +1,16 @@
 import { AppError } from "../lib/http.js";
-import { RankingModel } from "../db/models.js";
+import { PublicationModel, RankingModel, SeriesModel } from "../db/models.js";
 import { audit, notify } from "./audit.service.js";
 import { requireActor } from "../controllers/helpers.js";
 import type { AuthedRequest } from "../types.js";
+import { cadenceFromPublicationType, normalizePublicationType } from "./proposal-lifecycle.service.js";
 
 // At-risk cancellation is always a manual, audited Chair decision. This service
 // is the single validated command; the controller only forwards to it.
 export const AT_RISK_DECISIONS = [
   "CONTINUE",
   "WARNING",
-  "REQUEST_IMPROVEMENT_PLAN",
+  "CHANGE_FORMAT",
   "CANCEL",
 ] as const;
 export type AtRiskDecisionValue = (typeof AT_RISK_DECISIONS)[number];
@@ -18,6 +19,7 @@ export interface AtRiskDecisionInput {
   rankingId?: unknown;
   decision?: unknown;
   note?: string;
+  publicationType?: unknown;
 }
 
 function isAtRiskDecision(value: string): value is AtRiskDecisionValue {
@@ -42,6 +44,7 @@ export async function recordAtRiskDecision(
   const rankingId = String(input.rankingId ?? "").trim();
   const decision = String(input.decision ?? "").trim();
   const note = typeof input.note === "string" ? input.note.trim() : "";
+  const publicationType = normalizePublicationType(input.publicationType);
 
   if (!seriesId || !rankingId || !decision) {
     throw new AppError(400, "seriesId, rankingId, and decision are required.", "VALIDATION_ERROR");
@@ -56,6 +59,9 @@ export async function recordAtRiskDecision(
   if (decision === "CANCEL" && !note) {
     throw new AppError(400, "A reason is required for manual cancellation.", "REASON_REQUIRED");
   }
+  if (decision === "CHANGE_FORMAT" && !publicationType) {
+    throw new AppError(400, "publicationType is required when changing format.", "PUBLICATION_TYPE_REQUIRED");
+  }
 
   const ranking = await RankingModel.findOne({ id: rankingId });
   if (!ranking) throw new AppError(404, "Ranking not found.", "RANKING_NOT_FOUND");
@@ -64,6 +70,16 @@ export async function recordAtRiskDecision(
   }
   if (ranking.atRisk !== true && ranking.status !== "AT_RISK") {
     throw new AppError(409, "Ranking is not at risk.", "RANKING_NOT_AT_RISK");
+  }
+  if ((ranking as any).metadata?.atRiskDecision?.decision) {
+    throw new AppError(409, "This at-risk ranking already has a Board decision.", "AT_RISK_ALREADY_DECIDED");
+  }
+
+  const series = ["CHANGE_FORMAT", "CANCEL"].includes(decision)
+    ? await SeriesModel.findOne({ id: seriesId })
+    : null;
+  if (["CHANGE_FORMAT", "CANCEL"].includes(decision) && !series) {
+    throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
   }
 
   const decidedAt = new Date();
@@ -78,9 +94,41 @@ export async function recordAtRiskDecision(
     { id: rankingId },
     { $set: { "metadata.atRiskDecision": atRiskDecision } },
   );
+  if (decision === "CHANGE_FORMAT") {
+    await SeriesModel.updateOne(
+      { id: seriesId },
+      {
+        $set: {
+          publicationType,
+          cadence: cadenceFromPublicationType(publicationType),
+          updatedAt: decidedAt,
+        },
+      },
+    );
+  }
+  if (decision === "CANCEL") {
+    await SeriesModel.updateOne(
+      { id: seriesId },
+      {
+        $set: {
+          status: "ARCHIVED",
+          visibility: "UNLISTED",
+          archivedAt: decidedAt,
+          archivedById: actor.id,
+          archiveReason: "BOARD_AT_RISK",
+          updatedAt: decidedAt,
+        },
+      },
+    );
+    await PublicationModel.updateMany(
+      { seriesId, status: "SCHEDULED" },
+      { $set: { status: "CANCELLED", updatedAt: decidedAt } },
+    );
+  }
   await audit(req, "ranking.at_risk_decision", "series", seriesId, {
     rankingId,
     decision,
+    publicationType: publicationType ?? undefined,
     note: note || undefined,
     decidedBy: actor.id,
     timestamp: decidedAt,

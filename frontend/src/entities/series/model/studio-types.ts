@@ -86,12 +86,7 @@ export type StudioTaskStatus =
   | "IN_PROGRESS"
   | "SUBMITTED"
   | "REVISION_REQUESTED"
-  | "MANGAKA_REVIEWING"
-  | "MANGAKA_REVISION_REQUESTED"
   | "MANGAKA_APPROVED"
-  | "EDITOR_REVIEWING"
-  | "EDITOR_REVISION_REQUESTED"
-  | "EDITOR_APPROVED"
   | "REJECTED"
   | "CANCELLED";
 
@@ -102,12 +97,7 @@ export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
   IN_PROGRESS: "bg-amber-100 text-amber-900 border-amber-300",
   SUBMITTED: "bg-cyan-100 text-cyan-900 border-cyan-300",
   REVISION_REQUESTED: "bg-amber-100 text-amber-900 border-amber-300",
-  MANGAKA_REVIEWING: "bg-blue-100 text-blue-900 border-blue-300",
-  MANGAKA_REVISION_REQUESTED: "bg-orange-100 text-orange-900 border-orange-300",
   MANGAKA_APPROVED: "bg-emerald-100 text-emerald-900 border-emerald-300",
-  EDITOR_REVIEWING: "bg-indigo-100 text-indigo-900 border-indigo-300",
-  EDITOR_REVISION_REQUESTED: "bg-amber-100 text-amber-900 border-amber-400",
-  EDITOR_APPROVED: "bg-foreground text-background border-foreground",
   REJECTED: "bg-rose-100 text-rose-900 border-rose-300",
   CANCELLED: "bg-rose-100 text-rose-800 border-rose-300",
 };
@@ -118,7 +108,7 @@ export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
  * which is where the real approval flow ends today) still counts as active.
  */
 export function isTaskActive(status: StudioTaskStatus): boolean {
-  return !["REJECTED", "CANCELLED", "MANGAKA_APPROVED", "EDITOR_APPROVED", "COMPLETED"].includes(
+  return !["REJECTED", "CANCELLED", "MANGAKA_APPROVED"].includes(
     status,
   );
 }
@@ -128,9 +118,7 @@ export type StudioTask = {
   seriesId?: string;
   chapterId: string;
   pageId: string;
-  targetScope?: "PAGE" | "REGION";
   pageTaskActive?: boolean;
-  regionId?: string;
   title: string;
   type: RegionType;
   assigneeId: string;

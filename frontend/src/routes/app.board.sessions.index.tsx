@@ -51,8 +51,8 @@ function VotingSessionsList() {
           </p>
           <h1 className="mt-1 font-serif text-4xl">Voting sessions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Each card is one voting round. Open rounds accept votes; tied rounds create a new Board
-            re-vote automatically.
+            Each card is one voting round. A first tie opens one re-vote; a second tie follows the
+            session's configured policy.
           </p>
         </div>
         {canCreate ? (
@@ -73,7 +73,7 @@ function VotingSessionsList() {
         <div>
           <p className="font-bold text-fuchsia-800">TIED</p>
           <p className="mt-1 text-muted-foreground">
-            This round is history; a new re-vote is active.
+            This round is history; the next step follows the configured tie policy.
           </p>
         </div>
         <div>
@@ -88,7 +88,6 @@ function VotingSessionsList() {
             "ALL",
             "OPEN",
             "TIED",
-            "TIE_BREAK_REQUIRED",
             "FINALIZED",
             "NO_QUORUM",
             "CANCELLED",

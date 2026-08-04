@@ -48,7 +48,7 @@ export function EarningDetailModal({
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Earning detail · {earning?.period ?? earning?.month ?? "Unknown period"}
+                Earning detail · {earning?.period ?? "Unknown period"}
               </p>
               <ModalTitle className="text-xl font-bold font-serif">
                 {task?.title ?? "Task earning"}
@@ -147,11 +147,7 @@ export function EarningDetailModal({
   );
 }
 
-// Alias export for backward compatibility
-export { EarningDetailModal as EarningDetailSheet };
-
 function normalizeStatus(status?: AssistantEarning["status"]): EarningStatus {
-  if (status === "VOIDED") return "VOID";
   return status ?? "EARNED";
 }
 

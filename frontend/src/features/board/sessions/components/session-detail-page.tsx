@@ -7,17 +7,19 @@ import { useProposalsQuery } from "@/features/proposals";
 import { isBoardChair, useAuth } from "@/shared/auth";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   useCancelVotingSessionMutation,
   useCloseVotingSessionMutation,
+  useResolveVotingTieMutation,
   useVotingSessionsQuery,
   useVotingSessionQuery,
 } from "../api/sessions.queries";
 import { SessionNotes } from "./session-notes";
 import { SessionProposalRow } from "./session-proposal-row";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SessionDetailPageProps {
   sessionId: string;
@@ -28,12 +30,24 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
   const { data: session, isLoading, isError } = useVotingSessionQuery(sid);
   const { data: allSessions = [] } = useVotingSessionsQuery();
   const { data: proposals = [] } = useProposalsQuery({
-    status: "PENDING_BOARD,BOARD_REVIEW,TIE_BREAK,APPROVED,REJECTED",
+    status: "PENDING_BOARD,BOARD_REVIEW,APPROVED,REJECTED",
   });
   const closeSessionMutation = useCloseVotingSessionMutation();
+  const resolveTieMutation = useResolveVotingTieMutation();
   const cancelSessionMutation = useCancelVotingSessionMutation();
   const navigate = useNavigate();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [tieDecision, setTieDecision] = useState<"APPROVED" | "REJECTED" | null>(null);
+  const [tieNote, setTieNote] = useState("");
+  const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
+  const sessionProposal = session
+    ? proposals.find((proposal) => session.proposalIds.includes(proposal.id))
+    : undefined;
+  useEffect(() => {
+    if (sessionProposal?.requestedPublicationType) {
+      setPublicationType(sessionProposal.requestedPublicationType);
+    }
+  }, [sessionProposal?.id, sessionProposal?.requestedPublicationType]);
 
   if (!user) return null;
   if (isLoading) {
@@ -61,9 +75,12 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
   const openReVote = allSessions.find(
     (candidate) => candidate.reVoteOfSessionId === session.id && candidate.status === "OPEN",
   );
-  const tieCount = session.outcomes.filter(
-    (o) => session.status === "TIE_BREAK_REQUIRED" && o.decision === "TIE_BREAK_REQUIRED",
-  ).length;
+  const canResolveTie =
+    isChair &&
+    session.status === "TIED" &&
+    session.tiePolicy === "CHAIR_DECIDES" &&
+    (session.tieResolution ?? "PENDING") === "PENDING" &&
+    (session.votingRound ?? (session.reVoteOfSessionId ? 2 : 1)) >= 2;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -93,11 +110,30 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
           </div>
         </div>
         {session.status === "OPEN" && isChair ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-end gap-2">
+            <label className="grid gap-1 text-[11px] font-semibold">
+              Approved cadence
+              <select
+                value={publicationType}
+                onChange={(event) =>
+                  setPublicationType(event.target.value as "WEEKLY" | "MONTHLY")
+                }
+                className="rounded border border-border bg-background px-2 py-1.5 text-xs font-normal"
+              >
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+              </select>
+            </label>
             <button
               onClick={async () => {
                 try {
-                  await closeSessionMutation.mutateAsync(session.id);
+                  await closeSessionMutation.mutateAsync({
+                    sessionId: session.id,
+                    body: {
+                      ...(session.version ? { expectedVersion: session.version } : {}),
+                      publicationType,
+                    },
+                  });
                   toast.success("Session closed.");
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Something went wrong.");
@@ -129,6 +165,51 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
             </Link>
           </div>
         ) : null}
+        {canResolveTie ? (
+          <div className="mt-4 space-y-3 rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+            <p className="font-semibold">Round 2 is still tied. Chair decision required.</p>
+            <Textarea
+              value={tieNote}
+              onChange={(event) => setTieNote(event.target.value)}
+              placeholder="Required reason for the Chair decision"
+              rows={3}
+            />
+            <div className="flex flex-wrap gap-2">
+              {(["APPROVED", "REJECTED"] as const).map((decision) => (
+                <button
+                  key={decision}
+                  type="button"
+                  disabled={!tieNote.trim() || resolveTieMutation.isPending}
+                  onClick={async () => {
+                    setTieDecision(decision);
+                    try {
+                      await resolveTieMutation.mutateAsync({
+                        sessionId: session.id,
+                        body: {
+                          decision,
+                          note: tieNote.trim(),
+                          ...(session.version ? { expectedVersion: session.version } : {}),
+                        },
+                      });
+                      toast.success(`Tie resolved as ${decision}.`);
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Something went wrong.");
+                    } finally {
+                      setTieDecision(null);
+                    }
+                  }}
+                  className={`rounded px-3 py-1.5 font-semibold text-white disabled:opacity-40 ${
+                    decision === "APPROVED" ? "bg-emerald-700" : "bg-rose-700"
+                  }`}
+                >
+                  {resolveTieMutation.isPending && tieDecision === decision
+                    ? "Saving..."
+                    : `Resolve ${decision}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <section className="rounded-lg border border-foreground/15 bg-foreground/[0.03] p-4">
@@ -146,6 +227,12 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
         <p className="mt-2 text-sm text-foreground/80">{statusHelp.description}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">Next step:</span> {statusHelp.nextStep}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">Round:</span>{" "}
+          {session.votingRound ?? (session.reVoteOfSessionId ? 2 : 1)} ·{" "}
+          <span className="font-semibold text-foreground">Tie policy:</span>{" "}
+          {session.tiePolicy ?? "CHAIR_DECIDES"}
         </p>
         {session.status === "OPEN" ? (
           <p className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
@@ -177,17 +264,6 @@ export function SessionDetailPage({ sessionId: sid }: SessionDetailPageProps) {
           })}
         </ul>
       </section>
-
-      {tieCount > 0 ? (
-        <section className="space-y-3 rounded-lg border border-fuchsia-300 bg-fuchsia-50/40 p-4">
-          <h2 className="font-serif text-xl text-fuchsia-950">Historical tie-break record</h2>
-          <p className="text-xs text-fuchsia-950/80">
-            {tieCount} tied proposal{tieCount === 1 ? "" : "s"} remain{tieCount === 1 ? "s" : ""} in
-            this historical session. Legacy tie-break voting is retired; new ties automatically open
-            a fresh Board re-vote.
-          </p>
-        </section>
-      ) : null}
 
       <SessionNotes session={session} user={user} />
 

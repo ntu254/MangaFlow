@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { CalendarClock } from "lucide-react";
 import type {
   Chapter,
-  ChapterCadence,
   ProductionSeries,
   SeriesPublicationType,
 } from "@/entities/series/model/series-types";
@@ -17,11 +16,6 @@ import { ApiRequestError } from "@/shared/api/client";
 import { ChapterPublicationDetailSheet } from "./chapter-publication-detail-sheet";
 
 const PAGE_SIZE = 10;
-
-const CADENCE_INTERVAL_LABEL: Record<ChapterCadence, string> = {
-  weekly: "+1 week",
-  monthly: "+1 month",
-};
 
 const TODAY = toDateTimeInputValue(new Date().toISOString());
 
@@ -59,7 +53,8 @@ function nextSuggestedSchedule(publicationType?: SeriesPublicationType) {
   const date = new Date();
   date.setHours(9, 0, 0, 0);
   if (date.getTime() <= Date.now()) date.setDate(date.getDate() + 1);
-  date.setDate(date.getDate() + (publicationType === "WEEKLY" ? 7 : 30));
+  if (publicationType === "WEEKLY") date.setDate(date.getDate() + 7);
+  else date.setMonth(date.getMonth() + 1);
   return toDateTimeInputValue(date.toISOString());
 }
 
@@ -128,11 +123,9 @@ function SchedulePopover({
 
 function PublicationActions({
   chapter,
-  cadence,
   publicationType,
 }: {
   chapter: Chapter;
-  cadence: ChapterCadence;
   publicationType?: SeriesPublicationType;
 }) {
   const action = useChapterActionMutation(chapter.id, chapter.seriesId);
@@ -162,10 +155,10 @@ function PublicationActions({
           <button
             type="button"
             disabled={action.isPending}
-            onClick={() => run("POSTPONE", "Publication schedule postponed.")}
+            onClick={() => run("POSTPONE", "Publication schedule cancelled.")}
             className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-40"
           >
-            Postpone ({CADENCE_INTERVAL_LABEL[cadence]})
+            Cancel schedule
           </button>
         ) : (
           <SchedulePopover
@@ -205,7 +198,7 @@ function PublicationActions({
     );
   }
 
-  // EDITOR_APPROVED / READY_FOR_PUBLICATION → schedule a publish date
+  // Ready-for-publication chapters can be scheduled.
   return (
     <SchedulePopover
       chapterId={chapter.id}
@@ -319,7 +312,6 @@ export function PublicationTable({
           <tbody className="divide-y divide-border">
             {paged.map((c) => {
               const s = series.find((x) => x.id === c.seriesId);
-              const cadence: ChapterCadence = s?.cadence ?? "monthly";
               const publicationType = s?.publicationType;
               const scheduledAt = c.publication?.scheduledAt ?? c.scheduledAt;
               const overdue = c.publication?.status === "SCHEDULED" && isOverdue(scheduledAt);
@@ -350,7 +342,6 @@ export function PublicationTable({
                       </button>
                       <PublicationActions
                         chapter={c}
-                        cadence={cadence}
                         publicationType={publicationType}
                       />
                     </div>

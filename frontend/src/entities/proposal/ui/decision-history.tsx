@@ -3,7 +3,7 @@ import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 import { useMemo } from "react";
 
-const DECISIVE = new Set(["DECIDE", "REJECT", "TIE_BREAK", "FORCE_STATUS", "FORWARD", "RECALL"]);
+const DECISIVE = new Set(["DECIDE", "REJECT", "FORWARD", "RECALL"]);
 
 export function DecisionHistory({
   proposal,
@@ -38,7 +38,8 @@ export function DecisionHistory({
           </li>
           <li>If neither side reaches quorum, closing the session records NO_QUORUM.</li>
           <li>
-            Exact tie {"->"} close the round as TIED and open a fresh Board re-vote. The old round
+            Exact tie {"->"} close the round as TIED and open one fresh Board re-vote. A second tie
+            follows the configured policy. The old round
             remains read-only for audit.
           </li>
         </ul>
@@ -54,11 +55,11 @@ export function DecisionHistory({
           <ul className="space-y-1 text-xs">
             {proposal.votes.map((v) => (
               <li
-                key={v.memberId}
+                key={v.voterId}
                 className="flex items-center justify-between gap-2 border-t border-border/60 pt-1.5"
               >
                 <span className="font-medium">
-                  {v.memberName}
+                  {v.voterName}
                   {v.isChair ? (
                     <span className="ml-2 rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
                       Chair
