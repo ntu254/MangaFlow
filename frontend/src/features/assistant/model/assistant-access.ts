@@ -21,7 +21,6 @@ export function isAssistantTaskReadOnly(task: StudioTask, userId: string): boole
 
   return (
     task.status === "MANGAKA_APPROVED" ||
-    task.status === "EDITOR_APPROVED" ||
     task.status === "REJECTED" ||
     visualStatus === "CANCELLED" ||
     (visualStatus === "REASSIGNED" && task.assigneeId !== userId)

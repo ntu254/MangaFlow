@@ -192,7 +192,6 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
         taskId: task.id,
         chapterId: task.chapterId,
         pageId: task.pageId,
-        regionId: task.regionId,
         notes: note || undefined,
         fileKey: uploaded?.fileKey,
         fileName: uploaded?.filename,
@@ -601,7 +600,7 @@ function InspectorBody({
           <Field label="Due" value={formatDate(task.dueAt)} />
           <Field
             label="Target"
-            value={`Page ${page?.index ?? "—"}${task.regionId ? ` · Legacy region ${task.regionId.slice(-4)}` : ""}`}
+            value={`Page ${page?.index ?? "—"}`}
           />
           {task.pageId ? (
             <Field
@@ -642,7 +641,7 @@ function InspectorBody({
               Task Administration
             </h4>
             <div>
-              {task.status !== "EDITOR_APPROVED" &&
+              {task.status !== "MANGAKA_APPROVED" &&
                 task.status !== "REJECTED" &&
                 task.status !== "CANCELLED" && (
                   <Button
@@ -675,11 +674,7 @@ function InspectorBody({
                 </Button>
               ) : null}
 
-              {[
-                "REVISION_REQUESTED",
-                "MANGAKA_REVISION_REQUESTED",
-                "EDITOR_REVISION_REQUESTED",
-              ].includes(task.status) ? (
+              {task.status === "REVISION_REQUESTED" ? (
                 <Button
                   size="sm"
                   className="h-9 w-full gap-1.5 text-xs"

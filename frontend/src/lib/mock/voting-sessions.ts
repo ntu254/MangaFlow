@@ -39,7 +39,7 @@ export const seedVotingSessions: VotingSession[] = [
     id: "vs-002",
     title: "Ad-hoc Session — Ramen Saint",
     mode: "AD_HOC",
-    status: "CLOSED",
+    status: "FINALIZED",
     proposalIds: ["p-005"],
     createdById: "u-editor",
     createdByName: "Tanaka Akira",

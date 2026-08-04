@@ -10,9 +10,6 @@ const OUTCOME_TONE: Record<SessionProposalOutcome["decision"], string> = {
   APPROVED: "bg-emerald-100 text-emerald-900",
   REJECTED: "bg-rose-100 text-rose-900",
   TIED: "bg-fuchsia-100 text-fuchsia-900",
-  TIE_BREAK_REQUIRED: "bg-fuchsia-100 text-fuchsia-900",
-  TIE_BROKEN_APPROVED: "bg-emerald-100 text-emerald-900 ring-1 ring-fuchsia-400",
-  TIE_BROKEN_REJECTED: "bg-rose-100 text-rose-900 ring-1 ring-fuchsia-400",
   NO_QUORUM: "bg-amber-100 text-amber-900",
   PENDING: "bg-zinc-200 text-zinc-800",
 };
@@ -66,12 +63,6 @@ export function SessionProposalRow({
           </Link>
         </div>
         <p className="text-[11px] text-muted-foreground">{outcome.reason}</p>
-        {outcome.tieBreakByName ? (
-          <p className="text-[11px] text-fuchsia-900">
-            Tie broken by {outcome.tieBreakByName} → {outcome.tieBreakDecision}
-            {outcome.decidedAt ? ` · ${new Date(outcome.decidedAt).toLocaleString("en-US")}` : ""}
-          </p>
-        ) : null}
       </div>
     </div>
   );

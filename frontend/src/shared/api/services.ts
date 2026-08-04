@@ -136,7 +136,9 @@ export interface CreateMaterialVersionRequest {
 export interface CreateVotingSessionRequest {
   title: string;
   mode: "AD_HOC";
-  proposalIds: string[];
+  proposalIds?: string[];
+  proposalId?: string;
+  tiePolicy?: "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
   [key: string]: unknown;
 }
 
@@ -154,16 +156,11 @@ export interface CastVoteRequest {
   [key: string]: unknown;
 }
 
-export interface TieBreakRequest {
-  decision: string;
-  reason?: string;
-  [key: string]: unknown;
-}
-
 export interface AtRiskDecisionRequest {
   rankingId: string;
   decision: string;
   note?: string;
+  publicationType?: "WEEKLY" | "MONTHLY";
   [key: string]: unknown;
 }
 
@@ -240,6 +237,7 @@ export { bootstrapApi, proposalsApi, seriesApi } from "./workflow";
 export { studioApi, assistantApi, materialsApi } from "./production";
 export { boardApi } from "./governance";
 export { adminApi, assistantEarningsApi, notificationsApi } from "./account";
+export type { NotificationListResponse } from "./account";
 export { rateTableApi } from "./rate-table";
 export type {
   CreateRateTableRequest,

@@ -12,7 +12,6 @@ import { useState } from "react";
 const GOVERNANCE_KINDS = [
   "PROPOSAL_READY",
   "VOTE_DEADLINE",
-  "TIE_BREAK",
   "RANKING_FINALIZED",
   "AT_RISK_FLAGGED",
   "AT_RISK_DECIDED",
@@ -22,7 +21,6 @@ const GOVERNANCE_KINDS = [
   "proposal.decided",
   "session.created",
   "session.closed",
-  "session.tiebreak_needed",
 ];
 
 export function BoardNotificationsPage() {
@@ -38,7 +36,7 @@ export function BoardNotificationsPage() {
       <PageHeader
         eyebrow="Governance"
         title="Board notifications"
-        description="Proposal, vote, tie-break, ranking, and at-risk signals only."
+        description="Proposal, vote, ranking, and at-risk signals only."
       />
       {isLoading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Loading...</div>

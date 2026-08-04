@@ -426,7 +426,7 @@ export const createSeriesChapter = asyncRoute(async (req: AuthedRequest, res) =>
   const now = nowIso();
   const body = parseBody(createChapterSchema, req);
   rejectProtectedFields(body as Record<string, unknown>);
-  const chapter = await ChapterModel.create({
+  const chapter = await (ChapterModel as any).create({
     id: id("ch"),
     seriesId: String(req.params.id),
     number: Number(body.number ?? 1),

@@ -27,11 +27,6 @@ export function VoteTally({
       <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         Board votes · quorum {quorum}/{eligible}
       </p>
-      {status === "TIE_BREAK" ? (
-        <div className="mb-3 rounded border border-fuchsia-300 bg-fuchsia-50 p-2 text-[11px] text-fuchsia-900">
-          Historical tied vote. This round is read-only; close it to open a fresh Board re-vote.
-        </div>
-      ) : null}
       <div className="grid grid-cols-2 gap-2 text-center">
         <Tally label="Approve" count={approve} tone="emerald" />
         <Tally label="Reject" count={reject} tone="rose" />
@@ -40,11 +35,11 @@ export function VoteTally({
         <ul className="mt-4 space-y-1.5 text-xs">
           {votes.map((v) => (
             <li
-              key={v.memberId}
+              key={v.voterId}
               className="flex items-center justify-between gap-2 border-t border-border/60 pt-1.5"
             >
               <span className="font-medium">
-                {v.memberName}
+                {v.voterName}
                 {v.isChair ? (
                   <span className="ml-2 rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
                     Chair

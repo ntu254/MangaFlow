@@ -278,7 +278,6 @@ function StatusCard({
 const STATUS_ALERT: Partial<Record<ProposalStatus, string>> = {
   CHANGES_REQUESTED: "Storyboard needs updating and resubmission.",
   REJECTED: "Proposal has been rejected. See feedback for details.",
-  TIE_BREAK: "Historical tie; waiting for the Board re-vote.",
   DRAFT: "Complete and submit to Editor.",
 };
 
@@ -384,9 +383,9 @@ function buildFeedbackEntries(proposal: SeriesProposal): FeedbackEntry[] {
   const fromBoard = proposal.votes
     .filter((v) => v.comment && v.comment.trim())
     .map((v) => ({
-      id: `b-${v.memberId}-${v.createdAt}`,
+      id: `b-${v.voterId}-${v.createdAt}`,
       source: "BOARD" as const,
-      authorName: v.memberName,
+      authorName: v.voterName,
       createdAt: v.createdAt,
       body: v.comment!,
     }));

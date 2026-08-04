@@ -1,6 +1,6 @@
 import { asyncRoute, ok, created, AppError } from "../lib/http.js";
 import { NotificationModel, SeriesModel, RankingModel, RankingImportModel } from "../db/models.js";
-import { paginated, patchById, requireActor } from "./helpers.js";
+import { paginated, paginationFromQuery, patchById, requireActor } from "./helpers.js";
 import { id, nowIso } from "../domain/ids.js";
 import { audit } from "../services/audit.service.js";
 import { parseBody, rejectProtectedFields } from "../validators/common.js";
@@ -16,6 +16,7 @@ const rankingImportRowSchema = z
     readerScore: z.coerce.number().min(0).max(10).optional(),
     votes: z.coerce.number().int().min(0).optional(),
     voteCount: z.coerce.number().int().min(0).optional(),
+    rank: z.coerce.number().int().positive().optional(),
     status: z.string().optional(),
     atRisk: z.boolean().optional(),
   })
@@ -32,13 +33,25 @@ const rankingImportSchema = z
 
 export const listNotifications = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  await paginated(
-    req,
-    res,
-    NotificationModel,
-    { userId: actor.id },
-    { createdAt: -1 },
-  );
+  const { page, limit, skip } = paginationFromQuery(req);
+  const filter = { userId: actor.id };
+  const [data, total, unreadTotal] = await Promise.all([
+    NotificationModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    NotificationModel.countDocuments(filter),
+    NotificationModel.countDocuments({ ...filter, readAt: null }),
+  ]);
+
+  ok(res, {
+    data,
+    pagination: {
+      page,
+      pageSize: limit,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
+    unreadTotal,
+  });
 });
 
 export const markRead = asyncRoute(async (req: AuthedRequest, res) => {
@@ -80,7 +93,7 @@ export const listRankings = asyncRoute(async (req: AuthedRequest, res) => {
     filter.seriesId = String(querySeriesId);
   }
 
-  await paginated(req, res, RankingModel, filter, { finalScore: -1 });
+  await paginated(req, res, RankingModel, filter, { period: -1, rank: 1, finalScore: -1 });
 });
 
 export const listSeriesRankings = asyncRoute(async (req: AuthedRequest, res) => {
@@ -98,7 +111,7 @@ export const listSeriesRankings = asyncRoute(async (req: AuthedRequest, res) => 
     }
   }
 
-  const rankings = await RankingModel.find({ seriesId }).sort({ finalScore: -1 }).lean();
+  const rankings = await RankingModel.find({ seriesId }).sort({ period: -1, rank: 1, finalScore: -1 }).lean();
   ok(res, rankings);
 });
 
@@ -204,6 +217,24 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
     throw new AppError(400, errors.join("; "), "RANKING_IMPORT_INVALID");
   }
 
+  const periodRankings = await RankingModel.find({ period: body.period })
+    .sort({ finalScore: -1, voteCount: -1, id: 1 })
+    .select("id")
+    .lean();
+  if (periodRankings.length > 0) {
+    await RankingModel.bulkWrite(
+      periodRankings.map((ranking, index) => ({
+        updateOne: {
+          filter: { id: ranking.id },
+          update: { $set: { rank: index + 1, updatedAt: now } },
+        },
+      })) as any,
+    );
+  }
+  const rankedImported = await RankingModel.find({
+    id: { $in: imported.map((ranking: any) => ranking.id) },
+  }).lean();
+
   await audit(req, "RANKING_IMPORTED", "ranking_import", batchId, {
     importBatchId: batchId,
     period: body.period,
@@ -222,6 +253,6 @@ export const importRankings = asyncRoute(async (req: AuthedRequest, res) => {
     imported: imported.length,
     failed: errors.length,
     status: batchStatus,
-    rankings: imported,
+    rankings: rankedImported,
   });
 });

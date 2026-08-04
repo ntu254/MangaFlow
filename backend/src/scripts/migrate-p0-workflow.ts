@@ -208,7 +208,7 @@ async function writeBackup(updates: PlannedUpdate[], stamp: string) {
   const stream = fs.createWriteStream(backupPath, { encoding: "utf8" });
   for (const update of updates) {
     const model = update.model === "task" ? StudioTaskModel : update.model === "submission" ? SubmissionModel : ChapterModel;
-    const before = await model.findOne({ id: update.id }).lean();
+    const before = await (model as any).findOne({ id: update.id }).lean();
     stream.write(JSON.stringify({ model: update.model, id: update.id, before }) + "\n");
   }
   await new Promise<void>((resolve, reject) => {
@@ -251,9 +251,9 @@ async function validateInvariants(unmapped: ReportRow[]) {
 }
 
 async function duplicateReport() {
-  const activeStatuses = ["DRAFT", "OPEN", "CLOSED", "TIE_BREAK_REQUIRED"];
+  const activeStatuses = ["OPEN"];
   const [sessions, series, votes, decisions, earnings] = await Promise.all([
-    VotingSessionModel.find({ targetType: "PROPOSAL", status: { $in: activeStatuses } }).lean(),
+    (VotingSessionModel as any).find({ targetType: "PROPOSAL", status: { $in: activeStatuses } }).lean(),
     SeriesModel.find({ sourceProposalId: { $exists: true, $ne: null } }).lean(),
     ProposalVoteModel.find({ sessionId: { $exists: true, $ne: null } }).lean(),
     BoardDecisionModel.find({}).lean(),
@@ -285,7 +285,7 @@ async function createUniqueIndexesIfClean(report: any) {
         partialFilterExpression: {
           targetType: "PROPOSAL",
           proposalId: { $type: "string" },
-          status: { $in: ["DRAFT", "OPEN", "CLOSED", "TIE_BREAK_REQUIRED"] },
+          status: { $in: ["OPEN"] },
         },
       },
     ),

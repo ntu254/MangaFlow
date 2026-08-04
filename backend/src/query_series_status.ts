@@ -34,7 +34,7 @@ async function queryStatus() {
     for (const chapter of chapters) {
       const tasks = await StudioTaskModel.find({ chapterId: chapter.id }).lean() as any[];
       totalTasksCount += tasks.length;
-      completedTasksCount += tasks.filter(t => ["EDITOR_APPROVED", "MANGAKA_APPROVED"].includes(t.status)).length;
+      completedTasksCount += tasks.filter(t => t.status === "MANGAKA_APPROVED").length;
       inProgressTasksCount += tasks.filter(t => ["IN_PROGRESS", "SUBMITTED"].includes(t.status)).length;
       openTasksCount += tasks.filter(t => ["TODO"].includes(t.status)).length;
 

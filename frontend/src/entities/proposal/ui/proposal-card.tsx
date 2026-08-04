@@ -20,22 +20,6 @@ const STATUS_CONFIG: Record<
     nextAction: "Complete proposal and submit",
     ctaLabel: "Continue Draft",
   },
-  SUBMITTED: {
-    label: "Submitted",
-    pillClass:
-      "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50",
-    stage: "Submitted",
-    nextAction: "Waiting for editor assignment",
-    ctaLabel: "View Status",
-  },
-  TANTOU_REVIEW: {
-    label: "Tantou Review",
-    pillClass:
-      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50",
-    stage: "Editor review",
-    nextAction: "Tantou editor is reviewing",
-    ctaLabel: "View Status",
-  },
   PENDING_EDITOR: {
     label: "Awaiting Editor",
     pillClass:
@@ -60,22 +44,6 @@ const STATUS_CONFIG: Record<
     nextAction: "Revise proposal and resubmit",
     ctaLabel: "Edit & Resubmit",
   },
-  RESUBMITTED: {
-    label: "Resubmitted",
-    pillClass:
-      "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50",
-    stage: "Resubmitted",
-    nextAction: "Waiting for editor re-review",
-    ctaLabel: "View Status",
-  },
-  READY_FOR_BOARD: {
-    label: "Ready for Board",
-    pillClass:
-      "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50",
-    stage: "Board review",
-    nextAction: "Waiting for a Board voting session",
-    ctaLabel: "View Status",
-  },
   BOARD_REVIEW: {
     label: "Board Review",
     pillClass:
@@ -90,22 +58,6 @@ const STATUS_CONFIG: Record<
       "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50",
     stage: "Board voting",
     nextAction: "Waiting for board decision",
-    ctaLabel: "View Status",
-  },
-  BOARD_VOTING: {
-    label: "Board Voting",
-    pillClass:
-      "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50",
-    stage: "Board voting in progress",
-    nextAction: "Board members are voting",
-    ctaLabel: "View Status",
-  },
-  TIE_BREAK: {
-    label: "Tie-break",
-    pillClass:
-      "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50",
-    stage: "Board re-vote",
-    nextAction: "Waiting for a fresh Board re-vote",
     ctaLabel: "View Status",
   },
   APPROVED: {

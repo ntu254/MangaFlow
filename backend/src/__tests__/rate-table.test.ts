@@ -96,7 +96,6 @@ describe("Rate table and task price snapshot contract", () => {
       .expect(201);
 
     expect(response.body.data).toMatchObject({
-      targetScope: "PAGE",
       pageTaskActive: true,
       rateCode: "SPEECH_BUBBLE",
       rateVersion: 1,
@@ -182,14 +181,14 @@ describe("Rate table and task price snapshot contract", () => {
       .expect(409);
     expect(duplicate.body.code).toBe("PAGE_HAS_ACTIVE_TASK");
     expect(await StudioTaskModel.countDocuments({ pageId: body.pageId })).toBe(1);
-    expect(first.body.data).toMatchObject({ targetScope: "PAGE", pageTaskActive: true });
+    expect(first.body.data).toMatchObject({ pageTaskActive: true });
 
     const regionAttempt = await request(app)
       .post("/api/studio/tasks")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ ...body, pageId: "ch-s-berserk-prod-5-p4", regionId: "reg-001" })
       .expect(400);
-    expect(regionAttempt.body.code).toBe("REGION_TASKS_RETIRED");
+    expect(regionAttempt.body.code).toBe("VALIDATION_ERROR");
   });
 
   it("makes concurrent task creation on one page first-writer-wins", async () => {

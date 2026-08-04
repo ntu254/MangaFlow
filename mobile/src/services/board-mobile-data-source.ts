@@ -23,6 +23,9 @@ export interface BoardSessionDetail {
     proposalVersionId?: string | null;
     reVoteOfSessionId: string | null;
     isReVote: boolean;
+    votingRound: number;
+    tiePolicy: "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
+    tieResolution: "PENDING" | "APPROVED" | "REJECTED" | "RETURNED_TO_BOARD";
     scheduledFor?: string | null;
     closesAt?: string | null;
   };
@@ -68,6 +71,11 @@ const rawBoardSessionSchema = z.object({
   proposalId: z.string().nullable().optional(),
   proposalVersionId: z.string().nullable().optional(),
   reVoteOfSessionId: z.string().nullable().optional(),
+  votingRound: z.number().int().positive().optional(),
+  tiePolicy: z.enum(["CHAIR_DECIDES", "REJECT", "RETURN_TO_BOARD"]).optional(),
+  tieResolution: z
+    .enum(["PENDING", "APPROVED", "REJECTED", "RETURNED_TO_BOARD"])
+    .optional(),
   scheduledFor: z.string().nullable().optional(),
   closesAt: z.string().nullable().optional(),
   openedAt: z.string().nullable().optional(),
@@ -104,6 +112,9 @@ export async function getBoardSessionDetail(
     session: {
       ...detail.session,
       proposalVersionId: rawSession.proposalVersionId ?? null,
+      votingRound: rawSession.votingRound ?? detail.session.votingRound ?? 1,
+      tiePolicy: rawSession.tiePolicy ?? detail.session.tiePolicy ?? "CHAIR_DECIDES",
+      tieResolution: rawSession.tieResolution ?? detail.session.tieResolution ?? "PENDING",
       scheduledFor: rawSession.scheduledFor ?? null,
       closesAt: rawSession.closesAt ?? null,
     },
@@ -168,6 +179,18 @@ export function cancelBoardSession(sessionId: string): Promise<unknown> {
     method: "POST",
     body: "{}",
   });
+}
+
+export function resolveBoardTie(
+  sessionId: string,
+  input: { decision: "APPROVED" | "REJECTED"; note: string; expectedVersion: number },
+): Promise<BoardSessionSummary> {
+  return mobileApi
+    .request<BoardSessionSummary>(`/voting-sessions/${sessionId}/resolve-tie`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    })
+    .then((value) => rawBoardSessionSchema.parse(value));
 }
 
 export function createBoardSession(input: {
@@ -240,7 +263,12 @@ export type AtRiskDecisionValue = AtRiskDecision;
 
 export function decideAtRisk(
   seriesId: string,
-  input: { rankingId: string; decision: AtRiskDecisionValue; note?: string },
+  input: {
+    rankingId: string;
+    decision: AtRiskDecisionValue;
+    note?: string;
+    publicationType?: "WEEKLY" | "MONTHLY";
+  },
 ): Promise<void> {
   return mobileApi.request<void>(
     `/board/series/${seriesId}/at-risk-decisions`,
@@ -261,6 +289,8 @@ export interface BoardRankingItem {
   readerScore: number | null;
   status: string | null;
   atRisk: boolean;
+  decision?: string | null;
+  decisionStatus?: "PENDING" | "DECIDED";
 }
 
 const boardRankingResponseSchema = z.object({
@@ -276,6 +306,8 @@ const boardRankingResponseSchema = z.object({
       readerScore: z.number().nullable(),
       status: z.string().nullable(),
       atRisk: z.boolean(),
+      decision: z.string().nullable().optional(),
+      decisionStatus: z.enum(["PENDING", "DECIDED"]).optional(),
     }),
   ),
 });

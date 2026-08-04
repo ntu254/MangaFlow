@@ -39,13 +39,6 @@ export const listSubmissions = asyncRoute(async (req: AuthedRequest, res) => {
   }
   await paginated(req, res, SubmissionModel, filter, { submittedAt: -1 });
 });
-export const createSubmission = asyncRoute(async (req: AuthedRequest, res) => {
-  throw Object.assign(
-    new AppError(410, "Use POST /api/tasks/:taskId/submit.", "ENDPOINT_DEPRECATED"),
-    { replacement: "/api/tasks/:taskId/submit" },
-  );
-});
-
 export const submitTask = asyncRoute(async (req: AuthedRequest, res) => {
   created(res, await submitTaskWork(req, String(req.params.taskId), req.body ?? {}));
 });
@@ -70,7 +63,6 @@ export const reviewQueue = asyncRoute(async (req: AuthedRequest, res) => {
     {
       chapterId: { $in: chapterIds },
       status: "MANGAKA_APPROVED",
-      reviewStage: "EDITOR_REVIEW",
     },
     { submittedAt: -1 },
   );
@@ -127,15 +119,5 @@ export const requestRevision = asyncRoute(async (req: AuthedRequest, res) => {
       "request-revision",
       body.reviewerNote ?? req.body?.reviewerNote,
     ),
-  );
-});
-export const editorApprove = asyncRoute(async (req: AuthedRequest, res) => {
-  throw Object.assign(
-    new AppError(
-      410,
-      "Tantou no longer approves Assistant submissions. Review the consolidated Chapter instead.",
-      "WORKFLOW_REMOVED",
-    ),
-    { replacement: "/api/chapters/:chapterId/reviews" },
   );
 });

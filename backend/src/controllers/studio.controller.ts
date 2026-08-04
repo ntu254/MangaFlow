@@ -163,13 +163,6 @@ async function assertStudioTargetConsistency(body: Record<string, unknown>) {
         "TARGET_MISMATCH",
       );
     }
-    if (regionId && task.regionId && String(task.regionId) !== regionId) {
-      throw new AppError(
-        400,
-        "Task references belong to a different region.",
-        "TARGET_MISMATCH",
-      );
-    }
   }
   if (pageId) {
     if (!chapter) throw new AppError(404, "Page not found.", "PAGE_NOT_FOUND");
@@ -559,8 +552,6 @@ const PAGE_TASK_TERMINAL_STATUSES = [
   "REJECTED",
   "CANCELLED",
   "MANGAKA_APPROVED",
-  "EDITOR_APPROVED",
-  "COMPLETED",
 ];
 
 function isDuplicatePageTaskError(error: unknown) {
@@ -586,14 +577,14 @@ export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
   );
 });
 export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
-  const body = parseBody(createStudioTaskSchema, req);
-  if (body.regionId) {
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "regionId")) {
     throw new AppError(
       400,
-      "Tasks are assigned to pages. Regions are only used for comments and coordinates.",
+      "Region-level tasks are retired. Create one page task instead.",
       "REGION_TASKS_RETIRED",
     );
   }
+  const body = parseBody(createStudioTaskSchema, req);
   await assertStudioTargetConsistency(body as Record<string, unknown>);
   await assertCanMutateStudioTarget(req, body as Record<string, unknown>);
 
@@ -623,7 +614,7 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const rateSnapshot = Number(rate.amount);
   const estimatedAmount = quantity * rateSnapshot;
   const taskId = id("task");
-  const activePageTask = await StudioTaskModel.findOne({
+  const activePageTask = await (StudioTaskModel as any).findOne({
     pageId: body.pageId,
     $or: [
       { pageTaskActive: true },
@@ -642,7 +633,6 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   }
   const taskBody = {
     ...body,
-    targetScope: "PAGE",
     pageTaskActive: true,
     assigneeName,
     assignmentStatus: body.assigneeId ? "PENDING" : "UNASSIGNED",
@@ -657,7 +647,7 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   };
 
   try {
-    const task = await StudioTaskModel.create({
+    const task = await (StudioTaskModel as any).create({
       id: taskId,
       ...taskBody,
       createdAt: nowIso(),
@@ -688,6 +678,13 @@ export const patchTasks = asyncRoute(async (req: AuthedRequest, res) => {
   );
 });
 export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "regionId")) {
+    throw new AppError(
+      400,
+      "Region links are managed by the page task workflow.",
+      "PROTECTED_FIELD",
+    );
+  }
   const body = parseBody(patchStudioTaskSchema, req);
   const existing = await StudioTaskModel.findOne({
     id: String(req.params.id),
@@ -702,10 +699,10 @@ export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
       "RATE_SNAPSHOT_IMMUTABLE",
     );
   }
-  if ("assigneeId" in body || "regionId" in body) {
+  if ("assigneeId" in body) {
     throw new AppError(
       400,
-      "Assignee and region must be changed through task actions.",
+      "Assignee must be changed through task actions.",
       "PROTECTED_FIELD",
     );
   }

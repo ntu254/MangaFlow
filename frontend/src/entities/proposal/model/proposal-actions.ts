@@ -69,16 +69,12 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
         return { ok: false, reason: "Can only recall when PENDING_BOARD." };
       return { ok: true };
     case "VOTE":
-      if (p.status !== "PENDING_BOARD" && p.status !== "TIE_BREAK")
-        return { ok: false, reason: "Can only vote when PENDING_BOARD or TIE_BREAK." };
-      if (p.status === "PENDING_BOARD") {
-        if (!BOARD_OR_ADMIN(user)) return { ok: false, reason: "Board member only." };
-      } else return { ok: false, reason: "A tied round is closed; wait for the Board re-vote." };
-      if (p.votes.some((v) => v.memberId === user.id))
+      if (!BOARD_OR_ADMIN(user)) return { ok: false, reason: "Board member only." };
+      if (p.status !== "BOARD_REVIEW")
+        return { ok: false, reason: "Can only vote in an open Board review." };
+      if (p.votes.some((v) => v.voterId === user.id))
         return { ok: false, reason: "You have already voted." };
       return { ok: true };
-    case "FORCE_STATUS":
-      return { ok: false, reason: "Direct status forcing is retired." };
   }
 }
 

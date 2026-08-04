@@ -32,6 +32,7 @@ export const mobileWorkflowActionSchema = z.enum([
   "SESSION_CLOSE",
   "SESSION_CANCEL",
   "SESSION_FINALIZE",
+  "TIE_RESOLVE",
   "AT_RISK_DECIDE",
 ]);
 
@@ -48,6 +49,14 @@ export const mobileWorkflowActionDescriptorSchema = z.object({
   if (!value.enabled && value.disabledReason === null) {
     context.addIssue({ code: "custom", message: "Disabled actions require a reason." });
   }
+});
+
+export const mobileChapterContextSchema = z.object({
+  seriesId: z.string().min(1),
+  seriesTitle: z.string().min(1),
+  chapterId: z.string().min(1),
+  chapterNumber: z.number().int().positive(),
+  chapterTitle: z.string().min(1),
 });
 
 export const mobileWorkItemSchema = z.object({
@@ -71,6 +80,26 @@ export const mobileWorkItemSchema = z.object({
   })),
   actions: z.array(mobileWorkflowActionDescriptorSchema),
   summary: z.record(z.string(), z.unknown()),
+  chapterContext: mobileChapterContextSchema.optional(),
+}).superRefine((value, context) => {
+  if (value.kind === "PUBLICATION" && !value.chapterContext) {
+    context.addIssue({
+      code: "custom",
+      path: ["chapterContext"],
+      message: "Publication work requires explicit series and chapter context.",
+    });
+  }
+  if (
+    value.kind === "PUBLICATION" &&
+    value.chapterContext &&
+    (value.entityType !== "CHAPTER" || value.chapterContext.chapterId !== value.entityId)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["chapterContext", "chapterId"],
+      message: "Publication chapter context must identify the work-item chapter.",
+    });
+  }
 });
 
 export const mobileInboxSchema = z.object({

@@ -115,8 +115,21 @@ export function chapterPublicationActions(
   const assigned = isAssignedTantou(actor, series);
   const notAssigned = "You are not the assigned Tantou for this series.";
   const scheduled = publication?.status === "SCHEDULED";
-  const futureScheduled =
-    scheduled && publication?.scheduledAt && new Date(publication.scheduledAt) > new Date();
+  const scheduledAt = scheduled && publication?.scheduledAt
+    ? new Date(publication.scheduledAt)
+    : null;
+  const futureScheduled = scheduledAt != null && scheduledAt > new Date();
+  const dueScheduled = scheduledAt != null && !Number.isNaN(scheduledAt.getTime()) && !futureScheduled;
+  const seriesPublishable = !["CANCELLED", "COMPLETED"].includes(String(series?.status));
+  const publishDisabledReason = !assigned
+    ? notAssigned
+    : !seriesPublishable
+      ? "This series cannot be published in its current state."
+      : !scheduled
+        ? "Schedule this chapter before publishing."
+        : futureScheduled
+          ? "Publication is scheduled for a future date; postpone first to publish now."
+          : "Publication schedule is invalid; schedule this chapter again.";
   return [
     describeAction({
       action: "SCHEDULE",
@@ -134,10 +147,8 @@ export function chapterPublicationActions(
     }),
     describeAction({
       action: "PUBLISH",
-      enabled: assigned && !futureScheduled,
-      disabledReason: !assigned
-        ? notAssigned
-        : "Publication is scheduled for a future date; postpone first to publish now.",
+      enabled: assigned && dueScheduled && seriesPublishable,
+      disabledReason: publishDisabledReason,
       requiresConfirmation: true,
       requiresReason: false,
     }),
@@ -173,9 +184,11 @@ export async function getEditorChapterDetail(actor: RequestActor, chapterId: str
   const context = await loadEditorChapterContext(chapter);
   const publication = (await PublicationModel.findOne({ chapterId }).lean()) as any;
 
-  const inPublication = chapter.status === "READY_FOR_PUBLICATION" || chapter.status === "PUBLISHED";
+  const inPublication = chapter.status === "READY_FOR_PUBLICATION";
   const actions = inPublication
     ? chapterPublicationActions(actor, context.series, publication)
+    : chapter.status === "PUBLISHED"
+      ? []
     : chapterReviewActions(actor, context);
 
   return {
@@ -191,6 +204,8 @@ export async function getEditorChapterDetail(actor: RequestActor, chapterId: str
       id: context.series?.id ?? chapter.seriesId,
       title: context.series?.title ?? "",
       editorId: context.series?.editorId ?? null,
+      publicationType: context.series?.publicationType ?? null,
+      cadence: context.series?.cadence ?? null,
     },
     pages: (chapter.pages ?? []).map((page: any) => ({
       id: page.id,

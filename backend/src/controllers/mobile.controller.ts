@@ -1,4 +1,6 @@
 import { asyncRoute, ok, AppError } from "../lib/http.js";
+import { parseBody } from "../validators/common.js";
+import { z } from "zod";
 import {
   ProposalModel,
   ProposalVoteModel,
@@ -13,7 +15,6 @@ import {
 import { closeVotingSession } from "../services/proposal-governance.service.js";
 import {
   BOARD_QUORUM,
-  DEFAULT_BOARD_ELIGIBLE_VOTER_IDS,
   evaluateBoardTally,
   normalizeBoardVote,
 } from "../services/board-governance.service.js";
@@ -31,7 +32,26 @@ import {
   getBoardRankings,
 } from "../services/mobile-board-detail.service.js";
 import { recordAtRiskDecision } from "../services/at-risk-decision.service.js";
+import { getEditorActivity } from "../services/mobile-editor-activity.service.js";
 import type { AuthedRequest } from "../types.js";
+
+const atRiskDecisionSchema = z
+  .object({
+    rankingId: z.string().min(1),
+    decision: z.enum(["CONTINUE", "WARNING", "CHANGE_FORMAT", "CANCEL"]),
+    note: z.string().optional(),
+    publicationType: z.enum(["WEEKLY", "MONTHLY"]).optional(),
+  })
+  .strict();
+
+const finalizeDecisionSchema = z
+  .object({
+    sessionId: z.string().min(1),
+    note: z.string().max(2000).optional(),
+    publicationType: z.enum(["WEEKLY", "MONTHLY"]).optional(),
+    expectedVersion: z.number().int().positive().optional(),
+  })
+  .strict();
 
 export const editorReviewQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
   ok(res, await editorReviewQueue()),
@@ -42,6 +62,9 @@ export const boardQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
 
 export const editorInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await getEditorMobileInbox(requireActor(req))),
+);
+export const editorActivityHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getEditorActivity(requireActor(req))),
 );
 export const boardInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await getBoardMobileInbox(requireActor(req))),
@@ -65,29 +88,17 @@ export const getBoardVotes = asyncRoute(async (req: AuthedRequest, res) => {
   const proposal = await ProposalModel.findOne({ id: String(req.params.seriesId) }).lean();
   if (!proposal) throw new AppError(404, "Proposal not found.", "PROPOSAL_NOT_FOUND");
   await assertCanReadProposal(requireActor(req), proposal);
-  const session =
-    (await VotingSessionModel.findOne({
-      targetType: "PROPOSAL",
-      proposalId: String(req.params.seriesId),
-      status: "OPEN",
-    }).lean()) ??
-    (await VotingSessionModel.findOne({
+  const session = await VotingSessionModel.findOne({
     targetType: "PROPOSAL",
     proposalId: String(req.params.seriesId),
-      status: "TIE_BREAK_REQUIRED",
-    })
-      .sort({ openedAt: -1 })
-      .lean());
-  const eligibleVoterIds =
-    Array.isArray((session as any)?.eligibleVoterIds) &&
-    (session as any).eligibleVoterIds.length > 0
-      ? (session as any).eligibleVoterIds
-      : DEFAULT_BOARD_ELIGIBLE_VOTER_IDS;
+    status: "OPEN",
+  }).lean();
+  const eligibleVoterIds = (session as any)?.eligibleVoterIds ?? [];
   const rawVotes = (
     session
       ? await ProposalVoteModel.find({ sessionId: (session as any).id }).lean()
-      : ((proposal as any).votes ?? [])
-  ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)));
+      : []
+  ).filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId)));
   const votes = rawVotes.map(normalizeBoardVote);
   const quorum = Number((session as any)?.quorum ?? BOARD_QUORUM);
   ok(res, {
@@ -129,27 +140,14 @@ export const castVote = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await applyProposalAction(req, String(req.params.seriesId), "VOTE", req.body)),
 );
 export const finalizeDecision = asyncRoute(async (req: AuthedRequest, res) => {
-  const sessionId = String(req.body?.sessionId ?? "");
-  if (!sessionId) {
-    throw new AppError(
-      400,
-      "sessionId is required to finalize a Board decision.",
-      "VALIDATION_ERROR",
-    );
-  }
-  ok(res, await closeVotingSession(req, sessionId, req.body?.note, req.body?.publicationType));
+  const body = parseBody(finalizeDecisionSchema, req);
+  ok(res, await closeVotingSession(req, body.sessionId, body.note, body.publicationType));
 });
 export const atRiskDecision = asyncRoute(async (req: AuthedRequest, res) => {
   const seriesId = String(req.params.seriesId ?? "").trim();
   if (!seriesId) {
     throw new AppError(400, "seriesId is required.", "VALIDATION_ERROR");
   }
-  ok(
-    res,
-    await recordAtRiskDecision(req, seriesId, {
-      rankingId: req.body?.rankingId,
-      decision: req.body?.decision,
-      note: req.body?.note,
-    }),
-  );
+  const body = parseBody(atRiskDecisionSchema, req);
+  ok(res, await recordAtRiskDecision(req, seriesId, body));
 });

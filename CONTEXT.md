@@ -31,3 +31,15 @@ _Avoid_: Manuscript, review item, approved material
 **Archive**:
 A retained but inactive Proposal or Series. Chapters and Supporting Materials follow their parent lifecycle and are never archived independently.
 _Avoid_: Archived Chapter, archived material, deleted record
+
+**Board Voting Session**:
+An immutable decision round for one Proposal using a snapshot of the eligible Board electorate and the Proposal version.
+_Avoid_: Board vote, tie-break session
+
+**Re-vote**:
+The single additional Board Voting Session opened after a fully participated tied round.
+_Avoid_: Tie-break, unlimited re-vote
+
+**Tie Policy**:
+The rule applied when the Re-vote is also tied: the Chair decides, the Proposal is rejected, or the Proposal returns to the Board queue.
+_Avoid_: Tie-break action

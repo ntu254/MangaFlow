@@ -4,6 +4,16 @@ import request from "supertest";
 import { createApp } from "../app.js";
 import { seedDatabase } from "../seed.js";
 import { mobileInboxSchema } from "../mobile/mobile-work-item.contract.js";
+import {
+  AuditEntryModel,
+  ChapterModel,
+  ProposalModel,
+  SeriesModel,
+  StudioCommentModel,
+  StudioRegionModel,
+  StudioTaskModel,
+  SubmissionModel,
+} from "../db/models.js";
 
 let mongo: MongoMemoryReplSet;
 
@@ -50,6 +60,230 @@ describe("mobile editor workflows", () => {
     for (const kind of kinds) {
       expect(["PROPOSAL_REVIEW", "CHAPTER_REVIEW", "COMMENT_REVIEW", "PUBLICATION"]).toContain(kind);
     }
+  });
+
+  it("returns only the authenticated Editor's auditable editorial actions with real context", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const proposal = await ProposalModel.findOne({}).lean();
+    const chapter = await ChapterModel.findOne({ id: "ch-s-berserk-prod-5" }).lean();
+    const series = await SeriesModel.findOne({ id: (chapter as any).seriesId }).lean();
+    const [region, task, submission] = await Promise.all([
+      StudioRegionModel.findOne({ chapterId: (chapter as any).id }).lean(),
+      StudioTaskModel.findOne({ chapterId: (chapter as any).id }).lean(),
+      SubmissionModel.findOne({ chapterId: (chapter as any).id }).lean(),
+    ]);
+    const comment = await StudioCommentModel.create({
+      id: "activity-comment",
+      seriesId: (series as any).id,
+      chapterId: (chapter as any).id,
+      targetType: "CHAPTER",
+      targetId: (chapter as any).id,
+      authorId: editor.user.id,
+      authorName: "Tanaka Akira",
+      authorRole: "editor",
+      body: "Clarify the final panel.",
+      status: "OPEN",
+      createdAt: new Date("2026-08-04T08:00:00.000Z"),
+      updatedAt: new Date("2026-08-04T08:00:00.000Z"),
+    });
+    const indirectComments = await StudioCommentModel.insertMany([
+      {
+        id: "activity-comment-page",
+        targetType: "PAGE",
+        targetId: (chapter as any).pages[0].id,
+        authorId: editor.user.id,
+        authorName: "Tanaka Akira",
+        authorRole: "editor",
+        body: "Adjust the page composition.",
+        status: "OPEN",
+      },
+      {
+        id: "activity-comment-region",
+        targetType: "REGION",
+        targetId: (region as any).id,
+        authorId: editor.user.id,
+        authorName: "Tanaka Akira",
+        authorRole: "editor",
+        body: "Rework the selected region.",
+        status: "OPEN",
+      },
+      {
+        id: "activity-comment-task",
+        targetType: "TASK",
+        targetId: (task as any).id,
+        authorId: editor.user.id,
+        authorName: "Tanaka Akira",
+        authorRole: "editor",
+        body: "Review the assigned task.",
+        status: "OPEN",
+      },
+      {
+        id: "activity-comment-submission",
+        targetType: "SUBMISSION",
+        targetId: (submission as any).id,
+        authorId: editor.user.id,
+        authorName: "Tanaka Akira",
+        authorRole: "editor",
+        body: "Polish the submitted revision.",
+        status: "OPEN",
+      },
+    ]);
+
+    await AuditEntryModel.insertMany([
+      {
+        id: "activity-proposal",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "PROPOSAL_FORWARDED_TO_BOARD",
+        entityType: "proposal",
+        entityId: (proposal as any).id,
+        metadata: { toStatus: "PENDING_BOARD" },
+        createdAt: new Date("2026-08-04T09:00:00.000Z"),
+      },
+      {
+        id: "activity-chapter",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "CHAPTER_TANTOU_REVISION_REQUESTED",
+        entityType: "chapter",
+        entityId: (chapter as any).id,
+        metadata: { toStatus: "REVISION_REQUIRED" },
+        createdAt: new Date("2026-08-04T08:45:00.000Z"),
+      },
+      {
+        id: "activity-comment-row",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "comment.create",
+        entityType: "comment",
+        entityId: (comment as any).id,
+        createdAt: new Date("2026-08-04T08:30:00.000Z"),
+      },
+      ...indirectComments.map((indirectComment: any, index) => ({
+        id: `${indirectComment.id}-row`,
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "comment.create",
+        entityType: "comment",
+        entityId: indirectComment.id,
+        createdAt: new Date(`2026-08-04T08:2${9 - index}:00.000Z`),
+      })),
+      {
+        id: "activity-publication",
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "PUBLICATION_SCHEDULED",
+        entityType: "publication",
+        entityId: (chapter as any).id,
+        metadata: { scheduledAt: "2026-08-05T09:00:00.000Z" },
+        createdAt: new Date("2026-08-04T08:15:00.000Z"),
+      },
+      {
+        id: "activity-other-editor",
+        actorId: "u-another-editor",
+        actorRole: "EDITOR",
+        action: "CHAPTER_PUBLISHED",
+        entityType: "chapter",
+        entityId: (chapter as any).id,
+        createdAt: new Date("2026-08-04T10:00:00.000Z"),
+      },
+      {
+        id: "activity-wrong-role",
+        actorId: editor.user.id,
+        actorRole: "MANGAKA",
+        action: "CHAPTER_PUBLISHED",
+        entityType: "chapter",
+        entityId: (chapter as any).id,
+        createdAt: new Date("2026-08-04T10:15:00.000Z"),
+      },
+    ]);
+
+    const response = await request(createApp())
+      .get("/api/editor/activity")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    const commentActivity = response.body.data.filter((item: any) => item.area === "COMMENT");
+    expect(commentActivity).toHaveLength(5);
+    for (const item of commentActivity) {
+      expect(item).toMatchObject({
+        seriesTitle: (series as any).title,
+        chapterNumber: (chapter as any).number,
+      });
+    }
+    expect(response.body.data.map((item: any) => item.id)).toEqual([
+      "activity-proposal",
+      "activity-chapter",
+      "activity-comment-row",
+      "activity-comment-page-row",
+      "activity-comment-region-row",
+      "activity-comment-task-row",
+      "activity-comment-submission-row",
+      "activity-publication",
+    ]);
+    expect(response.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "activity-proposal",
+        action: "PROPOSAL_FORWARDED_TO_BOARD",
+        area: "PROPOSAL",
+        subject: (proposal as any).title,
+        outcome: "PENDING_BOARD",
+      }),
+      expect.objectContaining({
+        id: "activity-chapter",
+        area: "CHAPTER",
+        subject: `${(series as any).title} · Chapter ${(chapter as any).number}`,
+        seriesTitle: (series as any).title,
+        chapterNumber: (chapter as any).number,
+      }),
+      expect.objectContaining({
+        id: "activity-comment-row",
+        area: "COMMENT",
+        subject: `${(series as any).title} · Chapter ${(chapter as any).number}`,
+      }),
+      expect.objectContaining({
+        id: "activity-publication",
+        area: "PUBLICATION",
+        subject: `${(series as any).title} · Chapter ${(chapter as any).number}`,
+      }),
+    ]));
+  });
+
+  it("returns 50 classified records when newer redundant chapter audits exceed the cap", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const chapterId = "ch-s-berserk-prod-5";
+    await AuditEntryModel.deleteMany({ actorId: editor.user.id, actorRole: "EDITOR" });
+    await AuditEntryModel.insertMany([
+      ...Array.from({ length: 55 }, (_, index) => ({
+        id: `activity-cap-redundant-${index}`,
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "chapter.editor_approve",
+        entityType: "chapter",
+        entityId: chapterId,
+        createdAt: new Date(Date.UTC(2026, 7, 5, 12, 0, index)),
+      })),
+      ...Array.from({ length: 50 }, (_, index) => ({
+        id: `activity-cap-classified-${index}`,
+        actorId: editor.user.id,
+        actorRole: "EDITOR",
+        action: "CHAPTER_TANTOU_REVISION_REQUESTED",
+        entityType: "chapter",
+        entityId: chapterId,
+        createdAt: new Date(Date.UTC(2026, 7, 4, 12, 0, index)),
+      })),
+    ]);
+
+    const response = await request(createApp())
+      .get("/api/editor/activity")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(response.body.data).toHaveLength(50);
+    expect(response.body.data.every((item: any) => item.area === "CHAPTER")).toBe(true);
+    expect(response.body.data.map((item: any) => item.id)).toEqual(
+      Array.from({ length: 50 }, (_, index) => `activity-cap-classified-${49 - index}`),
+    );
   });
 
   it("never exposes an Assistant-submission approval action to the Editor", async () => {

@@ -279,15 +279,11 @@ export function filterStudioRegionsForRole(
   if (!permissions.canViewRegions) return [];
   if (permissions.mode !== "assistant") return regions;
   const assignedRegionIds = new Set(
-    tasks
-      .filter((task) => task.assigneeId === userId && task.regionId)
-      .map((task) => task.regionId),
+    tasks.filter((task) => task.assigneeId === userId).map((task) => task.id),
   );
   return regions.filter(
     (region) =>
-      assignedRegionIds.has(region.id) ||
-      (region.taskId &&
-        tasks.some((task) => task.id === region.taskId && task.assigneeId === userId)),
+      region.taskId ? assignedRegionIds.has(region.taskId) : false,
   );
 }
 
@@ -310,12 +306,11 @@ export function filterStudioCommentsForRole(
   if (permissions.mode !== "assistant") return comments;
   const pageIds = new Set(visibleTasks.map((task) => task.pageId));
   const taskIds = new Set(visibleTasks.map((task) => task.id));
-  const regionIds = new Set(visibleTasks.map((task) => task.regionId).filter(Boolean));
   return comments.filter(
     (comment) =>
       pageIds.has(comment.pageId) ||
       (comment.taskId ? taskIds.has(comment.taskId) : false) ||
-      (comment.regionId ? regionIds.has(comment.regionId) : false),
+      (comment.regionId ? pageIds.has(comment.pageId) : false),
   );
 }
 

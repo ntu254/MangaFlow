@@ -32,9 +32,11 @@ export function BoardSessionFormScreen({ onCreated }: { onCreated?: () => void }
         title: title.trim() || undefined,
       })
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["board"] })
-      void queryClient.invalidateQueries({ queryKey: mobileInboxKeys.role("board") })
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["board"] }),
+        queryClient.invalidateQueries({ queryKey: mobileInboxKeys.role("board") }),
+      ])
       onCreated?.()
     },
     onError: (error) => setLocalError(errorMessage(error)),
@@ -72,6 +74,7 @@ export function BoardSessionFormScreen({ onCreated }: { onCreated?: () => void }
         ) : proposals.error && !proposals.data ? (
           <WorkflowState
             kind="error"
+            context="proposals awaiting a session"
             error={proposals.error}
             onRetry={() => void proposals.refetch()}
           />

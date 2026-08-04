@@ -1,10 +1,11 @@
-import { MFEmptyState, MFHero, MFMetricStrip, MFTimeline, SectionTitle } from "@/components/mf"
+import { Fragment } from "react"
+import { MFEmptyState, MFHero, MFTimeline, SectionTitle } from "@/components/mf"
 import { WorkflowState } from "@/components/workflow-state"
 import { useBoardDecisionHistory } from "@/hooks/use-board-rankings"
+import { groupBoardLedger, partitionBoardLedger, toBoardLedgerEntries } from "@/domain/board-decision-ledger"
 
 export function BoardHistoryScreen() {
   const history = useBoardDecisionHistory()
-
   if (history.isLoading && !history.data) return <WorkflowState kind="loading" />
   if (history.error && !history.data) {
     return (
@@ -17,7 +18,7 @@ export function BoardHistoryScreen() {
   }
 
   const rows = history.data ?? []
-  const reVotes = rows.filter((row) => row.status === "TIED" || row.status === "TIE_BREAK_REQUIRED")
+  const reVotes = rows.filter((row) => row.status === "TIED")
 
   return (
     <>
@@ -52,7 +53,6 @@ export function BoardHistoryScreen() {
 }
 
 function historyStatus(value: string): string {
-  if (value === "TIE_BREAK_REQUIRED") return "Historical tie-break record"
   return value.replaceAll("_", " ")
 }
 
@@ -66,14 +66,14 @@ function lineageText(metadata?: Record<string, unknown>): string {
 function historyTone(status: string): "success" | "warning" | "danger" | "primary" {
   if (status === "APPROVED" || status === "FINALIZED" || status === "CONTINUE") return "success"
   if (status === "REJECTED" || status === "CANCELLED" || status === "CANCEL") return "danger"
-  if (status === "TIED" || status === "TIE_BREAK_REQUIRED" || status === "NO_QUORUM" || status === "WARNING") {
+  if (status === "TIED" || status === "NO_QUORUM" || status === "WARNING") {
     return "warning"
   }
   return "primary"
 }
 
 function historyIcon(status: string): "check-circle" | "alert-triangle" | "scale-balance" | "shield-check" {
-  if (status === "TIED" || status === "TIE_BREAK_REQUIRED") return "scale-balance"
+  if (status === "TIED") return "scale-balance"
   if (historyTone(status) === "danger" || historyTone(status) === "warning") return "alert-triangle"
   if (historyTone(status) === "success") return "check-circle"
   return "shield-check"

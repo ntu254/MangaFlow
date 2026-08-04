@@ -91,12 +91,6 @@ export function ReviewSummaryPanel({
       value: `TASK:${task.id}`,
       label: `Task: ${task.title}`,
     })),
-    ...tasks
-      .filter((task) => task.regionId)
-      .map((task) => ({
-        value: `REGION:${task.regionId}`,
-        label: `Region: ${regionLabel(task.regionId) ?? task.regionId}`,
-      })),
   ];
 
   const selectedTarget = targetValue.split(":");

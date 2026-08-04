@@ -115,5 +115,5 @@ earningItemSchema.index({ taskId: 1 }, { unique: true, sparse: true });
 
 /* ------------------------------------------------------------------ */
 
-export const EarningModel = mongoose.model<any>("Earning", earningSchema);
-export const EarningItemModel = mongoose.model<any>("EarningItem", earningItemSchema);
+export const EarningModel = mongoose.model<EarningRecord>("Earning", earningSchema);
+export const EarningItemModel = mongoose.model<EarningItemRecord>("EarningItem", earningItemSchema);

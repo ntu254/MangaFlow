@@ -62,6 +62,7 @@ describe("mobile work item contract", () => {
       "SESSION_CLOSE",
       "SESSION_CANCEL",
       "SESSION_FINALIZE",
+      "TIE_RESOLVE",
       "AT_RISK_DECIDE",
     ]);
   });
@@ -101,5 +102,36 @@ describe("mobile work item contract", () => {
       generatedAt: "2026-07-30T00:00:00.000Z",
       items: [validProposalItem()],
     }).items).toHaveLength(1);
+  });
+
+  it("rejects publication work without explicit series and chapter context", () => {
+    const publication = {
+      ...validProposalItem(),
+      kind: "PUBLICATION",
+      entityType: "CHAPTER",
+      entityId: "ch-4",
+      title: "Echoes",
+    };
+
+    expect(() => mobileWorkItemSchema.parse(publication)).toThrow();
+  });
+
+  it("rejects publication context for a different chapter", () => {
+    const publication = {
+      ...validProposalItem(),
+      kind: "PUBLICATION",
+      entityType: "CHAPTER",
+      entityId: "ch-4",
+      title: "Echoes",
+      chapterContext: {
+        seriesId: "series-1",
+        seriesTitle: "Berserk: Lost Chapters",
+        chapterId: "ch-5",
+        chapterNumber: 5,
+        chapterTitle: "Old Wound",
+      },
+    };
+
+    expect(() => mobileWorkItemSchema.parse(publication)).toThrow();
   });
 });

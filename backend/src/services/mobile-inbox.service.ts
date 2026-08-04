@@ -31,6 +31,7 @@ import {
   loadBoardSessionContext,
   type BoardSessionContext,
 } from "./mobile-board-detail.service.js";
+import { BOARD_MAX_VOTING_ROUND, normalizeTiePolicy } from "./board-governance.service.js";
 
 // Foundation slice: Editor Today shows proposal review work; Board Today shows
 // vote work. Later plans extend these projections with chapter/comment/publication
@@ -130,9 +131,8 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
 }
 
 // A vote item is votable only when an active voting session backs it. Board
-// proposals with no open session (or a tie-break awaiting a fresh re-vote) are
-// not surfaced as votable work here, so every emitted item carries the session
-// version used for optimistic concurrency.
+// Only OPEN sessions are votable. A final TIED round is surfaced to the Chair
+// as a resolution item, never as another vote.
 function boardVoteWorkItem(
   actor: RequestActor,
   session: any,
@@ -164,6 +164,10 @@ function sessionFinalizeWorkItem(
   session: any,
   ctx: BoardSessionContext,
 ): MobileWorkItem {
+  const tieNeedsChair =
+    session.status === "TIED" &&
+    normalizeTiePolicy(session.tiePolicy) === "CHAIR_DECIDES" &&
+    (session.tieResolution ?? "PENDING") === "PENDING";
   return {
     id: `SESSION_FINALIZE:${session.id}`,
     kind: "SESSION_FINALIZE",
@@ -172,10 +176,18 @@ function sessionFinalizeWorkItem(
     status: String(session.status),
     version: typeof session.version === "number" ? session.version : null,
     title: String(session.title ?? session.proposalId ?? session.id),
-    subtitle: ctx.canFinalize ? "Ready to finalize" : "Awaiting quorum",
+    subtitle: tieNeedsChair
+      ? "Chair decision required"
+      : ctx.canFinalize
+        ? "Ready to finalize"
+        : "Awaiting quorum",
     priority: {
       level: ctx.canFinalize ? "HIGH" : "NORMAL",
-      reason: ctx.canFinalize ? "Decision ready to finalize" : "Awaiting votes",
+      reason: tieNeedsChair
+        ? "The final re-vote is tied"
+        : ctx.canFinalize
+          ? "Decision ready to finalize"
+          : "Awaiting votes",
       dueAt: null,
     },
     blockers: [],
@@ -185,21 +197,26 @@ function sessionFinalizeWorkItem(
 }
 
 function atRiskWorkItem(_actor: RequestActor, ranking: any): MobileWorkItem {
+  const decided = Boolean(ranking.metadata?.atRiskDecision?.decision);
   return {
     id: `AT_RISK:${ranking.id}`,
     kind: "AT_RISK",
     entityType: "RANKING",
     entityId: String(ranking.id),
-    status: String(ranking.status ?? "AT_RISK"),
+    status: decided ? "DECIDED" : String(ranking.status ?? "AT_RISK"),
     version: null,
     title: String(ranking.seriesTitle ?? ranking.seriesId ?? ranking.id),
     subtitle: `Rank ${ranking.rank ?? "?"} · score ${ranking.finalScore ?? ranking.readerScore ?? "?"}`,
-    priority: { level: "URGENT", reason: "At-risk series needs a Board decision", dueAt: null },
+    priority: {
+      level: decided ? "NORMAL" : "URGENT",
+      reason: decided ? "At-risk series decision recorded" : "At-risk series needs a Board decision",
+      dueAt: null,
+    },
     blockers: [],
     actions: [
       action({
         action: "AT_RISK_DECIDE",
-        enabled: true,
+        enabled: !decided,
         requiresConfirmation: true,
         requiresReason: true,
       }),
@@ -236,14 +253,15 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
     PublicationModel.findOne({ chapterId: chapter.id }).lean(),
   ]);
   const status = (publication as any)?.status ?? "DRAFT";
+  const chapterTitle = chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`;
   return {
     id: `PUBLICATION:${chapter.id}`,
     kind: "PUBLICATION",
     entityType: "CHAPTER",
     entityId: String(chapter.id),
     status: String(status),
-    version: typeof chapter.number === "number" ? chapter.number : null,
-    title: chapter.title ? String(chapter.title) : `Chapter ${chapter.number}`,
+    version: null,
+    title: chapterTitle,
     subtitle: status === "SCHEDULED" ? "Scheduled" : "Ready to schedule",
     priority: { level: "NORMAL", reason: "Publication decision", dueAt: null },
     blockers: [],
@@ -252,6 +270,13 @@ async function publicationWorkItem(actor: RequestActor, chapter: any): Promise<M
       scheduledAt: (publication as any)?.scheduledAt
         ? new Date((publication as any).scheduledAt).toISOString()
         : null,
+    },
+    chapterContext: {
+      seriesId: String(chapter.seriesId),
+      seriesTitle: String((series as any).title),
+      chapterId: String(chapter.id),
+      chapterNumber: Number(chapter.number),
+      chapterTitle,
     },
   };
 }
@@ -416,7 +441,7 @@ export async function getBoardMobileInbox(actor: RequestActor): Promise<MobileIn
   // round whose fresh re-vote is a separate OPEN session.
   const sessions = await VotingSessionModel.find({
     targetType: "PROPOSAL",
-    status: "OPEN",
+    status: { $in: ["OPEN", "TIED"] },
   })
     .sort({ updatedAt: -1 })
     .lean();
@@ -424,15 +449,29 @@ export async function getBoardMobileInbox(actor: RequestActor): Promise<MobileIn
   const items: MobileWorkItem[] = [];
   for (const session of sessions) {
     const ctx = await loadBoardSessionContext(actor, session);
-    items.push(boardVoteWorkItem(actor, session, ctx));
-    // Chair also sees a finalization item for the same session.
-    if (chair) items.push(sessionFinalizeWorkItem(actor, session, ctx));
+    const votingRound = Number(
+      (session as any).votingRound ??
+        ((session as any).reVoteOfSessionId ? BOARD_MAX_VOTING_ROUND : 1),
+    );
+    const tieNeedsChair =
+      chair &&
+      session.status === "TIED" &&
+      votingRound >= BOARD_MAX_VOTING_ROUND &&
+      normalizeTiePolicy((session as any).tiePolicy) === "CHAIR_DECIDES" &&
+      ((session as any).tieResolution ?? "PENDING") === "PENDING";
+    if (session.status === "OPEN") {
+      items.push(boardVoteWorkItem(actor, session, ctx));
+      if (chair) items.push(sessionFinalizeWorkItem(actor, session, ctx));
+    } else if (tieNeedsChair) {
+      items.push(sessionFinalizeWorkItem(actor, session, ctx));
+    }
   }
 
   // At-risk decisions are a manual Chair responsibility.
   if (chair) {
     const atRisk = await RankingModel.find({
       $or: [{ atRisk: true }, { status: "AT_RISK" }],
+      "metadata.atRiskDecision": { $exists: false },
     })
       .sort({ updatedAt: -1 })
       .lean();

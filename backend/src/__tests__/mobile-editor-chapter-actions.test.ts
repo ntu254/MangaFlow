@@ -6,6 +6,8 @@ import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryReplSet;
 const BLOCKED_CHAPTER = "ch-s-berserk-prod-5"; // seeded TANTOU_REVIEW chapter
+const SCHEDULED_CHAPTER = "ch-s-berserk-prod-4";
+const UNSCHEDULED_READY_CHAPTER = "ch-s-vinland-prod-1";
 
 async function loginAs(email: string, password = email) {
   const response = await request(createApp())
@@ -69,5 +71,76 @@ describe("mobile editor chapter actions parity", () => {
       .get(`/api/editor/chapters/${BLOCKED_CHAPTER}/detail`)
       .set("Authorization", `Bearer ${editor.accessToken}`)
       .expect(403);
+  });
+
+  it("does not offer Publish now for an unscheduled ready chapter the backend will reject", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const detail = await request(createApp())
+      .get(`/api/editor/chapters/${UNSCHEDULED_READY_CHAPTER}/detail`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    expect(detail.body.data.actions.find((action: any) => action.action === "PUBLISH")).toMatchObject({
+      enabled: false,
+      disabledReason: "Schedule this chapter before publishing.",
+    });
+
+    const publish = await request(createApp())
+      .post(`/api/chapters/${UNSCHEDULED_READY_CHAPTER}/actions/PUBLISH`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(409);
+    expect(publish.body.code).toBe("PUBLICATION_NOT_SCHEDULED");
+  });
+
+  it("offers Publish now when the scheduled publication is due and the canonical action succeeds", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const { PublicationModel } = await import("../db/models.js");
+    await PublicationModel.updateOne(
+      { chapterId: SCHEDULED_CHAPTER },
+      { $set: { scheduledAt: new Date(Date.now() - 60_000) } },
+    );
+
+    const detail = await request(createApp())
+      .get(`/api/editor/chapters/${SCHEDULED_CHAPTER}/detail`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+    expect(detail.body.data.actions.find((action: any) => action.action === "PUBLISH")).toMatchObject({
+      enabled: true,
+      disabledReason: null,
+    });
+
+    const publish = await request(createApp())
+      .post(`/api/chapters/${SCHEDULED_CHAPTER}/actions/PUBLISH`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(publish.body.data.status).toBe("PUBLISHED");
+  });
+
+  it("does not offer Publish now when the canonical service rejects the series state", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const { PublicationModel, SeriesModel } = await import("../db/models.js");
+    await PublicationModel.updateOne(
+      { chapterId: SCHEDULED_CHAPTER },
+      { $set: { scheduledAt: new Date(Date.now() - 60_000) } },
+    );
+    await SeriesModel.updateOne({ id: "s-berserk-prod" }, { $set: { status: "CANCELLED" } });
+
+    const detail = await request(createApp())
+      .get(`/api/editor/chapters/${SCHEDULED_CHAPTER}/detail`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+    expect(detail.body.data.actions.find((action: any) => action.action === "PUBLISH")).toMatchObject({
+      enabled: false,
+      disabledReason: "This series cannot be published in its current state.",
+    });
+
+    const publish = await request(createApp())
+      .post(`/api/chapters/${SCHEDULED_CHAPTER}/actions/PUBLISH`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(409);
+    expect(publish.body.code).toBe("SERIES_NOT_PUBLISHABLE");
   });
 });

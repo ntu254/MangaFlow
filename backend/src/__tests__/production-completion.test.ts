@@ -376,7 +376,10 @@ describe("Production-first completion hardening", () => {
       .send({
         period: "2026-W27",
         source: "SURVEY",
-        rows: [{ seriesId: "s-berserk-prod", score: 9.7, votes: 1200 }],
+        rows: [
+          { seriesId: "s-berserk-prod", score: 9.7, votes: 1200 },
+          { seriesId: "s-vinland-prod", score: 8.2, votes: 800 },
+        ],
       })
       .expect(403);
 
@@ -388,15 +391,18 @@ describe("Production-first completion hardening", () => {
         period: "2026-W27",
         source: "SURVEY",
         fileName: "manual-ranking.csv",
-        rows: [{ seriesId: "s-berserk-prod", score: 9.7, votes: 1200 }],
+      rows: [
+        { seriesId: "s-berserk-prod", score: 9.7, votes: 1200 },
+        { seriesId: "s-vinland-prod", score: 8.2, votes: 800 },
+      ],
       })
       .expect(201);
 
     expect(res.body.data).toMatchObject({
       period: "2026-W27",
       source: "SURVEY",
-      imported: 1,
-      rowCount: 1,
+      imported: 2,
+      rowCount: 2,
     });
     const imported = (await RankingModel.findOne({
       seriesId: "s-berserk-prod",
@@ -404,6 +410,10 @@ describe("Production-first completion hardening", () => {
     }).lean()) as any;
     expect(imported?.finalScore).toBe(9.7);
     expect(imported?.voteCount).toBe(1200);
+    expect(imported?.rank).toBe(1);
+    await expect(
+      RankingModel.findOne({ seriesId: "s-vinland-prod", period: "2026-W27" }).lean(),
+    ).resolves.toMatchObject({ rank: 2 });
 
     const audit = await AuditEntryModel.findOne({
       action: "RANKING_IMPORTED",

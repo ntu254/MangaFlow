@@ -66,10 +66,7 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
     ...proposalRaw,
     votes,
   };
-  const reVoteBanner = getReVoteBanner(
-    activeVotingSession.session,
-    proposalRaw.status === "TIE_BREAK" ? "TIE_BREAK_REQUIRED" : proposalRaw.status,
-  );
+  const reVoteBanner = getReVoteBanner(activeVotingSession.session);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -84,7 +81,7 @@ export function ProposalDecisionDetail({ proposalId }: { proposalId: string }) {
           className={`rounded-lg border p-4 ${
             reVoteBanner.kind === "fresh"
               ? "border-emerald-300 bg-emerald-50 text-emerald-950"
-              : "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-950"
+            : "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-950"
           }`}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">

@@ -8,8 +8,9 @@ import {
 } from "../db/models.js";
 import {
   BOARD_QUORUM,
-  DEFAULT_BOARD_ELIGIBLE_VOTER_IDS,
   evaluateBoardTally,
+  BOARD_MAX_VOTING_ROUND,
+  normalizeTiePolicy,
   normalizeBoardVote,
 } from "./board-governance.service.js";
 import type {
@@ -51,19 +52,16 @@ export async function loadBoardSessionContext(
   actor: RequestActor,
   session: any,
 ): Promise<BoardSessionContext> {
-  const eligibleVoterIds =
-    Array.isArray(session?.eligibleVoterIds) && session.eligibleVoterIds.length > 0
-      ? session.eligibleVoterIds
-      : DEFAULT_BOARD_ELIGIBLE_VOTER_IDS;
+  const eligibleVoterIds = session?.eligibleVoterIds ?? [];
   const quorum = Number(session?.quorum ?? BOARD_QUORUM);
   const rawVotes = await ProposalVoteModel.find({ sessionId: session.id }).lean();
   const votes = rawVotes
-    .filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId ?? vote.memberId)))
+    .filter((vote: any) => eligibleVoterIds.includes(String(vote.voterId)))
     .map(normalizeBoardVote);
   const tally = evaluateBoardTally(votes, quorum, eligibleVoterIds.length);
   const canFinalize = Boolean(tally.status) || tally.total >= eligibleVoterIds.length;
   const myVote =
-    rawVotes.find((vote: any) => String(vote.voterId ?? vote.memberId) === actor.id) ?? null;
+    rawVotes.find((vote: any) => String(vote.voterId) === actor.id) ?? null;
   return { session, eligibleVoterIds, quorum, votes, tally, canFinalize, myVote };
 }
 
@@ -106,6 +104,14 @@ export function boardChairActions(
 ): MobileWorkflowActionDescriptor[] {
   if (!isChair(actor, context.session)) return [];
   const open = context.session.status === "OPEN";
+  const votingRound = Number(
+    context.session.votingRound ?? (context.session.reVoteOfSessionId ? BOARD_MAX_VOTING_ROUND : 1),
+  );
+  const tieResolutionPending =
+    context.session.status === "TIED" &&
+    votingRound >= BOARD_MAX_VOTING_ROUND &&
+    normalizeTiePolicy(context.session.tiePolicy) === "CHAIR_DECIDES" &&
+    (context.session.tieResolution ?? "PENDING") === "PENDING";
   return [
     describeAction({
       action: "SESSION_FINALIZE",
@@ -115,6 +121,15 @@ export function boardChairActions(
         : "Quorum or a decisive tally has not been reached yet.",
       requiresConfirmation: true,
       requiresReason: false,
+    }),
+    describeAction({
+      action: "TIE_RESOLVE",
+      enabled: tieResolutionPending,
+      disabledReason: tieResolutionPending
+        ? null
+        : "Only the final tied re-vote with Chair policy can be resolved here.",
+      requiresConfirmation: true,
+      requiresReason: true,
     }),
     describeAction({
       action: "SESSION_CANCEL",
@@ -148,8 +163,20 @@ export async function getBoardSessionDetail(actor: RequestActor, sessionId: stri
       proposalId: session.proposalId ?? null,
       reVoteOfSessionId: session.reVoteOfSessionId ?? null,
       isReVote: Boolean(session.reVoteOfSessionId),
+      votingRound: Number(
+        session.votingRound ?? (session.reVoteOfSessionId ? BOARD_MAX_VOTING_ROUND : 1),
+      ),
+      tiePolicy: normalizeTiePolicy(session.tiePolicy),
+      tieResolution: session.tieResolution ?? "PENDING",
     },
-    proposal: proposal ? { id: proposal.id, title: proposal.title, status: proposal.status } : null,
+    proposal: proposal
+      ? {
+          id: proposal.id,
+          title: proposal.title,
+          status: proposal.status,
+          requestedPublicationType: proposal.requestedPublicationType ?? null,
+        }
+      : null,
     tally: {
       approve: context.tally.approve,
       reject: context.tally.reject,
@@ -168,7 +195,7 @@ export async function getBoardRankings(actor: RequestActor) {
   if (actor.role !== "BOARD") {
     throw new AppError(403, "Board permission is required.", "FORBIDDEN");
   }
-  const rankings = await RankingModel.find({}).sort({ rank: 1 }).lean();
+  const rankings = await RankingModel.find({}).sort({ period: -1, rank: 1, finalScore: -1 }).lean();
   return {
     generatedAt: new Date().toISOString(),
     items: rankings.map((ranking: any) => ({
@@ -181,6 +208,8 @@ export async function getBoardRankings(actor: RequestActor) {
       readerScore: ranking.readerScore ?? null,
       status: ranking.status ?? null,
       atRisk: ranking.atRisk === true || ranking.status === "AT_RISK",
+      decision: ranking.metadata?.atRiskDecision?.decision ?? null,
+      decisionStatus: ranking.metadata?.atRiskDecision?.decision ? "DECIDED" : "PENDING",
     })),
   };
 }

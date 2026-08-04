@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { hasApiTokens } from "@/shared/api/client";
 import { notificationsApi } from "@/shared/api/services";
 import { useAuth } from "@/shared/auth";
-import { markNotificationReadInList } from "@/shared/lib/notification-cache";
+import {
+  markNotificationsReadInResponse,
+  selectNotificationItems,
+  selectUnreadTotal,
+  type NotificationListPayload,
+} from "../model/notification-list";
 
 export type NotificationRecord = {
   id: string;
@@ -29,18 +34,46 @@ const notificationKeys = {
   list: () => [...notificationKeys.all, "list"] as const,
 };
 
-export function useNotificationsQuery() {
-  const user = useAuth((s) => s.user);
+type NotificationListCache = NotificationListPayload<NotificationRecord>;
 
-  return useQuery<NotificationRecord[]>({
+/** Server caps `limit` at 100 (see backend `paginationFromQuery`); ask for the full page. */
+const NOTIFICATION_PAGE_LIMIT = 100;
+
+/**
+ * Both hooks below share this key on purpose: they read one cache entry through
+ * different `select`s, so the unread badge costs no extra request.
+ */
+function notificationListOptions(enabled: boolean) {
+  return {
     queryKey: notificationKeys.list(),
-    queryFn: () => notificationsApi.list() as Promise<NotificationRecord[]>,
+    queryFn: () => notificationsApi.list<NotificationRecord>({ limit: NOTIFICATION_PAGE_LIMIT }),
     staleTime: 60000,
-    enabled: !!user && hasApiTokens(),
+    enabled,
     refetchOnWindowFocus: true,
     refetchInterval: 60000,
     retry: 1,
+  };
+}
+
+export function useNotificationsQuery() {
+  const user = useAuth((s) => s.user);
+
+  return useQuery<NotificationListCache, Error, NotificationRecord[]>({
+    ...notificationListOptions(!!user && hasApiTokens()),
+    select: selectNotificationItems,
   });
+}
+
+/** Authoritative unread count from the server — accurate beyond the loaded page. */
+export function useNotificationsUnreadCount(): number {
+  const user = useAuth((s) => s.user);
+
+  const { data } = useQuery<NotificationListCache, Error, number>({
+    ...notificationListOptions(!!user && hasApiTokens()),
+    select: selectUnreadTotal,
+  });
+
+  return data ?? 0;
 }
 
 export function useMarkReadMutation() {
@@ -48,8 +81,8 @@ export function useMarkReadMutation() {
   return useMutation<unknown, Error, string>({
     mutationFn: (id) => notificationsApi.read(id) as Promise<unknown>,
     onSuccess: (_data, notificationId) => {
-      queryClient.setQueryData<NotificationRecord[]>(notificationKeys.list(), (old) =>
-        old ? markNotificationReadInList(old, notificationId) : old,
+      queryClient.setQueryData<NotificationListCache>(notificationKeys.list(), (old) =>
+        markNotificationsReadInResponse(old, [notificationId]),
       );
     },
   });
@@ -85,10 +118,8 @@ export function useMarkAllReadMutation() {
       };
     },
     onSuccess: ({ successIds }) => {
-      queryClient.setQueryData<NotificationRecord[]>(notificationKeys.list(), (old) =>
-        old?.map((n) =>
-          successIds.includes(n.id) && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n,
-        ),
+      queryClient.setQueryData<NotificationListCache>(notificationKeys.list(), (old) =>
+        markNotificationsReadInResponse(old, successIds),
       );
     },
   });

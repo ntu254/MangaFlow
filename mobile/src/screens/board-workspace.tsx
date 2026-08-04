@@ -195,7 +195,11 @@ function BoardAtRiskDetail({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const submit = (input: { decision: AtRiskDecisionValue; note?: string }) => {
+  const submit = (input: {
+    decision: AtRiskDecisionValue
+    note?: string
+    publicationType?: "WEEKLY" | "MONTHLY"
+  }) => {
     decide.mutate(
       { rankingId: target.rankingId, ...input },
       {

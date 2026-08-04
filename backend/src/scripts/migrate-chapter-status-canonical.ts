@@ -91,7 +91,7 @@ function canonicalStatus(chapter: any): string | null {
 
 async function main() {
   await mongoose.connect(mongoUri);
-  const chapters = await ChapterModel.find({ status: { $in: LEGACY_STATUSES } }).lean();
+  const chapters = await (ChapterModel as any).find({ status: { $in: LEGACY_STATUSES } }).lean();
 
   const plan = chapters
     .map((chapter: any) => ({
@@ -100,7 +100,7 @@ async function main() {
       to: canonicalStatus(chapter),
       removeArchiveMetadata: chapter.status === "ARCHIVED",
     }))
-    .filter((row) => row.to && row.to !== row.from);
+    .filter((row: any) => row.to && row.to !== row.from);
 
   console.log(`Found ${plan.length} chapter(s) with legacy status to migrate.`);
   for (const row of plan) {

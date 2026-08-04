@@ -8,11 +8,8 @@ import type { SeriesRanking } from "@/entities/series";
 const DECISIONS: AtRiskDecisionKind[] = [
   "CONTINUE",
   "WARNING",
-  "REQUEST_IMPROVEMENT_PLAN",
   "CANCEL",
-  "COMPLETE",
   "CHANGE_FORMAT",
-  "HIATUS",
 ];
 
 function isDecision(value: unknown): value is AtRiskDecisionKind {

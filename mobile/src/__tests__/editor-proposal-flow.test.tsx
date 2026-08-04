@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native"
 import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-screen"
 import { TestQueryProvider } from "@/test/test-query-provider"
+import { MobileApiError } from "@/services/mobile-api-error"
 import * as dataSource from "@/services/editor-mobile-data-source"
-import type { EditorProposalDetail } from "@/services/editor-mobile-data-source"
+import type { EditorialChecklist, EditorProposalDetail } from "@/services/editor-mobile-data-source"
 
 jest.mock("@/services/editor-mobile-data-source", () => ({
   getEditorProposalDetail: jest.fn(),
@@ -48,8 +49,22 @@ const detailFixture: EditorProposalDetail = {
   ],
 }
 
-function renderScreen() {
-  mocked.getEditorProposalDetail.mockResolvedValue(detailFixture)
+const completeChecklist: EditorialChecklist = {
+  hook: true,
+  characterMotivation: true,
+  audienceFit: true,
+  storyboardFlow: true,
+  manuscriptQuality: true,
+  serializePotential: true,
+}
+
+const forwardReadyFixture: EditorProposalDetail = {
+  ...detailFixture,
+  editorialChecklist: completeChecklist,
+}
+
+function renderScreen(detail: EditorProposalDetail = forwardReadyFixture) {
+  mocked.getEditorProposalDetail.mockResolvedValue(detail)
   return render(
     <TestQueryProvider>
       <EditorProposalDetailScreen proposalId="p-002" />
@@ -122,7 +137,7 @@ describe("EditorProposalDetailScreen", () => {
 
   it("displays the saved checklist and submits all six draft values", async () => {
     mocked.updateEditorProposalChecklist.mockResolvedValue(undefined)
-    renderScreen()
+    renderScreen(detailFixture)
 
     expect(await screen.findByText("Editorial checklist")).toBeVisible()
     expect(screen.getByText("3/6 complete")).toBeVisible()
@@ -160,5 +175,107 @@ describe("EditorProposalDetailScreen", () => {
     expect(screen.getByText("3/6 complete")).toBeVisible()
     expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+  })
+})
+
+describe("Forward gating on the saved editorial checklist", () => {
+  afterEach(() => jest.clearAllMocks())
+
+  it("keeps Forward visible but disabled while the saved checklist is incomplete", async () => {
+    renderScreen(detailFixture)
+
+    const forward = await screen.findByRole("button", { name: "Forward to Board" })
+    expect(forward).toBeVisible()
+    expect(forward.props.accessibilityState.disabled).toBe(true)
+    expect(screen.getByText("Cần hoàn tất checklist: 3/6.")).toBeVisible()
+  })
+
+  it("does not treat unsaved ticks as a complete checklist", async () => {
+    renderScreen(detailFixture)
+
+    fireEvent.press(await screen.findByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Storyboard flow" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Serialize potential" }))
+
+    expect(screen.getByText("6/6 complete")).toBeVisible()
+    expect(screen.getByText("Unsaved changes. Saved checklist is 3/6.")).toBeVisible()
+    expect(screen.getByText("Cần hoàn tất checklist: 3/6.")).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: "Forward to Board" }).props.accessibilityState.disabled,
+    ).toBe(true)
+
+    fireEvent.press(screen.getByRole("button", { name: "Forward to Board" }))
+    expect(screen.queryByRole("button", { name: "Confirm forward" })).toBeNull()
+  })
+
+  it("enables Forward once a 6/6 checklist saves successfully", async () => {
+    mocked.updateEditorProposalChecklist.mockResolvedValue(undefined)
+    mocked.getEditorProposalDetail
+      .mockResolvedValueOnce(detailFixture)
+      .mockResolvedValue(forwardReadyFixture)
+    render(
+      <TestQueryProvider>
+        <EditorProposalDetailScreen proposalId="p-002" />
+      </TestQueryProvider>,
+    )
+
+    fireEvent.press(await screen.findByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Storyboard flow" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Serialize potential" }))
+    fireEvent.press(screen.getByRole("button", { name: "Save checklist" }))
+
+    await waitFor(() =>
+      expect(mocked.updateEditorProposalChecklist).toHaveBeenCalledWith("p-002", completeChecklist),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Forward to Board" }).props.accessibilityState.disabled,
+      ).toBe(false),
+    )
+    expect(screen.queryByText(/Cần hoàn tất checklist/)).toBeNull()
+  })
+
+  it("keeps the draft and explains the failure when a save fails", async () => {
+    mocked.updateEditorProposalChecklist.mockRejectedValue(
+      new MobileApiError("This proposal changed. Reload before saving.", 409, "CONFLICT", "req-3"),
+    )
+    renderScreen(detailFixture)
+
+    fireEvent.press(await screen.findByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("button", { name: "Save checklist" }))
+
+    expect(
+      await screen.findByText("This proposal changed. Reload before saving."),
+    ).toBeVisible()
+    // The draft tick survives the failed save, and Forward stays gated on the
+    // last successfully saved checklist.
+    expect(screen.getByRole("checkbox", { name: "Character motivation" }).props.accessibilityState.checked).toBe(true)
+    expect(screen.getByText("4/6 complete")).toBeVisible()
+    expect(screen.getByText("Cần hoàn tất checklist: 3/6.")).toBeVisible()
+  })
+
+  it("surfaces the backend rejection when a stale client forwards", async () => {
+    mocked.forwardEditorProposal.mockRejectedValue(
+      new MobileApiError(
+        "Complete all six editorial criteria before sending this proposal to the Board.",
+        409,
+        "EDITORIAL_CHECKLIST_INCOMPLETE",
+        "req-8",
+      ),
+    )
+    renderScreen(forwardReadyFixture)
+
+    fireEvent.press(await screen.findByRole("button", { name: "Forward to Board" }))
+    fireEvent.changeText(
+      await screen.findByLabelText("Editor recommendation"),
+      "Ready for Board review.",
+    )
+    fireEvent.press(screen.getByRole("button", { name: "Confirm forward" }))
+
+    expect(
+      await screen.findByText(
+        "Complete all six editorial criteria before sending this proposal to the Board.",
+      ),
+    ).toBeVisible()
   })
 })

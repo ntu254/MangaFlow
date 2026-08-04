@@ -105,8 +105,7 @@ export function AssistantDashboard() {
         const d = deadlineRisk(t.dueAt);
         const visualStatus = getVisualTaskStatus(t);
         return (
-          t.status === "MANGAKA_REVISION_REQUESTED" ||
-          t.status === "EDITOR_REVISION_REQUESTED" ||
+          t.status === "REVISION_REQUESTED" ||
           t.status === "TODO" ||
           d.tone === "rose" ||
           d.tone === "amber" ||
@@ -121,7 +120,7 @@ export function AssistantDashboard() {
     return [...mine]
       .filter((t) => {
         const visualStatus = getVisualTaskStatus(t);
-        return visualStatus !== "EDITOR_APPROVED" && visualStatus !== "CANCELLED";
+        return visualStatus !== "MANGAKA_APPROVED" && visualStatus !== "CANCELLED";
       })
       .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
       .slice(0, 5);
@@ -132,7 +131,7 @@ export function AssistantDashboard() {
       mine
         .filter(
           (t) =>
-            t.status === "MANGAKA_REVISION_REQUESTED" || t.status === "EDITOR_REVISION_REQUESTED",
+            t.status === "REVISION_REQUESTED",
         )
         .slice(0, 5),
     [mine],
@@ -152,10 +151,10 @@ export function AssistantDashboard() {
       totalEarned: myEarnings.reduce((acc, e) => acc + (e.amount || 0), 0),
       pending: myEarnings.filter((e) => e.status === "PENDING").reduce((a, b) => a + b.amount, 0),
       confirmed: myEarnings
-        .filter((e) => e.status === "CONFIRMED" || e.status === "EARNED")
+        .filter((e) => e.status === "EARNED")
         .reduce((a, b) => a + b.amount, 0),
       paidMonth: myEarnings
-        .filter((e) => e.status === "PAID" && e.month === monthKey)
+        .filter((e) => e.status === "EARNED" && e.period === monthKey)
         .reduce((a, b) => a + b.amount, 0),
     };
   }, [myEarnings]);

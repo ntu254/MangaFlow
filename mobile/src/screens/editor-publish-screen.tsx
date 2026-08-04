@@ -34,7 +34,14 @@ export function EditorPublishScreen({
 
   if (detail.isLoading && !detail.data) return <WorkflowState kind="loading" />
   if (detail.error && !detail.data) {
-    return <WorkflowState kind="error" error={detail.error as Error} onRetry={() => void detail.refetch()} />
+    return (
+      <WorkflowState
+        kind="error"
+        context="this publication"
+        error={detail.error as Error}
+        onRetry={() => void detail.refetch()}
+      />
+    )
   }
   const data = detail.data
   if (!data) return null
@@ -81,6 +88,9 @@ export function EditorPublishScreen({
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Status</Text>
           <Text style={styles.body}>{data.publication?.status ?? "Not scheduled"}</Text>
+          <Text style={styles.body}>
+            Cadence: {data.series.publicationType === "WEEKLY" ? "Weekly" : "Monthly"}
+          </Text>
           {data.publication?.scheduledAt ? (
             <Text style={styles.body}>Scheduled for {data.publication.scheduledAt}</Text>
           ) : null}

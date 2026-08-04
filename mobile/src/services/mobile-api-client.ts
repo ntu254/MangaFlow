@@ -14,7 +14,12 @@ interface ApiEnvelope<T> {
   details?: unknown
 }
 
-async function parse<T>(response: Response): Promise<T> {
+export interface MobileApiResponse<T> {
+  data: T
+  requestId?: string
+}
+
+async function parse<T>(response: Response): Promise<MobileApiResponse<T>> {
   const requestId = response.headers.get("x-request-id") ?? undefined
   let envelope: ApiEnvelope<T> | null = null
   try {
@@ -33,7 +38,7 @@ async function parse<T>(response: Response): Promise<T> {
     )
   }
 
-  return (envelope as ApiEnvelope<T>).data
+  return { data: (envelope as ApiEnvelope<T>).data, requestId }
 }
 
 async function send(path: string, options: RequestInit): Promise<Response> {
@@ -57,6 +62,9 @@ export const mobileApi = {
     refreshHandler = handler
   },
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    return (await this.requestWithMetadata<T>(path, options)).data
+  },
+  async requestWithMetadata<T>(path: string, options: RequestInit = {}): Promise<MobileApiResponse<T>> {
     let response = await send(path, options)
     if (response.status === 401 && refreshHandler) {
       const renewed = await refreshHandler()

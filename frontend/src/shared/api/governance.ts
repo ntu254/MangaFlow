@@ -15,6 +15,8 @@ export const boardApi = {
     apiRequest(`/voting-sessions/${id}`, { method: "PATCH", body }),
   closeSession: (id: string) =>
     apiRequest(`/voting-sessions/${id}/close`, { method: "POST", body: {} }),
+  resolveTie: (id: string, body: { decision: "APPROVED" | "REJECTED"; note: string; expectedVersion?: number }) =>
+    apiRequest(`/voting-sessions/${id}/resolve-tie`, { method: "POST", body }),
   cancelSession: (id: string) =>
     apiRequest(`/voting-sessions/${id}/cancel`, { method: "POST", body: {} }),
   addSessionNote: (id: string, body: { text: string }) =>

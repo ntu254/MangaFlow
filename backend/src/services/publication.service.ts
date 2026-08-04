@@ -1,13 +1,13 @@
-import { PublicationModel, SeriesModel } from "../db/models.js";
+import { ChapterModel, PublicationModel, SeriesModel } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { AppError } from "../lib/http.js";
 import type { AuthedRequest } from "../types.js";
 import type { ClientSession } from "mongoose";
-import { audit, notifyMany } from "./audit.service.js";
+import { audit, notifyMany, systemActor } from "./audit.service.js";
 import { normalizePublicationType } from "./proposal-lifecycle.service.js";
 
 function assertPublishableSeries(series: any) {
-  if (["CANCELLED", "COMPLETED"].includes(String(series?.status))) {
+  if (["CANCELLED", "COMPLETED", "ARCHIVED"].includes(String(series?.status))) {
     throw new AppError(409, "Series is not publishable.", "SERIES_NOT_PUBLISHABLE");
   }
 }
@@ -171,6 +171,62 @@ export async function publishChapter(
     },
   ], session);
   return publishedAt;
+}
+
+export async function publishDuePublications(now = new Date()) {
+  const due = await PublicationModel.find({
+    status: "SCHEDULED",
+    scheduledAt: { $lte: now },
+  }).lean();
+  let published = 0;
+  for (const publication of due) {
+    const claimed = await PublicationModel.updateOne(
+      { id: publication.id, status: "SCHEDULED", scheduledAt: { $lte: now } },
+      {
+        $set: {
+          status: "PUBLISHED",
+          publishedAt: now,
+          publishedById: systemActor().id,
+          updatedAt: now,
+        },
+      },
+    );
+    if (claimed.modifiedCount !== 1) continue;
+    const [chapter, series] = await Promise.all([
+      ChapterModel.findOne({ id: publication.chapterId }).lean(),
+      SeriesModel.findOne({ id: publication.seriesId }).lean(),
+    ]);
+    if (!chapter || !series || ["CANCELLED", "COMPLETED", "ARCHIVED"].includes(String(series.status))) {
+      await PublicationModel.updateOne(
+        { id: publication.id, status: "PUBLISHED" },
+        { $set: { status: "CANCELLED", updatedAt: now } },
+      );
+      continue;
+    }
+    await ChapterModel.updateOne(
+      { id: chapter.id, status: "READY_FOR_PUBLICATION" },
+      { $set: { status: "PUBLISHED", publishedAt: now, publishedById: systemActor().id, updatedAt: now } },
+    );
+    await SeriesModel.updateOne(
+      { id: series.id },
+      { $set: { visibility: "PUBLIC", publishedAt: series.publishedAt ?? now, updatedAt: now } },
+    );
+    const systemRequest = { actor: systemActor(), requestId: `publication-runner:${publication.id}` } as AuthedRequest;
+    await audit(systemRequest, "CHAPTER_PUBLISHED", "chapter", chapter.id, {
+      fromStatus: chapter.status,
+      toStatus: "PUBLISHED",
+      publishedEarly: false,
+      scheduledAt: new Date(publication.scheduledAt as Date).toISOString(),
+    });
+    await notifyMany([{
+      userId: series.authorId,
+      kind: "CHAPTER_PUBLISHED",
+      title: "Chapter published",
+      message: `${chapter.title} has been published.`,
+    }]);
+    published += 1;
+  }
+  return { published, checked: due.length };
 }
 
 export { assertPublishableSeries, requirePublicationType };

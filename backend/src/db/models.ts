@@ -4,10 +4,11 @@ import type {
   ProposalStatus,
   ChapterStatus,
   PageStatus,
+  TiePolicy,
+  TieResolution,
   VoteDecision,
   StudioTaskStatus,
   SubmissionStatus,
-  SubmissionReviewStage,
   RankingSource,
   RankingImportStatus,
   NotificationAudienceType,
@@ -225,22 +226,6 @@ const notificationSchema = looseSchema({
 /*  Proposal                                                            */
 /* ------------------------------------------------------------------ */
 
-export type ProposalVoteEmbedded = {
-  /** @deprecated use ProposalVoteModel (proposalvotes collection) as source of truth */
-  voterId?: string;
-  voterName?: string;
-  /** legacy field */
-  memberId?: string;
-  /** legacy field */
-  memberName?: string;
-  decision: VoteDecision;
-  comment?: string;
-  votedAt?: Date;
-  createdAt?: Date;
-  weight?: number;
-  isChair?: boolean;
-};
-
 export type ProposalHistoryEntry = {
   id?: string;
   action: string;
@@ -274,10 +259,6 @@ export type ProposalRecord = {
   coverFileKey?: string;
   sampleChapterUrl?: string;
   status: ProposalStatus;
-  /**
-   * @deprecated Denormalized cache only. Source of truth is `proposalvotes` collection.
-   */
-  votes: ProposalVoteEmbedded[];
   history: ProposalHistoryEntry[];
   manuscripts?: Record<string, unknown>[];
   materials?: Record<string, unknown>[];
@@ -338,7 +319,6 @@ const proposalSchema = looseSchema({
   sampleChapterUrl: { type: String },
   status: { type: String, required: true, default: "DRAFT", index: true },
   /** @deprecated — source of truth is proposalvotes collection */
-  votes: [Schema.Types.Mixed],
   history: [Schema.Types.Mixed],
   manuscripts: [Schema.Types.Mixed],
   materials: [Schema.Types.Mixed],
@@ -677,12 +657,8 @@ export type StudioTaskRecord = {
   chapterId?: string;
   pageId?: string;
   seriesId?: string;
-  /** New task contract: every new assignment targets exactly one page. */
-  targetScope?: "PAGE" | "REGION";
   /** True while the page has an active assignment in the new page-level flow. */
   pageTaskActive?: boolean;
-  /** @deprecated Regions are annotation/coordinate references, not task units. */
-  regionId?: string;
   title?: string;
   description?: string;
   type?: string;
@@ -720,9 +696,6 @@ export type StudioTaskRecord = {
   submittedAt?: Date;
   mangakaReviewedAt?: Date;
   mangakaReviewedById?: string;
-  editorReviewedAt?: Date;
-  editorReviewedById?: string;
-  completedAt?: Date;
   cancelledAt?: Date;
   cancelledById?: string;
   cancelReason?: string;
@@ -734,10 +707,7 @@ const studioTaskSchema = looseSchema({
   chapterId: { type: String, index: true },
   pageId: { type: String },
   seriesId: { type: String, index: true },
-  targetScope: { type: String, enum: ["PAGE", "REGION"] },
   pageTaskActive: { type: Boolean, index: true },
-  // @deprecated Kept only for reading/migrating legacy region-scoped tasks.
-  regionId: { type: String },
   title: { type: String },
   description: { type: String },
   type: { type: String },
@@ -772,20 +742,9 @@ const studioTaskSchema = looseSchema({
       "IN_PROGRESS",
       "SUBMITTED",
       "REVISION_REQUESTED",
-      "MANGAKA_REVIEWING",
-      "MANGAKA_REVISION_REQUESTED",
       "MANGAKA_APPROVED",
-      "EDITOR_REVIEWING",
-      "EDITOR_REVISION_REQUESTED",
-      "EDITOR_APPROVED",
       "REJECTED",
       "CANCELLED",
-      // Legacy values kept temporarily for backward compat during migration.
-      // New writes must use EDITOR_APPROVED (not COMPLETED) and TODO (not OPEN).
-      // @deprecated
-      "OPEN",
-      "COMPLETED",
-      "REVISION_REQUESTED",
     ],
     index: true,
   },
@@ -804,9 +763,6 @@ const studioTaskSchema = looseSchema({
   submittedAt: { type: Date },
   mangakaReviewedAt: { type: Date },
   mangakaReviewedById: { type: String },
-  editorReviewedAt: { type: Date },
-  editorReviewedById: { type: String },
-  completedAt: { type: Date },
   cancelledAt: { type: Date },
   cancelledById: { type: String },
   cancelReason: { type: String },
@@ -814,7 +770,6 @@ const studioTaskSchema = looseSchema({
 
 studioTaskSchema.index({ assigneeId: 1, assignmentStatus: 1, status: 1 });
 studioTaskSchema.index({ chapterId: 1, status: 1 });
-studioTaskSchema.index({ regionId: 1, status: 1 });
 studioTaskSchema.index(
   { pageId: 1 },
   {
@@ -907,21 +862,12 @@ export type SubmissionRecord = {
   seriesId?: string;
   pageId?: string;
   pageVersionId?: string;
-  regionId?: string;
   status: SubmissionStatus;
-  reviewStage?: SubmissionReviewStage;
-  reviewRound?: number;
   // Mangaka review
   mangakaDecision?: string;
   mangakaNote?: string;
   mangakaReviewedById?: string;
   mangakaReviewedAt?: Date;
-  // Editor review
-  editorDecision?: string;
-  editorNote?: string;
-  editorReviewedById?: string;
-  editorReviewedAt?: Date;
-  // Legacy single-reviewer fields (kept for backward compat)
   resultText?: string;
   imageUrl?: string;
   fileKey?: string;
@@ -929,14 +875,6 @@ export type SubmissionRecord = {
   fileUrl?: string;
   fileSizeKB?: number;
   mimeType?: string;
-  /** @deprecated use editorNote / mangakaNote */
-  reviewerNote?: string;
-  /** @deprecated use editorReviewedById / mangakaReviewedById */
-  reviewedById?: string;
-  /** @deprecated use editorReviewedAt / mangakaReviewedAt */
-  reviewedAt?: Date;
-  /** @deprecated use editorReviewedById */
-  reviewedByName?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -956,40 +894,23 @@ const submissionSchema = looseSchema({
   seriesId: { type: String, index: true },
   pageId: { type: String, index: true },
   pageVersionId: { type: String },
-  regionId: { type: String, index: true },
   status: {
     type: String,
     default: "PENDING",
     enum: [
       "PENDING",
-      "SUBMITTED",
       "MANGAKA_APPROVED",
       "REVISION_REQUESTED",
-      "MANGAKA_REVISION_REQUESTED",
-      "EDITOR_APPROVED",
-      "EDITOR_REVISION_REQUESTED",
       "REJECTED",
       "SUPERSEDED",
       // Legacy — kept during migration
-      "APPROVED",
-      "REVISION_REQUESTED",
     ],
     index: true,
   },
-  reviewStage: {
-    type: String,
-    enum: ["MANGAKA_REVIEW", "EDITOR_REVIEW", "FINAL"],
-    default: "MANGAKA_REVIEW",
-  },
-  reviewRound: { type: Number, default: 0 },
   mangakaDecision: { type: String },
   mangakaNote: { type: String },
   mangakaReviewedById: { type: String },
   mangakaReviewedAt: { type: Date },
-  editorDecision: { type: String },
-  editorNote: { type: String },
-  editorReviewedById: { type: String },
-  editorReviewedAt: { type: Date },
   resultText: { type: String },
   imageUrl: { type: String },
   fileKey: { type: String },
@@ -997,14 +918,6 @@ const submissionSchema = looseSchema({
   fileUrl: { type: String },
   fileSizeKB: { type: Number },
   mimeType: { type: String },
-  /** @deprecated */
-  reviewerNote: { type: String },
-  /** @deprecated */
-  reviewedById: { type: String },
-  /** @deprecated */
-  reviewedByName: { type: String },
-  /** @deprecated */
-  reviewedAt: { type: Date },
 });
 
 submissionSchema.index(
@@ -1107,24 +1020,27 @@ export type VotingSessionRecord = {
   title: string;
   mode?: string;
   status:
-    | "DRAFT"
     | "OPEN"
     | "TIED"
     | "FINALIZED"
     | "NO_QUORUM"
-    | "CANCELLED"
-    | "TIE_BREAK_REQUIRED";
+    | "CANCELLED";
   version?: number;
   result?: "APPROVED" | "REJECTED" | null;
   targetType?: "PROPOSAL";
   proposalId?: string;
   proposalVersionId?: string;
   reVoteOfSessionId?: string;
+  votingRound?: number;
+  tiePolicy?: TiePolicy;
+  tieResolution?: TieResolution;
+  tieResolutionNote?: string;
+  tieResolvedById?: string;
+  tieResolvedAt?: Date;
   proposalIds: string[];
   eligibleVoterIds?: string[];
   quorum?: number;
   chairId?: string;
-  tieBreakerId?: string;
   finalizedById?: string;
   finalizedAt?: Date;
   rules?: {
@@ -1153,7 +1069,7 @@ export type VotingSessionRecord = {
 const votingSessionSchema = looseSchema({
   title: { type: String, required: true },
   mode: { type: String },
-  status: { type: String, default: "DRAFT", index: true },
+  status: { type: String, default: "OPEN", index: true },
   version: { type: Number, default: 1 },
   result: {
     type: String,
@@ -1170,11 +1086,24 @@ const votingSessionSchema = looseSchema({
   proposalId: { type: String, index: true },
   proposalVersionId: { type: String, index: true },
   reVoteOfSessionId: { type: String },
+  votingRound: { type: Number, min: 1, max: 2, default: 1 },
+  tiePolicy: {
+    type: String,
+    enum: ["CHAIR_DECIDES", "REJECT", "RETURN_TO_BOARD"],
+    default: "CHAIR_DECIDES",
+  },
+  tieResolution: {
+    type: String,
+    enum: ["PENDING", "APPROVED", "REJECTED", "RETURNED_TO_BOARD"],
+    default: "PENDING",
+  },
+  tieResolutionNote: { type: String },
+  tieResolvedById: { type: String },
+  tieResolvedAt: { type: Date },
   proposalIds: [{ type: String }],
   eligibleVoterIds: [{ type: String }],
   quorum: { type: Number, min: 1 },
   chairId: { type: String },
-  tieBreakerId: { type: String },
   finalizedById: { type: String },
   finalizedAt: { type: Date },
   rules: {
@@ -1201,7 +1130,7 @@ votingSessionSchema.index(
     partialFilterExpression: {
       targetType: "PROPOSAL",
       proposalId: { $type: "string" },
-      status: { $in: ["DRAFT", "OPEN", "TIE_BREAK_REQUIRED"] },
+      status: { $in: ["OPEN"] },
     },
   },
 );
@@ -1511,6 +1440,22 @@ seriesMemberSchema.index(
 /*  SeriesInvite                                                       */
 /* ------------------------------------------------------------------ */
 
+export type SeriesInviteRecord = {
+  id: string;
+  seriesId: string;
+  userId: string;
+  email: string;
+  role?: string;
+  scope?: string;
+  invitedById: string;
+  status?: "PENDING" | "ACCEPTED" | "DECLINED" | "REVOKED" | "EXPIRED";
+  acceptedAt?: Date;
+  declinedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 const seriesInviteSchema = looseSchema({
   seriesId: { type: String, required: true, index: true },
   userId: { type: String, required: true, index: true },
@@ -1534,77 +1479,92 @@ seriesInviteSchema.index({ seriesId: 1, userId: 1, status: 1 });
 /*  Model exports                                                       */
 /* ------------------------------------------------------------------ */
 
-export const UserModel = mongoose.model<any>("User", userSchema);
-export const RefreshSessionModel = mongoose.model<any>(
+export const UserModel = mongoose.model<UserRecord>("User", userSchema);
+export const RefreshSessionModel = mongoose.model<RefreshSessionRecord>(
   "RefreshSession",
   refreshSessionSchema,
 );
-export const ProposalModel = mongoose.model<any>("Proposal", proposalSchema);
-export const ProposalVoteModel = mongoose.model<any>(
+export const ProposalModel = mongoose.model<ProposalRecord>(
+  "Proposal",
+  proposalSchema,
+);
+export const ProposalVoteModel = mongoose.model<ProposalVoteRecord>(
   "ProposalVote",
   proposalVoteSchema,
 );
-export const SeriesModel = mongoose.model<any>("Series", seriesSchema);
-export const ChapterModel = mongoose.model<any>("Chapter", chapterSchema);
+export const SeriesModel = mongoose.model<SeriesRecord>("Series", seriesSchema);
+export const ChapterModel = mongoose.model<ChapterRecord>(
+  "Chapter",
+  chapterSchema,
+);
 export { PublicationModel };
-export const StudioRegionModel = mongoose.model<any>(
+export const StudioRegionModel = mongoose.model<StudioRegionRecord>(
   "StudioRegion",
   studioRegionSchema,
 );
-export const StudioTaskModel = mongoose.model<any>(
+export const StudioTaskModel = mongoose.model<StudioTaskRecord>(
   "StudioTask",
   studioTaskSchema,
 );
-export const StudioCommentModel = mongoose.model<any>(
+export const StudioCommentModel = mongoose.model<StudioCommentRecord>(
   "StudioComment",
   studioCommentSchema,
 );
-export const SubmissionModel = mongoose.model<any>(
+export const SubmissionModel = mongoose.model<SubmissionRecord>(
   "Submission",
   submissionSchema,
 );
-export const MaterialModel = mongoose.model<any>("Material", materialSchema);
-export const VotingSessionModel = mongoose.model<any>(
+export const MaterialModel = mongoose.model<MaterialRecord>(
+  "Material",
+  materialSchema,
+);
+export const VotingSessionModel = mongoose.model<VotingSessionRecord>(
   "VotingSession",
   votingSessionSchema,
 );
-export const BoardDecisionModel = mongoose.model<any>(
+export const BoardDecisionModel = mongoose.model<BoardDecisionRecord>(
   "BoardDecision",
   boardDecisionSchema,
 );
-export const ProposalVersionModel = mongoose.model<any>(
+export const ProposalVersionModel = mongoose.model<ProposalVersionRecord>(
   "ProposalVersion",
   proposalVersionSchema,
 );
-export const ChapterReviewModel = mongoose.model<any>(
+export const ChapterReviewModel = mongoose.model<ChapterReviewRecord>(
   "ChapterReview",
   chapterReviewSchema,
 );
-export const NotificationModel = mongoose.model<any>(
+export const NotificationModel = mongoose.model<NotificationRecord>(
   "Notification",
   notificationSchema,
 );
-export const AuditEntryModel = mongoose.model<any>("AuditEntry", auditSchema);
-export const OutboxEventModel = mongoose.model<any>(
+export const AuditEntryModel = mongoose.model<AuditEntryRecord>(
+  "AuditEntry",
+  auditSchema,
+);
+export const OutboxEventModel = mongoose.model<OutboxEventRecord>(
   "OutboxEvent",
   outboxEventSchema,
 );
-export const RankingModel = mongoose.model<any>("Ranking", rankingSchema);
-export const RankingImportModel = mongoose.model<any>(
+export const RankingModel = mongoose.model<RankingRecord>(
+  "Ranking",
+  rankingSchema,
+);
+export const RankingImportModel = mongoose.model<RankingImportRecord>(
   "RankingImport",
   rankingImportSchema,
 );
 export { EarningItemModel, EarningModel };
 export { RateTableModel };
-export const AiProcessingModel = mongoose.model<any>(
+export const AiProcessingModel = mongoose.model<AiProcessingRecord>(
   "AiProcessing",
   aiProcessingSchema,
 );
-export const SeriesMemberModel = mongoose.model<any>(
+export const SeriesMemberModel = mongoose.model<SeriesMemberRecord>(
   "SeriesMember",
   seriesMemberSchema,
 );
-export const SeriesInviteModel = mongoose.model<any>(
+export const SeriesInviteModel = mongoose.model<SeriesInviteRecord>(
   "SeriesInvite",
   seriesInviteSchema,
 );

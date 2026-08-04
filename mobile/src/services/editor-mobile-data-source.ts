@@ -119,7 +119,13 @@ export interface EditorChapterDetail {
     status: string
     version: number | null
   }
-  series: { id: string; title: string; editorId: string | null }
+  series: {
+    id: string
+    title: string
+    editorId: string | null
+    publicationType?: "WEEKLY" | "MONTHLY" | null
+    cadence?: string | null
+  }
   pages: Array<{ id: string; pageNumber: number | null; status: string; thumbnailFileKey?: string }>
   readiness: EditorReadiness
   blockers: Array<{ id: string; status: string; body: string; targetType: string; targetId: string }>
@@ -209,24 +215,32 @@ export function publishChapterNow(chapterId: string): Promise<void> {
 
 export interface EditorHistoryItem {
   id: string
-  label: string
-  createdAt: string | null
+  action: string
+  area: "PROPOSAL" | "CHAPTER" | "COMMENT" | "PUBLICATION"
+  entityId: string
+  subject: string
+  seriesTitle: string | null
+  chapterNumber: number | null
+  chapterTitle: string | null
+  outcome: string | null
+  occurredAt: string | null
 }
 
-const editorSummarySchema = z.object({
-  recentActivity: z.array(z.object({
-    id: z.string(),
-    label: z.string(),
-    createdAt: z.union([z.string(), z.date()]).nullable().optional().transform((value) => {
-      if (!value) return null
-      return value instanceof Date ? value.toISOString() : value
-    }),
-  })),
-})
+const editorActivitySchema = z.array(z.object({
+  id: z.string(),
+  action: z.string(),
+  area: z.enum(["PROPOSAL", "CHAPTER", "COMMENT", "PUBLICATION"]),
+  entityId: z.string(),
+  subject: z.string(),
+  seriesTitle: z.string().nullable(),
+  chapterNumber: z.number().int().positive().nullable(),
+  chapterTitle: z.string().nullable(),
+  outcome: z.string().nullable(),
+  occurredAt: z.string().datetime().nullable(),
+}))
 
 export async function getEditorHistory(): Promise<EditorHistoryItem[]> {
-  const summary = editorSummarySchema.parse(
-    await mobileApi.request(`/dashboard/editor/summary`),
+  return editorActivitySchema.parse(
+    await mobileApi.request(`/editor/activity`),
   )
-  return summary.recentActivity
 }

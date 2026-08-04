@@ -1,23 +1,19 @@
 import {
   ChapterModel,
-  StudioRegionModel,
   StudioCommentModel,
   StudioTaskModel,
-  SubmissionModel,
 } from "../db/models.js";
 
 export type WorkloadBlocker = {
-  kind: "TASK" | "CHAPTER" | "COMMENT" | "SUBMISSION";
+  kind: "TASK" | "CHAPTER" | "COMMENT";
   id: string;
   status: string;
 };
 
 const TERMINAL_ASSISTANT_TASK_STATUSES = new Set([
   "MANGAKA_APPROVED",
-  "EDITOR_APPROVED",
   "REJECTED",
   "CANCELLED",
-  "COMPLETED",
 ]);
 
 export async function findAssistantAssignmentBlockers(
@@ -64,34 +60,12 @@ export async function findTantouWorkloadBlockers(
   const pageIds = chapters.flatMap((chapter: any) =>
     ((chapter.pages ?? []) as any[]).map((page) => page?.id).filter(Boolean),
   );
-  const [regions, tasks] = await Promise.all([
-    applySession(
-      StudioRegionModel.find({ $or: [{ seriesId }, { chapterId: { $in: chapterIds } }] })
-        .select({ id: 1 })
-        .lean(),
-    ),
-    applySession(
-      StudioTaskModel.find({ $or: [{ seriesId }, { chapterId: { $in: chapterIds } }] })
-        .select({ id: 1 })
-        .lean(),
-    ),
-  ]);
-  const regionIds = regions.map((region: any) => String(region.id));
-  const taskIds = tasks.map((task: any) => String(task.id));
-  const scopedSubmissions = await applySession(
-    SubmissionModel.find({
-      $or: [
-        { seriesId },
-        { chapterId: { $in: chapterIds } },
-        { pageId: { $in: pageIds } },
-        { regionId: { $in: regionIds } },
-        { taskId: { $in: taskIds } },
-      ],
-    })
-      .select({ id: 1, status: 1, reviewStage: 1 })
+  const tasks = await applySession(
+    StudioTaskModel.find({ $or: [{ seriesId }, { chapterId: { $in: chapterIds } }] })
+      .select({ id: 1 })
       .lean(),
   );
-  const submissionIds = scopedSubmissions.map((submission: any) => String(submission.id));
+  const taskIds = tasks.map((task: any) => String(task.id));
   const [reviewChapters, comments] = await Promise.all([
     applySession(
       ChapterModel.find({
@@ -109,13 +83,10 @@ export async function findTantouWorkloadBlockers(
               { seriesId },
               { chapterId: { $in: chapterIds } },
               { pageId: { $in: pageIds } },
-              { regionId: { $in: regionIds } },
               { taskId: { $in: taskIds } },
               { targetType: "CHAPTER", targetId: { $in: chapterIds } },
               { targetType: "PAGE", targetId: { $in: pageIds } },
-              { targetType: "REGION", targetId: { $in: regionIds } },
               { targetType: "TASK", targetId: { $in: taskIds } },
-              { targetType: "SUBMISSION", targetId: { $in: submissionIds } },
             ],
           },
           { $or: [{ isBlocking: true }, { blocking: true }] },
@@ -126,11 +97,6 @@ export async function findTantouWorkloadBlockers(
       .select({ id: 1, status: 1 })
       .lean(),
   ]);
-  const submissions = scopedSubmissions.filter(
-    (submission: any) =>
-      submission.reviewStage === "EDITOR_REVIEW" && submission.status === "MANGAKA_APPROVED",
-  );
-
   return [
     ...reviewChapters.map((item: any) => ({
       kind: "CHAPTER" as const,
@@ -139,11 +105,6 @@ export async function findTantouWorkloadBlockers(
     })),
     ...comments.map((item: any) => ({
       kind: "COMMENT" as const,
-      id: String(item.id),
-      status: String(item.status),
-    })),
-    ...submissions.map((item: any) => ({
-      kind: "SUBMISSION" as const,
       id: String(item.id),
       status: String(item.status),
     })),

@@ -17,25 +17,24 @@ export function summarizeVotes(proposal: SeriesProposal) {
 export function buildBoardQueue(proposals: SeriesProposal[]) {
   return proposals
     .filter((proposal) =>
-      ["PENDING_BOARD", "TIE_BREAK", "APPROVED", "REJECTED"].includes(proposal.status),
+      ["PENDING_BOARD", "APPROVED", "REJECTED"].includes(proposal.status),
     )
     .map((proposal) => {
       const votes = summarizeVotes(proposal);
-      const needsFinalize = proposal.status === "PENDING_BOARD" && Boolean(votes.status);
+      const needsFinalize =
+        proposal.status === "PENDING_BOARD" && (votes.status !== null || votes.total >= BOARD_TOTAL);
       return {
         proposal,
         votes,
         needsFinalize,
         tab:
-          proposal.status === "TIE_BREAK"
-            ? "Tie-break"
-            : proposal.status === "APPROVED"
-              ? "Approved"
-              : proposal.status === "REJECTED"
-                ? "Rejected"
-                : needsFinalize
-                  ? "Needs Finalize"
-                  : "Pending Vote",
+          proposal.status === "APPROVED"
+            ? "Approved"
+            : proposal.status === "REJECTED"
+              ? "Rejected"
+              : needsFinalize
+                ? "Needs Finalize"
+                : "Pending Vote",
       };
     });
 }

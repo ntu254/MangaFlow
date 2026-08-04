@@ -51,19 +51,6 @@ export const CHAPTER_TERMINAL_STATUSES = new Set(["PUBLISHED", "READY_FOR_PUBLIC
 /** Statuses that count as "in review" */
 export const CHAPTER_REVIEW_STATUSES = new Set(["TANTOU_REVIEW"]);
 
-/** Read-only compatibility for rows not yet processed by the backend migration. */
-export const CHAPTER_LEGACY_STATUS_MAP: Record<string, ChapterStatusV2> = {
-  DRAFTING: "IN_PRODUCTION",
-  ASSISTANT_WORKING: "IN_PRODUCTION",
-  MANGAKA_REVIEW: "IN_PRODUCTION",
-  EDITOR_REVIEW: "TANTOU_REVIEW",
-  IN_REVIEW: "TANTOU_REVIEW",
-  REVISION: "REVISION_REQUIRED",
-  EDITOR_APPROVED: "READY_FOR_PUBLICATION",
-  APPROVED: "READY_FOR_PUBLICATION",
-  SCHEDULED: "READY_FOR_PUBLICATION",
-};
-
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -86,12 +73,8 @@ export const STUDIO_TASK_STATUSES = [
   "TODO",
   "IN_PROGRESS",
   "SUBMITTED",
-  "MANGAKA_REVIEWING",
-  "MANGAKA_REVISION_REQUESTED",
+  "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
-  "EDITOR_REVIEWING",
-  "EDITOR_REVISION_REQUESTED",
-  "EDITOR_APPROVED",
   "REJECTED",
   "CANCELLED",
 ] as const;
@@ -104,37 +87,28 @@ export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
   SUBMITTED: "Submitted",
-  MANGAKA_REVIEWING: "Mangaka Reviewing",
-  MANGAKA_REVISION_REQUESTED: "Revision Requested",
   MANGAKA_APPROVED: "Mangaka Approved",
-  EDITOR_REVIEWING: "Editor Reviewing",
-  EDITOR_REVISION_REQUESTED: "Editor Revision Requested",
-  EDITOR_APPROVED: "Editor Approved",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
-  // Legacy
   COMPLETED: "Completed",
   OPEN: "To Do",
   REVISION_REQUESTED: "Revision Requested",
 };
 
 /** Task is considered "done" (eligible for earning) */
-export const TASK_DONE_STATUSES = new Set(["EDITOR_APPROVED"]);
+export const TASK_DONE_STATUSES = new Set(["MANGAKA_APPROVED"]);
 
 /** Task is in an active/pending state (still needs work) */
 export const TASK_ACTIVE_STATUSES = new Set([
   "TODO",
   "IN_PROGRESS",
   "SUBMITTED",
-  "MANGAKA_REVIEWING",
-  "MANGAKA_REVISION_REQUESTED",
+  "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
-  "EDITOR_REVIEWING",
-  "EDITOR_REVISION_REQUESTED",
 ]);
 
 /** Task is terminal and cannot change */
-export const TASK_TERMINAL_STATUSES = new Set(["EDITOR_APPROVED", "REJECTED", "CANCELLED"]);
+export const TASK_TERMINAL_STATUSES = new Set(["MANGAKA_APPROVED", "REJECTED", "CANCELLED"]);
 
 // ---------------------------------------------------------------------------
 // Submission
@@ -142,10 +116,8 @@ export const TASK_TERMINAL_STATUSES = new Set(["EDITOR_APPROVED", "REJECTED", "C
 
 export const SUBMISSION_STATUSES = [
   "PENDING",
+  "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
-  "MANGAKA_REVISION_REQUESTED",
-  "EDITOR_APPROVED",
-  "EDITOR_REVISION_REQUESTED",
   "REJECTED",
   "SUPERSEDED",
 ] as const;
@@ -153,27 +125,18 @@ export const SUBMISSION_STATUSES = [
 export type SubmissionStatusV2 = (typeof SUBMISSION_STATUSES)[number];
 
 export type SubmissionStatusLabelKey =
-  | SubmissionStatusV2
-  | "SUBMITTED"
-  | "APPROVED"
-  | "REVISION_REQUESTED";
+  SubmissionStatusV2;
 
 export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatusLabelKey, string> = {
   PENDING: "Pending Review",
   MANGAKA_APPROVED: "Mangaka Approved",
-  MANGAKA_REVISION_REQUESTED: "Revision Requested",
-  EDITOR_APPROVED: "Editor Approved",
-  EDITOR_REVISION_REQUESTED: "Editor Revision Requested",
+  REVISION_REQUESTED: "Revision Requested",
   REJECTED: "Rejected",
   SUPERSEDED: "Superseded",
-  // Legacy
-  SUBMITTED: "Pending Review",
-  APPROVED: "Editor Approved",
-  REVISION_REQUESTED: "Revision Requested",
 };
 
 /** Submission is fully approved and eligible for earning */
-export const SUBMISSION_APPROVED_STATUSES = new Set(["EDITOR_APPROVED"]);
+export const SUBMISSION_APPROVED_STATUSES = new Set(["MANGAKA_APPROVED"]);
 
 /** Submission needs action from Mangaka or Editor */
 export const SUBMISSION_NEEDS_REVIEW_STATUSES = new Set(["PENDING", "MANGAKA_APPROVED"]);
@@ -184,14 +147,11 @@ export const SUBMISSION_NEEDS_REVIEW_STATUSES = new Set(["PENDING", "MANGAKA_APP
 
 export const PROPOSAL_STATUSES = [
   "DRAFT",
-  "SUBMITTED",
   "PENDING_EDITOR",
   "EDITOR_REVIEWING",
   "CHANGES_REQUESTED",
-  "RESUBMITTED",
   "PENDING_BOARD",
-  "BOARD_VOTING",
-  "TIE_BREAK",
+  "BOARD_REVIEW",
   "APPROVED",
   "REJECTED",
   "WITHDRAWN",
@@ -202,14 +162,11 @@ export type ProposalStatusV2 = (typeof PROPOSAL_STATUSES)[number];
 
 export const PROPOSAL_STATUS_LABEL: Record<ProposalStatusV2, string> = {
   DRAFT: "Draft",
-  SUBMITTED: "Submitted",
   PENDING_EDITOR: "Awaiting Editor",
   EDITOR_REVIEWING: "Editor Reviewing",
   CHANGES_REQUESTED: "Changes Requested",
-  RESUBMITTED: "Resubmitted",
   PENDING_BOARD: "Pending Board",
-  BOARD_VOTING: "Board Voting",
-  TIE_BREAK: "Tie Break",
+  BOARD_REVIEW: "Board Review",
   APPROVED: "Approved",
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",
@@ -227,15 +184,6 @@ export type ProductionSeriesStatusV2 = (typeof SERIES_STATUSES)[number];
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Normalize a legacy status to its canonical V2 equivalent.
- * Useful for displaying data that may have been written before migration.
- */
-export function normalizeChapterStatus(status: string): string {
-  const key = status as keyof typeof CHAPTER_LEGACY_STATUS_MAP;
-  return CHAPTER_LEGACY_STATUS_MAP[key] ?? status;
-}
 
 /**
  * Returns true if a task is effectively "done" (eligible for earning).

@@ -82,7 +82,6 @@ function RouteComponent() {
       initialChapterId={task.chapterId}
       initialPageId={task.pageId}
       initialTaskId={task.id}
-      initialRegionId={task.regionId}
       backLink={<BackToTasksLink />}
     />
   );

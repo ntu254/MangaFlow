@@ -3,17 +3,15 @@ import type { StudioComment, StudioRegion, StudioTask } from "@/entities/series/
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
 import type { AssistantEarning } from "@/entities/submission/model/assistant-types";
 import { apiRequest, hasApiTokens } from "@/shared/api/client";
-import { assistantEarningsApi, notificationsApi } from "@/shared/api/services";
+import { assistantEarningsApi } from "@/shared/api/services";
 import { useAuth } from "@/shared/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { markNotificationReadInList } from "@/shared/lib/notification-cache";
 
 type StudioTaskFilters = {
   seriesId?: string;
   chapterId?: string;
   pageId?: string;
-  regionId?: string;
   assigneeId?: string;
   status?: string;
 };
@@ -41,25 +39,18 @@ type SubmissionFilters = {
 export type { MaterialItem, MaterialVersionItem } from "@/entities/series/model/series-types";
 import type { MaterialItem } from "@/entities/series/model/series-types";
 
-export type NotificationRecord = {
-  id: string;
-  userId: string;
-  kind: string;
-  title?: string;
-  message: string;
-  link?: string;
-  actionUrl?: string;
-  proposalId?: string;
-  audienceType?: "USER" | "ROLE" | "ALL";
-  audienceRole?: string;
-  priority?: "LOW" | "NORMAL" | "HIGH";
-  createdById?: string;
-  createdByName?: string;
-  sentAt?: string;
-  batchId?: string;
-  createdAt: string;
-  readAt?: string;
-};
+// Notification state lives in `@/features/notifications` — this module only
+// re-exports it so assistant screens keep a single import path. Defining a
+// second copy here is what let the paginated `/notifications` contract change
+// slip past the type checker.
+export {
+  mapNotificationError,
+  useMarkAllReadMutation,
+  useMarkReadMutation,
+  useNotificationsQuery,
+  useNotificationsUnreadCount,
+} from "@/features/notifications";
+export type { NotificationRecord } from "@/features/notifications";
 
 const seriesKeys = {
   all: ["series"] as const,
@@ -93,11 +84,6 @@ const submissionKeys = {
 
 const materialKeys = {
   series: (seriesId: string) => ["materials", "series", seriesId] as const,
-};
-
-const notificationKeys = {
-  all: ["notifications"] as const,
-  list: () => [...notificationKeys.all, "list"] as const,
 };
 
 function buildQuery(filters: Record<string, string | undefined>) {
@@ -145,23 +131,16 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
 function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
   switch (raw) {
     case "PENDING":
-    case "SUBMITTED":
-    case "IN_REVIEW":
-      return "SUBMITTED";
     case "REVISION_REQUESTED":
-    case "MANGAKA_REVISION_REQUESTED":
-    case "EDITOR_REVISION_REQUESTED":
       return "REVISION_REQUESTED";
     case "MANGAKA_APPROVED":
       return "MANGAKA_APPROVED";
-    case "EDITOR_APPROVED":
-      return "EDITOR_APPROVED";
-    case "APPROVED":
-      return "APPROVED";
     case "REJECTED":
       return "REJECTED";
+    case "SUPERSEDED":
+      return "SUPERSEDED";
     default:
-      return "DRAFT";
+      return "PENDING";
   }
 }
 
@@ -354,7 +333,6 @@ export function useCreateSubmissionMutation() {
       seriesId?: string;
       chapterId?: string;
       pageId?: string;
-      regionId?: string;
       fileKey?: string;
       fileName?: string;
       fileUrl?: string;
@@ -364,7 +342,7 @@ export function useCreateSubmissionMutation() {
       notes?: string;
       intent?: "DRAFT" | "SUBMIT";
       version?: number;
-      status?: "DRAFT" | "SUBMITTED";
+      status?: "PENDING" | "REVISION_REQUESTED" | "MANGAKA_APPROVED" | "REJECTED" | "SUPERSEDED";
       expectedCurrentSubmissionId?: string | null;
       idempotencyKey?: string;
     }
@@ -394,81 +372,6 @@ export function useCreateSubmissionMutation() {
       queryClient.invalidateQueries({ queryKey: studioKeys.all });
     },
   });
-}
-
-export function useNotificationsQuery() {
-  const user = useAuth((s) => s.user);
-
-  return useQuery<NotificationRecord[]>({
-    queryKey: notificationKeys.list(),
-    queryFn: () => notificationsApi.list() as Promise<NotificationRecord[]>,
-    staleTime: 60000,
-    enabled: !!user && hasApiTokens(),
-    refetchOnWindowFocus: true,
-    refetchInterval: 60000,
-    retry: 1,
-  });
-}
-
-export function useMarkReadMutation() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, Error, string>({
-    mutationFn: (id) => notificationsApi.read(id) as Promise<unknown>,
-    onSuccess: (_data, notificationId) => {
-      queryClient.setQueryData<NotificationRecord[]>(notificationKeys.list(), (old) =>
-        old ? markNotificationReadInList(old, notificationId) : old,
-      );
-    },
-  });
-}
-
-export function useMarkAllReadMutation() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    { successIds: string[]; failureIds: string[]; errorCount: number },
-    Error,
-    { notificationIds: string[] }
-  >({
-    mutationFn: async ({ notificationIds }) => {
-      const results = await Promise.allSettled(
-        notificationIds.map((id) => notificationsApi.read(id)),
-      );
-      const successIds: string[] = [];
-      const failureIds: string[] = [];
-
-      results.forEach((result, index) => {
-        const id = notificationIds[index];
-        if (result.status === "fulfilled") {
-          successIds.push(id);
-        } else {
-          failureIds.push(id);
-        }
-      });
-
-      return {
-        successIds,
-        failureIds,
-        errorCount: failureIds.length,
-      };
-    },
-    onSuccess: ({ successIds }) => {
-      queryClient.setQueryData<NotificationRecord[]>(notificationKeys.list(), (old) =>
-        old?.map((n) =>
-          successIds.includes(n.id) && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n,
-        ),
-      );
-    },
-  });
-}
-
-export function mapNotificationError(err: unknown): string {
-  if (err instanceof Error) {
-    if (err.message.includes("NOT_FOUND")) return "Notification not found.";
-    if (err.message.includes("FORBIDDEN"))
-      return "You do not have permission to perform this action.";
-    return err.message;
-  }
-  return "An unknown error occurred.";
 }
 
 export function useAssistantEarningsQuery() {
