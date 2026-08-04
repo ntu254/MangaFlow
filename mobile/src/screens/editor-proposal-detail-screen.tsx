@@ -112,6 +112,13 @@ export function EditorProposalDetailScreen({
         }
       : descriptor,
   )
+  const awaitingBoard = ["PENDING_BOARD", "BOARD_REVIEW"].includes(data.proposal.status)
+  const terminal = ["APPROVED", "REJECTED", "WITHDRAWN", "ARCHIVED"].includes(data.proposal.status)
+  const visibleActions = awaitingBoard || terminal ? [] : actions
+  const readOnlyStatus = awaitingBoard || terminal
+  const statusExplanation = awaitingBoard
+    ? "This proposal is awaiting a Board session. Editorial actions are unavailable while Board governance is in progress."
+    : "This proposal has reached a final status and is read-only."
 
   const onAction = (descriptor: WorkflowActionDescriptor) => {
     setSheetError(null)
@@ -159,17 +166,25 @@ export function EditorProposalDetailScreen({
       <WorkflowDetailLayout
         title={data.proposal.title}
         subtitle={`${data.proposal.status} · ${data.proposal.requestedPublicationType}`}
-        actionBar={<WorkflowActionBar actions={actions} onAction={onAction} busyAction={busyAction} />}
+        actionBar={<WorkflowActionBar actions={visibleActions} onAction={onAction} busyAction={busyAction} />}
       >
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Claim</Text>
-          <Text style={styles.body}>
-            {data.claim.claimedByEditorName
-              ? `Claimed by ${data.claim.claimedByEditorName}${data.claim.claimedByMe ? " (you)" : ""}`
-              : "Unclaimed"}
-          </Text>
-        </View>
-        {data.claim.claimedByEditorId ? (
+        {readOnlyStatus ? (
+          <WorkflowState
+            kind="empty"
+            title={awaitingBoard ? "Awaiting Board session" : "Read-only proposal"}
+            description={statusExplanation}
+          />
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>Claim</Text>
+            <Text style={styles.body}>
+              {data.claim.claimedByEditorName
+                ? `Claimed by ${data.claim.claimedByEditorName}${data.claim.claimedByMe ? " (you)" : ""}`
+                : "Unclaimed"}
+            </Text>
+          </View>
+        )}
+        {data.claim.claimedByEditorId && !readOnlyStatus ? (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Editorial checklist</Text>
             <Text style={styles.body}>

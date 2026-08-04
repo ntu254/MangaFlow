@@ -75,6 +75,17 @@ function renderScreen(detail: EditorProposalDetail = forwardReadyFixture) {
 describe("EditorProposalDetailScreen", () => {
   afterEach(() => jest.clearAllMocks())
 
+  it("shows Board-awaiting state instead of stale editor actions", async () => {
+    renderScreen({
+      ...forwardReadyFixture,
+      proposal: { ...forwardReadyFixture.proposal, status: "PENDING_BOARD" },
+    })
+
+    expect(await screen.findByText("Awaiting Board session")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Forward to Board" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Request changes" })).toBeNull()
+  })
+
   it("requires a reason before requesting changes", async () => {
     renderScreen()
     fireEvent.press(await screen.findByRole("button", { name: "Request changes" }))
