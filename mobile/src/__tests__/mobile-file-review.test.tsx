@@ -1,13 +1,15 @@
-import { render, screen } from "@testing-library/react-native"
+import { render, screen, waitFor } from "@testing-library/react-native"
 import {
   derivePreviewKind,
   resolveDisplayUrl,
   shouldRefreshLease,
   type FileUrlLease,
+  type ReviewFile,
 } from "@/domain/review-files"
 import { getReviewFiles, openReviewFile } from "@/services/mobile-file-review"
 import { mobileApi } from "@/services/mobile-api-client"
 import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
+import { ReviewFileViewer } from "@/components/review-file-viewer"
 
 describe("review-file domain rules", () => {
   it("refreshes a lease 30 seconds before a 900-second URL expires", () => {
@@ -40,10 +42,17 @@ describe("review-file domain rules", () => {
     )
   })
 
-  it("classifies preview kind from MIME type", () => {
-    expect(derivePreviewKind("image/png")).toBe("image")
-    expect(derivePreviewKind("application/pdf")).toBe("pdf")
-    expect(derivePreviewKind("application/zip")).toBe("external")
+  it("classifies image and unknown MIME types the same on every platform", () => {
+    expect(derivePreviewKind("image/png", "ios")).toBe("image")
+    expect(derivePreviewKind("image/png", "android")).toBe("image")
+    expect(derivePreviewKind("application/zip", "ios")).toBe("external")
+    expect(derivePreviewKind("application/zip", "android")).toBe("external")
+  })
+
+  it("renders PDF inline only on iOS; Android and web route to the external hand-off", () => {
+    expect(derivePreviewKind("application/pdf", "ios")).toBe("pdf")
+    expect(derivePreviewKind("application/pdf", "android")).toBe("external")
+    expect(derivePreviewKind("application/pdf", "web")).toBe("external")
   })
 })
 
@@ -153,5 +162,87 @@ describe("SubmittedFilesPanel", () => {
     )
     expect(screen.getByText("cover.png")).toBeVisible()
     expect(screen.getByText(/Submitted by Mangaka Rin/)).toBeVisible()
+  })
+})
+
+function mockDisplayUrlResponse(expiresAtMs: number) {
+  return new Response(
+    JSON.stringify({ success: true, data: { url: "/api/files/display/token", expiresAt: new Date(expiresAtMs).toISOString() } }),
+    { status: 200 },
+  )
+}
+
+const pdfFile: ReviewFile = {
+  id: "f-pdf",
+  key: "proposals/p-1/manuscript.pdf",
+  name: "manuscript.pdf",
+  mimeType: "application/pdf",
+  size: 1000,
+  previewKind: "external",
+}
+
+const zipFile: ReviewFile = {
+  id: "f-zip",
+  key: "proposals/p-1/archive.zip",
+  name: "archive.zip",
+  mimeType: "application/zip",
+  size: 1000,
+  previewKind: "external",
+}
+
+describe("ReviewFileViewer", () => {
+  afterEach(() => {
+    mobileApi.setAccessToken(null)
+    jest.restoreAllMocks()
+  })
+
+  it("keeps the viewer open with an explanatory message on 403 instead of closing it silently", async () => {
+    mobileApi.setAccessToken("access-123")
+    globalThis.fetch = jest.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: false, message: "Forbidden", code: "FORBIDDEN" }), { status: 403 }),
+    ) as unknown as typeof fetch
+    const onClose = jest.fn()
+
+    render(<ReviewFileViewer file={pdfFile} visible onClose={onClose} />)
+
+    expect(await screen.findByText("Access denied. This file can no longer be opened.")).toBeVisible()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it("explains the platform limitation for a PDF routed to the external hand-off", async () => {
+    mobileApi.setAccessToken("access-123")
+    globalThis.fetch = jest.fn().mockResolvedValue(mockDisplayUrlResponse(Date.now() + 60_000)) as unknown as typeof fetch
+
+    render(<ReviewFileViewer file={pdfFile} visible onClose={jest.fn()} />)
+
+    expect(
+      await screen.findByText("PDF preview isn't supported on this device. Open it in your device's PDF reader instead."),
+    ).toBeVisible()
+  })
+
+  it("shows the generic unsupported-type message for a non-PDF external file", async () => {
+    mobileApi.setAccessToken("access-123")
+    globalThis.fetch = jest.fn().mockResolvedValue(mockDisplayUrlResponse(Date.now() + 60_000)) as unknown as typeof fetch
+
+    render(<ReviewFileViewer file={zipFile} visible onClose={jest.fn()} />)
+
+    expect(await screen.findByText("This file type is not previewed inside MangaFlow.")).toBeVisible()
+  })
+
+  it("proactively refreshes the lease 30 seconds before it expires, without waiting for a failure", async () => {
+    jest.useFakeTimers()
+    mobileApi.setAccessToken("access-123")
+    const fetchMock = jest.fn().mockResolvedValue(mockDisplayUrlResponse(Date.now() + 60_000))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    render(<ReviewFileViewer file={pdfFile} visible onClose={jest.fn()} />)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    jest.advanceTimersByTime(30_000)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+
+    jest.useRealTimers()
   })
 })

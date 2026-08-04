@@ -5,9 +5,16 @@ import { WebView } from "react-native-webview";
 
 import { MFIcon } from "@/design/icons";
 import { colors, radius, spacing } from "@/design/tokens";
-import { shouldRefreshLease, type FileUrlLease, type ReviewFile } from "@/domain/review-files";
+import { REFRESH_SKEW_MS, shouldRefreshLease, type FileUrlLease, type ReviewFile } from "@/domain/review-files";
 import { openReviewFile } from "@/services/mobile-file-review";
 import { MobileApiError } from "@/services/mobile-api-error";
+
+function externalReasonText(file: ReviewFile | null): string {
+  if (file?.mimeType.trim().toLowerCase() === "application/pdf") {
+    return "PDF preview isn't supported on this device. Open it in your device's PDF reader instead.";
+  }
+  return "This file type is not previewed inside MangaFlow.";
+}
 
 type ViewerStatus = "loading" | "ready" | "unavailable" | "denied" | "error";
 
@@ -44,15 +51,16 @@ export function ReviewFileViewer({
     } catch (error) {
       if (requestVersion !== requestVersionRef.current) return null;
       if (error instanceof MobileApiError && error.status === 403) {
+        // Show the denied message on this surface rather than closing behind
+        // the user's back; they close it themselves once they have read it.
         setLease(null);
         setStatus("denied");
-        clearAndClose();
         return null;
       }
       setStatus(error instanceof MobileApiError && error.status === 404 ? "unavailable" : "error");
       return null;
     }
-  }, [clearAndClose, file]);
+  }, [file]);
 
   useEffect(() => {
     if (!visible || !file) {
@@ -77,6 +85,29 @@ export function ReviewFileViewer({
     setLease(null);
     void acquireUrl();
   }, [acquireUrl]);
+
+  // Silently renew the lease before its 900-second server lifetime expires,
+  // instead of waiting for an image/PDF load failure to notice. The current
+  // preview stays on screen; a failed silent renewal is left for the next
+  // explicit retry or onError recovery rather than surfacing here.
+  const refreshLeaseQuietly = useCallback(async () => {
+    if (!file) return;
+    const requestVersion = requestVersionRef.current;
+    try {
+      const nextLease = await openReviewFile(file);
+      if (requestVersion !== requestVersionRef.current) return;
+      setLease(nextLease);
+    } catch {
+      // Ignored — see comment above.
+    }
+  }, [file]);
+
+  useEffect(() => {
+    if (!visible || !lease) return;
+    const delayMs = Math.max(0, lease.expiresAtMs - REFRESH_SKEW_MS - Date.now());
+    const timer = setTimeout(() => void refreshLeaseQuietly(), delayMs);
+    return () => clearTimeout(timer);
+  }, [lease, refreshLeaseQuietly, visible]);
 
   const retry = useCallback(() => {
     hasRetriedRef.current = false;
@@ -136,7 +167,7 @@ export function ReviewFileViewer({
           <View style={styles.external}>
             <MFIcon name="external-link" size={42} color={colors.primary} />
             <Text style={styles.externalTitle}>Open this file externally</Text>
-            <Text style={styles.externalText}>This file type is not previewed inside MangaFlow.</Text>
+            <Text style={styles.externalText}>{externalReasonText(file)}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={`Open ${file.name} externally`} onPress={openExternally} style={styles.actionButton}>
               <Text style={styles.actionText}>Open file</Text>
             </Pressable>
