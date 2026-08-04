@@ -11,7 +11,7 @@ import { MobileApiError } from "@/services/mobile-api-error";
 
 function externalReasonText(file: ReviewFile | null): string {
   if (file?.mimeType.trim().toLowerCase() === "application/pdf") {
-    return "PDF preview isn't supported on this device. Open it in your device's PDF reader instead.";
+    return "PDF preview is unavailable in this build. Open it in your device PDF reader instead.";
   }
   return "This file type is not previewed inside MangaFlow.";
 }
@@ -51,16 +51,13 @@ export function ReviewFileViewer({
     } catch (error) {
       if (requestVersion !== requestVersionRef.current) return null;
       if (error instanceof MobileApiError && error.status === 403) {
-        // Show the denied message on this surface rather than closing behind
-        // the user's back; they close it themselves once they have read it.
-        setLease(null);
-        setStatus("denied");
+        clearAndClose();
         return null;
       }
       setStatus(error instanceof MobileApiError && error.status === 404 ? "unavailable" : "error");
       return null;
     }
-  }, [file]);
+  }, [clearAndClose, file]);
 
   useEffect(() => {
     if (!visible || !file) {

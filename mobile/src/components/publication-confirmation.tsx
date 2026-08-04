@@ -155,7 +155,7 @@ export function PublicationConfirmation({
     action === "PUBLISH"
       ? `Publishing ${chapterTitle} now makes it immediately visible to the public.`
       : action === "SCHEDULE"
-        ? `Schedule ${chapterTitle} for a future date. It publishes automatically at that time.`
+        ? `Schedule ${chapterTitle} for a future date. It does not publish automatically; return here and choose Publish now once the scheduled time is due.`
         : `Postpone the scheduled publication of ${chapterTitle}.`
   const readiness = action === "PUBLISH" ? `Backend readiness is currently ${readinessReady ? "ready" : "not ready"}.` : null
   const scheduledAt = action === "SCHEDULE" ? toScheduledAt(selectedDate, hour, minute, new Date()) : null

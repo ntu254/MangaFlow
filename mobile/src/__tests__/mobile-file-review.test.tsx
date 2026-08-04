@@ -196,7 +196,7 @@ describe("ReviewFileViewer", () => {
     jest.restoreAllMocks()
   })
 
-  it("keeps the viewer open with an explanatory message on 403 instead of closing it silently", async () => {
+  it("clears the lease and closes the viewer on 403", async () => {
     mobileApi.setAccessToken("access-123")
     globalThis.fetch = jest.fn().mockResolvedValue(
       new Response(JSON.stringify({ success: false, message: "Forbidden", code: "FORBIDDEN" }), { status: 403 }),
@@ -205,8 +205,7 @@ describe("ReviewFileViewer", () => {
 
     render(<ReviewFileViewer file={pdfFile} visible onClose={onClose} />)
 
-    expect(await screen.findByText("Access denied. This file can no longer be opened.")).toBeVisible()
-    expect(onClose).not.toHaveBeenCalled()
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
   it("explains the platform limitation for a PDF routed to the external hand-off", async () => {
@@ -216,7 +215,7 @@ describe("ReviewFileViewer", () => {
     render(<ReviewFileViewer file={pdfFile} visible onClose={jest.fn()} />)
 
     expect(
-      await screen.findByText("PDF preview isn't supported on this device. Open it in your device's PDF reader instead."),
+      await screen.findByText("PDF preview is unavailable in this build. Open it in your device PDF reader instead."),
     ).toBeVisible()
   })
 
