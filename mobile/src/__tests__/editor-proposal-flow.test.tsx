@@ -124,9 +124,40 @@ describe("EditorProposalDetailScreen", () => {
     expect(screen.getByText("3/6 complete")).toBeVisible()
     expect(screen.getByText("Character motivation")).toBeVisible()
     expect(screen.getAllByText("Not reviewed", { exact: true })).toHaveLength(3)
+    expect(screen.getAllByText("✓", { exact: true })).toHaveLength(3)
     expect(screen.queryByRole("checkbox", { name: "Character motivation" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Release claim" })).toBeNull()
+  })
+
+  it("uses the saved checklist after a refetch enters Board-awaiting state despite unsaved ticks", async () => {
+    mocked.releaseEditorProposalClaim.mockResolvedValue(undefined)
+    mocked.getEditorProposalDetail
+      .mockResolvedValueOnce(detailFixture)
+      .mockResolvedValue({
+        ...detailFixture,
+        proposal: { ...detailFixture.proposal, status: "PENDING_BOARD" },
+      })
+    render(
+      <TestQueryProvider>
+        <EditorProposalDetailScreen proposalId="p-002" />
+      </TestQueryProvider>,
+    )
+
+    fireEvent.press(await screen.findByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Storyboard flow" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Serialize potential" }))
+    expect(screen.getByText("6/6 complete")).toBeVisible()
+
+    fireEvent.press(screen.getByRole("button", { name: "Release claim" }))
+    fireEvent.press(screen.getByRole("button", { name: "Confirm release claim" }))
+
+    expect(await screen.findByText("Awaiting Board session")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    expect(screen.getAllByText("Done", { exact: true })).toHaveLength(3)
+    expect(screen.getAllByText("Not reviewed", { exact: true })).toHaveLength(3)
+    expect(screen.queryByRole("checkbox", { name: "Character motivation" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
   })
 
   it("requires a reason before requesting changes", async () => {

@@ -95,8 +95,12 @@ export function EditorProposalDetailScreen({
   const data = detail.data
   if (!data) return null
 
+  const awaitingBoard = ["PENDING_BOARD", "BOARD_REVIEW"].includes(data.proposal.status)
+  const terminal = ["APPROVED", "REJECTED", "WITHDRAWN", "ARCHIVED"].includes(data.proposal.status)
+  const readOnlyStatus = awaitingBoard || terminal
   const savedCount = checklistCount(savedChecklist)
   const draftCount = checklistCount(draftChecklist)
+  const displayedChecklistCount = readOnlyStatus ? savedCount : draftCount
   const savedChecklistComplete = savedCount === EDITORIAL_CHECKLIST_SIZE
   const hasUnsavedChecklist = checklistKey(draftChecklist) !== checklistKey(savedChecklist)
 
@@ -112,10 +116,7 @@ export function EditorProposalDetailScreen({
         }
       : descriptor,
   )
-  const awaitingBoard = ["PENDING_BOARD", "BOARD_REVIEW"].includes(data.proposal.status)
-  const terminal = ["APPROVED", "REJECTED", "WITHDRAWN", "ARCHIVED"].includes(data.proposal.status)
   const visibleActions = awaitingBoard || terminal ? [] : actions
-  const readOnlyStatus = awaitingBoard || terminal
   const showChecklist = readOnlyStatus
     ? data.editorialChecklist !== null
     : data.claim.claimedByEditorId !== null
@@ -191,7 +192,7 @@ export function EditorProposalDetailScreen({
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Editorial checklist</Text>
             <Text style={styles.body}>
-              {draftCount}/{EDITORIAL_CHECKLIST_SIZE} complete
+              {displayedChecklistCount}/{EDITORIAL_CHECKLIST_SIZE} complete
             </Text>
             {data.claim.claimedByMe && !readOnlyStatus ? (
               <>
@@ -336,7 +337,7 @@ function ChecklistEvidence({ checklist }: { checklist: EditorialChecklist }) {
   return checklistLabels.map(([key, label]) => (
     <View key={key} style={styles.checklistRow}>
       <View style={[styles.checkbox, checklist[key] && styles.checkboxChecked]}>
-        {checklist[key] ? <Text style={styles.checkboxMark}>âœ“</Text> : null}
+        {checklist[key] ? <Text style={styles.checkboxMark}>✓</Text> : null}
       </View>
       <Text style={styles.checklistLabel}>{label}</Text>
       <Text style={styles.checklistState}>{checklist[key] ? "Done" : "Not reviewed"}</Text>
