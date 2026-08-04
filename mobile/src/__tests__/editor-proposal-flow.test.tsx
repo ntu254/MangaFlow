@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-screen"
 import { TestQueryProvider } from "@/test/test-query-provider"
 import { MobileApiError } from "@/services/mobile-api-error"
+import { mobileApi } from "@/services/mobile-api-client"
 import * as dataSource from "@/services/editor-mobile-data-source"
 import type { EditorialChecklist, EditorProposalDetail } from "@/services/editor-mobile-data-source"
 
@@ -16,6 +17,9 @@ jest.mock("@/services/editor-mobile-data-source", () => ({
 }))
 
 const mocked = dataSource as jest.Mocked<typeof dataSource>
+const realEditorDataSource = jest.requireActual<typeof import("@/services/editor-mobile-data-source")>(
+  "@/services/editor-mobile-data-source",
+)
 
 const detailFixture: EditorProposalDetail = {
   proposal: {
@@ -186,6 +190,56 @@ describe("EditorProposalDetailScreen", () => {
     expect(screen.getByText("3/6 complete")).toBeVisible()
     expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+  })
+})
+
+describe("editorial checklist transport", () => {
+  afterEach(() => jest.restoreAllMocks())
+
+  it("serializes only editable fields when saving drafts loaded with completion metadata", async () => {
+    const fetchedChecklist = {
+      hook: true,
+      characterMotivation: false,
+      audienceFit: true,
+      storyboardFlow: false,
+      manuscriptQuality: true,
+      serializePotential: false,
+      completedById: "u-editor",
+    }
+    const request = jest.spyOn(mobileApi, "request").mockResolvedValue(undefined)
+
+    await realEditorDataSource.updateEditorProposalChecklist("p-002", fetchedChecklist)
+    await realEditorDataSource.updateEditorProposalChecklist("p-002", {
+      ...fetchedChecklist,
+      characterMotivation: true,
+    })
+
+    const updateBodies = request.mock.calls
+      .filter(([path]) => path === "/proposals/p-002/actions/UPDATE_EDITORIAL_CHECKLIST")
+      .map(([, options]) => JSON.parse(options?.body as string))
+
+    expect(updateBodies).toEqual([
+      {
+        editorialChecklist: {
+          hook: true,
+          characterMotivation: false,
+          audienceFit: true,
+          storyboardFlow: false,
+          manuscriptQuality: true,
+          serializePotential: false,
+        },
+      },
+      {
+        editorialChecklist: {
+          hook: true,
+          characterMotivation: true,
+          audienceFit: true,
+          storyboardFlow: false,
+          manuscriptQuality: true,
+          serializePotential: false,
+        },
+      },
+    ])
   })
 })
 

@@ -23,6 +23,17 @@ export interface EditorialChecklist {
   serializePotential: boolean
 }
 
+function toEditorialChecklistPayload(checklist: EditorialChecklist): EditorialChecklist {
+  return {
+    hook: checklist.hook,
+    characterMotivation: checklist.characterMotivation,
+    audienceFit: checklist.audienceFit,
+    storyboardFlow: checklist.storyboardFlow,
+    manuscriptQuality: checklist.manuscriptQuality,
+    serializePotential: checklist.serializePotential,
+  }
+}
+
 export interface EditorProposalDetail {
   proposal: {
     id: string
@@ -98,7 +109,9 @@ export function updateEditorProposalChecklist(
   proposalId: string,
   checklist: EditorialChecklist,
 ): Promise<void> {
-  return proposalAction(proposalId, "UPDATE_EDITORIAL_CHECKLIST", { editorialChecklist: checklist })
+  return proposalAction(proposalId, "UPDATE_EDITORIAL_CHECKLIST", {
+    editorialChecklist: toEditorialChecklistPayload(checklist),
+  })
 }
 
 // ---------------------------------------------------------------------------
