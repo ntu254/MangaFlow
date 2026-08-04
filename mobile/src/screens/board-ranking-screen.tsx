@@ -19,13 +19,17 @@ export function BoardRankingScreen() {
   const [search, setSearch] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  const visibleRankings = useMemo(
+    () => (rankings.data?.items ?? []).filter((item) => !item.atRisk),
+    [rankings.data?.items],
+  )
   const items = useMemo(() => {
     const value = search.trim().toLocaleLowerCase()
-    if (!value) return rankings.data?.items ?? []
-    return (rankings.data?.items ?? []).filter((item) =>
+    if (!value) return visibleRankings
+    return visibleRankings.filter((item) =>
       item.seriesTitle.toLocaleLowerCase().includes(value),
     )
-  }, [rankings.data?.items, search])
+  }, [search, visibleRankings])
 
   const selected = items.find((item) => item.id === selectedId) ?? items[0] ?? null
 
@@ -49,7 +53,7 @@ export function BoardRankingScreen() {
         subtitle="Read-only backend ranking insight. Import remains on web."
       />
       <MFMetricStrip items={[
-        { id: "rows", label: "Ranked", value: String(rankings.data?.items.length ?? 0), tone: "primary", icon: "bar-chart-2" },
+        { id: "rows", label: "Ranked", value: String(visibleRankings.length), tone: "primary", icon: "bar-chart-2" },
         { id: "source", label: "Formula", value: "Backend", tone: "success", icon: "shield-check" },
       ]} />
       <TextInput

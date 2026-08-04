@@ -15,7 +15,7 @@ const mocked = dataSource as jest.Mocked<typeof dataSource>
 describe("Board read-only insights", () => {
   afterEach(() => jest.clearAllMocks())
 
-  it("shows backend ranking values without at-risk Board controls", async () => {
+  it("omits at-risk ranking rows from the Board", async () => {
     mocked.getBoardRankings.mockResolvedValue({
       generatedAt: "2026-07-30T09:00:00.000Z",
       items: [{
@@ -37,11 +37,11 @@ describe("Board read-only insights", () => {
       </TestQueryProvider>,
     )
 
-    expect(await screen.findByText("Neon District")).toBeVisible()
-    expect(screen.getByText(/Reader score 3.8/)).toBeVisible()
+    await screen.findByText("No ranking rows")
+    expect(screen.queryByText("Neon District")).toBeNull()
+    expect(screen.queryByText(/Reader score 3.8/)).toBeNull()
     expect(screen.queryByText(/import/i)).toBeVisible()
-    expect(screen.queryByText("At Risk")).toBeNull()
-    expect(screen.queryByRole("button", { name: /review at-risk/i })).toBeNull()
+    expect(screen.queryByText("AT RISK")).toBeNull()
   })
 
   it("renders immutable backend decision records with re-vote lineage", async () => {
