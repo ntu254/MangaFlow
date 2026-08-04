@@ -360,7 +360,10 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
         .post("/api/submissions")
         .set("Authorization", `Bearer ${assistant.accessToken}`)
         .send({ taskId: "tsk-unassigned-guard", intent: "SUBMIT", fileKey: "uploads/proof.png" })
-        .expect(404);
+        .expect(410)
+        .expect((res) => {
+          expect(res.body.code).toBe("ENDPOINT_DEPRECATED");
+        });
 
       await request(createApp())
         .post("/api/tasks/tsk-unassigned-guard/submit")

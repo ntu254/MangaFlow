@@ -188,7 +188,7 @@ describe("Rate table and task price snapshot contract", () => {
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ ...body, pageId: "ch-s-berserk-prod-5-p4", regionId: "reg-001" })
       .expect(400);
-    expect(regionAttempt.body.code).toBe("VALIDATION_ERROR");
+    expect(regionAttempt.body.code).toBe("REGION_TASKS_RETIRED");
   });
 
   it("makes concurrent task creation on one page first-writer-wins", async () => {

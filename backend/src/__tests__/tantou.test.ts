@@ -39,10 +39,9 @@ async function clearTantouWorkload(seriesId: string) {
   await SubmissionModel.updateMany(
     {
       $or: [{ seriesId }, { taskId: { $in: taskIds } }],
-      reviewStage: "EDITOR_REVIEW",
       status: "MANGAKA_APPROVED",
     },
-    { $set: { reviewStage: "MANGAKA_REVIEW" } },
+    { $set: { status: "SUPERSEDED" } },
   );
 }
 

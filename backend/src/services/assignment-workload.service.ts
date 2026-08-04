@@ -1,11 +1,12 @@
 import {
   ChapterModel,
+  SubmissionModel,
   StudioCommentModel,
   StudioTaskModel,
 } from "../db/models.js";
 
 export type WorkloadBlocker = {
-  kind: "TASK" | "CHAPTER" | "COMMENT";
+  kind: "TASK" | "CHAPTER" | "COMMENT" | "SUBMISSION";
   id: string;
   status: string;
 };
@@ -66,7 +67,7 @@ export async function findTantouWorkloadBlockers(
       .lean(),
   );
   const taskIds = tasks.map((task: any) => String(task.id));
-  const [reviewChapters, comments] = await Promise.all([
+  const [reviewChapters, comments, submissions] = await Promise.all([
     applySession(
       ChapterModel.find({
         seriesId,
@@ -96,6 +97,18 @@ export async function findTantouWorkloadBlockers(
     )
       .select({ id: 1, status: 1 })
       .lean(),
+    applySession(
+      SubmissionModel.find({
+        status: { $in: ["PENDING", "MANGAKA_APPROVED", "REVISION_REQUESTED"] },
+        $or: [
+          { seriesId },
+          { chapterId: { $in: chapterIds } },
+          { taskId: { $in: taskIds } },
+        ],
+      }),
+    )
+      .select({ id: 1, status: 1 })
+      .lean(),
   ]);
   return [
     ...reviewChapters.map((item: any) => ({
@@ -105,6 +118,11 @@ export async function findTantouWorkloadBlockers(
     })),
     ...comments.map((item: any) => ({
       kind: "COMMENT" as const,
+      id: String(item.id),
+      status: String(item.status),
+    })),
+    ...submissions.map((item: any) => ({
+      kind: "SUBMISSION" as const,
       id: String(item.id),
       status: String(item.status),
     })),

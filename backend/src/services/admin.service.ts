@@ -425,7 +425,8 @@ export async function workflowSummary() {
       pendingSubmissions,
       atRiskRankings,
       issues: issues.length,
-      highRisk: issues.filter((issue) => issue.severity === "HIGH").length,
+      highRisk:
+        atRiskRankings + issues.filter((issue) => issue.severity === "HIGH").length,
     },
     issues,
   };

@@ -469,7 +469,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       .get("/api/proposals")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(200);
-    const proposal = listRes.body.data.find((p: any) => p.status === "SUBMITTED");
+    const proposal = listRes.body.data.find((p: any) => p.status === "PENDING_EDITOR");
     if (!proposal) return;
 
     await request(createApp())
@@ -508,7 +508,7 @@ describe("MF-022 Backend Validation & Mass Assignment Guardrails", () => {
       title: "Claim then forward",
       authorId: "u-mangaka",
       authorName: "Mangaka",
-      status: "SUBMITTED",
+      status: "PENDING_EDITOR",
     });
 
     const claim = await request(createApp())

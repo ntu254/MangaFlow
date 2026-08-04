@@ -118,6 +118,7 @@ describe("MF-030A Board Queue Live Submission Review", () => {
       status: "OPEN",
       version: 1,
       quorum: 3,
+      eligibleVoterIds: ["u-board", "u-board-2"],
       createdById: "u-board",
       createdByName: "Yamamoto Director",
       openedAt: new Date(),

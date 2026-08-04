@@ -67,10 +67,8 @@ export function errorHandler(err: unknown, req: AuthedRequest, res: Response, _n
     });
   }
 
-  const extra =
-    "replacement" in appError && typeof (appError as AppError & { replacement?: unknown }).replacement === "string"
-      ? { replacement: (appError as AppError & { replacement: string }).replacement }
-      : {};
+  const replacement = appError.details?.replacement;
+  const extra = typeof replacement === "string" ? { replacement } : {};
 
   return res.status(appError.status).json({
     success: false,

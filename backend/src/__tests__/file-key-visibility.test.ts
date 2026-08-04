@@ -95,7 +95,7 @@ describe("editor file-key visibility", () => {
       pageId: "p-1",
       seriesId: "s-1",
       fileKey: "submissions/sub-1/work.png",
-      status: "SUBMITTED",
+      status: "PENDING",
     });
   }, 30_000);
   afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); }, 30_000);

@@ -169,6 +169,14 @@ export const deleteProposal = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const proposalAction = asyncRoute(async (req: AuthedRequest, res) => {
-  const action = validateAction(String(req.params.action), PROPOSAL_ACTIONS);
+  const requestedAction = String(req.params.action).toUpperCase();
+  if (requestedAction === "FORCE_STATUS") {
+    throw new AppError(
+      410,
+      "Direct proposal status changes are retired. Finalize through a VotingSession.",
+      "WORKFLOW_REMOVED",
+    );
+  }
+  const action = validateAction(requestedAction, PROPOSAL_ACTIONS);
   ok(res, await applyProposalAction(req, String(req.params.id), action, req.body));
 });

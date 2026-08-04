@@ -345,9 +345,22 @@ describe("Production-first completion hardening", () => {
       authorId: "u-mangaka",
       authorName: "Inoue Takehiko",
       synopsis: "Needs board",
-      status: "TIE_BREAK",
+      status: "PENDING_BOARD",
       votes: [],
       history: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await RankingModel.create({
+      id: "ranking-admin-summary",
+      seriesId: "series-admin-summary",
+      seriesTitle: "Admin Summary Series",
+      period: "admin-summary-period",
+      finalScore: 35,
+      voteCount: 10,
+      rank: 9,
+      status: "AT_RISK",
+      atRisk: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
