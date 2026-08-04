@@ -334,7 +334,7 @@ function closeResultMessage(status: string, votingRound?: number, tieResolution?
     return votingRound && votingRound >= 2
       ? tieResolution === "RETURNED_TO_BOARD"
         ? "The final re-vote tied. The proposal returned to the Board queue."
-        : "The final re-vote tied. The Chair must resolve the result."
+        : "The final re-vote tied. This round is read-only on mobile."
       : "Voting round tied. The backend opened the one allowed re-vote.";
   if (status === "NO_QUORUM")
     return "Voting round closed without quorum. The proposal returned to the Board queue.";

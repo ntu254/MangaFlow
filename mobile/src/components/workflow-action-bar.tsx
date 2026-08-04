@@ -41,6 +41,8 @@ export function WorkflowActionBar({
   onAction: (descriptor: WorkflowActionDescriptor) => void
   busyAction?: string | null
 }) {
+  if (actions.length === 0) return null
+
   return (
     <View style={styles.bar}>
       {actions.map((descriptor) => {

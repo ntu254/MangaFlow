@@ -118,6 +118,33 @@ describe("BoardSessionDetailScreen", () => {
     )
   })
 
+  it("describes a final tied close as read-only mobile history", async () => {
+    mocked.closeBoardSession.mockResolvedValue({
+      id: "vs-1",
+      title: "Weekly slate",
+      status: "TIED",
+      votingRound: 2,
+      tieResolution: "PENDING",
+    })
+    renderScreen({
+      ...votableSession,
+      session: { ...votableSession.session, votingRound: 2 },
+      tally: { ...votableSession.tally, approve: 2, reject: 2, total: 4, canFinalize: true },
+      actions: [
+        { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_FINALIZE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+      ],
+    })
+
+    fireEvent.press(await screen.findByRole("button", { name: "Close voting" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm close" }))
+
+    expect(
+      await screen.findByText("The final re-vote tied. This round is read-only on mobile."),
+    ).toBeVisible()
+    expect(screen.queryByText(/Chair must resolve/i)).toBeNull()
+  })
+
   it("does not render cancellation or tie-resolution controls", async () => {
     renderScreen({
       ...votableSession,

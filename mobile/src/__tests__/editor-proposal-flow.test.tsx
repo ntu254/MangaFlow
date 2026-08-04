@@ -103,8 +103,30 @@ describe("EditorProposalDetailScreen", () => {
     })
 
     expect(await screen.findByText("Awaiting Board session")).toBeVisible()
+    expect(screen.getByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("6/6 complete")).toBeVisible()
+    expect(screen.getByText("Hook")).toBeVisible()
+    expect(screen.getByText("Serialize potential")).toBeVisible()
+    expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Forward to Board" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Request changes" })).toBeNull()
+  })
+
+  it("retains the historical editorial checklist on a terminal proposal without controls", async () => {
+    renderScreen({
+      ...detailFixture,
+      proposal: { ...detailFixture.proposal, status: "APPROVED" },
+    })
+
+    expect(await screen.findByText("Read-only proposal")).toBeVisible()
+    expect(screen.getByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    expect(screen.getByText("Character motivation")).toBeVisible()
+    expect(screen.getAllByText("Not reviewed", { exact: true })).toHaveLength(3)
+    expect(screen.queryByRole("checkbox", { name: "Character motivation" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Release claim" })).toBeNull()
   })
 
   it("requires a reason before requesting changes", async () => {

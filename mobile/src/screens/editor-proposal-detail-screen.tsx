@@ -116,6 +116,9 @@ export function EditorProposalDetailScreen({
   const terminal = ["APPROVED", "REJECTED", "WITHDRAWN", "ARCHIVED"].includes(data.proposal.status)
   const visibleActions = awaitingBoard || terminal ? [] : actions
   const readOnlyStatus = awaitingBoard || terminal
+  const showChecklist = readOnlyStatus
+    ? data.editorialChecklist !== null
+    : data.claim.claimedByEditorId !== null
   const statusExplanation = awaitingBoard
     ? "This proposal is awaiting a Board session. Editorial actions are unavailable while Board governance is in progress."
     : "This proposal has reached a final status and is read-only."
@@ -184,13 +187,13 @@ export function EditorProposalDetailScreen({
             </Text>
           </View>
         )}
-        {data.claim.claimedByEditorId && !readOnlyStatus ? (
+        {showChecklist ? (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Editorial checklist</Text>
             <Text style={styles.body}>
               {draftCount}/{EDITORIAL_CHECKLIST_SIZE} complete
             </Text>
-            {data.claim.claimedByMe ? (
+            {data.claim.claimedByMe && !readOnlyStatus ? (
               <>
                 <ChecklistControls checklist={draftChecklist} onChange={setDraftChecklist} />
                 {hasUnsavedChecklist ? (
@@ -216,7 +219,9 @@ export function EditorProposalDetailScreen({
                   </Text>
                 </Pressable>
               </>
-            ) : null}
+            ) : (
+              <ChecklistEvidence checklist={savedChecklist} />
+            )}
           </View>
         ) : null}
         <View style={styles.card}>
@@ -325,6 +330,18 @@ function ChecklistControls({
       </Pressable>
     )
   })
+}
+
+function ChecklistEvidence({ checklist }: { checklist: EditorialChecklist }) {
+  return checklistLabels.map(([key, label]) => (
+    <View key={key} style={styles.checklistRow}>
+      <View style={[styles.checkbox, checklist[key] && styles.checkboxChecked]}>
+        {checklist[key] ? <Text style={styles.checkboxMark}>âœ“</Text> : null}
+      </View>
+      <Text style={styles.checklistLabel}>{label}</Text>
+      <Text style={styles.checklistState}>{checklist[key] ? "Done" : "Not reviewed"}</Text>
+    </View>
+  ))
 }
 
 // Forward requires an editor recommendation that is never synthesized. The
