@@ -225,44 +225,46 @@ function AuthenticatedShell({
 
   return (
     <MFScreen tabs={tabs} activeTab={tab} onTabChange={onTabChange} role={role}>
-      <MFHeader
-        role={role === "board" ? "BOARD" : "EDITOR"}
-        logoSuffix={role === "board" ? "BOARD" : undefined}
-        userName={session.user.name}
-        subtitle={designation}
-      />
-      <View style={styles.sessionStrip}>
-        <View style={styles.sessionIdentity}>
-          {demoMode ? (
-            <View style={styles.demoChip}>
-              <Text style={styles.demoChipText}>Demo data</Text>
-            </View>
-          ) : (
-            <MFIcon name="lock" size={15} color={colors.primary} />
-          )}
-          <Text style={styles.sessionText} numberOfLines={1}>
-            {session.user.email}
-          </Text>
+      <View style={styles.shellChrome}>
+        <MFHeader
+          role={role === "board" ? "BOARD" : "EDITOR"}
+          logoSuffix={role === "board" ? "BOARD" : undefined}
+          userName={session.user.name}
+          subtitle={designation}
+        />
+        <View style={styles.sessionStrip}>
+          <View style={styles.sessionIdentity}>
+            {demoMode ? (
+              <View style={styles.demoChip}>
+                <Text style={styles.demoChipText}>Demo data</Text>
+              </View>
+            ) : (
+              <MFIcon name="lock" size={15} color={colors.primary} />
+            )}
+            <Text style={styles.sessionText} numberOfLines={1}>
+              {session.user.email}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Account menu"
+            onPress={onToggleMenu}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarText}>{session.user.name.slice(0, 1).toUpperCase()}</Text>
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Account menu"
-          onPress={onToggleMenu}
-          style={styles.avatar}
-        >
-          <Text style={styles.avatarText}>{session.user.name.slice(0, 1).toUpperCase()}</Text>
-        </Pressable>
+        {menuOpen ? (
+          <View style={styles.menu}>
+            <Text style={styles.menuName}>{session.user.name}</Text>
+            <Text style={styles.menuDesignation}>{designation}</Text>
+            <MFButton tone="danger" variant="soft" onPress={onLogout}>
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </MFButton>
+          </View>
+        ) : null}
       </View>
-      {menuOpen ? (
-        <View style={styles.menu}>
-          <Text style={styles.menuName}>{session.user.name}</Text>
-          <Text style={styles.menuDesignation}>{designation}</Text>
-          <MFButton tone="danger" variant="soft" onPress={onLogout}>
-            {isLoggingOut ? "Logging out..." : "Logout"}
-          </MFButton>
-        </View>
-      ) : null}
-      {body}
+      <View style={styles.body}>{body}</View>
     </MFScreen>
   )
 }
@@ -448,6 +450,8 @@ const styles = StyleSheet.create({
   demoButtonText: { flex: 1 },
   demoButtonTitle: { color: colors.text, fontSize: 14, fontWeight: "900" },
   demoButtonSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  shellChrome: { paddingHorizontal: spacing.md, gap: spacing.md },
+  body: { flex: 1 },
   sessionStrip: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radius.full, borderWidth: 1, borderColor: colors.outlineVariant, padding: 5 },
   sessionIdentity: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: spacing.xs, paddingLeft: spacing.sm },
   sessionText: { flex: 1, color: colors.textMuted, fontSize: 12, fontWeight: "800" },

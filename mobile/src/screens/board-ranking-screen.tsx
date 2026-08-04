@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import {
   MFBadge,
   MFDetailList,
@@ -46,7 +46,7 @@ export function BoardRankingScreen({
   }
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MFHero
         role="board"
         title="Ranking"
@@ -157,7 +157,7 @@ export function BoardRankingScreen({
           ) : null}
         </>
       ) : null}
-    </>
+    </ScrollView>
   )
 }
 
@@ -181,6 +181,7 @@ function formatDate(value?: string): string {
 }
 
 const styles = StyleSheet.create({
+  content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
   search: {
     minHeight: 44,
     borderWidth: 1,
