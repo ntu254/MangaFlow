@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 import type { UseQueryResult } from "@tanstack/react-query"
+import { useHardwareBackToClose } from "@/hooks/use-hardware-back"
 import { WorkflowDetailLayout } from "@/components/workflow-detail-layout"
 import { WorkflowState } from "@/components/workflow-state"
 import { AtRiskDecisionSheet } from "@/components/at-risk-decision-sheet"
@@ -42,12 +43,23 @@ export function BoardWorkspace({
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [atRiskTarget, setAtRiskTarget] = useState<AtRiskTarget | null>(null)
   const [creatingSession, setCreatingSession] = useState(false)
+  const [selectionError, setSelectionError] = useState<string | null>(null)
 
   useEffect(() => {
     setSelectedSessionId(null)
     setAtRiskTarget(null)
     setCreatingSession(false)
+    setSelectionError(null)
   }, [tab])
+
+  useHardwareBackToClose(
+    selectedSessionId !== null || atRiskTarget !== null || creatingSession,
+    () => {
+      setSelectedSessionId(null)
+      setAtRiskTarget(null)
+      setCreatingSession(false)
+    },
+  )
 
   if (selectedSessionId) {
     return (
@@ -86,9 +98,13 @@ export function BoardWorkspace({
   }
 
   const selectInboxItem = (item: MobileWorkItem) => {
+    setSelectionError(null)
     if (item.kind === "AT_RISK") {
       const seriesId = typeof item.summary.seriesId === "string" ? item.summary.seriesId : ""
-      if (!seriesId) return
+      if (!seriesId) {
+        setSelectionError(`Could not open "${item.title}" — missing series reference. Refresh and try again.`)
+        return
+      }
       setAtRiskTarget({
         rankingId: item.entityId,
         seriesId,
@@ -98,7 +114,11 @@ export function BoardWorkspace({
       })
       return
     }
-    if (item.entityType === "VOTING_SESSION") setSelectedSessionId(item.entityId)
+    if (item.entityType === "VOTING_SESSION") {
+      setSelectedSessionId(item.entityId)
+      return
+    }
+    setSelectionError(`Could not open "${item.title}". Refresh and try again.`)
   }
 
   if (tab === "sessions") {
@@ -148,15 +168,22 @@ export function BoardWorkspace({
   }
 
   return (
-    <BoardTodayScreen
-      inbox={inbox.data}
-      isLoading={inbox.isLoading}
-      error={inbox.error}
-      onRetry={() => void inbox.refetch()}
-      onRefresh={() => void inbox.refetch()}
-      refreshing={inbox.isRefetching}
-      onSelect={selectInboxItem}
-    />
+    <>
+      {selectionError ? (
+        <View style={styles.selectionErrorBanner}>
+          <Text style={styles.selectionErrorText}>{selectionError}</Text>
+        </View>
+      ) : null}
+      <BoardTodayScreen
+        inbox={inbox.data}
+        isLoading={inbox.isLoading}
+        error={inbox.error}
+        onRetry={() => void inbox.refetch()}
+        onRefresh={() => void inbox.refetch()}
+        refreshing={inbox.isRefetching}
+        onSelect={selectInboxItem}
+      />
+    </>
   )
 }
 
@@ -278,6 +305,14 @@ const styles = StyleSheet.create({
   back: { minHeight: 44, justifyContent: "center", paddingHorizontal: spacing.md },
   backText: { color: colors.primary, fontSize: typography.body, fontWeight: "700" },
   detail: { flex: 1 },
+  selectionErrorBanner: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    margin: spacing.md,
+    marginBottom: 0,
+    padding: spacing.sm,
+  },
+  selectionErrorText: { color: colors.danger, fontSize: typography.label, fontWeight: "700" },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
