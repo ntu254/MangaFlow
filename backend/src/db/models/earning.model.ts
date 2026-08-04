@@ -3,70 +3,6 @@ import type { EarningItemStatus, EarningStatus } from "../../types.js";
 import { looseSchema } from "../schema.js";
 
 /* ------------------------------------------------------------------ */
-/*  EarningLedgerEntry (Sprint 3.1 / EARN-001) — immutable ledger     */
-/* ------------------------------------------------------------------ */
-
-// Sprint 3.1 / EARN-001 — earnings move from a single mutable record per
-// task to an immutable ledger. Each entry references the domain event
-// that produced it (e.g. TASK_APPROVAL:<taskId>:<submissionId>), so the
-// net balance can always be reconstructed by replaying the entries.
-export type EarningLedgerEntryRecord = {
-  id: string;
-  entryType: "EARN" | "REVERSE" | "ADJUST" | "CONFIRM" | "PAY";
-  status: "PENDING" | "CONFIRMED" | "PAID" | "REVERSED" | "ADJUSTED";
-  assistantId: string;
-  seriesId?: string;
-  chapterId?: string;
-  taskId?: string;
-  submissionId?: string;
-  sourceKey: string;
-  amount: number;
-  currency: string;
-  reason?: string;
-  reverseOfKey?: string;
-  approvedById?: string;
-  approvedAt?: Date;
-  paidById?: string;
-  paidAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const earningLedgerEntrySchema = looseSchema({
-  entryType: {
-    type: String,
-    required: true,
-    enum: ["EARN", "REVERSE", "ADJUST", "CONFIRM", "PAY"],
-    index: true,
-  },
-  status: {
-    type: String,
-    required: true,
-    enum: ["PENDING", "CONFIRMED", "PAID", "REVERSED", "ADJUSTED"],
-    default: "PENDING",
-    index: true,
-  },
-  assistantId: { type: String, required: true, index: true },
-  seriesId: { type: String, index: true },
-  chapterId: { type: String, index: true },
-  taskId: { type: String, index: true },
-  submissionId: { type: String, index: true },
-  sourceKey: { type: String, required: true },
-  amount: { type: Number, required: true },
-  currency: { type: String, default: "VND" },
-  reason: { type: String },
-  reverseOfKey: { type: String, index: true },
-  approvedById: { type: String },
-  approvedAt: { type: Date },
-  paidById: { type: String },
-  paidAt: { type: Date },
-});
-
-// Sprint 3.1 / EARN-001 — a (sourceKey) is unique per entry. Re-issuing
-// the same domain event is a no-op rather than a second credit.
-earningLedgerEntrySchema.index({ sourceKey: 1 }, { unique: true });
-
-/* ------------------------------------------------------------------ */
 /*  Earning                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -181,7 +117,3 @@ earningItemSchema.index({ taskId: 1 }, { unique: true, sparse: true });
 
 export const EarningModel = mongoose.model<EarningRecord>("Earning", earningSchema);
 export const EarningItemModel = mongoose.model<EarningItemRecord>("EarningItem", earningItemSchema);
-export const EarningLedgerEntryModel = mongoose.model<EarningLedgerEntryRecord>(
-  "EarningLedgerEntry",
-  earningLedgerEntrySchema,
-);

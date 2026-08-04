@@ -652,30 +652,30 @@ function CreativeMaterialsSection({
           {MATERIAL_ROWS.map((def) => {
             const items = def.manuscripts
               ? manuscripts
-                  .slice()
-                  .sort((a, b) => b.version - a.version)
-                  .map((m) => ({
-                    id: m.id,
-                    name: m.fileName,
-                    version: m.version,
-                    uploadedAt: m.uploadedAt,
-                    url: m.fileUrl,
-                    fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
-                    isLatest: m.version === latestVersion,
-                    kindLabel: def.kindLabel,
-                  }))
+                .slice()
+                .sort((a, b) => b.version - a.version)
+                .map((m) => ({
+                  id: m.id,
+                  name: m.fileName,
+                  version: m.version,
+                  uploadedAt: m.uploadedAt,
+                  url: m.fileUrl,
+                  fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
+                  isLatest: m.version === latestVersion,
+                  kindLabel: def.kindLabel,
+                }))
               : materials
-                  .filter((m) => m.kind === def.materialKind)
-                  .map((m) => ({
-                    id: m.id,
-                    name: m.fileName,
-                    version: undefined as number | undefined,
-                    uploadedAt: m.uploadedAt,
-                    url: m.fileUrl,
-                    fileKey: m.fileKey,
-                    isLatest: false,
-                    kindLabel: def.kindLabel,
-                  }));
+                .filter((m) => m.kind === def.materialKind)
+                .map((m) => ({
+                  id: m.id,
+                  name: m.fileName,
+                  version: undefined as number | undefined,
+                  uploadedAt: m.uploadedAt,
+                  url: m.fileUrl,
+                  fileKey: m.fileKey,
+                  isLatest: false,
+                  kindLabel: def.kindLabel,
+                }));
 
             if (items.length === 0) {
               return (

@@ -11,13 +11,15 @@ export function formatDate(
 }
 
 export function formatDateTime(iso?: string | null) {
-  return formatDate(iso, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const time = new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(d);
+    const date = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(d);
+    return `${time} ${date}`;
+  } catch {
+    return iso;
+  }
 }
 
 export function timeAgo(iso?: string | null): string {

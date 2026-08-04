@@ -2,7 +2,6 @@ import { AuditEntryModel, OutboxEventModel, stripMongo } from "../db/models.js";
 import { id } from "../domain/ids.js";
 import { AppError } from "../lib/http.js";
 import mongoose, { type ClientSession } from "mongoose";
-import { incMetric } from "./observability.service.js";
 import type { AuthedRequest } from "../types.js";
 
 export function toObject<T>(doc: unknown) {
@@ -23,9 +22,6 @@ export function assertSessionVersionMatches(session: any, payload: any) {
     expectedVersion > 0 &&
     Number(session?.version ?? 1) !== expectedVersion
   ) {
-    // Sprint 3.1 / OBS-001 — track workflow conflicts so the dashboard
-    // can surface version-mismatch spikes after a deploy.
-    incMetric("workflow_conflict_total");
     throw new AppError(
       409,
       "Voting session changed while applying this command.",

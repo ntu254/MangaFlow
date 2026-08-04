@@ -14,6 +14,9 @@ import {
   Trash2,
   UserPlus,
   Download,
+  Play,
+  User,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
@@ -169,6 +172,10 @@ export function ChapterDetailWorkspace({
       return;
     }
     try {
+      if (chapter.status === "PLANNED") {
+        await chapterActionMutation.mutateAsync({ action: "START_DRAFT" as never });
+        toast.info("Chapter auto-started draft: PLANNED → IN_PRODUCTION");
+      }
       for (let i = 0; i < valid.length; i++) {
         const file = valid[i];
         const uploaded = await uploadFileToR2(file, {
@@ -226,7 +233,7 @@ export function ChapterDetailWorkspace({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-serif text-xl">
+              <h2 className="font-serif text-xl font-bold">
                 Chapter {String(chapter.number).padStart(3, "0")}
               </h2>
               <ChapterStatusPill status={chapter.status} />
@@ -234,33 +241,31 @@ export function ChapterDetailWorkspace({
                 {chapter.pages.length} / {chapter.targetPages ?? 20} pages
               </span>
             </div>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{chapter.title}</p>
+            {chapter.title && chapter.title !== series.title && !chapter.title.startsWith(series.title) && (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">{chapter.title}</p>
+            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-            <span>
-              <span className="font-semibold text-foreground">Assignee:</span>{" "}
-              {chapter.assigneeName || "—"}
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">Deadline:</span>{" "}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            {chapter.assigneeName && chapter.assigneeName !== series.authorName && (
+              <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-1 font-medium text-foreground/80">
+                <User className="size-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Assignee:</span> {chapter.assigneeName}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-1 font-medium text-foreground/80">
+              <Calendar className="size-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Deadline:</span>{" "}
               {formatDate(chapter.draftDueAt ?? chapter.reviewDueAt ?? chapter.scheduledAt) || "—"}
             </span>
-            <span>
-              <span className="font-semibold text-foreground">Updated:</span>{" "}
+            <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-1 font-medium text-foreground/80">
+              <Clock className="size-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Updated:</span>{" "}
               {formatDateTime(chapter.updatedAt)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => canEnterStudio && onOpenStudio?.()}
-              disabled={!canEnterStudio || !onOpenStudio}
-              title={canEnterStudio ? "Open Studio canvas" : "You do not have access to Studio."}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <PenTool className="size-3.5" /> Studio
-            </button>
 
             {/* Smart Dynamic Action Button */}
             {chapter.status === "TANTOU_REVIEW" ? (
@@ -349,9 +354,6 @@ export function ChapterDetailWorkspace({
         </div>
       </div>
 
-      {/* ── Compact Readiness Bar ── */}
-      <ChapterReadiness chapter={chapter} flat compact />
-
       {/* ── Main Workspace: 2-column ── */}
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         {/* Left: Pages Grid */}
@@ -361,146 +363,119 @@ export function ChapterDetailWorkspace({
 
         {/* Right: Sticky Inspector */}
         <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
-          {/* Next Action */}
-          {nextAction && (
-            <div
-              className={`rounded-md border p-3 text-xs font-semibold ${NEXT_TONEClasses[nextAction.tone]}`}
-            >
-              {nextAction.label}
-            </div>
-          )}
+          {/* Main Inspector Card */}
+          <div className="rounded-md border border-border bg-card p-3 space-y-3">
+            {/* Next Action Banner */}
+            {nextAction && (
+              <div
+                className={`rounded border p-2.5 text-xs font-semibold ${NEXT_TONEClasses[nextAction.tone]}`}
+              >
+                {nextAction.label}
+              </div>
+            )}
 
-          {/* Chapter Summary */}
-          <div className="rounded-md border border-border bg-card p-3">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Chapter summary
-            </p>
-            <dl className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Status</dt>
-                <dd>
-                  <ChapterStatusPill status={chapter.status} />
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Pages</dt>
-                <dd className="font-semibold">{chapter.pages.length} / {chapter.targetPages ?? 20}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Revision round</dt>
-                <dd className="font-semibold">{chapter.revisionRound}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Review notes</dt>
-                <dd className="font-semibold">{comments.length}</dd>
-              </div>
-            </dl>
-          </div>
-
-          {/* Active Tasks */}
-          <div className="rounded-md border border-border bg-card p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Active tasks
+            {/* Summary Metrics */}
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Chapter summary
               </p>
-              {activeTasks.length > 0 && (
-                <span className="text-[10px] text-muted-foreground">
-                  {activeTasks.length} pending
-                </span>
+              <dl className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded bg-muted/40 p-2">
+                  <dt className="text-[10px] text-muted-foreground">Status</dt>
+                  <dd className="mt-0.5 font-semibold">
+                    <ChapterStatusPill status={chapter.status} />
+                  </dd>
+                </div>
+                <div className="rounded bg-muted/40 p-2">
+                  <dt className="text-[10px] text-muted-foreground">Pages</dt>
+                  <dd className="mt-0.5 text-xs font-semibold">
+                    {chapter.pages.length} / {chapter.targetPages ?? 20}
+                  </dd>
+                </div>
+                <div className="rounded bg-muted/40 p-2">
+                  <dt className="text-[10px] text-muted-foreground">Revision round</dt>
+                  <dd className="mt-0.5 text-xs font-semibold">{chapter.revisionRound}</dd>
+                </div>
+                <div className="rounded bg-muted/40 p-2">
+                  <dt className="text-[10px] text-muted-foreground">Review notes</dt>
+                  <dd className="mt-0.5 text-xs font-semibold">{comments.length}</dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Readiness Checklist Section */}
+            <div className="border-t border-border/60 pt-2.5">
+              <ChapterReadiness chapter={chapter} flat />
+            </div>
+
+            {/* Active Tasks Section */}
+            <div className="border-t border-border/60 pt-2.5">
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Active tasks
+                </p>
+                {activeTasks.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {activeTasks.length} pending
+                  </span>
+                )}
+              </div>
+              {activeTasks.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">No pending tasks.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {activeTasks.map((n) => (
+                    <li
+                      key={n.id}
+                      className="flex items-center gap-2 rounded border border-border bg-background px-2 py-1.5"
+                    >
+                      <div className="grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[8px] font-bold">
+                        {n.authorName.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-semibold">{n.text ?? n.body}</p>
+                        <p className="truncate text-[9px] text-muted-foreground">
+                          {n.authorName} · {n.authorRole}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-            {activeTasks.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">No pending tasks.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {activeTasks.map((n) => (
-                  <li
-                    key={n.id}
-                    className="flex items-center gap-2 rounded border border-border bg-background px-2 py-1.5"
-                  >
-                    <div className="grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[8px] font-bold">
-                      {n.authorName.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[11px] font-semibold">{n.text ?? n.body}</p>
-                      <p className="truncate text-[9px] text-muted-foreground">
-                        {n.authorName} · {n.authorRole}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
-          {/* Pending Submissions */}
-          <div className="rounded-md border border-border bg-card p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Recent activity
-              </p>
-              {recentAudit.length > 0 && (
-                <span className="text-[10px] text-muted-foreground">{recentAudit.length} new</span>
-              )}
-            </div>
-            {recentAudit.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">No recent activity.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {recentAudit.map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-start gap-2 rounded border border-border bg-background px-2 py-1.5"
-                  >
-                    <div className="grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[8px] font-bold">
-                      {a.actorName.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[11px]">
-                        <span className="font-semibold">{a.actorName}</span>{" "}
-                        <span className="text-muted-foreground">{a.action}</span>
-                      </p>
-                      <p className="truncate text-[9px] text-muted-foreground">
-                        {a.detail ?? formatDateTime(a.createdAt)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Review Notes */}
-          <div id="chapter-review-notes" className="rounded-md border border-border bg-card p-3">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          {/* Review Notes Card */}
+          <div id="chapter-review-notes" className="rounded-md border border-border bg-card p-3 space-y-3">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Review notes
             </p>
-            {comments.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">No review notes yet.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {comments.map((n) => (
-                  <li
-                    key={n.id}
-                    className="rounded border border-border bg-background px-2 py-1.5 text-[11px]"
-                  >
-                    <div className="mb-0.5 flex items-center justify-between text-[9px] text-muted-foreground">
-                      <span>
-                        {n.authorName} · {n.authorRole}
-                      </span>
-                      <span>{formatDateTime(n.createdAt)}</span>
-                    </div>
-                    <p className="whitespace-pre-line">{n.text ?? n.body}</p>
-                    {n.status !== "OPEN" && (
-                      <p className="mt-0.5 text-[10px] text-emerald-700">{n.status}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+              {comments.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">No review notes yet.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {comments.map((n) => (
+                    <li
+                      key={n.id}
+                      className="rounded border border-border bg-background px-2 py-1.5 text-[11px]"
+                    >
+                      <div className="mb-0.5 flex items-center justify-between text-[9px] text-muted-foreground">
+                        <span>
+                          {n.authorName} · {n.authorRole}
+                        </span>
+                        <span>{formatDateTime(n.createdAt)}</span>
+                      </div>
+                      <p className="whitespace-pre-line">{n.text ?? n.body}</p>
+                      {n.status !== "OPEN" && (
+                        <p className="mt-0.5 text-[10px] text-emerald-700">{n.status}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

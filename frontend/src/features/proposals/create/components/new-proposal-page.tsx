@@ -34,17 +34,17 @@ export function NewProposalPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-24">
+    <div className="mx-auto max-w-6xl space-y-6 pb-24">
       <Link
         to="/app/submissions"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="size-3.5" /> Submissions
       </Link>
       <PageHeader
-        eyebrow="Mangaka workflow"
-        title="New series proposal"
-        description="Complete three steps to submit your proposal for editor review."
+        eyebrow="Mangaka Studio Workflow"
+        title="New Series Proposal"
+        description="Complete the form steps while previewing your series pitch card live on the right."
       />
       <ProposalWizard mode="create" />
     </div>

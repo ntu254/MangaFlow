@@ -42,6 +42,7 @@ import {
 } from "../../api/assistant-queries";
 import { tasksForAssistant } from "../../model/assistant-access";
 import { formatDate, formatDateTime } from "@/shared/lib/format-date";
+import { TeamInvitationsPanel } from "./team-invitations-panel";
 
 function formatYen(n: number) {
   return `¥${n.toLocaleString("ja-JP")}`;
@@ -233,6 +234,9 @@ export function AssistantDashboard() {
           </Link>
         </div>
       )}
+
+      {/* Team Invitations — shown when there are pending invites */}
+      <TeamInvitationsPanel />
 
       {/* 4-Grid SaaS Metric Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

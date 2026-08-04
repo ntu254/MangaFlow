@@ -660,17 +660,40 @@ export const listSeriesInvites = asyncRoute(async (req: AuthedRequest, res) => {
     ok(res, await SeriesInviteModel.find({ seriesId }).sort({ createdAt: -1 }).lean());
     return;
   }
-  ok(
-    res,
-    await SeriesInviteModel.find({
-      userId: actor.id,
-      status: "PENDING",
-      $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
-    })
-      .sort({ createdAt: -1 })
-      .lean(),
-  );
+  // Assistant's own pending invites — enrich with series title + inviter name
+  const raw = await SeriesInviteModel.find({
+    userId: actor.id,
+    status: "PENDING",
+    $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (raw.length === 0) {
+    ok(res, []);
+    return;
+  }
+
+  const seriesIds = [...new Set(raw.map((inv: any) => inv.seriesId))];
+  const inviterIds = [...new Set(raw.map((inv: any) => inv.invitedById))];
+
+  const [seriesDocs, inviterDocs] = await Promise.all([
+    SeriesModel.find({ id: { $in: seriesIds } }, { id: 1, title: 1 }).lean(),
+    UserModel.find({ id: { $in: inviterIds } }, { id: 1, name: 1 }).lean(),
+  ]);
+
+  const titleMap = new Map(seriesDocs.map((s: any) => [s.id, s.title]));
+  const nameMap = new Map(inviterDocs.map((u: any) => [u.id, u.name]));
+
+  const enriched = raw.map((inv: any) => ({
+    ...inv,
+    seriesTitle: titleMap.get(inv.seriesId) ?? undefined,
+    inviterName: nameMap.get(inv.invitedById) ?? undefined,
+  }));
+
+  ok(res, enriched);
 });
+
 
 export const acceptSeriesInvite = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);

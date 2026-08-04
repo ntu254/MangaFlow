@@ -20,11 +20,7 @@ import type {
 import { looseSchema } from "./schema.js";
 import { PublicationModel } from "./models/publication.model.js";
 export type { PublicationRecord } from "./models/publication.model.js";
-import {
-  EarningItemModel,
-  EarningLedgerEntryModel,
-  EarningModel,
-} from "./models/earning.model.js";
+import { EarningItemModel, EarningModel } from "./models/earning.model.js";
 export type {
   EarningItemRecord,
   EarningRecord,
@@ -817,14 +813,6 @@ export type StudioCommentRecord = {
   status?: string;
   /** Primary blocking flag */
   isBlocking?: boolean;
-  // Sprint 3.1 / COM-001 — resolution metadata.
-  resolvedById?: string;
-  resolvedByName?: string;
-  resolvedAt?: Date;
-  reopenedById?: string;
-  reopenedByName?: string;
-  reopenedAt?: Date;
-  resolutionNote?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -856,16 +844,6 @@ const studioCommentSchema = looseSchema({
   },
   /** Primary field */
   isBlocking: { type: Boolean, default: false },
-  // Sprint 3.1 / COM-001 — resolution metadata. resolving and reopening
-  // are both audited so a reader can see who closed the loop and who
-  // decided it was still outstanding.
-  resolvedById: { type: String },
-  resolvedByName: { type: String },
-  resolvedAt: { type: Date },
-  reopenedById: { type: String },
-  reopenedByName: { type: String },
-  reopenedAt: { type: Date },
-  resolutionNote: { type: String },
 });
 
 studioCommentSchema.index({ targetType: 1, targetId: 1 });
@@ -1636,7 +1614,7 @@ export const RankingImportModel = mongoose.model<RankingImportRecord>(
   "RankingImport",
   rankingImportSchema,
 );
-export { EarningItemModel, EarningLedgerEntryModel, EarningModel };
+export { EarningItemModel, EarningModel };
 export { RateTableModel };
 export const AiProcessingModel = mongoose.model<AiProcessingRecord>(
   "AiProcessing",

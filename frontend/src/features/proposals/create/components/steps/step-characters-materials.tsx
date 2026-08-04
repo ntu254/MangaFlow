@@ -1,4 +1,4 @@
-import { Upload } from "lucide-react";
+import { Upload, Users, BookOpen, LayoutGrid, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -36,49 +36,60 @@ export function StepCharactersMaterials({
 }: Props) {
   return (
     <div className="space-y-6">
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Characters description
-          </Label>
-          <span className="text-[10px] text-muted-foreground">{mainCharacters.length}/1000</span>
+      {/* Character Profiles Section */}
+      <div className="rounded-2xl border border-border/80 bg-card/40 p-5 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="grid size-7 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Users className="size-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-foreground">Main Characters Description</h3>
+              <p className="text-[10px] text-muted-foreground">List 2–4 key characters with brief roles or background</p>
+            </div>
+          </div>
+          <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground tabular-nums">
+            {mainCharacters.length}/1000
+          </span>
         </div>
+
         <Textarea
-          rows={5}
+          rows={4}
           value={mainCharacters}
           onChange={(e) => onMainCharactersChange(e.target.value)}
-          placeholder={`List 2–4 main characters.\ne.g.\n- Renji (17, swordsman): searching for his father…\n- Mira (16, blacksmith): secretly a descendant of…`}
+          placeholder={`e.g.\n- Renji (17, Swordsman): Searching for his lost clan relic, reckless but loyal.\n- Mira (16, Alchemist): Secretly holds the key to the city's power source.`}
           maxLength={1100}
+          className="rounded-xl text-xs bg-background/50 border-border/80 focus:bg-background"
         />
-        <p className="text-[10px] text-muted-foreground">
-          Brief character profiles help editors understand your story.
-        </p>
       </div>
 
       {error ? (
-        <div className="rounded-md border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs text-rose-700">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">
           {error}
         </div>
       ) : null}
 
+      {/* Upload Cards Grid */}
       <div className="space-y-5">
         <UploadSection
-          title="Manuscript"
+          icon={<BookOpen className="size-4 text-primary" />}
+          title="Sample Manuscript"
           required={filesRequired}
-          description="Upload your sample manuscript (first chapter or pilot). Accepted: .pdf, .zip, .png, .jpg — max 25 MB."
+          description="Upload your sample manuscript (Chapter 1 or Pilot script). Accepted: .pdf, .zip, .png, .jpg — max 25 MB."
         >
           <ManuscriptUploader
             value={manuscript}
             onChange={onManuscriptChange}
-            label={filesRequired ? "Sample manuscript v1" : "Current / replacement manuscript"}
+            label={filesRequired ? "Sample manuscript (required)" : "Current manuscript"}
             required={filesRequired}
           />
         </UploadSection>
 
         <UploadSection
-          title="Storyboard / Name"
+          icon={<LayoutGrid className="size-4 text-primary" />}
+          title="Storyboard / Name Pages"
           required={filesRequired}
-          description="Your rough storyboard or name pages. Accepted: .pdf, .zip, .png, .jpg — max 25 MB."
+          description="Your rough storyboard or panel layout pages (1 file max). Accepted: .pdf, .zip, .png, .jpg — max 25 MB."
         >
           <MaterialsUploader
             items={storyboard}
@@ -86,13 +97,14 @@ export function StepCharactersMaterials({
             allowedKinds={["storyboard"]}
             maxFiles={1}
             required={filesRequired}
-            label="Storyboard file (1 file max)"
+            label="Storyboard file"
           />
         </UploadSection>
 
         <UploadSection
-          title="Character sheets & references"
-          description="Optional supporting materials — character sheets, world bibles, reference images."
+          icon={<ImageIcon className="size-4 text-primary" />}
+          title="Character Sheets & References"
+          description="Optional supporting visual assets: character sheets, world bibles, reference artwork, or notes."
         >
           <MaterialsUploader
             items={characterSheets}
@@ -107,32 +119,38 @@ export function StepCharactersMaterials({
 }
 
 function UploadSection({
+  icon,
   title,
   required,
   description,
   children,
 }: {
+  icon: React.ReactNode;
   title: string;
   required?: boolean;
   description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card/30 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Upload className="size-3.5 text-muted-foreground" />
-        <span className="text-xs font-semibold">{title}</span>
+    <div className="rounded-2xl border border-border/80 bg-card/60 p-5 shadow-2xs backdrop-blur-xs space-y-3.5">
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="grid size-7 place-items-center rounded-lg bg-primary/10">
+            {icon}
+          </div>
+          <span className="text-xs font-bold text-foreground">{title}</span>
+        </div>
         {required ? (
-          <Badge variant="outline" className="ml-auto text-[9px] px-1.5 py-0">
+          <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-bold text-rose-500">
             Required
-          </Badge>
+          </span>
         ) : (
-          <Badge variant="secondary" className="ml-auto text-[9px] px-1.5 py-0">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Optional
-          </Badge>
+          </span>
         )}
       </div>
-      {description ? <p className="mb-3 text-[10px] text-muted-foreground">{description}</p> : null}
+      {description ? <p className="text-[11px] text-muted-foreground leading-relaxed">{description}</p> : null}
       {children}
     </div>
   );

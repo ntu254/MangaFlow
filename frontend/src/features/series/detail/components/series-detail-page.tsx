@@ -2,7 +2,20 @@ import { SERIES_STATUS_LABEL } from "@/entities/series/model/series-types";
 import { useSeriesProposalQuery } from "@/features/proposals";
 import { useAuth } from "@/shared/auth";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { AlertCircle, PenTool } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  Calendar,
+  Compass,
+  FileText,
+  Layers,
+  PenTool,
+  Sparkles,
+  Trophy,
+  User,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   useChaptersQuery,
@@ -31,6 +44,15 @@ const TAB_LABEL: Record<NavTab, string> = {
   rankings: "Rankings",
   calendar: "Calendar",
   team: "Team",
+};
+
+const TAB_ICON: Record<NavTab, typeof Compass> = {
+  overview: Compass,
+  proposal: FileText,
+  chapters: Layers,
+  rankings: Trophy,
+  calendar: Calendar,
+  team: Users,
 };
 
 export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
@@ -66,7 +88,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
 
   const goTab = (t: Tab) => {
     setChapterView("list");
-    navigate({ to: "/app/series/$slug/$tab", params: { slug, tab: t } });
+    navigate({ to: "/app/series/$slug/$tab", params: { slug, tab: t }, from: "/app/series/$slug/$tab" });
   };
 
   const selected = useMemo(
@@ -134,83 +156,148 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
         </div>
       )}
 
-      <header className="flex flex-wrap items-start gap-6">
-        <ResolvedImage
-          fileKey={series.coverFileKey}
-          fallbackUrl={series.coverUrl}
-          alt={series.title}
-          className="h-28 w-20 flex-shrink-0 rounded object-cover ring-1 ring-border"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {SERIES_STATUS_LABEL[series.status]}
-          </p>
-          <h1 className="mt-1 flex max-w-3xl items-center font-serif text-3xl font-bold tracking-tight line-clamp-2">
-            {series.title}
-            <EditTitleButton />
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              <span className="font-semibold text-foreground">Mangaka:</span> {series.authorName}
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">Editor:</span> {series.editorName}
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">Genre:</span>{" "}
-              {series.genres.join(", ")}
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">Status:</span>{" "}
-              <span className="ml-1 inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
-                {SERIES_STATUS_LABEL[series.status]}
-              </span>
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">Next:</span>{" "}
-              {next ? `Ch.${next.number}` : "—"}
-            </span>
-            <span>
-              <span className="font-semibold text-foreground">Progress:</span> {published.length}/
-              {series.targetChapters} ch
-            </span>
+      {/* ── Elevated Series Header Card ── */}
+      <header className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md md:p-6">
+        {/* Subtle background ambient lighting glow */}
+        <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-primary/5 blur-3xl" />
+
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          {/* Left: Cover & Info */}
+          <div className="flex flex-1 flex-col gap-5 sm:flex-row sm:items-start">
+            {/* Cover Frame */}
+            <div className="relative shrink-0">
+              <ResolvedImage
+                fileKey={series.coverFileKey}
+                fallbackUrl={series.coverUrl}
+                alt={series.title}
+                className="h-36 w-24 rounded-xl object-cover shadow-md ring-1 ring-border/80 transition-transform duration-300 hover:scale-[1.02] md:h-40 md:w-28"
+              />
+            </div>
+
+            {/* Title & Metadata */}
+            <div className="min-w-0 flex-1 space-y-3">
+              {/* Status Pill & Target Indicator */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  {SERIES_STATUS_LABEL[series.status]}
+                </span>
+
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  <BookOpen className="size-3 text-muted-foreground" />
+                  {published.length} / {series.targetChapters} chapters
+                </span>
+              </div>
+
+              {/* Series Title */}
+              <h1 className="flex max-w-3xl items-center font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {series.title}
+                <EditTitleButton />
+              </h1>
+
+              {/* Structured Metadata Chips */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                {/* Author */}
+                <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1 text-foreground/90">
+                  <User className="size-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">Author:</span>
+                  <span className="font-semibold text-foreground">{series.authorName}</span>
+                </div>
+
+                {/* Editor */}
+                <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1 text-foreground/90">
+                  <UserCheck className="size-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">Editor:</span>
+                  <span className="font-semibold text-foreground">{series.editorName}</span>
+                </div>
+
+                {/* Next Chapter */}
+                {next && (
+                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-600 dark:text-emerald-400">
+                    <Sparkles className="size-3.5" />
+                    <span className="font-medium">Next up:</span>
+                    <span className="font-bold">Ch.{next.number}</span>
+                  </div>
+                )}
+
+                {/* Genres */}
+                {series.genres.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1 pl-1">
+                    {series.genres.map((g) => (
+                      <span
+                        key={g}
+                        className="inline-flex items-center rounded-md border border-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                      >
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <button
-            onClick={() => canEnterStudio && goTab("studio")}
-            disabled={!canEnterStudio}
-            title={
-              isLocked
-                ? "Production is locked until the proposal is approved"
-                : canEnterStudio
-                  ? studioPermissions.title
-                  : studioPermissions.summary
-            }
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-bold uppercase tracking-widest text-background shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <PenTool className="h-4 w-4" />
-            Open Studio
-          </button>
-          {!isLocked && <SeriesHeaderActions series={series} chapters={chapters} setTab={goTab} />}
+
+          {/* Right Actions */}
+          <div className="flex shrink-0 items-center gap-2 sm:self-start">
+            <button
+              onClick={() => canEnterStudio && goTab("studio")}
+              disabled={!canEnterStudio}
+              title={
+                isLocked
+                  ? "Production is locked until the proposal is approved"
+                  : canEnterStudio
+                    ? studioPermissions.title
+                    : studioPermissions.summary
+              }
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-foreground px-4 text-xs font-bold uppercase tracking-wider text-background shadow-xs transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <PenTool className="size-4" />
+              Open Studio
+            </button>
+            {!isLocked && <SeriesHeaderActions series={series} chapters={chapters} setTab={goTab} />}
+          </div>
         </div>
       </header>
 
-      <nav className="flex flex-wrap gap-1 border-b border-border">
-        {visibleTabs.map((t) => (
-          <Link
-            key={t}
-            to="/app/series/$slug/$tab"
-            params={{ slug, tab: t }}
-            className={`-mb-px border-b-2 px-3 py-2 text-xs font-semibold uppercase tracking-widest ${
-              effectiveTab === t
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {TAB_LABEL[t]}
-          </Link>
-        ))}
+      {/* ── Refined Main Series Nav Tabs (Linear Style) ── */}
+      <nav aria-label="Series Tabs" className="flex items-center gap-1 overflow-x-auto border-b border-border/80 px-1">
+        {visibleTabs.map((t) => {
+          const isActive = effectiveTab === t;
+          const Icon = TAB_ICON[t];
+          return (
+            <Link
+              key={t}
+              to="/app/series/$slug/$tab"
+              from="/app/series/$slug/$tab"
+              params={{ slug, tab: t }}
+              className={`group relative inline-flex items-center gap-2 whitespace-nowrap px-4 py-3 text-xs font-semibold transition-all ${
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon
+                className={`size-3.5 transition-colors ${
+                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                }`}
+              />
+              <span>{TAB_LABEL[t]}</span>
+              {t === "chapters" && chapters.length > 0 && (
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${
+                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {chapters.length}
+                </span>
+              )}
+              {/* Active Indicator Bar */}
+              {isActive && (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary shadow-xs" />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       {effectiveTab === "overview" ? (

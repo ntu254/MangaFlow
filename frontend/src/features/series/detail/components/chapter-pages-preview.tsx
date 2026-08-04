@@ -16,6 +16,7 @@ import {
   useUpdatePageMutation,
   useUploadPageMutation,
   usePatchChapterMutation,
+  useChapterActionMutation,
   mapApiError,
 } from "../../api/series-queries";
 import { uploadFileToR2 } from "@/shared/lib/r2-upload";
@@ -39,6 +40,7 @@ export function ChapterPagesPreview({
   const reorderPagesMutation = useReorderPagesMutation(chapter.id, chapter.seriesId);
   const deletePageMutation = useDeletePageMutation(chapter.id, chapter.seriesId);
   const patchChapterMutation = usePatchChapterMutation(chapter.id, chapter.seriesId);
+  const chapterActionMutation = useChapterActionMutation(chapter.id, chapter.seriesId);
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [replaceTarget, setReplaceTarget] = useState<ChapterPage | null>(null);
@@ -60,6 +62,10 @@ export function ChapterPagesPreview({
     }
 
     try {
+      if (chapter.status === "PLANNED") {
+        await chapterActionMutation.mutateAsync({ action: "START_DRAFT" as never });
+        toast.info("Chapter auto-started draft: PLANNED → IN_PRODUCTION");
+      }
       for (let i = 0; i < valid.length; i++) {
         const file = valid[i];
         const uploaded = await uploadFileToR2(file, {
@@ -331,11 +337,11 @@ export function ChapterPagesPreview({
           {canUpload && (
             <div
               onClick={() => inputRef.current?.click()}
-              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/40 p-3 text-center transition-all hover:border-primary/50 hover:bg-muted/30 ${
+              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 p-3 text-center transition-all hover:border-foreground hover:bg-muted/40 ${
                 compact ? "aspect-[3/4]" : "aspect-[2/3]"
               }`}
             >
-              <div className="grid size-8 place-items-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-transform group-hover:scale-105 group-hover:text-primary">
+              <div className="grid size-8 place-items-center rounded-lg border border-border bg-background text-muted-foreground transition-transform group-hover:scale-105 group-hover:text-primary">
                 <Upload className="size-4" />
               </div>
               <p className="mt-2 text-xs font-semibold text-foreground">
@@ -387,7 +393,7 @@ function PageThumbnail({
   return (
     <div
       data-page-id={page.id}
-      className={`group relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-muted/30 transition-all hover:shadow-xs ${
+      className={`group relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-border/90 bg-card shadow-2xs transition-all hover:border-foreground/50 hover:shadow-xs ${
         compact ? "aspect-[3/4]" : "aspect-[2/3]"
       }`}
     >

@@ -46,36 +46,47 @@ export function ChapterReadiness({
 
   if (compact) {
     return (
-      <div className={flat ? "" : "rounded-md border border-border bg-card p-3"}>
-        <div className="flex items-center gap-3">
+      <div className={flat ? "" : "rounded-md border border-border bg-card p-2.5"}>
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold ${
+                ready
+                  ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              }`}
+            >
+              {ready ? (
+                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <XCircle className="size-3.5 text-amber-600 dark:text-amber-400" />
+              )}
               Ready {passCount}/{checks.length}
             </span>
-            {ready ? (
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
-            ) : (
-              <Circle className="size-3.5 text-muted-foreground" />
-            )}
           </div>
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {checks.map((c, i) => (
               <span
                 key={i}
-                className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+                title={c.label}
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-all ${
                   c.ok
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                    : "border-rose-300 bg-rose-50 text-rose-700"
+                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                 }`}
               >
-                {c.ok ? <CheckCircle2 className="size-2.5" /> : <XCircle className="size-2.5" />}
-                {c.ok ? "✓" : "✕"}
+                {c.ok ? (
+                  <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <XCircle className="size-3 text-amber-600 dark:text-amber-400" />
+                )}
+                <span className="max-w-[180px] truncate">{c.label}</span>
               </span>
             ))}
           </div>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+            className="ml-auto inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Details
             {expanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
@@ -102,31 +113,44 @@ export function ChapterReadiness({
   }
 
   return (
-    <div className={flat ? "" : "rounded-md border border-border bg-card p-4"}>
-      <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        Readiness for Editor Review
-      </p>
-      <ul className="space-y-1.5 text-xs">
-        {checks.map((c) => (
-          <li key={c.label} className="flex items-start gap-2">
+    <div className={flat ? "" : "rounded-md border border-border bg-card p-3"}>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Readiness checklist
+        </p>
+        <span
+          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+            ready
+              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          }`}
+        >
+          {ready ? (
+            <>
+              <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" />
+              READY ({passCount}/{checks.length})
+            </>
+          ) : (
+            <>
+              <XCircle className="size-3 text-amber-600 dark:text-amber-400" />
+              {passCount}/{checks.length} PASSED
+            </>
+          )}
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {checks.map((c, i) => (
+          <li key={i} className="flex items-start gap-2 text-[11px]">
             {c.ok ? (
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+              <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <XCircle className="mt-0.5 size-4 shrink-0 text-rose-600" />
+              <XCircle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
             )}
-            <span className={c.ok ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
+            <span className={c.ok ? "text-foreground/90 font-medium" : "text-muted-foreground"}>
+              {c.label}
+            </span>
           </li>
         ))}
-        <li className="flex items-start gap-2 border-t border-border pt-2">
-          {ready ? (
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-          ) : (
-            <Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          )}
-          <span className={`font-semibold ${ready ? "text-emerald-700" : "text-muted-foreground"}`}>
-            {ready ? "Ready for Editor Review" : "Not ready for Editor Review"}
-          </span>
-        </li>
       </ul>
     </div>
   );

@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Clock,
   Rocket,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
@@ -198,9 +199,9 @@ export function SeriesHeaderActions({
       <button
         type="button"
         onClick={() => setTab("chapters")}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-semibold text-background"
+        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold text-foreground transition-all hover:bg-muted"
       >
-        <Upload className="h-3.5 w-3.5" /> Upload new chapter
+        <Plus className="h-3.5 w-3.5" /> New Chapter
       </button>
 
       <ConfirmDialog

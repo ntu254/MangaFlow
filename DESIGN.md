@@ -1,54 +1,83 @@
-# Design - MangaFlow
+# MangaFlow — Design System & UI/UX Architecture
 
-A compact app design lock for role dashboards and workflow screens. Keep this file small:
-it defines the product UI stance, not a full brand manual.
+> **MangaFlow Design Philosophy**: A high-density, modern editorial operating system for mangakas, editors, assistants, and board members. Combines the elegance of luxury editorial publishing with high-performance operational workbenches.
 
-## Genre
-Modern-minimal operational workbench.
+---
 
-## App Macrostructure
-- Dashboards: role-first command surface with a concise header, KPI row, focus queue, and secondary context.
-- Registers and queues: searchable, sortable, paginated tables on desktop with compact cards on mobile.
-- Detail pages: primary work area first, secondary metadata in a supporting rail or section.
+## 🎨 Visual Identity & Core Aesthetic
 
-## Theme
-- Use the existing MangaFlow tokens: `--admin-page`, `--admin-surface`, `--admin-ink`,
-  `--admin-muted`, `--admin-border`, `--admin-navy`, and role accent tokens.
-- App screens should stay calm and information-dense. Accent color is for status, focus,
-  and primary actions only.
+### 1. Modern Editorial Glassmorphic Stance
+- **Surfaces**: Semi-transparent card layers (`bg-card/80` or `bg-card/60`) paired with subtle backdrop blur (`backdrop-blur-md` / `backdrop-blur-xs`) and fine neutral borders (`border-border/80`).
+- **Depth & Shadows**: Subtly elevated cards using micro-shadows (`shadow-xs`, `shadow-2xs`) avoiding heavy blur shadows.
+- **Card Hierarchy**:
+  - Top Level Outer Container: `rounded-2xl border border-border/80 bg-card/80 shadow-xs backdrop-blur-md`
+  - Inner Section Card: `rounded-2xl border border-border/80 bg-card/60 p-5 shadow-2xs backdrop-blur-xs`
+  - Inner Sub-item / Input Box: `rounded-xl border border-border/60 bg-background/50 p-3.5`
+  - Interactive Action Pill / Badge: `rounded-lg` or `rounded-full`
 
-## Register World (light surfaces)
-- The series register (`/app/series`), proposals register, and role dashboards share one
-  light visual world: standard tokens (white `--card` surfaces, paper `--background`,
-  neutral `--border`, ink `--primary`), a serif page title, a metric strip of tinted
-  icon-chip tiles, and a high-density table with a muted uppercase tracked header.
-- Action buttons on these surfaces are ink primaries or tinted pills
-  (`bg-primary/10` + `border-primary/20`); empty states are dashed-light blocks.
-- Register surfaces deliberately keep the cream `admin-*` tokens out of their own
-  markup; shared containers (`Surface`, `DataTable`, `DataPagination`) may still
-  render the cream surface underneath, matching the proposals page exactly.
-- The submission review workspace (shared by the mangaka and editor review routes)
-  is part of this world: serif page title with a status pill, white cards with
-  serif card titles, tinted decision buttons (ink approve / amber revision /
-  destructive reject) gated behind a reviewable state, amber/rose notice boxes,
-  and a dashed-light missing state. Before/after comparison, submission note,
-  review feedback, task comments, and version history live in the same white-card
-  grammar.
+---
 
-## Typography
-- Display: existing serif, normal style.
-- Body: existing sans, normal style.
-- Dashboard headings should be direct and compact. Avoid decorative italics in app headers.
+## 📐 Layout Architecture
 
-## Interaction Rules
-- Tables with operational decisions need search, useful filters, sortable columns, and paging.
-- Show only data that helps the actor decide the next action.
-- Placeholder or demo routes must be labeled clearly or removed from the authenticated workflow.
-- Primary action buttons should point to the actor-owned route, not another actor's workflow.
+### 1. Asymmetric 2-Column Operational Workbench (`7:5` / `8:4` Split)
+Used across proposal creation (`/app/proposals/new`), submission review, and series management.
+- **Left Column (Primary Form / Editing Surface — 7 to 8 cols)**:
+  - Focused form inputs, multi-step stepper, rich text areas, file upload dropzones.
+  - Generous internal padding (`p-6 md:p-8`), organized section headers with icon chips.
+- **Right Column (Live Preview & Action Control Sidebar — 4 to 5 cols)**:
+  - Sticky positioning (`lg:sticky lg:top-6 lg:self-start`).
+  - **Live Pitch Preview Card**: Displays series cover, live title, logline, genre tags, target audience, and planned chapter badges.
+  - **Header Preview Action**: `Full Preview` button with icon (`Eye`) triggering full-screen pitch presentation modal.
+  - **Readiness Checklist**: Real-time step completion indicators with glowing emerald check icons (`CheckCircle2`).
+  - **Action Navigation Bar**: Sticky bottom controls for `Back`, `Continue`, `Save draft`, and `Submit to editor`.
 
-## Actor Dashboards
-- Admin: operations control, user/system health, governance backlog, recovery warnings.
-- Mangaka: assistant submissions, active production, deadlines, proposal entry point.
-- Assistant: assigned tasks, revisions, submission history, earnings summary.
-- Editor: review focus, deadline risk, publish-ready chapters, recent editorial activity.
-- Board: governance queue, vote finalization, tie-breaks, at-risk reviews.
+---
+
+## 🔤 Typography & Font Hierarchy
+
+| Role | Font Family | Style / Weight | Usage Examples |
+| :--- | :--- | :--- | :--- |
+| **Display / Titles** | EB Garamond (`font-serif`) | Bold, Normal (24px - 32px) | Series titles, Executive dossiers, Hero headers |
+| **Section Titles** | Instrument Sans / Inter | Bold (`font-bold`, 14px - 16px) | Form section titles, card headers |
+| **Micro-labels** | Instrument Sans / Inter | Bold, Uppercase (`text-[10px] uppercase tracking-wider text-muted-foreground`) | Input field labels, badge headers, status captions |
+| **Body & Inputs** | Instrument Sans / Inter | Medium / Regular (12px - 14px) | Form textareas, synopses, character descriptions |
+
+---
+
+## 🎨 Color Palette & Status Tokens
+
+### 1. Brand & Semantic Tokens
+- **Primary Accent (`primary`)**: Deep indigo/violet brand accent for primary CTAs, active step indicators, and brand badges (`bg-primary/10 text-primary border-primary/20`).
+- **High-Trust Emerald (`emerald`)**: Verification, copyright attestation, and upload success (`border-emerald-500/30 bg-emerald-500/10 text-emerald-600`).
+- **Warning & Attention (`amber`)**: Missing required files, action items needed before submission (`border-amber-500/30 bg-amber-500/10 text-amber-700`).
+- **Destructive / Error (`rose`)**: Deletion, file size limit errors, missing upload warnings (`text-rose-500`, `border-rose-500/30 bg-rose-500/10`).
+
+---
+
+## 🧩 Key Component Specifications
+
+### 1. Smart Auto-Titling File Uploaders (`ManuscriptUploader` & `MaterialsUploader`)
+- **Seamless Drag & Drop**: Visual dropzone with file type icons (`FileText` for PDF, `FileArchive` for ZIP, `ImageIcon` for PNG/JPG).
+- **Auto-Titling**: Automatically derives material title from uploaded filename (e.g., `Storyboard_Ch1.pdf`) if left blank, avoiding "title required" friction.
+- **Uploaded File Card**: Displays file icon, filename, size in MB, `CheckCircle2` badge, **View (`Eye`)** preview trigger, **Replace** button, and **Delete (`X`)** button.
+
+### 2. Instant File Preview Modal (`FilePreviewModal`)
+- Triggered by clicking **View (`Eye`)** on any uploaded manuscript, storyboard, or reference file.
+- **PDF Files**: Embedded interactive iframe reader (`<iframe src={url} />`) + "Open in new tab" link.
+- **Images**: Responsive centered image viewer with zoom capability.
+- **Archives / ZIPs**: Informative card with direct secure download CTA.
+
+### 3. High-Trust Legal & Rights Attestation Card
+- Replaces raw checkboxes with an interactive trust card (`rounded-2xl border p-5`).
+- Displays a `ShieldCheck` icon that glows emerald when activated (`border-emerald-500/40 bg-emerald-500/5 ring-1 ring-emerald-500/20`).
+
+### 4. Executive Pitch Preview Sheet (`PitchPreviewModal`)
+- Full-screen/modal presentation deck showing cover image, series metadata, pitch logline, full synopsis, character roster, and attached files.
+
+---
+
+## ✨ Micro-Interactions & UX Guidelines
+
+1. **Hover State Feedback**: Buttons and cards transition smoothly (`transition-all duration-200 hover:border-primary/40`).
+2. **Form Accessibility & Feedback**: Form fields include real-time character counters (`0/1000`) and clear micro-copy placeholders.
+3. **No Decorative Clutter**: Every element serves an operational purpose. Colors are reserved for status, focus, and primary CTA emphasis.

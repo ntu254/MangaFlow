@@ -81,23 +81,43 @@ export function StepBasicPitch({ values, onChange, errors }: Props) {
         </p>
       </Field>
 
-      <Field label="Target audience" error={errors.targetAudience} required>
-        <Select
-          value={values.targetAudience ?? ""}
-          onValueChange={(v) => onChange({ targetAudience: v })}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <Field label="Target audience" error={errors.targetAudience} required>
+          <Select
+            value={values.targetAudience ?? ""}
+            onValueChange={(v) => onChange({ targetAudience: v })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select target audience" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(AUDIENCE_LABEL).map(([k, l]) => (
+                <SelectItem key={k} value={k}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field
+          label="Planned chapters"
+          error={errors.chaptersPlanned}
+          hint="Total chapters planned for this series"
+          required
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select target audience" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(AUDIENCE_LABEL).map(([k, l]) => (
-              <SelectItem key={k} value={k}>
-                {l}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
+          <Input
+            type="number"
+            min={1}
+            max={200}
+            value={values.chaptersPlanned ?? 24}
+            onChange={(e) =>
+              onChange({ chaptersPlanned: Math.max(1, parseInt(e.target.value, 10) || 1) })
+            }
+            placeholder="e.g. 24"
+          />
+        </Field>
+      </div>
 
       <Field label="Hook / selling point" error={errors.hook} hint={`${values.hook.length} / 280`}>
         <Textarea

@@ -127,6 +127,7 @@ export function PublicationCalendar({
                     <Link
                       key={c.id}
                       to="/app/series/$slug/$tab"
+                      from="/app/series/$slug/$tab"
                       params={{ slug: s?.slug ?? "", tab: "overview" }}
                       className="block rounded border border-border bg-background px-1.5 py-1 text-[10px] hover:bg-muted"
                       title={`${s?.title} — Ch.${c.number} ${c.title}`}

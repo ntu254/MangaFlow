@@ -87,26 +87,42 @@ export function CoverUpload({ value, fileKey, onChange, disabled }: CoverUploadP
       />
 
       {hasCover ? (
-        <div className="relative overflow-hidden rounded border border-border">
+        <div className="group relative mx-auto max-w-[190px] sm:max-w-[210px] overflow-hidden rounded-xl border border-border/80 shadow-md transition-all">
           <ResolvedImage
             fileKey={preview ? undefined : fileKey}
             fallbackUrl={displayUrl}
             alt="Cover preview"
-            className="aspect-[2/3] w-full object-cover"
+            className="aspect-[2/3] w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          {!disabled && (
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground"
-            >
-              <X className="size-3.5" />
-            </button>
-          )}
+
+          {/* Action Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-between p-2.5 bg-gradient-to-t from-black/75 via-transparent to-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            {!disabled && (
+              <button
+                type="button"
+                onClick={handleRemove}
+                title="Remove cover"
+                className="ml-auto grid size-7 place-items-center rounded-full bg-background/90 text-foreground backdrop-blur-xs shadow-xs transition-transform hover:scale-110 active:scale-95"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="w-full rounded-lg bg-background/95 py-1.5 text-[11px] font-bold text-foreground shadow-xs backdrop-blur-xs transition-transform hover:scale-[1.02] active:scale-98"
+              >
+                Change cover
+              </button>
+            )}
+          </div>
+
           {isUploading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Upload className="size-4 animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-xs">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Upload className="size-4 animate-spin text-primary" />
                 Uploading...
               </div>
             </div>
@@ -117,15 +133,19 @@ export function CoverUpload({ value, fileKey, onChange, disabled }: CoverUploadP
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={disabled || isUploading}
-          className="flex w-full flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-border p-8 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+          className="flex min-h-[140px] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 p-5 text-muted-foreground transition-all hover:border-primary/50 hover:bg-muted/40 hover:text-foreground"
         >
-          <Image className="size-8" />
-          <span className="text-sm font-medium">Upload cover image</span>
-          <span className="text-xs">JPG, PNG, or WebP. Max {MAX_SIZE_MB}MB.</span>
+          <div className="grid size-10 place-items-center rounded-xl bg-background shadow-2xs border border-border/60">
+            <Image className="size-5 text-primary" />
+          </div>
+          <div className="text-center space-y-0.5">
+            <span className="block text-xs font-bold text-foreground">Upload cover image</span>
+            <span className="block text-[10px] text-muted-foreground">JPG, PNG, WebP (Max {MAX_SIZE_MB}MB)</span>
+          </div>
         </button>
       )}
 
-      {!hasCover && <p className="text-xs text-rose-700">Cover image is required.</p>}
+      {!hasCover && <p className="text-center text-[11px] font-medium text-rose-500">Cover image is required</p>}
     </div>
   );
 }

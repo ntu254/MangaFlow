@@ -658,8 +658,8 @@ function InspectorBody({
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
 
         {permissions.mode === "assistant" &&
-        pageAssignment &&
-        String(pageAssignment.assistantId) !== userId ? (
+          pageAssignment &&
+          String(pageAssignment.assistantId) !== userId ? (
           <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>
@@ -966,10 +966,10 @@ function CommentsList({
     const q = query.trim().toLowerCase();
     const list = q
       ? comments.filter(
-          (c) =>
-            (c.body || (c.text ?? "")).toLowerCase().includes(q) ||
-            c.authorName.toLowerCase().includes(q),
-        )
+        (c) =>
+          (c.body || (c.text ?? "")).toLowerCase().includes(q) ||
+          c.authorName.toLowerCase().includes(q),
+      )
       : comments.slice();
     list.sort((a, b) => {
       if (sort === "blocking") {
@@ -1023,9 +1023,8 @@ function CommentsList({
               key={c.id}
               data-comment-id={c.id}
               data-parent-comment-id={c.parentCommentId}
-              className={`rounded border border-border bg-background p-2 text-xs ${
-                c.parentCommentId ? "ml-5 border-l-2 border-l-accent/50" : ""
-              }`}
+              className={`rounded border border-border bg-background p-2 text-xs ${c.parentCommentId ? "ml-5 border-l-2 border-l-accent/50" : ""
+                }`}
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="font-bold">
@@ -1035,13 +1034,12 @@ function CommentsList({
                   ) : null}
                 </span>
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
-                    ["RESOLVED", "ADDRESSED"].includes(c.status)
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${["RESOLVED", "ADDRESSED"].includes(c.status)
                       ? "bg-emerald-100 text-emerald-800"
                       : isBlockingComment(c)
                         ? "bg-rose-100 text-rose-800"
                         : "bg-amber-100 text-amber-900"
-                  }`}
+                    }`}
                 >
                   {isBlockingComment(c) && !["RESOLVED", "ADDRESSED"].includes(c.status)
                     ? "Blocking"

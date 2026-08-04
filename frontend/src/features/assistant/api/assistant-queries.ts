@@ -386,3 +386,60 @@ export function useAssistantEarningsQuery() {
     queryFn: () => assistantEarningsApi.list() as Promise<AssistantEarning[]>,
   });
 }
+
+// ── Team Invitations ────────────────────────────────────────────────
+
+export type SeriesInvite = {
+  id: string;
+  seriesId: string;
+  userId: string;
+  email: string;
+  role?: string;
+  scope?: string;
+  invitedById: string;
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "REVOKED" | "EXPIRED";
+  acceptedAt?: string;
+  declinedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  // populated by the list endpoint
+  seriesTitle?: string;
+  inviterName?: string;
+};
+
+const inviteKeys = {
+  all: ["invites"] as const,
+  mine: () => [...inviteKeys.all, "mine"] as const,
+};
+
+export function useMyInvitesQuery() {
+  return useQuery<SeriesInvite[], Error>({
+    queryKey: inviteKeys.mine(),
+    queryFn: () => apiRequest<SeriesInvite[]>("/series/invites"),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useAcceptInviteMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, string>({
+    mutationFn: (inviteId) =>
+      apiRequest(`/series/invites/${inviteId}/accept`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inviteKeys.all });
+      queryClient.invalidateQueries({ queryKey: seriesKeys.all });
+    },
+  });
+}
+
+export function useDeclineInviteMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, string>({
+    mutationFn: (inviteId) =>
+      apiRequest(`/series/invites/${inviteId}/decline`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inviteKeys.all });
+    },
+  });
+}
