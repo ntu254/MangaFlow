@@ -108,7 +108,7 @@ export function EditorProposalDetailScreen({
       ? {
           ...descriptor,
           enabled: false,
-          disabledReason: `Cần hoàn tất checklist: ${savedCount}/${EDITORIAL_CHECKLIST_SIZE}.`,
+          disabledReason: `Complete the checklist first: ${savedCount}/${EDITORIAL_CHECKLIST_SIZE}.`,
         }
       : descriptor,
   )
