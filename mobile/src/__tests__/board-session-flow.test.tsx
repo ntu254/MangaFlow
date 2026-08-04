@@ -119,6 +119,29 @@ describe("BoardSessionDetailScreen", () => {
     )
   })
 
+  it("cancels a session with the Chair's reason and the current expectedVersion", async () => {
+    mocked.cancelBoardSession.mockResolvedValue(undefined)
+    renderScreen({
+      ...votableSession,
+      actions: [
+        { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_CANCEL", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
+      ],
+    })
+    fireEvent.press(await screen.findByRole("button", { name: "Cancel session" }))
+    fireEvent.changeText(
+      await screen.findByLabelText("Cancellation reason"),
+      "Author withdrew the manuscript.",
+    )
+    fireEvent.press(screen.getByRole("button", { name: "Confirm cancel" }))
+    await waitFor(() =>
+      expect(mocked.cancelBoardSession).toHaveBeenCalledWith("vs-1", {
+        expectedVersion: 3,
+        note: "Author withdrew the manuscript.",
+      }),
+    )
+  })
+
   it("keeps finalize disabled with the backend reason before quorum", async () => {
     renderScreen({
       ...votableSession,

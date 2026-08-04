@@ -174,10 +174,13 @@ export function closeBoardSession(
     .then((value) => rawBoardSessionSchema.parse(value));
 }
 
-export function cancelBoardSession(sessionId: string): Promise<unknown> {
+export function cancelBoardSession(
+  sessionId: string,
+  input: { expectedVersion: number; note?: string },
+): Promise<unknown> {
   return mobileApi.request<void>(`/voting-sessions/${sessionId}/cancel`, {
     method: "POST",
-    body: "{}",
+    body: JSON.stringify(input),
   });
 }
 

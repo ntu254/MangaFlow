@@ -597,6 +597,10 @@ export async function resolveTiedVotingSession(
 export async function cancelVotingSession(req: AuthedRequest, sessionId: string) {
   const actor = ensureActor(req);
   requireBoardChairActor(actor);
+  const cancelNote =
+    typeof (req.body as any)?.note === "string" && (req.body as any).note.trim()
+      ? (req.body as any).note.trim()
+      : undefined;
   const existing = await VotingSessionModel.findOne({ id: sessionId }).lean();
   if (!existing) throw new AppError(404, "Voting session not found.", "SESSION_NOT_FOUND");
   return runWorkflowTransaction(async (tx) => {
@@ -612,6 +616,11 @@ export async function cancelVotingSession(req: AuthedRequest, sessionId: string)
         "INVALID_TRANSITION",
       );
     }
+    // A Chair viewing a stale tally (e.g. a session that reached quorum
+    // moments ago) must not be able to cancel it out from under a decisive
+    // result -- the status check above only catches a status transition,
+    // not a content change like a new vote landing.
+    assertSessionVersionMatches(session, req.body ?? {});
     const proposalId = String((session as any).proposalId ?? "");
     const proposalIds = [
       ...new Set([proposalId, ...((session as any).proposalIds ?? [])].filter(Boolean)),
@@ -627,9 +636,31 @@ export async function cancelVotingSession(req: AuthedRequest, sessionId: string)
         "INVALID_TRANSITION",
       );
     }
-    (session as any).status = "CANCELLED";
-    (session as any).cancelledAt = new Date();
-    await session.save({ session: tx });
+    const updatedSession = await VotingSessionModel.findOneAndUpdate(
+      {
+        id: sessionId,
+        status: "OPEN",
+        version: (session as any).version,
+        ...expectedVersionFilter(req.body ?? {}),
+      },
+      {
+        $set: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          cancelNote: cancelNote ?? null,
+          updatedAt: new Date(),
+        },
+        $inc: { version: 1 },
+      },
+      { returnDocument: "after", session: tx },
+    ).lean();
+    if (!updatedSession) {
+      throw new AppError(
+        409,
+        "Voting session changed while applying this command.",
+        "VERSION_CONFLICT",
+      );
+    }
     await ProposalModel.updateMany(
       { id: { $in: proposalIds }, status: "BOARD_REVIEW" },
       {
@@ -638,7 +669,14 @@ export async function cancelVotingSession(req: AuthedRequest, sessionId: string)
       },
       { session: tx },
     );
-    await audit(req, "voting_session.cancel", "voting_session", sessionId, { proposalIds }, tx);
-    return toObject(session);
+    await audit(
+      req,
+      "voting_session.cancel",
+      "voting_session",
+      sessionId,
+      { proposalIds, note: cancelNote ?? null },
+      tx,
+    );
+    return toObject(updatedSession);
   });
 }
