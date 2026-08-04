@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Image } from "expo-image"
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -13,14 +13,25 @@ import { BoardWorkspace } from "@/screens/board-workspace"
 import { EditorWorkspace } from "@/screens/editor-workspace"
 import { NotificationsScreen } from "@/screens/notifications-screen"
 import { mobileEnv } from "@/config/mobile-env"
+import { mobileApi } from "@/services/mobile-api-client"
 import type { MobileInbox } from "@/domain/mobile-work-item"
 import {
+  clearLocalMobileSession,
   loginMobile,
   logoutMobile,
   mobileDemoAccounts,
+  restoreMobileSession,
   type MobileAuthRole,
   type MobileAuthSession,
 } from "@/services/mobile-auth"
+
+// Demo quick-login authenticates instantly with bundled credentials. Fine
+// for local development; a shipped production build must never offer a
+// one-tap login into a live Board/Editor account. Read fresh (not a
+// module-level constant) so tests can flip __DEV__ without a module reload.
+function isDemoLoginEnabled(): boolean {
+  return __DEV__
+}
 
 // Canonical Queue-first tabs. Role and designation come from the authenticated
 // backend identity; mobile does not expose a manual role switch.
@@ -66,6 +77,10 @@ export function MangaFlowMobileApp({
   const [tab, setTab] = useState(initialSession?.role === "board" ? "today" : "priority")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Only a cold start with no already-known session needs to try restoring
+  // one from the stored refresh token; a provided initialSession (tests, or
+  // a future persisted-navigation entry point) skips this entirely.
+  const [restoring, setRestoring] = useState(initialSession === null)
 
   const demoMode = forceDemoMode || mobileEnv.enableMockFallback
 
@@ -74,12 +89,51 @@ export function MangaFlowMobileApp({
     setTab(next.role === "board" ? "today" : "priority")
   }
 
+  useEffect(() => {
+    if (initialSession !== null) return
+    let cancelled = false
+    void restoreMobileSession().then((restored) => {
+      if (cancelled) return
+      if (restored) handleAuthenticated(restored)
+      setRestoring(false)
+    })
+    return () => {
+      cancelled = true
+    }
+    // Cold-start restore only ever runs once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // A live request's refresh attempt can fail in the background at any time
+  // (revoked or expired refresh session); when it does, the app must sign
+  // the user out to the login screen instead of leaving every screen on a
+  // 401 error state that keeps retrying.
+  useEffect(() => {
+    if (!session) return
+    mobileApi.setSessionExpiredHandler(() => {
+      void clearLocalMobileSession()
+      setSession(null)
+    })
+    return () => mobileApi.setSessionExpiredHandler(null)
+  }, [session])
+
   const handleLogout = async () => {
     setIsLoggingOut(true)
-    await logoutMobile(session)
-    setSession(null)
-    setMenuOpen(false)
-    setIsLoggingOut(false)
+    try {
+      await logoutMobile(session)
+    } finally {
+      setSession(null)
+      setMenuOpen(false)
+      setIsLoggingOut(false)
+    }
+  }
+
+  if (restoring) {
+    return (
+      <SafeAreaView style={styles.authRoot}>
+        <WorkflowState kind="loading" label="Restoring your session…" />
+      </SafeAreaView>
+    )
   }
 
   if (!session) {
@@ -214,8 +268,9 @@ function AuthenticatedShell({
 }
 
 function MobileAuthScreen({ onAuthenticated }: { onAuthenticated: (session: MobileAuthSession) => void }) {
-  const [email, setEmail] = useState(mobileDemoAccounts.board.email)
-  const [password, setPassword] = useState(mobileDemoAccounts.board.password)
+  const demoLoginEnabled = isDemoLoginEnabled()
+  const [email, setEmail] = useState(demoLoginEnabled ? mobileDemoAccounts.board.email : "")
+  const [password, setPassword] = useState(demoLoginEnabled ? mobileDemoAccounts.board.password : "")
   const [secureEntry, setSecureEntry] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loadingKey, setLoadingKey] = useState<MobileAuthRole | "manual" | null>(null)
@@ -314,28 +369,32 @@ function MobileAuthScreen({ onAuthenticated }: { onAuthenticated: (session: Mobi
               {loadingKey === "manual" ? "Signing in..." : "Sign in"}
             </MFButton>
 
-            <View style={styles.demoDivider}>
-              <View style={styles.demoLine} />
-              <Text style={styles.demoText}>API demo accounts</Text>
-              <View style={styles.demoLine} />
-            </View>
+            {demoLoginEnabled ? (
+              <>
+                <View style={styles.demoDivider}>
+                  <View style={styles.demoLine} />
+                  <Text style={styles.demoText}>API demo accounts</Text>
+                  <View style={styles.demoLine} />
+                </View>
 
-            <View style={styles.demoGrid}>
-              <DemoAccountButton
-                title={mobileDemoAccounts.board.roleTitle}
-                subtitle={mobileDemoAccounts.board.email}
-                tone="warning"
-                loading={loadingKey === "board"}
-                onPress={() => useDemo("board")}
-              />
-              <DemoAccountButton
-                title={mobileDemoAccounts.editor.roleTitle}
-                subtitle={mobileDemoAccounts.editor.email}
-                tone="primary"
-                loading={loadingKey === "editor"}
-                onPress={() => useDemo("editor")}
-              />
-            </View>
+                <View style={styles.demoGrid}>
+                  <DemoAccountButton
+                    title={mobileDemoAccounts.board.roleTitle}
+                    subtitle={mobileDemoAccounts.board.email}
+                    tone="warning"
+                    loading={loadingKey === "board"}
+                    onPress={() => useDemo("board")}
+                  />
+                  <DemoAccountButton
+                    title={mobileDemoAccounts.editor.roleTitle}
+                    subtitle={mobileDemoAccounts.editor.email}
+                    tone="primary"
+                    loading={loadingKey === "editor"}
+                    onPress={() => useDemo("editor")}
+                  />
+                </View>
+              </>
+            ) : null}
           </View>
         </ScrollView>
       </SafeAreaView>
