@@ -32,6 +32,7 @@ import {
   getBoardRankings,
 } from "../services/mobile-board-detail.service.js";
 import { recordAtRiskDecision } from "../services/at-risk-decision.service.js";
+import { getEditorActivity } from "../services/mobile-editor-activity.service.js";
 import type { AuthedRequest } from "../types.js";
 
 const atRiskDecisionSchema = z
@@ -61,6 +62,9 @@ export const boardQueueHandler = asyncRoute(async (_req: AuthedRequest, res) =>
 
 export const editorInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await getEditorMobileInbox(requireActor(req))),
+);
+export const editorActivityHandler = asyncRoute(async (req: AuthedRequest, res) =>
+  ok(res, await getEditorActivity(requireActor(req))),
 );
 export const boardInboxHandler = asyncRoute(async (req: AuthedRequest, res) =>
   ok(res, await getBoardMobileInbox(requireActor(req))),

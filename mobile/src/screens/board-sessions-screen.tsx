@@ -21,6 +21,7 @@ export function BoardSessionsScreen({
     return (
       <WorkflowState
         kind="error"
+        context="voting sessions"
         error={sessions.error}
         onRetry={() => void sessions.refetch()}
       />

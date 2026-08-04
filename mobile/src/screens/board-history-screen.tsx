@@ -1,10 +1,11 @@
-import { MFEmptyState, MFHero, MFMetricStrip, MFTimeline, SectionTitle } from "@/components/mf"
+import { Fragment } from "react"
+import { MFEmptyState, MFHero, MFTimeline, SectionTitle } from "@/components/mf"
 import { WorkflowState } from "@/components/workflow-state"
 import { useBoardDecisionHistory } from "@/hooks/use-board-rankings"
+import { groupBoardLedger, partitionBoardLedger, toBoardLedgerEntries } from "@/domain/board-decision-ledger"
 
 export function BoardHistoryScreen() {
   const history = useBoardDecisionHistory()
-
   if (history.isLoading && !history.data) return <WorkflowState kind="loading" />
   if (history.error && !history.data) {
     return (

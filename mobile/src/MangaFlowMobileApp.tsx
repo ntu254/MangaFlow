@@ -6,9 +6,12 @@ import { MFButton, MFHeader, MFIconCircle, MFScreen, type TabItem } from "@/comp
 import { MFIcon } from "@/design/icons"
 import { colors, radius, shadow, spacing } from "@/design/tokens"
 import { MobileQueryProvider } from "@/providers/mobile-query-provider"
+import { WorkflowState } from "@/components/workflow-state"
 import { useMobileInbox } from "@/hooks/use-mobile-inbox"
+import { useMobileNotifications } from "@/hooks/use-mobile-notifications"
 import { BoardWorkspace } from "@/screens/board-workspace"
 import { EditorWorkspace } from "@/screens/editor-workspace"
+import { NotificationsScreen } from "@/screens/notifications-screen"
 import { mobileEnv } from "@/config/mobile-env"
 import type { MobileInbox } from "@/domain/mobile-work-item"
 import {
@@ -21,18 +24,20 @@ import {
 
 // Canonical Queue-first tabs. Role and designation come from the authenticated
 // backend identity; mobile does not expose a manual role switch.
-const editorTabs: TabItem[] = [
-  { id: "today", label: "Today", icon: "home" },
+export const editorTabs: TabItem[] = [
+  { id: "priority", label: "Priority", icon: "home" },
   { id: "reviews", label: "Reviews", icon: "file-text" },
   { id: "publish", label: "Publish", icon: "check-circle" },
   { id: "history", label: "History", icon: "shield-check" },
+  { id: "notifications", label: "Notifications", icon: "bell" },
 ]
 
-const boardTabs: TabItem[] = [
+export const boardTabs: TabItem[] = [
   { id: "today", label: "Today", icon: "home" },
   { id: "sessions", label: "Sessions", icon: "file-text" },
   { id: "ranking", label: "Ranking", icon: "bar-chart-2" },
   { id: "history", label: "History", icon: "shield-check" },
+  { id: "notifications", label: "Notifications", icon: "bell" },
 ]
 
 function designationFor(session: MobileAuthSession): string {
@@ -58,7 +63,7 @@ export function MangaFlowMobileApp({
   forceDemoMode?: boolean
 }) {
   const [session, setSession] = useState<MobileAuthSession | null>(initialSession)
-  const [tab, setTab] = useState("today")
+  const [tab, setTab] = useState(initialSession?.role === "board" ? "today" : "priority")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -66,7 +71,7 @@ export function MangaFlowMobileApp({
 
   const handleAuthenticated = (next: MobileAuthSession) => {
     setSession(next)
-    setTab("today")
+    setTab(next.role === "board" ? "today" : "priority")
   }
 
   const handleLogout = async () => {
@@ -117,7 +122,6 @@ function AuthenticatedShell({
   isLoggingOut: boolean
 }) {
   const role = session.role
-  const tabs = role === "board" ? boardTabs : editorTabs
   const designation = designationFor(session)
 
   // Demo mode must not even start a live read: it selects its small local
@@ -127,7 +131,28 @@ function AuthenticatedShell({
     demoMode ? async () => demoInbox(role) : undefined,
   )
 
+  // The tab badge is derived from the live notification feed, never a constant.
+  const { unreadCount } = useMobileNotifications({ enabled: !demoMode })
+
+  const tabs = useMemo(() => {
+    const base = role === "board" ? boardTabs : editorTabs
+    return base.map((item) =>
+      item.id === "notifications" ? { ...item, badgeCount: unreadCount } : item,
+    )
+  }, [role, unreadCount])
+
   const body = useMemo(() => {
+    if (tab === "notifications") {
+      return demoMode ? (
+        <WorkflowState
+          kind="empty"
+          title="Demo notifications"
+          description="Demo mode does not read live notifications."
+        />
+      ) : (
+        <NotificationsScreen />
+      )
+    }
     // Editor tabs (Today/Reviews/Publish/History) all navigate the same inbox
     // and open canonical detail screens.
     if (role === "editor") {

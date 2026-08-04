@@ -17,6 +17,12 @@ import { toSeriesMaterialApiPatch } from "../src/features/series/detail/model/se
 import { toTaskRatePayload } from "../src/features/series/detail/model/task-payload";
 import { deriveTaskStudioSubmissionState } from "../src/entities/task/model/submission-state";
 import { getSafeNotificationActionUrl } from "../src/features/notifications/model/notification-action";
+import {
+  markNotificationReadInResponse,
+  markNotificationsReadInResponse,
+  selectNotificationItems,
+  selectUnreadTotal,
+} from "../src/features/notifications/model/notification-list";
 import { markNotificationReadInList } from "../src/shared/lib/notification-cache";
 import {
   isRankingAtRisk,
@@ -255,6 +261,102 @@ test.describe("canonical business-flow contracts", () => {
     expect(next[0].readAt).toBe("2026-07-29T10:00:00.000Z");
     expect(next[1].readAt).toBeUndefined();
     expect(next[0]).not.toHaveProperty("archivedAt");
+  });
+
+  test("the notification list is read out of the paginated envelope", () => {
+    const envelope = {
+      data: [
+        { id: "notification-1", message: "First", createdAt: "2026-07-29T08:00:00.000Z" },
+        { id: "notification-2", message: "Second", createdAt: "2026-07-29T09:00:00.000Z" },
+      ],
+      pagination: { page: 1, pageSize: 100, limit: 100, total: 2, totalPages: 1 },
+      unreadTotal: 2,
+    };
+
+    expect(selectNotificationItems(envelope).map((item) => item.id)).toEqual([
+      "notification-1",
+      "notification-2",
+    ]);
+    expect(
+      selectNotificationItems({
+        data: [],
+        pagination: { page: 1, pageSize: 100, limit: 100, total: 0, totalPages: 1 },
+        unreadTotal: 0,
+      }),
+    ).toEqual([]);
+    expect(selectNotificationItems(undefined)).toEqual([]);
+    // A bare array is what older builds cached; it must not be treated as an envelope.
+    expect(selectNotificationItems(envelope.data)).toEqual(envelope.data);
+  });
+
+  test("the unread badge uses the server total, not the rows already loaded", () => {
+    const firstPage = {
+      data: [
+        { id: "notification-1", message: "First", createdAt: "2026-07-29T08:00:00.000Z" },
+        {
+          id: "notification-2",
+          message: "Second",
+          createdAt: "2026-07-29T09:00:00.000Z",
+          readAt: "2026-07-29T09:30:00.000Z",
+        },
+      ],
+      pagination: { page: 1, pageSize: 100, limit: 100, total: 240, totalPages: 3 },
+      unreadTotal: 120,
+    };
+
+    expect(selectUnreadTotal(firstPage)).toBe(120);
+    expect(selectUnreadTotal(firstPage.data)).toBe(1);
+    expect(selectUnreadTotal(undefined)).toBe(0);
+  });
+
+  test("marking a notification read decrements the unread total exactly once", () => {
+    const envelope = {
+      data: [
+        { id: "notification-1", message: "First", createdAt: "2026-07-29T08:00:00.000Z" },
+        { id: "notification-2", message: "Second", createdAt: "2026-07-29T09:00:00.000Z" },
+      ],
+      pagination: { page: 1, pageSize: 100, limit: 100, total: 2, totalPages: 1 },
+      unreadTotal: 5,
+    };
+
+    const once = markNotificationReadInResponse(
+      envelope,
+      "notification-1",
+      "2026-07-29T10:00:00.000Z",
+    );
+
+    expect(selectNotificationItems(once)[0].readAt).toBe("2026-07-29T10:00:00.000Z");
+    expect(selectNotificationItems(once)[1].readAt).toBeUndefined();
+    expect(selectUnreadTotal(once)).toBe(4);
+
+    const twice = markNotificationReadInResponse(
+      once,
+      "notification-1",
+      "2026-07-29T11:00:00.000Z",
+    );
+
+    expect(selectUnreadTotal(twice)).toBe(4);
+    expect(selectNotificationItems(twice)[0].readAt).toBe("2026-07-29T10:00:00.000Z");
+  });
+
+  test("marking all read clears the unread total without going negative", () => {
+    const envelope = {
+      data: [
+        { id: "notification-1", message: "First", createdAt: "2026-07-29T08:00:00.000Z" },
+        { id: "notification-2", message: "Second", createdAt: "2026-07-29T09:00:00.000Z" },
+      ],
+      pagination: { page: 1, pageSize: 100, limit: 100, total: 2, totalPages: 1 },
+      unreadTotal: 2,
+    };
+
+    const next = markNotificationsReadInResponse(
+      envelope,
+      ["notification-1", "notification-2"],
+      "2026-07-29T10:00:00.000Z",
+    );
+
+    expect(selectUnreadTotal(next)).toBe(0);
+    expect(selectNotificationItems(next).every((item) => item.readAt)).toBe(true);
   });
 });
 

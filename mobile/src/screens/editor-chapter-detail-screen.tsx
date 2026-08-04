@@ -69,7 +69,14 @@ export function EditorChapterDetailScreen({
 
   if (detail.isLoading && !detail.data) return <WorkflowState kind="loading" />
   if (detail.error && !detail.data) {
-    return <WorkflowState kind="error" error={detail.error as Error} onRetry={() => void detail.refetch()} />
+    return (
+      <WorkflowState
+        kind="error"
+        context="this chapter"
+        error={detail.error as Error}
+        onRetry={() => void detail.refetch()}
+      />
+    )
   }
   const data = detail.data
   if (!data) return null

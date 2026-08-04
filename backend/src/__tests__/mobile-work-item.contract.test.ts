@@ -103,4 +103,35 @@ describe("mobile work item contract", () => {
       items: [validProposalItem()],
     }).items).toHaveLength(1);
   });
+
+  it("rejects publication work without explicit series and chapter context", () => {
+    const publication = {
+      ...validProposalItem(),
+      kind: "PUBLICATION",
+      entityType: "CHAPTER",
+      entityId: "ch-4",
+      title: "Echoes",
+    };
+
+    expect(() => mobileWorkItemSchema.parse(publication)).toThrow();
+  });
+
+  it("rejects publication context for a different chapter", () => {
+    const publication = {
+      ...validProposalItem(),
+      kind: "PUBLICATION",
+      entityType: "CHAPTER",
+      entityId: "ch-4",
+      title: "Echoes",
+      chapterContext: {
+        seriesId: "series-1",
+        seriesTitle: "Berserk: Lost Chapters",
+        chapterId: "ch-5",
+        chapterNumber: 5,
+        chapterTitle: "Old Wound",
+      },
+    };
+
+    expect(() => mobileWorkItemSchema.parse(publication)).toThrow();
+  });
 });
