@@ -65,4 +65,24 @@ describe("submitted-file display content type", () => {
 
     expect(fileResponse.headers["content-type"]).toMatch(/^application\/pdf/);
   });
+
+  it("allows the Android WebView API origin to fetch the signed PDF", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    const webViewBaseUrl = "http://10.0.2.2:3001";
+
+    const displayUrlResponse = await request(createApp())
+      .post("/api/files/display-url")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({ key: "proposals/p-002/content-type-check.pdf", fileName: "content-type-check.pdf" })
+      .expect(200);
+
+    const displayPath = new URL(displayUrlResponse.body.data.url).pathname;
+    const fileResponse = await request(createApp())
+      .get(displayPath)
+      .set("Origin", webViewBaseUrl)
+      .expect(200);
+
+    expect(fileResponse.headers["access-control-allow-origin"]).toBe(webViewBaseUrl);
+    expect(fileResponse.headers["cross-origin-resource-policy"]).toBe("cross-origin");
+  });
 });

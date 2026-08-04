@@ -17,19 +17,10 @@ function contentTypeFor(key: string, fallback?: string) {
   return "application/octet-stream";
 }
 
-function setFileDisplayCorsHeaders(req: AuthedRequest, res: Parameters<Parameters<typeof asyncRoute>[0]>[1]) {
-  const requestOrigin = req.headers.origin;
-  const allowedOrigin = process.env.CLIENT_URL ?? "http://localhost:5173";
-
-  // Signed display URLs are already protected by token, so the file response may be embedded by the frontend origin.
+function setFileDisplayHeaders(res: Parameters<Parameters<typeof asyncRoute>[0]>[1]) {
+  // The app-level CORS allowlist owns Access-Control-Allow-Origin. The signed
+  // display response only needs to permit embedding after token verification.
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-  res.setHeader("Vary", "Origin");
-
-  if (requestOrigin && requestOrigin === allowedOrigin) {
-    res.setHeader("Access-Control-Allow-Origin", requestOrigin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-  }
 }
 
 export const putLocalUpload = asyncRoute(async (req: AuthedRequest, res) => {
@@ -49,7 +40,7 @@ export const displayFile = asyncRoute(async (req: AuthedRequest, res) => {
   const payload = verifyFileAccessToken(token);
   const bytes = await readStoredObject(payload.key);
 
-  setFileDisplayCorsHeaders(req, res);
+  setFileDisplayHeaders(res);
 
   res.setHeader("Content-Type", contentTypeFor(payload.key, payload.contentType));
   res.setHeader("Cache-Control", "private, max-age=300");

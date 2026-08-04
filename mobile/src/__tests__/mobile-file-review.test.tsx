@@ -277,6 +277,7 @@ describe("ReviewFileViewer", () => {
     const initialPreview = await screen.findByTestId("pdf-file-preview")
     expect(initialPreview).toHaveProp("source", {
       html: expect.stringContaining(signedUrl),
+      baseUrl: "http://10.0.2.2:3001",
     })
     fireEvent(initialPreview, "error")
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))

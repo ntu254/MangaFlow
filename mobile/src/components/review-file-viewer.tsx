@@ -131,7 +131,7 @@ export function ReviewFileViewer({
 
   const sourceUrl = lease?.url;
   const pdfSource = sourceUrl && Platform.OS === "android"
-    ? { html: pdfPreviewHtml(sourceUrl) }
+    ? { html: pdfPreviewHtml(sourceUrl), baseUrl: new URL(sourceUrl).origin }
     : sourceUrl
       ? { uri: sourceUrl }
       : undefined;
