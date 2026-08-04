@@ -187,7 +187,7 @@ describe("Forward gating on the saved editorial checklist", () => {
     const forward = await screen.findByRole("button", { name: "Forward to Board" })
     expect(forward).toBeVisible()
     expect(forward.props.accessibilityState.disabled).toBe(true)
-    expect(screen.getByText("Cần hoàn tất checklist: 3/6.")).toBeVisible()
+    expect(screen.getByText("Complete the checklist first: 3/6.")).toBeVisible()
   })
 
   it("does not treat unsaved ticks as a complete checklist", async () => {
@@ -199,7 +199,7 @@ describe("Forward gating on the saved editorial checklist", () => {
 
     expect(screen.getByText("6/6 complete")).toBeVisible()
     expect(screen.getByText("Unsaved changes. Saved checklist is 3/6.")).toBeVisible()
-    expect(screen.getByText("Cần hoàn tất checklist: 3/6.")).toBeVisible()
+    expect(screen.getByText("Complete the checklist first: 3/6.")).toBeVisible()
     expect(
       screen.getByRole("button", { name: "Forward to Board" }).props.accessibilityState.disabled,
     ).toBe(true)
@@ -232,7 +232,7 @@ describe("Forward gating on the saved editorial checklist", () => {
         screen.getByRole("button", { name: "Forward to Board" }).props.accessibilityState.disabled,
       ).toBe(false),
     )
-    expect(screen.queryByText(/Cần hoàn tất checklist/)).toBeNull()
+    expect(screen.queryByText(/Complete the checklist first/)).toBeNull()
   })
 
   it("keeps the draft and explains the failure when a save fails", async () => {
@@ -251,7 +251,7 @@ describe("Forward gating on the saved editorial checklist", () => {
     // last successfully saved checklist.
     expect(screen.getByRole("checkbox", { name: "Character motivation" }).props.accessibilityState.checked).toBe(true)
     expect(screen.getByText("4/6 complete")).toBeVisible()
-    expect(screen.getByText("Cần hoàn tất checklist: 3/6.")).toBeVisible()
+    expect(screen.getByText("Complete the checklist first: 3/6.")).toBeVisible()
   })
 
   it("surfaces the backend rejection when a stale client forwards", async () => {

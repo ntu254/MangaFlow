@@ -118,9 +118,11 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 
 ### Tantou Editor (`editor-workspace.tsx`, 5 tabs)
 
-- **Priority**: full inbox (`GET /editor/inbox`) — proposal reviews, chapter
-  reviews, blocking comments awaiting verification, and publication items.
-- **Reviews**: same inbox filtered to `PROPOSAL_REVIEW` and `CHAPTER_REVIEW`.
+- **Priority**: same inbox (`GET /editor/inbox`) filtered client-side to
+  `URGENT`/`HIGH` priority items, per `filterEditorInbox` in
+  `editor-workspace.tsx`.
+- **Reviews**: same inbox filtered to `PROPOSAL_REVIEW`, `CHAPTER_REVIEW`,
+  and `COMMENT_REVIEW`.
   - Proposal detail (`editor-proposal-detail-screen.tsx`): claim, request
     changes, reject, forward-to-board (with recommendation + cadence);
     a `SubmittedFilesPanel` lists the current proposal manuscript and
@@ -149,7 +151,7 @@ demo mode (below) is a small inline empty inbox, not a parallel UI.
 - **Sessions**: all voting sessions (`GET /voting-sessions`), Chair can create
   a new session for a `PENDING_BOARD` proposal.
   - Session detail (`board-session-detail-screen.tsx`): vote `APPROVE` /
-    `REJECT` / `ABSTAIN` against the session's optimistic-concurrency
+    `REJECT` against the session's optimistic-concurrency
     `version`; Chair-only close/cancel. A tied round shows the prior round via
     `revote-banner.tsx` and is read-only. A `SubmittedFilesPanel` lists the
     frozen proposal manuscript and proposal attachments only — Board never
@@ -177,9 +179,9 @@ session automatically; mobile only ever displays this as history/context via
 
 ## Vote values
 
-Board vote values are `APPROVE | REJECT | ABSTAIN`
-(`BoardVoteValue` in `board-mobile-data-source.ts`). There is no
-`NEEDS_REVISION` vote value on mobile — the backend normalizes any legacy
+Board vote values are `APPROVE | REJECT`
+(`BoardVoteValue` in `board-mobile-data-source.ts`). There is no `ABSTAIN`
+or `NEEDS_REVISION` vote value on mobile — the backend normalizes any legacy
 `NEEDS_REVISION` vote payload to `REJECT`.
 
 ## Submitted-file review
