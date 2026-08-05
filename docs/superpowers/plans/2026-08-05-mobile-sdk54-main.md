@@ -106,20 +106,30 @@ git commit -m "chore(mobile): downgrade Expo to sdk 54"
 - Consumes: `AnimatedSplashOverlay(): JSX.Element` from `animated-icon.tsx`.
 - Produces: a splash overlay that invokes `setVisible(false)` through Reanimated's `runOnJS` callback after a completed entering animation, without importing `react-native-worklets` directly.
 
-- [ ] **Step 1: Add a splash rendering smoke test**
+- [ ] **Step 1: Write failing SDK 54 compatibility tests**
 
-Append this test to `mobile/src/__tests__/testing-stack.test.tsx`:
+Append these imports and tests to `mobile/src/__tests__/testing-stack.test.tsx`:
 
 ```tsx
-import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-it("renders the splash overlay with the SDK 54 animation stack", () => {
-  const { toJSON } = render(<AnimatedSplashOverlay />);
-  expect(toJSON()).not.toBeNull();
+const appConfig = require("../../app.json") as {
+  expo: { experiments?: { reactCompiler?: boolean; typedRoutes?: boolean } };
+};
+
+it("does not directly import the Worklets runtime in the splash overlay", () => {
+  const source = readFileSync(resolve(process.cwd(), "src/components/animated-icon.tsx"), "utf8");
+  expect(source).not.toContain("react-native-worklets");
+});
+
+it("keeps typed routes without enabling the React Compiler experiment", () => {
+  expect(appConfig.expo.experiments?.typedRoutes).toBe(true);
+  expect(appConfig.expo.experiments?.reactCompiler).toBeUndefined();
 });
 ```
 
-- [ ] **Step 2: Run the focused test before compatibility changes**
+- [ ] **Step 2: Run the focused tests and verify RED**
 
 Run from `mobile`:
 
@@ -127,7 +137,7 @@ Run from `mobile`:
 npm test -- testing-stack.test.tsx
 ```
 
-Expected: PASS on the pre-change component, establishing the rendered splash contract to preserve.
+Expected: FAIL specifically because `animated-icon.tsx` contains `react-native-worklets` and `app.json` enables `reactCompiler`.
 
 - [ ] **Step 3: Implement the SDK 54-safe splash callback**
 
