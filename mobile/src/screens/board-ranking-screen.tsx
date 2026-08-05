@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import {
   MFBadge,
   MFDetailList,
@@ -14,22 +14,22 @@ import { useBoardRankings } from "@/hooks/use-board-rankings"
 import type { BoardRankingItem } from "@/services/board-mobile-data-source"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
-export function BoardRankingScreen({
-  onOpenAtRisk,
-}: {
-  onOpenAtRisk?: (item: BoardRankingItem) => void
-}) {
+export function BoardRankingScreen() {
   const rankings = useBoardRankings()
   const [search, setSearch] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  const visibleRankings = useMemo(
+    () => (rankings.data?.items ?? []).filter((item) => !item.atRisk),
+    [rankings.data?.items],
+  )
   const items = useMemo(() => {
     const value = search.trim().toLocaleLowerCase()
-    if (!value) return rankings.data?.items ?? []
-    return (rankings.data?.items ?? []).filter((item) =>
+    if (!value) return visibleRankings
+    return visibleRankings.filter((item) =>
       item.seriesTitle.toLocaleLowerCase().includes(value),
     )
-  }, [rankings.data?.items, search])
+  }, [search, visibleRankings])
 
   const selected = items.find((item) => item.id === selectedId) ?? items[0] ?? null
 
@@ -46,15 +46,14 @@ export function BoardRankingScreen({
   }
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MFHero
         role="board"
         title="Ranking"
         subtitle="Read-only backend ranking insight. Import remains on web."
       />
       <MFMetricStrip items={[
-        { id: "rows", label: "Ranked", value: String(rankings.data?.items.length ?? 0), tone: "primary", icon: "bar-chart-2" },
-        { id: "risk", label: "At Risk", value: String((rankings.data?.items ?? []).filter((item) => item.atRisk).length), tone: "danger", icon: "alert-triangle" },
+        { id: "rows", label: "Ranked", value: String(visibleRankings.length), tone: "primary", icon: "bar-chart-2" },
         { id: "source", label: "Formula", value: "Backend", tone: "success", icon: "shield-check" },
       ]} />
       <TextInput
@@ -129,35 +128,10 @@ export function BoardRankingScreen({
               tone: "primary",
               icon: "bar-chart-2",
             },
-            {
-              id: "risk",
-              title: selected.atRisk
-                ? selected.decisionStatus === "DECIDED"
-                  ? "Board decision recorded"
-                  : "Manual Board review required"
-                : "No at-risk action",
-              subtitle: selected.atRisk
-                ? selected.decisionStatus === "DECIDED"
-                  ? `Decision: ${selected.decision ?? "recorded"}.`
-                  : "Cancellation is never automatic. The Board Chair must confirm a backend action."
-                : "This row is read-only on mobile.",
-              tone: selected.atRisk ? "danger" : "success",
-              icon: selected.atRisk ? "alert-triangle" : "check-circle",
-            },
           ]} />
-          {selected.atRisk && selected.decisionStatus !== "DECIDED" && onOpenAtRisk ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Review at-risk decision for ${selected.seriesTitle}`}
-              onPress={() => onOpenAtRisk(selected)}
-              style={styles.action}
-            >
-              <Text style={styles.actionText}>Review at-risk decision</Text>
-            </Pressable>
-          ) : null}
         </>
       ) : null}
-    </>
+    </ScrollView>
   )
 }
 
@@ -181,6 +155,7 @@ function formatDate(value?: string): string {
 }
 
 const styles = StyleSheet.create({
+  content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
   search: {
     minHeight: 44,
     borderWidth: 1,
@@ -207,13 +182,4 @@ const styles = StyleSheet.create({
   rowMain: { flex: 1, minWidth: 0 },
   title: { color: colors.text, fontSize: typography.body, fontWeight: "800" },
   meta: { color: colors.textMuted, fontSize: typography.label, marginTop: 3 },
-  action: {
-    minHeight: 44,
-    borderRadius: radius.full,
-    backgroundColor: colors.dangerSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-  },
-  actionText: { color: colors.danger, fontSize: typography.body, fontWeight: "800" },
 })

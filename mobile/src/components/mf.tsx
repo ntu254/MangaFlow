@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Image } from "expo-image"
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
+import { Pressable, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -63,9 +63,7 @@ export function MFScreen({ tabs, activeTab, onTabChange, children, role = "edito
     <View style={styles.root}>
       <MFHeaderBackground role={role} />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {children}
-        </ScrollView>
+        <View style={styles.content}>{children}</View>
       </SafeAreaView>
       <View style={styles.tabBar}>
         {tabs.map((tab) => {
@@ -590,7 +588,7 @@ export function SegmentedControl({ labels, activeIndex = 0 }: { labels: string[]
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   safeArea: { flex: 1, zIndex: 1 },
-  scroll: { paddingHorizontal: spacing.md, paddingBottom: 110, gap: spacing.md },
+  content: { flex: 1 },
   tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, elevation: 10, flexDirection: "row", justifyContent: "space-around", paddingTop: spacing.sm, paddingBottom: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.outlineVariant },
   tabButton: { flex: 1, minWidth: 0, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2, paddingHorizontal: 2 },
   tabLabel: { fontSize: 11, color: colors.outline, fontWeight: "600", maxWidth: "100%" },

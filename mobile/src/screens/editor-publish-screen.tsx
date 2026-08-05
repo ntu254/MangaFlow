@@ -74,7 +74,7 @@ export function EditorPublishScreen({
       <WorkflowDetailLayout
         title={data.chapter.title}
         subtitle={`Publication · ${data.publication?.status ?? "DRAFT"}`}
-        actionBar={
+        actions={
           <WorkflowActionBar
             actions={publicationActions}
             onAction={(descriptor: WorkflowActionDescriptor) => {

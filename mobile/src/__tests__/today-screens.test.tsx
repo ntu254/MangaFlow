@@ -159,4 +159,52 @@ describe("Queue-first Today surfaces", () => {
     expect(screen.getByText("First")).toBeVisible()
     expect(screen.getByText("Second")).toBeVisible()
   })
+
+  it("omits final tied session-finalization work while retaining actionable Board work", () => {
+    const boardInbox: MobileInbox = {
+      role: "BOARD",
+      generatedAt: new Date().toISOString(),
+      items: [
+        {
+          ...urgentProposalFixture,
+          id: "SESSION_FINALIZE:final-tie",
+          kind: "SESSION_FINALIZE",
+          entityType: "VOTING_SESSION",
+          entityId: "final-tie",
+          title: "Final tied round",
+          status: "TIED",
+        },
+        {
+          ...urgentProposalFixture,
+          id: "SESSION_FINALIZE:open-round",
+          kind: "SESSION_FINALIZE",
+          entityType: "VOTING_SESSION",
+          entityId: "open-round",
+          title: "Open round",
+          status: "OPEN",
+        },
+        {
+          ...urgentProposalFixture,
+          id: "BOARD_REVOTE:active-revote",
+          kind: "BOARD_REVOTE",
+          entityType: "VOTING_SESSION",
+          entityId: "active-revote",
+          title: "Active re-vote",
+          status: "OPEN",
+        },
+      ],
+    }
+
+    render(<BoardTodayScreen inbox={boardInbox} />)
+
+    expect(screen.queryByText("Final tied round")).toBeNull()
+    expect(screen.getByText("Open round")).toBeVisible()
+    expect(screen.getByText("Active re-vote")).toBeVisible()
+  })
+
+  it("does not render an empty workflow action-bar container", () => {
+    const rendered = render(<WorkflowActionBar actions={[]} onAction={jest.fn()} />)
+
+    expect(rendered.toJSON()).toBeNull()
+  })
 })

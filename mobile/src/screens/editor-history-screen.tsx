@@ -1,8 +1,10 @@
 import { Fragment } from "react"
+import { ScrollView, StyleSheet } from "react-native"
 import { MFEmptyState, MFHero, MFTimeline, SectionTitle } from "@/components/mf"
 import { WorkflowState } from "@/components/workflow-state"
 import { useEditorHistory } from "@/hooks/use-editor-history"
 import { editorActivityAreas, groupEditorActivities, toEditorActivityItems } from "@/domain/editor-activity"
+import { spacing } from "@/design/tokens"
 
 export function EditorHistoryScreen() {
   const history = useEditorHistory()
@@ -16,7 +18,7 @@ export function EditorHistoryScreen() {
   const groups = groupEditorActivities(items)
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MFHero role="editor" title="My Editorial Activity" subtitle="Audited actions performed by your signed-in Editor account." />
       <SectionTitle title={`${items.length} actions · ${areas.length} work areas · Recent`} />
       {items.length ? <SectionTitle title="Your recent editorial work" /> : null}
@@ -34,6 +36,10 @@ export function EditorHistoryScreen() {
       )) : (
         <MFEmptyState title="No editorial activity yet" subtitle="Your audited proposal, chapter, comment, and publication actions appear here." icon="file-check" />
       )}
-    </>
+    </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
+})

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import { render, screen } from "@testing-library/react-native"
 import { BoardRankingScreen } from "@/screens/board-ranking-screen"
 import { BoardHistoryScreen } from "@/screens/board-history-screen"
 import { TestQueryProvider } from "@/test/test-query-provider"
@@ -15,8 +15,7 @@ const mocked = dataSource as jest.Mocked<typeof dataSource>
 describe("Board read-only insights", () => {
   afterEach(() => jest.clearAllMocks())
 
-  it("shows backend ranking values and opens manual at-risk review", async () => {
-    const onOpenAtRisk = jest.fn()
+  it("omits at-risk ranking rows from the Board", async () => {
     mocked.getBoardRankings.mockResolvedValue({
       generatedAt: "2026-07-30T09:00:00.000Z",
       items: [{
@@ -34,15 +33,15 @@ describe("Board read-only insights", () => {
 
     render(
       <TestQueryProvider>
-        <BoardRankingScreen onOpenAtRisk={onOpenAtRisk} />
+        <BoardRankingScreen />
       </TestQueryProvider>,
     )
 
-    expect(await screen.findByText("Neon District")).toBeVisible()
-    expect(screen.getByText(/Reader score 3.8/)).toBeVisible()
+    await screen.findByText("No ranking rows")
+    expect(screen.queryByText("Neon District")).toBeNull()
+    expect(screen.queryByText(/Reader score 3.8/)).toBeNull()
     expect(screen.queryByText(/import/i)).toBeVisible()
-    fireEvent.press(screen.getByRole("button", { name: "Review at-risk decision for Neon District" }))
-    expect(onOpenAtRisk).toHaveBeenCalledWith(expect.objectContaining({ id: "rank-1" }))
+    expect(screen.queryByText("AT RISK")).toBeNull()
   })
 
   it("renders immutable backend decision records with re-vote lineage", async () => {
@@ -85,8 +84,29 @@ describe("Board read-only insights", () => {
 
     expect(await screen.findByText("No governance decisions recorded")).toBeVisible()
     expect(
-      screen.getByText("Finalized, tied, cancelled, and at-risk Board records will appear here."),
+      screen.getByText("Finalized, tied, and cancelled Board records will appear here."),
     ).toBeVisible()
+  })
+
+  it("omits at-risk records from the Board ledger", async () => {
+    mocked.getBoardDecisionHistory.mockResolvedValue([{
+      id: "ar-1",
+      type: "At-risk",
+      title: "Neon District",
+      status: "CANCEL",
+      date: "2026-07-30T09:00:00.000Z",
+      entityId: "series-1",
+      entityType: "at_risk_decision",
+    }])
+
+    render(
+      <TestQueryProvider>
+        <BoardHistoryScreen />
+      </TestQueryProvider>,
+    )
+
+    expect(await screen.findByText("No governance decisions recorded")).toBeVisible()
+    expect(screen.queryByText("Neon District")).toBeNull()
   })
 })
 

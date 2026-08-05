@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native"
+import { ScrollView, Text } from "react-native"
 import { EditorProposalDetailScreen } from "@/screens/editor-proposal-detail-screen"
 import { TestQueryProvider } from "@/test/test-query-provider"
 import { MobileApiError } from "@/services/mobile-api-error"
+import { mobileApi } from "@/services/mobile-api-client"
 import * as dataSource from "@/services/editor-mobile-data-source"
 import type { EditorialChecklist, EditorProposalDetail } from "@/services/editor-mobile-data-source"
 
@@ -16,6 +18,9 @@ jest.mock("@/services/editor-mobile-data-source", () => ({
 }))
 
 const mocked = dataSource as jest.Mocked<typeof dataSource>
+const realEditorDataSource = jest.requireActual<typeof import("@/services/editor-mobile-data-source")>(
+  "@/services/editor-mobile-data-source",
+)
 
 const detailFixture: EditorProposalDetail = {
   proposal: {
@@ -74,6 +79,86 @@ function renderScreen(detail: EditorProposalDetail = forwardReadyFixture) {
 
 describe("EditorProposalDetailScreen", () => {
   afterEach(() => jest.clearAllMocks())
+
+  it("renders submitted files before Forward to Board in the detail scroll content", async () => {
+    renderScreen()
+
+    await screen.findByRole("button", { name: "Forward to Board" })
+    const scrollContent = screen.UNSAFE_getByType(ScrollView)
+    const textInScroll = scrollContent
+      .findAllByType(Text)
+      .map((node) => node.props.children)
+      .filter((children): children is string => typeof children === "string")
+
+    expect(textInScroll.indexOf("Submitted files")).toBeGreaterThanOrEqual(0)
+    expect(textInScroll.indexOf("Forward to Board")).toBeGreaterThan(
+      textInScroll.indexOf("Submitted files"),
+    )
+  })
+
+  it("shows Board-awaiting state instead of stale editor actions", async () => {
+    renderScreen({
+      ...forwardReadyFixture,
+      proposal: { ...forwardReadyFixture.proposal, status: "PENDING_BOARD" },
+    })
+
+    expect(await screen.findByText("Awaiting Board session")).toBeVisible()
+    expect(screen.getByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("6/6 complete")).toBeVisible()
+    expect(screen.getByText("Hook")).toBeVisible()
+    expect(screen.getByText("Serialize potential")).toBeVisible()
+    expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Forward to Board" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Request changes" })).toBeNull()
+  })
+
+  it("retains the historical editorial checklist on a terminal proposal without controls", async () => {
+    renderScreen({
+      ...detailFixture,
+      proposal: { ...detailFixture.proposal, status: "APPROVED" },
+    })
+
+    expect(await screen.findByText("Read-only proposal")).toBeVisible()
+    expect(screen.getByText("Editorial checklist")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    expect(screen.getByText("Character motivation")).toBeVisible()
+    expect(screen.getAllByText("Not reviewed", { exact: true })).toHaveLength(3)
+    expect(screen.getAllByText("✓", { exact: true })).toHaveLength(3)
+    expect(screen.queryByRole("checkbox", { name: "Character motivation" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Release claim" })).toBeNull()
+  })
+
+  it("uses the saved checklist after a refetch enters Board-awaiting state despite unsaved ticks", async () => {
+    mocked.releaseEditorProposalClaim.mockResolvedValue(undefined)
+    mocked.getEditorProposalDetail
+      .mockResolvedValueOnce(detailFixture)
+      .mockResolvedValue({
+        ...detailFixture,
+        proposal: { ...detailFixture.proposal, status: "PENDING_BOARD" },
+      })
+    render(
+      <TestQueryProvider>
+        <EditorProposalDetailScreen proposalId="p-002" />
+      </TestQueryProvider>,
+    )
+
+    fireEvent.press(await screen.findByRole("checkbox", { name: "Character motivation" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Storyboard flow" }))
+    fireEvent.press(screen.getByRole("checkbox", { name: "Serialize potential" }))
+    expect(screen.getByText("6/6 complete")).toBeVisible()
+
+    fireEvent.press(screen.getByRole("button", { name: "Release claim" }))
+    fireEvent.press(screen.getByRole("button", { name: "Confirm release claim" }))
+
+    expect(await screen.findByText("Awaiting Board session")).toBeVisible()
+    expect(screen.getByText("3/6 complete")).toBeVisible()
+    expect(screen.getAllByText("Done", { exact: true })).toHaveLength(3)
+    expect(screen.getAllByText("Not reviewed", { exact: true })).toHaveLength(3)
+    expect(screen.queryByRole("checkbox", { name: "Character motivation" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+  })
 
   it("requires a reason before requesting changes", async () => {
     renderScreen()
@@ -175,6 +260,56 @@ describe("EditorProposalDetailScreen", () => {
     expect(screen.getByText("3/6 complete")).toBeVisible()
     expect(screen.queryByRole("checkbox", { name: "Hook" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Save checklist" })).toBeNull()
+  })
+})
+
+describe("editorial checklist transport", () => {
+  afterEach(() => jest.restoreAllMocks())
+
+  it("serializes only editable fields when saving drafts loaded with completion metadata", async () => {
+    const fetchedChecklist = {
+      hook: true,
+      characterMotivation: false,
+      audienceFit: true,
+      storyboardFlow: false,
+      manuscriptQuality: true,
+      serializePotential: false,
+      completedById: "u-editor",
+    }
+    const request = jest.spyOn(mobileApi, "request").mockResolvedValue(undefined)
+
+    await realEditorDataSource.updateEditorProposalChecklist("p-002", fetchedChecklist)
+    await realEditorDataSource.updateEditorProposalChecklist("p-002", {
+      ...fetchedChecklist,
+      characterMotivation: true,
+    })
+
+    const updateBodies = request.mock.calls
+      .filter(([path]) => path === "/proposals/p-002/actions/UPDATE_EDITORIAL_CHECKLIST")
+      .map(([, options]) => JSON.parse(options?.body as string))
+
+    expect(updateBodies).toEqual([
+      {
+        editorialChecklist: {
+          hook: true,
+          characterMotivation: false,
+          audienceFit: true,
+          storyboardFlow: false,
+          manuscriptQuality: true,
+          serializePotential: false,
+        },
+      },
+      {
+        editorialChecklist: {
+          hook: true,
+          characterMotivation: true,
+          audienceFit: true,
+          storyboardFlow: false,
+          manuscriptQuality: true,
+          serializePotential: false,
+        },
+      },
+    ])
   })
 })
 

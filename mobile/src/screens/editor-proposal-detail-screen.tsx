@@ -95,8 +95,12 @@ export function EditorProposalDetailScreen({
   const data = detail.data
   if (!data) return null
 
+  const awaitingBoard = ["PENDING_BOARD", "BOARD_REVIEW"].includes(data.proposal.status)
+  const terminal = ["APPROVED", "REJECTED", "WITHDRAWN", "ARCHIVED"].includes(data.proposal.status)
+  const readOnlyStatus = awaitingBoard || terminal
   const savedCount = checklistCount(savedChecklist)
   const draftCount = checklistCount(draftChecklist)
+  const displayedChecklistCount = readOnlyStatus ? savedCount : draftCount
   const savedChecklistComplete = savedCount === EDITORIAL_CHECKLIST_SIZE
   const hasUnsavedChecklist = checklistKey(draftChecklist) !== checklistKey(savedChecklist)
 
@@ -112,6 +116,13 @@ export function EditorProposalDetailScreen({
         }
       : descriptor,
   )
+  const visibleActions = awaitingBoard || terminal ? [] : actions
+  const showChecklist = readOnlyStatus
+    ? data.editorialChecklist !== null
+    : data.claim.claimedByEditorId !== null
+  const statusExplanation = awaitingBoard
+    ? "This proposal is awaiting a Board session. Editorial actions are unavailable while Board governance is in progress."
+    : "This proposal has reached a final status and is read-only."
 
   const onAction = (descriptor: WorkflowActionDescriptor) => {
     setSheetError(null)
@@ -159,23 +170,31 @@ export function EditorProposalDetailScreen({
       <WorkflowDetailLayout
         title={data.proposal.title}
         subtitle={`${data.proposal.status} · ${data.proposal.requestedPublicationType}`}
-        actionBar={<WorkflowActionBar actions={actions} onAction={onAction} busyAction={busyAction} />}
+        actions={<WorkflowActionBar actions={visibleActions} onAction={onAction} busyAction={busyAction} />}
       >
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Claim</Text>
-          <Text style={styles.body}>
-            {data.claim.claimedByEditorName
-              ? `Claimed by ${data.claim.claimedByEditorName}${data.claim.claimedByMe ? " (you)" : ""}`
-              : "Unclaimed"}
-          </Text>
-        </View>
-        {data.claim.claimedByEditorId ? (
+        {readOnlyStatus ? (
+          <WorkflowState
+            kind="empty"
+            title={awaitingBoard ? "Awaiting Board session" : "Read-only proposal"}
+            description={statusExplanation}
+          />
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>Claim</Text>
+            <Text style={styles.body}>
+              {data.claim.claimedByEditorName
+                ? `Claimed by ${data.claim.claimedByEditorName}${data.claim.claimedByMe ? " (you)" : ""}`
+                : "Unclaimed"}
+            </Text>
+          </View>
+        )}
+        {showChecklist ? (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Editorial checklist</Text>
             <Text style={styles.body}>
-              {draftCount}/{EDITORIAL_CHECKLIST_SIZE} complete
+              {displayedChecklistCount}/{EDITORIAL_CHECKLIST_SIZE} complete
             </Text>
-            {data.claim.claimedByMe ? (
+            {data.claim.claimedByMe && !readOnlyStatus ? (
               <>
                 <ChecklistControls checklist={draftChecklist} onChange={setDraftChecklist} />
                 {hasUnsavedChecklist ? (
@@ -201,7 +220,9 @@ export function EditorProposalDetailScreen({
                   </Text>
                 </Pressable>
               </>
-            ) : null}
+            ) : (
+              <ChecklistEvidence checklist={savedChecklist} />
+            )}
           </View>
         ) : null}
         <View style={styles.card}>
@@ -310,6 +331,18 @@ function ChecklistControls({
       </Pressable>
     )
   })
+}
+
+function ChecklistEvidence({ checklist }: { checklist: EditorialChecklist }) {
+  return checklistLabels.map(([key, label]) => (
+    <View key={key} style={styles.checklistRow}>
+      <View style={[styles.checkbox, checklist[key] && styles.checkboxChecked]}>
+        {checklist[key] ? <Text style={styles.checkboxMark}>✓</Text> : null}
+      </View>
+      <Text style={styles.checklistLabel}>{label}</Text>
+      <Text style={styles.checklistState}>{checklist[key] ? "Done" : "Not reviewed"}</Text>
+    </View>
+  ))
 }
 
 // Forward requires an editor recommendation that is never synthesized. The

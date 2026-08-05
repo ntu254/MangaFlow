@@ -105,7 +105,6 @@ describe("BoardSessionDetailScreen", () => {
       actions: [
         { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
         { action: "SESSION_FINALIZE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
-        { action: "SESSION_CANCEL", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
       ],
     })
     fireEvent.press(await screen.findByRole("button", { name: "Close voting" }))
@@ -119,27 +118,46 @@ describe("BoardSessionDetailScreen", () => {
     )
   })
 
-  it("cancels a session with the Chair's reason and the current expectedVersion", async () => {
-    mocked.cancelBoardSession.mockResolvedValue(undefined)
+  it("describes a final tied close as read-only mobile history", async () => {
+    mocked.closeBoardSession.mockResolvedValue({
+      id: "vs-1",
+      title: "Weekly slate",
+      status: "TIED",
+      votingRound: 2,
+      tieResolution: "PENDING",
+    })
+    renderScreen({
+      ...votableSession,
+      session: { ...votableSession.session, votingRound: 2 },
+      tally: { ...votableSession.tally, approve: 2, reject: 2, total: 4, canFinalize: true },
+      actions: [
+        { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_FINALIZE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+      ],
+    })
+
+    fireEvent.press(await screen.findByRole("button", { name: "Close voting" }))
+    fireEvent.press(await screen.findByRole("button", { name: "Confirm close" }))
+
+    expect(
+      await screen.findByText("The final re-vote tied. This round is read-only on mobile."),
+    ).toBeVisible()
+    expect(screen.queryByText(/Chair must resolve/i)).toBeNull()
+  })
+
+  it("does not render cancellation or tie-resolution controls", async () => {
     renderScreen({
       ...votableSession,
       actions: [
         { action: "VOTE", enabled: false, disabledReason: "You have already voted in this round.", requiresConfirmation: true, requiresReason: false },
         { action: "SESSION_CANCEL", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
+        { action: "TIE_RESOLVE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: true },
       ],
     })
-    fireEvent.press(await screen.findByRole("button", { name: "Cancel session" }))
-    fireEvent.changeText(
-      await screen.findByLabelText("Cancellation reason"),
-      "Author withdrew the manuscript.",
-    )
-    fireEvent.press(screen.getByRole("button", { name: "Confirm cancel" }))
-    await waitFor(() =>
-      expect(mocked.cancelBoardSession).toHaveBeenCalledWith("vs-1", {
-        expectedVersion: 3,
-        note: "Author withdrew the manuscript.",
-      }),
-    )
+    await screen.findByText("Session OPEN")
+    expect(screen.queryByRole("button", { name: "Cancel session" })).toBeNull()
+    expect(screen.queryByRole("button", { name: /resolve tie/i })).toBeNull()
+    expect(mocked.cancelBoardSession).not.toHaveBeenCalled()
   })
 
   it("visually distinguishes the selected publication cadence from the unselected one", async () => {
@@ -171,5 +189,21 @@ describe("BoardSessionDetailScreen", () => {
     })
     expect(await screen.findByRole("button", { name: "Close voting" })).toBeDisabled()
     expect(screen.getByText("Quorum or a decisive tally has not been reached yet.")).toBeVisible()
+  })
+
+  it("keeps terminal sessions readable without Chair actions", async () => {
+    renderScreen({
+      ...votableSession,
+      session: { ...votableSession.session, status: "FINALIZED" },
+      actions: [
+        { action: "SESSION_FINALIZE", enabled: false, disabledReason: "This session is already finalized.", requiresConfirmation: true, requiresReason: false },
+        { action: "SESSION_CANCEL", enabled: false, disabledReason: "This session is already finalized.", requiresConfirmation: true, requiresReason: true },
+        { action: "TIE_RESOLVE", enabled: false, disabledReason: "This session is already finalized.", requiresConfirmation: true, requiresReason: true },
+      ],
+    })
+
+    expect(await screen.findByText("Session FINALIZED")).toBeVisible()
+    expect(screen.queryByText("Chair actions")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Close voting" })).toBeNull()
   })
 })

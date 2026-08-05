@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { MFBadge, MFEmptyState, MFHero, MFMetricStrip, SectionTitle } from "@/components/mf"
 import { WorkflowState } from "@/components/workflow-state"
 import { useBoardSessions } from "@/hooks/use-board-sessions"
@@ -33,7 +33,7 @@ export function BoardSessionsScreen({
   const reVoteCount = rows.filter((session) => Boolean(session.reVoteOfSessionId)).length
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MFHero
         role="board"
         title="Voting sessions"
@@ -86,7 +86,7 @@ export function BoardSessionsScreen({
           />
         )}
       </View>
-    </>
+    </ScrollView>
   )
 }
 
@@ -105,6 +105,7 @@ function statusTone(status: string): "primary" | "success" | "warning" | "danger
 }
 
 const styles = StyleSheet.create({
+  content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
   heading: {
     flexDirection: "row",
     alignItems: "center",

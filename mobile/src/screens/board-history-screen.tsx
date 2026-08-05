@@ -1,8 +1,10 @@
 import { Fragment } from "react"
+import { ScrollView, StyleSheet } from "react-native"
 import { MFEmptyState, MFHero, MFTimeline, SectionTitle } from "@/components/mf"
 import { WorkflowState } from "@/components/workflow-state"
 import { useBoardDecisionHistory } from "@/hooks/use-board-rankings"
 import { groupBoardLedger, partitionBoardLedger, toBoardLedgerEntries } from "@/domain/board-decision-ledger"
+import { spacing } from "@/design/tokens"
 
 export function BoardHistoryScreen() {
   const history = useBoardDecisionHistory()
@@ -18,12 +20,14 @@ export function BoardHistoryScreen() {
     )
   }
 
-  const entries = toBoardLedgerEntries(history.data ?? [])
+  const entries = toBoardLedgerEntries(history.data ?? []).filter(
+    (entry) => entry.recordType !== "At-risk decision",
+  )
   const { votingRounds } = partitionBoardLedger(entries)
   const sections = groupBoardLedger(entries)
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MFHero
         role="board"
         title="Governance Decision Ledger"
@@ -47,10 +51,14 @@ export function BoardHistoryScreen() {
       ) : (
         <MFEmptyState
           title="No governance decisions recorded"
-          subtitle="Finalized, tied, cancelled, and at-risk Board records will appear here."
+          subtitle="Finalized, tied, and cancelled Board records will appear here."
           icon="shield-check"
         />
       )}
-    </>
+    </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
+})

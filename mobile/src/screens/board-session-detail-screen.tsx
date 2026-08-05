@@ -26,10 +26,9 @@ export function BoardSessionDetailScreen({
   sessionId: string;
   getDetail?: (id: string) => Promise<BoardSessionDetail>;
 }) {
-  const { detail, vote, close, cancel, resolveTie, reviewFiles } = useBoardSession(sessionId, getDetail)
+  const { detail, vote, close, reviewFiles } = useBoardSession(sessionId, getDetail)
   const [pendingVote, setPendingVote] = useState<BoardVoteValue | null>(null)
-  const [pendingChair, setPendingChair] = useState<"SESSION_FINALIZE" | "SESSION_CANCEL" | null>(null)
-  const [pendingTie, setPendingTie] = useState<"APPROVED" | "REJECTED" | null>(null)
+  const [pendingChair, setPendingChair] = useState<"SESSION_FINALIZE" | null>(null)
   const [sheetError, setSheetError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [publicationType, setPublicationType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY")
@@ -58,14 +57,11 @@ export function BoardSessionDetailScreen({
   const versionReady =
     typeof data.session.version === "number" && data.session.version >= 0;
   const canVote = (voteAction?.enabled ?? false) && versionReady;
-  const closeAction = data.actions.find(
-    (action) => action.action === "SESSION_FINALIZE",
-  );
-  const cancelAction = data.actions.find(
-    (action) => action.action === "SESSION_CANCEL",
-  );
-  const tieResolveAction = data.actions.find((action) => action.action === "TIE_RESOLVE");
-  const chairSubmitting = close.isPending || cancel.isPending || resolveTie.isPending;
+  const isOpenSession = data.session.status === "OPEN";
+  const closeAction = isOpenSession
+    ? data.actions.find((action) => action.action === "SESSION_FINALIZE")
+    : undefined;
+  const chairSubmitting = close.isPending;
   const currentVote = data.currentUserVote ?? data.myVote;
   const priorRound =
     data.previousRound ??
@@ -90,73 +86,28 @@ export function BoardSessionDetailScreen({
 
   const confirmChair = (note: string) => {
     if (!pendingChair) return;
-    if (pendingChair === "SESSION_FINALIZE") {
-      if (!versionReady) {
-        setSheetError(
-          "Session version is unavailable. Refresh before closing.",
-        );
-        return;
-      }
-      close.mutate(
-        {
-          expectedVersion: data.session.version as number,
-          note: note || undefined,
-          publicationType,
-        },
-        {
-          onError: handleMutationError,
-          onSuccess: (result) => {
-            setSuccessMessage(closeResultMessage(result.status, result.votingRound, result.tieResolution));
-            setPendingChair(null);
-            setSheetError(null);
-          },
-        },
+    if (!versionReady) {
+      setSheetError(
+        "Session version is unavailable. Refresh before closing.",
       );
-    } else {
-      if (!versionReady) {
-        setSheetError(
-          "Session version is unavailable. Refresh before cancelling.",
-        );
-        return;
-      }
-      cancel.mutate(
-        {
-          expectedVersion: data.session.version as number,
-          note: note || undefined,
-        },
-        {
-          onError: handleMutationError,
-          onSuccess: () => {
-            setSuccessMessage(
-              "Session cancelled. The proposal returned to the Board queue.",
-            );
-            setPendingChair(null);
-            setSheetError(null);
-          },
-        },
-      );
+      return;
     }
-  };
-
-  const confirmTie = (note: string) => {
-    if (!pendingTie || !versionReady) return;
-    resolveTie.mutate(
+    close.mutate(
       {
-        decision: pendingTie,
-        note,
         expectedVersion: data.session.version as number,
+        note: note || undefined,
+        publicationType,
       },
       {
         onError: handleMutationError,
-        onSuccess: () => {
-          setSuccessMessage(`Tie resolved as ${pendingTie}.`);
-          setPendingTie(null);
+        onSuccess: (result) => {
+          setSuccessMessage(closeResultMessage(result.status, result.votingRound, result.tieResolution));
+          setPendingChair(null);
           setSheetError(null);
         },
       },
     );
   };
-
   const confirmVote = (note: string) => {
     if (!pendingVote || !data.session.proposalId || !versionReady) return;
     vote.mutate(
@@ -283,115 +234,47 @@ export function BoardSessionDetailScreen({
           )}
         </View>
 
-        {closeAction || cancelAction ? (
+        {closeAction ? (
           <View style={styles.voteCard}>
             <Text style={styles.sectionLabel}>Chair actions</Text>
-            {closeAction ? (
-              <View>
-                <Text style={styles.reason}>Publication cadence for approval</Text>
-                <View style={styles.choices}>
-                  {(["WEEKLY", "MONTHLY"] as const).map((value) => (
-                    <Pressable
-                      key={value}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Set ${value.toLowerCase()} cadence`}
-                      accessibilityState={{ selected: publicationType === value }}
-                      onPress={() => setPublicationType(value)}
-                      style={[styles.choice, publicationType === value && styles.choiceActive]}
-                    >
-                      <Text style={[styles.choiceText, publicationType === value && styles.choiceTextActive]}>
-                        {value === "WEEKLY" ? "Weekly" : "Monthly"}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+            <Text style={styles.reason}>Publication cadence for approval</Text>
+            <View style={styles.choices}>
+              {(["WEEKLY", "MONTHLY"] as const).map((value) => (
                 <Pressable
+                  key={value}
                   accessibilityRole="button"
-                  accessibilityLabel="Close voting"
-                  accessibilityState={{ disabled: !closeAction.enabled }}
-                  disabled={!closeAction.enabled}
-                  onPress={() => {
-                    setSuccessMessage(null);
-                    setSheetError(null);
-                    setPendingChair("SESSION_FINALIZE");
-                  }}
-                  style={[
-                    styles.chairButton,
-                    !closeAction.enabled && styles.chairDisabled,
-                  ]}
+                  accessibilityLabel={`Set ${value.toLowerCase()} cadence`}
+                  accessibilityState={{ selected: publicationType === value }}
+                  onPress={() => setPublicationType(value)}
+                  style={[styles.choice, publicationType === value && styles.choiceActive]}
                 >
-                  <Text style={styles.chairText}>Close voting</Text>
-                </Pressable>
-                {!closeAction.enabled && closeAction.disabledReason ? (
-                  <Text style={styles.reason}>
-                    {closeAction.disabledReason}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-            {cancelAction ? (
-              <View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel session"
-                  accessibilityState={{ disabled: !cancelAction.enabled }}
-                  disabled={!cancelAction.enabled}
-                  onPress={() => {
-                    setSuccessMessage(null);
-                    setSheetError(null);
-                    setPendingChair("SESSION_CANCEL");
-                  }}
-                  style={[
-                    styles.chairButton,
-                    styles.chairCancel,
-                    !cancelAction.enabled && styles.chairDisabled,
-                  ]}
-                >
-                  <Text style={[styles.chairText, styles.chairCancelText]}>
-                    Cancel session
+                  <Text style={[styles.choiceText, publicationType === value && styles.choiceTextActive]}>
+                    {value === "WEEKLY" ? "Weekly" : "Monthly"}
                   </Text>
                 </Pressable>
-                {!cancelAction.enabled && cancelAction.disabledReason ? (
-                  <Text style={styles.reason}>
-                    {cancelAction.disabledReason}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-            {tieResolveAction ? (
-              <View>
-                <Text style={styles.reason}>
-                  {tieResolveAction.enabled
-                    ? "Round 2 is tied. The Chair must choose the final result."
-                    : tieResolveAction.disabledReason}
-                </Text>
-                {tieResolveAction.enabled ? (
-                  <View style={styles.choices}>
-                    {(["APPROVED", "REJECTED"] as const).map((decision) => (
-                      <Pressable
-                        key={decision}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Resolve tie as ${decision}`}
-                        onPress={() => {
-                          setSuccessMessage(null);
-                          setSheetError(null);
-                          setPendingTie(decision);
-                        }}
-                        style={[styles.chairButton, decision === "REJECTED" && styles.chairCancel]}
-                      >
-                        <Text
-                          style={[
-                            styles.chairText,
-                            decision === "REJECTED" && styles.chairCancelText,
-                          ]}
-                        >
-                          Resolve {decision}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
+              ))}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close voting"
+              accessibilityState={{ disabled: !closeAction.enabled }}
+              disabled={!closeAction.enabled}
+              onPress={() => {
+                setSuccessMessage(null);
+                setSheetError(null);
+                setPendingChair("SESSION_FINALIZE");
+              }}
+              style={[
+                styles.chairButton,
+                !closeAction.enabled && styles.chairDisabled,
+              ]}
+            >
+              <Text style={styles.chairText}>Close voting</Text>
+            </Pressable>
+            {!closeAction.enabled && closeAction.disabledReason ? (
+              <Text style={styles.reason}>
+                {closeAction.disabledReason}
+              </Text>
             ) : null}
           </View>
         ) : null}
@@ -428,50 +311,11 @@ export function BoardSessionDetailScreen({
       />
 
       <WorkflowConfirmationSheet
-        visible={pendingTie !== null}
-        title={pendingTie ? `Resolve tie as ${pendingTie}?` : ""}
-        effect="This is the final Chair resolution after the second tied round. It creates the immutable Board decision."
-        confirmLabel="Confirm Chair decision"
-        reasonLabel="Required resolution reason"
-        requireReason
-        submitting={resolveTie.isPending}
-        errorMessage={sheetError}
-        onCancel={() => {
-          if (resolveTie.isPending) return;
-          setPendingTie(null);
-          setSheetError(null);
-        }}
-        onConfirm={confirmTie}
-      />
-
-      <WorkflowConfirmationSheet
         visible={pendingChair !== null}
-        title={
-          pendingChair === "SESSION_FINALIZE"
-            ? "Close this voting round?"
-            : "Cancel this session?"
-        }
-        effect={
-          pendingChair === "SESSION_FINALIZE"
-            ? "The backend closes the round and applies quorum, the one re-vote limit, and the configured tie policy."
-            : "The backend cancels the open session and returns its proposal to PENDING_BOARD."
-        }
-        confirmLabel={
-          pendingChair === "SESSION_FINALIZE"
-            ? "Confirm close"
-            : "Confirm cancel"
-        }
-        reasonLabel={
-          pendingChair === "SESSION_FINALIZE"
-            ? "Optional closing note"
-            : cancelAction?.requiresReason
-              ? "Cancellation reason"
-              : undefined
-        }
-        requireReason={
-          pendingChair === "SESSION_CANCEL" &&
-          cancelAction?.requiresReason === true
-        }
+        title="Close this voting round?"
+        effect="The backend closes the round and applies quorum, the one re-vote limit, and the configured tie policy."
+        confirmLabel="Confirm close"
+        reasonLabel="Optional closing note"
         submitting={chairSubmitting}
         errorMessage={sheetError}
         onCancel={() => {
@@ -490,7 +334,7 @@ function closeResultMessage(status: string, votingRound?: number, tieResolution?
     return votingRound && votingRound >= 2
       ? tieResolution === "RETURNED_TO_BOARD"
         ? "The final re-vote tied. The proposal returned to the Board queue."
-        : "The final re-vote tied. The Chair must resolve the result."
+        : "The final re-vote tied. This round is read-only on mobile."
       : "Voting round tied. The backend opened the one allowed re-vote.";
   if (status === "NO_QUORUM")
     return "Voting round closed without quorum. The proposal returned to the Board queue.";
@@ -560,8 +404,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  chairCancel: { backgroundColor: colors.dangerSoft },
-  chairCancelText: { color: colors.danger },
   chairDisabled: { backgroundColor: colors.surfaceContainer },
   chairText: {
     color: colors.surface,

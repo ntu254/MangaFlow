@@ -239,6 +239,25 @@ describe("PublicationConfirmation", () => {
     expect(screen.getByText("Publishing Echoes now makes it immediately visible to the public.")).toBeVisible()
   })
 
+  it("explains that scheduling requires the Editor to publish manually once due", () => {
+    render(
+      <PublicationConfirmation
+        visible
+        action="SCHEDULE"
+        chapterTitle="Echoes"
+        readinessReady
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        "Schedule Echoes for a future date. It does not publish automatically; return here and choose Publish now once the scheduled time is due.",
+      ),
+    ).toBeVisible()
+  })
+
   it("keeps postponement a tertiary confirmation action", () => {
     render(
       <PublicationConfirmation

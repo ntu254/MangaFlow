@@ -1,10 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  cancelBoardSession,
   castBoardVote,
   closeBoardSession,
   getBoardSessionDetail,
-  resolveBoardTie,
   updateBoardSession,
   type BoardSessionDetail,
   type BoardVoteValue,
@@ -68,19 +66,6 @@ export function useBoardSession(
       closeBoardSession(sessionId, input),
     onSuccess: invalidate,
   })
-  const cancel = useMutation({
-    mutationFn: (input: { expectedVersion: number; note?: string }) =>
-      cancelBoardSession(sessionId, input),
-    onSuccess: invalidate,
-  })
-  const resolveTie = useMutation({
-    mutationFn: (input: {
-      decision: "APPROVED" | "REJECTED"
-      note: string
-      expectedVersion: number
-    }) => resolveBoardTie(sessionId, input),
-    onSuccess: invalidate,
-  })
   const update = useMutation({
     mutationFn: (input: {
       expectedVersion: number
@@ -91,5 +76,5 @@ export function useBoardSession(
     onSuccess: invalidate,
   })
 
-  return { detail, vote, close, cancel, resolveTie, update, reviewFiles }
+  return { detail, vote, close, update, reviewFiles }
 }

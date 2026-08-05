@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react-native"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native"
+import { Platform } from "react-native"
 import {
   derivePreviewKind,
   resolveDisplayUrl,
@@ -10,6 +11,7 @@ import { getReviewFiles, openReviewFile } from "@/services/mobile-file-review"
 import { mobileApi } from "@/services/mobile-api-client"
 import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import { ReviewFileViewer } from "@/components/review-file-viewer"
+import { pdfPreviewHtml } from "@/components/pdf-preview-html"
 
 describe("review-file domain rules", () => {
   it("refreshes a lease 30 seconds before a 900-second URL expires", () => {
@@ -49,9 +51,9 @@ describe("review-file domain rules", () => {
     expect(derivePreviewKind("application/zip", "android")).toBe("external")
   })
 
-  it("renders PDF inline only on iOS; Android and web route to the external hand-off", () => {
+  it("renders PDF inline on iOS and Android while web uses the external hand-off", () => {
     expect(derivePreviewKind("application/pdf", "ios")).toBe("pdf")
-    expect(derivePreviewKind("application/pdf", "android")).toBe("external")
+    expect(derivePreviewKind("application/pdf", "android")).toBe("pdf")
     expect(derivePreviewKind("application/pdf", "web")).toBe("external")
   })
 })
@@ -190,13 +192,21 @@ const zipFile: ReviewFile = {
   previewKind: "external",
 }
 
+const androidPdfFile: ReviewFile = {
+  ...pdfFile,
+  previewKind: "pdf",
+}
+
+const originalPlatformOS = Platform.OS
+
 describe("ReviewFileViewer", () => {
   afterEach(() => {
+    Object.defineProperty(Platform, "OS", { value: originalPlatformOS, configurable: true })
     mobileApi.setAccessToken(null)
     jest.restoreAllMocks()
   })
 
-  it("keeps the viewer open with an explanatory message on 403 instead of closing it silently", async () => {
+  it("clears the lease and closes the viewer on 403", async () => {
     mobileApi.setAccessToken("access-123")
     globalThis.fetch = jest.fn().mockResolvedValue(
       new Response(JSON.stringify({ success: false, message: "Forbidden", code: "FORBIDDEN" }), { status: 403 }),
@@ -205,8 +215,7 @@ describe("ReviewFileViewer", () => {
 
     render(<ReviewFileViewer file={pdfFile} visible onClose={onClose} />)
 
-    expect(await screen.findByText("Access denied. This file can no longer be opened.")).toBeVisible()
-    expect(onClose).not.toHaveBeenCalled()
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
   it("explains the platform limitation for a PDF routed to the external hand-off", async () => {
@@ -216,7 +225,7 @@ describe("ReviewFileViewer", () => {
     render(<ReviewFileViewer file={pdfFile} visible onClose={jest.fn()} />)
 
     expect(
-      await screen.findByText("PDF preview isn't supported on this device. Open it in your device's PDF reader instead."),
+      await screen.findByText("PDF preview is unavailable in this build. Open it in your device PDF reader instead."),
     ).toBeVisible()
   })
 
@@ -244,5 +253,54 @@ describe("ReviewFileViewer", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
 
     jest.useRealTimers()
+  })
+
+  it("reloads a failed PDF preview once, then exposes a private explicit retry", async () => {
+    Object.defineProperty(Platform, "OS", { value: "android", configurable: true })
+    mobileApi.setAccessToken("access-123")
+    const signedUrl = "/api/files/display/private-pdf-token"
+    const fetchMock = jest.fn().mockImplementation(() =>
+      Promise.resolve(new Response(
+        JSON.stringify({
+          success: true,
+          data: { url: signedUrl, expiresAt: new Date(Date.now() + 60_000).toISOString() },
+        }),
+        { status: 200 },
+      )),
+    )
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    const consoleLog = jest.spyOn(console, "log").mockImplementation(() => undefined)
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined)
+
+    render(<ReviewFileViewer file={androidPdfFile} visible onClose={jest.fn()} />)
+
+    const initialPreview = await screen.findByTestId("pdf-file-preview")
+    expect(initialPreview).toHaveProp("source", {
+      html: expect.stringContaining(signedUrl),
+      baseUrl: "http://10.0.2.2:3001",
+    })
+    fireEvent(initialPreview, "error")
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+
+    const reloadedPreview = await screen.findByTestId("pdf-file-preview")
+    fireEvent(reloadedPreview, "error")
+
+    expect(await screen.findByRole("button", { name: "Retry file preview" })).toBeVisible()
+    expect(screen.queryByText(signedUrl)).toBeNull()
+    expect(consoleLog).not.toHaveBeenCalled()
+    expect(consoleError).not.toHaveBeenCalled()
+  })
+})
+
+describe("pdfPreviewHtml", () => {
+  it("bundles PDF.js without sending the signed URL to a remote viewer", () => {
+    const signedUrl = "http://10.0.2.2:3001/api/files/display/private-pdf-token"
+    const html = pdfPreviewHtml(signedUrl)
+
+    expect(html).toContain(signedUrl)
+    expect(html).toContain('connect-src http://10.0.2.2:3001;')
+    expect(html).toContain('new DecompressionStream("gzip")')
+    expect(html).not.toMatch(/<script[^>]+src=["']https?:/i)
+    expect(html).not.toContain("jsdelivr")
   })
 })
