@@ -419,8 +419,8 @@ function DemoAccountButton({ title, subtitle, tone, loading, onPress }: { title:
 
 const styles = StyleSheet.create({
   authRoot: { flex: 1, backgroundColor: colors.background },
-  authBackdrop: { ...StyleSheet.absoluteFill, opacity: 0.28 },
-  authVeil: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(248,249,250,0.88)" },
+  authBackdrop: { ...StyleSheet.absoluteFillObject, opacity: 0.28 },
+  authVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(248,249,250,0.88)" },
   authSafeArea: { flex: 1 },
   authScroll: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
   authBrandRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: spacing.sm },

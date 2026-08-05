@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   chevron: { color: colors.outline, fontSize: 22 },
   cover: { width: 92, height: 118, borderRadius: radius.md, padding: spacing.sm, justifyContent: "flex-end", overflow: "hidden" },
   coverSmall: { width: 72, height: 72 },
-  coverImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
+  coverImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
   coverShade: { position: "absolute", left: 0, right: 0, bottom: 0, height: "48%", backgroundColor: "rgba(18, 9, 39, 0.34)" },
   coverGlow: { position: "absolute", left: 12, top: 12, width: 54, height: 54, borderRadius: 27, backgroundColor: "rgba(255,255,255,0.16)" },
   coverTitle: { color: colors.surface, fontWeight: "900", fontSize: 14, textTransform: "uppercase" },
