@@ -14,6 +14,8 @@ business behaviour, backend APIs, or mobile environment settings.
 - Remove unused SDK 56-only dependencies: `@expo/ui` and `expo-glass-effect`.
 - Replace the direct `react-native-worklets` callback used by the splash overlay
   with an SDK 54-compatible completion mechanism, preserving the visual intent.
+- Retain `react-native-worklets` only at Expo SDK 54's resolved peer version for
+  React Native Reanimated; application source must not import it directly.
 - Disable the experimental React Compiler flag to avoid a runtime/toolchain
   compatibility risk in SDK 54 Expo Go.
 - Retain `expo-symbols` only if Expo's SDK 54 resolver supports it; otherwise
@@ -35,7 +37,7 @@ business behaviour, backend APIs, or mobile environment settings.
 | --- | --- |
 | Runtime | Expo SDK 54 with its matching React Native 0.81 and React 19.1 lines. |
 | Native packages | Install versions through `npx expo install --fix`; do not hand-pin SDK 56 native packages. |
-| Splash callback | Remove the standalone Worklets dependency and schedule the state update through an SDK 54-safe mechanism after the entering animation completes. |
+| Splash callback | Keep the Reanimated-required Worklets peer at Expo's resolved SDK 54 version, but remove all direct source imports and schedule the state update through an SDK 54-safe mechanism. |
 | React Compiler | Set `experiments.reactCompiler` to `false` / remove it. |
 | Symbol icons | Preserve if compatible; otherwise use `@expo/vector-icons` only in web-only components. |
 

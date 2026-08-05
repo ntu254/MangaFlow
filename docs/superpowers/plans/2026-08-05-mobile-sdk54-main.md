@@ -4,7 +4,7 @@
 
 **Goal:** Run the `main` mobile app in Expo Go SDK 54 on current iOS and Android devices without changing business behaviour or network configuration.
 
-**Architecture:** Move the Expo project as a unit onto Expo SDK 54's resolved dependency matrix rather than manually retaining SDK 56 native module versions. Remove unused SDK 56 dependencies and replace the splash animation's direct Worklets scheduling with Reanimated's compatible bridge API; configuration remains a thin Expo Router application configuration.
+**Architecture:** Move the Expo project as a unit onto Expo SDK 54's resolved dependency matrix rather than manually retaining SDK 56 native module versions. Remove unused SDK 56 dependencies and replace the splash animation's direct Worklets scheduling with Reanimated's compatible bridge API, retaining Worklets only as Reanimated's resolved native peer; configuration remains a thin Expo Router application configuration.
 
 **Tech Stack:** Expo SDK 54, React 19.1, React Native 0.81, Expo Router, React Native Reanimated, Jest Expo, TypeScript, npm.
 
@@ -66,15 +66,16 @@ npx expo install --fix
 
 Expected: Expo rewrites managed package versions, including React 19.1, React Native 0.81, Expo Router, Reanimated, WebView, and `jest-expo`, to versions compatible with SDK 54.
 
-- [ ] **Step 4: Remove unused SDK 56-only dependencies**
+- [ ] **Step 4: Remove unused SDK 56-only dependencies and restore Reanimated's peer**
 
 Run from `mobile`:
 
 ```powershell
-npm uninstall @expo/ui expo-glass-effect react-native-worklets
+npm uninstall @expo/ui expo-glass-effect
+npx expo install react-native-worklets
 ```
 
-Expected: all three names disappear from `dependencies` and `package-lock.json`; no source import remains for the first two packages.
+Expected: `@expo/ui` and `expo-glass-effect` disappear from `dependencies` and `package-lock.json`. `react-native-worklets` remains only at the SDK 54 version selected by Expo because it is a native peer of Reanimated; app source must not import it directly.
 
 - [ ] **Step 5: Verify the resolved manifest is internally consistent**
 
@@ -103,7 +104,7 @@ git commit -m "chore(mobile): downgrade Expo to sdk 54"
 
 **Interfaces:**
 - Consumes: `AnimatedSplashOverlay(): JSX.Element` from `animated-icon.tsx`.
-- Produces: a splash overlay that invokes `setVisible(false)` through Reanimated's `runOnJS` callback after a completed entering animation, without importing `react-native-worklets`.
+- Produces: a splash overlay that invokes `setVisible(false)` through Reanimated's `runOnJS` callback after a completed entering animation, without importing `react-native-worklets` directly.
 
 - [ ] **Step 1: Add a splash rendering smoke test**
 
