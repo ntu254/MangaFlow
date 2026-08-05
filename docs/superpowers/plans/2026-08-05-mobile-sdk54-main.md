@@ -228,6 +228,62 @@ git commit -m "docs(mobile): record sdk 54 validation"
 
 Otherwise, do not create an empty validation commit.
 
+### Task 4: Restore the SDK 54 Jest asset runtime
+
+**Files:**
+- Modify: `mobile/package.json`
+- Modify: `mobile/package-lock.json`
+
+**Interfaces:**
+- Consumes: the existing Jest suite, which currently fails to resolve
+  `expo-asset` from `expo-font` when icon components load.
+- Produces: an SDK 54 Expo-managed `expo-asset` dependency that permits the
+  full Jest suite to initialize.
+
+- [ ] **Step 1: Confirm the failing test-runtime dependency**
+
+Run from `mobile`:
+
+```powershell
+npm test
+npm ls expo-asset --depth=0
+```
+
+Expected: the test run reports `Cannot find module 'expo-asset'` from
+`expo-font`, and npm reports no root-level `expo-asset` installation.
+
+- [ ] **Step 2: Add the Expo-resolved asset module**
+
+Run from `mobile`:
+
+```powershell
+npx expo install expo-asset
+```
+
+Expected: Expo selects the SDK 54-compatible `expo-asset` version and updates
+both the manifest and lockfile without altering application source.
+
+- [ ] **Step 3: Verify the Jest initialization regression is fixed**
+
+Run from `mobile`:
+
+```powershell
+npm ci
+npm test
+npx expo-doctor
+```
+
+Expected: `npm ci` succeeds; Jest no longer reports module resolution for
+`expo-asset`; Expo Doctor remains clean. Report any unrelated test failures
+with their exact source and exit status.
+
+- [ ] **Step 4: Commit the dependency repair**
+
+```powershell
+git add mobile/package.json mobile/package-lock.json
+git commit -m "fix(mobile): restore sdk 54 asset runtime"
+```
+
 ## Self-review
 
 ### Spec coverage

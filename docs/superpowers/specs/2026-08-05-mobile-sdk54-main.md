@@ -20,6 +20,8 @@ business behaviour, backend APIs, or mobile environment settings.
   compatibility risk in SDK 54 Expo Go.
 - Retain `expo-symbols` only if Expo's SDK 54 resolver supports it; otherwise
   replace its web-only use with the already-installed icon library.
+- Add `expo-asset` at Expo SDK 54's resolved version because the application's
+  `expo-font` / icon test runtime imports it directly.
 - Regenerate `package-lock.json` from the resolved SDK 54 dependency graph.
 
 ## Explicit non-goals
