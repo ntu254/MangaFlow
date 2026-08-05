@@ -284,6 +284,96 @@ git add mobile/package.json mobile/package-lock.json
 git commit -m "fix(mobile): restore sdk 54 asset runtime"
 ```
 
+### Task 5: Adapt SDK 56 source APIs to SDK 54 declarations
+
+**Files:**
+- Modify: `mobile/package.json`
+- Modify: `mobile/package-lock.json`
+- Modify: `mobile/src/__tests__/editor-proposal-flow.test.tsx`
+- Modify: `mobile/src/app/_layout.tsx`
+- Modify: `mobile/src/components/animated-icon.tsx`
+- Modify: `mobile/src/components/app-tabs.tsx`
+- Modify: `mobile/src/components/app-tabs.web.tsx`
+- Modify: `mobile/src/components/mf.tsx`
+- Modify: `mobile/src/components/ui/collapsible.tsx`
+- Modify: `mobile/src/hooks/use-theme.ts`
+- Modify: `mobile/src/MangaFlowMobileApp.tsx`
+
+**Interfaces:**
+- Consumes: Expo Router 6, React Native 0.81, Expo Symbols 1, and React Test
+  Renderer 19.1 declarations selected by SDK 54.
+- Produces: the existing mobile routes, labels, icons, light-theme fallback,
+  overlays, and test helpers with no TypeScript diagnostics under SDK 54.
+
+- [ ] **Step 1: Record the failing type baseline**
+
+Run from `mobile`:
+
+```powershell
+npm run lint
+```
+
+Expected: 25 diagnostics grouped as Router themes/native tabs, color schemes,
+Expo Symbols, `absoluteFill` object spreads, and React Test Renderer callback
+inference.
+
+- [ ] **Step 2: Restore the direct development type dependency**
+
+Run from `mobile`:
+
+```powershell
+npm install --save-dev @types/react-test-renderer@^19.0.0
+```
+
+Expected: `mobile/package.json` declares the React Test Renderer type package
+and the two callbacks in `editor-proposal-flow.test.tsx` regain contextual
+types without adding `any` annotations.
+
+- [ ] **Step 3: Replace only incompatible source patterns**
+
+Make these exact compatibility substitutions:
+
+```tsx
+// src/app/_layout.tsx
+import { Slot } from "expo-router";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+
+// All SDK 54 color-scheme consumers
+const themeKey = scheme === "dark" ? "dark" : "light";
+
+// All four StyleSheet object-spread sites
+...StyleSheet.absoluteFillObject
+```
+
+In `app-tabs.tsx`, import `Icon` and `Label` from
+`expo-router/unstable-native-tabs`, use them as direct children of
+`NativeTabs.Trigger`, and remove the unsupported `renderingMode` prop. Keep
+the existing tab route names, labels, and image sources.
+
+In `app-tabs.web.tsx` and `ui/collapsible.tsx`, replace platform-name maps
+passed to `SymbolView.name` with either one SF Symbol name plus a real
+Android/web fallback, or the existing cross-platform vector icon equivalent.
+The collapsible fallback must preserve its expanded/collapsed direction.
+
+- [ ] **Step 4: Run static and focused behavior checks**
+
+Run from `mobile`:
+
+```powershell
+npm run lint
+npm test -- editor-proposal-flow.test.tsx testing-stack.test.tsx mobile-shell.test.tsx
+```
+
+Expected: TypeScript exits 0; all selected suites pass; no direct Worklets
+source import, no React Compiler experiment, and no route or tab-label change.
+
+- [ ] **Step 5: Commit the SDK 54 source adapter**
+
+```powershell
+git add mobile/package.json mobile/package-lock.json mobile/src/__tests__/editor-proposal-flow.test.tsx mobile/src/app/_layout.tsx mobile/src/components/animated-icon.tsx mobile/src/components/app-tabs.tsx mobile/src/components/app-tabs.web.tsx mobile/src/components/mf.tsx mobile/src/components/ui/collapsible.tsx mobile/src/hooks/use-theme.ts mobile/src/MangaFlowMobileApp.tsx
+git commit -m "fix(mobile): adapt source to sdk 54"
+```
+
 ## Self-review
 
 ### Spec coverage
