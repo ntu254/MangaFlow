@@ -133,7 +133,7 @@ describe("ASN-002 — Editor task approval transition", () => {
       .send({})
       .expect(403);
 
-    expect(response.body.code).toBe("FORBIDDEN");
+    expect(response.body.code).toBe("TASK_EDITOR_ACTION_FORBIDDEN");
   });
 
   it("rejects EDITOR_APPROVE when task is not MANGAKA_APPROVED", async () => {

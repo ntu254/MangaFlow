@@ -140,7 +140,7 @@ export async function assertTaskAssigneeEligible(
   return assignee;
 }
 
-function assertTaskActionAllowed(
+async function assertTaskActionAllowed(
   actor: RequestActor,
   task: any,
   action: string,
@@ -173,16 +173,25 @@ function assertTaskActionAllowed(
     }
     return;
   }
-  // Editor approval is the only path that escalates a task from
-  // MANGAKA_APPROVED → EDITOR_APPROVED and from EDITOR_APPROVED → COMPLETED.
-  // The Editor Tantou on the series owns this; ADMIN gets a pass-through so
-  // emergency recoveries still work but are recorded in the audit log.
+  // Editor approval escalates a task MANGAKA_APPROVED → EDITOR_APPROVED and
+  // EDITOR_APPROVED → COMPLETED. Only the series' assigned Tantou editor owns
+  // these actions; ADMIN keeps an emergency pass-through (recorded in audit).
+  // The owning Mangaka must NOT complete tasks: that would record an earning
+  // without the Tantou editorial gate.
   if (normalized === "EDITOR_APPROVE" || normalized === "COMPLETE") {
-    if (actor.role === "ASSISTANT") {
+    const seriesId = await taskSeriesId(task);
+    const series = seriesId
+      ? await SeriesModel.findOne({ id: seriesId }).lean()
+      : null;
+    const isAssignedTantou =
+      actor.role === "EDITOR" &&
+      series != null &&
+      String(series.editorId ?? "") === String(actor.id);
+    if (!isAssignedTantou && actor.role !== "ADMIN") {
       throw new AppError(
         403,
-        "Assistants cannot perform editor-approval actions on tasks.",
-        "FORBIDDEN",
+        "Only the assigned Tantou Editor can approve or complete tasks.",
+        "TASK_EDITOR_ACTION_FORBIDDEN",
       );
     }
     return;
@@ -339,8 +348,12 @@ export async function applyTaskAction(
   const task = doc.toObject() as any;
   await assertTaskSeriesActive(task);
   const normalizedAction = action.toUpperCase();
-  assertTaskActionAllowed(actor, task, action);
-  if (actor.role !== "ASSISTANT") await assertCanMutateTask(actor, task);
+  await assertTaskActionAllowed(actor, task, action);
+  const isEditorialAction =
+    normalizedAction === "EDITOR_APPROVE" || normalizedAction === "COMPLETE";
+  if (actor.role !== "ASSISTANT" && !(isEditorialAction && actor.role === "ADMIN")) {
+    await assertCanMutateTask(actor, task);
+  }
   const pageAssignment = task.pageId
     ? currentPageAssignment((await getPageContext(String(task.pageId))).page)
     : null;

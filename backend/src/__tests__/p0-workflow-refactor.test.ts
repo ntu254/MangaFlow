@@ -2372,4 +2372,114 @@ describe("P0 canonical task submission workflow", () => {
     expect(region?.lockStatus).toBe("UNLOCKED");
     expect(region?.activeTaskId).toBeNull();
   });
+
+  it("blocks the owning Mangaka from task EDITOR_APPROVE and COMPLETE", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-rbac-mangaka",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "MANGAKA_APPROVED",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    for (const action of ["EDITOR_APPROVE", "COMPLETE"]) {
+      const res = await request(createApp())
+        .post(`/api/studio/tasks/task-rbac-mangaka/actions/${action}`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({})
+        .expect(403);
+      expect(res.body.code).toBe("TASK_EDITOR_ACTION_FORBIDDEN");
+    }
+  });
+
+  it("blocks a non-Tantou editor from task EDITOR_APPROVE", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    await StudioTaskModel.create({
+      id: "task-rbac-nontantou",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "MANGAKA_APPROVED",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await request(createApp())
+      .post("/api/studio/tasks/task-rbac-nontantou/actions/EDITOR_APPROVE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(403);
+    expect(res.body.code).toBe("TASK_EDITOR_ACTION_FORBIDDEN");
+  });
+
+  it("allows the assigned Tantou editor to approve a MANGAKA_APPROVED task", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-rbac-tantou",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "MANGAKA_APPROVED",
+      currentSubmissionId: "sub-rbac-tantou",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await SubmissionModel.create({
+      id: "sub-rbac-tantou",
+      taskId: "task-rbac-tantou",
+      assistantId: "u-assist",
+      status: "MANGAKA_APPROVED",
+      version: 1,
+      submissionVersion: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await request(createApp())
+      .post("/api/studio/tasks/task-rbac-tantou/actions/EDITOR_APPROVE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(res.body.data.status).toBe("EDITOR_APPROVED");
+  });
+
+  it("lets ADMIN complete an EDITOR_APPROVED task as the emergency pass-through", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-rbac-admin",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "EDITOR_APPROVED",
+      currentSubmissionId: "sub-rbac-admin",
+      quantity: 1,
+      rateSnapshot: 500,
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await SubmissionModel.create({
+      id: "sub-rbac-admin",
+      taskId: "task-rbac-admin",
+      assistantId: "u-assist",
+      status: "MANGAKA_APPROVED",
+      version: 1,
+      submissionVersion: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await request(createApp())
+      .post("/api/studio/tasks/task-rbac-admin/actions/COMPLETE")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(res.body.data.status).toBe("COMPLETED");
+  });
 });
