@@ -16,6 +16,7 @@ import {
   useResolveCommentMutation,
   useStudioRegionsQuery,
   useStudioTasksQuery,
+  useTaskEditorActionMutation,
 } from "@/features/series";
 import { getDeadlineRisk, getPublicationReadiness } from "../../model/editor-access";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -35,6 +36,7 @@ export function ChapterReviewPage() {
   const { data: regions = [] } = useStudioRegionsQuery({ chapterId });
   const { data: tasks = [] } = useStudioTasksQuery({ chapterId });
   const chapterAction = useChapterActionMutation(chapterId, chapter?.seriesId);
+  const taskAction = useTaskEditorActionMutation(chapterId);
   const resolveCommentMutation = useResolveCommentMutation();
   const reopenCommentMutation = useReopenCommentMutation();
 
@@ -156,6 +158,21 @@ export function ChapterReviewPage() {
     );
   }
 
+  function runTaskAction(taskId: string, action: "EDITOR_APPROVE" | "COMPLETE") {
+    taskAction.mutate(
+      { taskId, action },
+      {
+        onSuccess: () =>
+          toast.success(
+            action === "EDITOR_APPROVE"
+              ? "Task approved by editor."
+              : "Task completed. Earning recorded.",
+          ),
+        onError: (error) => toast.error(mapApiError(error)),
+      },
+    );
+  }
+
   return (
     <div className="-mx-6 -my-6 flex h-[calc(100vh-3.5rem)] flex-col bg-background lg:-mx-10 lg:-my-10">
       <header className="flex items-center gap-3 border-b border-border bg-card/60 px-4 py-2.5">
@@ -209,6 +226,8 @@ export function ChapterReviewPage() {
             isPending={chapterAction.isPending}
             canVerifyBlockingComments={canVerifyBlockingComments}
             isCommentActionPending={isCommentActionPending}
+            taskActionsPending={taskAction.isPending}
+            onTaskAction={runTaskAction}
             onApprove={() => runAction("EDITOR_APPROVE")}
             onRequestRevision={(payload) => runAction("REQUEST_REVISION", payload)}
             onReject={(payload) => runAction("REJECT", payload)}
