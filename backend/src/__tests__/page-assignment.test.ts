@@ -353,6 +353,32 @@ describe("Page assignment lifecycle", () => {
     expect(afterAccept.assignmentStatus).toBe("ACCEPTED");
   });
 
+  it("blocks RELEASE while the chapter is in TANTOU_REVIEW and leaves the assignment unchanged", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const app = createApp();
+    const pageId = `${CHAPTER_ID}-p2`;
+
+    const assigned = await request(app)
+      .post(`/api/studio/pages/${pageId}/assignment`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ assistantId: "u-assist" })
+      .expect(201);
+
+    await ChapterModel.updateOne({ id: CHAPTER_ID }, { $set: { status: "TANTOU_REVIEW" } });
+
+    const released = await request(app)
+      .post(`/api/studio/pages/${pageId}/assignment/actions/RELEASE`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({})
+      .expect(409);
+    expect(released.body.code).toBe("CHAPTER_REVIEW_LOCKED");
+
+    const chapter = (await ChapterModel.findOne({ id: CHAPTER_ID }).lean()) as any;
+    const page = chapter.pages.find((candidate: any) => String(candidate.id) === pageId);
+    expect(page.pageAssignment).toMatchObject({ status: "PENDING", assistantId: "u-assist" });
+    expect(page.pageAssignment.assignedAt).toBe(assigned.body.data.assignedAt);
+  });
+
   it("mirrors REJECT onto open tasks of the page with the rejection reason", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const assistant = await loginAs("jun@beachread.jp");

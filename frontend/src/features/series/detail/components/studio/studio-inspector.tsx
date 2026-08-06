@@ -60,6 +60,8 @@ type Props = {
   onSetCommentStatus: (id: string, status: StudioComment["status"]) => void;
   onAddressComment: (id: string) => void;
   permissions: StudioPermissionSet;
+  canCreateTaskNow?: boolean;
+  chapterReviewLocked?: boolean;
   userId: string;
   onTaskAction?: (taskId: string, action: string, payload?: Record<string, unknown>) => void;
   onReviewSubmission?: (
@@ -149,6 +151,7 @@ function PageAssignmentBlock({
   assistantMembers = [],
   mode,
   busy,
+  chapterReviewLocked = false,
   userId,
   onAssignPage,
   onPageAssignmentAction,
@@ -157,6 +160,7 @@ function PageAssignmentBlock({
   assistantMembers: Array<{ id: string; name: string }>;
   mode: string;
   busy?: boolean;
+  chapterReviewLocked?: boolean;
   userId: string;
   onAssignPage?: (assistantId: string) => void;
   onPageAssignmentAction?: (action: "ACCEPT" | "REJECT" | "RELEASE", reason?: string) => void;
@@ -187,15 +191,27 @@ function PageAssignmentBlock({
             ))}
           </select>
           {pageAssignment?.status === "ACCEPTED" ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 w-full"
-              disabled={busy}
-              onClick={() => onPageAssignmentAction?.("RELEASE")}
-            >
-              Release page
-            </Button>
+            <div className="space-y-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-full"
+                disabled={busy || chapterReviewLocked}
+                title={
+                  chapterReviewLocked
+                    ? "Page Assignment changes are unavailable during Tantou Review."
+                    : undefined
+                }
+                onClick={() => onPageAssignmentAction?.("RELEASE")}
+              >
+                Release page
+              </Button>
+              {chapterReviewLocked ? (
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Page Assignment changes are unavailable during Tantou Review.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -465,6 +481,8 @@ function InspectorBody({
   onSetCommentStatus,
   onAddressComment,
   permissions,
+  canCreateTaskNow = false,
+  chapterReviewLocked = false,
   userId,
   onTaskAction,
   onReviewSubmission,
@@ -514,6 +532,7 @@ function InspectorBody({
             assistantMembers={assistantMembers}
             mode={permissions.mode}
             busy={pageAssignmentBusy}
+            chapterReviewLocked={chapterReviewLocked}
             userId={userId}
             onAssignPage={onAssignPage}
             onPageAssignmentAction={onPageAssignmentAction}
@@ -643,19 +662,38 @@ function InspectorBody({
             assistantMembers={assistantMembers}
             mode={permissions.mode}
             busy={pageAssignmentBusy}
+            chapterReviewLocked={chapterReviewLocked}
             userId={userId}
             onAssignPage={onAssignPage}
             onPageAssignmentAction={onPageAssignmentAction}
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {permissions.canCreateTask ? (
-            <Button size="sm" className="h-9 gap-1.5" disabled={false} onClick={onCreateTask}>
-              <Plus className="h-4 w-4" /> Create Assistant Task
-            </Button>
-          ) : null}
-        </div>
+        {permissions.canCreateTask ? (
+          <div className="mt-4 space-y-1.5">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                className="h-9 gap-1.5"
+                disabled={!canCreateTaskNow}
+                title={
+                  chapterReviewLocked
+                    ? "Create Task unavailable during Tantou Review. Return the chapter to IN_PRODUCTION first."
+                    : undefined
+                }
+                onClick={onCreateTask}
+              >
+                <Plus className="h-4 w-4" /> Create Assistant Task
+              </Button>
+            </div>
+            {chapterReviewLocked ? (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Create Task unavailable during Tantou Review. Return the chapter to IN_PRODUCTION
+                first.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
 
         {permissions.mode === "assistant" &&

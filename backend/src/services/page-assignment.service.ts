@@ -2,6 +2,7 @@ import { ChapterModel, SeriesMemberModel, StudioTaskModel, UserModel } from "../
 import { AppError } from "../lib/http.js";
 import type { RequestActor } from "../types.js";
 import { nowIso } from "../domain/ids.js";
+import { assertChapterContentUnlocked } from "./authorization.service.js";
 
 /**
  * Terminal task statuses that should not block a page-assignment release.
@@ -84,7 +85,7 @@ export async function applyPageAssignmentAction(
   action: string,
   reason?: string,
 ) {
-  const { page } = await getPageContext(pageId);
+  const { chapter, page } = await getPageContext(pageId);
   const current = currentPageAssignment(page);
   if (!current) throw new AppError(409, "Assign an assistant to this page first.", "PAGE_ASSIGNMENT_REQUIRED");
   const normalized = action.toUpperCase();
@@ -115,6 +116,7 @@ export async function applyPageAssignmentAction(
   }
   if (normalized === "RELEASE") {
     if (actor.role !== "MANGAKA") throw new AppError(403, "Only the owning Mangaka can release a page assignment.", "FORBIDDEN");
+    assertChapterContentUnlocked(chapter);
     const pendingEditorReview = await (StudioTaskModel as any).findOne({
       pageId,
       status: { $in: ["MANGAKA_APPROVED", "EDITOR_APPROVED"] },

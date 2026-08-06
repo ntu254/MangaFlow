@@ -366,12 +366,12 @@ export function StudioTab({
     ? deriveTaskStudioSubmissionState(selectedTask, selectedTaskSubmissions)
     : undefined;
   const chapterReviewLocked = chapter?.status === "TANTOU_REVIEW";
-  const canCreateTask =
-    permissions.canCreateTask &&
+  const pageAssignmentReadyForTask =
     Boolean(page?.pageAssignment) &&
     page?.pageAssignment?.status !== "RELEASED" &&
-    page?.pageAssignment?.status !== "REJECTED" &&
-    !chapterReviewLocked;
+    page?.pageAssignment?.status !== "REJECTED";
+  const canCreateTask =
+    permissions.canCreateTask && pageAssignmentReadyForTask && !chapterReviewLocked;
   const canSubmitSelectedTask =
     permissions.canSubmitTask &&
     !chapterReviewLocked &&
@@ -823,7 +823,9 @@ export function StudioTab({
               },
             );
           }}
-          permissions={{ ...permissions, canCreateTask }}
+          permissions={permissions}
+          canCreateTaskNow={canCreateTask}
+          chapterReviewLocked={chapterReviewLocked}
           userId={user.id}
           onTaskAction={handleTaskAction}
           onReviewSubmission={handleReviewSubmission}
