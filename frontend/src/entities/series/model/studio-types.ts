@@ -98,7 +98,7 @@ export type StudioTaskStatus =
   | "CANCELLED";
 
 export type TaskAssignmentStatus = "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";
-export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED";
+export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED" | "REJECTED";
 export type PageAssignment = {
   assistantId: string;
   assistantName: string;

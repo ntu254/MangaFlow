@@ -106,7 +106,11 @@ export function CreateTaskDialog({
       toast.error("Upload the source page image before assigning assistant work.");
       return;
     }
-    if (!pageAssignment || pageAssignment.status === "RELEASED") {
+    if (
+      !pageAssignment ||
+      pageAssignment.status === "RELEASED" ||
+      pageAssignment.status === "REJECTED"
+    ) {
       toast.error("Assign an assistant to this page before creating a task.");
       return;
     }
@@ -263,7 +267,11 @@ export function CreateTaskDialog({
               size="sm"
               onClick={submit}
               disabled={
-                !pageHasSource || !pageAssignment || pageAssignment.status === "RELEASED" || rates.length === 0
+                !pageHasSource ||
+                !pageAssignment ||
+                pageAssignment.status === "RELEASED" ||
+                pageAssignment.status === "REJECTED" ||
+                rates.length === 0
               }
             >
               Create task
