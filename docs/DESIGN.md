@@ -231,7 +231,7 @@ Multi-entity actions run in `runWorkflowTransaction`; external effects
 |--------|-----------|--------|
 | Board finalization | VotingSession, Proposal, BoardDecision, Series, OutboxEvent | [06](business-flows/06-board-governance.md) |
 | Submission approval | Submission, Task | [05](business-flows/05-assistant-submission.md) |
-| Task completion (Tantou) | Task, Earning, Region release, OutboxEvent | [05](business-flows/05-assistant-submission.md) |
+| Task completion (Tantou) | Task, Earning, Page task slot release, OutboxEvent | [05](business-flows/05-assistant-submission.md) |
 | Chapter submit for review | readiness validation, Chapter, Pages, review snapshot | [04](business-flows/04-chapter-workflow.md) |
 | Task creation | Task, Region assignment, Region lock, active RateTable resolution | [08](business-flows/08-earnings.md), [14](business-flows/14-regions.md) |
 | Publication | Publication, Chapter, timestamps, notifications | [04](business-flows/04-chapter-workflow.md) |

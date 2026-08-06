@@ -356,7 +356,7 @@ stateDiagram-v2
   TODO --> CANCELLED: Cancel
   IN_PROGRESS --> CANCELLED: Cancel
   MANGAKA_APPROVED --> EDITOR_APPROVED: Tantou Editor approves
-  EDITOR_APPROVED --> COMPLETED: Tantou Editor completes (Earning recorded, region released)
+  EDITOR_APPROVED --> COMPLETED: Tantou Editor completes (Earning recorded, page task slot released)
   COMPLETED --> [*]
   REJECTED --> [*]
   CANCELLED --> [*]

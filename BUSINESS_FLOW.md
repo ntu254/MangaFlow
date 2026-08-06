@@ -299,10 +299,12 @@ back.
 > checked against the target task/series ownership, so a different Mangaka
 > cannot approve, reject, or request revision for another creator's task.
 >
-> **Legacy note.** Direct task-level actions `SUBMIT` / `APPROVE` /
-> `MANGAKA_APPROVE` / `EDITOR_APPROVE` / `REJECT` / `REQUEST_REVISION` on the
-> task endpoint are disabled (HTTP 410) — all review now runs through the
-> Submission endpoints described above.
+> **Legacy note.** The retired submission-review aliases are disabled
+> (HTTP 410): direct `POST /submissions` creation and
+> `POST /submissions/:submissionId/editor-approve`. Mangaka decisions
+> (`approve` / `request-revision` / `reject`) run through the Submission
+> endpoints above, and the Tantou Editor's `EDITOR_APPROVE` / `COMPLETE`
+> actions run on the task endpoint (`/studio/tasks/:taskId/actions/:action`).
 
 ```mermaid
 stateDiagram-v2
@@ -314,7 +316,7 @@ stateDiagram-v2
   SUBMITTED --> REJECTED: Mangaka rejects (region unlocked)
   REVISION_REQUESTED --> IN_PROGRESS: REOPEN
   MANGAKA_APPROVED --> EDITOR_APPROVED: Tantou Editor approves
-  EDITOR_APPROVED --> COMPLETED: Tantou Editor completes (Earning recorded, region unlocked)
+  EDITOR_APPROVED --> COMPLETED: Tantou Editor completes (Earning recorded, page task slot released)
   COMPLETED --> [*]
   REJECTED --> [*]
   IN_PROGRESS --> CANCELLED: CANCEL
@@ -614,8 +616,10 @@ ownership, assignment, or membership rules before returning or changing data.
   at submit-time; any page edit afterward makes the snapshot stale and blocks
   the Editor's decision (`409 REVIEW_SNAPSHOT_STALE`) until it's refrozen.
 - **Region locking** — a Studio Region is exclusively locked to one active
-  task; task creation claims the region atomically and the lock is released
-  only on task completion (`COMPLETED`), reject, or cancel.
+  task; task creation claims the region atomically and the region lock is
+  released only when the task is cancelled (`CANCELLED`). Completion
+  (`COMPLETED`), rejection, or cancellation releases the page task slot
+  (page assignment) so the page can be reassigned.
 - **Cross-entity attachment guard** — a submission's
   `seriesId/chapterId/pageId/regionId` must match the task it targets, or it's
   rejected as `CROSS_ENTITY_ATTACHMENT`.

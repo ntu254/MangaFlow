@@ -677,7 +677,7 @@ flowchart LR
     D3 -->|Reject| J[Reject Submission and Unlock Region]
     J --> E((End))
     D3 -->|Approve| K[Approve Submission and Task]
-    K --> L[Unlock Region and Create Earning on task COMPLETE]
+    K --> L[Release page task slot and Create Earning on task COMPLETE]
     L --> E
     D -->|Mangaka cancels| M[Cancel Task and Unlock Region]
     M --> E
