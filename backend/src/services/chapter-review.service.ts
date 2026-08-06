@@ -26,7 +26,7 @@ const CHAPTER_REVIEW_SOURCE_STATUSES: Record<"SUBMIT_REVIEW" | "RESUBMIT", strin
   SUBMIT_REVIEW: ["IN_PRODUCTION", "PLANNED"],
   RESUBMIT: ["REVISION_REQUIRED"],
 };
-const APPROVED_TASK_STATUSES = ["MANGAKA_APPROVED"];
+const APPROVED_TASK_STATUSES = ["MANGAKA_APPROVED", "EDITOR_APPROVED", "COMPLETED"];
 
 function ensureActor(req: AuthedRequest) {
   if (!req.actor) throw new AppError(401, "Missing authenticated user.", "MISSING_AUTH");
