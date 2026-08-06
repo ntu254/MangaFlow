@@ -10,12 +10,13 @@ import { nowIso } from "../domain/ids.js";
  *   MANGAKA_APPROVED is NOT terminal — it only means the owning Mangaka
  *   accepted the submission; an Editor approval step is still required
  *   before any task can be released. Releasing a page assignment while an
- *   Editor-approved-but-not-yet-paid task exists lets a new Assistant take
+ *   Editor-approved-but-not-completed task exists lets a new Assistant take
  *   over the page even though the Earning is still attached to the
  *   previous assignee.
  *
- * EDITOR_APPROVED is the intermediate status: earning is recorded but not
- * yet paid out. COMPLETED is the only state that releases the assignment
+ * EDITOR_APPROVED is the intermediate status: the earning is NOT recorded
+ * yet. Earning is recorded exactly once at COMPLETED (tracking only — not
+ * a payment), and COMPLETED is the only state that releases the assignment
  * for reassignment without ambiguity about who earned the work.
  */
 export const PAGE_TASK_TERMINAL_STATUSES = ["REJECTED", "CANCELLED", "COMPLETED"];

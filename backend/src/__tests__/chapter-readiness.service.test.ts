@@ -108,4 +108,19 @@ describe("Chapter readiness bounded context", () => {
     expect(result.ready).toBe(false);
     expect(result.items.find((item) => item.key === "allCommentsResolved")?.passed).toBe(false);
   });
+
+  it("accepts EDITOR_APPROVED and COMPLETED tasks in readiness", () => {
+    const chapter: any = { status: "TANTOU_REVIEW", pages: [] };
+    const tasks = [
+      { id: "task-ea", isRequired: true, status: "EDITOR_APPROVED", currentSubmissionId: "sub-ea" },
+      { id: "task-c", isRequired: true, status: "COMPLETED", currentSubmissionId: "sub-c" },
+    ];
+    const submissions = [
+      { id: "sub-ea", taskId: "task-ea", status: "MANGAKA_APPROVED" },
+      { id: "sub-c", taskId: "task-c", status: "MANGAKA_APPROVED" },
+    ];
+    const readiness = chapterReadiness(chapter, [], tasks, submissions);
+    const allTasksApproved = readiness.items.find((item: any) => item.key === "allTasksApproved");
+    expect(allTasksApproved?.passed).toBe(true);
+  });
 });

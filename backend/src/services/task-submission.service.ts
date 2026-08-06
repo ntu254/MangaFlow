@@ -456,9 +456,9 @@ export async function applyTaskAction(
       patch.editorApprovedById = actor.id;
       break;
     case "COMPLETE":
-      // Editor finalises the task. Earning is recorded exactly once here so
-      // corrections can no longer happen silently via re-approval of a stale
-      // submission.
+      // Editor finalises the task. Earning is recorded exactly once here
+      // (tracking only — not a payment) so corrections can no longer happen
+      // silently via re-approval of a stale submission.
       if (task.status !== "EDITOR_APPROVED") {
         throw new AppError(
           409,
