@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Image } from "expo-image"
-import { Pressable, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -63,7 +63,9 @@ export function MFScreen({ tabs, activeTab, onTabChange, children, role = "edito
     <View style={styles.root}>
       <MFHeaderBackground role={role} />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <View style={styles.content}>{children}</View>
+        <Pressable style={styles.content} onPress={Keyboard.dismiss}>
+          {children}
+        </Pressable>
       </SafeAreaView>
       <View style={styles.tabBar}>
         {tabs.map((tab) => {

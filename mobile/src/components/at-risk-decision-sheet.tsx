@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
+import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import type { AtRiskDecisionValue } from "@/services/board-mobile-data-source"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
@@ -76,7 +76,7 @@ export function AtRiskDecisionSheet({
         if (!submitting) onCancel()
       }}
     >
-      <View style={styles.backdrop}>
+      <Pressable style={styles.backdrop} onPress={Keyboard.dismiss}>
         <View style={styles.sheet} accessibilityViewIsModal>
           <Text accessibilityRole="header" style={styles.title}>
             At-risk decision: {seriesTitle}
@@ -170,7 +170,7 @@ export function AtRiskDecisionSheet({
             <Text style={styles.readOnly}>Only the Board Chair can record an at-risk decision.</Text>
           )}
         </View>
-      </View>
+      </Pressable>
     </Modal>
   )
 }
