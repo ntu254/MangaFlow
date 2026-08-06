@@ -132,6 +132,7 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
 function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
   switch (raw) {
     case "PENDING":
+      return "PENDING";
     case "REVISION_REQUESTED":
       return "REVISION_REQUESTED";
     case "MANGAKA_APPROVED":

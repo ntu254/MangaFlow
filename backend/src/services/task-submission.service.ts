@@ -457,22 +457,6 @@ export async function applyTaskAction(
       patch.completedAt = new Date();
       patch.completedById = actor.id;
       patch.pageTaskActive = false;
-      // The earning entry is created via the dedicated service so the
-      // recording respects the idempotency key (submission + task).
-      try {
-        const submission = task.currentSubmissionId
-          ? await SubmissionModel.findOne({ id: String(task.currentSubmissionId) }).lean()
-          : null;
-        await recordTaskEarning(doc, submission);
-      } catch (err: any) {
-        // Earning failures must not abort the task completion — we want the
-        // task to move to COMPLETED so the page is releasable; earnings can be
-        // reconciled through the ledger entry workflow (see EARN-001).
-        console.warn("earning.record_failed", {
-          taskId: task.id,
-          error: err?.message ?? String(err),
-        });
-      }
       break;
     case "REASSIGN": {
       if (task.status !== "TODO") {
@@ -535,6 +519,21 @@ export async function applyTaskAction(
     );
     if (updatedTask.modifiedCount !== 1) {
       throw new AppError(409, "Task changed while applying action.", "CONFLICT");
+    }
+    if (normalizedAction === "COMPLETE") {
+      const submission = task.currentSubmissionId
+        ? await SubmissionModel.findOne({ id: String(task.currentSubmissionId) })
+            .session(session)
+            .lean()
+        : null;
+      if (!submission) {
+        throw new AppError(
+          409,
+          "A current submission is required before completing the task.",
+          "SUBMISSION_NOT_FOUND",
+        );
+      }
+      await recordTaskEarning(doc, submission, session);
     }
     if (normalizedAction === "CANCEL") {
       await StudioRegionModel.updateMany(
@@ -1017,7 +1016,6 @@ export async function submissionDecision(
         { submissionId },
         session,
       );
-      await recordTaskEarning(task, submission, session);
       await applyApprovedSubmissionToPage(updated ?? submission, task, session);
     } else if (status === "REVISION_REQUESTED") {
       await StudioTaskModel.updateOne(

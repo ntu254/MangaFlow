@@ -66,8 +66,8 @@ export function primaryActionForTaskStatus(status: StudioTaskStatus): TaskAction
     case "REVISION_REQUESTED":
       return "FIX_AND_RESUBMIT";
     case "MANGAKA_APPROVED":
-    case "EDITOR_APPROVED":
       return "VIEW_APPROVED";
+    case "EDITOR_APPROVED":
     case "COMPLETED":
       return "VIEW_COMPLETED";
     case "REJECTED":

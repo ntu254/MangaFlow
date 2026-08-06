@@ -79,7 +79,11 @@ export function MangakaDashboard() {
     return tasks
       .filter((task) => {
         const visualStatus = getVisualTaskStatus(task);
-        return visualStatus !== "MANGAKA_APPROVED" && visualStatus !== "CANCELLED";
+        return (
+          visualStatus !== "EDITOR_APPROVED" &&
+          visualStatus !== "COMPLETED" &&
+          visualStatus !== "CANCELLED"
+        );
       })
       .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
   }, [tasks]);

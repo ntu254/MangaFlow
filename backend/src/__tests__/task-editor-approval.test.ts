@@ -5,6 +5,7 @@ import { createApp } from "../app.js";
 import {
   AuditEntryModel,
   ChapterModel,
+  EarningModel,
   StudioTaskModel,
   SubmissionModel,
 } from "../db/models.js";
@@ -77,12 +78,14 @@ describe("ASN-002 — Editor task approval transition", () => {
     expect(auditCount).toBeGreaterThan(0);
   });
 
-  it("moves a task to COMPLETED via COMPLETE action and audit + outbox are emitted", async () => {
-    // Pre-mark MANGAKA_APPROVED with a submission so the earning ledger has
-    // a target to attribute to. Submission.approve already wrote a row, so
-    // COMPLETE should be idempotent on the earning side.
+  it("records an earning exactly once when an editor completes the task", async () => {
     const submission = await SubmissionModel.findOne({ taskId: TASK_ID }).lean();
     expect(submission).toBeTruthy();
+
+    await StudioTaskModel.updateOne(
+      { id: TASK_ID },
+      { $set: { currentSubmissionId: submission?.id } },
+    );
 
     const editor = await loginAs("tanaka@beachread.jp");
     const app = createApp();

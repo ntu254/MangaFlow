@@ -121,7 +121,12 @@ export function AssistantDashboard() {
     return [...mine]
       .filter((t) => {
         const visualStatus = getVisualTaskStatus(t);
-        return visualStatus !== "MANGAKA_APPROVED" && visualStatus !== "CANCELLED";
+        return (
+          visualStatus !== "MANGAKA_APPROVED" &&
+          visualStatus !== "EDITOR_APPROVED" &&
+          visualStatus !== "COMPLETED" &&
+          visualStatus !== "CANCELLED"
+        );
       })
       .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
       .slice(0, 5);
