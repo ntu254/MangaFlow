@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { apiRequest } from "@/shared/api/client";
 import { assistantAiApi } from "@/shared/api/services";
@@ -394,13 +394,15 @@ export function StudioTab({
     !whitenPageBubblesMutation.isPending;
   const aiBusy = detectPageBubblesMutation.isPending || whitenPageBubblesMutation.isPending;
 
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const [canvasHost, setCanvasHost] = useState<HTMLDivElement | null>(null);
+  const canvasRef = useCallback((el: HTMLDivElement | null) => {
+    setCanvasHost(el);
+  }, []);
   const [size, setSize] = useState({ w: 800, h: 600 });
   useLayoutEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
+    if (!canvasHost) return;
     const updateSize = () => {
-      const rect = el.getBoundingClientRect();
+      const rect = canvasHost.getBoundingClientRect();
       setSize({
         w: Math.max(1, Math.floor(rect.width)),
         h: Math.max(1, Math.floor(rect.height)),
@@ -409,14 +411,12 @@ export function StudioTab({
     const ro = new ResizeObserver(() => {
       updateSize();
     });
-    ro.observe(el);
+    ro.observe(canvasHost);
     updateSize();
-    const raf = window.requestAnimationFrame(updateSize);
     return () => {
-      window.cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, []);
+  }, [canvasHost]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const triggerUpload = () => {
@@ -878,7 +878,6 @@ export function StudioTab({
               priority: data.priority,
               instructions: data.instructions,
               description: data.instructions,
-              status: "TODO",
             });
             setSelection({ kind: "task", taskId: created.id });
             toast.success("Task created.");

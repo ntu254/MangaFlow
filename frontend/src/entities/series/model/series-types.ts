@@ -368,4 +368,5 @@ export const studioKeys = {
     regionId?: string;
     taskId?: string;
   }) => [...studioKeys.all, "comments", filters] as const,
+  assignmentInbox: () => [...studioKeys.all, "assignment-inbox"] as const,
 };

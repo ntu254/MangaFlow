@@ -511,7 +511,7 @@ export type ChapterPage = {
   pageAssignment?: PageAssignment;
 };
 
-export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED";
+export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED" | "REJECTED";
 
 export type PageAssignment = {
   assistantId: string;

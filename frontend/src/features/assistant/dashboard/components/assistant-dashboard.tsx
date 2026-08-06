@@ -43,6 +43,7 @@ import {
 import { tasksForAssistant } from "../../model/assistant-access";
 import { formatDate, formatDateTime } from "@/shared/lib/format-date";
 import { TeamInvitationsPanel } from "./team-invitations-panel";
+import { PageAssignmentsPanel } from "./page-assignments-panel";
 
 function formatYen(n: number) {
   return `¥${n.toLocaleString("ja-JP")}`;
@@ -242,6 +243,9 @@ export function AssistantDashboard() {
 
       {/* Team Invitations — shown when there are pending invites */}
       <TeamInvitationsPanel />
+
+      {/* Page Assignments — shown when there are pending page-assignment invitations */}
+      <PageAssignmentsPanel />
 
       {/* 4-Grid SaaS Metric Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -16,6 +16,7 @@ import type {
   StudioComment,
   StudioRegion,
   PageAssignment,
+  PageAssignmentInboxItem,
 } from "@/entities/series/model/studio-types";
 import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
 import { ApiRequestError, apiRequest, hasApiTokens } from "@/shared/api/client";
@@ -817,7 +818,6 @@ export function useCreateStudioTaskMutation() {
       priority: string;
       instructions: string;
       description?: string;
-      status?: "TODO";
     }
   >({
     mutationFn: (body) => apiRequest<StudioTask>("/studio/tasks", { method: "POST", body }),
@@ -1026,6 +1026,14 @@ export function useAssignPageMutation() {
         await queryClient.invalidateQueries({ queryKey: key as never });
       }
     },
+  });
+}
+
+export function usePageAssignmentInboxQuery(options: { enabled?: boolean } = {}) {
+  return useQuery<PageAssignmentInboxItem[]>({
+    queryKey: studioKeys.assignmentInbox(),
+    queryFn: () => apiRequest<PageAssignmentInboxItem[]>("/studio/assignments/inbox"),
+    enabled: options.enabled ?? true,
   });
 }
 

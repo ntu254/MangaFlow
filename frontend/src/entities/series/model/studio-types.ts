@@ -109,6 +109,20 @@ export type PageAssignment = {
   rejectedReason?: string;
 };
 
+export type PageAssignmentInboxItem = {
+  pageId: string;
+  pageNumber: number;
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  seriesId: string;
+  seriesTitle: string;
+  mangakaId: string;
+  mangakaName: string;
+  assignedAt: string;
+  openTaskCount: number;
+};
+
 export const TASK_STATUS_BADGE: Record<StudioTaskStatus, string> = {
   TODO: "bg-zinc-200 text-zinc-800 border-zinc-300",
   IN_PROGRESS: "bg-amber-100 text-amber-900 border-amber-300",

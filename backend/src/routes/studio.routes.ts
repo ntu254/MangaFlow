@@ -15,6 +15,7 @@ import {
   taskAction,
   assignPage,
   pageAssignmentAction,
+  listPageAssignmentInbox,
   sendEditorReview,
   listComments,
   createComment,
@@ -42,6 +43,11 @@ router.patch("/studio/regions/:id", requireExactRole("MANGAKA") as any, patchReg
 router.delete("/studio/regions/:id", requireExactRole("MANGAKA") as any, deleteRegion);
 
 // Tasks
+router.get(
+  "/studio/assignments/inbox",
+  requireExactRole("ASSISTANT") as any,
+  listPageAssignmentInbox,
+);
 router.post("/studio/pages/:pageId/assignment", requireExactRole("MANGAKA") as any, assignPage);
 router.post(
   "/studio/pages/:pageId/assignment/actions/:action",
