@@ -125,7 +125,7 @@ describe("Page assignment lifecycle", () => {
     expect(rejected.body.code).toBe("REASON_REQUIRED");
   });
 
-  it("records a rejection reason and releases the page when the assignee rejects", async () => {
+  it("records a rejection reason and marks the page assignment rejected when the assignee rejects", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
     const assistant = await loginAs("jun@beachread.jp");
     const app = createApp();
@@ -144,7 +144,7 @@ describe("Page assignment lifecycle", () => {
       .expect(200);
 
     expect(rejected.body.data).toMatchObject({
-      status: "RELEASED",
+      status: "REJECTED",
       rejectedReason: "Overcommitted this week",
     });
     expect(rejected.body.data.releasedAt).toBeTruthy();
@@ -375,11 +375,13 @@ describe("Page assignment lifecycle", () => {
       })
       .expect(201);
 
-    await request(app)
+    const rejectRes = await request(app)
       .post(`/api/studio/pages/${pageId}/assignment/actions/REJECT`)
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .send({ reason: "Overcommitted" })
       .expect(200);
+    expect(rejectRes.body.data.status).toBe("REJECTED");
+    expect(rejectRes.body.data.rejectedReason).toBe("Overcommitted");
 
     const afterReject = (await StudioTaskModel.findOne({ pageId, title: "Task before rejection" }).lean()) as any;
     expect(afterReject.assignmentStatus).toBe("REJECTED");

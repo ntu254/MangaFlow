@@ -99,7 +99,7 @@ export async function applyPageAssignmentAction(
     }
     const saved = await saveAssignment(pageId, {
       ...current,
-      status: normalized === "ACCEPT" ? "ACCEPTED" : "RELEASED",
+      status: normalized === "ACCEPT" ? "ACCEPTED" : "REJECTED",
       acceptedAt: normalized === "ACCEPT" ? nowIso() : undefined,
       releasedAt: normalized === "REJECT" ? nowIso() : undefined,
       rejectedReason: normalized === "REJECT" ? reason?.trim() : undefined,
@@ -143,7 +143,7 @@ export async function assertCurrentPageAssignment(task: any, options: { requireA
   if (!task.pageId) return null;
   const { page } = await getPageContext(String(task.pageId));
   const assignment = currentPageAssignment(page);
-  if (!assignment || assignment.status === "RELEASED") {
+  if (!assignment || assignment.status === "RELEASED" || assignment.status === "REJECTED") {
     throw new AppError(409, "This page has no active assistant assignment.", "PAGE_ASSIGNMENT_REQUIRED");
   }
   if (task.assigneeId && String(assignment.assistantId) !== String(task.assigneeId)) {
