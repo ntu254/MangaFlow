@@ -111,9 +111,8 @@ describe("mobile-file-review service", () => {
     const [url, options] = fetchMock.mock.calls[0]
     expect(String(url)).toMatch(/\/files\/display-url$/)
     expect(options.method).toBe("POST")
-    expect(JSON.parse(options.body as string)).toMatchObject({
+    expect(JSON.parse(options.body as string)).toEqual({
       key: "proposals/p-1/cover.png",
-      name: "cover.png",
       fileName: "cover.png",
     })
   })

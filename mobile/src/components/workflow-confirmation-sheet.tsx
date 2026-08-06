@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
+import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { colors, radius, spacing, typography } from "@/design/tokens"
 
 export interface WorkflowConfirmationSheetProps {
@@ -59,7 +59,7 @@ export function WorkflowConfirmationSheet({
         if (!submitting) onCancel()
       }}
     >
-      <View style={styles.backdrop}>
+      <Pressable style={styles.backdrop} onPress={Keyboard.dismiss}>
         <View style={styles.sheet} accessibilityViewIsModal>
           <Text accessibilityRole="header" style={styles.title}>
             {title}
@@ -103,7 +103,7 @@ export function WorkflowConfirmationSheet({
             </Pressable>
           </View>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   )
 }

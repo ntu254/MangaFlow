@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
+import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { WorkflowDetailLayout } from "@/components/workflow-detail-layout"
 import {
   WorkflowActionBar,
@@ -398,7 +398,7 @@ function ForwardSheet({
         if (!submitting) onCancel()
       }}
     >
-      <View style={styles.backdrop}>
+      <Pressable style={styles.backdrop} onPress={Keyboard.dismiss}>
         <View style={styles.sheet} accessibilityViewIsModal>
           <Text accessibilityRole="header" style={styles.sheetTitle}>
             Forward {proposalTitle} to Board
@@ -451,7 +451,7 @@ function ForwardSheet({
             </Pressable>
           </View>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   )
 }

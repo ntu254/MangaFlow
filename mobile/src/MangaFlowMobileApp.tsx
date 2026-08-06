@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Image } from "expo-image"
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFButton, MFHeader, MFIconCircle, MFScreen, type TabItem } from "@/components/mf"
 import { MFIcon } from "@/design/icons"
@@ -306,6 +306,7 @@ function MobileAuthScreen({ onAuthenticated }: { onAuthenticated: (session: Mobi
       <Image source={require("../assets/images/nen.jpg")} style={styles.authBackdrop} contentFit="cover" contentPosition="right top" />
       <View style={styles.authVeil} />
       <SafeAreaView style={styles.authSafeArea}>
+        <Pressable style={styles.authSafeArea} onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.authScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.authBrandRow}>
             <View style={styles.authLogoMark}><Text style={styles.authLogoText}>M</Text></View>
@@ -399,6 +400,7 @@ function MobileAuthScreen({ onAuthenticated }: { onAuthenticated: (session: Mobi
             ) : null}
           </View>
         </ScrollView>
+        </Pressable>
       </SafeAreaView>
     </View>
   )
@@ -419,8 +421,8 @@ function DemoAccountButton({ title, subtitle, tone, loading, onPress }: { title:
 
 const styles = StyleSheet.create({
   authRoot: { flex: 1, backgroundColor: colors.background },
-  authBackdrop: { ...StyleSheet.absoluteFill, opacity: 0.28 },
-  authVeil: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(248,249,250,0.88)" },
+  authBackdrop: { ...StyleSheet.absoluteFillObject, opacity: 0.28 },
+  authVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(248,249,250,0.88)" },
   authSafeArea: { flex: 1 },
   authScroll: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
   authBrandRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: spacing.sm },

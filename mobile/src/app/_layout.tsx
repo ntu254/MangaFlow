@@ -1,4 +1,5 @@
-import { DefaultTheme, Slot, ThemeProvider } from "expo-router"
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native"
+import { Slot } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { MobileQueryProvider } from "@/providers/mobile-query-provider"
 

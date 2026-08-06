@@ -36,7 +36,7 @@ export async function getReviewFiles(
 export async function openReviewFile(file: ReviewFile): Promise<FileUrlLease> {
   const payload = await mobileApi.request<DisplayUrlPayload>("/files/display-url", {
     method: "POST",
-    body: JSON.stringify({ key: file.key, name: file.name, fileName: file.name }),
+    body: JSON.stringify({ key: file.key, fileName: file.name }),
   })
   const serverExpiresAtMs = payload.expiresAt ? Date.parse(payload.expiresAt) : Number.NaN
 
