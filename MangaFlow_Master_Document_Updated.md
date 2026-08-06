@@ -128,7 +128,7 @@ flowchart LR
 | Governance decision | Board Chair and Board members | Snapshotted VotingSession finalizes approval/rejection or opens a fresh re-vote after a tie |
 | Series promotion | System transaction | One approved Proposal creates at most one `PRE_PRODUCTION` Series |
 | Production setup | Owning Mangaka and assigned Tantou | Series becomes `ONGOING`; Chapters, members, Pages, Regions, Materials, Tasks and invites are managed |
-| Assistant collaboration | Assigned Assistant and owning Mangaka | Task work is submitted, revised, approved or rejected; approved work can create an Earning |
+| Assistant collaboration | Assigned Assistant and owning Mangaka | Task work is submitted, revised, approved or rejected; Tantou task completion records an Earning |
 | Chapter quality gate | Owning Mangaka and assigned Tantou | Readiness is checked, a frozen review snapshot is reviewed, blockers are verified, and Chapter becomes publication-ready |
 | Publication | Editor | A Publication is scheduled and, when due, the Chapter becomes `PUBLISHED` |
 | Performance tracking | Board, Editor, owning Mangaka | Rankings are imported/viewed according to role and ownership scope |
@@ -651,8 +651,8 @@ perimeter tests. → `CODE-TODO` P2 (Done).
 ### Description
 
 An Assistant is assigned a Task, starts work, submits work via POST /api/tasks/:taskId/submit,
-and the Mangaka reviews (approve/reject/request-revision). On Mangaka approval, an
-Earning record is created. The Assistant can reopen revision-requested tasks.
+and the Mangaka reviews (approve/reject/request-revision). When the Tantou Editor completes the
+Mangaka-approved task, an Earning record is created. The Assistant can reopen revision-requested tasks.
 
 ### Flowchart
 
@@ -677,7 +677,7 @@ flowchart LR
     D3 -->|Reject| J[Reject Submission and Unlock Region]
     J --> E((End))
     D3 -->|Approve| K[Approve Submission and Task]
-    K --> L[Unlock Region and Create Earning]
+    K --> L[Unlock Region and Create Earning on task COMPLETE]
     L --> E
     D -->|Mangaka cancels| M[Cancel Task and Unlock Region]
     M --> E
@@ -713,6 +713,8 @@ flowchart LR
 | `SUBMITTED`          | Work submitted (pre-review) |
 | `REVISION_REQUESTED` | Mangaka requested revision  |
 | `MANGAKA_APPROVED`   | Mangaka approved            |
+| `EDITOR_APPROVED`    | Tantou Editor approved      |
+| `COMPLETED`          | Tantou Editor completed     |
 | `REJECTED`           | Mangaka rejected            |
 | `CANCELLED`          | Cancelled by Mangaka        |
 
@@ -750,12 +752,14 @@ Submissions use `Idempotency-Key` header + `requestFingerprint` (SHA-256 of sort
 to prevent duplicate submissions. If same key + same fingerprint: returns existing submission.
 If same key + different fingerprint: HTTP 409 `IDEMPOTENCY_KEY_REUSED`.
 
-### Earning Creation (on MANGAKA_APPROVED)
+### Earning Creation (on task COMPLETE)
 
 Before a Task can be created, the owning Mangaka selects an active `rateCode` and
 quantity. The backend resolves the Admin-owned `RateTable` entry and stores the
 rate snapshot on the Task; `rateSnapshot` and `estimatedAmount` are never accepted
-from the client. `EarningModel.findOneAndUpdate({ sourceKey })` with `$setOnInsert`:
+from the client. When the Tantou Editor completes the task (`COMPLETED`), the
+workflow runs `EarningModel.findOneAndUpdate({ sourceKey })` with `$setOnInsert`,
+recording the Earning exactly once (tracking only — not a payment):
 
 - `sourceKey = "TASK_APPROVAL:{taskId}:{submissionId}"`
 - `amount = quantity * rateSnapshot` (server-resolved immutable Task snapshot)
@@ -981,8 +985,8 @@ records and strips status fields from retained attachments.
 > **Canonical source:** `08-earnings(7).md`
 
 ### Description
-When the owning Mangaka approves an Assistant Submission, the system creates one
-idempotent `EARNED` record for the Task. This module is earnings tracking only, not
+When the Tantou Editor completes a Mangaka-approved Task, the system creates one
+idempotent `EARNED` record for it. This module is earnings tracking only, not
 payroll or payment processing. Rate policy is configured by Admin through the
 narrow `MANAGE_RATE_TABLE` capability; Mangaka never writes monetary rates.
 
@@ -1000,7 +1004,7 @@ flowchart LR
     F --> D
     D1 -->|Reject| G[Close Without Earning]
     G --> E((End))
-    D1 -->|Approve| H[Create Idempotent Earning]
+    D1 -->|Approve| H[Task COMPLETE creates Idempotent Earning]
     H --> I[Set Status EARNED]
     I --> J[Assistant Views Own Earnings]
     J --> E
@@ -1022,7 +1026,7 @@ flowchart LR
 | Status | Description |
 |---|---|
 | `PENDING` | Legacy initial value |
-| `EARNED` | Created when the Mangaka approves a Submission |
+| `EARNED` | Created when the Tantou Editor completes the task |
 | `CONFIRMED`, `PAID`, `VOIDED`, `ADJUSTED`, `REVERSED` | Legacy/deprecated payroll states |
 
 ### Rate policy
@@ -1053,7 +1057,7 @@ repository and must be configured by an authorized Admin.
 ### Canonical Decision — FLOW-GAP-04 (Resolved)
 Admin payroll and earnings access was outside the minimal account-management role.
 The canonical module exposes only the Assistant's own earnings view and automatic
-Earning creation from Mangaka approval. `GET /api/admin/payroll` and
+Earning creation when the Tantou Editor completes the task. `GET /api/admin/payroll` and
 `POST /api/admin/payroll/:earningId/{confirm,mark-paid,void}` and their handlers
 are deleted; `MANAGE_RATE_TABLE` (`/admin/rates*`) remains an explicit kept
 exception. Implemented by CT-11.
@@ -1725,7 +1729,7 @@ Release history is retained in audit entries.
 | Material | Versioned supporting file scoped to Proposal, Series, Chapter or Page |
 | Blocking comment | Assigned-Tantou issue that controls resubmission and approval readiness |
 | Publication | Scheduling entity that owns `SCHEDULED`, cancellation and publication timing |
-| Earning | Idempotent `EARNED` record created when a Submission is approved; not payroll/payment processing |
+| Earning | Idempotent `EARNED` record created when the Tantou Editor completes the task; not payroll/payment processing |
 | RateTable | Admin-managed source of truth for new Task pricing |
 | AiProcessing | Audit record for bubble detection, processing or whitening operations |
 
@@ -1853,7 +1857,7 @@ See `docs/reports/2026-07-27-ct11-admin-scope-completion.md`.
 `chapter-readiness.service.ts` and `chapter-review.service.ts` own chapter
 readiness/review; `task-submission.service.ts` owns Task → Submission commands;
 `publication.service.ts` owns schedule/postpone/publish; and
-`earning.service.ts` owns approval earning persistence and its outbox event;
+`earning.service.ts` owns task-complete earning persistence and its outbox event;
 `rate-table.service.ts` owns Admin rate configuration and active-rate resolution.
 Historical line references below are retained as traceability snapshots; these
 service names are the canonical current owners.

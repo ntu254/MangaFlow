@@ -108,7 +108,7 @@ flowchart TD
   H --> I["Assistants submit work"]
   I --> J["Mangaka reviews Submissions"]
   J -->|Revision requested| I
-  J -->|Approved| K["Task approved and estimated Earning recorded"]
+  J -->|Approved| K["Task approved; Earning recorded on task COMPLETE"]
   K --> L{"All required Tasks approved?"}
   L -->|No| H
   L -->|Yes| M["Chapter submitted with frozen snapshot"]
@@ -338,7 +338,7 @@ its region (matching on `taskId` rather than `lockedByTaskId`).
 | 1 | Mangaka | Create and assign Task | Task `TODO`; region claimed |
 | 2 | Assistant | `START` | Task `IN_PROGRESS`; region locked |
 | 3 | Assistant | Submit work | New Submission version; Task `SUBMITTED` |
-| 4a | Mangaka | Approve | Task `MANGAKA_APPROVED`; region released; Earning created |
+| 4a | Mangaka | Approve | Task `MANGAKA_APPROVED`; no earning yet (editor step follows) |
 | 4b | Mangaka | Request revision | Task `REVISION_REQUESTED` |
 | 4c | Mangaka | Reject | Task `REJECTED`; region released |
 | 5 | Assistant | `REOPEN` | Task returns to `IN_PROGRESS` |
@@ -355,7 +355,9 @@ stateDiagram-v2
   SUBMITTED --> REJECTED: Reject
   TODO --> CANCELLED: Cancel
   IN_PROGRESS --> CANCELLED: Cancel
-  MANGAKA_APPROVED --> [*]
+  MANGAKA_APPROVED --> EDITOR_APPROVED: Tantou Editor approves
+  EDITOR_APPROVED --> COMPLETED: Tantou Editor completes (Earning recorded, region released)
+  COMPLETED --> [*]
   REJECTED --> [*]
   CANCELLED --> [*]
 ```
@@ -368,9 +370,7 @@ stateDiagram-v2
 | `MANGAKA_REVISION_REQUESTED` | `REVISION_REQUESTED` |
 | `EDITOR_REVIEWING` | `SUBMITTED` |
 | `EDITOR_REVISION_REQUESTED` | `REVISION_REQUESTED` |
-| `EDITOR_APPROVED` | `MANGAKA_APPROVED` |
 | `OPEN` | `TODO` |
-| `COMPLETED` | `MANGAKA_APPROVED` |
 
 ### 6.3 Submission workflow
 
@@ -476,12 +476,16 @@ flowchart TD
 
 ## 8. Flow E — Earnings tracking
 
-An `Earning` record is generated when a Mangaka accepts an Assistant's
-current Submission.
+An `Earning` record is generated when the Tantou Editor completes a
+Mangaka-approved Task.
 
-1. Mangaka approves a Submission for Task `T`.
-2. Workflow engine upserts an `Earning` row with status `EARNED`.
-3. An `earning.earned` event is placed on the outbox.
+1. Mangaka approves a Submission for Task `T` (task → `MANGAKA_APPROVED`; no
+   earning yet; the assignment stays locked).
+2. Tantou Editor approves the task (`EDITOR_APPROVED`), then completes it
+   (`COMPLETED`).
+3. Workflow engine upserts an `Earning` row with status `EARNED`, keyed by
+   `TASK_APPROVAL:{taskId}:{submissionId}` — tracking only, not a payment.
+4. An `earning.earned` event is placed on the outbox.
 
 **Rate configuration boundary**
 
@@ -492,8 +496,9 @@ current Submission.
 - Client-supplied `rateSnapshot` and `estimatedAmount` are rejected. Production
   amounts are not invented in source and must be configured by Admin.
 - The old `createEarningItemIfMissing()` helper was removed because it had no
-  runtime call site. Production earnings use the `Earning` record created on
-  Mangaka approval; `EarningItem` remains a legacy/seed model only.
+  runtime call site. Production earnings use the `Earning` record created when
+  the Tantou Editor completes the task; `EarningItem` remains a legacy/seed
+  model only.
 - Admin payroll actions (`confirm`, `mark-paid`, `void`) all return HTTP 410.
 - Earnings today are **tracking-only** records, not a live payout pipeline.
 
@@ -681,7 +686,9 @@ business stages.
 | In progress | `IN_PROGRESS` |
 | Submitted | `SUBMITTED` |
 | Revision requested | `REVISION_REQUESTED` |
-| Approved | `MANGAKA_APPROVED` |
+| Mangaka approved | `MANGAKA_APPROVED` |
+| Editor approved | `EDITOR_APPROVED` |
+| Completed | `COMPLETED` |
 | Rejected | `REJECTED` |
 | Cancelled | `CANCELLED` |
 
@@ -772,7 +779,8 @@ documented and potentially restricted.
 **3. EarningItem — dead helper removed; RateTable is Admin-owned**
 
 The unreachable `createEarningItemIfMissing()` and `resolveTaskRate()` helpers
-were removed. The active runtime path creates `Earning` on Mangaka approval.
+were removed. The active runtime path creates `Earning` when the Tantou Editor
+completes the task.
 Admin configures versioned `RateTable` entries; task creation resolves an active
 `rateCode` and stores `rateVersion`/`rateSnapshot` server-side. Missing active
 configuration returns `RATE_CONFIGURATION_REQUIRED`; client monetary fields are

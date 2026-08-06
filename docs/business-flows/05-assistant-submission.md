@@ -5,7 +5,8 @@
 An Assistant is assigned a Task, starts work, submits work via POST /api/tasks/:taskId/submit,
 and the Mangaka reviews (approve/reject/request-revision). A new task always targets
 one Page, one Assistant, one active submission, and one earning record. On Mangaka
-approval, the Page task slot is released and an Earning record is created.
+approval the submission is accepted; the Tantou Editor then approves and completes
+the task, which records the Earning (tracking only) and releases the page slot.
 
 ## Flowchart
 
@@ -31,8 +32,10 @@ graph TD
     N --> O[Mangaka reviews submission]
 
     O --> P{Mangaka decision}
-    P -- APPROVE --> Q[Submission: MANGAKA_APPROVED<br/>Task: MANGAKA_APPROVED<br/>Page task slot released]
-    Q --> R[Earning record created<br/>sourceKey: TASK_APPROVAL:taskId:submissionId]
+    P -- APPROVE --> Q[Submission: MANGAKA_APPROVED<br/>Task: MANGAKA_APPROVED<br/>Page task slot stays locked]
+    Q --> Q1[Tantou Editor approves task<br/>Task: EDITOR_APPROVED]
+    Q1 --> Q2[Tantou Editor completes task<br/>Task: COMPLETED<br/>Page task slot released]
+    Q2 --> R[Earning record created (tracking only)<br/>sourceKey: TASK_APPROVAL:taskId:submissionId]
     R --> S[OutboxEvent: earning.earned]
 
     P -- REQUEST_REVISION --> T[Submission: REVISION_REQUESTED<br/>Task: REVISION_REQUESTED<br/>Page task slot remains reserved]
@@ -68,6 +71,8 @@ graph TD
 | `SUBMITTED`          | Work submitted (pre-review) |
 | `REVISION_REQUESTED` | Mangaka requested revision  |
 | `MANGAKA_APPROVED`   | Mangaka approved            |
+| `EDITOR_APPROVED`    | Tantou Editor approved      |
+| `COMPLETED`          | Tantou Editor completed     |
 | `REJECTED`           | Mangaka rejected            |
 | `CANCELLED`          | Cancelled by Mangaka        |
 
@@ -117,13 +122,15 @@ Submissions use `Idempotency-Key` header + `requestFingerprint` (SHA-256 of sort
 to prevent duplicate submissions. If same key + same fingerprint: returns existing submission.
 If same key + different fingerprint: HTTP 409 `IDEMPOTENCY_KEY_REUSED`.
 
-## Earning Creation (on MANGAKA_APPROVED)
+## Earning Creation (on task COMPLETE)
 
 Before a Task can be created, the owning Mangaka selects an active `rateCode` and
 quantity (the page flow uses one payable page unit). The backend resolves the
 Admin-owned `RateTable` entry and stores the rate snapshot on the Task;
-`rateSnapshot` and `estimatedAmount` are never accepted from the client.
-`EarningModel.findOneAndUpdate({ taskId })` with `$setOnInsert`:
+`rateSnapshot` and `estimatedAmount` are never accepted from the client. When the
+Tantou Editor completes the task (`COMPLETED`), the workflow runs
+`EarningModel.findOneAndUpdate({ taskId })` with `$setOnInsert`, recording the
+Earning exactly once (tracking only — not a payment):
 
 - `sourceKey = "TASK_APPROVAL:{taskId}:{submissionId}"`
 - `amount = quantity * rateSnapshot` (server-resolved immutable Task snapshot)
