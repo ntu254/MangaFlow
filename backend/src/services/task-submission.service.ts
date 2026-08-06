@@ -459,10 +459,10 @@ export async function applyTaskAction(
       // Editor finalises the task. Earning is recorded exactly once here so
       // corrections can no longer happen silently via re-approval of a stale
       // submission.
-      if (task.status !== "MANGAKA_APPROVED" && task.status !== "EDITOR_APPROVED") {
+      if (task.status !== "EDITOR_APPROVED") {
         throw new AppError(
           409,
-          `Task must be MANGAKA_APPROVED or EDITOR_APPROVED before completion. Current: ${task.status}.`,
+          `Task must be EDITOR_APPROVED before completion. Current: ${task.status}.`,
           "INVALID_TRANSITION",
         );
       }
