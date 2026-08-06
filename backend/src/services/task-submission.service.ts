@@ -140,7 +140,7 @@ export async function assertTaskAssigneeEligible(
   return assignee;
 }
 
-function assertTaskActionAllowed(
+async function assertTaskActionAllowed(
   actor: RequestActor,
   task: any,
   action: string,
@@ -173,16 +173,25 @@ function assertTaskActionAllowed(
     }
     return;
   }
-  // Editor approval is the only path that escalates a task from
-  // MANGAKA_APPROVED → EDITOR_APPROVED and from EDITOR_APPROVED → COMPLETED.
-  // The Editor Tantou on the series owns this; ADMIN gets a pass-through so
-  // emergency recoveries still work but are recorded in the audit log.
+  // Editor approval escalates a task MANGAKA_APPROVED → EDITOR_APPROVED and
+  // EDITOR_APPROVED → COMPLETED. Only the series' assigned Tantou editor owns
+  // these actions; ADMIN keeps an emergency pass-through (recorded in audit).
+  // The owning Mangaka must NOT complete tasks: that would record an earning
+  // without the Tantou editorial gate.
   if (normalized === "EDITOR_APPROVE" || normalized === "COMPLETE") {
-    if (actor.role === "ASSISTANT") {
+    const seriesId = await taskSeriesId(task);
+    const series = seriesId
+      ? await SeriesModel.findOne({ id: seriesId }).lean()
+      : null;
+    const isAssignedTantou =
+      actor.role === "EDITOR" &&
+      series != null &&
+      String(series.editorId ?? "") === String(actor.id);
+    if (!isAssignedTantou && actor.role !== "ADMIN") {
       throw new AppError(
         403,
-        "Assistants cannot perform editor-approval actions on tasks.",
-        "FORBIDDEN",
+        "Only the assigned Tantou Editor can approve or complete tasks.",
+        "TASK_EDITOR_ACTION_FORBIDDEN",
       );
     }
     return;
@@ -339,8 +348,12 @@ export async function applyTaskAction(
   const task = doc.toObject() as any;
   await assertTaskSeriesActive(task);
   const normalizedAction = action.toUpperCase();
-  assertTaskActionAllowed(actor, task, action);
-  if (actor.role !== "ASSISTANT") await assertCanMutateTask(actor, task);
+  await assertTaskActionAllowed(actor, task, action);
+  const isEditorialAction =
+    normalizedAction === "EDITOR_APPROVE" || normalizedAction === "COMPLETE";
+  if (actor.role !== "ASSISTANT" && !(isEditorialAction && actor.role === "ADMIN")) {
+    await assertCanMutateTask(actor, task);
+  }
   const pageAssignment = task.pageId
     ? currentPageAssignment((await getPageContext(String(task.pageId))).page)
     : null;
@@ -443,13 +456,13 @@ export async function applyTaskAction(
       patch.editorApprovedById = actor.id;
       break;
     case "COMPLETE":
-      // Editor finalises the task. Earning is recorded exactly once here so
-      // corrections can no longer happen silently via re-approval of a stale
-      // submission.
-      if (task.status !== "MANGAKA_APPROVED" && task.status !== "EDITOR_APPROVED") {
+      // Editor finalises the task. Earning is recorded exactly once here
+      // (tracking only — not a payment) so corrections can no longer happen
+      // silently via re-approval of a stale submission.
+      if (task.status !== "EDITOR_APPROVED") {
         throw new AppError(
           409,
-          `Task must be MANGAKA_APPROVED or EDITOR_APPROVED before completion. Current: ${task.status}.`,
+          `Task must be EDITOR_APPROVED before completion. Current: ${task.status}.`,
           "INVALID_TRANSITION",
         );
       }
@@ -457,22 +470,6 @@ export async function applyTaskAction(
       patch.completedAt = new Date();
       patch.completedById = actor.id;
       patch.pageTaskActive = false;
-      // The earning entry is created via the dedicated service so the
-      // recording respects the idempotency key (submission + task).
-      try {
-        const submission = task.currentSubmissionId
-          ? await SubmissionModel.findOne({ id: String(task.currentSubmissionId) }).lean()
-          : null;
-        await recordTaskEarning(doc, submission);
-      } catch (err: any) {
-        // Earning failures must not abort the task completion — we want the
-        // task to move to COMPLETED so the page is releasable; earnings can be
-        // reconciled through the ledger entry workflow (see EARN-001).
-        console.warn("earning.record_failed", {
-          taskId: task.id,
-          error: err?.message ?? String(err),
-        });
-      }
       break;
     case "REASSIGN": {
       if (task.status !== "TODO") {
@@ -535,6 +532,21 @@ export async function applyTaskAction(
     );
     if (updatedTask.modifiedCount !== 1) {
       throw new AppError(409, "Task changed while applying action.", "CONFLICT");
+    }
+    if (normalizedAction === "COMPLETE") {
+      const submission = task.currentSubmissionId
+        ? await SubmissionModel.findOne({ id: String(task.currentSubmissionId) })
+            .session(session)
+            .lean()
+        : null;
+      if (!submission) {
+        throw new AppError(
+          409,
+          "A current submission is required before completing the task.",
+          "SUBMISSION_NOT_FOUND",
+        );
+      }
+      await recordTaskEarning(doc, submission, session);
     }
     if (normalizedAction === "CANCEL") {
       await StudioRegionModel.updateMany(
@@ -1017,7 +1029,6 @@ export async function submissionDecision(
         { submissionId },
         session,
       );
-      await recordTaskEarning(task, submission, session);
       await applyApprovedSubmissionToPage(updated ?? submission, task, session);
     } else if (status === "REVISION_REQUESTED") {
       await StudioTaskModel.updateOne(

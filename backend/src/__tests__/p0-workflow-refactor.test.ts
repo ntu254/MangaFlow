@@ -526,9 +526,10 @@ describe("P0 canonical task submission workflow", () => {
     expect(oldSubmission?.status).toBe("SUPERSEDED");
   });
 
-  it("creates backend-computed earning and transactional outbox on Mangaka approval", async () => {
+  it("records exactly one backend-computed earning and outbox event at task COMPLETE", async () => {
     const assistant = await loginAs("jun@beachread.jp");
     const mangaka = await loginAs("inoue@beachread.jp");
+    const editor = await loginAs("tanaka@beachread.jp");
     await StudioTaskModel.create({
       id: "task-p0-earning",
       chapterId: "ch-s-berserk-prod-4",
@@ -549,16 +550,27 @@ describe("P0 canonical task submission workflow", () => {
       .post("/api/tasks/task-p0-earning/submit")
       .set("Authorization", `Bearer ${assistant.accessToken}`)
       .set("Idempotency-Key", "idem-task-p0-earning")
-      .send({
-        expectedCurrentSubmissionId: null,
-        fileKey: "pages/task-p0-earning.png",
-      })
+      .send({ expectedCurrentSubmissionId: null, fileKey: "pages/task-p0-earning.png" })
       .expect(201);
 
     await request(createApp())
       .post(`/api/submissions/${submit.body.data.id}/approve`)
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .send({ reviewerNote: "Approved" })
+      .expect(200);
+
+    const beforeComplete = await EarningModel.findOne({ taskId: "task-p0-earning" }).lean();
+    expect(beforeComplete).toBeNull();
+
+    await request(createApp())
+      .post("/api/studio/tasks/task-p0-earning/actions/EDITOR_APPROVE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    await request(createApp())
+      .post("/api/studio/tasks/task-p0-earning/actions/COMPLETE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
       .expect(200);
 
     const earning = (await EarningModel.findOne({
@@ -575,6 +587,55 @@ describe("P0 canonical task submission workflow", () => {
     expect(outbox.map((event: any) => event.type)).toEqual(
       expect.arrayContaining(["task.submitted", "earning.earned"]),
     );
+  });
+
+  it("rejects COMPLETE from MANGAKA_APPROVED before the editor step", async () => {
+    const assistant = await loginAs("jun@beachread.jp");
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const editor = await loginAs("tanaka@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-p0-skip-editor",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: assistant.user.id,
+      assigneeName: "Jun Assistant",
+      status: "IN_PROGRESS",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const submit = await request(createApp())
+      .post("/api/tasks/task-p0-skip-editor/submit")
+      .set("Authorization", `Bearer ${assistant.accessToken}`)
+      .set("Idempotency-Key", "idem-task-p0-skip-editor")
+      .send({ expectedCurrentSubmissionId: null, fileKey: "pages/task-p0-skip-editor.png" })
+      .expect(201);
+
+    await request(createApp())
+      .post(`/api/submissions/${submit.body.data.id}/approve`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ reviewerNote: "Approved" })
+      .expect(200);
+
+    const blocked = await request(createApp())
+      .post("/api/studio/tasks/task-p0-skip-editor/actions/COMPLETE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(409);
+    expect(blocked.body.code).toBe("INVALID_TRANSITION");
+
+    await request(createApp())
+      .post("/api/studio/tasks/task-p0-skip-editor/actions/EDITOR_APPROVE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    const ok = await request(createApp())
+      .post("/api/studio/tasks/task-p0-skip-editor/actions/COMPLETE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(ok.body.data.status).toBe("COMPLETED");
   });
 
   it("promotes the approved submission asset onto the target chapter page", async () => {
@@ -2371,5 +2432,115 @@ describe("P0 canonical task submission workflow", () => {
     const region = (await StudioRegionModel.findOne({ id: "region-p0-release" }).lean()) as any;
     expect(region?.lockStatus).toBe("UNLOCKED");
     expect(region?.activeTaskId).toBeNull();
+  });
+
+  it("blocks the owning Mangaka from task EDITOR_APPROVE and COMPLETE", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-rbac-mangaka",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "MANGAKA_APPROVED",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    for (const action of ["EDITOR_APPROVE", "COMPLETE"]) {
+      const res = await request(createApp())
+        .post(`/api/studio/tasks/task-rbac-mangaka/actions/${action}`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .send({})
+        .expect(403);
+      expect(res.body.code).toBe("TASK_EDITOR_ACTION_FORBIDDEN");
+    }
+  });
+
+  it("blocks a non-Tantou editor from task EDITOR_APPROVE", async () => {
+    const editor = await loginAs("editor@mangaflow.local");
+    await StudioTaskModel.create({
+      id: "task-rbac-nontantou",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "MANGAKA_APPROVED",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await request(createApp())
+      .post("/api/studio/tasks/task-rbac-nontantou/actions/EDITOR_APPROVE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(403);
+    expect(res.body.code).toBe("TASK_EDITOR_ACTION_FORBIDDEN");
+  });
+
+  it("allows the assigned Tantou editor to approve a MANGAKA_APPROVED task", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-rbac-tantou",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "MANGAKA_APPROVED",
+      currentSubmissionId: "sub-rbac-tantou",
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await SubmissionModel.create({
+      id: "sub-rbac-tantou",
+      taskId: "task-rbac-tantou",
+      assistantId: "u-assist",
+      status: "MANGAKA_APPROVED",
+      version: 1,
+      submissionVersion: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await request(createApp())
+      .post("/api/studio/tasks/task-rbac-tantou/actions/EDITOR_APPROVE")
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(res.body.data.status).toBe("EDITOR_APPROVED");
+  });
+
+  it("lets ADMIN complete an EDITOR_APPROVED task as the emergency pass-through", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    await StudioTaskModel.create({
+      id: "task-rbac-admin",
+      chapterId: "ch-s-berserk-prod-4",
+      seriesId: "s-berserk-prod",
+      assigneeId: "u-assist",
+      assigneeName: "Jun Assistant",
+      status: "EDITOR_APPROVED",
+      currentSubmissionId: "sub-rbac-admin",
+      quantity: 1,
+      rateSnapshot: 500,
+      isRequired: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await SubmissionModel.create({
+      id: "sub-rbac-admin",
+      taskId: "task-rbac-admin",
+      assistantId: "u-assist",
+      status: "MANGAKA_APPROVED",
+      version: 1,
+      submissionVersion: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const res = await request(createApp())
+      .post("/api/studio/tasks/task-rbac-admin/actions/COMPLETE")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(res.body.data.status).toBe("COMPLETED");
   });
 });

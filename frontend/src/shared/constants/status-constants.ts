@@ -113,14 +113,13 @@ export const TASK_STATUS_LABEL: Record<TaskStatusLabelKey, string> = {
  */
 export const TASK_DONE_STATUSES = new Set(["COMPLETED", "EDITOR_APPROVED"]);
 
-/** Task is in an active/pending state (still needs work) */
+/** Task is in an active/pending state (still needs work or review) */
 export const TASK_ACTIVE_STATUSES = new Set([
   "TODO",
   "IN_PROGRESS",
   "SUBMITTED",
   "REVISION_REQUESTED",
   "MANGAKA_APPROVED",
-  "EDITOR_APPROVED",
 ]);
 
 /** Task is terminal and cannot change. Mirrors the backend guard in

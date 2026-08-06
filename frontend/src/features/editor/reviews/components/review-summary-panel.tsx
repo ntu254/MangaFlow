@@ -47,6 +47,8 @@ export function ReviewSummaryPanel({
   isPending,
   canVerifyBlockingComments,
   isCommentActionPending,
+  taskActionsPending,
+  onTaskAction,
   onApprove,
   onRequestRevision,
   onReject,
@@ -66,6 +68,8 @@ export function ReviewSummaryPanel({
   isPending: boolean;
   canVerifyBlockingComments: boolean;
   isCommentActionPending: boolean;
+  taskActionsPending: boolean;
+  onTaskAction: (taskId: string, action: "EDITOR_APPROVE" | "COMPLETE") => void;
   onApprove: () => void;
   onRequestRevision: (payload: Record<string, unknown>) => void;
   onReject: (payload: Record<string, unknown>) => void;
@@ -168,6 +172,61 @@ export function ReviewSummaryPanel({
           <p className="text-[12px] text-[var(--admin-faint)]">
             No chapter review snapshot has been recorded yet.
           </p>
+        )}
+      </Panel>
+
+      <Panel title="Assistant tasks">
+        {tasks.length === 0 ? (
+          <p className="text-[12px] text-[var(--admin-faint)]">
+            No assistant tasks on this chapter.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <ul className="space-y-2">
+              {tasks.map((task) => {
+                const needsApprove = task.status === "MANGAKA_APPROVED";
+                const needsComplete = task.status === "EDITOR_APPROVED";
+                return (
+                  <li
+                    key={task.id}
+                    className="flex items-center justify-between gap-2 rounded-[6px] border border-[var(--admin-border)] p-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] font-semibold text-[var(--admin-ink)]">
+                        {task.title}
+                      </p>
+                      <p className="text-[11px] text-[var(--admin-faint)]">
+                        {task.assigneeName} · {task.status}
+                      </p>
+                    </div>
+                    {needsApprove ? (
+                      <button
+                        type="button"
+                        disabled={taskActionsPending}
+                        onClick={() => onTaskAction(task.id, "EDITOR_APPROVE")}
+                        className="shrink-0 rounded-[5px] bg-[var(--admin-navy)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-40"
+                      >
+                        Approve
+                      </button>
+                    ) : needsComplete ? (
+                      <button
+                        type="button"
+                        disabled={taskActionsPending}
+                        onClick={() => onTaskAction(task.id, "COMPLETE")}
+                        className="shrink-0 rounded-[5px] border border-[var(--admin-border)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)] disabled:opacity-40"
+                      >
+                        Complete
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-[10px] text-[var(--admin-faint)]">
+              Completing a task records the assistant&apos;s earning (tracking only — not a
+              payment).
+            </p>
+          </div>
         )}
       </Panel>
 

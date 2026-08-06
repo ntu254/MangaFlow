@@ -370,6 +370,7 @@ export function StudioTab({
     permissions.canCreateTask &&
     Boolean(page?.pageAssignment) &&
     page?.pageAssignment?.status !== "RELEASED" &&
+    page?.pageAssignment?.status !== "REJECTED" &&
     !chapterReviewLocked;
   const canSubmitSelectedTask =
     permissions.canSubmitTask &&

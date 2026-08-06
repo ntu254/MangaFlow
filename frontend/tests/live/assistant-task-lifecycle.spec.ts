@@ -28,7 +28,7 @@ async function openTaskStudio(page: Page) {
   await page.goto("/app/assistant/tasks");
   const row = page.getByRole("row").filter({ hasText: TASK_TITLE });
   await expect(row).toBeVisible();
-  await row.getByRole("link", { name: "Open", exact: true }).click();
+  await row.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/app/assistant/tasks/${TASK_ID}/studio$`));
   await expect(page.getByRole("heading", { name: TASK_TITLE, exact: true })).toBeVisible();
 }
@@ -57,7 +57,11 @@ async function submitWork(page: Page, note: string) {
 
 async function openMangakaReview(page: Page) {
   await page.goto("/app/mangaka/submissions/review");
-  const row = page.getByRole("row").filter({ hasText: TASK_TITLE });
+  await page.getByRole("button", { name: "Flat Table View", exact: true }).click();
+  const row = page
+    .getByRole("row")
+    .filter({ hasText: TASK_TITLE })
+    .filter({ hasText: "PENDING" });
   await expect(row).toBeVisible();
   await row.getByRole("link", { name: "Open Review", exact: true }).click();
   await expect(page.getByRole("heading", { name: TASK_TITLE })).toBeVisible();
@@ -66,15 +70,14 @@ async function openMangakaReview(page: Page) {
 test.describe.serial("live Assistant task lifecycle", () => {
   test("Assistant opens an assigned task and starts work", async ({ page }) => {
     await login(page, ...ASSISTANT);
-    await openTaskStudio(page);
-
     const startResponse = page.waitForResponse(
       (response) =>
         response.url().endsWith(`/api/studio/tasks/${TASK_ID}/actions/start`) &&
         response.request().method() === "POST",
     );
-    await page.getByRole("button", { name: "Start Work", exact: true }).click();
+    await openTaskStudio(page);
     expect((await startResponse).status()).toBe(200);
+    await expect(page.getByRole("button", { name: "Start Work", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Block Task", exact: true })).toHaveCount(0);
     await page.screenshot({
       path: path.resolve("artifacts/e2e-live/screenshots/14-assistant-task-started.png"),
@@ -90,6 +93,23 @@ test.describe.serial("live Assistant task lifecycle", () => {
   });
 
   test("Assistant uploads and submits work for Mangaka review", async ({ page }) => {
+    await login(page, "tanaka@beachread.jp", "tanaka@beachread.jp");
+    const tokens = JSON.parse(
+      (await page.evaluate(() => localStorage.getItem("beachread-api-tokens"))) ?? "{}",
+    );
+    const apiBase = process.env.VITE_API_BASE_URL ?? "http://localhost:3001/api";
+    const unlock = await page.request.post(
+      `${apiBase}/chapters/ch-s-berserk-prod-5/actions/REQUEST_REVISION`,
+      {
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        data: {
+          feedback: "Returning chapter to production so the pending lettering task can be worked.",
+          targetType: "CHAPTER",
+          targetId: "ch-s-berserk-prod-5",
+        },
+      },
+    );
+    expect(unlock.status()).toBe(200);
     await login(page, ...ASSISTANT);
     await page.goto(`/app/assistant/tasks/${TASK_ID}/studio`);
     firstSubmissionId = await submitWork(
@@ -153,13 +173,34 @@ test.describe.serial("live Assistant task lifecycle", () => {
     await expect(page).toHaveURL(/\/app\/mangaka\/submissions\/review$/);
   });
 
+  test("Tantou editor approves and completes the task so the earning records", async ({
+    page,
+  }) => {
+    await login(page, "tanaka@beachread.jp", "tanaka@beachread.jp");
+    const tokens = JSON.parse(
+      (await page.evaluate(() => localStorage.getItem("beachread-api-tokens"))) ?? "{}",
+    );
+    const headers = { Authorization: `Bearer ${tokens.accessToken}` };
+    const apiBase = process.env.VITE_API_BASE_URL ?? "http://localhost:3001/api";
+    const approve = await page.request.post(
+      `${apiBase}/studio/tasks/${TASK_ID}/actions/EDITOR_APPROVE`,
+      { headers },
+    );
+    expect(approve.status()).toBe(200);
+    const complete = await page.request.post(
+      `${apiBase}/studio/tasks/${TASK_ID}/actions/COMPLETE`,
+      { headers },
+    );
+    expect(complete.status()).toBe(200);
+  });
+
   test("Assistant sees the approved task and the earned amount in its original currency", async ({
     page,
   }) => {
     await login(page, ...ASSISTANT);
     await page.goto("/app/assistant/tasks");
     const taskRow = page.getByRole("row").filter({ hasText: TASK_TITLE });
-    await expect(taskRow).toContainText("MANGAKA APPROVED");
+    await expect(taskRow).toContainText("COMPLETED");
 
     await page.goto("/app/assistant/earnings");
     const earningRow = page.getByRole("row").filter({ hasText: TASK_TITLE });

@@ -757,6 +757,8 @@ const studioTaskSchema = looseSchema({
       "SUBMITTED",
       "REVISION_REQUESTED",
       "MANGAKA_APPROVED",
+      "EDITOR_APPROVED",
+      "COMPLETED",
       "REJECTED",
       "CANCELLED",
     ],

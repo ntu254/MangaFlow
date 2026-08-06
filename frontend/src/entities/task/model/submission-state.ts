@@ -22,7 +22,8 @@ const REVISION_TASK_STATUSES = new Set([
 ]);
 
 const CLOSED_TASK_STATUSES = new Set([
-  "MANGAKA_APPROVED",
+  "EDITOR_APPROVED",
+  "COMPLETED",
   "REJECTED",
   "CANCELLED",
 ]);
@@ -31,7 +32,7 @@ const ACTIVE_REVIEW_SUBMISSION_STATUSES = new Set([
   "PENDING",
 ]);
 
-const CLOSED_SUBMISSION_STATUSES = new Set(["MANGAKA_APPROVED", "REJECTED", "SUPERSEDED"]);
+const CLOSED_SUBMISSION_STATUSES = new Set(["REJECTED", "SUPERSEDED"]);
 
 export function deriveTaskStudioSubmissionState(
   task: StudioTask,
@@ -58,6 +59,7 @@ export function deriveTaskStudioSubmissionState(
 
   if (
     task.status === "SUBMITTED" ||
+    task.status === "MANGAKA_APPROVED" ||
     submissions.some((submission) => ACTIVE_REVIEW_SUBMISSION_STATUSES.has(submission.status))
   ) {
     return {

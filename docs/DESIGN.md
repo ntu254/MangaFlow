@@ -183,7 +183,7 @@ erDiagram
     StudioRegion ||--o| StudioTask : "1 active"
     StudioTask ||--o| Submission : "1 current"
     Chapter ||--o| Publication : "1 active"
-    StudioTask ||--o| Earning : "on approval"
+    StudioTask ||--o| Earning : "on completion"
     RateTable ||--o{ StudioTask : "snapshotted by code/version"
 ```
 
@@ -230,7 +230,8 @@ Multi-entity actions run in `runWorkflowTransaction`; external effects
 | Action | Atomic set | Detail |
 |--------|-----------|--------|
 | Board finalization | VotingSession, Proposal, BoardDecision, Series, OutboxEvent | [06](business-flows/06-board-governance.md) |
-| Submission approval | Submission, Task, Region, Earning, OutboxEvent | [05](business-flows/05-assistant-submission.md) |
+| Submission approval | Submission, Task | [05](business-flows/05-assistant-submission.md) |
+| Task completion (Tantou) | Task, Earning, Page task slot release, OutboxEvent | [05](business-flows/05-assistant-submission.md) |
 | Chapter submit for review | readiness validation, Chapter, Pages, review snapshot | [04](business-flows/04-chapter-workflow.md) |
 | Task creation | Task, Region assignment, Region lock, active RateTable resolution | [08](business-flows/08-earnings.md), [14](business-flows/14-regions.md) |
 | Publication | Publication, Chapter, timestamps, notifications | [04](business-flows/04-chapter-workflow.md) |
@@ -300,7 +301,7 @@ flows plus the focused `tests/business-flow-contracts.spec.ts` contract suite
 (6/6). **[Gap]** Frontend still has no colocated unit/component tests
 (repo-wide: no `src/**/*.test.*`); component behavior is currently verified through
 browser contracts and E2E. **Business invariants that must stay tested:** voting
-finalize/cancel, submission approval → earning, chapter readiness gate, region
+finalize/cancel, task completion → earning, chapter readiness gate, region
 one-active-task, blocking-comment gate, canonical comment actions, and the
 status-free Supporting Material attachment contract.
 

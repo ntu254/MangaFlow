@@ -133,6 +133,7 @@ const PAGE_ASSIGNMENT_STATUS_BADGE: Record<PageAssignment["status"], string> = {
   PENDING: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200",
   ACCEPTED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200",
   RELEASED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
+  REJECTED: "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200",
 };
 
 function pageAssignmentForPage(

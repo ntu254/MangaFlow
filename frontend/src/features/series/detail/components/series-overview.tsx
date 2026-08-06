@@ -280,7 +280,7 @@ function CurrentProductionCard({
   ).length;
   const openTasks = tasks.filter(
     (task) =>
-      !["MANGAKA_APPROVED", "REJECTED", "CANCELLED"].includes(task.status),
+      !["EDITOR_APPROVED", "COMPLETED", "REJECTED", "CANCELLED"].includes(task.status),
   ).length;
   const deadlineIso = chapter.scheduledAt ?? chapter.reviewDueAt ?? chapter.draftDueAt;
   const deadlineDays = daysFromNow(deadlineIso);
@@ -764,7 +764,7 @@ function ChaptersMiniList({ chapters, setTab }: { chapters: Chapter[]; setTab: (
 
 function TasksMiniList({ tasks, setTab }: { tasks: StudioTask[]; setTab: (t: Tab) => void }) {
   const rows = [...tasks]
-    .filter((task) => !["MANGAKA_APPROVED", "REJECTED", "CANCELLED"].includes(task.status))
+    .filter((task) => !["EDITOR_APPROVED", "COMPLETED", "REJECTED", "CANCELLED"].includes(task.status))
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
     .slice(0, 5)
     .map((task) => ({

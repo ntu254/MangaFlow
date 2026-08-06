@@ -1,8 +1,8 @@
 # Earnings Tracking
 
 ## Description
-When the owning Mangaka approves an Assistant Submission, the system creates one
-idempotent `EARNED` record for the Page Task. The unit is one Page assigned to one
+When the Tantou Editor completes a Mangaka-approved Page Task, the system creates
+one idempotent `EARNED` record for it. The unit is one Page assigned to one
 Assistant; regions never create separate tasks or earnings. This module is earnings tracking only, not
 payroll or payment processing. Rate policy is configured by Admin through the
 narrow `MANAGE_RATE_TABLE` capability; Mangaka never writes monetary rates.
@@ -15,7 +15,7 @@ graph TD
     B --> C[Backend resolves rate and stores immutable snapshot]
     C --> D[Assistant submits Task work]
     D --> E[Mangaka approves Submission]
-    E --> F[Create Earning idempotently<br/>TASK_APPROVAL:taskId:submissionId]
+    E --> F[Tantou Editor completes task<br/>Create Earning idempotently<br/>TASK_APPROVAL:taskId:submissionId]
     F --> G[Status: EARNED<br/>amount = quantity x rateSnapshot]
     G --> H[Assistant views own earnings]
 ```
@@ -25,7 +25,7 @@ graph TD
 | Status | Description |
 |---|---|
 | `PENDING` | Legacy initial value |
-| `EARNED` | Created when the Mangaka approves a Submission |
+| `EARNED` | Created when the Tantou Editor completes the task |
 | `CONFIRMED`, `PAID`, `VOIDED`, `ADJUSTED`, `REVERSED` | Legacy/deprecated payroll states |
 
 ## Rate policy
@@ -60,7 +60,7 @@ requires cancelling the task and creating a new Page Task.
 ## Canonical Decision — FLOW-GAP-04 (Resolved)
 Admin payroll and earnings access was outside the minimal account-management role.
 The canonical module exposes only the Assistant's own earnings view and automatic
-Earning creation from Mangaka approval. `GET /api/admin/payroll` and
+Earning creation when the Tantou Editor completes the task. `GET /api/admin/payroll` and
 `POST /api/admin/payroll/:earningId/{confirm,mark-paid,void}` and their handlers
 are deleted; `MANAGE_RATE_TABLE` (`/admin/rates*`) remains an explicit kept
 exception. Implemented by CT-11.

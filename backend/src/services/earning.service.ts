@@ -40,9 +40,7 @@ export async function recordTaskEarning(task: any, submission: any, session: Cli
         amount,
         currency: task.currency ?? "VND",
         status: "EARNED",
-        createdAt: new Date(),
       },
-      $set: { updatedAt: new Date() },
     },
     { upsert: true, returnDocument: "after", session },
   );
@@ -64,8 +62,6 @@ export async function recordTaskEarning(task: any, submission: any, session: Cli
         status: "APPROVED",
         approvedById: submission.approvedById ?? submission.mangakaReviewedById ?? null,
         approvedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     },
     { upsert: true, returnDocument: "after", session },

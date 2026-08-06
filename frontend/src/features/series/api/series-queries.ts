@@ -450,6 +450,23 @@ export function useTaskActionMutation(taskId: string, chapterId?: string) {
   });
 }
 
+export function useTaskEditorActionMutation(chapterId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { taskId: string; action: "EDITOR_APPROVE" | "COMPLETE" }>({
+    mutationFn: ({ taskId, action }) =>
+      apiRequest<unknown>(`/studio/tasks/${taskId}/actions/${action}`, {
+        method: "POST",
+      }),
+    onSuccess: (_data, variables) => {
+      return Promise.all(
+        studioTaskActionInvalidations(variables.taskId, chapterId).map((key) =>
+          queryClient.invalidateQueries({ queryKey: key as never }),
+        ),
+      );
+    },
+  });
+}
+
 export function useSubmissionReviewMutation() {
   const queryClient = useQueryClient();
   return useMutation<
@@ -985,6 +1002,7 @@ function mapSubmissionRecord(raw: Record<string, unknown>): AssistantSubmission 
 function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
   switch (raw) {
     case "PENDING":
+      return "PENDING";
     case "REVISION_REQUESTED":
       return "REVISION_REQUESTED";
     case "MANGAKA_APPROVED":

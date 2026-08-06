@@ -144,7 +144,7 @@ flowchart TD
   G --> H["Assistants complete &amp; submit work"]
   H --> I["Mangaka reviews each submission"]
   I -->|"revise / reject"| H
-  I -->|"approve"| K["Earning recorded for the assistant"]
+  I -->|"approve"| K["Earning recorded when Tantou Editor completes the task"]
   K --> L{"All required tasks approved?"}
   L -->|"no"| G
   L -->|"yes"| M["Chapter sent to Editor Review (page snapshot frozen)"]
@@ -288,7 +288,7 @@ back.
 | ---- | --------- | ------------------------ | -------------------------------------------------------------------------------------- |
 | 1    | Assistant | `START`                  | Task → `IN_PROGRESS`; region locked to this task                                       |
 | 2    | Assistant | `POST /tasks/:id/submit` | New `Submission` version created; supersedes any prior pending one; Task → `SUBMITTED` |
-| 3    | Mangaka   | approve                  | Task → `MANGAKA_APPROVED`; region unlocked; **Earning** row created (`EARNED`)         |
+| 3    | Mangaka   | approve                  | Task → `MANGAKA_APPROVED`; no earning yet (editor step follows)         |
 | 3b   | Mangaka   | request-revision         | Task → `REVISION_REQUESTED`                                                            |
 | 3c   | Mangaka   | reject                   | Task → `REJECTED`; region unlocked                                                     |
 | 4    | Assistant | `REOPEN`                 | From a revision request back to `IN_PROGRESS`                                          |
@@ -299,21 +299,25 @@ back.
 > checked against the target task/series ownership, so a different Mangaka
 > cannot approve, reject, or request revision for another creator's task.
 >
-> **Legacy note.** Direct task-level actions `SUBMIT` / `APPROVE` /
-> `MANGAKA_APPROVE` / `EDITOR_APPROVE` / `REJECT` / `REQUEST_REVISION` on the
-> task endpoint are disabled (HTTP 410) — all review now runs through the
-> Submission endpoints described above.
+> **Legacy note.** The retired submission-review aliases are disabled
+> (HTTP 410): direct `POST /submissions` creation and
+> `POST /submissions/:submissionId/editor-approve`. Mangaka decisions
+> (`approve` / `request-revision` / `reject`) run through the Submission
+> endpoints above, and the Tantou Editor's `EDITOR_APPROVE` / `COMPLETE`
+> actions run on the task endpoint (`/studio/tasks/:taskId/actions/:action`).
 
 ```mermaid
 stateDiagram-v2
   [*] --> TODO
   TODO --> IN_PROGRESS: START (region locked)
   IN_PROGRESS --> SUBMITTED: submit (idempotent)
-  SUBMITTED --> MANGAKA_APPROVED: Mangaka approves (Earning created, region unlocked)
+  SUBMITTED --> MANGAKA_APPROVED: Mangaka approves (no earning yet)
   SUBMITTED --> REVISION_REQUESTED: Mangaka requests revision
   SUBMITTED --> REJECTED: Mangaka rejects (region unlocked)
   REVISION_REQUESTED --> IN_PROGRESS: REOPEN
-  MANGAKA_APPROVED --> [*]
+  MANGAKA_APPROVED --> EDITOR_APPROVED: Tantou Editor approves
+  EDITOR_APPROVED --> COMPLETED: Tantou Editor completes (Earning recorded, page task slot released)
+  COMPLETED --> [*]
   REJECTED --> [*]
   IN_PROGRESS --> CANCELLED: CANCEL
   TODO --> CANCELLED: CANCEL
@@ -342,14 +346,17 @@ flowchart TD
 
 ## 9. Flow E — Earnings
 
-Earnings are **generated automatically** the moment a Mangaka approves an
-assistant's submission — there is no separate "log my hours" step.
+Earnings are **generated automatically** when the Tantou Editor completes a
+Mangaka-approved task — there is no separate "log my hours" step.
 
-1. Mangaka approves a Submission for Task `T`.
-2. Workflow engine upserts an `Earning` row keyed by
+1. Mangaka approves a Submission for Task `T` (task → `MANGAKA_APPROVED`; no
+   earning yet).
+2. Tantou Editor approves the task (`EDITOR_APPROVED`), then completes it
+   (`COMPLETED`).
+3. The workflow engine upserts an idempotent `Earning` row keyed by
    `TASK_APPROVAL:{taskId}:{submissionId}`, status `EARNED`, amount = quantity
-   × rate snapshot.
-3. An `earning.earned` event is placed on the outbox.
+   × rate snapshot — tracking only, not a payment.
+4. An `earning.earned` event is placed on the outbox.
 
 > **Rate configuration boundary.** Admin configures active RateTable entries;
 > Mangaka creates tasks with `rateCode` and `quantity`, and the backend stores an
@@ -389,7 +396,9 @@ sequenceDiagram
   Assistant->>API: START task (region locked)
   Assistant->>API: submit work (idempotent)
   Mangaka->>API: approve submission
-  API->>API: create Earning (EARNED)
+  Editor->>API: approve task (EDITOR_APPROVED)
+  Editor->>API: complete task (COMPLETED)
+  API->>API: create Earning (EARNED, tracking only)
   end
 
   rect rgb(241,235,221)
@@ -607,8 +616,10 @@ ownership, assignment, or membership rules before returning or changing data.
   at submit-time; any page edit afterward makes the snapshot stale and blocks
   the Editor's decision (`409 REVIEW_SNAPSHOT_STALE`) until it's refrozen.
 - **Region locking** — a Studio Region is exclusively locked to one active
-  task; task creation claims the region atomically and the lock is released
-  automatically on approve, reject, or cancel.
+  task; task creation claims the region atomically and the region lock is
+  released only when the task is cancelled (`CANCELLED`). Completion
+  (`COMPLETED`), rejection, or cancellation releases the page task slot
+  (page assignment) so the page can be reassigned.
 - **Cross-entity attachment guard** — a submission's
   `seriesId/chapterId/pageId/regionId` must match the task it targets, or it's
   rejected as `CROSS_ENTITY_ATTACHMENT`.
@@ -692,7 +703,7 @@ behavior.
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Proposal   | `DRAFT, PENDING_EDITOR, EDITOR_REVIEWING, CHANGES_REQUESTED, PENDING_BOARD, BOARD_REVIEW, APPROVED, REJECTED, WITHDRAWN, ARCHIVED` | `SUBMITTED, RESUBMITTED, READY_FOR_BOARD, BOARD_VOTING, TIE_BREAK`                                                                             |
 | Chapter    | `PLANNED, IN_PRODUCTION, TANTOU_REVIEW, REVISION_REQUIRED, READY_FOR_PUBLICATION, PUBLISHED`                                       | `DRAFTING, ASSISTANT_WORKING, MANGAKA_REVIEW, EDITOR_REVIEW, REVISION, EDITOR_APPROVED, SCHEDULED (moved to Publication), IN_REVIEW, APPROVED, ARCHIVED` |
-| StudioTask | `TODO, IN_PROGRESS, SUBMITTED, REVISION_REQUESTED, MANGAKA_APPROVED, REJECTED, CANCELLED`                                          | `MANGAKA_REVIEWING, MANGAKA_REVISION_REQUESTED, EDITOR_REVIEWING, EDITOR_REVISION_REQUESTED, EDITOR_APPROVED, OPEN, COMPLETED`                 |
+| StudioTask | `TODO, IN_PROGRESS, SUBMITTED, REVISION_REQUESTED, MANGAKA_APPROVED, EDITOR_APPROVED, COMPLETED, REJECTED, CANCELLED`                                       | `MANGAKA_REVIEWING, MANGAKA_REVISION_REQUESTED, EDITOR_REVIEWING, EDITOR_REVISION_REQUESTED, OPEN`                 |
 | Submission | `PENDING, MANGAKA_APPROVED, REVISION_REQUESTED, SUPERSEDED, REJECTED`                                                              | `MANGAKA_REVISION_REQUESTED, EDITOR_APPROVED, EDITOR_REVISION_REQUESTED`                                                                       |
 
 ## 16. Environments &amp; services

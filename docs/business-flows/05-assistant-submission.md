@@ -5,7 +5,8 @@
 An Assistant is assigned a Task, starts work, submits work via POST /api/tasks/:taskId/submit,
 and the Mangaka reviews (approve/reject/request-revision). A new task always targets
 one Page, one Assistant, one active submission, and one earning record. On Mangaka
-approval, the Page task slot is released and an Earning record is created.
+approval the submission is accepted; the Tantou Editor then approves and completes
+the task, which records the Earning (tracking only) and releases the page slot.
 
 ## Flowchart
 
@@ -31,8 +32,10 @@ graph TD
     N --> O[Mangaka reviews submission]
 
     O --> P{Mangaka decision}
-    P -- APPROVE --> Q[Submission: MANGAKA_APPROVED<br/>Task: MANGAKA_APPROVED<br/>Page task slot released]
-    Q --> R[Earning record created<br/>sourceKey: TASK_APPROVAL:taskId:submissionId]
+    P -- APPROVE --> Q[Submission: MANGAKA_APPROVED<br/>Task: MANGAKA_APPROVED<br/>Page task slot stays locked]
+    Q --> Q1[Tantou Editor approves task<br/>Task: EDITOR_APPROVED]
+    Q1 --> Q2[Tantou Editor completes task<br/>Task: COMPLETED<br/>Page task slot released]
+    Q2 --> R[Earning record created (tracking only)<br/>sourceKey: TASK_APPROVAL:taskId:submissionId]
     R --> S[OutboxEvent: earning.earned]
 
     P -- REQUEST_REVISION --> T[Submission: REVISION_REQUESTED<br/>Task: REVISION_REQUESTED<br/>Page task slot remains reserved]
@@ -68,6 +71,8 @@ graph TD
 | `SUBMITTED`          | Work submitted (pre-review) |
 | `REVISION_REQUESTED` | Mangaka requested revision  |
 | `MANGAKA_APPROVED`   | Mangaka approved            |
+| `EDITOR_APPROVED`    | Tantou Editor approved      |
+| `COMPLETED`          | Tantou Editor completed     |
 | `REJECTED`           | Mangaka rejected            |
 | `CANCELLED`          | Cancelled by Mangaka        |
 
@@ -81,13 +86,15 @@ graph TD
 
 ## Role Access
 
-**Genuine Task lifecycle actions** (via `POST /api/tasks/:taskId/actions/:action`):
+**Genuine Task lifecycle actions** (via `POST /api/studio/tasks/:taskId/actions/:action`):
 
 | Action                        | Allowed Roles      | Guard                        |
 | ----------------------------- | ------------------ | ---------------------------- |
 | ACCEPT, REJECT                | Assigned ASSISTANT | Assignment decision required before work starts |
 | START, REOPEN | Assigned ASSISTANT | `task-submission.service.ts` |
 | CANCEL, REASSIGN              | MANGAKA            | `task-submission.service.ts` |
+| EDITOR_APPROVE                | Assigned Tantou Editor (or ADMIN) | `TASK_EDITOR_ACTION_FORBIDDEN` for others; `task-submission.service.ts` |
+| COMPLETE                      | Assigned Tantou Editor (or ADMIN) | `TASK_EDITOR_ACTION_FORBIDDEN` for others; `task-submission.service.ts` |
 
 (`SUBMIT` via the actions endpoint is deprecated → use `POST /api/tasks/:taskId/submit`.)
 
@@ -104,11 +111,13 @@ action endpoint:
 | Request revision | `POST /api/submissions/:submissionId/request-revision` | Owning MANGAKA            |
 | Reject           | `POST /api/submissions/:submissionId/reject`           | Owning MANGAKA            |
 
-The generic Task-action review aliases `APPROVE`, `MANGAKA_APPROVE`,
-`REQUEST_REVISION`, and `EDITOR_APPROVE` have been removed from `TASK_ACTIONS`.
-`REJECT` remains only as the assigned Assistant's assignment decision; it is not
-a Submission review decision. Review aliases return `400 INVALID_ACTION`; the
-canonical Submission endpoints remain the only submission decision contract
+The generic Task-action review aliases `APPROVE`, `MANGAKA_APPROVE`, and
+`REQUEST_REVISION` have been removed from `TASK_ACTIONS` and return
+`400 INVALID_ACTION`. `REJECT` remains only as the assigned Assistant's
+assignment decision; it is not a Submission review decision. The canonical
+Submission endpoints remain the only submission decision contract, and the
+Tantou Editor's `EDITOR_APPROVE` / `COMPLETE` actions are live on the studio
+task endpoint (`POST /api/studio/tasks/:taskId/actions/:action`)
 ([TECH-FINDING-04](#tech-finding-04--deprecated-decision-aliases-in-task_actions)).
 
 ## Idempotency
@@ -117,13 +126,15 @@ Submissions use `Idempotency-Key` header + `requestFingerprint` (SHA-256 of sort
 to prevent duplicate submissions. If same key + same fingerprint: returns existing submission.
 If same key + different fingerprint: HTTP 409 `IDEMPOTENCY_KEY_REUSED`.
 
-## Earning Creation (on MANGAKA_APPROVED)
+## Earning Creation (on task COMPLETE)
 
 Before a Task can be created, the owning Mangaka selects an active `rateCode` and
 quantity (the page flow uses one payable page unit). The backend resolves the
 Admin-owned `RateTable` entry and stores the rate snapshot on the Task;
-`rateSnapshot` and `estimatedAmount` are never accepted from the client.
-`EarningModel.findOneAndUpdate({ taskId })` with `$setOnInsert`:
+`rateSnapshot` and `estimatedAmount` are never accepted from the client. When the
+Tantou Editor completes the task (`COMPLETED`), the workflow runs
+`EarningModel.findOneAndUpdate({ taskId })` with `$setOnInsert`, recording the
+Earning exactly once (tracking only — not a payment):
 
 - `sourceKey = "TASK_APPROVAL:{taskId}:{submissionId}"`
 - `amount = quantity * rateSnapshot` (server-resolved immutable Task snapshot)
@@ -173,9 +184,12 @@ Live E2E exercises the Assistant-scoped Studio and Mangaka Review Queue:
 ### TECH-FINDING-04 — Deprecated decision aliases in `TASK_ACTIONS`
 
 **Status: Resolved.** `TASK_ACTIONS` now contains only task lifecycle actions;
-`APPROVE`, `MANGAKA_APPROVE`, `REQUEST_REVISION`, `REJECT`, and `EDITOR_APPROVE`
-are rejected with `400 INVALID_ACTION` before task workflow execution. Canonical
-Submission and Chapter review endpoints remain separate. → `CODE-TODO` CT-10 (Done).
+the submission-review aliases `APPROVE`, `MANGAKA_APPROVE`, and
+`REQUEST_REVISION` are rejected with `400 INVALID_ACTION` before task workflow
+execution. `REJECT` survives only as the assigned Assistant's assignment
+decision, and `EDITOR_APPROVE` / `COMPLETE` are live Tantou Editor actions.
+Canonical Submission and Chapter review endpoints remain separate.
+→ `CODE-TODO` CT-10 (Done).
 
 ### TECH-FINDING-05 — Generic `CONFLICT` code
 

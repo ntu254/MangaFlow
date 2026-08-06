@@ -1183,6 +1183,34 @@ describe("MangaFlow MF-006 Workflow & Contract Gap Audit Tests", () => {
       expect((unchanged as any).status).toBe("IN_PRODUCTION");
       expect((unchanged as any).archivedAt).toBeUndefined();
     });
+
+    it("sends a chapter to review when tasks are EDITOR_APPROVED", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const fixture = await createReviewFixture({
+        ownerId: mangaka.user.id,
+        taskStatus: "EDITOR_APPROVED",
+        submissionStatus: "MANGAKA_APPROVED",
+      });
+      const response = await request(createApp())
+        .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+      expect(response.body.data.chapter.status).toBe("TANTOU_REVIEW");
+    });
+
+    it("sends a chapter to review when tasks are COMPLETED", async () => {
+      const mangaka = await loginAs("inoue@beachread.jp");
+      const fixture = await createReviewFixture({
+        ownerId: mangaka.user.id,
+        taskStatus: "COMPLETED",
+        submissionStatus: "MANGAKA_APPROVED",
+      });
+      const response = await request(createApp())
+        .post(`/api/studio/chapters/${fixture.chapterId}/send-editor-review`)
+        .set("Authorization", `Bearer ${mangaka.accessToken}`)
+        .expect(200);
+      expect(response.body.data.chapter.status).toBe("TANTOU_REVIEW");
+    });
   });
 
   describe("Rankings scoping & read-only Mangaka restrictions", () => {
