@@ -66,6 +66,8 @@ export function TodayQueue({
       )}
       ItemSeparatorComponent={() => <View style={isGrid ? styles.gridSeparator : styles.separator} />}
       contentContainerStyle={styles.content}
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
         <View style={styles.headerContainer}>
           {demoMode ? (
