@@ -3,17 +3,22 @@ import { AlertOctagon, BookOpen, CalendarClock, CheckCircle2, MessageSquare } fr
 import { useAuth } from "@/shared/auth";
 import { useCommentsQuery, useMyChaptersQuery, useMySeriesQuery } from "@/entities/series";
 import { useProposalsQuery } from "@/features/proposals";
+import { useEditorReviewQueueQuery } from "@/features/series";
 import {
   buildReviewQueue,
+  buildSubmissionReviewItems,
   chaptersForEditor,
   getDeadlineRisk,
   getPublicationReadiness,
   seriesForEditor,
 } from "../../model/editor-access";
 import { StatCard } from "@/shared/ui/stat-card";
-import { PageHeader, SearchToolbar, FilterSelect } from "@/shared/ui";
+import { PageHeader, QueueTabs, SearchToolbar, FilterSelect } from "@/shared/ui";
 import { SelectItem } from "@/components/ui/select";
+import { ReviewItemsPanel } from "@/features/editor/review-queue";
 import { SeriesMonitorTable } from "./series/series-monitor-table";
+
+type TabKey = "SERIES" | "REVIEWS";
 
 export function SeriesMonitorPage() {
   const user = useAuth((s) => s.user);
@@ -21,16 +26,23 @@ export function SeriesMonitorPage() {
   const { data: chapters = [] } = useMyChaptersQuery();
   const { data: comments = [] } = useCommentsQuery({});
   const { data: proposals = [] } = useProposalsQuery();
+  const { data: liveSubmissions = [], isLoading: subsLoading } = useEditorReviewQueueQuery();
+  const [tab, setTab] = useState<TabKey>("SERIES");
 
   const mySeries = useMemo(() => (user ? seriesForEditor(series, user.id) : []), [series, user]);
   const myChapters = useMemo(
     () => (user ? chaptersForEditor(chapters, series, user.id) : []),
     [chapters, series, user],
   );
-  const queue = useMemo(
-    () => (user ? buildReviewQueue(proposals, chapters, series, comments, user.id) : []),
-    [user, proposals, chapters, series, comments],
-  );
+  const queue = useMemo(() => {
+    if (!user) return [];
+    return [
+      ...buildReviewQueue(proposals, chapters, series, comments, user.id).filter(
+        (item) => item.kind === "CHAPTER",
+      ),
+      ...buildSubmissionReviewItems(liveSubmissions),
+    ];
+  }, [user, proposals, chapters, series, comments, liveSubmissions]);
 
   const counts = useMemo(() => {
     const active = mySeries.filter((s) => s.status === "ONGOING").length;
@@ -68,64 +80,86 @@ export function SeriesMonitorPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 p-6">
-      <PageHeader
-        eyebrow="Editor"
-        title="Series Monitor"
-        description="Series you manage: progress, deadline risk, and items needing review."
+      <QueueTabs
+        tabs={[
+          { key: "SERIES", label: "Series", count: mySeries.length },
+          { key: "REVIEWS", label: "Chapter Reviews", count: queue.length },
+        ]}
+        active={tab}
+        onChange={(key) => setTab(key as TabKey)}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          tone="emerald"
-          icon={<BookOpen className="size-4" />}
-          label="Active"
-          value={counts.active}
-        />
-        <StatCard
-          tone="rose"
-          icon={<AlertOctagon className="size-4" />}
-          label="At risk"
-          value={counts.atRisk}
-        />
-        <StatCard
-          tone="amber"
-          icon={<MessageSquare className="size-4" />}
-          label="Pending review"
-          value={counts.pending}
-        />
-        <StatCard
-          tone="blue"
-          icon={<CheckCircle2 className="size-4" />}
-          label="Publish ready"
-          value={counts.ready}
-        />
-      </div>
+      {tab === "SERIES" ? (
+        <>
+          <PageHeader
+            eyebrow="Editor"
+            title="Series Monitor"
+            description="Series you manage: progress, deadline risk, and items needing review."
+          />
 
-      <SearchToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search series or mangaka"
-        filters={
-          <FilterSelect value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectItem value="ALL">All Statuses</SelectItem>
-            {statuses.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </FilterSelect>
-        }
-      />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              tone="emerald"
+              icon={<BookOpen className="size-4" />}
+              label="Active"
+              value={counts.active}
+            />
+            <StatCard
+              tone="rose"
+              icon={<AlertOctagon className="size-4" />}
+              label="At risk"
+              value={counts.atRisk}
+            />
+            <StatCard
+              tone="amber"
+              icon={<MessageSquare className="size-4" />}
+              label="Pending review"
+              value={counts.pending}
+            />
+            <StatCard
+              tone="blue"
+              icon={<CheckCircle2 className="size-4" />}
+              label="Publish ready"
+              value={counts.ready}
+            />
+          </div>
 
-      <SeriesMonitorTable
-        series={filteredSeries}
-        chapters={chapters}
-        pendingReviewBySeries={pendingBySeries}
-      />
+          <SearchToolbar
+            query={query}
+            onQueryChange={setQuery}
+            placeholder="Search series or mangaka"
+            filters={
+              <FilterSelect value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                {statuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </FilterSelect>
+            }
+          />
 
-      <div className="flex items-center gap-2 rounded border border-dashed border-border bg-card/40 p-3 text-[11px] text-muted-foreground">
-        <CalendarClock className="size-3.5" /> Tip: Click "Review" to open detailed Chapter Review.
-      </div>
+          <SeriesMonitorTable
+            series={filteredSeries}
+            chapters={chapters}
+            pendingReviewBySeries={pendingBySeries}
+          />
+
+          <div className="flex items-center gap-2 rounded border border-dashed border-border bg-card/40 p-3 text-[11px] text-muted-foreground">
+            <CalendarClock className="size-3.5" /> Tip: Click "Review" to open detailed Chapter
+            Review.
+          </div>
+        </>
+      ) : (
+        <ReviewItemsPanel
+          eyebrow="Editor"
+          title="Chapter Reviews"
+          description="Chapters in editorial review and assistant submissions awaiting the Tantou decision."
+          items={queue}
+          isLoading={subsLoading}
+        />
+      )}
     </div>
   );
 }
