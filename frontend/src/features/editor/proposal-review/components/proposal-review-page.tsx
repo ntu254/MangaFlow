@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, Lock, Unlock, ShieldCheck, FileText, BookOpen, History } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth, type User } from "@/shared/auth";
 import {
   useProposalActionMutation,
@@ -16,7 +17,6 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { SeparationOfDutiesWarning } from "@/entities/access";
 import { EditorialChecklist } from "./editorial-checklist";
 import { isEditorialChecklistComplete } from "../model/editorial-checklist";
-import { DecisionActions } from "@/shared/ui/decision-actions";
 import { ReviewStatusPill } from "@/entities/submission";
 import { toast } from "sonner";
 import { MaterialsViewer } from "@/entities/proposal";
@@ -30,6 +30,7 @@ export function ProposalReviewPage() {
   const user = useAuth((s) => s.user);
   const { data: proposal, isLoading } = useProposalQuery(proposalId);
   const actionMutation = useProposalActionMutation(proposalId);
+  const [editorNote, setEditorNote] = useState("");
 
   const isSelf = !!proposal && !!user && proposal.authorId === user.id;
 
@@ -282,70 +283,93 @@ export function ProposalReviewPage() {
               </div>
             )}
 
-            <div className="mt-3">
-              <DecisionActions
-                actions={[
-                  {
-                    key: "forward",
-                    label: "Send to Board",
-                    variant: "primary",
-                    supported: supportsForward,
-                    disabledReason: !isClaimedByMe
-                      ? "Claim this review before making a decision."
-                      : !checklistComplete
-                        ? "Complete all six Board-readiness criteria first."
-                        : undefined,
-                    onAct: () =>
-                      actionMutation.mutate(
-                        { action: "FORWARD" },
-                        {
-                          onSuccess: () => toast.success("Forwarded to Board."),
-                          onError: (err) =>
-                            toast.error(
-                              err instanceof Error ? err.message : "Failed to forward to Board.",
-                            ),
-                        },
-                      ),
-                  },
-                  {
-                    key: "revise",
-                    label: "Request Revision",
-                    variant: "warn",
-                    requiresReason: true,
-                    supported: supportsRevision,
-                    disabledReason: "Claim this review before making a decision.",
-                    onAct: (reason) =>
-                      actionMutation.mutate(
-                        { action: "REQUEST_CHANGES", payload: { comment: reason } },
-                        {
-                          onSuccess: () => toast.success("Revision requested."),
-                          onError: (err) =>
-                            toast.error(
-                              err instanceof Error ? err.message : "Failed to request revision.",
-                            ),
-                        },
-                      ),
-                  },
-                  {
-                    key: "reject",
-                    label: "Reject",
-                    variant: "danger",
-                    requiresReason: true,
-                    supported: supportsReject,
-                    disabledReason: "Claim this review before making a decision.",
-                    onAct: (reason) =>
-                      actionMutation.mutate(
-                        { action: "REJECT", payload: { comment: reason } },
-                        {
-                          onSuccess: () => toast.success("Proposal rejected."),
-                          onError: (err) =>
-                            toast.error(err instanceof Error ? err.message : "Failed to reject."),
-                        },
-                      ),
-                  },
-                ]}
-              />
-            </div>
+            {isClaimedByMe && isEditorReview ? (
+              <div className="space-y-3 pt-1">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Editorial Note / Recommendation for Board
+                  </label>
+                  <Textarea
+                    rows={3}
+                    value={editorNote}
+                    onChange={(e) => setEditorNote(e.target.value)}
+                    placeholder="Type your evaluation or recommendation for the Executive Board..."
+                    className="rounded-xl border-border/80 bg-background/60 text-xs"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  {supportsForward ? (
+                    <button
+                      type="button"
+                      disabled={!checklistComplete || actionMutation.isPending}
+                      title={!checklistComplete ? "Complete all 6 Board-readiness criteria first" : undefined}
+                      onClick={() =>
+                        actionMutation.mutate(
+                          { action: "FORWARD", payload: { comment: editorNote.trim() || undefined } },
+                          {
+                            onSuccess: () => toast.success("Forwarded to Board with editorial recommendation."),
+                            onError: (err) =>
+                              toast.error(
+                                err instanceof Error ? err.message : "Failed to forward to Board.",
+                              ),
+                          },
+                        )
+                      }
+                      className="w-full rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-all hover:opacity-90 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {actionMutation.isPending ? "Sending..." : "Send to Board"}
+                    </button>
+                  ) : null}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {supportsRevision ? (
+                      <button
+                        type="button"
+                        disabled={!editorNote.trim() || actionMutation.isPending}
+                        title={!editorNote.trim() ? "Note is required for requesting changes" : undefined}
+                        onClick={() =>
+                          actionMutation.mutate(
+                            { action: "REQUEST_CHANGES", payload: { comment: editorNote.trim() } },
+                            {
+                              onSuccess: () => toast.success("Revision requested."),
+                              onError: (err) =>
+                                toast.error(
+                                  err instanceof Error ? err.message : "Failed to request revision.",
+                                ),
+                            },
+                          )
+                        }
+                        className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300 transition-all hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Request Revision
+                      </button>
+                    ) : null}
+
+                    {supportsReject ? (
+                      <button
+                        type="button"
+                        disabled={!editorNote.trim() || actionMutation.isPending}
+                        title={!editorNote.trim() ? "Note is required for rejection" : undefined}
+                        onClick={() =>
+                          actionMutation.mutate(
+                            { action: "REJECT", payload: { comment: editorNote.trim() } },
+                            {
+                              onSuccess: () => toast.success("Proposal rejected."),
+                              onError: (err) =>
+                                toast.error(err instanceof Error ? err.message : "Failed to reject."),
+                            },
+                          )
+                        }
+                        className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-800 dark:text-rose-300 transition-all hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Reject Proposal
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </aside>
       </div>

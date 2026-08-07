@@ -123,23 +123,37 @@ export function MaterialsViewer({
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((it) => {
           const IconComponent = getAttachmentIcon(it);
+          const badge = getItemCategoryBadge(it);
 
           return (
             <div
               key={it.id}
               className="group flex flex-col justify-between rounded-xl border border-border/60 bg-background/50 p-3.5 transition-all duration-200 hover:border-border hover:bg-background/80 hover:shadow-2xs"
             >
-              <div className="flex items-start gap-3">
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-border/60 bg-muted/50 text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:bg-primary/10 group-hover:text-primary">
-                  <IconComponent className="size-4" />
+              <div className="space-y-2.5">
+                {/* Category Badge & Format Tag */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                  <span className="text-[10px] font-mono font-medium text-muted-foreground/80 uppercase">
+                    {it.fileType.split("/")[1] || "file"}
+                  </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {it.title}
-                  </h4>
-                  <p className="truncate text-[11px] text-muted-foreground mt-0.5">
-                    {it.subtitle}
-                  </p>
+
+                {/* Card Title & Icon */}
+                <div className="flex items-start gap-3">
+                  <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-border/60 bg-muted/50 text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:bg-primary/10 group-hover:text-primary">
+                    <IconComponent className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {it.title}
+                    </h4>
+                    <p className="truncate text-[11px] text-muted-foreground mt-0.5">
+                      {it.subtitle}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -257,6 +271,43 @@ function AssetPreview({ item }: { item: ProposalAttachmentItem }) {
       )}
     </div>
   );
+}
+
+function getItemCategoryBadge(it: ProposalAttachmentItem) {
+  if (it.kind === "manuscript") {
+    return {
+      label: "Manuscript",
+      cls: "border-primary/30 bg-primary/10 text-primary",
+    };
+  }
+  if (it.materialKind === "character") {
+    return {
+      label: "Character Sheet",
+      cls: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    };
+  }
+  if (it.materialKind === "storyboard") {
+    return {
+      label: "Storyboard",
+      cls: "border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300",
+    };
+  }
+  if (it.materialKind === "world") {
+    return {
+      label: "World Setting",
+      cls: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+  if (it.materialKind === "reference") {
+    return {
+      label: "Reference Art",
+      cls: "border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300",
+    };
+  }
+  return {
+    label: MATERIAL_KIND_LABEL[it.materialKind ?? "other"],
+    cls: "border-border/60 bg-muted/50 text-muted-foreground",
+  };
 }
 
 function getAttachmentIcon(item: ProposalAttachmentItem) {

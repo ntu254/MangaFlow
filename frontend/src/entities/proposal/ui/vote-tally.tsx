@@ -3,15 +3,9 @@ import type {
   BoardVote,
   SeriesProposal,
 } from "@/entities/proposal/model/proposal-types";
-import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
-import { evaluateBoardTally } from "@/entities/proposal/model/board-tally";
 
 export function VoteTally({
   votes,
-  status,
-  quorum = Math.ceil(BOARD_TOTAL / 2),
-  tally: serverTally,
-  eligible = BOARD_TOTAL,
 }: {
   votes: BoardVote[];
   status?: SeriesProposal["status"];
@@ -20,59 +14,50 @@ export function VoteTally({
   eligible?: number;
 }) {
   const safeVotes = votes ?? [];
-  const tally = serverTally ?? evaluateBoardTally(safeVotes, quorum);
-  const approve = tally.approve;
-  const reject = tally.reject;
+
   return (
-    <div className="rounded-md border border-border bg-card/40 p-4">
-      <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        Board votes · quorum {quorum}/{eligible}
-      </p>
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <Tally label="Approve" count={approve} tone="emerald" />
-        <Tally label="Reject" count={reject} tone="rose" />
+    <div className="rounded-xl border border-border/60 bg-background/50 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+          Board Votes & Member Actions
+        </h4>
+        <span className="rounded-md border border-border/60 bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+          {safeVotes.length} votes recorded
+        </span>
       </div>
+
       {safeVotes.length > 0 ? (
-        <ul className="mt-4 space-y-1.5 text-xs">
+        <ul className="space-y-1.5 text-xs">
           {safeVotes.map((v) => (
             <li
               key={v.voterId}
-              className="flex items-center justify-between gap-2 border-t border-border/60 pt-1.5"
+              className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-card/60 px-3 py-2"
             >
-              <span className="font-medium">
-                {v.voterName}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground">{v.voterName}</span>
                 {v.isChair ? (
-                  <span className="ml-2 rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
-                    Chair
+                  <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Board Chair
                   </span>
                 ) : null}
-              </span>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              </div>
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  v.decision === "APPROVE"
+                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                    : "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                }`}
+              >
                 {v.decision}
-                {v.weight && v.weight > 1 ? ` · w${v.weight}` : ""}
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-xs text-muted-foreground">No votes yet.</p>
+        <p className="text-xs text-muted-foreground italic py-1">No member votes recorded yet in this session.</p>
       )}
-      <p className="mt-3 text-[10px] text-muted-foreground">{tally.reason}</p>
     </div>
   );
 }
 
-function Tally({ label, count, tone }: { label: string; count: number; tone: "emerald" | "rose" }) {
-  const cls =
-    tone === "emerald"
-      ? "bg-emerald-100 text-emerald-900"
-      : tone === "rose"
-        ? "bg-rose-100 text-rose-900"
-        : "bg-emerald-100 text-emerald-900";
-  return (
-    <div className={`rounded ${cls} px-2 py-2`}>
-      <p className="font-serif text-2xl leading-none">{count}</p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider">{label}</p>
-    </div>
-  );
-}
+

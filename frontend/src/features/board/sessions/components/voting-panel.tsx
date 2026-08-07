@@ -113,34 +113,51 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
     canFinalizeRole && !finalizeLocked && Boolean(sessionId) && Boolean(votesData?.tally.status);
 
   return (
-    <aside className="sticky top-20 space-y-3 rounded-md border border-border bg-card p-4">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        Voting Panel
-      </p>
+    <div className="space-y-4 rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Executive Voting Workbench</h3>
+        <span className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+          Board Member
+        </span>
+      </div>
 
-      <div className="mb-2">
-        <SeparationOfDutiesWarning>
-          Board members vote here. Finalization closes the active VotingSession and lets the backend
-          resolve quorum, re-vote, approval, rejection, and audit state.
-        </SeparationOfDutiesWarning>
+
+      {/* Live Tally Metric Cards */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-center space-y-0.5">
+          <span className="font-serif text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">
+            {votesData?.tally.approve ?? 0}
+          </span>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            Approve
+          </span>
+        </div>
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-center space-y-0.5">
+          <span className="font-serif text-2xl font-bold text-rose-600 dark:text-rose-400 leading-none">
+            {votesData?.tally.reject ?? 0}
+          </span>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+            Reject
+          </span>
+        </div>
       </div>
 
       {existing ? (
-        <div className="rounded border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-950">
-          You voted: <strong>{existing.decision}</strong>
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+          You voted: <strong className="uppercase">{existing.decision}</strong>
         </div>
       ) : null}
 
-      <div className="grid gap-2">
+      <div className="grid gap-2 grid-cols-2">
         {OPTIONS.map((option) => (
           <button
             key={option.value}
             type="button"
             disabled={Boolean(existing || disabledReason)}
             onClick={() => setDecision(option.value)}
-            className={`rounded px-3 py-2 text-xs font-bold text-white transition disabled:opacity-40 ${option.className} ${
+            className={`rounded-xl px-3 py-2.5 text-xs font-bold text-white transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${option.className} ${
               decision === option.value
-                ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                ? "ring-2 ring-foreground ring-offset-2 ring-offset-background scale-[1.02]"
                 : ""
             }`}
           >
@@ -150,18 +167,18 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
       </div>
 
       <Textarea
-        rows={4}
+        rows={3}
         value={comment}
         onChange={(event) => setComment(event.target.value)}
-        placeholder={requiresComment ? "Reason is required." : "Optional Board note."}
+        placeholder={requiresComment ? "Reason is required for Rejection." : "Optional Board evaluation note..."}
+        className="rounded-xl border-border/80 bg-background/60 text-xs"
       />
 
-      <DecisionEffectPreview proposal={proposal} decision={decision} />
 
       {disabledReason ? (
         <RestrictedActionTooltip reason={disabledReason}>
-          <button className="w-full rounded bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">
-            Vote unavailable
+          <button className="w-full rounded-xl bg-muted/60 px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+            Vote Unavailable
           </button>
         </RestrictedActionTooltip>
       ) : (
@@ -169,57 +186,66 @@ export function VotingPanel({ proposal }: { proposal: SeriesProposal }) {
           type="button"
           disabled={!canSubmit || castVote.isPending}
           onClick={handleVote}
-          className="w-full rounded bg-foreground px-3 py-2 text-xs font-semibold text-background hover:bg-foreground/90 disabled:opacity-40"
+          className="w-full rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground transition-all hover:opacity-90 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {castVote.isPending ? "Submitting..." : "Submit vote"}
+          {castVote.isPending ? "Submitting Vote..." : "Submit Vote"}
         </button>
       )}
 
       {canFinalizeRole && (
-        <>
-          <hr className="border-border" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            VotingSession Finalization
-          </p>
+        <div className="pt-3 border-t border-border/60 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Chair Session Finalization
+            </span>
+            <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-400">
+              Chair Only
+            </span>
+          </div>
 
           {isDecided ? (
-            <div className="rounded border border-border bg-muted/40 p-3 text-xs font-semibold text-foreground">
-              Finalized: {proposal.status}. This decision cannot be changed from the normal Board
-              workflow.
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+              Session Finalized: <strong className="text-foreground font-semibold">{proposal.status}</strong>
+            </div>
+          ) : !sessionId ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-800 dark:text-amber-300">
+              No active voting session currently open for finalization.
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="grid gap-1 rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
-                <span>Active session: {sessionId ?? "Missing"}</span>
-                <span>
-                  Backend-owned result: quorum, no quorum, re-vote, approval, and rejection.
-                </span>
+            <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-3">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Active Session</span>
+                <span className="font-mono font-semibold text-foreground text-[10px] truncate max-w-[140px]">{sessionId}</span>
               </div>
-              <label className="grid gap-1 text-xs font-semibold">
-                Publication cadence for the approved series
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground">
+                  Approved Series Publication Cadence
+                </label>
                 <select
                   value={publicationType}
                   onChange={(event) =>
                     setPublicationType(event.target.value as "WEEKLY" | "MONTHLY")
                   }
-                  className="rounded border border-border bg-background px-2 py-2 text-xs font-normal"
+                  className="w-full rounded-lg border border-border/80 bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-primary"
                 >
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="MONTHLY">Monthly</option>
+                  <option value="WEEKLY">Weekly Publication</option>
+                  <option value="MONTHLY">Monthly Publication</option>
                 </select>
-              </label>
+              </div>
+
               <button
                 type="button"
                 disabled={!canFinalize || finalize.isPending}
                 onClick={handleFinalize}
-                className="w-full rounded bg-foreground px-3 py-2 text-xs font-bold text-background hover:bg-foreground/90 disabled:opacity-40"
+                className="w-full rounded-xl bg-foreground px-3 py-2 text-xs font-bold text-background transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
               >
-                {finalize.isPending ? "Closing..." : "Close VotingSession"}
+                {finalize.isPending ? "Closing Session..." : "Finalize & Close Session"}
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
-    </aside>
+    </div>
   );
 }

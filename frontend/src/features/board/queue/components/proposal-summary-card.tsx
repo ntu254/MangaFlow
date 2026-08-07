@@ -3,33 +3,44 @@ import type { SeriesProposal } from "@/entities/proposal/model/proposal-types";
 
 export function ProposalSummaryCard({ proposal }: { proposal: SeriesProposal }) {
   return (
-    <section className="rounded-md border border-border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Proposal Summary
-          </p>
-          <h2 className="mt-1 font-serif text-2xl">{proposal.title}</h2>
+    <div className="space-y-4">
+      {proposal.logline ? (
+        <Meta label="Logline" value={proposal.logline} />
+      ) : null}
+      {proposal.hook ? (
+        <Meta label="Core Hook" value={proposal.hook} />
+      ) : null}
+      
+      <div className="rounded-xl border border-border/50 bg-background/50 p-4 space-y-1">
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Full Synopsis
+        </span>
+        <p className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">{proposal.synopsis}</p>
+      </div>
+
+      {proposal.mainCharacters ? (
+        <Meta label="Main Characters" value={proposal.mainCharacters} />
+      ) : null}
+
+      {proposal.advanced ? (
+        <div className="space-y-3 pt-3 border-t border-border/50">
+          {proposal.advanced.worldSetting ? <Meta label="World Setting" value={proposal.advanced.worldSetting} /> : null}
+          {proposal.advanced.seriesDirection ? <Meta label="Series Direction" value={proposal.advanced.seriesDirection} /> : null}
+          {proposal.advanced.comparableTitles ? <Meta label="Comparable Titles" value={proposal.advanced.comparableTitles} /> : null}
         </div>
-        <ProposalStatusPill status={proposal.status} />
-      </div>
-      <p className="mt-3 text-sm leading-relaxed text-foreground/80">{proposal.synopsis}</p>
-      <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
-        <Meta label="Author" value={proposal.authorName} />
-        <Meta label="Audience" value={proposal.targetAudience} />
-        <Meta label="Genres" value={proposal.genres.slice(0, 3).join(" / ")} />
-      </div>
-    </section>
+      ) : null}
+    </div>
   );
 }
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-border bg-background px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <div className="rounded-xl border border-border/50 bg-background/50 p-3.5 space-y-1">
+      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
         {label}
-      </p>
-      <p className="mt-1 truncate font-medium">{value}</p>
+      </span>
+      <p className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">{value}</p>
     </div>
   );
 }
+
