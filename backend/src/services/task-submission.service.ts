@@ -261,6 +261,17 @@ async function applyApprovedSubmissionToPage(
     { $set: { pages, updatedAt: now } },
     { session },
   );
+
+  // The approved submission's file becomes the page's new image, so any
+  // regions drawn against the prior image (AI-detected or manually marked)
+  // no longer correspond to real content on the page and would render as
+  // stale overlays. Soft-discard them rather than deleting so they stay
+  // auditable.
+  await (StudioRegionModel as any).updateMany(
+    { pageId: String(pageId), status: { $ne: "DISCARDED" } },
+    { $set: { status: "DISCARDED", updatedAt: now } },
+    { session },
+  );
 }
 
 async function assertSubmissionMatchesTaskScope(task: any, payload: any) {

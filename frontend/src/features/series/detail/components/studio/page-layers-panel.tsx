@@ -272,7 +272,10 @@ export function PageLayersPanel({
                 key: "ai-detect" as const,
                 label: "AI Detect",
                 count: regions.filter(
-                  (r) => r.pageId === selectedPageId && r.metadata?.source === "ai",
+                  (r) =>
+                    r.pageId === selectedPageId &&
+                    r.metadata?.source === "ai" &&
+                    r.status !== "DISCARDED",
                 ).length,
               },
               {
@@ -312,7 +315,10 @@ export function PageLayersPanel({
               label="AI Detect"
               icon={<Square className="h-3 w-3" />}
               items={regions.filter(
-                (r) => r.pageId === selectedPageId && r.metadata?.source === "ai",
+                (r) =>
+                  r.pageId === selectedPageId &&
+                  r.metadata?.source === "ai" &&
+                  r.status !== "DISCARDED",
               )}
               selectedPageId={selectedPageId}
               editable={permissions.canEditRegion}
