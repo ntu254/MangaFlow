@@ -1,11 +1,11 @@
 import { BOARD_TOTAL } from "@/entities/proposal/model/proposal-types";
 import { useBoardQueueQuery, useVotingSessionsQuery } from "../../api/board-queries";
-import type { AtRiskQueueItem, BoardQueueItem } from "../../model/board-adapters";
+import type { BoardQueueItem } from "../../model/board-adapters";
 import { PageHeader } from "@/shared/ui";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { StatCard } from "@/shared/ui/stat-card";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, FileText, TriangleAlert } from "lucide-react";
+import { CheckCircle2, FileText } from "lucide-react";
 import { PageSection, PageShell, SummaryGrid } from "@/shared/layout/page-layout";
 
 export function BoardDashboard() {
@@ -14,9 +14,6 @@ export function BoardDashboard() {
 
   const proposalItems = queueItems.filter(
     (item): item is BoardQueueItem => item.riskStatus !== "AT_RISK",
-  );
-  const atRiskItems = queueItems.filter(
-    (item): item is AtRiskQueueItem => item.riskStatus === "AT_RISK",
   );
 
   const pending = proposalItems.filter((item) => item.decisionStatus === "PENDING");
@@ -30,7 +27,7 @@ export function BoardDashboard() {
         description="Final proposal governance and at-risk review focus."
       />
 
-      <SummaryGrid className="gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <SummaryGrid className="gap-3 md:grid-cols-2">
         <StatCard
           icon={<FileText className="size-4" />}
           label="Pending Review"
@@ -42,12 +39,6 @@ export function BoardDashboard() {
           label="Needs Finalize"
           value={needsFinalize.length}
           tone="warning"
-        />
-        <StatCard
-          icon={<TriangleAlert className="size-4" />}
-          label="At-risk"
-          value={atRiskItems.length}
-          tone="danger"
         />
       </SummaryGrid>
 
@@ -105,31 +96,6 @@ export function BoardDashboard() {
         </PageSection>
 
         <div className="space-y-4">
-          <PageSection
-            title="At-risk preview"
-            description="Series flagged for potential cancellation risk."
-            contentClassName="p-5"
-          >
-            <div className="space-y-2">
-              {atRiskItems.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No series are currently at-risk.</p>
-              ) : (
-                atRiskItems.slice(0, 3).map((item) => (
-                  <Link
-                    key={item.id}
-                    to="/app/board/at-risk"
-                    className="flex items-center justify-between rounded border border-border bg-background px-3 py-2 text-xs hover:bg-muted"
-                  >
-                    <span className="font-medium">{item.seriesTitle}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground">
-                      {item.decisionStatus}
-                    </span>
-                  </Link>
-                ))
-              )}
-            </div>
-          </PageSection>
-
           <PageSection
             title="Recent sessions"
             description="Latest board voting sessions."

@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AtRiskReviewsPage } from "@/features/board/at-risk";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/board/at-risk")({
-  component: AtRiskReviewsPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/board/dashboard" });
+  },
 });
