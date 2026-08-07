@@ -18,7 +18,7 @@ function errorMessage(error: unknown): string {
   return "Something went wrong. Please try again."
 }
 
-const PUBLICATION_ACTIONS = new Set(["SCHEDULE", "POSTPONE", "PUBLISH"])
+const PUBLICATION_ACTIONS = new Set(["SCHEDULE", "PUBLISH"])
 
 export function EditorPublishScreen({
   chapterId,

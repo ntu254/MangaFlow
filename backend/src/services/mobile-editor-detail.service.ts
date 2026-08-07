@@ -115,21 +115,17 @@ export function chapterPublicationActions(
   const assigned = isAssignedTantou(actor, series);
   const notAssigned = "You are not the assigned Tantou for this series.";
   const scheduled = publication?.status === "SCHEDULED";
-  const scheduledAt = scheduled && publication?.scheduledAt
-    ? new Date(publication.scheduledAt)
-    : null;
-  const futureScheduled = scheduledAt != null && scheduledAt > new Date();
-  const dueScheduled = scheduledAt != null && !Number.isNaN(scheduledAt.getTime()) && !futureScheduled;
   const seriesPublishable = !["CANCELLED", "COMPLETED"].includes(String(series?.status));
+  // Publish now is allowed as soon as a chapter is scheduled, even before the
+  // scheduled time arrives — mobile always calls the PUBLISH_EARLY transition
+  // (see publishChapterNow), which bypasses the not-yet-due guard server-side.
   const publishDisabledReason = !assigned
     ? notAssigned
     : !seriesPublishable
       ? "This series cannot be published in its current state."
       : !scheduled
         ? "Schedule this chapter before publishing."
-        : futureScheduled
-          ? "Publication is scheduled for a future date; postpone first to publish now."
-          : "Publication schedule is invalid; schedule this chapter again.";
+        : null;
   return [
     describeAction({
       action: "SCHEDULE",
@@ -147,7 +143,7 @@ export function chapterPublicationActions(
     }),
     describeAction({
       action: "PUBLISH",
-      enabled: assigned && dueScheduled && seriesPublishable,
+      enabled: assigned && scheduled && seriesPublishable,
       disabledReason: publishDisabledReason,
       requiresConfirmation: true,
       requiresReason: false,
