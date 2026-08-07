@@ -5,7 +5,7 @@ import { WebView } from "react-native-webview";
 
 import { MFIcon } from "@/design/icons";
 import { colors, radius, spacing } from "@/design/tokens";
-import { REFRESH_SKEW_MS, shouldRefreshLease, type FileUrlLease, type ReviewFile } from "@/domain/review-files";
+import { cleanFileName, REFRESH_SKEW_MS, shouldRefreshLease, type FileUrlLease, type ReviewFile } from "@/domain/review-files";
 import { pdfPreviewHtml } from "@/components/pdf-preview-html";
 import { openReviewFile } from "@/services/mobile-file-review";
 import { MobileApiError } from "@/services/mobile-api-error";
@@ -140,7 +140,7 @@ export function ReviewFileViewer({
       <View style={styles.screen}>
         <View style={styles.header}>
           <View style={styles.titleBlock}>
-            <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>{file?.name ?? "Submitted file"}</Text>
+            <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>{file?.name ? cleanFileName(file.name) : "Submitted file"}</Text>
             <Text style={styles.subtitle}>Review preview</Text>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Close file preview" onPress={clearAndClose} style={styles.closeButton}>

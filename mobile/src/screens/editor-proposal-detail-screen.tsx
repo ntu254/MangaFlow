@@ -12,7 +12,7 @@ import { SubmittedFilesPanel } from "@/components/submitted-files-panel"
 import { useEditorProposal } from "@/hooks/use-editor-proposal"
 import type { EditorialChecklist, EditorProposalDetail } from "@/services/editor-mobile-data-source"
 import { MobileApiError } from "@/services/mobile-api-error"
-import { colors, radius, spacing, typography } from "@/design/tokens"
+import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 
 function errorMessage(error: unknown): string {
   if (error instanceof MobileApiError) return error.message
@@ -190,10 +190,17 @@ export function EditorProposalDetailScreen({
         )}
         {showChecklist ? (
           <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Editorial checklist</Text>
-            <Text style={styles.body}>
-              {displayedChecklistCount}/{EDITORIAL_CHECKLIST_SIZE} complete
-            </Text>
+            <View style={styles.checklistHeaderRow}>
+              <View>
+                <Text style={styles.sectionLabel}>Editorial checklist</Text>
+                <Text style={styles.checklistCountText}>
+                  {displayedChecklistCount}/{EDITORIAL_CHECKLIST_SIZE} complete
+                </Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${(displayedChecklistCount / EDITORIAL_CHECKLIST_SIZE) * 100}%` }]} />
+              </View>
+            </View>
             {data.claim.claimedByMe && !readOnlyStatus ? (
               <>
                 <ChecklistControls checklist={draftChecklist} onChange={setDraftChecklist} />
@@ -213,7 +220,11 @@ export function EditorProposalDetailScreen({
                   accessibilityState={{ disabled: updateChecklist.isPending }}
                   disabled={updateChecklist.isPending}
                   onPress={saveChecklist}
-                  style={[styles.saveChecklist, updateChecklist.isPending && styles.disabled]}
+                  style={({ pressed }) => [
+                    styles.saveChecklist,
+                    updateChecklist.isPending && styles.disabled,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.confirmText}>
                     {updateChecklist.isPending ? "Saving…" : "Save checklist"}
@@ -495,6 +506,26 @@ const styles = StyleSheet.create({
   confirm: { backgroundColor: colors.primary },
   confirmText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
   disabled: { opacity: 0.6 },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  checklistHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs,
+  },
+  checklistCountText: { fontSize: typography.body, color: colors.text, fontWeight: "600" },
+  progressTrack: {
+    width: 90,
+    height: 8,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: radius.full,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
+  },
   checklistRow: {
     minHeight: 44,
     flexDirection: "row",

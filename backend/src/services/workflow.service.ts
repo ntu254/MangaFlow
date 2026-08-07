@@ -1409,9 +1409,13 @@ export async function editorReviewQueue() {
     claimedAt: proposal.claimedAt ?? null,
     reviewStartedAt: proposal.reviewStartedAt ?? null,
     claimStatus: proposal.claimedByEditorId ? "IN_REVIEW" : "AVAILABLE",
+    coverUrl: proposal.coverUrl ?? null,
+    coverFileKey: proposal.coverFileKey ?? null,
     series: {
       id: proposal.id,
       title: proposal.title,
+      coverUrl: proposal.coverUrl ?? null,
+      coverFileKey: proposal.coverFileKey ?? null,
       status:
         proposal.status === "CHANGES_REQUESTED"
           ? "REVISION_REQUESTED"

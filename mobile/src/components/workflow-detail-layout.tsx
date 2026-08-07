@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { ScrollView, StyleSheet, Text, View } from "react-native"
-import { colors, spacing, typography } from "@/design/tokens"
+import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 
 // Shared detail scaffold: a scrollable body with a header and optional actions
 // following the detail content.
@@ -17,11 +17,17 @@ export function WorkflowDetailLayout({
 }) {
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text accessibilityRole="header" style={styles.title}>
-          {title}
-        </Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerCard}>
+          <Text accessibilityRole="header" style={styles.title}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <View style={styles.subtitleTag}>
+              <Text style={styles.subtitle}>{subtitle}</Text>
+            </View>
+          ) : null}
+        </View>
         {children}
         {actions}
       </ScrollView>
@@ -31,7 +37,29 @@ export function WorkflowDetailLayout({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.md, gap: spacing.sm },
-  title: { fontSize: typography.title, fontWeight: "800", color: colors.text },
-  subtitle: { fontSize: typography.body, color: colors.textMuted },
+  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xxl },
+  headerCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    gap: spacing.xs,
+    shadowColor: shadow.sm.shadowColor,
+    shadowOpacity: shadow.sm.shadowOpacity,
+    shadowRadius: shadow.sm.shadowRadius,
+    shadowOffset: shadow.sm.shadowOffset,
+    elevation: shadow.sm.elevation,
+  },
+  title: { fontSize: typography.hero, fontWeight: "800", color: colors.text, lineHeight: 28 },
+  subtitleTag: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    marginTop: 2,
+  },
+  subtitle: { fontSize: typography.label, fontWeight: "700", color: colors.primary },
 })
+

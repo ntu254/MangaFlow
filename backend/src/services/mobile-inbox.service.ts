@@ -18,6 +18,7 @@ import {
   SubmissionModel,
   VotingSessionModel,
 } from "../db/models.js";
+import { createDisplayUrl } from "./file-access.service.js";
 import { actorSeriesScopeFilter } from "./authorization.service.js";
 import {
   chapterPublicationActions,
@@ -126,6 +127,13 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
     summary: {
       claimStatus: proposal.claimStatus,
       requestedPublicationType: proposal.series?.requestedPublicationType ?? null,
+      coverUrl:
+        proposal.coverUrl ||
+        proposal.series?.coverUrl ||
+        (proposal.coverFileKey || proposal.series?.coverFileKey
+          ? createDisplayUrl(proposal.coverFileKey ?? proposal.series?.coverFileKey).url
+          : null),
+      coverFileKey: proposal.coverFileKey ?? proposal.series?.coverFileKey ?? null,
     },
   };
 }
@@ -243,7 +251,14 @@ async function chapterReviewWorkItem(actor: RequestActor, chapter: any): Promise
     },
     blockers: readinessBlockers(context.readiness),
     actions: chapterReviewActions(actor, context),
-    summary: { seriesId: chapter.seriesId, ready: context.readiness.ready },
+    summary: {
+      seriesId: chapter.seriesId,
+      ready: context.readiness.ready,
+      coverUrl:
+        context.series?.coverUrl ||
+        (context.series?.coverFileKey ? createDisplayUrl(context.series.coverFileKey).url : null),
+      coverFileKey: context.series?.coverFileKey ?? null,
+    },
   };
 }
 

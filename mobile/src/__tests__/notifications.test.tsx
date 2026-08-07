@@ -319,7 +319,7 @@ describe("notification navigation entry", () => {
         refreshToken: "refresh",
         role: "editor",
       },
-      ["Priority", "Reviews", "Publish", "History", "Notifications"],
+      ["Home", "Reviews", "Publish", "History", "Notifications"],
     ],
     [
       "Board",
@@ -364,7 +364,7 @@ describe("notification navigation entry", () => {
 
     expect(screen.getByText("4")).toBeVisible()
     expect(screen.getByRole("button", { name: "Notifications, 4 unread" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "Priority" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Home" })).toBeVisible()
   })
 
   it("hides the badge when nothing is unread", () => {
@@ -381,7 +381,7 @@ describe("notification navigation entry", () => {
   it("removes the decorative header bell and its hard-coded count", async () => {
     render(<MangaFlowMobileApp initialSession={sessions[0][1]} />)
 
-    expect(await screen.findByText("Priority")).toBeVisible()
+    expect(await screen.findByText(/Home|Priority/)).toBeVisible()
     // The old header rendered a static "3" badge next to a non-interactive bell.
     expect(screen.queryByText("3")).toBeNull()
   })

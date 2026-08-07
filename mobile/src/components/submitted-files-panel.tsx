@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ReviewFileViewer } from "@/components/review-file-viewer";
 import { MFIcon } from "@/design/icons";
 import { colors, radius, spacing } from "@/design/tokens";
-import type { ReviewFile } from "@/domain/review-files";
+import { cleanFileName, type ReviewFile } from "@/domain/review-files";
 
 export function SubmittedFilesPanel({
   files,
@@ -42,8 +42,8 @@ export function SubmittedFilesPanel({
                 <MFIcon name={file.previewKind === "image" ? "eye" : "file-text"} size={19} color={colors.primary} />
               </View>
               <View style={styles.fileBody}>
-                <Text style={styles.fileName} numberOfLines={2}>{file.name}</Text>
-                <Text style={styles.metadata} numberOfLines={2}>
+                <Text style={styles.fileName} numberOfLines={1}>{cleanFileName(file.name)}</Text>
+                <Text style={styles.metadata} numberOfLines={1}>
                   {file.submittedBy ? `Submitted by ${file.submittedBy}` : "Submitted file"}
                   {file.submittedAt ? ` · ${formatSubmittedAt(file.submittedAt)}` : ""}
                 </Text>

@@ -4,7 +4,7 @@ import { MFEmptyState, MFHero, MFTimeline, SectionTitle } from "@/components/mf"
 import { WorkflowState } from "@/components/workflow-state"
 import { useEditorHistory } from "@/hooks/use-editor-history"
 import { editorActivityAreas, groupEditorActivities, toEditorActivityItems } from "@/domain/editor-activity"
-import { spacing } from "@/design/tokens"
+import { colors, spacing } from "@/design/tokens"
 
 export function EditorHistoryScreen() {
   const history = useEditorHistory()
@@ -41,5 +41,6 @@ export function EditorHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
+  content: { padding: spacing.md, gap: spacing.md, flexGrow: 1, backgroundColor: colors.background, paddingBottom: spacing.xxl },
 })
+
