@@ -15,7 +15,7 @@ import { useEditorChapter } from "@/hooks/use-editor-chapter"
 import { useEditorComments } from "@/hooks/use-editor-comments"
 import type { EditorChapterDetail } from "@/services/editor-mobile-data-source"
 import { MobileApiError } from "@/services/mobile-api-error"
-import { colors, radius, spacing, typography } from "@/design/tokens"
+import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 
 function errorMessage(error: unknown): string {
   if (error instanceof MobileApiError) return error.message
@@ -120,13 +120,21 @@ export function EditorChapterDetailScreen({
       >
         <ReadinessEvidence readiness={data.readiness} />
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Pages</Text>
-          <Text style={styles.body}>{data.pages.length} page(s)</Text>
-          <Text style={styles.sectionLabel}>Evidence</Text>
-          <Text style={styles.body}>
-            {data.evidence.taskCount} task(s) · {data.evidence.currentSubmissionCount} approved
-            submission(s)
-          </Text>
+          <Text style={styles.sectionLabel}>Chapter Metrics & Evidence</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{data.pages.length}</Text>
+              <Text style={styles.statLabel}>Pages</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{data.evidence.taskCount}</Text>
+              <Text style={styles.statLabel}>Tasks</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{data.evidence.currentSubmissionCount}</Text>
+              <Text style={styles.statLabel}>Submissions</Text>
+            </View>
+          </View>
         </View>
         <SubmittedFilesPanel
           files={reviewFiles.data ?? []}
@@ -134,8 +142,17 @@ export function EditorChapterDetailScreen({
           errorText={reviewFiles.error ? "Could not load submitted files." : null}
         />
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Blocking comments</Text>
-          {data.blockers.length === 0 ? <Text style={styles.body}>None.</Text> : null}
+          <View style={styles.blockerHeaderRow}>
+            <Text style={styles.sectionLabel}>Blocking comments</Text>
+            <View style={[styles.blockerBadge, { backgroundColor: data.blockers.length > 0 ? colors.dangerSoft : colors.successSoft }]}>
+              <Text style={[styles.blockerBadgeText, { color: data.blockers.length > 0 ? colors.dangerText : colors.successText }]}>
+                {data.blockers.length === 0 ? "Resolved" : `${data.blockers.length} Active`}
+              </Text>
+            </View>
+          </View>
+          {data.blockers.length === 0 ? (
+            <Text style={styles.bodyMuted}>No blocking comments currently on this chapter.</Text>
+          ) : null}
         </View>
         {data.blockers.map((blocker) => (
           <CommentThread
@@ -175,7 +192,42 @@ const styles = StyleSheet.create({
     borderColor: colors.outlineVariant,
     padding: spacing.md,
     gap: spacing.xs,
+    shadowColor: shadow.card.shadowColor,
+    shadowOpacity: shadow.card.shadowOpacity,
+    shadowRadius: shadow.card.shadowRadius,
+    shadowOffset: shadow.card.shadowOffset,
+    elevation: shadow.card.elevation,
   },
-  sectionLabel: { fontSize: typography.label, fontWeight: "800", color: colors.textMuted },
+  sectionLabel: { fontSize: typography.label, fontWeight: "800", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.5 },
   body: { fontSize: typography.body, color: colors.text },
+  bodyMuted: { fontSize: typography.body, color: colors.textMuted },
+  statsGrid: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    alignItems: "center",
+  },
+  statValue: { fontSize: typography.title, fontWeight: "800", color: colors.primary },
+  statLabel: { fontSize: typography.label, color: colors.textMuted, fontWeight: "600" },
+  blockerHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  blockerBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  blockerBadgeText: {
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
 })
+

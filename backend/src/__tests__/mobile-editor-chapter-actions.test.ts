@@ -93,6 +93,29 @@ describe("mobile editor chapter actions parity", () => {
     expect(publish.body.code).toBe("PUBLICATION_NOT_SCHEDULED");
   });
 
+  it("offers Publish now for a chapter scheduled in the future, and PUBLISH_EARLY succeeds immediately", async () => {
+    const editor = await loginAs("tanaka@beachread.jp");
+    const detail = await request(createApp())
+      .get(`/api/editor/chapters/${SCHEDULED_CHAPTER}/detail`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .expect(200);
+
+    // Seeded scheduledAt is a few days ahead, i.e. not due yet — Publish now
+    // must still be offered (mobile has no postpone-then-wait flow) and must
+    // succeed via the PUBLISH_EARLY transition mobile actually calls.
+    expect(detail.body.data.actions.find((action: any) => action.action === "PUBLISH")).toMatchObject({
+      enabled: true,
+      disabledReason: null,
+    });
+
+    const publish = await request(createApp())
+      .post(`/api/chapters/${SCHEDULED_CHAPTER}/actions/PUBLISH_EARLY`)
+      .set("Authorization", `Bearer ${editor.accessToken}`)
+      .send({})
+      .expect(200);
+    expect(publish.body.data.status).toBe("PUBLISHED");
+  });
+
   it("offers Publish now when the scheduled publication is due and the canonical action succeeds", async () => {
     const editor = await loginAs("tanaka@beachread.jp");
     const { PublicationModel } = await import("../db/models.js");

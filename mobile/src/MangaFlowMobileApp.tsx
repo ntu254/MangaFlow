@@ -36,7 +36,7 @@ function isDemoLoginEnabled(): boolean {
 // Canonical Queue-first tabs. Role and designation come from the authenticated
 // backend identity; mobile does not expose a manual role switch.
 export const editorTabs: TabItem[] = [
-  { id: "priority", label: "Priority", icon: "home" },
+  { id: "priority", label: "Home", icon: "home" },
   { id: "reviews", label: "Reviews", icon: "file-text" },
   { id: "publish", label: "Publish", icon: "check-circle" },
   { id: "history", label: "History", icon: "shield-check" },

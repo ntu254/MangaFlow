@@ -116,7 +116,7 @@ describe("MangaFlowMobileApp shell", () => {
 
   it("uses the authenticated role and never renders a role switch", async () => {
     render(<MangaFlowMobileApp initialSession={editorSessionFixture} />)
-    expect(await screen.findByText("Priority")).toBeVisible()
+    expect(await screen.findByText("Home")).toBeVisible()
     expect(screen.getByText("Tantou Editor")).toBeVisible()
     expect(screen.queryByText("Board Demo")).toBeNull()
     expect(screen.queryByRole("button", { name: /switch role/i })).toBeNull()
@@ -129,8 +129,8 @@ describe("MangaFlowMobileApp shell", () => {
 
   it("shows the canonical Editor tabs", async () => {
     render(<MangaFlowMobileApp initialSession={editorSessionFixture} />)
-    for (const tab of ["Priority", "Reviews", "Publish", "History", "Notifications"]) {
-      expect(await screen.findByText(tab)).toBeVisible()
+    for (const tab of ["Home", "Reviews", "Publish", "History", "Notifications"]) {
+      expect((await screen.findAllByText(tab))[0]).toBeVisible()
     }
     expect(editorTabs.map(({ id }) => id)).toEqual(["priority", "reviews", "publish", "history", "notifications"])
   })

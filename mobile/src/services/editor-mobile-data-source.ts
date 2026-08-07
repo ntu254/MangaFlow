@@ -218,8 +218,11 @@ export function postponeChapterPublication(chapterId: string): Promise<void> {
   return chapterAction(chapterId, "POSTPONE")
 }
 
+// The chapter must already be scheduled; this always uses the PUBLISH_EARLY
+// transition so publishing does not wait for the scheduled time to arrive
+// (mobile has no postpone-then-wait flow — see EditorPublishScreen).
 export function publishChapterNow(chapterId: string): Promise<void> {
-  return chapterAction(chapterId, "PUBLISH")
+  return chapterAction(chapterId, "PUBLISH_EARLY")
 }
 
 // ---------------------------------------------------------------------------
