@@ -1,4 +1,4 @@
-import { useNotificationsUnreadCount } from "@/features/notifications";
+import { NotificationDropdown, useNotificationsUnreadCount } from "@/features/notifications";
 import { getPersistedAuthUser, isBoardChair, ROLE_LABEL, useAuth } from "@/shared/auth";
 import { NAV_BY_ROLE } from "@/shared/config/navigation";
 import {
@@ -263,18 +263,7 @@ function AppLayout() {
                 </nav>
               )}
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <Link
-                  to={notificationPath}
-                  className="relative grid size-9 place-items-center border-r border-[#d8d2c5] text-[#071225] hover:text-[#8e1d1d]"
-                  aria-label="Notifications"
-                >
-                  <Bell className="size-4" />
-                  {unread > 0 ? (
-                    <span className="absolute right-1 top-2 size-2 rounded-full bg-[#d62f2f] text-[0px]">
-                      {unread}
-                    </span>
-                  ) : null}
-                </Link>
+                <NotificationDropdown notificationPath={notificationPath} />
                 {isAdmin ? (
                   <div className="flex items-center gap-3 pl-3">
                     <div className="grid size-9 place-items-center rounded-full bg-[#071225] text-[11px] font-bold text-[#f8f3e9]">
