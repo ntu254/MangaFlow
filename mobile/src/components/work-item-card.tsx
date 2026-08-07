@@ -1,8 +1,6 @@
 import { Image } from "expo-image"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 import type { MobileWorkItem } from "@/domain/mobile-work-item"
-import { resolveDisplayUrl } from "@/domain/review-files"
-import { getMobileApiBaseUrl } from "@/services/mobile-api-config"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
@@ -11,36 +9,24 @@ const monsterCoverUrl = "https://tradejapanstore.com/cdn/shop/files/322501000882
 
 const coverAssets = [shadowlineCover, crimsonRoadCover, { uri: monsterCoverUrl }]
 
+// The backend always returns an absolute, server-signed URL in
+// item.summary.coverUrl when a real cover exists (see createDisplayUrl in
+// file-access.service.ts); anything else — a bare coverFileKey, or a
+// seed/demo placeholder path like "/assets/covers/berserk.jpg" that the
+// backend does not actually serve — cannot be turned into a working image
+// URL on the client (the /files/display/:token route requires a
+// server-signed token, not a raw storage key). Fall back to a stable
+// per-item placeholder rather than requesting a URL that will fail or,
+// worse, silently swapping in an unrelated hardcoded cover by keyword.
 function getWorkItemCoverSource(item: MobileWorkItem) {
   const rawCoverUrl = typeof item.summary?.coverUrl === "string" ? item.summary.coverUrl.trim() : ""
-  const coverFileKey = typeof item.summary?.coverFileKey === "string" ? item.summary.coverFileKey.trim() : ""
+  const isAbsoluteUrl =
+    rawCoverUrl.startsWith("data:") ||
+    rawCoverUrl.startsWith("file:") ||
+    rawCoverUrl.startsWith("http://") ||
+    rawCoverUrl.startsWith("https://")
 
-  if (rawCoverUrl) {
-    if (
-      rawCoverUrl.startsWith("data:") ||
-      rawCoverUrl.startsWith("file:") ||
-      rawCoverUrl.startsWith("http://") ||
-      rawCoverUrl.startsWith("https://")
-    ) {
-      return { uri: rawCoverUrl }
-    }
-    if (rawCoverUrl.includes("ghostfixers")) return shadowlineCover
-    if (rawCoverUrl.includes("berserk")) return crimsonRoadCover
-    if (rawCoverUrl.includes("monster")) return { uri: monsterCoverUrl }
-
-    if (rawCoverUrl.startsWith("/assets/covers/")) {
-      const seedKey = item.id + (item.title || "")
-      const sum = seedKey.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
-      return coverAssets[sum % coverAssets.length]
-    }
-
-    return { uri: resolveDisplayUrl(rawCoverUrl, getMobileApiBaseUrl()) }
-  }
-
-  if (coverFileKey) {
-    const fileUrl = `/files/display/${encodeURIComponent(coverFileKey)}`
-    return { uri: resolveDisplayUrl(fileUrl, getMobileApiBaseUrl()) }
-  }
+  if (isAbsoluteUrl) return { uri: rawCoverUrl }
 
   const seedKey = item.id + (item.title || "")
   const sum = seedKey.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
