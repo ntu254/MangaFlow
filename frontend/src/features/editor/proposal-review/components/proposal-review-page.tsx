@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Unlock, ShieldCheck, FileText, BookOpen, History } from "lucide-react";
 import { useAuth, type User } from "@/shared/auth";
 import {
   useProposalActionMutation,
   useProposalQuery,
-  useProposalVersionsQuery,
 } from "@/features/proposals";
 import {
   AUDIENCE_LABEL,
@@ -21,6 +20,8 @@ import { DecisionActions } from "@/shared/ui/decision-actions";
 import { ReviewStatusPill } from "@/entities/submission";
 import { toast } from "sonner";
 import { MaterialsViewer } from "@/entities/proposal";
+import { ResolvedImage } from "@/shared/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const EDITOR_REVIEW_STATUSES = ["PENDING_EDITOR", "EDITOR_REVIEWING", "CHANGES_REQUESTED"];
 
@@ -28,7 +29,6 @@ export function ProposalReviewPage() {
   const { proposalId } = useParams({ from: "/app/editor/proposals/$proposalId" });
   const user = useAuth((s) => s.user);
   const { data: proposal, isLoading } = useProposalQuery(proposalId);
-  const { data: proposalVersions = [] } = useProposalVersionsQuery(proposalId);
   const actionMutation = useProposalActionMutation(proposalId);
 
   const isSelf = !!proposal && !!user && proposal.authorId === user.id;
@@ -47,8 +47,8 @@ export function ProposalReviewPage() {
   const supportsReject = isEditorReview && !isSelf && canDecide;
 
   const latestMs = proposal?.manuscripts[proposal.manuscripts.length - 1];
-
   const history = useMemo(() => proposal?.history ?? [], [proposal]);
+  const materialsCount = (proposal?.manuscripts.length ?? 0) + (proposal?.materials.length ?? 0) + (proposal?.sampleChapterUrl ? 1 : 0);
 
   if (isLoading) {
     return (
@@ -70,126 +70,175 @@ export function ProposalReviewPage() {
 
   return (
     <div className="mx-auto min-w-0 max-w-6xl space-y-6 overflow-x-hidden p-6">
+      {/* Navigation Breadcrumb */}
       <div>
         <Link
           to="/app/editor/review"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-3" /> Editorial queue
+          <ArrowLeft className="size-3.5" />
+          <span>Back to Editorial Queue</span>
         </Link>
       </div>
 
-      <header className="rounded-md border border-border bg-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Proposal package review
-            </p>
-            <h1 className="mt-1 font-serif text-3xl">{proposal.title}</h1>
-            <p className="mt-1 text-xs text-muted-foreground">
-              One editorial decision for proposal information, manuscript, sample pages, creative
-              materials, checklist, and notes.
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {proposal.authorName} · {AUDIENCE_LABEL[proposal.targetAudience]} ·{" "}
-              {proposal.genres.join(", ")} · v{latestMs?.version ?? "—"}
-            </p>
+      {/* Executive Pitch Header Banner */}
+      <header className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-6 shadow-xs backdrop-blur-md">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1">
+            {/* Proposal Cover Image */}
+            <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted shadow-xs ring-1 ring-border/40 sm:h-32 sm:w-22">
+              <ResolvedImage
+                fileKey={proposal.coverFileKey}
+                fallbackUrl={proposal.coverUrl}
+                alt={proposal.title}
+                className="size-full object-cover transition-transform duration-300 hover:scale-105"
+                fallback={
+                  <div className="grid size-full place-items-center bg-primary/10 font-serif text-2xl font-bold text-primary">
+                    {(proposal.title || "?").slice(0, 1).toUpperCase()}
+                  </div>
+                }
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Proposal Package Review
+                </span>
+                <span className="rounded-md border border-border/80 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  v{latestMs?.version ?? "1.0"}
+                </span>
+                {proposal.chaptersPlanned ? (
+                  <span className="rounded-md border border-border/80 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {proposal.chaptersPlanned} chapters planned
+                  </span>
+                ) : null}
+              </div>
+
+              <h1 className="mt-2 font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {proposal.title}
+              </h1>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{proposal.authorName}</span>
+                <span>•</span>
+                <span className="rounded-lg border border-border/60 bg-background/50 px-2 py-0.5 font-medium text-foreground">
+                  {AUDIENCE_LABEL[proposal.targetAudience]}
+                </span>
+                <span>•</span>
+                <div className="flex flex-wrap gap-1">
+                  {proposal.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="rounded-md bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          <ReviewStatusPill status={proposal.status} />
+
+          <div className="shrink-0">
+            <ReviewStatusPill status={proposal.status} />
+          </div>
         </div>
+
+        {/* Claim Status Banner integrated into Header */}
+        <ClaimStatusHeader
+          proposal={proposal}
+          isUnclaimed={isUnclaimed}
+          isClaimedByMe={isClaimedByMe}
+          isClaimedByOther={isClaimedByOther}
+          actionMutation={actionMutation}
+        />
       </header>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
-        <section className="min-w-0 space-y-4">
-          <Block title="Proposal Summary">
-            <Field label="Logline" value={proposal.logline ?? "—"} />
-            <Field label="Hook" value={proposal.hook ?? "—"} />
-            <Field label="Synopsis" value={proposal.synopsis} />
-            <Field label="Main characters" value={proposal.mainCharacters ?? "—"} />
-            {proposal.advanced ? (
-              <>
-                <Field label="World" value={proposal.advanced.worldSetting ?? "—"} />
-                <Field label="Direction" value={proposal.advanced.seriesDirection ?? "—"} />
-                <Field label="Comparable" value={proposal.advanced.comparableTitles ?? "—"} />
-              </>
-            ) : null}
-          </Block>
+      {/* Main Workbench Grid (7:5 Split) */}
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
+        {/* Left Column: Consolidated Space-Optimized Tabbed Workspace */}
+        <section className="min-w-0">
+          <Tabs defaultValue="dossier" className="w-full">
+            <div className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md space-y-5">
+              <TabsList className="grid w-full grid-cols-3 h-10 rounded-xl bg-muted/60 p-1">
+                <TabsTrigger value="dossier" className="flex items-center gap-2 text-xs font-semibold rounded-lg">
+                  <BookOpen className="size-3.5 shrink-0" />
+                  <span>Story Dossier</span>
+                </TabsTrigger>
+                <TabsTrigger value="materials" className="flex items-center gap-2 text-xs font-semibold rounded-lg">
+                  <FileText className="size-3.5 shrink-0" />
+                  <span>Materials ({materialsCount})</span>
+                </TabsTrigger>
+                <TabsTrigger value="audit" className="flex items-center gap-2 text-xs font-semibold rounded-lg">
+                  <History className="size-3.5 shrink-0" />
+                  <span>Audit History</span>
+                </TabsTrigger>
+              </TabsList>
 
-          <Block title="Manuscript, sample pages, and creative materials">
-            {proposal.materials.length === 0 &&
-            proposal.manuscripts.length === 0 &&
-            !proposal.sampleChapterUrl ? (
-              <p className="text-xs text-muted-foreground">No materials yet</p>
-            ) : (
-              <MaterialsViewer proposal={proposal} />
-            )}
-          </Block>
+              <TabsContent value="dossier" className="mt-0 space-y-3.5 focus-visible:outline-none">
+                <Field label="Logline" value={proposal.logline ?? "—"} />
+                <Field label="Core Hook" value={proposal.hook ?? "—"} />
+                <Field label="Full Synopsis" value={proposal.synopsis} />
+                <Field label="Main Characters" value={proposal.mainCharacters ?? "—"} />
+                {proposal.advanced ? (
+                  <div className="mt-3 space-y-3 pt-3 border-t border-border/50">
+                    <Field label="World Setting" value={proposal.advanced.worldSetting ?? "—"} />
+                    <Field label="Series Direction" value={proposal.advanced.seriesDirection ?? "—"} />
+                    <Field label="Comparable Titles" value={proposal.advanced.comparableTitles ?? "—"} />
+                  </div>
+                ) : null}
+              </TabsContent>
 
-          <Block title="Version history">
-            <ul className="space-y-1.5">
-              {history.map((h) => (
-                <li key={h.id} className="text-xs">
-                  <span className="font-semibold">{h.type}</span>
-                  {h.fromStatus ? (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · {STATUS_LABEL[h.fromStatus]} → {h.toStatus ? STATUS_LABEL[h.toStatus] : ""}
-                    </span>
-                  ) : null}
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · {h.actorName} · {formatDateTime(h.createdAt)}
-                  </span>
-                  {h.comment ? <p className="text-muted-foreground">"{h.comment}"</p> : null}
-                </li>
-              ))}
-            </ul>
-          </Block>
+              <TabsContent value="materials" className="mt-0 focus-visible:outline-none">
+                {proposal.materials.length === 0 &&
+                proposal.manuscripts.length === 0 &&
+                !proposal.sampleChapterUrl ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">No materials uploaded yet.</p>
+                ) : (
+                  <MaterialsViewer proposal={proposal} />
+                )}
+              </TabsContent>
 
-          <Block title="Frozen review versions">
-            {proposalVersions.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                No frozen proposal versions yet. A version will be created when a Board voting
-                session is opened.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {proposalVersions.map((version) => (
-                  <li
-                    key={version.id}
-                    className="rounded-md border border-border bg-background/60 px-3 py-2 text-xs"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-semibold">
-                        Version {version.proposalVersionId}
-                        {version.versionNumber ? ` · #${version.versionNumber}` : ""}
-                      </span>
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {version.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-muted-foreground">
-                      Source {version.source} · frozen{" "}
-                      {version.frozenAt ? formatDateTime(version.frozenAt) : "—"}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Block>
+              <TabsContent value="audit" className="mt-0 focus-visible:outline-none">
+                {history.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">No activity recorded yet.</p>
+                ) : (
+                  <ol className="relative ml-2 space-y-4 border-l border-border/60 pl-4 text-xs">
+                    {history.map((h) => (
+                      <li key={h.id} className="relative">
+                        <span className="absolute -left-[21px] top-1 size-2 rounded-full bg-primary/80 ring-4 ring-background" />
+                        <div className="flex flex-wrap items-center justify-between gap-1">
+                          <span className="font-semibold text-foreground">{h.type}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {formatDateTime(h.createdAt)}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 text-muted-foreground">
+                          <span>by <strong className="text-foreground">{h.actorName}</strong></span>
+                          {h.fromStatus ? (
+                            <span>
+                              {" "}• Status changed: <span className="font-medium text-foreground">{STATUS_LABEL[h.fromStatus]}</span> → <span className="font-medium text-foreground">{h.toStatus ? STATUS_LABEL[h.toStatus] : ""}</span>
+                            </span>
+                          ) : null}
+                        </div>
+                        {h.comment ? (
+                          <div className="mt-2 rounded-xl border border-border/50 bg-background/60 p-3 text-xs italic text-foreground">
+                            "{h.comment}"
+                          </div>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </TabsContent>
+            </div>
+          </Tabs>
         </section>
 
-        <aside className="min-w-0 space-y-4">
-          {/* Claim status banner */}
-          <ClaimStatusCard
-            proposal={proposal}
-            user={user}
-            isUnclaimed={isUnclaimed}
-            isClaimedByMe={isClaimedByMe}
-            isClaimedByOther={isClaimedByOther}
-            actionMutation={actionMutation}
-          />
-
+        {/* Right Column: Sticky Decision Workbench Sidebar */}
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
+          {/* Board Readiness Checklist */}
           <EditorialChecklist
             value={proposal.editorialChecklist}
             editable={isEditorReview && isClaimedByMe && !isSelf}
@@ -207,27 +256,32 @@ export function ProposalReviewPage() {
             }
           />
 
-          <div className="rounded-md border border-border bg-card p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Decision
-            </p>
+          {/* Editorial Decision Panel */}
+          <div className="space-y-2.5 rounded-2xl border border-border/80 bg-card/80 p-4 shadow-xs backdrop-blur-md">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Editorial Decision</h3>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Take formal editorial action on this proposal package.
+              </p>
+            </div>
+
             {isSelf && (
               <div className="mt-2">
                 <SeparationOfDutiesWarning reason="SELF_APPROVAL_BLOCKED" />
               </div>
             )}
             {isUnclaimed && !isSelf && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                You need to claim the review (Start Review) before making a decision.
+              <p className="mt-1 text-xs text-muted-foreground">
+                You must claim this review before submitting an editorial decision.
               </p>
             )}
             {isClaimedByOther && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                <Lock className="mr-1 inline size-3" />
-                This proposal is being reviewed by {proposal.claimedByEditorName}. You can only
-                view.
-              </p>
+              <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                <Lock className="size-4 shrink-0" />
+                <span>Currently being reviewed by {proposal.claimedByEditorName}.</span>
+              </div>
             )}
+
             <div className="mt-3">
               <DecisionActions
                 actions={[
@@ -299,16 +353,14 @@ export function ProposalReviewPage() {
   );
 }
 
-function ClaimStatusCard({
+function ClaimStatusHeader({
   proposal,
-  user,
   isUnclaimed,
   isClaimedByMe,
   isClaimedByOther,
   actionMutation,
 }: {
   proposal: SeriesProposal;
-  user: User;
   isUnclaimed: boolean;
   isClaimedByMe: boolean;
   isClaimedByOther: boolean;
@@ -318,17 +370,18 @@ function ClaimStatusCard({
 
   if (isUnclaimed) {
     return (
-      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
-        <div className="flex items-center gap-2">
-          <Unlock className="size-4 text-emerald-600" />
-          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-            This proposal is awaiting review
-          </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 shadow-2xs dark:border-emerald-500/20 dark:bg-emerald-950/30">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Unlock className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-emerald-950 dark:text-emerald-200">
+              Awaiting Editor Claim
+            </p>
+            <p className="truncate text-[11px] text-emerald-700 dark:text-emerald-300">
+              Claim this proposal to become the active reviewer and submit editorial decisions.
+            </p>
+          </div>
         </div>
-        <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-400">
-          Click "Claim Review" to start editing. Only you will be able to make decisions after
-          claiming.
-        </p>
         <button
           type="button"
           disabled={actionMutation.isPending}
@@ -346,12 +399,12 @@ function ClaimStatusCard({
               },
             )
           }
-          className="mt-3 inline-flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-emerald-700 disabled:opacity-50"
         >
           {actionMutation.isPending ? (
-            <Loader2 className="size-3 animate-spin" />
+            <Loader2 className="size-3.5 animate-spin" />
           ) : (
-            <ShieldCheck className="size-3" />
+            <ShieldCheck className="size-3.5" />
           )}
           Claim Review
         </button>
@@ -361,21 +414,16 @@ function ClaimStatusCard({
 
   if (isClaimedByMe) {
     return (
-      <div className="rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-blue-600" />
-          <p className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-            You are reviewing this proposal
-          </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 p-3.5 shadow-2xs dark:border-primary/20 dark:bg-primary/15">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <ShieldCheck className="size-4 shrink-0 text-primary" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground">You are Reviewing this Proposal</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              Active review control enabled. {proposal.claimedAt ? `Claimed ${formatDateTime(proposal.claimedAt)}` : ""}
+            </p>
+          </div>
         </div>
-        <p className="mt-1 text-[11px] text-blue-700 dark:text-blue-400">
-          You can make a decision: Request Revision, Reject, or Forward to Board.
-        </p>
-        {proposal.claimedAt && (
-          <p className="mt-1 text-[10px] text-blue-600 dark:text-blue-400">
-            Claimed at: {formatDateTime(proposal.claimedAt)}
-          </p>
-        )}
         <button
           type="button"
           disabled={actionMutation.isPending}
@@ -391,14 +439,14 @@ function ClaimStatusCard({
               },
             )
           }
-          className="mt-3 inline-flex items-center gap-1.5 rounded border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/50"
+          className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border/80 bg-background/60 px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-background disabled:opacity-50"
         >
           {actionMutation.isPending ? (
-            <Loader2 className="size-3 animate-spin" />
+            <Loader2 className="size-3.5 animate-spin" />
           ) : (
-            <Unlock className="size-3" />
+            <Unlock className="size-3.5" />
           )}
-          Release claim
+          Release Claim
         </button>
       </div>
     );
@@ -406,22 +454,14 @@ function ClaimStatusCard({
 
   if (isClaimedByOther) {
     return (
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
-        <div className="flex items-center gap-2">
-          <Lock className="size-4 text-amber-600" />
-          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-            Being reviewed by {proposal.claimedByEditorName}
-          </p>
+      <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-900 shadow-2xs dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-200">
+        <Lock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div>
+          <span className="font-semibold">Claimed by {proposal.claimedByEditorName}</span>
+          <span className="ml-1 text-[11px] text-amber-700 dark:text-amber-300">
+            — This proposal is locked by another editor. You can view materials but cannot make decisions.
+          </span>
         </div>
-        <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
-          You can only view the content. Decisions can only be made by the editor who claimed the
-          review.
-        </p>
-        {proposal.claimedAt && (
-          <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
-            Claimed at: {formatDateTime(proposal.claimedAt)}
-          </p>
-        )}
       </div>
     );
   }
@@ -429,24 +469,26 @@ function ClaimStatusCard({
   return null;
 }
 
+
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-md border border-border bg-card p-4">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md space-y-4">
+      <h3 className="text-sm font-semibold tracking-tight text-foreground">
         {title}
-      </p>
-      <div className="mt-3 min-w-0 space-y-2 overflow-hidden">{children}</div>
+      </h3>
+      <div className="min-w-0 space-y-3">{children}</div>
     </div>
   );
 }
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border/50 bg-background/50 p-3.5 space-y-1">
+      <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
-      </p>
-      <p className="text-sm">{value}</p>
+      </span>
+      <p className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">{value}</p>
     </div>
   );
 }
+

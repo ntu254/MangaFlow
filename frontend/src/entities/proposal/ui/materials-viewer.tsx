@@ -1,5 +1,15 @@
 import { useMemo, useState } from "react";
-import { FileText, ExternalLink } from "lucide-react";
+import {
+  FileText,
+  ExternalLink,
+  ImageIcon,
+  Compass,
+  Layers,
+  FileCheck,
+  Loader2,
+  Eye,
+  FileBox,
+} from "lucide-react";
 import type {
   SeriesProposal,
   SupportingMaterialKind,
@@ -12,6 +22,12 @@ import {
 } from "@/entities/proposal/model/proposal-attachments";
 import { ResolvedFileLink } from "@/shared/ui/resolved-file-link";
 import { useResolvedFileUrl } from "@/shared/lib/use-resolved-file-url";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function MaterialsViewer({
   proposal,
@@ -27,113 +43,228 @@ export function MaterialsViewer({
         : proposalSubmissionPackageItems(proposal),
     [proposal, scope],
   );
-  const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
   const [filter, setFilter] = useState<"all" | "manuscript" | SupportingMaterialKind>("all");
+  const [previewItem, setPreviewItem] = useState<ProposalAttachmentItem | null>(null);
+
+  const availableCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    counts.set("all", items.length);
+
+    for (const item of items) {
+      if (item.kind === "manuscript") {
+        counts.set("manuscript", (counts.get("manuscript") ?? 0) + 1);
+      } else if (item.kind === "material" && item.materialKind) {
+        counts.set(item.materialKind, (counts.get(item.materialKind) ?? 0) + 1);
+      }
+    }
+
+    const possible = [
+      "all",
+      ...(scope === "package" ? ["manuscript" as const] : []),
+      "storyboard",
+      "character",
+      "world",
+      "reference",
+      "other",
+    ] as const;
+
+    return possible
+      .filter((cat) => (counts.get(cat) ?? 0) > 0)
+      .map((cat) => ({
+        key: cat,
+        label: filterLabel(cat),
+        count: counts.get(cat) ?? 0,
+      }));
+  }, [items, scope]);
+
   const filtered = useMemo(() => {
     if (filter === "all") return items;
     if (filter === "manuscript") return items.filter((i) => i.kind === "manuscript");
     return items.filter((i) => i.kind === "material" && i.materialKind === filter);
   }, [items, filter]);
 
-  const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
-
   if (items.length === 0) {
     return (
-      <div className="rounded border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground">
-        No materials attached to this proposal.
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-muted/20 py-12 text-center">
+        <FileBox className="size-8 text-muted-foreground/60" />
+        <p className="mt-2 text-xs font-semibold text-foreground">No materials attached</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">This proposal does not contain any manuscripts or creative assets.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-      <aside className="space-y-3">
-        <div className="flex flex-wrap gap-1">
-          {(
-            [
-              "all",
-              ...(scope === "package" ? ["manuscript" as const] : []),
-              "storyboard",
-              "character",
-              "world",
-              "reference",
-              "other",
-            ] as const
-          ).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${filter === f ? "border-foreground bg-foreground text-background" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}
-            >
-              {filterLabel(f)}
-            </button>
-          ))}
-        </div>
-        <ul className="space-y-1">
-          {filtered.map((it) => {
-            const active = selected?.id === it.id;
+    <div className="space-y-3.5">
+      {/* Dynamic Ultra-Compact Category Filter Bar */}
+      {availableCategories.length > 2 ? (
+        <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-border/60 bg-muted/30 p-1">
+          {availableCategories.map((cat) => {
+            const isActive = filter === cat.key;
             return (
-              <li key={it.id}>
-                <button
-                  onClick={() => setSelectedId(it.id)}
-                  className={`flex w-full items-start gap-2 rounded border p-2 text-left text-xs ${active ? "border-foreground bg-foreground/5" : "border-border bg-card/40 hover:bg-muted"}`}
-                >
-                  <FileText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{it.title}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{it.subtitle}</p>
-                  </div>
-                </button>
-              </li>
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setFilter(cat.key as typeof filter)}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium transition-all ${
+                  isActive
+                    ? "bg-background text-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className="text-[10px] opacity-70">({cat.count})</span>
+              </button>
             );
           })}
-        </ul>
-      </aside>
+        </div>
+      ) : null}
 
-      <section className="space-y-3">
-        {selected ? (
-          <div className="overflow-hidden rounded border border-border bg-background">
-            <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs">
-              <span className="font-semibold">{selected.title}</span>
-              <ResolvedFileLink
-                fileKey={selected.fileKey}
-                fallbackUrl={selected.url}
-                className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted"
-              >
-                <ExternalLink className="size-3" /> Open file
-              </ResolvedFileLink>
+      {/* Attachment Cards Grid */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {filtered.map((it) => {
+          const IconComponent = getAttachmentIcon(it);
+
+          return (
+            <div
+              key={it.id}
+              className="group flex flex-col justify-between rounded-xl border border-border/60 bg-background/50 p-3.5 transition-all duration-200 hover:border-border hover:bg-background/80 hover:shadow-2xs"
+            >
+              <div className="flex items-start gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-border/60 bg-muted/50 text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:bg-primary/10 group-hover:text-primary">
+                  <IconComponent className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {it.title}
+                  </h4>
+                  <p className="truncate text-[11px] text-muted-foreground mt-0.5">
+                    {it.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              {/* Card Action Buttons */}
+              <div className="mt-3.5 flex items-center gap-2 pt-2.5 border-t border-border/40">
+                <button
+                  type="button"
+                  onClick={() => setPreviewItem(it)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+                >
+                  <Eye className="size-3.5" />
+                  <span>View Preview</span>
+                </button>
+
+                <ResolvedFileLink
+                  fileKey={it.fileKey}
+                  fallbackUrl={it.url}
+                  className="inline-flex items-center justify-center gap-1 rounded-lg border border-border/80 bg-background/60 p-1.5 text-xs text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                  ariaLabel="Open file in new tab"
+                >
+                  <ExternalLink className="size-3.5" />
+                </ResolvedFileLink>
+              </div>
             </div>
-            <AssetPreview item={selected} />
-          </div>
-        ) : null}
-      </section>
+          );
+        })}
+      </div>
+
+      {/* Instant File Preview Modal */}
+      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <DialogContent className="max-w-4xl lg:max-w-5xl w-[92vw] p-0 overflow-hidden border-border/80 bg-background shadow-2xl rounded-2xl">
+          {previewItem ? (
+            <div>
+              {/* Modal Header */}
+              <DialogHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/80 bg-muted/40 px-6 py-4 space-y-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <DialogTitle className="text-sm font-bold text-foreground truncate">
+                    {previewItem.title}
+                  </DialogTitle>
+                  <span className="rounded-md border border-border/60 bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground shrink-0">
+                    {previewItem.subtitle}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 pr-6">
+                  <ResolvedFileLink
+                    fileKey={previewItem.fileKey}
+                    fallbackUrl={previewItem.url}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  >
+                    <ExternalLink className="size-3.5 text-muted-foreground" />
+                    <span>Open in New Tab</span>
+                  </ResolvedFileLink>
+                </div>
+              </DialogHeader>
+
+              {/* Modal Document Viewer */}
+              <div className="p-2 bg-muted/20">
+                <AssetPreview item={previewItem} />
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function AssetPreview({ item }: { item: ProposalAttachmentItem }) {
-  const { url, loading } = useResolvedFileUrl(item.fileKey, item.url);
+  const { url, loading, error } = useResolvedFileUrl(item.fileKey, item.url);
+
   return (
-    <div className="aspect-[4/3] w-full bg-muted/30">
+    <div className="relative min-h-[520px] h-[68vh] max-h-[720px] w-full bg-muted/20 rounded-xl overflow-hidden">
       {loading ? (
         <div className="grid h-full place-items-center text-xs text-muted-foreground">
-          Refreshing secure file link...
+          <div className="flex items-center gap-2">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            <span>Resolving secure file stream...</span>
+          </div>
         </div>
-      ) : !url ? (
+      ) : error || !url ? (
         <div className="grid h-full place-items-center px-6 text-center text-xs text-muted-foreground">
-          This file is unavailable. Ask the author to upload it again.
+          <div>
+            <FileBox className="mx-auto size-8 text-muted-foreground/60" />
+            <p className="mt-2 font-medium text-foreground">File Preview Unavailable</p>
+            <p className="mt-1 text-[11px] text-muted-foreground max-w-sm">
+              This asset cannot be previewed inline. Click "Open in New Tab" above to view.
+            </p>
+          </div>
         </div>
       ) : item.fileType.startsWith("image/") ? (
-        <img src={url} alt={item.title} className="h-full w-full object-contain" />
+        <div className="flex h-full items-center justify-center p-4 overflow-auto">
+          <img
+            src={url}
+            alt={item.title}
+            className="max-h-full max-w-full rounded-lg object-contain shadow-xs border border-border/40"
+          />
+        </div>
       ) : item.fileType === "application/pdf" ? (
-        <iframe src={url} title={item.title} className="h-full w-full" />
+        <iframe
+          src={url}
+          title={item.title}
+          className="h-full w-full border-none rounded-lg"
+        />
       ) : (
-        <div className="grid h-full place-items-center text-xs text-muted-foreground">
-          Preview not available — use the "Open file" button to view in a new tab.
+        <div className="grid h-full place-items-center p-6 text-center text-xs text-muted-foreground">
+          <div>
+            <FileCheck className="mx-auto size-8 text-primary/60" />
+            <p className="mt-2 font-medium text-foreground">{item.title}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Document package ready. Click "Open in New Tab" to open the file.
+            </p>
+          </div>
         </div>
       )}
     </div>
   );
+}
+
+function getAttachmentIcon(item: ProposalAttachmentItem) {
+  if (item.kind === "manuscript") return FileText;
+  if (item.materialKind === "character") return ImageIcon;
+  if (item.materialKind === "world") return Compass;
+  if (item.materialKind === "storyboard") return Layers;
+  return FileText;
 }
 
 function filterLabel(filter: "all" | "manuscript" | SupportingMaterialKind) {
@@ -141,3 +272,5 @@ function filterLabel(filter: "all" | "manuscript" | SupportingMaterialKind) {
   if (filter === "manuscript") return "Manuscript";
   return MATERIAL_KIND_LABEL[filter];
 }
+
+

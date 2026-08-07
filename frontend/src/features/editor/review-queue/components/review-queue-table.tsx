@@ -116,21 +116,21 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
       header: "Review item",
       sortable: true,
       render: (item) => (
-        <div className="flex items-center gap-2.5">
-          <div className="grid size-9 shrink-0 place-items-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-page)] font-serif text-[13px] text-[var(--admin-muted)]">
+        <div className="flex items-center gap-3">
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-serif text-sm font-bold text-primary shadow-2xs">
             {(item.seriesTitle ?? item.title ?? "?").slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
-              <p className="truncate font-semibold text-[var(--admin-ink)]">{item.title}</p>
+              <p className="truncate font-semibold text-foreground text-xs sm:text-sm">{item.title}</p>
               {isNewReviewItem(item) ? (
-                <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-800">
+                <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
                   New
                 </span>
               ) : null}
             </div>
-            <p className="truncate text-[11px] text-[var(--admin-faint)]">
-              {item.seriesTitle ?? "—"} · {includesFor(item)}
+            <p className="truncate text-[11px] text-muted-foreground">
+              {item.seriesTitle ?? "—"} • {includesFor(item)}
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
       className: "w-[110px]",
       render: (item) => (
         <span
-          className="text-[12px] text-[var(--admin-muted)]"
+          className="text-xs text-muted-foreground"
           title={formatDateTime(item.submittedAt)}
         >
           {timeAgo(item.submittedAt)}
@@ -166,8 +166,8 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
         <span
           className={
             isItemOverdue(item)
-              ? "text-[12px] font-semibold text-rose-600"
-              : "text-[12px] text-[var(--admin-muted)]"
+              ? "text-xs font-semibold text-rose-600 dark:text-rose-400"
+              : "text-xs text-muted-foreground"
           }
         >
           {dueLabel(item)}
@@ -181,11 +181,11 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
       className: "w-[108px]",
       render: (item) =>
         item.revisionReturned ? (
-          <span className="inline-flex rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-900">
+          <span className="inline-flex rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
             Resubmitted
           </span>
         ) : (
-          <span className="text-[12px] text-[var(--admin-faint)]">—</span>
+          <span className="text-xs text-muted-foreground/60">—</span>
         ),
     },
     {
@@ -201,8 +201,8 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
             {...linkFor(item)}
             className={
               isView
-                ? "inline-flex justify-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)]"
-                : "inline-flex justify-center rounded-[6px] bg-[var(--admin-navy)] px-3 py-1.5 text-[11px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
+                ? "inline-flex justify-center rounded-xl border border-border/80 bg-background/60 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-muted shadow-2xs"
+                : "inline-flex justify-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:bg-primary/90 shadow-xs"
             }
           >
             {action}
@@ -212,3 +212,4 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
     },
   ];
 }
+

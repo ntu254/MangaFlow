@@ -94,6 +94,9 @@ test("editor approves and completes a MANGAKA_APPROVED task from the chapter rev
   await page.route("**/api/comments?*", (route) =>
     route.fulfill({ json: { success: true, data: [] } }),
   );
+  await page.route("**/api/notifications?*", (route) =>
+    route.fulfill({ json: { success: true, data: [] } }),
+  );
   await page.route("**/api/studio/regions?*", (route) =>
     route.fulfill({ json: { success: true, data: [] } }),
   );
