@@ -155,9 +155,9 @@ export function ProposalDetailPage({
         </div>
       ) : null}
 
-      {/* Single Vertical Column Flow (Thành dọc) */}
+      {/* Single Vertical Column Flow */}
       <div className="space-y-6">
-        {/* Unified Top Hero Card — Gộp Cover + Header + Metadata */}
+        {/* Unified Top Hero Card — Cover + Header + Metadata */}
         <div className="rounded-xl border border-border/80 bg-card p-5 shadow-xs">
           <div className="flex flex-col gap-6 md:flex-row md:items-start">
             {/* Left Cover Image */}

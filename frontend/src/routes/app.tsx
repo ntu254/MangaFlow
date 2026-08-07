@@ -20,14 +20,20 @@ import {
 } from "@tanstack/react-router";
 import {
   Bell,
+  BookOpen,
   ChartNoAxesCombined,
+  CheckSquare,
+  ClipboardCheck,
   ClipboardList,
   Database,
   FileText,
   Gauge,
+  Layers,
   ListChecks,
   LogOut,
   Menu,
+  Monitor,
+  Newspaper,
   ReceiptText,
   TriangleAlert,
   Upload,
@@ -316,18 +322,41 @@ function AppLayout() {
 }
 
 function getNavIcon(label: string) {
+  // Shared / common
   if (label === "Dashboard") return Gauge;
-  if (label === "Users") return UserRound;
-  if (label === "Material Library") return Database;
-  if (label === "Payroll" || label === "Earnings") return ReceiptText;
-  if (label === "Proposals") return FileText;
-  if (label === "Task Board" || label === "My Tasks") return ClipboardList;
-  if (label === "Review Queue" || label === "Board Queue") return ListChecks;
+  if (label === "Notifications") return Bell;
   if (label === "Rankings") return ChartNoAxesCombined;
+
+  // Admin
+  if (label === "Users") return UserRound;
+  if (label === "Rate Table") return ReceiptText;
+  if (label === "Material Library") return Database;
+
+  // Mangaka
+  if (label === "Proposals") return FileText;
+  if (label === "My Series") return BookOpen;
+  if (label === "Review Queue") return ClipboardCheck;
+
+  // Assistant
+  if (label === "My Tasks") return ClipboardList;
+  if (label === "Earnings") return ReceiptText;
+
+  // Editor
+  if (label === "Proposal Reviews") return ClipboardCheck;
+  if (label === "Series Monitor") return Monitor;
+  if (label === "Publications") return Newspaper;
+
+  // Board
+  if (label === "Board Queue") return ListChecks;
   if (label === "Voting Sessions") return Vote;
+  if (label === "Decisions") return CheckSquare;
+
+  // Misc legacy
+  if (label === "Task Board") return Layers;
   if (label === "Ranking Import") return Upload;
   if (label === "At-risk Reviews") return TriangleAlert;
-  if (label === "Notifications") return Bell;
+  if (label === "Payroll") return ReceiptText;
+
   return Bell;
 }
 

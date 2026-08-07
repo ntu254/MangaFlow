@@ -37,7 +37,6 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: "/app/editor/dashboard", label: "Dashboard", group: "Editorial" },
     { to: "/app/editor/review", label: "Proposal Reviews", group: "Editorial" },
     { to: "/app/editor/series", label: "Series Monitor", group: "Editorial" },
-    { to: "/app/rankings", label: "Rankings", group: "Insights" },
     { to: "/app/editor/publications", label: "Publications", group: "Editorial" },
     { to: "/app/editor/notifications", label: "Notifications", group: "Account" },
   ],

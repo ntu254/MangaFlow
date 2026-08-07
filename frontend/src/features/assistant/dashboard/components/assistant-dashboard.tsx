@@ -294,7 +294,7 @@ export function AssistantDashboard() {
           <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
             {formatYen(earningSummary.confirmed || earningSummary.totalEarned)}
           </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Confirmed page work thù lao</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Confirmed page compensation</p>
         </div>
       </div>
 
@@ -461,7 +461,7 @@ export function AssistantDashboard() {
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <Coins className="size-4 text-emerald-600 dark:text-emerald-400" />
-                <h3 className="text-sm font-bold text-foreground">Thù Lao Studio</h3>
+                <h3 className="text-sm font-bold text-foreground">Studio Compensation</h3>
               </div>
               <Link
                 to="/app/assistant/earnings"
@@ -480,7 +480,7 @@ export function AssistantDashboard() {
               </div>
 
               <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2.5 border border-border/40">
-                <span className="text-muted-foreground">Confirmed Thù Lao</span>
+                <span className="text-muted-foreground">Confirmed Compensation</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
                   {formatYen(earningSummary.confirmed)}
                 </span>

@@ -187,7 +187,7 @@ export function getDeadlineRisk(chapter: Chapter): DeadlineRisk {
   const due = chapter.reviewDueAt ?? chapter.draftDueAt;
   if (!due) return { tone: "neutral", label: "-", days: null };
   const d = Math.round((new Date(due).getTime() - Date.now()) / 86_400_000);
-  if (d < 0) return { tone: "rose", label: `Tre ${-d}d`, days: d };
+  if (d < 0) return { tone: "rose", label: `Overdue ${-d} days`, days: d };
   if (d <= 2) return { tone: "rose", label: `${d}d`, days: d };
   if (d <= 5) return { tone: "amber", label: `${d}d`, days: d };
   return { tone: "emerald", label: `${d}d`, days: d };
@@ -240,10 +240,6 @@ export function seriesForEditor(series: ProductionSeries[], editorId: string): P
 }
 
 export function buildSubmissionReviewItems(submissions: AssistantSubmission[]): ReviewItem[] {
-  // Sprint 1.3 — submissions remain eligible for editor review after
-  // the Mangaka signs off. The task itself is the entity that walks
-  // MANGAKA_APPROVED → EDITOR_APPROVED → COMPLETED; the submission row
-  // stays at `MANGAKA_APPROVED` until the editor decides it.
   return submissions
     .filter((s) => s.status === "MANGAKA_APPROVED")
     .map((s) => {
