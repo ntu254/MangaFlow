@@ -54,6 +54,17 @@ function action(input: ActionInput): MobileWorkflowActionDescriptor {
   };
 }
 
+// A stored coverUrl is usually a presigned R2 link captured at upload time,
+// and those carry X-Amz-Expires=900 — they return 403 ExpiredRequest fifteen
+// minutes later and never recover. So prefer minting a fresh proxied URL from
+// the file key on every read, which is what the web client does (see
+// useResolvedFileUrl: it resolves from fileKey and re-resolves every 13
+// minutes). The stored URL stays a fallback for records that carry no key.
+function coverUrlFor(fileKey?: string | null, storedUrl?: string | null): string | null {
+  if (fileKey) return createDisplayUrl(fileKey).url;
+  return storedUrl || null;
+}
+
 function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
   const claimedByOther =
     proposal.claimedByEditorId != null && proposal.claimedByEditorId !== actor.id;
@@ -127,12 +138,10 @@ function proposalWorkItem(actor: RequestActor, proposal: any): MobileWorkItem {
     summary: {
       claimStatus: proposal.claimStatus,
       requestedPublicationType: proposal.series?.requestedPublicationType ?? null,
-      coverUrl:
-        proposal.coverUrl ||
-        proposal.series?.coverUrl ||
-        (proposal.coverFileKey || proposal.series?.coverFileKey
-          ? createDisplayUrl(proposal.coverFileKey ?? proposal.series?.coverFileKey).url
-          : null),
+      coverUrl: coverUrlFor(
+        proposal.coverFileKey ?? proposal.series?.coverFileKey,
+        proposal.coverUrl || proposal.series?.coverUrl,
+      ),
       coverFileKey: proposal.coverFileKey ?? proposal.series?.coverFileKey ?? null,
     },
   };
@@ -254,9 +263,7 @@ async function chapterReviewWorkItem(actor: RequestActor, chapter: any): Promise
     summary: {
       seriesId: chapter.seriesId,
       ready: context.readiness.ready,
-      coverUrl:
-        context.series?.coverUrl ||
-        (context.series?.coverFileKey ? createDisplayUrl(context.series.coverFileKey).url : null),
+      coverUrl: coverUrlFor(context.series?.coverFileKey, context.series?.coverUrl),
       coverFileKey: context.series?.coverFileKey ?? null,
     },
   };
