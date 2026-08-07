@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EditorSubmissionReview } from "@/features/editor/submission-review";
 
-export const Route = createFileRoute("/app/editor/review/$submissionId")({
+export const Route = createFileRoute("/app/editor/series/submission/$submissionId")({
   head: () => ({
     meta: [{ title: "Review Submission — MangaFlow Studio" }],
   }),

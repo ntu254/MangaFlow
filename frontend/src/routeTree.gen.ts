@@ -65,7 +65,6 @@ import { Route as AppBoardSessionsIndexRouteImport } from './routes/app.board.se
 import { Route as AppBoardRankingsIndexRouteImport } from './routes/app.board.rankings.index'
 import { Route as AppSeriesSlugTabRouteImport } from './routes/app.series.$slug.$tab'
 import { Route as AppMangakaSubmissionsReviewRouteImport } from './routes/app.mangaka.submissions.review'
-import { Route as AppEditorReviewSubmissionIdRouteImport } from './routes/app.editor.review.$submissionId'
 import { Route as AppEditorProposalsProposalIdRouteImport } from './routes/app.editor.proposals.$proposalId'
 import { Route as AppBoardSessionsNewRouteImport } from './routes/app.board.sessions.new'
 import { Route as AppBoardSessionsSidRouteImport } from './routes/app.board.sessions.$sid'
@@ -73,6 +72,7 @@ import { Route as AppBoardRankingsImportRouteImport } from './routes/app.board.r
 import { Route as AppBoardProposalsProposalIdRouteImport } from './routes/app.board.proposals.$proposalId'
 import { Route as AppMangakaSubmissionsSubmissionIdReviewRouteImport } from './routes/app.mangaka.submissions.$submissionId.review'
 import { Route as AppEditorStoryboardsStoryboardIdReviewRouteImport } from './routes/app.editor.storyboards.$storyboardId.review'
+import { Route as AppEditorSeriesSubmissionSubmissionIdRouteImport } from './routes/app.editor.series.submission.$submissionId'
 import { Route as AppEditorSeriesSeriesIdStudioRouteImport } from './routes/app.editor.series.$seriesId.studio'
 import { Route as AppEditorChaptersChapterIdReviewRouteImport } from './routes/app.editor.chapters.$chapterId.review'
 import { Route as AppEditorChaptersChapterIdAnnotateRouteImport } from './routes/app.editor.chapters.$chapterId.annotate'
@@ -361,12 +361,6 @@ const AppMangakaSubmissionsReviewRoute =
     path: '/mangaka/submissions/review',
     getParentRoute: () => AppRoute,
   } as any)
-const AppEditorReviewSubmissionIdRoute =
-  AppEditorReviewSubmissionIdRouteImport.update({
-    id: '/$submissionId',
-    path: '/$submissionId',
-    getParentRoute: () => AppEditorReviewRoute,
-  } as any)
 const AppEditorProposalsProposalIdRoute =
   AppEditorProposalsProposalIdRouteImport.update({
     id: '/proposals/$proposalId',
@@ -405,6 +399,12 @@ const AppEditorStoryboardsStoryboardIdReviewRoute =
     id: '/storyboards/$storyboardId/review',
     path: '/storyboards/$storyboardId/review',
     getParentRoute: () => AppEditorRoute,
+  } as any)
+const AppEditorSeriesSubmissionSubmissionIdRoute =
+  AppEditorSeriesSubmissionSubmissionIdRouteImport.update({
+    id: '/submission/$submissionId',
+    path: '/submission/$submissionId',
+    getParentRoute: () => AppEditorSeriesRoute,
   } as any)
 const AppEditorSeriesSeriesIdStudioRoute =
   AppEditorSeriesSeriesIdStudioRouteImport.update({
@@ -493,7 +493,6 @@ export interface FileRoutesByFullPath {
   '/app/board/sessions/$sid': typeof AppBoardSessionsSidRoute
   '/app/board/sessions/new': typeof AppBoardSessionsNewRoute
   '/app/editor/proposals/$proposalId': typeof AppEditorProposalsProposalIdRoute
-  '/app/editor/review/$submissionId': typeof AppEditorReviewSubmissionIdRoute
   '/app/mangaka/submissions/review': typeof AppMangakaSubmissionsReviewRoute
   '/app/series/$slug/$tab': typeof AppSeriesSlugTabRoute
   '/app/board/rankings/': typeof AppBoardRankingsIndexRoute
@@ -505,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
+  '/app/editor/series/submission/$submissionId': typeof AppEditorSeriesSubmissionSubmissionIdRoute
   '/app/editor/storyboards/$storyboardId/review': typeof AppEditorStoryboardsStoryboardIdReviewRoute
   '/app/mangaka/submissions/$submissionId/review': typeof AppMangakaSubmissionsSubmissionIdReviewRoute
 }
@@ -552,7 +552,6 @@ export interface FileRoutesByTo {
   '/app/board/sessions/$sid': typeof AppBoardSessionsSidRoute
   '/app/board/sessions/new': typeof AppBoardSessionsNewRoute
   '/app/editor/proposals/$proposalId': typeof AppEditorProposalsProposalIdRoute
-  '/app/editor/review/$submissionId': typeof AppEditorReviewSubmissionIdRoute
   '/app/mangaka/submissions/review': typeof AppMangakaSubmissionsReviewRoute
   '/app/series/$slug/$tab': typeof AppSeriesSlugTabRoute
   '/app/board/rankings': typeof AppBoardRankingsIndexRoute
@@ -564,6 +563,7 @@ export interface FileRoutesByTo {
   '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
+  '/app/editor/series/submission/$submissionId': typeof AppEditorSeriesSubmissionSubmissionIdRoute
   '/app/editor/storyboards/$storyboardId/review': typeof AppEditorStoryboardsStoryboardIdReviewRoute
   '/app/mangaka/submissions/$submissionId/review': typeof AppMangakaSubmissionsSubmissionIdReviewRoute
 }
@@ -624,7 +624,6 @@ export interface FileRoutesById {
   '/app/board/sessions/$sid': typeof AppBoardSessionsSidRoute
   '/app/board/sessions/new': typeof AppBoardSessionsNewRoute
   '/app/editor/proposals/$proposalId': typeof AppEditorProposalsProposalIdRoute
-  '/app/editor/review/$submissionId': typeof AppEditorReviewSubmissionIdRoute
   '/app/mangaka/submissions/review': typeof AppMangakaSubmissionsReviewRoute
   '/app/series/$slug/$tab': typeof AppSeriesSlugTabRoute
   '/app/board/rankings/': typeof AppBoardRankingsIndexRoute
@@ -636,6 +635,7 @@ export interface FileRoutesById {
   '/app/editor/chapters/$chapterId/annotate': typeof AppEditorChaptersChapterIdAnnotateRoute
   '/app/editor/chapters/$chapterId/review': typeof AppEditorChaptersChapterIdReviewRoute
   '/app/editor/series/$seriesId/studio': typeof AppEditorSeriesSeriesIdStudioRoute
+  '/app/editor/series/submission/$submissionId': typeof AppEditorSeriesSubmissionSubmissionIdRoute
   '/app/editor/storyboards/$storyboardId/review': typeof AppEditorStoryboardsStoryboardIdReviewRoute
   '/app/mangaka/submissions/$submissionId/review': typeof AppMangakaSubmissionsSubmissionIdReviewRoute
 }
@@ -697,7 +697,6 @@ export interface FileRouteTypes {
     | '/app/board/sessions/$sid'
     | '/app/board/sessions/new'
     | '/app/editor/proposals/$proposalId'
-    | '/app/editor/review/$submissionId'
     | '/app/mangaka/submissions/review'
     | '/app/series/$slug/$tab'
     | '/app/board/rankings/'
@@ -709,6 +708,7 @@ export interface FileRouteTypes {
     | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
+    | '/app/editor/series/submission/$submissionId'
     | '/app/editor/storyboards/$storyboardId/review'
     | '/app/mangaka/submissions/$submissionId/review'
   fileRoutesByTo: FileRoutesByTo
@@ -756,7 +756,6 @@ export interface FileRouteTypes {
     | '/app/board/sessions/$sid'
     | '/app/board/sessions/new'
     | '/app/editor/proposals/$proposalId'
-    | '/app/editor/review/$submissionId'
     | '/app/mangaka/submissions/review'
     | '/app/series/$slug/$tab'
     | '/app/board/rankings'
@@ -768,6 +767,7 @@ export interface FileRouteTypes {
     | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
+    | '/app/editor/series/submission/$submissionId'
     | '/app/editor/storyboards/$storyboardId/review'
     | '/app/mangaka/submissions/$submissionId/review'
   id:
@@ -827,7 +827,6 @@ export interface FileRouteTypes {
     | '/app/board/sessions/$sid'
     | '/app/board/sessions/new'
     | '/app/editor/proposals/$proposalId'
-    | '/app/editor/review/$submissionId'
     | '/app/mangaka/submissions/review'
     | '/app/series/$slug/$tab'
     | '/app/board/rankings/'
@@ -839,6 +838,7 @@ export interface FileRouteTypes {
     | '/app/editor/chapters/$chapterId/annotate'
     | '/app/editor/chapters/$chapterId/review'
     | '/app/editor/series/$seriesId/studio'
+    | '/app/editor/series/submission/$submissionId'
     | '/app/editor/storyboards/$storyboardId/review'
     | '/app/mangaka/submissions/$submissionId/review'
   fileRoutesById: FileRoutesById
@@ -1244,13 +1244,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMangakaSubmissionsReviewRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/editor/review/$submissionId': {
-      id: '/app/editor/review/$submissionId'
-      path: '/$submissionId'
-      fullPath: '/app/editor/review/$submissionId'
-      preLoaderRoute: typeof AppEditorReviewSubmissionIdRouteImport
-      parentRoute: typeof AppEditorReviewRoute
-    }
     '/app/editor/proposals/$proposalId': {
       id: '/app/editor/proposals/$proposalId'
       path: '/proposals/$proposalId'
@@ -1299,6 +1292,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/editor/storyboards/$storyboardId/review'
       preLoaderRoute: typeof AppEditorStoryboardsStoryboardIdReviewRouteImport
       parentRoute: typeof AppEditorRoute
+    }
+    '/app/editor/series/submission/$submissionId': {
+      id: '/app/editor/series/submission/$submissionId'
+      path: '/submission/$submissionId'
+      fullPath: '/app/editor/series/submission/$submissionId'
+      preLoaderRoute: typeof AppEditorSeriesSubmissionSubmissionIdRouteImport
+      parentRoute: typeof AppEditorSeriesRoute
     }
     '/app/editor/series/$seriesId/studio': {
       id: '/app/editor/series/$seriesId/studio'
@@ -1450,12 +1450,10 @@ const AppBoardRouteWithChildren = AppBoardRoute._addFileChildren(
 )
 
 interface AppEditorReviewRouteChildren {
-  AppEditorReviewSubmissionIdRoute: typeof AppEditorReviewSubmissionIdRoute
   AppEditorReviewIndexRoute: typeof AppEditorReviewIndexRoute
 }
 
 const AppEditorReviewRouteChildren: AppEditorReviewRouteChildren = {
-  AppEditorReviewSubmissionIdRoute: AppEditorReviewSubmissionIdRoute,
   AppEditorReviewIndexRoute: AppEditorReviewIndexRoute,
 }
 
@@ -1466,11 +1464,14 @@ const AppEditorReviewRouteWithChildren = AppEditorReviewRoute._addFileChildren(
 interface AppEditorSeriesRouteChildren {
   AppEditorSeriesIndexRoute: typeof AppEditorSeriesIndexRoute
   AppEditorSeriesSeriesIdStudioRoute: typeof AppEditorSeriesSeriesIdStudioRoute
+  AppEditorSeriesSubmissionSubmissionIdRoute: typeof AppEditorSeriesSubmissionSubmissionIdRoute
 }
 
 const AppEditorSeriesRouteChildren: AppEditorSeriesRouteChildren = {
   AppEditorSeriesIndexRoute: AppEditorSeriesIndexRoute,
   AppEditorSeriesSeriesIdStudioRoute: AppEditorSeriesSeriesIdStudioRoute,
+  AppEditorSeriesSubmissionSubmissionIdRoute:
+    AppEditorSeriesSubmissionSubmissionIdRoute,
 }
 
 const AppEditorSeriesRouteWithChildren = AppEditorSeriesRoute._addFileChildren(

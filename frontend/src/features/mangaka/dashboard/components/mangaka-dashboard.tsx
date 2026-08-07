@@ -387,7 +387,7 @@ export function MangakaDashboard() {
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2.5 text-right">
                                   <Link
-                                    to="/app/editor/review/$submissionId"
+                                    to="/app/editor/series/submission/$submissionId"
                                     params={{ submissionId: submission.id }}
                                     className="inline-flex items-center gap-1 rounded bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 transition-colors"
                                   >

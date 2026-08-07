@@ -63,11 +63,11 @@ export function EditorSubmissionReview({ submissionId }: { submissionId: string 
 
   const backLink = (
     <Link
-      to="/app/editor/review"
+      to="/app/editor/series"
       className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="size-3.5" />
-      Review Queue
+      Series Monitor
     </Link>
   );
 

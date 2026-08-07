@@ -17,9 +17,9 @@
 // comparison, submission note, feedback notice, info + review actions side
 // panel.
 // FORM: shared by /app/mangaka/submissions/$submissionId/review and
-// /app/editor/review/$submissionId; both routes render these entity components
-// directly, so the port extends the light world to both. Shared primitives
-// (ImageCompare) are ported to standard tokens alongside.
+// /app/editor/series/submission/$submissionId; both routes render these entity
+// components directly, so the port extends the light world to both. Shared
+// primitives (ImageCompare) are ported to standard tokens alongside.
 // FINISH: unreviewed and undocumented is unfinished; this build ends with the
 // finish review, the verdict, and DESIGN.md.
 import { useState, type ReactNode } from "react";
@@ -224,12 +224,12 @@ function DecisionButtons({
                 className={cn(
                   "rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                   a.variant === "primary" &&
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                    "bg-primary text-primary-foreground hover:bg-primary/90",
                   a.variant === "warn" && "bg-amber-600 text-white hover:bg-amber-700",
                   a.variant === "danger" &&
-                  "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
                   a.variant === "neutral" &&
-                  "border border-border bg-card text-foreground hover:bg-muted",
+                    "border border-border bg-card text-foreground hover:bg-muted",
                 )}
                 title={disabled ? "Unavailable for this submission" : undefined}
               >

@@ -72,7 +72,7 @@ function linkFor(item: ReviewItem) {
       };
     case "SUBMISSION":
       return {
-        to: "/app/editor/review/$submissionId" as const,
+        to: "/app/editor/series/submission/$submissionId" as const,
         params: { submissionId: item.refId },
       };
   }
@@ -122,7 +122,9 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
-              <p className="truncate font-semibold text-foreground text-xs sm:text-sm">{item.title}</p>
+              <p className="truncate font-semibold text-foreground text-xs sm:text-sm">
+                {item.title}
+              </p>
               {isNewReviewItem(item) ? (
                 <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
                   New
@@ -149,10 +151,7 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
       sortable: true,
       className: "w-[110px]",
       render: (item) => (
-        <span
-          className="text-xs text-muted-foreground"
-          title={formatDateTime(item.submittedAt)}
-        >
+        <span className="text-xs text-muted-foreground" title={formatDateTime(item.submittedAt)}>
           {timeAgo(item.submittedAt)}
         </span>
       ),
@@ -212,4 +211,3 @@ export function reviewQueueColumns(currentUserId: string): QueueColumn<ReviewIte
     },
   ];
 }
-
