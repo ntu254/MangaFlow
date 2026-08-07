@@ -1,6 +1,8 @@
 import { Image } from "expo-image"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 import type { MobileWorkItem } from "@/domain/mobile-work-item"
+import { resolveDisplayUrl } from "@/domain/review-files"
+import { getMobileApiBaseUrl } from "@/services/mobile-api-config"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
 
 const shadowlineCover = require("../../assets/images/biatruyen.jpg")
@@ -9,15 +11,17 @@ const monsterCoverUrl = "https://tradejapanstore.com/cdn/shop/files/322501000882
 
 const coverAssets = [shadowlineCover, crimsonRoadCover, { uri: monsterCoverUrl }]
 
-// The backend always returns an absolute, server-signed URL in
-// item.summary.coverUrl when a real cover exists (see createDisplayUrl in
-// file-access.service.ts); anything else — a bare coverFileKey, or a
-// seed/demo placeholder path like "/assets/covers/berserk.jpg" that the
-// backend does not actually serve — cannot be turned into a working image
-// URL on the client (the /files/display/:token route requires a
-// server-signed token, not a raw storage key). Fall back to a stable
-// per-item placeholder rather than requesting a URL that will fail or,
-// worse, silently swapping in an unrelated hardcoded cover by keyword.
+// A real cover reaches mobile as an absolute, server-signed URL in
+// item.summary.coverUrl (createDisplayUrl in file-access.service.ts).
+// resolveDisplayUrl rewrites a localhost origin onto the configured mobile
+// API base, which matters when the backend has no PUBLIC_API_BASE_URL set —
+// "localhost" from a phone would otherwise point at the phone itself.
+//
+// Anything non-absolute is not resolvable into a working image here: a bare
+// coverFileKey cannot be used because /files/display/:token needs a
+// server-signed token, and seed placeholders like "/assets/covers/berserk.jpg"
+// are not served by the backend at all. Those fall back to a stable
+// per-item local placeholder instead of a request that would just fail.
 function getWorkItemCoverSource(item: MobileWorkItem) {
   const rawCoverUrl = typeof item.summary?.coverUrl === "string" ? item.summary.coverUrl.trim() : ""
   const isAbsoluteUrl =
@@ -26,7 +30,12 @@ function getWorkItemCoverSource(item: MobileWorkItem) {
     rawCoverUrl.startsWith("http://") ||
     rawCoverUrl.startsWith("https://")
 
-  if (isAbsoluteUrl) return { uri: rawCoverUrl }
+  if (isAbsoluteUrl) {
+    if (rawCoverUrl.startsWith("data:") || rawCoverUrl.startsWith("file:")) {
+      return { uri: rawCoverUrl }
+    }
+    return { uri: resolveDisplayUrl(rawCoverUrl, getMobileApiBaseUrl()) }
+  }
 
   const seedKey = item.id + (item.title || "")
   const sum = seedKey.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
