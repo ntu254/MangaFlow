@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
-import { StudioRegionModel, StudioTaskModel, SubmissionModel } from "../db/models.js";
+import { ChapterModel, StudioRegionModel, StudioTaskModel, SubmissionModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
 let mongo: MongoMemoryReplSet;
@@ -119,6 +119,44 @@ describe("Stale region discard on submission approval", () => {
 
     const region = await StudioRegionModel.findOne({ id: "reg-already-discarded" }).lean();
     expect((region as any).status).toBe("DISCARDED");
+  });
+
+  it("clears a stale cached AI-whitened render when a submission's file is promoted onto the page", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const app = createApp();
+
+    const chapterBefore = (await ChapterModel.findOne({ id: CHAPTER_ID }).lean()) as any;
+    const pagesWithWhitened = chapterBefore.pages.map((page: any) =>
+      String(page.id) === PAGE_ID
+        ? {
+            ...page,
+            metadata: {
+              ...(page.metadata ?? {}),
+              aiWhitened: {
+                fileKey: "stale/whitened.png",
+                fileUrl: "https://mock-s3-bucket/stale/whitened.png",
+                processingId: "proc-1",
+                mimeType: "image/png",
+                generatedAt: new Date().toISOString(),
+              },
+            },
+          }
+        : page,
+    );
+    await ChapterModel.updateOne({ id: CHAPTER_ID }, { $set: { pages: pagesWithWhitened } });
+
+    const submission = await createApprovableSubmission("4");
+
+    await request(app)
+      .post(`/api/submissions/${submission.id}/approve`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(200);
+
+    const chapterAfter = (await ChapterModel.findOne({ id: CHAPTER_ID }).lean()) as any;
+    const page = chapterAfter.pages.find((candidate: any) => String(candidate.id) === PAGE_ID);
+    expect(page.metadata?.aiWhitened).toBeUndefined();
+    expect(page.fileKey).toBe("tests/final-page.png");
+    expect(page.fileUrl).toBe("https://mock-s3-bucket/final-page.png");
   });
 
   it("does not discard regions on a different page", async () => {

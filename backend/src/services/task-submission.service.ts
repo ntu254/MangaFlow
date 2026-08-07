@@ -240,6 +240,11 @@ async function applyApprovedSubmissionToPage(
   const now = nowIso();
   const pages = (chapter.pages ?? []).map((page: any) => {
     if (String(page.id) !== String(pageId)) return page;
+    // Drop any cached AI-whitened render: it was generated from the prior
+    // image and the Studio canvas prefers it over fileKey/fileUrl, so a
+    // stale entry here would keep showing the old artwork after approval
+    // even though the page's own file fields are updated below.
+    const { aiWhitened: _staleAiWhitened, ...restMetadata } = page.metadata ?? {};
     return {
       ...page,
       fileKey: fileKey ?? page.fileKey,
@@ -251,6 +256,7 @@ async function applyApprovedSubmissionToPage(
         typeof submission?.fileSizeKB === "number"
           ? submission.fileSizeKB
           : page.sizeKB,
+      metadata: restMetadata,
       status: "UPLOADED",
       uploadedAt: now,
       updatedAt: now,

@@ -2,10 +2,12 @@
 
 ## Objective
 
-Stop Studio from redrawing speech-bubble regions that no longer match the page
-artwork. When a Mangaka approves an Assistant's submission, the submitted file
-becomes the page's new image; any region detected or marked against the prior
-image is now stale and must not be shown as an active overlay.
+Stop Studio from redrawing speech-bubble regions and from rendering a stale
+page image once a Mangaka approves an Assistant's submission. The submitted
+file becomes the page's new image; any region detected or marked against the
+prior image is now stale and must not be shown as an active overlay, and the
+canvas must actually display the new artwork instead of a cached render of
+the old one.
 
 ## Context
 
@@ -36,6 +38,13 @@ individual region the approved work addressed.
   source of the region does not matter once the underlying image is gone.
 - Re-running AI bubble detection on the new image is unaffected: it already
   deletes and recreates its own `metadata.source: "ai"` regions for the page.
+- If the page previously had an AI-whitened render cached
+  (`page.metadata.aiWhitened`, set by the "whiten bubbles" AI action), that
+  cache is cleared when a submission's file is promoted onto the page. The
+  Studio canvas prefers `metadata.aiWhitened` over `fileKey`/`fileUrl`
+  whenever it exists, so an uncleared cache would keep showing the old
+  artwork indefinitely even though every other Studio view (regions, task
+  status) had already moved on.
 
 ## Architecture
 
@@ -51,6 +60,18 @@ await StudioRegionModel.updateMany(
   { session },
 );
 ```
+
+The same function's page-mapping step also strips `metadata.aiWhitened` from
+the page being updated, before writing the new `fileKey`/`fileUrl`/`imageUrl`:
+
+```ts
+const { aiWhitened: _staleAiWhitened, ...restMetadata } = page.metadata ?? {};
+return { ...page, fileKey, fileUrl, imageUrl, metadata: restMetadata, ... };
+```
+
+This runs in the same `ChapterModel.updateOne` as the rest of the page-image
+swap, so there is no window where the page has a new `fileKey` but a stale
+`aiWhitened` cache still wins in the canvas.
 
 No new API surface is introduced. The existing submission-review mutation
 already invalidates `studioKeys.all` on the frontend, which prefix-matches the
@@ -85,6 +106,9 @@ Add coverage for:
 3. Regions on a different page are unaffected by an approval on this page.
 4. The Studio canvas does not render `DISCARDED` regions; the "AI Detect" layer
    list and its count exclude them too.
+5. A page with a cached AI-whitened render has that cache cleared once a
+   submission's file is promoted onto the page; `fileKey`/`fileUrl` reflect
+   the newly approved file.
 
 ## Out of scope
 
