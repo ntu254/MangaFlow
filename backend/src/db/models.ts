@@ -264,6 +264,8 @@ export type ProposalRecord = {
   materials?: Record<string, unknown>[];
   requestedChanges?: Record<string, unknown>[];
   revisionRound?: number;
+  /** Version of the latest submission snapshot (set on SUBMIT/RESUBMIT). */
+  currentVersionId?: string;
   assignedEditorId?: string;
   assignedEditorName?: string;
   claimedByEditorId?: string | null;
@@ -324,6 +326,8 @@ const proposalSchema = looseSchema({
   materials: [Schema.Types.Mixed],
   requestedChanges: [Schema.Types.Mixed],
   revisionRound: { type: Number, default: 0 },
+  /** Version of the latest submission snapshot (set on SUBMIT/RESUBMIT). */
+  currentVersionId: { type: String, index: true },
   assignedEditorId: { type: String, index: true },
   assignedEditorName: { type: String },
   claimedByEditorId: { type: String, index: true },

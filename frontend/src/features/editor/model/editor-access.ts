@@ -25,6 +25,8 @@ export type ReviewItem = {
   seriesContext?: string;
   proposalId?: string;
   proposalTitle?: string;
+  coverUrl?: string;
+  coverFileKey?: string;
   chapterId?: string;
   chapterNumber?: number;
   chapterTitle?: string;
@@ -37,6 +39,7 @@ export type ReviewItem = {
   submittedBy: string;
   deadline?: string | null;
   revisionReturned?: boolean;
+  version?: number;
   isCompleted?: boolean;
   claimedByEditorId?: string | null;
   claimedByEditorName?: string | null;
@@ -69,6 +72,12 @@ function hoursSince(iso: string) {
   return (Date.now() - new Date(iso).getTime()) / 3_600_000;
 }
 
+function toVersionNumber(value: string | number | undefined): number | undefined {
+  if (value == null) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 export function buildReviewQueue(
   proposals: SeriesProposal[],
   chapters: Chapter[],
@@ -96,6 +105,13 @@ export function buildReviewQueue(
       ...(p.materials.length > 0 ? (["MATERIALS"] as const) : []),
     ];
     const latestMs = p.manuscripts[p.manuscripts.length - 1];
+    const hours = hoursSince(latestMs?.uploadedAt ?? p.updatedAt);
+    const priority: ReviewPriority =
+      !p.claimedByEditorId && hours > 24
+        ? "BLOCKING"
+        : p.status === "CHANGES_REQUESTED"
+          ? "HIGH"
+          : priorityFromAge(hours);
 
     items.push({
       id: `prop-${p.id}`,
@@ -103,17 +119,19 @@ export function buildReviewQueue(
       refId: p.id,
       proposalId: p.id,
       proposalTitle: p.title,
+      coverUrl: p.coverUrl,
+      coverFileKey: p.coverFileKey,
       seriesTitle: p.title,
       seriesContext: "Proposal stage",
       title: "Proposal Package",
       includes,
       displayType: "Proposal Package",
       status: p.status,
-      priority: priorityFromAge(hoursSince(latestMs?.uploadedAt ?? p.updatedAt)),
+      priority,
       submittedAt: latestMs?.uploadedAt ?? p.updatedAt,
       submittedBy: p.authorName,
-      revisionReturned:
-        p.revisionRound > 0 || p.status === "CHANGES_REQUESTED",
+      revisionReturned: p.revisionRound > 0 || p.status === "CHANGES_REQUESTED",
+      version: toVersionNumber(p.currentVersionId),
       isCompleted,
       claimedByEditorId: p.claimedByEditorId,
       claimedByEditorName: p.claimedByEditorName,
@@ -136,6 +154,8 @@ export function buildReviewQueue(
         refId: ch.id,
         seriesId: ch.seriesId,
         seriesTitle: s?.title ?? "Unknown series",
+        coverUrl: s?.coverUrl,
+        coverFileKey: s?.coverFileKey,
         seriesContext: s?.authorName ? `by ${s.authorName}` : "Production series",
         chapterId: ch.id,
         chapterNumber: ch.number,

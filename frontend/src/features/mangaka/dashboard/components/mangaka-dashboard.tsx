@@ -617,19 +617,26 @@ export function MangakaDashboard() {
                           {proposal.chaptersPlanned ?? 12} Chapters
                         </p>
                       </div>
-                      <span
-                        className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                          proposal.status === "APPROVED"
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                            : proposal.status === "REJECTED"
-                              ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
-                              : proposal.status === "BOARD_REVIEW"
-                                ? "bg-purple-500/10 text-purple-700 dark:text-purple-300"
-                                : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                        }`}
-                      >
-                        {proposal.status.replace("_", " ")}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {proposal.currentVersionId ? (
+                          <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            v{proposal.currentVersionId}
+                          </span>
+                        ) : null}
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                            proposal.status === "APPROVED"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                              : proposal.status === "REJECTED"
+                                ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                                : proposal.status === "BOARD_REVIEW"
+                                  ? "bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                                  : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                          }`}
+                        >
+                          {proposal.status.replace("_", " ")}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

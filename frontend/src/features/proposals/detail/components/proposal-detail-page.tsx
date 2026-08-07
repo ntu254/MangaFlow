@@ -3,7 +3,11 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth";
-import { useProposalQuery, useUpdateProposalMutation } from "@/features/proposals";
+import {
+  useProposalQuery,
+  useUpdateProposalMutation,
+  useProposalActionMutation,
+} from "@/features/proposals";
 import { ProposalStatusPill } from "@/entities/proposal";
 import { StatusFlow } from "@/entities/proposal";
 import { VoteTally } from "@/entities/proposal";
@@ -14,18 +18,20 @@ import { AUDIENCE_LABEL } from "@/entities/proposal/model/proposal-types";
 import { ManuscriptList } from "./manuscript-list";
 import { MaterialsViewer } from "@/entities/proposal";
 import { RevisionChecklist } from "./revision-checklist";
+import { ProposalVersionHistory } from "./proposal-version-history";
 import { DecisionHistory } from "@/entities/proposal";
 import { Timeline } from "./timeline";
 import { ResolvedImage } from "@/shared/ui";
 import { ResolvedFileLink } from "@/shared/ui/resolved-file-link";
 
-type Tab = "overview" | "manuscripts" | "materials" | "revision" | "decision";
+type Tab = "overview" | "manuscripts" | "materials" | "revision" | "decision" | "versions";
 
 const TABS: { id: Tab; label: string; badge?: number }[] = [
   { id: "overview", label: "Overview" },
   { id: "manuscripts", label: "Manuscript" },
   { id: "materials", label: "Supporting materials" },
   { id: "revision", label: "Revision" },
+  { id: "versions", label: "Submission versions" },
   { id: "decision", label: "Decision history" },
 ];
 
@@ -39,6 +45,7 @@ export function ProposalDetailPage({
   const user = useAuth((s) => s.user);
   const { data: proposal, isLoading } = useProposalQuery(proposalId);
   const updateProposalMutation = useUpdateProposalMutation(proposalId);
+  const proposalActionMutation = useProposalActionMutation(proposalId);
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -71,6 +78,11 @@ export function ProposalDetailPage({
     proposal.authorId === user.id &&
     ["DRAFT", "CHANGES_REQUESTED"].includes(proposal.status);
 
+  const isResubmission = proposal.status === "CHANGES_REQUESTED";
+  const openChange = isResubmission
+    ? ([...proposal.requestedChanges].reverse().find((change) => !change.resolvedAt) ?? null)
+    : null;
+
   if (editing && canEdit) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
@@ -84,24 +96,41 @@ export function ProposalDetailPage({
         </button>
         <header className="border-b border-border/60 pb-4">
           <div className="flex items-center gap-2">
-            <h1 className="font-serif text-3xl font-bold tracking-tight">Edit Proposal</h1>
+            <h1 className="font-serif text-3xl font-bold tracking-tight">
+              {isResubmission ? "Edit & Resubmit Proposal" : "Edit Proposal"}
+            </h1>
             <ProposalStatusPill status={proposal.status} />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Update your manga series draft details before sending to editor review.
+            {isResubmission
+              ? "Resolve the Editor's checklist, update your draft, and send it back for review."
+              : "Update your manga series draft details before sending to editor review."}
           </p>
         </header>
         <ProposalWizard
           mode="edit"
           initialProposal={proposal}
-          submitLabel="Save changes"
+          resubmit={isResubmission ? { change: openChange } : undefined}
+          submitLabel={isResubmission ? "Save & Resubmit" : "Save changes"}
           onCancel={() =>
             navigate({ to: "/app/proposals/$proposalId", params: { proposalId }, search: {} })
           }
-          onSave={async (payload) => {
+          onSave={async (payload, meta) => {
             try {
-              await updateProposalMutation.mutateAsync(payload);
-              toast.success("Changes saved successfully.");
+              if (isResubmission) {
+                await proposalActionMutation.mutateAsync({
+                  action: "RESUBMIT",
+                  payload: {
+                    ...payload,
+                    resolvedItems: meta?.resolvedItems ?? {},
+                    comment: meta?.comment,
+                  },
+                });
+                toast.success("Changes saved and resubmitted to Editor.");
+              } else {
+                await updateProposalMutation.mutateAsync(payload);
+                toast.success("Changes saved successfully.");
+              }
               navigate({ to: "/app/proposals/$proposalId", params: { proposalId }, search: {} });
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Error saving changes.");
@@ -212,6 +241,7 @@ export function ProposalDetailPage({
                   </span>
                   <span className="font-semibold text-foreground">
                     Round {proposal.revisionRound ?? 0}
+                    {proposal.currentVersionId ? ` · v${proposal.currentVersionId}` : ""}
                   </span>
                 </div>
 
@@ -285,6 +315,8 @@ export function ProposalDetailPage({
             <MaterialsViewer proposal={proposal} scope="supporting" />
           ) : tab === "revision" ? (
             <RevisionChecklist proposal={proposal} />
+          ) : tab === "versions" ? (
+            <ProposalVersionHistory proposalId={proposalId} />
           ) : (
             <DecisionHistory proposal={proposal} />
           )}

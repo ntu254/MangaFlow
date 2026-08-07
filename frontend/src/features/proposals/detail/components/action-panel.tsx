@@ -9,7 +9,6 @@ import { Modal, ModalContent, ModalFooter, ModalHeader, ModalTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RequestChangesModal } from "./request-changes-modal";
-import { ResubmitModal } from "./resubmit-modal";
 import { useMySeriesQuery } from "@/entities/series";
 import {
   useActiveVotingSession,
@@ -53,7 +52,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   const [open, setOpen] = useState<ProposalAction | null>(null);
   const [comment, setComment] = useState("");
   const [changesOpen, setChangesOpen] = useState(false);
-  const [resubmitOpen, setResubmitOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachTarget, setAttachTarget] = useState<string>("__new");
   const { data: seriesList = [] } = useMySeriesQuery();
@@ -83,7 +81,8 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
   );
 
   const actions = allowedActions(user, proposal);
-  const visible = actions;
+  const visible = actions.filter((a) => a !== "RESUBMIT");
+  const editLabel = proposal.status === "CHANGES_REQUESTED" ? "Edit & Resubmit" : "Edit";
 
   const run = (action: ProposalAction) => {
     if (action === "EDIT") {
@@ -100,10 +99,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
     }
     if (action === "REQUEST_CHANGES") {
       setChangesOpen(true);
-      return;
-    }
-    if (action === "RESUBMIT") {
-      setResubmitOpen(true);
       return;
     }
     if (
@@ -181,7 +176,7 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
                 title={title}
                 className={`rounded px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${TONES[a] ?? "bg-card text-foreground border border-border hover:bg-muted"}`}
               >
-                {LABELS[a]}
+                {a === "EDIT" ? editLabel : LABELS[a]}
               </button>
             );
           })}
@@ -260,18 +255,6 @@ export function ActionPanel({ proposal, user }: { proposal: SeriesProposal; user
         onRequestChanges={async (payload) => {
           await actionMutation.mutateAsync({
             action: "REQUEST_CHANGES",
-            payload,
-          });
-        }}
-      />
-      <ResubmitModal
-        proposal={proposal}
-        user={user}
-        open={resubmitOpen}
-        onClose={() => setResubmitOpen(false)}
-        onResubmit={async (payload) => {
-          await actionMutation.mutateAsync({
-            action: "RESUBMIT",
             payload,
           });
         }}

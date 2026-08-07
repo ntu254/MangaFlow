@@ -59,8 +59,7 @@ export type ProposalAction =
   | "FORWARD"
   | "REJECT"
   | "RECALL"
-  | "VOTE"
-;
+  | "VOTE";
 
 export type VoteDecision = "APPROVE" | "REJECT";
 
@@ -94,8 +93,7 @@ export type ProposalEvent = {
     | "CLAIM"
     | "RELEASE_CLAIM"
     | "EDIT"
-    | "MANUSCRIPT_UPLOAD"
-;
+    | "MANUSCRIPT_UPLOAD";
   fromStatus?: ProposalStatus;
   toStatus?: ProposalStatus;
   comment?: string;
@@ -195,6 +193,8 @@ export type SeriesProposal = {
   materials: SupportingMaterial[];
   requestedChanges: RequestedChange[];
   revisionRound: number;
+  /** Version of the latest submission snapshot (set on SUBMIT/RESUBMIT). */
+  currentVersionId?: string;
   createdAt: string;
   updatedAt: string;
   // MVP wizard additions ΓÇö all optional, backward compatible

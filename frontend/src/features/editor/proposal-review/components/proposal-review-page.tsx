@@ -1,12 +1,19 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, Lock, Unlock, ShieldCheck, FileText, BookOpen, History } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Lock,
+  Unlock,
+  ShieldCheck,
+  FileText,
+  BookOpen,
+  History,
+  Layers,
+} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth, type User } from "@/shared/auth";
-import {
-  useProposalActionMutation,
-  useProposalQuery,
-} from "@/features/proposals";
+import { useProposalActionMutation, useProposalQuery } from "@/features/proposals";
 import {
   AUDIENCE_LABEL,
   STATUS_LABEL,
@@ -20,6 +27,7 @@ import { isEditorialChecklistComplete } from "../model/editorial-checklist";
 import { ReviewStatusPill } from "@/entities/submission";
 import { toast } from "sonner";
 import { MaterialsViewer } from "@/entities/proposal";
+import { ProposalVersionHistory } from "@/features/proposals";
 import { ResolvedImage } from "@/shared/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -49,7 +57,10 @@ export function ProposalReviewPage() {
 
   const latestMs = proposal?.manuscripts[proposal.manuscripts.length - 1];
   const history = useMemo(() => proposal?.history ?? [], [proposal]);
-  const materialsCount = (proposal?.manuscripts.length ?? 0) + (proposal?.materials.length ?? 0) + (proposal?.sampleChapterUrl ? 1 : 0);
+  const materialsCount =
+    (proposal?.manuscripts.length ?? 0) +
+    (proposal?.materials.length ?? 0) +
+    (proposal?.sampleChapterUrl ? 1 : 0);
 
   if (isLoading) {
     return (
@@ -107,7 +118,7 @@ export function ProposalReviewPage() {
                   Proposal Package Review
                 </span>
                 <span className="rounded-md border border-border/80 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  v{latestMs?.version ?? "1.0"}
+                  v{proposal.currentVersionId ?? latestMs?.version ?? "1.0"}
                 </span>
                 {proposal.chaptersPlanned ? (
                   <span className="rounded-md border border-border/80 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -162,18 +173,34 @@ export function ProposalReviewPage() {
         <section className="min-w-0">
           <Tabs defaultValue="dossier" className="w-full">
             <div className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md space-y-5">
-              <TabsList className="grid w-full grid-cols-3 h-10 rounded-xl bg-muted/60 p-1">
-                <TabsTrigger value="dossier" className="flex items-center gap-2 text-xs font-semibold rounded-lg">
+              <TabsList className="grid w-full grid-cols-4 h-10 rounded-xl bg-muted/60 p-1">
+                <TabsTrigger
+                  value="dossier"
+                  className="flex items-center gap-2 text-xs font-semibold rounded-lg"
+                >
                   <BookOpen className="size-3.5 shrink-0" />
                   <span>Story Dossier</span>
                 </TabsTrigger>
-                <TabsTrigger value="materials" className="flex items-center gap-2 text-xs font-semibold rounded-lg">
+                <TabsTrigger
+                  value="materials"
+                  className="flex items-center gap-2 text-xs font-semibold rounded-lg"
+                >
                   <FileText className="size-3.5 shrink-0" />
                   <span>Materials ({materialsCount})</span>
                 </TabsTrigger>
-                <TabsTrigger value="audit" className="flex items-center gap-2 text-xs font-semibold rounded-lg">
+                <TabsTrigger
+                  value="versions"
+                  className="flex items-center gap-2 text-xs font-semibold rounded-lg"
+                >
+                  <Layers className="size-3.5 shrink-0" />
+                  <span>Versions</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="audit"
+                  className="flex items-center gap-2 text-xs font-semibold rounded-lg"
+                >
                   <History className="size-3.5 shrink-0" />
-                  <span>Audit History</span>
+                  <span>Audit</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -185,8 +212,14 @@ export function ProposalReviewPage() {
                 {proposal.advanced ? (
                   <div className="mt-3 space-y-3 pt-3 border-t border-border/50">
                     <Field label="World Setting" value={proposal.advanced.worldSetting ?? "—"} />
-                    <Field label="Series Direction" value={proposal.advanced.seriesDirection ?? "—"} />
-                    <Field label="Comparable Titles" value={proposal.advanced.comparableTitles ?? "—"} />
+                    <Field
+                      label="Series Direction"
+                      value={proposal.advanced.seriesDirection ?? "—"}
+                    />
+                    <Field
+                      label="Comparable Titles"
+                      value={proposal.advanced.comparableTitles ?? "—"}
+                    />
                   </div>
                 ) : null}
               </TabsContent>
@@ -195,15 +228,23 @@ export function ProposalReviewPage() {
                 {proposal.materials.length === 0 &&
                 proposal.manuscripts.length === 0 &&
                 !proposal.sampleChapterUrl ? (
-                  <p className="py-6 text-center text-xs text-muted-foreground">No materials uploaded yet.</p>
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No materials uploaded yet.
+                  </p>
                 ) : (
                   <MaterialsViewer proposal={proposal} />
                 )}
               </TabsContent>
 
+              <TabsContent value="versions" className="mt-0 focus-visible:outline-none">
+                <ProposalVersionHistory proposalId={proposalId} />
+              </TabsContent>
+
               <TabsContent value="audit" className="mt-0 focus-visible:outline-none">
                 {history.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-muted-foreground">No activity recorded yet.</p>
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No activity recorded yet.
+                  </p>
                 ) : (
                   <ol className="relative ml-2 space-y-4 border-l border-border/60 pl-4 text-xs">
                     {history.map((h) => (
@@ -216,10 +257,20 @@ export function ProposalReviewPage() {
                           </span>
                         </div>
                         <div className="mt-0.5 text-muted-foreground">
-                          <span>by <strong className="text-foreground">{h.actorName}</strong></span>
+                          <span>
+                            by <strong className="text-foreground">{h.actorName}</strong>
+                          </span>
                           {h.fromStatus ? (
                             <span>
-                              {" "}• Status changed: <span className="font-medium text-foreground">{STATUS_LABEL[h.fromStatus]}</span> → <span className="font-medium text-foreground">{h.toStatus ? STATUS_LABEL[h.toStatus] : ""}</span>
+                              {" "}
+                              • Status changed:{" "}
+                              <span className="font-medium text-foreground">
+                                {STATUS_LABEL[h.fromStatus]}
+                              </span>{" "}
+                              →{" "}
+                              <span className="font-medium text-foreground">
+                                {h.toStatus ? STATUS_LABEL[h.toStatus] : ""}
+                              </span>
                             </span>
                           ) : null}
                         </div>
@@ -260,7 +311,9 @@ export function ProposalReviewPage() {
           {/* Editorial Decision Panel */}
           <div className="space-y-2.5 rounded-2xl border border-border/80 bg-card/80 p-4 shadow-xs backdrop-blur-md">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Editorial Decision</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                Editorial Decision
+              </h3>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Take formal editorial action on this proposal package.
               </p>
@@ -303,12 +356,20 @@ export function ProposalReviewPage() {
                     <button
                       type="button"
                       disabled={!checklistComplete || actionMutation.isPending}
-                      title={!checklistComplete ? "Complete all 6 Board-readiness criteria first" : undefined}
+                      title={
+                        !checklistComplete
+                          ? "Complete all 6 Board-readiness criteria first"
+                          : undefined
+                      }
                       onClick={() =>
                         actionMutation.mutate(
-                          { action: "FORWARD", payload: { comment: editorNote.trim() || undefined } },
                           {
-                            onSuccess: () => toast.success("Forwarded to Board with editorial recommendation."),
+                            action: "FORWARD",
+                            payload: { comment: editorNote.trim() || undefined },
+                          },
+                          {
+                            onSuccess: () =>
+                              toast.success("Forwarded to Board with editorial recommendation."),
                             onError: (err) =>
                               toast.error(
                                 err instanceof Error ? err.message : "Failed to forward to Board.",
@@ -327,7 +388,9 @@ export function ProposalReviewPage() {
                       <button
                         type="button"
                         disabled={!editorNote.trim() || actionMutation.isPending}
-                        title={!editorNote.trim() ? "Note is required for requesting changes" : undefined}
+                        title={
+                          !editorNote.trim() ? "Note is required for requesting changes" : undefined
+                        }
                         onClick={() =>
                           actionMutation.mutate(
                             { action: "REQUEST_CHANGES", payload: { comment: editorNote.trim() } },
@@ -335,7 +398,9 @@ export function ProposalReviewPage() {
                               onSuccess: () => toast.success("Revision requested."),
                               onError: (err) =>
                                 toast.error(
-                                  err instanceof Error ? err.message : "Failed to request revision.",
+                                  err instanceof Error
+                                    ? err.message
+                                    : "Failed to request revision.",
                                 ),
                             },
                           )
@@ -357,7 +422,9 @@ export function ProposalReviewPage() {
                             {
                               onSuccess: () => toast.success("Proposal rejected."),
                               onError: (err) =>
-                                toast.error(err instanceof Error ? err.message : "Failed to reject."),
+                                toast.error(
+                                  err instanceof Error ? err.message : "Failed to reject.",
+                                ),
                             },
                           )
                         }
@@ -444,7 +511,8 @@ function ClaimStatusHeader({
           <div className="min-w-0">
             <p className="text-xs font-semibold text-foreground">You are Reviewing this Proposal</p>
             <p className="truncate text-[11px] text-muted-foreground">
-              Active review control enabled. {proposal.claimedAt ? `Claimed ${formatDateTime(proposal.claimedAt)}` : ""}
+              Active review control enabled.{" "}
+              {proposal.claimedAt ? `Claimed ${formatDateTime(proposal.claimedAt)}` : ""}
             </p>
           </div>
         </div>
@@ -483,7 +551,8 @@ function ClaimStatusHeader({
         <div>
           <span className="font-semibold">Claimed by {proposal.claimedByEditorName}</span>
           <span className="ml-1 text-[11px] text-amber-700 dark:text-amber-300">
-            — This proposal is locked by another editor. You can view materials but cannot make decisions.
+            — This proposal is locked by another editor. You can view materials but cannot make
+            decisions.
           </span>
         </div>
       </div>
@@ -493,13 +562,10 @@ function ClaimStatusHeader({
   return null;
 }
 
-
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md space-y-4">
-      <h3 className="text-sm font-semibold tracking-tight text-foreground">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3>
       <div className="min-w-0 space-y-3">{children}</div>
     </div>
   );
@@ -515,4 +581,3 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

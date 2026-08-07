@@ -2,7 +2,18 @@ import { useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Check, Eye, FileText, Image as ImageIcon, LayoutGrid, Loader2, Save, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Eye,
+  FileText,
+  Image as ImageIcon,
+  LayoutGrid,
+  Loader2,
+  Save,
+  Send,
+} from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import {
   useCreateProposalMutation,
@@ -10,9 +21,24 @@ import {
   useProposalActionMutation,
 } from "@/features/proposals";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ResolvedImage } from "@/shared/ui";
-import type { SeriesProposal, SupportingMaterial } from "@/entities/proposal/model/proposal-types";
+import type {
+  RequestedChange,
+  SeriesProposal,
+  SupportingMaterial,
+} from "@/entities/proposal/model/proposal-types";
+import {
+  ResubmitChecklistEditor,
+  RevisionNotesField,
+} from "../../detail/components/resubmit-checklist-editor";
+import type { ResolvedItemState } from "../../detail/components/resubmit-checklist-editor";
 import {
   hasManuscriptFileChanged,
   latestManuscriptVersion,
@@ -78,9 +104,13 @@ const STEPS = [
 type ProposalWizardProps = {
   mode?: "create" | "edit";
   initialProposal?: SeriesProposal;
-  onSave?: (payload: Record<string, unknown>) => Promise<unknown>;
+  onSave?: (
+    payload: Record<string, unknown>,
+    meta?: { resolvedItems: Record<string, ResolvedItemState>; comment?: string },
+  ) => Promise<unknown>;
   onCancel?: () => void;
   submitLabel?: string;
+  resubmit?: { change: RequestedChange | null };
 };
 
 function latestManuscript(proposal?: SeriesProposal): DraftManuscript | null {
@@ -118,8 +148,11 @@ export function ProposalWizard({
   onSave,
   onCancel,
   submitLabel,
+  resubmit,
 }: ProposalWizardProps) {
   const isEdit = mode === "edit";
+  const resubmitActive = isEdit && !!resubmit;
+  const openChange = resubmit?.change ?? null;
   const user = useAuth((s) => s.user);
   const createProposalMutation = useCreateProposalMutation();
   const updateProposalMutation = useUpdateProposalMutation();
@@ -168,6 +201,8 @@ export function ProposalWizard({
   );
   const [errors, setErrors] = useState<Partial<Record<keyof WizardValues, string>>>({});
   const [step2Error, setStep2Error] = useState<string | undefined>(undefined);
+  const [resolvedItems, setResolvedItems] = useState<Record<string, ResolvedItemState>>({});
+  const [revisionNote, setRevisionNote] = useState("");
 
   const step1Valid = useMemo(() => step1Schema.safeParse(values).success, [values]);
   const step2Valid = useMemo(
@@ -176,7 +211,11 @@ export function ProposalWizard({
       (isEdit || (!!manuscript && storyboard.length > 0)),
     [isEdit, mainCharacters, manuscript, storyboard],
   );
-  const step3Valid = originalWorkConfirmed;
+  const checklistComplete = useMemo(() => {
+    if (!resubmitActive || !openChange) return false;
+    return openChange.items.every((item) => resolvedItems[item.id]?.resolved);
+  }, [resubmitActive, openChange, resolvedItems]);
+  const step3Valid = originalWorkConfirmed && (!resubmitActive || checklistComplete);
   const allValid = step1Valid && step2Valid && step3Valid;
 
   if (!user) return null;
@@ -312,7 +351,10 @@ export function ProposalWizard({
       const payload = buildPayload();
       if (isEdit) {
         if (!onSave) throw new Error("Edit save handler is not configured.");
-        await onSave(payload);
+        await onSave(
+          payload,
+          resubmitActive ? { resolvedItems, comment: revisionNote.trim() || undefined } : undefined,
+        );
         toast.success("Proposal changes saved.");
         return;
       }
@@ -344,7 +386,11 @@ export function ProposalWizard({
       return;
     }
     if (!step3Valid) {
-      toast.error("Please confirm original work ownership.");
+      if (resubmitActive && !checklistComplete) {
+        toast.error("Please resolve all items in the Editor's checklist.");
+      } else {
+        toast.error("Please confirm original work ownership.");
+      }
       return;
     }
 
@@ -353,7 +399,10 @@ export function ProposalWizard({
       const payload = buildPayload();
       if (isEdit) {
         if (!onSave) throw new Error("Edit save handler is not configured.");
-        await onSave(payload);
+        await onSave(
+          payload,
+          resubmitActive ? { resolvedItems, comment: revisionNote.trim() || undefined } : undefined,
+        );
         toast.success("Proposal changes saved.");
         return;
       }
@@ -419,18 +468,30 @@ export function ProposalWizard({
               />
             ) : null}
             {step === 3 ? (
-              <StepReviewSubmit
-                values={values}
-                mainCharacters={mainCharacters}
-                manuscript={manuscript}
-                storyboard={storyboard}
-                characterSheets={characterSheets}
-                submissionNote={submissionNote}
-                onSubmissionNoteChange={setSubmissionNote}
-                originalWorkConfirmed={originalWorkConfirmed}
-                onOriginalWorkConfirmedChange={setOriginalWorkConfirmed}
-                coverUrl={coverUrl}
-              />
+              <div className="space-y-4">
+                {resubmitActive ? (
+                  <div className="space-y-3">
+                    <ResubmitChecklistEditor
+                      change={openChange}
+                      state={resolvedItems}
+                      onChange={setResolvedItems}
+                    />
+                    <RevisionNotesField value={revisionNote} onChange={setRevisionNote} />
+                  </div>
+                ) : null}
+                <StepReviewSubmit
+                  values={values}
+                  mainCharacters={mainCharacters}
+                  manuscript={manuscript}
+                  storyboard={storyboard}
+                  characterSheets={characterSheets}
+                  submissionNote={submissionNote}
+                  onSubmissionNoteChange={setSubmissionNote}
+                  originalWorkConfirmed={originalWorkConfirmed}
+                  onOriginalWorkConfirmedChange={setOriginalWorkConfirmed}
+                  coverUrl={coverUrl}
+                />
+              </div>
             ) : null}
           </div>
         </div>
@@ -441,8 +502,12 @@ export function ProposalWizard({
           <div className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-xs backdrop-blur-md space-y-4">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-foreground">Live Pitch Preview</span>
-                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">Draft</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Live Pitch Preview
+                </span>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                  Draft
+                </span>
               </div>
               <Button
                 type="button"
@@ -474,7 +539,9 @@ export function ProposalWizard({
                 {values.title || "Untitled Series"}
               </h3>
               {values.logline ? (
-                <p className="text-xs italic text-muted-foreground line-clamp-2 px-1">"{values.logline}"</p>
+                <p className="text-xs italic text-muted-foreground line-clamp-2 px-1">
+                  "{values.logline}"
+                </p>
               ) : (
                 <p className="text-xs italic text-muted-foreground/60">Logline will appear here…</p>
               )}
@@ -482,7 +549,10 @@ export function ProposalWizard({
               <div className="flex flex-wrap justify-center gap-1.5 pt-0.5">
                 {values.genres.length > 0 ? (
                   values.genres.map((g) => (
-                    <span key={g} className="rounded-md border border-border/60 bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-2xs">
+                    <span
+                      key={g}
+                      className="rounded-md border border-border/60 bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-2xs"
+                    >
                       {g}
                     </span>
                   ))
@@ -511,19 +581,36 @@ export function ProposalWizard({
           <div className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-xs backdrop-blur-md space-y-3">
             <div className="flex items-center gap-2">
               {step === 1 && isEdit && onCancel ? (
-                <Button variant="outline" size="sm" onClick={onCancel} disabled={busy} className="flex-1 rounded-xl">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onCancel}
+                  disabled={busy}
+                  className="flex-1 rounded-xl"
+                >
                   <ArrowLeft className="size-3.5" />
                   Cancel edit
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" onClick={goBack} disabled={step === 1 || busy} className="flex-1 rounded-xl">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goBack}
+                  disabled={step === 1 || busy}
+                  className="flex-1 rounded-xl"
+                >
                   <ArrowLeft className="size-3.5" />
                   Back
                 </Button>
               )}
 
               {step < 3 ? (
-                <Button size="sm" onClick={goNext} disabled={busy} className="flex-1 rounded-xl font-bold shadow-xs">
+                <Button
+                  size="sm"
+                  onClick={goNext}
+                  disabled={busy}
+                  className="flex-1 rounded-xl font-bold shadow-xs"
+                >
                   Continue
                   <ArrowRight className="size-3.5" />
                 </Button>
@@ -532,7 +619,13 @@ export function ProposalWizard({
 
             <div className="flex items-center gap-2 border-t border-border/60 pt-3">
               {!isEdit ? (
-                <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={busy} className="w-full rounded-xl">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveDraft}
+                  disabled={busy}
+                  className="w-full rounded-xl"
+                >
                   {isSaving ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : (
@@ -543,7 +636,12 @@ export function ProposalWizard({
               ) : null}
 
               {step === 3 ? (
-                <Button size="sm" onClick={handleSubmit} disabled={!allValid || busy} className="w-full rounded-xl font-bold shadow-xs">
+                <Button
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={!allValid || busy}
+                  className="w-full rounded-xl font-bold shadow-xs"
+                >
                   {isSubmitting ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : (
@@ -652,7 +750,10 @@ function PitchPreviewModal({
             {values.genres.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {values.genres.map((g) => (
-                  <span key={g} className="rounded-md border border-border/60 bg-card px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-2xs">
+                  <span
+                    key={g}
+                    className="rounded-md border border-border/60 bg-card px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-2xs"
+                  >
                     {g}
                   </span>
                 ))}
@@ -661,7 +762,9 @@ function PitchPreviewModal({
 
             {/* Synopsis */}
             <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Synopsis</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Synopsis
+              </h4>
               <p className="text-xs leading-relaxed text-foreground whitespace-pre-wrap rounded-xl border border-border/60 bg-background/60 p-3.5 max-h-[180px] overflow-y-auto">
                 {values.synopsis || "No synopsis provided yet."}
               </p>
@@ -670,7 +773,9 @@ function PitchPreviewModal({
             {/* Characters */}
             {mainCharacters.trim() ? (
               <div className="space-y-1.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Main Characters</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Main Characters
+                </h4>
                 <div className="text-xs leading-relaxed text-foreground whitespace-pre-wrap rounded-xl border border-border/60 bg-background/60 p-3.5 max-h-[140px] overflow-y-auto">
                   {mainCharacters}
                 </div>
@@ -681,15 +786,21 @@ function PitchPreviewModal({
 
         {/* Files Attached Section */}
         <div className="border-t border-border/60 pt-4 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Attached Files</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Attached Files
+          </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Manuscript */}
             <div className="rounded-xl border border-border/60 bg-card p-3 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sample Manuscript</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Sample Manuscript
+              </span>
               {manuscript ? (
                 <div className="flex items-center gap-2 pt-0.5">
                   <FileText className="size-4 text-emerald-500 shrink-0" />
-                  <span className="text-xs font-bold text-foreground truncate">{manuscript.fileName}</span>
+                  <span className="text-xs font-bold text-foreground truncate">
+                    {manuscript.fileName}
+                  </span>
                 </div>
               ) : (
                 <p className="text-xs italic text-rose-500 pt-0.5">Not uploaded yet</p>
@@ -698,21 +809,31 @@ function PitchPreviewModal({
 
             {/* Storyboard */}
             <div className="rounded-xl border border-border/60 bg-card p-3 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Storyboard / Name</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Storyboard / Name
+              </span>
               {storyboard.length > 0 ? (
                 <div className="flex items-center gap-2 pt-0.5">
                   <LayoutGrid className="size-4 text-primary shrink-0" />
-                  <span className="text-xs font-bold text-foreground truncate">{storyboard[0].fileName}</span>
+                  <span className="text-xs font-bold text-foreground truncate">
+                    {storyboard[0].fileName}
+                  </span>
                 </div>
               ) : (
-                <p className="text-xs italic text-muted-foreground pt-0.5">Optional (Not uploaded)</p>
+                <p className="text-xs italic text-muted-foreground pt-0.5">
+                  Optional (Not uploaded)
+                </p>
               )}
             </div>
           </div>
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl text-xs font-bold">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="rounded-xl text-xs font-bold"
+          >
             Close Preview
           </Button>
         </DialogFooter>
@@ -754,7 +875,9 @@ function Checklist({
             {it.done ? (
               <Check className="size-4 shrink-0 stroke-[2.5] text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <span className="inline-block size-4 shrink-0 text-center font-bold text-muted-foreground/60">&bull;</span>
+              <span className="inline-block size-4 shrink-0 text-center font-bold text-muted-foreground/60">
+                &bull;
+              </span>
             )}
             <span className="truncate">{it.label}</span>
           </li>

@@ -3,6 +3,7 @@ import type { Chapter, ProductionSeries } from "@/entities/series/model/series-t
 import { getDeadlineRisk } from "../../../model/editor-access";
 import { ReviewStatusPill } from "@/entities/submission";
 import { DeadlineRiskPill } from "@/entities/submission";
+import { ResolvedImage } from "@/shared/ui/resolved-image";
 import { formatDate } from "@/shared/lib/format-date";
 import { SortableHeader } from "@/shared/ui";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
@@ -104,13 +105,26 @@ export function SeriesMonitorTable({
             return (
               <tr key={s.id} className="hover:bg-muted/30">
                 <td className="px-3 py-2">
-                  <Link
-                    to="/app/series/$slug/$tab"
-                    params={{ slug: s.slug, tab: "overview" }}
-                    className="font-semibold hover:underline"
-                  >
-                    {s.title}
-                  </Link>
+                  <div className="flex items-center gap-2.5">
+                    <ResolvedImage
+                      fileKey={s.coverFileKey}
+                      fallbackUrl={s.coverUrl}
+                      alt={s.title}
+                      className="size-9 shrink-0 rounded-lg border border-border object-cover shadow-2xs"
+                      fallback={
+                        <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 font-serif text-sm font-bold text-primary shadow-2xs">
+                          {s.title.slice(0, 1).toUpperCase()}
+                        </div>
+                      }
+                    />
+                    <Link
+                      to="/app/series/$slug/$tab"
+                      params={{ slug: s.slug, tab: "overview" }}
+                      className="font-semibold hover:underline"
+                    >
+                      {s.title}
+                    </Link>
+                  </div>
                 </td>
                 <td className="px-3 py-2">{s.authorName}</td>
                 <td className="px-3 py-2">

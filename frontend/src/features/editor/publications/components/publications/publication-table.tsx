@@ -9,6 +9,7 @@ import type {
 import { useChapterActionMutation } from "@/entities/series";
 import { formatDate, isOverdue } from "@/shared/lib/format-date";
 import { ReviewStatusPill } from "@/entities/submission";
+import { ResolvedImage } from "@/shared/ui/resolved-image";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DataPagination, SortableHeader } from "@/shared/ui";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
@@ -327,7 +328,26 @@ export function PublicationTable({
               const overdue = c.publication?.status === "SCHEDULED" && isOverdue(scheduledAt);
               return (
                 <tr key={c.id}>
-                  <td className="px-3 py-2 font-semibold">{s?.title ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    {s ? (
+                      <div className="flex items-center gap-2.5">
+                        <ResolvedImage
+                          fileKey={s.coverFileKey}
+                          fallbackUrl={s.coverUrl}
+                          alt={s.title}
+                          className="size-9 shrink-0 rounded-lg border border-border object-cover shadow-2xs"
+                          fallback={
+                            <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 font-serif text-sm font-bold text-primary shadow-2xs">
+                              {s.title.slice(0, 1).toUpperCase()}
+                            </div>
+                          }
+                        />
+                        <span className="font-semibold">{s.title}</span>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="px-3 py-2">
                     Ch.{c.number} {c.title}
                   </td>
@@ -350,10 +370,7 @@ export function PublicationTable({
                       >
                         Details
                       </button>
-                      <PublicationActions
-                        chapter={c}
-                        publicationType={publicationType}
-                      />
+                      <PublicationActions chapter={c} publicationType={publicationType} />
                     </div>
                   </td>
                 </tr>

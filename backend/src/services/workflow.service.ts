@@ -3,6 +3,7 @@ import {
   ChapterModel,
   MaterialModel,
   ProposalModel,
+  ProposalVersionModel,
   ProposalVoteModel,
   SeriesModel,
   SeriesMemberModel,
@@ -235,6 +236,13 @@ function assertProposalAction(
   }
 }
 
+async function nextProposalVersionNumber(proposalId: string): Promise<number> {
+  const last = await ProposalVersionModel.findOne({ proposalId })
+    .sort({ versionNumber: -1 })
+    .lean();
+  return (last?.versionNumber ?? 0) + 1;
+}
+
 export async function applyProposalAction(
   req: AuthedRequest,
   proposalId: string,
@@ -264,6 +272,7 @@ export async function applyProposalAction(
 
   const notifications: { userId: string; kind: string; message: string }[] = [];
   const patch: Record<string, unknown> = { updatedAt: nowIso() };
+  let submissionVersion: number | null = null;
 
   switch (action) {
     case "SUBMIT":
@@ -271,6 +280,8 @@ export async function applyProposalAction(
         throw new AppError(409, "Only draft proposals can be submitted.", "INVALID_TRANSITION");
       patch.status = "PENDING_EDITOR";
       patch.submittedAt = new Date();
+      submissionVersion = await nextProposalVersionNumber(proposalId);
+      patch.currentVersionId = String(submissionVersion);
       notifications.push({
         userId: "u-editor",
         kind: "proposal.submitted",
@@ -748,6 +759,8 @@ export async function applyProposalAction(
           };
         },
       );
+      submissionVersion = await nextProposalVersionNumber(proposalId);
+      patch.currentVersionId = String(submissionVersion);
       break;
 
     case "EDIT":
@@ -840,6 +853,50 @@ export async function applyProposalAction(
   );
   if (proposalTransition.modifiedCount !== 1) {
     throw new AppError(409, "Proposal changed while applying action.", "CONFLICT");
+  }
+
+  if (submissionVersion !== null) {
+    const merged = { ...proposal, ...patch };
+    await ProposalVersionModel.findOneAndUpdate(
+      { proposalId, proposalVersionId: String(submissionVersion) },
+      {
+        $setOnInsert: {
+          id: id("pv"),
+          proposalId,
+          proposalVersionId: String(submissionVersion),
+          versionNumber: submissionVersion,
+          status: "FROZEN",
+          source: "PROPOSAL",
+          snapshot: {
+            id: proposal.id,
+            title: merged.title,
+            synopsis: merged.synopsis,
+            logline: merged.logline,
+            hook: merged.hook,
+            genres: merged.genres,
+            targetAudience: merged.targetAudience,
+            requestedPublicationType: merged.requestedPublicationType,
+            chaptersPlanned: merged.chaptersPlanned,
+            coverUrl: merged.coverUrl,
+            coverFileKey: merged.coverFileKey,
+            sampleChapterUrl: merged.sampleChapterUrl,
+            manuscripts: merged.manuscripts ?? [],
+            materials: merged.materials ?? [],
+            mainCharacters: merged.mainCharacters,
+            submissionNote: merged.submissionNote,
+            originalWorkConfirmed: merged.originalWorkConfirmed,
+            revisionRound: merged.revisionRound,
+            submittedAt: merged.submittedAt,
+            authorId: merged.authorId,
+            authorName: merged.authorName,
+            frozenFromStatus: fromStatus,
+          },
+          frozenById: actor.id,
+          frozenAt: new Date(),
+        },
+      },
+      { upsert: true },
+    );
   }
 
   if (!["SUBMIT", "CLAIM", "REQUEST_CHANGES", "FORWARD"].includes(action)) {

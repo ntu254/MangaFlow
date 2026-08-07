@@ -198,7 +198,7 @@ export function ReviewItemsPanel({
       }
     >
       <QueueTable
-        columns={reviewQueueColumns(user.id)}
+        columns={reviewQueueColumns(user.id, items)}
         rows={paged}
         getRowKey={(item) => item.id}
         getRowAccent={reviewRowAccent}
