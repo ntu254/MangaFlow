@@ -134,13 +134,7 @@ export function AssistantDashboard() {
   }, [mine]);
 
   const revisions = useMemo(
-    () =>
-      mine
-        .filter(
-          (t) =>
-            t.status === "REVISION_REQUESTED",
-        )
-        .slice(0, 5),
+    () => mine.filter((t) => t.status === "REVISION_REQUESTED").slice(0, 5),
     [mine],
   );
 
@@ -157,9 +151,7 @@ export function AssistantDashboard() {
     return {
       totalEarned: myEarnings.reduce((acc, e) => acc + (e.amount || 0), 0),
       pending: myEarnings.filter((e) => e.status === "PENDING").reduce((a, b) => a + b.amount, 0),
-      confirmed: myEarnings
-        .filter((e) => e.status === "EARNED")
-        .reduce((a, b) => a + b.amount, 0),
+      confirmed: myEarnings.filter((e) => e.status === "EARNED").reduce((a, b) => a + b.amount, 0),
       paidMonth: myEarnings
         .filter((e) => e.status === "EARNED" && e.period === monthKey)
         .reduce((a, b) => a + b.amount, 0),

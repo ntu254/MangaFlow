@@ -1,5 +1,5 @@
 import { asyncRoute, created, ok, AppError } from "../lib/http.js";
-import { ProposalModel, ProposalVersionModel } from "../db/models.js";
+import { ProposalModel, ProposalVersionModel, ProposalVoteModel } from "../db/models.js";
 import { id, nowIso } from "../domain/ids.js";
 import { apiToWebRole } from "../domain/roles.js";
 import { audit } from "../services/audit.service.js";
@@ -7,6 +7,7 @@ import {
   assertCanReadProposal,
   assertCanReadProposalById,
 } from "../services/authorization.service.js";
+import { normalizeBoardVote } from "../services/board-governance.service.js";
 import { applyProposalAction } from "../services/workflow.service.js";
 import { paginated, requireActor, slugify, validateAction } from "./helpers.js";
 import { parseBody, rejectProtectedFields } from "../validators/common.js";
@@ -125,10 +126,20 @@ export const createProposal = asyncRoute(async (req: AuthedRequest, res) => {
   created(res, proposal);
 });
 
+// The `votes` field on Proposal documents is deprecated — the proposalvotes
+// collection is the source of truth. Read paths must attach votes explicitly
+// so the web client never receives an undefined votes array.
+async function attachVotes(proposal: any) {
+  const rawVotes = await ProposalVoteModel.find({ proposalId: proposal.id })
+    .sort({ createdAt: 1 })
+    .lean();
+  return { ...proposal, votes: rawVotes.map(normalizeBoardVote) };
+}
+
 export const getProposal = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
   const proposal = await assertCanReadProposalById(actor, String(req.params.id));
-  ok(res, proposal);
+  ok(res, await attachVotes(proposal));
 });
 
 export const listProposalVersions = asyncRoute(async (req: AuthedRequest, res) => {

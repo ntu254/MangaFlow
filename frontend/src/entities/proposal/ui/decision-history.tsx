@@ -25,7 +25,7 @@ export function DecisionHistory({
   );
   const tally = serverTally ?? evaluateBoardTally(proposal.votes, quorum);
 
-  const chairVoter = proposal.votes.find((v) => v.isChair);
+  const chairVoter = (proposal.votes ?? []).find((v) => v.isChair);
 
   return (
     <div className="rounded-xl border border-border/60 bg-background/50 p-4 space-y-4">

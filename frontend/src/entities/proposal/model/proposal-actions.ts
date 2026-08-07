@@ -72,7 +72,7 @@ export function checkAction(action: ProposalAction, user: User, p: SeriesProposa
       if (!BOARD_OR_ADMIN(user)) return { ok: false, reason: "Board member only." };
       if (p.status !== "BOARD_REVIEW")
         return { ok: false, reason: "Can only vote in an open Board review." };
-      if (p.votes.some((v) => v.voterId === user.id))
+      if ((p.votes ?? []).some((v) => v.voterId === user.id))
         return { ok: false, reason: "You have already voted." };
       return { ok: true };
   }

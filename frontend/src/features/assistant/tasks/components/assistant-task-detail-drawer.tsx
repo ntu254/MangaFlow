@@ -1,24 +1,28 @@
-import { Check, ExternalLink, X } from "lucide-react";
+import { Check, ExternalLink, RotateCcw, X } from "lucide-react";
 import { OpenTaskStudioAction } from "./open-task-studio-action";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalTitle,
-  ModalDescription,
-} from "@/components/ui/modal";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
 import type { StudioComment, StudioTask } from "@/entities/series/model/studio-types";
 import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
+import {
+  SUBMISSION_STATUS_BADGE,
+  SUBMISSION_STATUS_LABEL,
+} from "@/entities/submission/model/assistant-types";
 import { formatDate, formatDateTime } from "@/shared/lib/format-date";
 import { buildTaskContext, deadlineRisk, priorityBadge, priorityLabel } from "@/entities/task";
+import { getTaskEdgeSummary } from "@/entities/task";
+import { ResolvedFileLink } from "@/shared/ui/resolved-file-link";
 import {
-  getVisualTaskStatus,
-  getVisualTaskStatusClass,
-  getTaskStatusLabel,
-  getTaskEdgeSummary,
-} from "@/entities/task";
-import { useStudioTaskActionMutation } from "../../api/assistant-queries";
+  useReopenTaskMutation,
+  useStudioTaskActionMutation,
+  useTaskSubmissionsQuery,
+} from "../../api/assistant-queries";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
 
@@ -37,16 +41,18 @@ export function AssistantTaskDetailDrawer({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const assignmentMutation = useStudioTaskActionMutation(task?.id ?? "");
+  const taskId = task?.id ?? "";
+  const assignmentMutation = useStudioTaskActionMutation(taskId);
+  const reopenMutation = useReopenTaskMutation(taskId);
+  const { data: submissions = [] } = useTaskSubmissionsQuery(taskId);
+
   if (!task) return null;
   const ctx = buildTaskContext(task, chapters, seriesList);
   const risk = deadlineRisk(task.dueAt);
-  const taskComments = comments
-    .filter((c) => c.taskId === task.id || c.pageId === task.pageId)
-    .slice(0, 5);
-  const visualStatus = getVisualTaskStatus(task);
+  const taskComments = comments.filter((c) => c.taskId === task.id || c.pageId === task.pageId);
   const edgeSummary = getTaskEdgeSummary(task);
   const assignmentPending = task.assignmentStatus === "PENDING";
+  const inRevision = task.status === "REVISION_REQUESTED";
 
   const acceptAssignment = () => {
     assignmentMutation.mutate(
@@ -70,24 +76,39 @@ export function AssistantTaskDetailDrawer({
     );
   };
 
-  return (
-    <Modal open={open} onOpenChange={onOpenChange}>
-      <ModalContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <ModalHeader>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {ctx.series?.title ?? "—"} · Ch.{ctx.chapter?.number ?? "—"}
-          </p>
-          <ModalTitle className="text-xl font-bold font-serif">{task.title}</ModalTitle>
-          <ModalDescription className="sr-only">Task details for {task.title}</ModalDescription>
-        </ModalHeader>
+  const reopenTask = () => {
+    reopenMutation.mutate(
+      { chapterId: task.chapterId, pageId: task.pageId },
+      {
+        onSuccess: () => toast.success("Task reopened. Incorporate the feedback and resubmit."),
+        onError: () => toast.error("Could not reopen this task."),
+      },
+    );
+  };
 
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-            <span
-              className={`rounded border px-1.5 py-0.5 font-bold uppercase ${getVisualTaskStatusClass(visualStatus)}`}
-            >
-              {getTaskStatusLabel(visualStatus)}
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full max-w-md overflow-y-auto bg-background p-0">
+        <SheetHeader className="border-b border-border/70 px-5 pb-3 pt-5 text-left">
+          <p className="truncate text-[11px] font-semibold text-muted-foreground">
+            {ctx.series?.title ?? "Unknown series"}
+          </p>
+          <p className="text-[11px] font-medium text-muted-foreground">
+            Chapter{" "}
+            <span className="font-mono font-semibold text-foreground/70">
+              {ctx.chapter?.number ?? "—"}
             </span>
+            {" · "}Page{" "}
+            <span className="font-mono font-semibold text-foreground/70">
+              {String(ctx.pageIndex ?? 0).padStart(2, "0")}
+            </span>
+          </p>
+          <SheetTitle className="font-serif text-xl font-bold">{task.title}</SheetTitle>
+          <SheetDescription className="sr-only">Task details for {task.title}</SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-5 p-5">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
             <span className="rounded bg-muted px-1.5 py-0.5 font-semibold text-muted-foreground">
               {REGION_TYPE_LABEL[task.type]}
             </span>
@@ -110,17 +131,17 @@ export function AssistantTaskDetailDrawer({
           </div>
 
           {edgeSummary ? (
-            <div className="rounded bg-muted/60 p-2.5 text-[11px] text-accent border border-border/40 font-medium">
+            <div className="rounded border border-border/40 bg-muted/60 p-2.5 text-[11px] font-medium text-accent">
               {edgeSummary}
             </div>
           ) : null}
 
-          <Section title="Task Description">
+          <Section title="Task description">
             <p className="text-xs leading-relaxed text-muted-foreground">{task.instructions}</p>
           </Section>
 
           {assignmentPending ? (
-            <Section title="Assignment Decision">
+            <Section title="Assignment decision">
               <p className="mb-3 text-[11px] text-muted-foreground">
                 Review the brief before accepting. You must accept the assignment before you can
                 start or submit work.
@@ -146,20 +167,77 @@ export function AssistantTaskDetailDrawer({
             </Section>
           ) : null}
 
-          <Section title="Location">
-            <dl className="grid grid-cols-2 gap-2 text-[11px]">
-              <Item k="Series" v={ctx.series?.title ?? "—"} />
-              <Item k="Chapter" v={`Ch. ${String(ctx.chapter?.number ?? 0).padStart(3, "0")}`} />
-              <Item k="Page" v={`Page ${String(ctx.pageIndex ?? 0).padStart(2, "0")}`} />
-              <Item k="Region" v={REGION_TYPE_LABEL[task.type]} />
-            </dl>
+          {inRevision ? (
+            <Section title="Revision">
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                The Mangaka asked for changes. Incorporate the feedback, then resubmit from the
+                studio.
+              </p>
+              <button
+                type="button"
+                onClick={reopenTask}
+                disabled={reopenMutation.isPending}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-amber-400/60 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+              >
+                <RotateCcw className="size-3.5" /> Reopen task
+              </button>
+            </Section>
+          ) : null}
+
+          <Section title={`Submission history (${submissions.length})`}>
+            {submissions.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No submissions yet.</p>
+            ) : (
+              <ol className="space-y-2">
+                {submissions.map((s) => (
+                  <li
+                    key={s.id}
+                    className="rounded border border-border bg-background/60 p-2.5 text-[11px]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs font-semibold">{s.versionLabel}</span>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${SUBMISSION_STATUS_BADGE[s.status]}`}
+                      >
+                        {SUBMISSION_STATUS_LABEL[s.status]}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                      <span>
+                        {formatDateTime(s.submittedAt)} · {s.reviewedByName ?? "—"}
+                      </span>
+                      <ResolvedFileLink
+                        fileKey={s.fileKey}
+                        fallbackUrl={s.fileUrl}
+                        fileName={s.fileName}
+                        ariaLabel={`Open ${s.versionLabel} file`}
+                        className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-semibold text-foreground hover:bg-muted"
+                      >
+                        Open file
+                      </ResolvedFileLink>
+                    </div>
+                    {s.note ? (
+                      <p className="mt-1.5 whitespace-pre-line text-[11px] text-foreground/80">
+                        {s.note}
+                      </p>
+                    ) : null}
+                    {s.feedback ? (
+                      <p className="mt-1.5 rounded border border-orange-200 bg-orange-50 px-2 py-1.5 text-[11px] text-orange-900">
+                        <span className="font-bold uppercase tracking-wider">Feedback: </span>
+                        {s.feedback}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
           </Section>
 
           <Section title={`Feedback (${taskComments.length})`}>
             {taskComments.length === 0 ? (
               <p className="text-[11px] text-muted-foreground">No feedback yet.</p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
                 {taskComments.map((c) => (
                   <li
                     key={c.id}
@@ -176,18 +254,16 @@ export function AssistantTaskDetailDrawer({
             )}
           </Section>
 
-          <div className="pt-2">
-            <OpenTaskStudioAction
-              task={task}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-60 cursor-pointer"
-            >
-              <ExternalLink className="size-3.5" />{" "}
-              {task.status === "TODO" ? "Start & Open Task Studio" : "Open Task Studio"}
-            </OpenTaskStudioAction>
-          </div>
+          <OpenTaskStudioAction
+            task={task}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-60"
+          >
+            <ExternalLink className="size-3.5" />{" "}
+            {task.status === "TODO" ? "Start & Open Task Studio" : "Open Task Studio"}
+          </OpenTaskStudioAction>
         </div>
-      </ModalContent>
-    </Modal>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -198,15 +274,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
         {title}
       </h4>
       {children}
-    </div>
-  );
-}
-
-function Item({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="rounded border border-border/60 bg-muted/30 p-2">
-      <dt className="text-[10px] font-semibold text-muted-foreground">{k}</dt>
-      <dd className="font-medium text-foreground truncate">{v}</dd>
     </div>
   );
 }

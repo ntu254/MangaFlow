@@ -1,13 +1,12 @@
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
 import type { StudioTask } from "@/entities/series/model/studio-types";
 import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
+import type { AssistantSubmission } from "@/entities/submission/model/assistant-types";
+import { SUBMISSION_STATUS_LABEL } from "@/entities/submission/model/assistant-types";
 import {
   buildTaskContext,
   deadlineRisk,
-  getTaskEdgeSummary,
-  getTaskStatusLabel,
-  getVisualTaskStatus,
-  getVisualTaskStatusClass,
+  isTaskOverdue,
   priorityBadge,
   priorityLabel,
 } from "@/entities/task";
@@ -24,40 +23,48 @@ export function AssistantTaskCard({
   task,
   chapters,
   seriesList,
-  latestFeedback,
+  latestSubmission,
   onSelect,
 }: {
   task: StudioTask;
   chapters: Chapter[];
   seriesList: ProductionSeries[];
-  latestFeedback?: string;
+  latestSubmission?: AssistantSubmission;
   onSelect: () => void;
 }) {
   const ctx = buildTaskContext(task, chapters, seriesList);
   const risk = deadlineRisk(task.dueAt);
   const action = primaryActionForTaskStatus(task.status);
-  const visualStatus = getVisualTaskStatus(task);
-  const edgeSummary = getTaskEdgeSummary(task);
+  const overdue = isTaskOverdue(task);
+  const awaitingAcceptance = task.assignmentStatus === "PENDING";
 
   return (
     <Surface
       onClick={onSelect}
-      className="flex cursor-pointer flex-col gap-2 p-4 transition-colors hover:border-[var(--admin-navy)]/35 hover:bg-[var(--admin-hover)]"
+      className={`flex cursor-pointer flex-col gap-2 p-3.5 transition-colors hover:border-[var(--admin-navy)]/35 hover:bg-[var(--admin-hover)] ${
+        overdue ? "border-rose-300/70 bg-rose-50/40" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-semibold">{task.title}</p>
-          {edgeSummary ? <p className="text-[10px] text-accent mt-0.5">{edgeSummary}</p> : null}
-        </div>
-        <span
-          className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getVisualTaskStatusClass(visualStatus)}`}
-        >
-          {getTaskStatusLabel(visualStatus)}
-        </span>
+        <p className="line-clamp-2 text-[13px] font-semibold leading-snug">{task.title}</p>
+        {overdue ? (
+          <span className="shrink-0 rounded border border-rose-300 bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-900">
+            Overdue
+          </span>
+        ) : null}
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        {ctx.series?.title ?? "—"} · Ch.{ctx.chapter?.number ?? "—"} · P.
-        {String(ctx.pageIndex ?? 0).padStart(2, "0")}
+      <p className="truncate text-[11px] font-semibold text-foreground/80">
+        {ctx.series?.title ?? "Unknown series"}
+      </p>
+      <p className="text-[11px] font-medium text-muted-foreground">
+        Ch.{" "}
+        <span className="font-mono font-semibold text-foreground/70">
+          {ctx.chapter?.number ?? "—"}
+        </span>
+        {" · "}Page{" "}
+        <span className="font-mono font-semibold text-foreground/70">
+          {String(ctx.pageIndex ?? 0).padStart(2, "0")}
+        </span>
       </p>
       <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
         <span className="rounded bg-muted px-1.5 py-0.5 font-semibold text-muted-foreground">
@@ -69,36 +76,51 @@ export function AssistantTaskCard({
           {priorityLabel(task.priority)}
         </span>
         <span
-          className={`ml-auto rounded px-1.5 py-0.5 font-bold uppercase ${
-            risk.tone === "rose"
+          className={`ml-auto rounded px-1.5 py-0.5 font-semibold ${
+            overdue
               ? "bg-rose-100 text-rose-900"
               : risk.tone === "amber"
                 ? "bg-amber-100 text-amber-900"
                 : "bg-emerald-100 text-emerald-900"
           }`}
         >
-          {formatDate(task.dueAt)} · {risk.label}
+          {formatDate(task.dueAt)}
+          {overdue ? null : <> · {risk.label}</>}
         </span>
       </div>
-      {latestFeedback ? (
-        <p className="line-clamp-2 rounded border border-orange-200 bg-orange-50 px-2 py-1.5 text-[11px] text-orange-900">
-          {latestFeedback}
-        </p>
+
+      {awaitingAcceptance ? (
+        <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-1 text-[10px] font-semibold text-amber-900">
+          Awaiting your acceptance
+        </span>
       ) : null}
+
+      {latestSubmission ? (
+        <span
+          title={SUBMISSION_STATUS_LABEL[latestSubmission.status]}
+          className="w-fit rounded bg-background px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground"
+        >
+          {latestSubmission.versionLabel}
+        </span>
+      ) : null}
+
       <div className="mt-1 flex items-center gap-2">
         <OpenTaskStudioAction
           task={task}
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-[5px] bg-[var(--admin-navy)] px-3 text-[11px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-60"
+          className="inline-flex h-8 flex-1 items-center justify-center rounded-[5px] bg-[var(--admin-navy)] px-3 text-[10px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-60"
         >
-          {visualStatus === "CANCELLED" ? "View only" : TASK_ACTION_LABEL[action]}
+          {TASK_ACTION_LABEL[action]}
         </OpenTaskStudioAction>
         <button
           type="button"
-          onClick={onSelect}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect();
+          }}
           title="Task details"
           aria-label="Open task details"
-          className="grid size-9 place-items-center rounded-[5px] border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-muted)] hover:bg-[var(--admin-hover)]"
+          className="grid size-8 place-items-center rounded-[5px] border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-muted)] hover:bg-[var(--admin-hover)]"
         >
           <MoreHorizontal className="size-4" />
         </button>

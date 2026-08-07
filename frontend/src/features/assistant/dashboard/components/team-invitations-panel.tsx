@@ -51,8 +51,7 @@ export function TeamInvitationsPanel() {
         description: "You can now access the series studio and receive task assignments.",
       });
     } catch (err: any) {
-      const message =
-        err?.message || err?.data?.message || "Failed to accept invite.";
+      const message = err?.message || err?.data?.message || "Failed to accept invite.";
       toast.error(message);
     } finally {
       setProcessingId(null);
@@ -65,8 +64,7 @@ export function TeamInvitationsPanel() {
       await declineMutation.mutateAsync(invite.id);
       toast.info("Invitation declined.");
     } catch (err: any) {
-      const message =
-        err?.message || err?.data?.message || "Failed to decline invite.";
+      const message = err?.message || err?.data?.message || "Failed to decline invite.";
       toast.error(message);
     } finally {
       setProcessingId(null);
@@ -82,9 +80,7 @@ export function TeamInvitationsPanel() {
             <Mail className="size-4.5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-foreground">
-              Team Invitations
-            </h2>
+            <h2 className="text-sm font-bold text-foreground">Team Invitations</h2>
             <p className="text-[10px] text-muted-foreground">
               {pending.length} pending invitation{pending.length > 1 ? "s" : ""}
             </p>

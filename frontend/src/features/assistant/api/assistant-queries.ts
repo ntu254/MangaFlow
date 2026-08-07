@@ -362,9 +362,7 @@ export function useCreateSubmissionMutation() {
         },
       }).then(mapSubmissionRecord),
     onSuccess: (_data, variables) => {
-      const invalidations = [
-        queryClient.invalidateQueries({ queryKey: submissionKeys.all }),
-      ];
+      const invalidations = [queryClient.invalidateQueries({ queryKey: submissionKeys.all })];
       if (variables.taskId) {
         invalidations.push(
           queryClient.invalidateQueries({
@@ -425,8 +423,7 @@ export function useMyInvitesQuery() {
 export function useAcceptInviteMutation() {
   const queryClient = useQueryClient();
   return useMutation<unknown, Error, string>({
-    mutationFn: (inviteId) =>
-      apiRequest(`/series/invites/${inviteId}/accept`, { method: "POST" }),
+    mutationFn: (inviteId) => apiRequest(`/series/invites/${inviteId}/accept`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inviteKeys.all });
       queryClient.invalidateQueries({ queryKey: seriesKeys.all });
@@ -437,8 +434,7 @@ export function useAcceptInviteMutation() {
 export function useDeclineInviteMutation() {
   const queryClient = useQueryClient();
   return useMutation<unknown, Error, string>({
-    mutationFn: (inviteId) =>
-      apiRequest(`/series/invites/${inviteId}/decline`, { method: "POST" }),
+    mutationFn: (inviteId) => apiRequest(`/series/invites/${inviteId}/decline`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inviteKeys.all });
     },

@@ -1,12 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SubmissionsPage } from "@/features/assistant/submissions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/assistant/submissions")({
-  head: () => ({
-    meta: [
-      { title: "Submissions — MangaFlow Studio" },
-      { name: "description", content: "Track submitted submissions." },
-    ],
-  }),
-  component: SubmissionsPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/app/assistant/tasks" });
+  },
 });

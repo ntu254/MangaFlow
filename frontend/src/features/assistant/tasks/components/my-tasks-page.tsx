@@ -5,46 +5,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { deadlineRisk, TaskStatusSummary } from "@/entities/task";
+import { TaskStatusSummary } from "@/entities/task";
 import {
   useChaptersForSeriesQuery,
   useCommentsQuery,
   useMySeriesQuery,
   useStudioTasksQuery,
+  useSubmissionsQuery,
 } from "../../api/assistant-queries";
 import { tasksForAssistant } from "../../model/assistant-access";
 import { useAuth } from "@/shared/auth";
 import { PageShell } from "@/shared/layout/page-layout";
-import {
-  DataPagination,
-  DataTable,
-  PageHeader,
-  SearchToolbar,
-  StateBlock,
-  TextButton,
-} from "@/shared/ui";
+import { PageHeader, SearchToolbar, StateBlock } from "@/shared/ui";
 import { RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AssistantTaskDetailDrawer } from "./assistant-task-detail-drawer";
-import { AssistantTaskTable } from "./assistant-task-table";
-
-import { getVisualTaskStatus, type VisualTaskStatus } from "@/entities/task";
-
-type TabKey = "ALL" | VisualTaskStatus;
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "TODO", label: "To do" },
-  { key: "IN_PROGRESS", label: "In progress" },
-  { key: "SUBMITTED", label: "Submitted" },
-  { key: "REVISION_REQUESTED", label: "Revision" },
-  { key: "MANGAKA_APPROVED", label: "Approved" },
-  { key: "OVERDUE", label: "Overdue" },
-  { key: "REASSIGNED", label: "Reassigned" },
-  { key: "CANCELLED", label: "Cancelled" },
-];
-
-const PAGE_SIZE = 10;
+import { AssistantTaskBoard, type BoardColumnKey } from "./assistant-task-board";
 
 export function MyTasksPage() {
   const user = useAuth((s) => s.user);
@@ -59,60 +35,60 @@ export function MyTasksPage() {
   } = useStudioTasksQuery({
     assigneeId: user?.id ?? "",
   });
+  const { data: submissions = [] } = useSubmissionsQuery({ assistantId: user?.id ?? "" });
   const { data: comments = [] } = useCommentsQuery({});
-  const [tab, setTab] = useState<TabKey>("ALL");
   const [query, setQuery] = useState("");
   const [seriesFilter, setSeriesFilter] = useState<string>("ALL");
   const [priority, setPriority] = useState<string>("ALL");
-  const [dueSoonOnly, setDueSoonOnly] = useState(false);
+  const [hiddenColumns, setHiddenColumns] = useState<Set<BoardColumnKey>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
 
   const mine = useMemo(() => (user ? tasksForAssistant(tasks, user.id) : []), [tasks, user]);
 
+  const latestSubmissionByTask = useMemo(() => {
+    const map = new Map<string, (typeof submissions)[number]>();
+    for (const submission of submissions) {
+      const current = map.get(submission.taskId);
+      if (!current || submission.version > current.version) {
+        map.set(submission.taskId, submission);
+      }
+    }
+    return map;
+  }, [submissions]);
+
   const filtered = useMemo(() => {
     return mine
-      .filter((t) => tab === "ALL" || getVisualTaskStatus(t) === tab)
       .filter((t) => (priority === "ALL" ? true : t.priority === priority))
-      .filter((t) => (dueSoonOnly ? deadlineRisk(t.dueAt).tone !== "emerald" : true))
       .filter((t) => {
         if (seriesFilter === "ALL") return true;
         const c = chapters.find((chapter) => chapter.id === t.chapterId);
         return c?.seriesId === seriesFilter;
       })
       .filter((t) => (query ? t.title.toLowerCase().includes(query.toLowerCase()) : true));
-  }, [mine, tab, priority, dueSoonOnly, seriesFilter, query, chapters]);
+  }, [mine, priority, seriesFilter, query, chapters]);
 
   const selected = selectedId ? mine.find((t) => t.id === selectedId) : undefined;
   const filtersActive =
-    tab !== "ALL" ||
     query.trim().length > 0 ||
     seriesFilter !== "ALL" ||
     priority !== "ALL" ||
-    dueSoonOnly;
+    hiddenColumns.size > 0;
 
   const clearFilters = () => {
-    setTab("ALL");
     setQuery("");
     setSeriesFilter("ALL");
     setPriority("ALL");
-    setDueSoonOnly(false);
-    setPage(1);
+    setHiddenColumns(new Set());
   };
 
-  useEffect(() => {
-    setPage(1);
-  }, [tab, query, seriesFilter, priority, dueSoonOnly]);
-
-  useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    if (page > totalPages) setPage(totalPages);
-  }, [filtered.length, page]);
-
-  const paged = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page],
-  );
+  const toggleColumn = (key: BoardColumnKey) => {
+    setHiddenColumns((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   if (!user) return null;
 
@@ -142,7 +118,7 @@ export function MyTasksPage() {
       <PageHeader
         eyebrow="Production"
         title="My tasks"
-        description={`${mine.length} assigned tasks with deadlines, feedback, and workflow status.`}
+        description={`${mine.length} assigned tasks across the production workflow.`}
       />
 
       <TaskStatusSummary tasks={mine} />
@@ -184,17 +160,6 @@ export function MyTasksPage() {
                   <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
-              <TextButton
-                aria-pressed={dueSoonOnly}
-                onClick={() => setDueSoonOnly((value) => !value)}
-                className={
-                  dueSoonOnly
-                    ? "border-[var(--admin-navy)] bg-[var(--admin-navy)] text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
-                    : undefined
-                }
-              >
-                Due soon
-              </TextButton>
             </>
           }
           actions={
@@ -214,58 +179,43 @@ export function MyTasksPage() {
           }
         />
 
-        <div className="flex gap-1 overflow-x-auto border-b border-[var(--admin-border)]">
-          {TABS.map((t) => (
-            <button
-              type="button"
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-[12px] font-semibold ${
-                tab === t.key
-                  ? "border-[var(--admin-navy)] text-[var(--admin-ink)]"
-                  : "border-transparent text-[var(--admin-faint)] hover:text-[var(--admin-ink)]"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
         {tasksLoading ? (
-          <DataTable isLoading skeletonRows={5} skeletonColumns={9} />
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="w-72 shrink-0 space-y-2">
+                <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2">
+                  <div className="h-24 animate-pulse rounded-md bg-muted" />
+                  <div className="h-24 animate-pulse rounded-md bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
-          <DataTable
-            isEmpty
-            emptyTitle={
-              mine.length === 0
-                ? "You do not have assigned tasks yet"
-                : "No tasks match the filters"
-            }
-            emptyDescription={
-              mine.length === 0
-                ? "New tasks assigned by a Mangaka will appear here."
-                : "Try changing the status or search filters."
-            }
-          />
+          <div className="rounded-md border border-dashed border-border bg-card/40 p-10 text-center text-sm text-muted-foreground">
+            {mine.length === 0 ? (
+              <>
+                <p className="font-semibold text-foreground">No assigned tasks yet</p>
+                <p className="mt-1 text-xs">New tasks assigned by a Mangaka will appear here.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-foreground">No tasks match the filters</p>
+                <p className="mt-1 text-xs">Try changing the search or filter settings.</p>
+              </>
+            )}
+          </div>
         ) : (
-          <DataTable>
-            <AssistantTaskTable
-              tasks={paged}
-              chapters={chapters}
-              seriesList={seriesList}
-              onSelect={setSelectedId}
-            />
-          </DataTable>
-        )}
-        {filtered.length > 0 ? (
-          <DataPagination
-            total={filtered.length}
-            page={page}
-            pageSize={PAGE_SIZE}
-            onPageChange={setPage}
-            itemName="tasks"
+          <AssistantTaskBoard
+            tasks={filtered}
+            chapters={chapters}
+            seriesList={seriesList}
+            latestSubmissionByTask={latestSubmissionByTask}
+            hiddenColumns={hiddenColumns}
+            onToggleColumn={toggleColumn}
+            onSelect={setSelectedId}
           />
-        ) : null}
+        )}
       </div>
 
       <AssistantTaskDetailDrawer

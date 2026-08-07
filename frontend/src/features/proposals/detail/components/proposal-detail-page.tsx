@@ -15,7 +15,6 @@ import { ActionPanel } from "./action-panel";
 import { ProposalWizard } from "../../create/components/proposal-wizard";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { AUDIENCE_LABEL } from "@/entities/proposal/model/proposal-types";
-import { ManuscriptList } from "./manuscript-list";
 import { MaterialsViewer } from "@/entities/proposal";
 import { RevisionChecklist } from "./revision-checklist";
 import { ProposalVersionHistory } from "./proposal-version-history";
@@ -24,12 +23,11 @@ import { Timeline } from "./timeline";
 import { ResolvedImage } from "@/shared/ui";
 import { ResolvedFileLink } from "@/shared/ui/resolved-file-link";
 
-type Tab = "overview" | "manuscripts" | "materials" | "revision" | "decision" | "versions";
+type Tab = "overview" | "materials" | "revision" | "decision" | "versions";
 
 const TABS: { id: Tab; label: string; badge?: number }[] = [
   { id: "overview", label: "Overview" },
-  { id: "manuscripts", label: "Manuscript" },
-  { id: "materials", label: "Supporting materials" },
+  { id: "materials", label: "Materials" },
   { id: "revision", label: "Revision" },
   { id: "versions", label: "Submission versions" },
   { id: "decision", label: "Decision history" },
@@ -309,10 +307,8 @@ export function ProposalDetailPage({
                 <Timeline events={proposal.history} />
               </section>
             </div>
-          ) : tab === "manuscripts" ? (
-            <ManuscriptList manuscripts={proposal.manuscripts} />
           ) : tab === "materials" ? (
-            <MaterialsViewer proposal={proposal} scope="supporting" />
+            <MaterialsViewer proposal={proposal} />
           ) : tab === "revision" ? (
             <RevisionChecklist proposal={proposal} />
           ) : tab === "versions" ? (

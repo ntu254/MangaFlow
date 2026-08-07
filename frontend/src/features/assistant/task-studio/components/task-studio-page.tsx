@@ -334,9 +334,7 @@ export function TaskStudioPage({ taskId }: { taskId: string }) {
                 <TaskFeedbackPanel
                   task={task}
                   comments={taskComments}
-                  highlight={
-                    task.status === "REVISION_REQUESTED"
-                  }
+                  highlight={task.status === "REVISION_REQUESTED"}
                   readOnly={readOnly}
                 />
               </TabsContent>
