@@ -14,6 +14,7 @@ import { DataPagination, SortableHeader } from "@/shared/ui";
 import { useSortableData } from "@/shared/lib/use-sortable-data";
 import { ApiRequestError } from "@/shared/api/client";
 import { ChapterPublicationDetailSheet } from "./chapter-publication-detail-sheet";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 
 const PAGE_SIZE = 10;
 
@@ -130,12 +131,16 @@ function PublicationActions({
 }) {
   const action = useChapterActionMutation(chapter.id, chapter.seriesId);
   const suggested = nextSuggestedSchedule(publicationType);
+  const [publishEarlyOpen, setPublishEarlyOpen] = useState(false);
 
   const run = (act: "POSTPONE" | "PUBLISH" | "PUBLISH_EARLY", successMsg: string) =>
     action.mutate(
       { action: act },
       {
-        onSuccess: () => toast.success(successMsg),
+        onSuccess: () => {
+          setPublishEarlyOpen(false);
+          toast.success(successMsg);
+        },
         onError: (error) => toast.error(publicationErrorMessage(error)),
       },
     );
@@ -179,19 +184,24 @@ function PublicationActions({
               type="button"
               disabled={action.isPending}
               title={scheduledAt ? `Publish before ${formatDate(scheduledAt)}.` : undefined}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Publish this chapter now? This will release it before the scheduled time.",
-                  )
-                ) {
-                  run("PUBLISH_EARLY", "Chapter published early.");
-                }
-              }}
+              onClick={() => setPublishEarlyOpen(true)}
               className="rounded border border-rose-300 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-40"
             >
               Publish early
             </button>
+
+            <ConfirmDialog
+              open={publishEarlyOpen}
+              onOpenChange={setPublishEarlyOpen}
+              title={`Publish Chapter ${chapter.number} Early?`}
+              description={`Are you sure you want to publish "${chapter.title || `Chapter ${chapter.number}`}" immediately? This will release the chapter before its scheduled time.`}
+              impactExplanation="Readers will instantly gain access to this chapter upon publication. This action cannot be undone."
+              confirmLabel="Publish Early Now"
+              cancelLabel="Keep Scheduled"
+              variant="danger"
+              isLoading={action.isPending}
+              onConfirm={() => run("PUBLISH_EARLY", "Chapter published early.")}
+            />
           </>
         )}
       </div>
