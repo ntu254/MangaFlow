@@ -34,10 +34,24 @@ export function ChapterFormDialog({
   const [draftDue, setDraftDue] = useState("");
   const [reviewDue, setReviewDue] = useState("");
 
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const submit = () => {
     if (!user) return;
     if (!title.trim()) {
       toast.error("Title is required.");
+      return;
+    }
+    if (draftDue && draftDue < todayStr) {
+      toast.error("Draft deadline cannot be set in the past.");
+      return;
+    }
+    if (reviewDue && reviewDue < todayStr) {
+      toast.error("Review deadline cannot be set in the past.");
+      return;
+    }
+    if (draftDue && reviewDue && new Date(draftDue).getTime() > new Date(reviewDue).getTime()) {
+      toast.error("Draft deadline must be before or equal to Review deadline.");
       return;
     }
     createChapterMutation.mutate(
@@ -117,6 +131,7 @@ export function ChapterFormDialog({
                 id="ch-draft"
                 type="date"
                 value={draftDue}
+                min={todayStr}
                 onChange={(e) => setDraftDue(e.target.value)}
               />
             </div>
@@ -126,6 +141,7 @@ export function ChapterFormDialog({
                 id="ch-review"
                 type="date"
                 value={reviewDue}
+                min={draftDue || todayStr}
                 onChange={(e) => setReviewDue(e.target.value)}
               />
             </div>
