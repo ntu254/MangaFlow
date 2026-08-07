@@ -52,6 +52,14 @@ function toMobileComment(blocker: EditorChapterDetail["blockers"][number]): Mobi
   }
 }
 
+// This screen implements the Tantou review decisions and nothing else. Once a
+// chapter reaches READY_FOR_PUBLICATION the backend starts returning
+// SCHEDULE/POSTPONE/PUBLISH here too, but `run` below has no branch for them,
+// so rendering them would show buttons whose confirmation silently does
+// nothing. Scheduling and publishing belong to the Publish tab
+// (EditorPublishScreen), which owns those mutations.
+const REVIEW_ACTIONS = new Set(["REQUEST_REVISION", "REJECT", "EDITOR_APPROVE"])
+
 export function EditorChapterDetailScreen({
   chapterId,
   getDetail,
@@ -109,7 +117,7 @@ export function EditorChapterDetailScreen({
         subtitle={`${data.chapter.status} · Chapter ${data.chapter.number}`}
         actions={
           <WorkflowActionBar
-            actions={data.actions}
+            actions={data.actions.filter((descriptor) => REVIEW_ACTIONS.has(descriptor.action))}
             onAction={(descriptor) => {
               setSheetError(null)
               setPending(descriptor)

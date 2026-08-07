@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react"
 import { Image } from "expo-image"
-import { Keyboard, Pressable, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
+import { Pressable, StyleSheet, Text, TextInput, type ViewStyle, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MFHeaderBackground } from "@/components/header-background"
 import { colors, radius, shadow, spacing, typography } from "@/design/tokens"
@@ -63,9 +63,14 @@ export function MFScreen({ tabs, activeTab, onTabChange, children, role = "edito
     <View style={styles.root}>
       <MFHeaderBackground role={role} />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <Pressable style={styles.content} onPress={Keyboard.dismiss}>
-          {children}
-        </Pressable>
+        {/* Plain View, never a Pressable. A full-screen Pressable here joins the
+            touch-responder negotiation for every gesture in every screen, which
+            desynchronises the responder touch bank ("Cannot record touch move
+            without a touch start") and intermittently swallows scroll gestures
+            in the lists it wraps. Keyboard dismissal belongs on the scrollables
+            (keyboardDismissMode) and on modal backdrops, which keep their own
+            Pressable. */}
+        <View style={styles.content}>{children}</View>
       </SafeAreaView>
       <View style={styles.tabBar}>
         {tabs.map((tab) => {

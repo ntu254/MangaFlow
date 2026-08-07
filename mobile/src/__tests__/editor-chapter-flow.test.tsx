@@ -75,4 +75,29 @@ describe("EditorChapterDetailScreen", () => {
       expect(mocked.requestChapterRevision).toHaveBeenCalledWith("ch-1", { comment: "Redraw page 3." }),
     )
   })
+
+  it("hides publication actions it cannot execute once the chapter is ready", async () => {
+    // After EDITOR_APPROVE the chapter becomes READY_FOR_PUBLICATION and the
+    // backend starts returning publication actions on this same endpoint. This
+    // screen only implements the review decisions, so surfacing them here would
+    // render buttons whose confirmation does nothing — scheduling and
+    // publishing belong to the Publish tab.
+    renderScreen({
+      ...blockedDetail,
+      chapter: { ...blockedDetail.chapter, status: "READY_FOR_PUBLICATION" },
+      readiness: { ready: true, items: [] },
+      blockers: [],
+      publication: { status: "SCHEDULED", scheduledAt: "2026-08-20T09:00:00.000Z" },
+      actions: [
+        { action: "SCHEDULE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+        { action: "POSTPONE", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+        { action: "PUBLISH", enabled: true, disabledReason: null, requiresConfirmation: true, requiresReason: false },
+      ],
+    })
+
+    expect(await screen.findByText("Readiness · Ready")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Postpone" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Schedule publication" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Publish now" })).toBeNull()
+  })
 })
