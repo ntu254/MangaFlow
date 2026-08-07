@@ -45,3 +45,34 @@ export function resolveDisplayUrl(url: string, apiBaseUrl: string): string {
   }
   return new URL(url, apiBaseUrl).toString();
 }
+
+export function cleanFileName(rawName: string): string {
+  if (!rawName) return "Submitted file";
+
+  let cleaned = rawName.split("?")[0] ?? rawName;
+
+  try {
+    cleaned = decodeURIComponent(cleaned);
+  } catch {
+    // ignore decode error
+  }
+
+  const parts = cleaned.split(/[/\\]/);
+  cleaned = parts[parts.length - 1] || cleaned;
+
+  const extMatch = cleaned.match(/(\.[a-zA-Z0-9]{2,5})$/);
+  const ext = extMatch ? extMatch[1] : "";
+  const nameWithoutExt = ext ? cleaned.slice(0, -ext.length) : cleaned;
+
+  let stripped = nameWithoutExt.replace(/^[0-9a-fA-F]{8,}[_-]/, "");
+  stripped = stripped.replace(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[_-]?/, "");
+  stripped = stripped.replace(/^\d{10,14}[_-]?/, "");
+
+  if (/^[0-9a-fA-F]{12,}$/.test(stripped)) {
+    const shortHash = stripped.slice(0, 8);
+    return `Submitted File (${shortHash}${ext})`;
+  }
+
+  const finalName = stripped.trim() ? `${stripped.trim()}${ext}` : cleaned;
+  return finalName || "Submitted file";
+}
