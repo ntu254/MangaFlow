@@ -84,20 +84,22 @@ export function ChapterActionPanel({
           {actions
             .filter((a) => a !== "START_DRAFT")
             .map((a) => {
-            const c = checkChapterAction(a, user, chapter, series);
-            const disabledBySeparation = a === "EDITOR_APPROVE" && selfApprovalBlocked;
-            return (
-              <button
-                key={a}
-                disabled={!c.ok || disabledBySeparation || chapterActionMutation.isPending}
-                onClick={() => run(a)}
-                title={disabledBySeparation ? "You cannot approve your own submission." : c.reason}
-                className={`rounded px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${TONES[a] ?? "bg-card text-foreground border border-border hover:bg-muted"}`}
-              >
-                {chapterActionMutation.isPending ? "Processing..." : CHAPTER_ACTION_LABEL[a]}
-              </button>
-            );
-          })}
+              const c = checkChapterAction(a, user, chapter, series);
+              const disabledBySeparation = a === "EDITOR_APPROVE" && selfApprovalBlocked;
+              return (
+                <button
+                  key={a}
+                  disabled={!c.ok || disabledBySeparation || chapterActionMutation.isPending}
+                  onClick={() => run(a)}
+                  title={
+                    disabledBySeparation ? "You cannot approve your own submission." : c.reason
+                  }
+                  className={`rounded px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${TONES[a] ?? "bg-card text-foreground border border-border hover:bg-muted"}`}
+                >
+                  {chapterActionMutation.isPending ? "Processing..." : CHAPTER_ACTION_LABEL[a]}
+                </button>
+              );
+            })}
         </div>
       )}
       {selfApprovalBlocked && actions.includes("EDITOR_APPROVE") ? (

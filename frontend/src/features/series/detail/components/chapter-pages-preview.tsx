@@ -1,6 +1,16 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, MoreVertical, Pencil, Replace, Trash2, Upload, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  Pencil,
+  Replace,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import type { Chapter, ChapterPage } from "@/entities/series/model/series-types";
 import {
@@ -147,7 +157,8 @@ export function ChapterPagesPreview({
     }
   };
 
-  const targetPages = chapter.targetPages ?? (chapter.pages.length > 20 ? chapter.pages.length : 20);
+  const targetPages =
+    chapter.targetPages ?? (chapter.pages.length > 20 ? chapter.pages.length : 20);
   const pages = expanded ? chapter.pages : chapter.pages.slice(0, PREVIEW_COUNT);
   const percent = Math.min(100, Math.round((chapter.pages.length / targetPages) * 100));
 
@@ -300,7 +311,9 @@ export function ChapterPagesPreview({
       {chapter.pages.length === 0 && !canUpload ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/40 py-12 text-center">
           <p className="text-xs font-semibold text-foreground">No pages uploaded yet</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">Draft pages will appear here once uploaded.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Draft pages will appear here once uploaded.
+          </p>
         </div>
       ) : (
         <div

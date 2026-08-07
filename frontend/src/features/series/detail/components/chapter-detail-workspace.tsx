@@ -241,9 +241,11 @@ export function ChapterDetailWorkspace({
                 {chapter.pages.length} / {chapter.targetPages ?? 20} pages
               </span>
             </div>
-            {chapter.title && chapter.title !== series.title && !chapter.title.startsWith(series.title) && (
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{chapter.title}</p>
-            )}
+            {chapter.title &&
+              chapter.title !== series.title &&
+              !chapter.title.startsWith(series.title) && (
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{chapter.title}</p>
+              )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -266,11 +268,11 @@ export function ChapterDetailWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
-
             {/* Smart Dynamic Action Button */}
             {chapter.status === "TANTOU_REVIEW" ? (
               <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                <span className="size-2 rounded-full bg-amber-500 animate-pulse" /> Under Editor Review
+                <span className="size-2 rounded-full bg-amber-500 animate-pulse" /> Under Editor
+                Review
               </span>
             ) : chapter.status === "READY_FOR_PUBLICATION" ? (
               <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -446,36 +448,39 @@ export function ChapterDetailWorkspace({
           </div>
 
           {/* Review Notes Card */}
-          <div id="chapter-review-notes" className="rounded-md border border-border bg-card p-3 space-y-3">
+          <div
+            id="chapter-review-notes"
+            className="rounded-md border border-border bg-card p-3 space-y-3"
+          >
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Review notes
             </p>
-              {comments.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground">No review notes yet.</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {comments.map((n) => (
-                    <li
-                      key={n.id}
-                      className="rounded border border-border bg-background px-2 py-1.5 text-[11px]"
-                    >
-                      <div className="mb-0.5 flex items-center justify-between text-[9px] text-muted-foreground">
-                        <span>
-                          {n.authorName} · {n.authorRole}
-                        </span>
-                        <span>{formatDateTime(n.createdAt)}</span>
-                      </div>
-                      <p className="whitespace-pre-line">{n.text ?? n.body}</p>
-                      {n.status !== "OPEN" && (
-                        <p className="mt-0.5 text-[10px] text-emerald-700">{n.status}</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            {comments.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No review notes yet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {comments.map((n) => (
+                  <li
+                    key={n.id}
+                    className="rounded border border-border bg-background px-2 py-1.5 text-[11px]"
+                  >
+                    <div className="mb-0.5 flex items-center justify-between text-[9px] text-muted-foreground">
+                      <span>
+                        {n.authorName} · {n.authorRole}
+                      </span>
+                      <span>{formatDateTime(n.createdAt)}</span>
+                    </div>
+                    <p className="whitespace-pre-line">{n.text ?? n.body}</p>
+                    {n.status !== "OPEN" && (
+                      <p className="mt-0.5 text-[10px] text-emerald-700">{n.status}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}

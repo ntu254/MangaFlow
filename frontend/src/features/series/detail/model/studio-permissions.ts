@@ -27,6 +27,7 @@ export type StudioPermissionSet = {
   canMergeRegion: boolean;
   canSplitRegion: boolean;
   canCreateTask: boolean;
+  canEditTask: boolean;
   canAssignTask: boolean;
   canReassignTask: boolean;
   canCancelTask: boolean;
@@ -74,6 +75,7 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canMergeRegion: ownsSeries,
       canSplitRegion: ownsSeries,
       canCreateTask: ownsSeries,
+      canEditTask: ownsSeries,
       canAssignTask: ownsSeries,
       canReassignTask: ownsSeries,
       canCancelTask: ownsSeries,
@@ -114,6 +116,7 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canMergeRegion: false,
       canSplitRegion: false,
       canCreateTask: false,
+      canEditTask: false,
       canAssignTask: false,
       canReassignTask: false,
       canCancelTask: false,
@@ -154,6 +157,7 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canMergeRegion: false,
       canSplitRegion: false,
       canCreateTask: false,
+      canEditTask: false,
       canAssignTask: false,
       canReassignTask: false,
       canCancelTask: false,
@@ -192,6 +196,7 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
       canMergeRegion: false,
       canSplitRegion: false,
       canCreateTask: false,
+      canEditTask: false,
       canAssignTask: false,
       canReassignTask: false,
       canCancelTask: false,
@@ -229,6 +234,7 @@ export function getStudioPermissions(user: User, series: ProductionSeries): Stud
     canMergeRegion: false,
     canSplitRegion: false,
     canCreateTask: false,
+    canEditTask: false,
     canAssignTask: false,
     canReassignTask: false,
     canCancelTask: false,
@@ -252,11 +258,7 @@ export function isStudioToolAllowed(permissions: StudioPermissionSet, tool: Stud
   return permissions.allowedTools.includes(tool);
 }
 
-export function assistantVisiblePageIds(
-  chapters: Chapter[],
-  tasks: StudioTask[],
-  userId: string,
-) {
+export function assistantVisiblePageIds(chapters: Chapter[], tasks: StudioTask[], userId: string) {
   const pageIds = new Set<string>();
   chapters.forEach((chapter) =>
     chapter.pages.forEach((page) => {

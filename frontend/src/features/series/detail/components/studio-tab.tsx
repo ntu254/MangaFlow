@@ -1,4 +1,13 @@
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { apiRequest } from "@/shared/api/client";
 import { assistantAiApi } from "@/shared/api/services";
@@ -32,10 +41,7 @@ import {
   studioKeys,
 } from "../../api/series-queries";
 import { uploadFileToR2 } from "@/shared/lib/r2-upload";
-import {
-  type StudioSelection,
-  type StudioTool,
-} from "@/entities/series/model/studio-types";
+import { type StudioSelection, type StudioTool } from "@/entities/series/model/studio-types";
 import {
   assistantVisiblePageIds,
   canResolveStudioComment,
@@ -119,7 +125,9 @@ export function StudioTab({
   const hasAssignedTaskScope =
     basePermissions.mode !== "assistant" ||
     allTasksRaw.some((task) => task.assigneeId === user.id) ||
-    chapters.some((item) => item.pages.some((candidate) => candidate.pageAssignment?.assistantId === user.id));
+    chapters.some((item) =>
+      item.pages.some((candidate) => candidate.pageAssignment?.assistantId === user.id),
+    );
   const permissions = useMemo(() => {
     if (
       basePermissions.mode !== "assistant" ||
@@ -722,12 +730,8 @@ export function StudioTab({
                           | "PAGE"
                           | "CHAPTER",
                         targetId: selectedComment.targetId,
-                        ...(selectedComment.taskId
-                          ? { taskId: selectedComment.taskId }
-                          : {}),
-                        ...(selectedComment.regionId
-                          ? { regionId: selectedComment.regionId }
-                          : {}),
+                        ...(selectedComment.taskId ? { taskId: selectedComment.taskId } : {}),
+                        ...(selectedComment.regionId ? { regionId: selectedComment.regionId } : {}),
                       }
                     : {
                         targetType: "PAGE" as const,
@@ -831,7 +835,9 @@ export function StudioTab({
           onReviewSubmission={handleReviewSubmission}
           pageAssignment={page?.pageAssignment}
           assistantMembers={assistantMembers}
-          pageAssignmentBusy={assignPageMutation.isPending || pageAssignmentActionMutation.isPending}
+          pageAssignmentBusy={
+            assignPageMutation.isPending || pageAssignmentActionMutation.isPending
+          }
           onAssignPage={(assistantId) => {
             if (!page || !chapter) return;
             assignPageMutation.mutate(

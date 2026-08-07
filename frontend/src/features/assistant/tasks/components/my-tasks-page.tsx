@@ -39,11 +39,23 @@ export function MyTasksPage() {
   const { data: comments = [] } = useCommentsQuery({});
   const [query, setQuery] = useState("");
   const [seriesFilter, setSeriesFilter] = useState<string>("ALL");
+  const [chapterFilter, setChapterFilter] = useState<string>("ALL");
   const [priority, setPriority] = useState<string>("ALL");
   const [hiddenColumns, setHiddenColumns] = useState<Set<BoardColumnKey>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const mine = useMemo(() => (user ? tasksForAssistant(tasks, user.id) : []), [tasks, user]);
+
+  const chaptersForSeries = useMemo(() => {
+    return chapters
+      .filter((c) => seriesFilter === "ALL" || c.seriesId === seriesFilter)
+      .sort((a, b) => a.number - b.number);
+  }, [chapters, seriesFilter]);
+
+  const onSeriesChange = (value: string) => {
+    setSeriesFilter(value);
+    setChapterFilter("ALL");
+  };
 
   const latestSubmissionByTask = useMemo(() => {
     const map = new Map<string, (typeof submissions)[number]>();
@@ -64,19 +76,22 @@ export function MyTasksPage() {
         const c = chapters.find((chapter) => chapter.id === t.chapterId);
         return c?.seriesId === seriesFilter;
       })
+      .filter((t) => (chapterFilter === "ALL" ? true : t.chapterId === chapterFilter))
       .filter((t) => (query ? t.title.toLowerCase().includes(query.toLowerCase()) : true));
-  }, [mine, priority, seriesFilter, query, chapters]);
+  }, [mine, priority, seriesFilter, chapterFilter, query, chapters]);
 
   const selected = selectedId ? mine.find((t) => t.id === selectedId) : undefined;
   const filtersActive =
     query.trim().length > 0 ||
     seriesFilter !== "ALL" ||
+    chapterFilter !== "ALL" ||
     priority !== "ALL" ||
     hiddenColumns.size > 0;
 
   const clearFilters = () => {
     setQuery("");
     setSeriesFilter("ALL");
+    setChapterFilter("ALL");
     setPriority("ALL");
     setHiddenColumns(new Set());
   };
@@ -130,7 +145,7 @@ export function MyTasksPage() {
           placeholder="Search tasks..."
           filters={
             <>
-              <Select value={seriesFilter} onValueChange={setSeriesFilter}>
+              <Select value={seriesFilter} onValueChange={onSeriesChange}>
                 <SelectTrigger
                   aria-label="Filter by series"
                   className="h-10 w-44 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
@@ -142,6 +157,23 @@ export function MyTasksPage() {
                   {seriesList.map((series) => (
                     <SelectItem key={series.id} value={series.id}>
                       {series.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={chapterFilter} onValueChange={setChapterFilter}>
+                <SelectTrigger
+                  aria-label="Filter by chapter"
+                  className="h-10 w-48 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All chapters</SelectItem>
+                  {chaptersForSeries.map((chapter) => (
+                    <SelectItem key={chapter.id} value={chapter.id}>
+                      Ch. {chapter.number}
+                      {chapter.title ? ` · ${chapter.title}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -87,7 +87,8 @@ export function ChapterFormDialog({
         <DialogHeader>
           <DialogTitle>Create new chapter — {series.title}</DialogTitle>
           <DialogDescription>
-            Set up the chapter, estimated page count, and production deadlines. Assign assistants later from Studio tasks.
+            Set up the chapter, estimated page count, and production deadlines. Assign assistants
+            later from Studio tasks.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">

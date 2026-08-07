@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/modal";
 import type { ReviewItem } from "../../model/editor-access";
 import { formatDateTime } from "@/shared/lib/format-date";
-import { PriorityPill } from "@/entities/submission";
 import { ReviewStatusPill } from "@/entities/submission";
 
 export function ReviewDetailDrawer({
@@ -39,7 +38,6 @@ export function ReviewDetailDrawer({
 
             <section className="grid grid-cols-2 gap-2 text-xs">
               <Info label="Status" value={<ReviewStatusPill status={item.status} />} />
-              <Info label="Priority" value={<PriorityPill p={item.priority} />} />
               <Info label="Submitted" value={formatDateTime(item.submittedAt)} />
               <Info
                 label="Deadline"

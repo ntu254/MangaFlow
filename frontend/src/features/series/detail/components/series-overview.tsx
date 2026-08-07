@@ -133,7 +133,10 @@ export function SeriesHeaderActions({
   const canArchive = false;
   const canUnpublish = false;
   const canDelete =
-    !!user && ["PRE_PRODUCTION", "PLANNING"].includes(series.status) && isOwner && !hasPublishedChapters;
+    !!user &&
+    ["PRE_PRODUCTION", "PLANNING"].includes(series.status) &&
+    isOwner &&
+    !hasPublishedChapters;
   // Production can start only by the owner or the currently assigned Tantou.
   const canStartProduction =
     !!user &&
@@ -279,8 +282,7 @@ function CurrentProductionCard({
       comment.chapterId === chapter.id && comment.status !== "RESOLVED" && comment.isBlocking,
   ).length;
   const openTasks = tasks.filter(
-    (task) =>
-      !["EDITOR_APPROVED", "COMPLETED", "REJECTED", "CANCELLED"].includes(task.status),
+    (task) => !["EDITOR_APPROVED", "COMPLETED", "REJECTED", "CANCELLED"].includes(task.status),
   ).length;
   const deadlineIso = chapter.scheduledAt ?? chapter.reviewDueAt ?? chapter.draftDueAt;
   const deadlineDays = daysFromNow(deadlineIso);
@@ -637,9 +639,7 @@ function ChecklistCard({
           },
           {
             label: "Editor final review",
-            ok: ["READY_FOR_PUBLICATION", "SCHEDULED", "PUBLISHED"].includes(
-              chapter.status,
-            ),
+            ok: ["READY_FOR_PUBLICATION", "SCHEDULED", "PUBLISHED"].includes(chapter.status),
           },
           {
             label: "Ready for publication",
@@ -764,7 +764,9 @@ function ChaptersMiniList({ chapters, setTab }: { chapters: Chapter[]; setTab: (
 
 function TasksMiniList({ tasks, setTab }: { tasks: StudioTask[]; setTab: (t: Tab) => void }) {
   const rows = [...tasks]
-    .filter((task) => !["EDITOR_APPROVED", "COMPLETED", "REJECTED", "CANCELLED"].includes(task.status))
+    .filter(
+      (task) => !["EDITOR_APPROVED", "COMPLETED", "REJECTED", "CANCELLED"].includes(task.status),
+    )
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
     .slice(0, 5)
     .map((task) => ({

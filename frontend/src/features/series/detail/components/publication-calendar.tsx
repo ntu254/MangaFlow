@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, AlertTriangle, Calendar, Clock, Sparkles, ChevronRight as ChevronRightIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  Calendar,
+  Clock,
+  Sparkles,
+  ChevronRight as ChevronRightIcon,
+} from "lucide-react";
 import type { Chapter, ProductionSeries } from "@/entities/series/model/series-types";
 import { monthGrid, sameDay, formatDate } from "@/shared/lib/format-date";
 import { ChapterStatusPill } from "@/entities/chapter";
@@ -297,4 +305,3 @@ export function PublicationCalendar({
     </div>
   );
 }
-

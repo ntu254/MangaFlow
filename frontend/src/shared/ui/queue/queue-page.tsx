@@ -36,13 +36,11 @@ export function QueuePage({
 
       {stats ? <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{stats}</div> : null}
 
-      {tabs ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">{tabs}</div>
-          {toolbar ? <div className="flex flex-wrap items-center gap-2">{toolbar}</div> : null}
+      {tabs || toolbar ? (
+        <div className="space-y-3">
+          {tabs ? <div>{tabs}</div> : null}
+          {toolbar ? <div>{toolbar}</div> : null}
         </div>
-      ) : toolbar ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">{toolbar}</div>
       ) : null}
 
       {children}

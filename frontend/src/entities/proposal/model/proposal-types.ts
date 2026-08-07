@@ -80,20 +80,20 @@ export type ProposalEvent = {
   actorName: string;
   actorRole: Role;
   type:
-    | "CREATE"
-    | "SUBMIT"
-    | "REQUEST_CHANGES"
-    | "RESUBMIT"
-    | "FORWARD"
-    | "RECALL"
-    | "REJECT"
-    | "VOTE"
-    | "DECIDE"
-    | "WITHDRAW"
-    | "CLAIM"
-    | "RELEASE_CLAIM"
-    | "EDIT"
-    | "MANUSCRIPT_UPLOAD";
+  | "CREATE"
+  | "SUBMIT"
+  | "REQUEST_CHANGES"
+  | "RESUBMIT"
+  | "FORWARD"
+  | "RECALL"
+  | "REJECT"
+  | "VOTE"
+  | "DECIDE"
+  | "WITHDRAW"
+  | "CLAIM"
+  | "RELEASE_CLAIM"
+  | "EDIT"
+  | "MANUSCRIPT_UPLOAD";
   fromStatus?: ProposalStatus;
   toStatus?: ProposalStatus;
   comment?: string;
@@ -259,10 +259,10 @@ export const STATUS_FLOW: ProposalStatus[] = [
 
 export const BOARD_TOTAL = 5;
 export const AUDIENCE_LABEL: Record<SeriesProposal["targetAudience"], string> = {
-  shounen: "Shounen",
-  seinen: "Seinen",
-  shoujo: "Shoujo",
-  josei: "Josei",
+  shounen: "Teen Boys",
+  seinen: "Adult Men",
+  shoujo: "Teen Girls",
+  josei: "Adult Women",
 };
 
 export const MATERIAL_KIND_LABEL: Record<SupportingMaterialKind, string> = {
