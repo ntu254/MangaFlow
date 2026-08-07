@@ -36,7 +36,7 @@ export function BoardDashboard() {
         />
         <StatCard
           icon={<CheckCircle2 className="size-4" />}
-          label="Needs Finalize"
+          label="Ready to Finalize"
           value={needsFinalize.length}
           tone="warning"
         />

@@ -42,10 +42,9 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   board: [
     { to: "/app/board/dashboard", label: "Dashboard", group: "Governance" },
-    { to: "/app/board/queue", label: "Board Queue", group: "Governance" },
-    { to: "/app/board/sessions", label: "Voting Sessions", group: "Governance", minRole: "admin" },
+    { to: "/app/board/queue", label: "Board Review", group: "Governance" },
     { to: "/app/board/rankings", label: "Rankings", group: "Governance" },
-    { to: "/app/board/decisions", label: "Decisions", group: "Governance" },
+    { to: "/app/board/decisions", label: "Decision History", group: "Governance" },
     { to: "/app/board/notifications", label: "Notifications", group: "Governance" },
   ],
 };

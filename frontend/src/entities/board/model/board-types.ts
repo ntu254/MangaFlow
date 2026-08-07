@@ -24,6 +24,7 @@ export type RankingRow = {
   seriesId: string;
   seriesTitle: string;
   score: number;
+  readerScore?: number;
   votes: number;
   views: number;
   completionRate: number;

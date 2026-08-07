@@ -11,7 +11,6 @@ import {
   MetricCard,
   MetricGrid,
   PageHeader,
-  QueueTabs,
   StateBlock,
   StatusPill,
   type QueueTab,
@@ -38,10 +37,8 @@ export function RankingsPage() {
     isLoading: isSeriesLoading,
     isError: isSeriesError,
     error: seriesError,
-  } = useMySeriesQuery(!isEditor);
-  const [selectedSeriesId, setSelectedSeriesId] = useState("");
-
-  const activeSeriesId = selectedSeriesId || seriesList[0]?.id || "";
+  } = useMySeriesQuery(!isEditor && !isMangaka);
+  const activeSeriesId = seriesList[0]?.id || "";
   const activeSeries = useMemo(
     () => seriesList.find((series) => series.id === activeSeriesId),
     [seriesList, activeSeriesId],
@@ -53,10 +50,19 @@ export function RankingsPage() {
     error: rankingsError,
   } = useRankingsQuery(activeSeriesId);
   const latest = rankings[0];
-  const [mangakaTab, setMangakaTab] = useState<"history" | "overview">("history");
 
   if (isEditor) {
     return <AllSeriesRankingsPage query={allRankingsQuery} />;
+  }
+
+  if (isMangaka) {
+    return (
+      <AllSeriesRankingsPage
+        query={allRankingsQuery}
+        title="Published series rankings"
+        description="Compare the latest reader response across all published series."
+      />
+    );
   }
 
   if (isSeriesLoading) {
@@ -120,52 +126,9 @@ export function RankingsPage() {
         eyebrow="Analytics"
         title="Rankings & Reviews"
         description="Track reader feedback, average scores, and series health alerts."
-        actions={
-          mangakaTab === "history" && seriesList.length > 1 ? (
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="series-select"
-                className="text-[12px] font-semibold text-[var(--admin-muted)]"
-              >
-                Series
-              </label>
-              <Select value={activeSeriesId} onValueChange={setSelectedSeriesId}>
-                <SelectTrigger
-                  id="series-select"
-                  className="h-10 w-56 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {seriesList.map((series) => (
-                    <SelectItem key={series.id} value={series.id}>
-                      {series.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null
-        }
       />
 
-      {isMangaka ? (
-        <QueueTabs
-          tabs={
-            [
-              { key: "history", label: "Series history" },
-              { key: "overview", label: "My series rankings" },
-            ] satisfies QueueTab[]
-          }
-          active={mangakaTab}
-          onChange={(key) => setMangakaTab(key as "history" | "overview")}
-        />
-      ) : null}
-
-      {mangakaTab === "overview" ? (
-        <AllSeriesRankingsTable query={allRankingsQuery} />
-      ) : (
-        <>
+      <>
           {isRankingsError ? (
             <StateBlock
               tone="danger"
@@ -264,19 +227,26 @@ export function RankingsPage() {
               </div>
             </DataTable>
           )}
-        </>
-      )}
+      </>
     </div>
   );
 }
 
-function AllSeriesRankingsPage({ query }: { query: ReturnType<typeof useRankingsListQuery> }) {
+function AllSeriesRankingsPage({
+  query,
+  title = "Series rankings",
+  description = "Review ranking performance across the full editorial series slate.",
+}: {
+  query: ReturnType<typeof useRankingsListQuery>;
+  title?: string;
+  description?: string;
+}) {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
         eyebrow="Editorial analytics"
-        title="Series rankings"
-        description="Review ranking performance across the full editorial series slate."
+        title={title}
+        description={description}
       />
       <AllSeriesRankingsTable query={query} />
     </div>

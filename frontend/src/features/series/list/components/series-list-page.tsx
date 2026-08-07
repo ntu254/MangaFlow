@@ -1014,10 +1014,10 @@ function SeriesTableRow({ row }: { row: SeriesRow }) {
       <TableCell className="text-right">
         <Link
           to="/app/series/$slug/$tab"
-          params={{ slug: row.series.slug, tab: row.actionTab }}
+          params={{ slug: row.series.slug, tab: "overview" }}
           className="inline-flex items-center gap-1 whitespace-nowrap rounded border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-all hover:bg-primary/20"
         >
-          {PRIMARY_ACTION_LABEL[row.primaryAction]}
+          View
           <ChevronRight className="size-3" />
         </Link>
       </TableCell>

@@ -1212,7 +1212,7 @@ export async function applyChapterAction(
       body: note,
       text: note,
       isBlocking: true,
-      status: "OPEN",
+      status: { $in: ["OPEN", "TIED", "FINALIZED", "NO_QUORUM", "CANCELLED"] },
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
@@ -1440,7 +1440,7 @@ export async function editorReviewQueue() {
 export async function boardQueue() {
   const proposals = await ProposalModel.find({
     status: {
-      $in: ["BOARD_REVIEW", "PENDING_BOARD"],
+      $in: ["BOARD_REVIEW", "PENDING_BOARD", "APPROVED", "REJECTED"],
     },
   })
     .sort({ updatedAt: -1 })
@@ -1450,21 +1450,22 @@ export async function boardQueue() {
     VotingSessionModel.find({
       targetType: "PROPOSAL",
       proposalId: { $in: proposalIds },
-      status: "OPEN",
+      status: { $in: ["OPEN", "TIED", "FINALIZED", "NO_QUORUM", "CANCELLED"] },
     }).lean(),
     ProposalVoteModel.find({ proposalId: { $in: proposalIds } }).lean(),
   ]);
-  const sessionByProposal = new Map<string, any>();
-  for (const session of [...sessions].sort((left: any, right: any) => {
-    const leftOpen = left.status === "OPEN" ? 1 : 0;
-    const rightOpen = right.status === "OPEN" ? 1 : 0;
-    return rightOpen - leftOpen || String(right.openedAt ?? "").localeCompare(String(left.openedAt ?? ""));
-  })) {
+  const recordSessionByProposal = new Map<string, any>();
+  for (const session of [...sessions].sort((left: any, right: any) =>
+    String(right.openedAt ?? "").localeCompare(String(left.openedAt ?? "")),
+  )) {
     const proposalKey = String((session as any).proposalId);
-    if (!sessionByProposal.has(proposalKey)) sessionByProposal.set(proposalKey, session);
+    if (!recordSessionByProposal.has(proposalKey)) recordSessionByProposal.set(proposalKey, session);
   }
   const proposalItems = proposals.map((proposal: any) => {
-    const session = sessionByProposal.get(String(proposal.id));
+    const activeSession = [...sessions].find(
+      (candidate: any) => String(candidate.proposalId) === String(proposal.id) && candidate.status === "OPEN",
+    );
+    const session = activeSession ?? recordSessionByProposal.get(String(proposal.id));
     const eligibleVoterIds = (session as any)?.eligibleVoterIds ?? [];
     const votes = (
       session
@@ -1479,14 +1480,16 @@ export async function boardQueue() {
       seriesId: proposal.id,
       seriesTitle: proposal.title,
       title: proposal.title,
+      coverUrl: proposal.coverUrl ?? null,
+      coverFileKey: proposal.coverFileKey ?? null,
       // Series lifecycle status — derived from the proposal status for proposals
       // in the board flow. AT_RISK no longer leaks into this field; that lives
       // exclusively in `riskStatus` below.
-      seriesStatus: "BOARD_REVIEW",
+      seriesStatus: proposal.status,
       riskStatus: "NORMAL",
       riskEvaluatedAt: null,
       decisionStatus: "PENDING",
-      votingSessionId: (session as any)?.id ?? proposal.activeVotingSessionId ?? null,
+      votingSessionId: (activeSession as any)?.id ?? null,
       proposalVersionId:
         (session as any)?.proposalVersionId ?? proposal.activeProposalVersionId ?? null,
       expectedVersion: (session as any)?.version ?? null,

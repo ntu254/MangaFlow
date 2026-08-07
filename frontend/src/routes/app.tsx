@@ -347,9 +347,8 @@ function getNavIcon(label: string) {
   if (label === "Publications") return Newspaper;
 
   // Board
-  if (label === "Board Queue") return ListChecks;
-  if (label === "Voting Sessions") return Vote;
-  if (label === "Decisions") return CheckSquare;
+  if (label === "Board Review") return ListChecks;
+  if (label === "Decision History") return CheckSquare;
 
   // Misc legacy
   if (label === "Task Board") return Layers;

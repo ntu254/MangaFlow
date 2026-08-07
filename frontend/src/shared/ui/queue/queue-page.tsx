@@ -45,11 +45,7 @@ export function QueuePage({
 
       {children}
 
-      {footer ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--admin-faint)]">
-          {footer}
-        </div>
-      ) : null}
+      {footer}
     </div>
   );
 }

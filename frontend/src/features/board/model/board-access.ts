@@ -33,8 +33,8 @@ export function buildBoardQueue(proposals: SeriesProposal[]) {
             : proposal.status === "REJECTED"
               ? "Rejected"
               : needsFinalize
-                ? "Needs Finalize"
-                : "Pending Vote",
+                ? "Ready to Finalize"
+                : "Needs Session",
       };
     });
 }

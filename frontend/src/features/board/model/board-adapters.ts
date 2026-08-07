@@ -22,6 +22,8 @@ export interface BoardQueueItem {
   seriesId: string;
   seriesTitle: string;
   title: string;
+  coverUrl?: string | null;
+  coverFileKey?: string | null;
   genres: string[];
   decisionStatus: "PENDING";
   votingSessionId: string | null;
@@ -45,7 +47,7 @@ export interface BoardQueueItem {
   canFinalize: boolean;
   voteCount: number;
   updatedAt: string;
-  proposalStatus: "PENDING_BOARD" | "BOARD_REVIEW";
+  proposalStatus: "PENDING_BOARD" | "BOARD_REVIEW" | "APPROVED" | "REJECTED";
 }
 
 export interface AtRiskQueueItem {
@@ -110,6 +112,8 @@ export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem 
     seriesId: String(raw.seriesId),
     seriesTitle: String(raw.seriesTitle ?? raw.title ?? ""),
     title: String(raw.seriesTitle ?? raw.title ?? ""),
+    coverUrl: raw.coverUrl ? String(raw.coverUrl) : null,
+    coverFileKey: raw.coverFileKey ? String(raw.coverFileKey) : null,
     genres: Array.isArray(raw.genres) ? raw.genres.map(String) : [],
     decisionStatus: "PENDING",
     seriesStatus: String(raw.seriesStatus ?? "BOARD_REVIEW"),
@@ -130,7 +134,7 @@ export function mapBoardQueueItem(raw: Record<string, unknown>): BoardQueueItem 
     votingSessionId: raw.votingSessionId ? String(raw.votingSessionId) : null,
     proposalVersionId: raw.proposalVersionId ? String(raw.proposalVersionId) : null,
     expectedVersion: raw.expectedVersion == null ? null : Number(raw.expectedVersion),
-    proposalStatus: raw.seriesStatus === "BOARD_REVIEW" ? "BOARD_REVIEW" : "PENDING_BOARD",
+    proposalStatus: (raw.seriesStatus ?? "PENDING_BOARD") as BoardQueueItem["proposalStatus"],
   };
 }
 
@@ -171,9 +175,9 @@ export function mapBoardVotes(raw: Record<string, unknown>): BoardVotesResult {
 export function getProposalStatusFromQueueItem(
   item: BoardQueueItem,
 ): "PENDING_BOARD" | "BOARD_REVIEW" | "APPROVED" | "REJECTED" {
-  return item.votingSessionId ? "BOARD_REVIEW" : "PENDING_BOARD";
+  return item.proposalStatus;
 }
 
 export function getTabFromQueueItem(_item: BoardQueueItem): string {
-  return "Pending Vote";
+  return "Needs Session";
 }

@@ -1,5 +1,5 @@
 import { asyncRoute, ok, AppError } from "../lib/http.js";
-import { NotificationModel, SeriesModel, RankingModel } from "../db/models.js";
+import { NotificationModel, RankingModel } from "../db/models.js";
 import { paginated, paginationFromQuery, patchById, requireActor } from "./helpers.js";
 import type { AuthedRequest } from "../types.js";
 
@@ -42,26 +42,10 @@ export const markRead = asyncRoute(async (req: AuthedRequest, res) => {
 });
 
 export const listRankings = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  let filter: Record<string, any> = {};
-
-  if (actor.role === "MANGAKA") {
-    const series = await SeriesModel.find({ authorId: actor.id }).select("id").lean();
-    const seriesIds = series.map((s: any) => s.id);
-    filter.seriesId = { $in: seriesIds };
-  }
+  const filter: Record<string, any> = {};
 
   const querySeriesId = req.query.seriesId;
   if (querySeriesId) {
-    if (actor.role === "MANGAKA") {
-      const series = await SeriesModel.findOne({
-        id: String(querySeriesId),
-        authorId: actor.id,
-      }).lean();
-      if (!series) {
-        return ok(res, []);
-      }
-    }
     filter.seriesId = String(querySeriesId);
   }
 

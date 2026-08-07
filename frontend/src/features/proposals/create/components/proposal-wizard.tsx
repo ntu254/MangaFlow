@@ -505,9 +505,6 @@ export function ProposalWizard({
                 <span className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Live Pitch Preview
                 </span>
-                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
-                  Draft
-                </span>
               </div>
               <Button
                 type="button"
