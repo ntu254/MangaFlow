@@ -45,6 +45,9 @@ export type ReviewItem = {
   claimedByEditorName?: string | null;
   claimedAt?: string | null;
   claimState?: ReviewClaimState;
+  logline?: string;
+  genres?: string[];
+  targetAudience?: string;
 };
 
 const ACTIVE_PROPOSAL_REVIEW_STATUSES = new Set([
@@ -137,6 +140,9 @@ export function buildReviewQueue(
       claimedByEditorName: p.claimedByEditorName,
       claimedAt: p.claimedAt,
       claimState,
+      logline: p.logline || p.hook || (p.synopsis ? p.synopsis.slice(0, 110) + "..." : undefined),
+      genres: p.genres,
+      targetAudience: p.targetAudience,
     });
   }
 

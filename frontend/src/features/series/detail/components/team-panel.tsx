@@ -342,9 +342,9 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
         dbM.scope === "FULL_SERIES"
           ? "FULL SERIES"
           : dbM.accessScope === "TASK_ONLY" ||
-            dbM.scope === "Task only" ||
-            dbM.scope === "TASK_ONLY" ||
-            dbM.scope === "TASK ONLY"
+              dbM.scope === "Task only" ||
+              dbM.scope === "TASK_ONLY" ||
+              dbM.scope === "TASK ONLY"
             ? "TASK ONLY"
             : "READ ONLY";
 
@@ -479,9 +479,7 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
                         <Mail className="size-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-foreground">
-                          {displayEmail}
-                        </p>
+                        <p className="truncate text-xs font-bold text-foreground">{displayEmail}</p>
                         <p className="text-[10px] text-amber-800/80 dark:text-amber-300/80 flex items-center gap-1 mt-0.5">
                           <span className="inline-block size-1.5 rounded-full bg-amber-500 animate-ping" />
                           Invited • Scope: {scope}
@@ -899,8 +897,6 @@ export function TeamPanel({ series, chapters }: { series: ProductionSeries; chap
   );
 }
 
-
-
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div>
@@ -1048,7 +1044,9 @@ function MemberDetailModal({
                 <DropdownMenuItem onClick={() => toast.info(`Direct message to ${member.name}`)}>
                   <Mail className="size-4 text-sky-500" /> Send Message
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info(`Viewing all tasks for ${member.name}`)}>
+                <DropdownMenuItem
+                  onClick={() => toast.info(`Viewing all tasks for ${member.name}`)}
+                >
                   <Eye className="size-4 text-primary" /> View Assigned Tasks
                 </DropdownMenuItem>
                 {canEdit && member.kind === "ASSISTANT" && (

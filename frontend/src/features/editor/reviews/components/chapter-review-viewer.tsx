@@ -141,15 +141,15 @@ export function ChapterReviewViewer({
               />
               {showAnnotations
                 ? pins.map((c, i) => (
-                    <span
-                      key={c.id}
-                      style={{ left: `${(c.x ?? 0) * 100}%`, top: `${(c.y ?? 0) * 100}%` }}
-                      title={commentText(c)}
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 grid size-6 place-items-center rounded-full text-[11px] font-bold text-white shadow ring-2 ring-white ${TONE_DOT[commentTone(c)]}`}
-                    >
-                      {i + 1}
-                    </span>
-                  ))
+                  <span
+                    key={c.id}
+                    style={{ left: `${(c.x ?? 0) * 100}%`, top: `${(c.y ?? 0) * 100}%` }}
+                    title={commentText(c)}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 grid size-6 place-items-center rounded-full text-[11px] font-bold text-white shadow ring-2 ring-white ${TONE_DOT[commentTone(c)]}`}
+                  >
+                    {i + 1}
+                  </span>
+                ))
                 : null}
             </div>
           </div>

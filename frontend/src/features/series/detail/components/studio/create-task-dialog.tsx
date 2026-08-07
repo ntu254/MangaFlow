@@ -13,7 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Chapter, ChapterPage } from "@/entities/series/model/series-types";
-import type { PageAssignment, RegionType, StudioRegion } from "@/entities/series/model/studio-types";
+import type {
+  PageAssignment,
+  RegionType,
+  StudioRegion,
+} from "@/entities/series/model/studio-types";
 import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
 import type { User } from "@/shared/auth";
 import type { RateTableEntry } from "@/shared/api/rate-table";
@@ -158,7 +162,11 @@ export function CreateTaskDialog({
 
         <div className="mt-4 space-y-3">
           <div className="rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
-            Page assignment: {pageAssignment ? `${pageAssignment.assistantName} · ${pageAssignment.status}` : "Not assigned"}. Multiple tasks may use this page assignment.
+            Page assignment:{" "}
+            {pageAssignment
+              ? `${pageAssignment.assistantName} · ${pageAssignment.status}`
+              : "Not assigned"}
+            . Multiple tasks may use this page assignment.
           </div>
           {!pageHasSource ? (
             <div className="rounded border border-rose-300 bg-rose-50 p-2 text-[11px] text-rose-900">

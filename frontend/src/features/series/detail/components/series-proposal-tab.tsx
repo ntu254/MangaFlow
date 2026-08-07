@@ -98,7 +98,12 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
   }
 
   if (!proposal) {
-    return <EmptyState title="Proposal details unavailable" description="Proposal record could not be found." />;
+    return (
+      <EmptyState
+        title="Proposal details unavailable"
+        description="Proposal record could not be found."
+      />
+    );
   }
 
   const canResubmit = checkAction("RESUBMIT", user, proposal).ok;
@@ -154,10 +159,7 @@ export function SeriesProposalTab({ series }: { series: ProductionSeries }) {
               onPreview={(item) => setPreviewItem(item)}
             />
           ) : (
-            <VersionHistorySection
-              proposal={proposal}
-              onPreview={(item) => setPreviewItem(item)}
-            />
+            <VersionHistorySection proposal={proposal} onPreview={(item) => setPreviewItem(item)} />
           )}
         </div>
       </section>
@@ -248,7 +250,10 @@ function OverviewAndPitchSection({
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Left Column (2 cols): Pitch Dossier */}
       <div className="space-y-6 lg:col-span-2">
-        <SectionCard title="Editorial Pitch Dossier" icon={<Sparkles className="size-4 text-primary" />}>
+        <SectionCard
+          title="Editorial Pitch Dossier"
+          icon={<Sparkles className="size-4 text-primary" />}
+        >
           {proposal.logline ? (
             <div className="relative mb-5 overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-4 text-foreground/90">
               <div className="absolute top-0 left-0 h-full w-1.5 bg-primary" />
@@ -305,7 +310,11 @@ function OverviewAndPitchSection({
                 <span className="flex items-center gap-1.5">
                   <Layers className="size-3.5 text-primary" /> Advanced Production & World Specs
                 </span>
-                {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                {advancedOpen ? (
+                  <ChevronUp className="size-4" />
+                ) : (
+                  <ChevronDown className="size-4" />
+                )}
               </button>
 
               {advancedOpen ? (
@@ -313,7 +322,10 @@ function OverviewAndPitchSection({
                   <AdvBox label="World Setting" value={proposal.advanced?.worldSetting} />
                   <AdvBox label="Series Direction" value={proposal.advanced?.seriesDirection} />
                   <AdvBox label="Production Plan" value={proposal.advanced?.productionPlan} />
-                  <AdvBox label="Assistant Requirements" value={proposal.advanced?.assistantNeeds} />
+                  <AdvBox
+                    label="Assistant Requirements"
+                    value={proposal.advanced?.assistantNeeds}
+                  />
                   <AdvBox label="Comparable Titles" value={proposal.advanced?.comparableTitles} />
                   <AdvBox label="AI Tool Disclosures" value={proposal.advanced?.aiDisclosure} />
                 </div>
@@ -395,13 +407,18 @@ function ProposalOverviewCard({
   onResubmit: () => void;
   latestVersion: number;
 }) {
-  const submitEvents = (proposal.history ?? []).filter((h) => h.type === "SUBMIT" || h.type === "RESUBMIT");
+  const submitEvents = (proposal.history ?? []).filter(
+    (h) => h.type === "SUBMIT" || h.type === "RESUBMIT",
+  );
   const lastSubmit = submitEvents[submitEvents.length - 1];
   const editorName = tantouEditor?.userName ?? proposal.assignedEditorName;
   const alertMsg = STATUS_ALERT[proposal.status];
 
   return (
-    <SectionCard title="Proposal Overview & Status" icon={<ShieldCheck className="size-4 text-emerald-500" />}>
+    <SectionCard
+      title="Proposal Overview & Status"
+      icon={<ShieldCheck className="size-4 text-emerald-500" />}
+    >
       <div className="space-y-4">
         {/* Status Badge & Version */}
         <div className="flex items-center justify-between rounded-xl bg-muted/40 p-3 border border-border/60">
@@ -550,7 +567,10 @@ function FeedbackFeedCard({ proposal }: { proposal: SeriesProposal }) {
   const entries = buildFeedbackEntries(proposal);
 
   return (
-    <SectionCard title="Editorial & Board Feedback" icon={<MessageSquare className="size-4 text-blue-500" />}>
+    <SectionCard
+      title="Editorial & Board Feedback"
+      icon={<MessageSquare className="size-4 text-blue-500" />}
+    >
       {entries.length === 0 ? (
         <p className="text-xs text-muted-foreground py-2">No feedback from Editor or Board yet.</p>
       ) : (
@@ -576,7 +596,9 @@ function FeedbackFeedCard({ proposal }: { proposal: SeriesProposal }) {
                 </span>
                 <span className="text-[11px] text-muted-foreground">{formatDate(e.createdAt)}</span>
               </div>
-              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">{e.body}</p>
+              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                {e.body}
+              </p>
             </div>
           ))}
         </div>
@@ -652,30 +674,30 @@ function CreativeMaterialsSection({
           {MATERIAL_ROWS.map((def) => {
             const items = def.manuscripts
               ? manuscripts
-                .slice()
-                .sort((a, b) => b.version - a.version)
-                .map((m) => ({
-                  id: m.id,
-                  name: m.fileName,
-                  version: m.version,
-                  uploadedAt: m.uploadedAt,
-                  url: m.fileUrl,
-                  fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
-                  isLatest: m.version === latestVersion,
-                  kindLabel: def.kindLabel,
-                }))
+                  .slice()
+                  .sort((a, b) => b.version - a.version)
+                  .map((m) => ({
+                    id: m.id,
+                    name: m.fileName,
+                    version: m.version,
+                    uploadedAt: m.uploadedAt,
+                    url: m.fileUrl,
+                    fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
+                    isLatest: m.version === latestVersion,
+                    kindLabel: def.kindLabel,
+                  }))
               : materials
-                .filter((m) => m.kind === def.materialKind)
-                .map((m) => ({
-                  id: m.id,
-                  name: m.fileName,
-                  version: undefined as number | undefined,
-                  uploadedAt: m.uploadedAt,
-                  url: m.fileUrl,
-                  fileKey: m.fileKey,
-                  isLatest: false,
-                  kindLabel: def.kindLabel,
-                }));
+                  .filter((m) => m.kind === def.materialKind)
+                  .map((m) => ({
+                    id: m.id,
+                    name: m.fileName,
+                    version: undefined as number | undefined,
+                    uploadedAt: m.uploadedAt,
+                    url: m.fileUrl,
+                    fileKey: m.fileKey,
+                    isLatest: false,
+                    kindLabel: def.kindLabel,
+                  }));
 
             if (items.length === 0) {
               return (
@@ -701,7 +723,9 @@ function CreativeMaterialsSection({
                     <div>
                       <span className="font-semibold text-foreground">{def.label}</span>
                       {def.required ? (
-                        <span className="ml-1.5 text-[10px] font-bold text-rose-500">(Required)</span>
+                        <span className="ml-1.5 text-[10px] font-bold text-rose-500">
+                          (Required)
+                        </span>
                       ) : null}
                     </div>
                   ) : null}
@@ -794,7 +818,9 @@ function VersionHistorySection({
   return (
     <div>
       {versions.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-4 text-center">No version history records found.</p>
+        <p className="text-xs text-muted-foreground py-4 text-center">
+          No version history records found.
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -840,7 +866,8 @@ function VersionHistorySection({
                       onClick={() =>
                         onPreview({
                           fileName: m.fileName,
-                          fileKey: m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
+                          fileKey:
+                            m.fileKey ?? (m as unknown as { file?: { key?: string } }).file?.key,
                           fileUrl: m.fileUrl,
                           version: m.version,
                           kindLabel: "Sample Manuscript",
@@ -877,8 +904,7 @@ function FilePreviewDialog({
   const isImage =
     Boolean(item.fileName.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i)) ||
     Boolean(item.fileUrl?.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i));
-  const isPdf =
-    Boolean(item.fileName.match(/\.pdf$/i)) || Boolean(item.fileUrl?.match(/\.pdf$/i));
+  const isPdf = Boolean(item.fileName.match(/\.pdf$/i)) || Boolean(item.fileUrl?.match(/\.pdf$/i));
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -939,7 +965,8 @@ function FilePreviewDialog({
                 ) : null}
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                This document is part of the project proposal assets. Click download above to view or save full manuscript contents.
+                This document is part of the project proposal assets. Click download above to view
+                or save full manuscript contents.
               </p>
             </div>
           )}

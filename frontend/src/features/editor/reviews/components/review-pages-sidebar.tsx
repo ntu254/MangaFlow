@@ -32,11 +32,10 @@ export function ReviewPagesSidebar({
               key={page.id}
               type="button"
               onClick={() => onSelectPage(page.id)}
-              className={`flex w-full items-center gap-2.5 rounded-[6px] border p-2 text-left transition-colors ${
-                selected
+              className={`flex w-full items-center gap-2.5 rounded-[6px] border p-2 text-left transition-colors ${selected
                   ? "border-[var(--admin-ink)] bg-[var(--admin-selection)]"
                   : "border-transparent hover:bg-[var(--admin-hover)]"
-              }`}
+                }`}
             >
               <div className="h-12 w-10 shrink-0 overflow-hidden rounded border border-[var(--admin-border)] bg-[var(--admin-page)]">
                 <ResolvedImage

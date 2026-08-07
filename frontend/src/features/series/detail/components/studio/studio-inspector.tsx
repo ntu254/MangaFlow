@@ -37,7 +37,11 @@ import {
   TASK_STATUS_BADGE,
   isTaskActive,
 } from "@/entities/series/model/studio-types";
-import { useCreateSubmissionMutation, useTaskSubmissionsQuery } from "../../../api/series-queries";
+import {
+  useCreateSubmissionMutation,
+  useStudioTaskPatchMutation,
+  useTaskSubmissionsQuery,
+} from "../../../api/series-queries";
 import { MaterialDownloadLink } from "../material-file-controls";
 import { SUBMISSION_STATUS_BADGE } from "@/entities/submission/model/assistant-types";
 import { chapterPageLabel, chapterPageNumber } from "@/entities/chapter/model/chapter-pages";
@@ -169,7 +173,9 @@ function PageAssignmentBlock({
     <div>
       <p className="font-semibold">Page assignment</p>
       <p className="mt-1 text-muted-foreground">
-        {pageAssignment ? `${pageAssignment.assistantName} · ${pageAssignment.status}` : "Not assigned"}
+        {pageAssignment
+          ? `${pageAssignment.assistantName} · ${pageAssignment.status}`
+          : "Not assigned"}
       </p>
       {mode === "mangaka" && onAssignPage ? (
         <div className="mt-2 space-y-2">
@@ -178,9 +184,7 @@ function PageAssignmentBlock({
             value={pageAssignment?.assistantId ?? ""}
             onChange={(event) => onAssignPage(event.target.value)}
             disabled={
-              pageAssignment?.status === "PENDING" ||
-              pageAssignment?.status === "ACCEPTED" ||
-              busy
+              pageAssignment?.status === "PENDING" || pageAssignment?.status === "ACCEPTED" || busy
             }
           >
             <option value="">Select assistant</option>
@@ -497,6 +501,17 @@ function InspectorBody({
 
   const taskIdForSubmissions = selection.kind === "task" ? selection.taskId : "";
   const { data: submissions = [] } = useTaskSubmissionsQuery(taskIdForSubmissions);
+  const patchTaskMutation = useStudioTaskPatchMutation(taskIdForSubmissions);
+
+  const handlePriorityChange = (taskId: string, priority: string) => {
+    patchTaskMutation.mutate(
+      { priority },
+      {
+        onSuccess: () => toast.success("Task priority updated."),
+        onError: () => toast.error("Could not update the task priority."),
+      },
+    );
+  };
 
   if (selection.kind === "none") {
     return (
@@ -538,6 +553,16 @@ function InspectorBody({
             onPageAssignmentAction={onPageAssignmentAction}
           />
         </div>
+        {permissions.canCreateTask ? (
+          <Button
+            size="sm"
+            className="mt-3 h-9 w-full gap-1.5"
+            disabled={!canCreateTaskNow}
+            onClick={onCreateTask}
+          >
+            <Plus className="h-4 w-4" /> Create Assistant Task
+          </Button>
+        ) : null}
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
       </div>
     );
@@ -625,9 +650,7 @@ function InspectorBody({
             Page tasks ({pageTasks.length})
           </p>
           {pageTasks.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-muted-foreground">
-              No tasks on this page yet.
-            </p>
+            <p className="px-3 py-2 text-xs text-muted-foreground">No tasks on this page yet.</p>
           ) : (
             <ul className="divide-y divide-border/60">
               {pageTasks.map((task) => (
@@ -697,8 +720,8 @@ function InspectorBody({
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
 
         {permissions.mode === "assistant" &&
-          pageAssignment &&
-          String(pageAssignment.assistantId) !== userId ? (
+        pageAssignment &&
+        String(pageAssignment.assistantId) !== userId ? (
           <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>
@@ -750,12 +773,27 @@ function InspectorBody({
           <Field label="ID" value={<code className="text-[11px]">{task.id}</code>} />
           <Field label="Type" value={REGION_TYPE_LABEL[task.type]} />
           <Field label="Assignee" value={task.assigneeName} />
-          <Field label="Priority" value={task.priority} />
-          <Field label="Due" value={formatDate(task.dueAt)} />
           <Field
-            label="Target"
-            value={`Page ${page?.index ?? "—"}`}
+            label="Priority"
+            value={
+              permissions.canEditTask ? (
+                <select
+                  className="h-7 w-24 rounded border border-border bg-background px-1 text-[11px] font-medium"
+                  value={task.priority}
+                  disabled={patchTaskMutation.isPending}
+                  onChange={(e) => handlePriorityChange(task.id, e.target.value)}
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                </select>
+              ) : (
+                task.priority
+              )
+            }
           />
+          <Field label="Due" value={formatDate(task.dueAt)} />
+          <Field label="Target" value={`Page ${page?.index ?? "—"}`} />
           {task.pageId ? (
             <Field
               label="Original Page"
@@ -839,6 +877,17 @@ function InspectorBody({
               ) : null}
             </div>
           </div>
+        ) : null}
+
+        {permissions.canCreateTask ? (
+          <Button
+            size="sm"
+            className="mt-3 h-9 w-full gap-1.5"
+            disabled={!canCreateTaskNow}
+            onClick={onCreateTask}
+          >
+            <Plus className="h-4 w-4" /> Create Another Task on This Page
+          </Button>
         ) : null}
 
         {permissions.canCreateComment ? <CommentComposer onAddComment={onAddComment} /> : null}
@@ -1005,10 +1054,10 @@ function CommentsList({
     const q = query.trim().toLowerCase();
     const list = q
       ? comments.filter(
-        (c) =>
-          (c.body || (c.text ?? "")).toLowerCase().includes(q) ||
-          c.authorName.toLowerCase().includes(q),
-      )
+          (c) =>
+            (c.body || (c.text ?? "")).toLowerCase().includes(q) ||
+            c.authorName.toLowerCase().includes(q),
+        )
       : comments.slice();
     list.sort((a, b) => {
       if (sort === "blocking") {
@@ -1062,8 +1111,9 @@ function CommentsList({
               key={c.id}
               data-comment-id={c.id}
               data-parent-comment-id={c.parentCommentId}
-              className={`rounded border border-border bg-background p-2 text-xs ${c.parentCommentId ? "ml-5 border-l-2 border-l-accent/50" : ""
-                }`}
+              className={`rounded border border-border bg-background p-2 text-xs ${
+                c.parentCommentId ? "ml-5 border-l-2 border-l-accent/50" : ""
+              }`}
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="font-bold">
@@ -1073,12 +1123,13 @@ function CommentsList({
                   ) : null}
                 </span>
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${["RESOLVED", "ADDRESSED"].includes(c.status)
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
+                    ["RESOLVED", "ADDRESSED"].includes(c.status)
                       ? "bg-emerald-100 text-emerald-800"
                       : isBlockingComment(c)
                         ? "bg-rose-100 text-rose-800"
                         : "bg-amber-100 text-amber-900"
-                    }`}
+                  }`}
                 >
                   {isBlockingComment(c) && !["RESOLVED", "ADDRESSED"].includes(c.status)
                     ? "Blocking"

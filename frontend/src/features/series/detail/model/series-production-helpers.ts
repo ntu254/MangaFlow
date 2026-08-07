@@ -42,15 +42,11 @@ export function deriveProductionSummary(
     return new Date(t.dueAt).getTime() < now;
   }).length;
 
-  const revisionTaskCount = seriesTasks.filter(
-    (t) => t.status === "REVISION_REQUESTED",
-  ).length;
+  const revisionTaskCount = seriesTasks.filter((t) => t.status === "REVISION_REQUESTED").length;
 
   const reviewChapterCount = chapters.filter((c) => c.status === "TANTOU_REVIEW").length;
   const pendingSubmissionCount = submissions.filter(
-    (s) =>
-      s.status === "PENDING" ||
-      s.status === "REVISION_REQUESTED",
+    (s) => s.status === "PENDING" || s.status === "REVISION_REQUESTED",
   ).length;
   const pendingReviewCount = reviewChapterCount + pendingSubmissionCount;
 

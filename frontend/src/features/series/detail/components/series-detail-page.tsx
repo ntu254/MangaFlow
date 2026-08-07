@@ -88,7 +88,11 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
 
   const goTab = (t: Tab) => {
     setChapterView("list");
-    navigate({ to: "/app/series/$slug/$tab", params: { slug, tab: t }, from: "/app/series/$slug/$tab" });
+    navigate({
+      to: "/app/series/$slug/$tab",
+      params: { slug, tab: t },
+      from: "/app/series/$slug/$tab",
+    });
   };
 
   const selected = useMemo(
@@ -254,13 +258,18 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
               <PenTool className="size-4" />
               Open Studio
             </button>
-            {!isLocked && <SeriesHeaderActions series={series} chapters={chapters} setTab={goTab} />}
+            {!isLocked && (
+              <SeriesHeaderActions series={series} chapters={chapters} setTab={goTab} />
+            )}
           </div>
         </div>
       </header>
 
       {/* ── Refined Main Series Nav Tabs (Linear Style) ── */}
-      <nav aria-label="Series Tabs" className="flex items-center gap-1 overflow-x-auto border-b border-border/80 px-1">
+      <nav
+        aria-label="Series Tabs"
+        className="flex items-center gap-1 overflow-x-auto border-b border-border/80 px-1"
+      >
         {visibleTabs.map((t) => {
           const isActive = effectiveTab === t;
           const Icon = TAB_ICON[t];
@@ -271,9 +280,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
               from="/app/series/$slug/$tab"
               params={{ slug, tab: t }}
               className={`group relative inline-flex items-center gap-2 whitespace-nowrap px-4 py-3 text-xs font-semibold transition-all ${
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Icon

@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { UserPlus } from "lucide-react";
 import type { ReviewItem } from "../../model/editor-access";
 import { formatDate, formatDateTime, isOverdue, timeAgo } from "@/shared/lib/format-date";
-import { ReviewStatusPill, PriorityPill } from "@/entities/submission";
+import { AUDIENCE_LABEL } from "@/entities/proposal/model/proposal-types";
+import { ReviewStatusPill } from "@/entities/submission";
 import type { QueueAccent, QueueColumn } from "@/shared/ui";
 import { ResolvedImage } from "@/shared/ui/resolved-image";
 
@@ -41,7 +43,8 @@ export function isItemOverdue(item: ReviewItem) {
 const NEW_REVIEW_STATUSES = new Set(["PENDING_EDITOR", "TANTOU_REVIEW", "MANGAKA_APPROVED"]);
 
 export function isNewReviewItem(item: ReviewItem) {
-  return !isItemCompleted(item) && NEW_REVIEW_STATUSES.has(item.status);
+  if (isItemCompleted(item)) return false;
+  return !item.claimedByEditorId && NEW_REVIEW_STATUSES.has(item.status);
 }
 
 function includesFor(item: ReviewItem) {
@@ -82,11 +85,9 @@ function linkFor(item: ReviewItem) {
 function actionFor(item: ReviewItem, currentUserId: string) {
   if (item.kind === "SUBMISSION") return "Open Review";
   if (isItemCompleted(item)) return "View";
-  if (item.claimedByEditorId && item.claimedByEditorId !== currentUserId) return "View Only";
+  if (!item.claimedByEditorId) return "Claim & Review";
   if (item.claimedByEditorId === currentUserId) return "Continue";
-  if (item.kind === "PROPOSAL_PACKAGE" || item.kind === "PROPOSAL" || item.kind === "MANUSCRIPT")
-    return "Start Review";
-  return "Open Review";
+  return "View Dossier";
 }
 
 function dueLabel(item: ReviewItem) {
@@ -97,8 +98,6 @@ function dueLabel(item: ReviewItem) {
 
 export function reviewRowAccent(item: ReviewItem): QueueAccent {
   if (isItemOverdue(item)) return "rose";
-  if (item.priority === "BLOCKING") return "rose";
-  if (item.priority === "HIGH") return "amber";
   return null;
 }
 
@@ -106,143 +105,177 @@ export function reviewQueueColumns(
   currentUserId: string,
   items: ReviewItem[] = [],
 ): QueueColumn<ReviewItem>[] {
-  const showDue = items.some((item) => item.deadline);
-  const showVersion = items.some((item) => item.version !== undefined);
-
   const columns: QueueColumn<ReviewItem>[] = [
     {
-      key: "priority",
-      header: "Priority",
-      sortable: true,
-      className: "w-[84px]",
-      render: (item) => <PriorityPill p={item.priority} />,
-    },
-    {
       key: "item",
-      header: "Review item",
+      header: "Proposal",
       sortable: true,
       render: (item) => {
         const isProposal = item.kind === "PROPOSAL_PACKAGE";
         const mainTitle = isProposal ? (item.proposalTitle ?? item.title) : item.title;
         const subtitle = isProposal
-          ? `Proposal Package${item.includes?.length ? ` • ${includesFor(item)}` : ""}`
+          ? item.logline || `Includes: ${includesFor(item)}`
           : `${item.seriesTitle ?? "—"} • ${includesFor(item)}`;
+
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3 py-0.5">
             <ResolvedImage
               fileKey={item.coverFileKey}
               fallbackUrl={item.coverUrl}
               alt={item.seriesTitle ?? item.title ?? "Cover"}
-              className="size-9 shrink-0 rounded-xl border border-border object-cover shadow-2xs"
+              className="size-10 shrink-0 rounded-xl border border-border/80 object-cover shadow-2xs"
               fallback={
-                <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-serif text-sm font-bold text-primary shadow-2xs">
+                <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-serif text-sm font-bold text-primary shadow-2xs">
                   {(item.seriesTitle ?? item.title ?? "?").slice(0, 1).toUpperCase()}
                 </div>
               }
             />
-            <div className="min-w-0" title={`ID: ${item.proposalId ?? item.refId}`}>
-              <div className="flex min-w-0 items-center gap-2">
+            <div className="min-w-0 flex-1 space-y-1" title={`ID: ${item.proposalId ?? item.refId}`}>
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                 <p className="truncate font-semibold text-foreground text-xs sm:text-sm">
                   {mainTitle}
                 </p>
+                {item.version !== undefined ? (
+                  <span
+                    className={
+                      item.revisionReturned
+                        ? "inline-flex shrink-0 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-700 dark:text-amber-400 tabular-nums"
+                        : "inline-flex shrink-0 rounded-md border border-border bg-muted/60 px-1.5 py-0.2 text-[9px] font-bold text-muted-foreground tabular-nums"
+                    }
+                  >
+                    v{item.version}.0{item.revisionReturned ? " · Resubmitted" : ""}
+                  </span>
+                ) : null}
                 {isNewReviewItem(item) ? (
-                  <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                  <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.2 text-[9px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
                     New
                   </span>
                 ) : null}
               </div>
-              <p className="truncate text-[11px] text-muted-foreground">{subtitle}</p>
+              <p className="truncate text-xs text-muted-foreground font-normal leading-normal max-w-[420px] break-words [overflow-wrap:anywhere]">
+                {subtitle}
+              </p>
             </div>
           </div>
         );
       },
     },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      className: "w-[140px]",
-      render: (item) => <ReviewStatusPill status={item.status} />,
-    },
-    {
-      key: "submitted",
-      header: "Submitted",
-      sortable: true,
-      className: "w-[110px]",
-      render: (item) => (
-        <span className="text-xs text-muted-foreground" title={formatDateTime(item.submittedAt)}>
-          {timeAgo(item.submittedAt)}
-        </span>
-      ),
-    },
-  ];
 
-  if (showDue) {
-    columns.push({
-      key: "due",
-      header: "Due",
+    {
+      key: "audience",
+      header: "Audience",
       sortable: true,
-      className: "w-[88px]",
-      render: (item) => (
-        <span
-          className={
-            isItemOverdue(item)
-              ? "text-xs font-semibold text-rose-600 dark:text-rose-400"
-              : "text-xs text-muted-foreground"
-          }
-        >
-          {dueLabel(item)}
-        </span>
-      ),
-    });
-  }
-
-  if (showVersion) {
-    columns.push({
-      key: "version",
-      header: "Version",
-      sortable: true,
-      className: "w-[120px]",
+      className: "w-[125px]",
       render: (item) =>
-        item.version !== undefined ? (
-          <span
-            className={
-              item.revisionReturned
-                ? "inline-flex rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400"
-                : "inline-flex rounded-lg border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
-            }
-          >
-            v{item.version}
-            {item.revisionReturned ? " · Resubmitted" : ""}
+        item.targetAudience ? (
+          <span className="inline-flex rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+            {AUDIENCE_LABEL[item.targetAudience as keyof typeof AUDIENCE_LABEL] || item.targetAudience}
           </span>
         ) : (
           <span className="text-xs text-muted-foreground/60">—</span>
         ),
-    });
-  }
-
-  columns.push({
-    key: "action",
-    header: "Action",
-    align: "right",
-    className: "w-[116px]",
-    render: (item) => {
-      const action = actionFor(item, currentUserId);
-      const isView = action.startsWith("View");
-      return (
-        <Link
-          {...linkFor(item)}
-          className={
-            isView
-              ? "inline-flex justify-center rounded-xl border border-border/80 bg-background/60 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-muted shadow-2xs"
-              : "inline-flex justify-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:bg-primary/90 shadow-xs"
-          }
-        >
-          {action}
-        </Link>
-      );
     },
-  });
+    {
+      key: "genres",
+      header: "Genres",
+      sortable: true,
+      className: "w-[140px]",
+      render: (item) =>
+        item.genres?.length ? (
+          <div className="flex flex-wrap gap-1">
+            {item.genres.map((g) => (
+              <span
+                key={g}
+                className="rounded-md bg-muted/80 border border-border/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              >
+                {g}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground/60">—</span>
+        ),
+    },
+        {
+      key: "author",
+      header: "Mangaka",
+      sortable: true,
+      className: "w-[130px]",
+      render: (item) => (
+        <span className="truncate text-xs font-semibold text-foreground block">
+          {item.submittedBy || "Unknown Author"}
+        </span>
+      ),
+    },
+    {
+      key: "assignment",
+      header: "Tantou Editor",
+      sortable: true,
+      className: "w-[150px]",
+      render: (item) => {
+        if (!item.claimedByEditorId) {
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-bold text-sky-600 dark:text-sky-400">
+              <UserPlus className="size-3" /> Unclaimed
+            </span>
+          );
+        }
+        const isMe = item.claimedByEditorId === currentUserId;
+        return (
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`grid size-5 place-items-center rounded-full text-[9px] font-bold uppercase ${
+                isMe ? "bg-emerald-500/20 text-emerald-600" : "bg-primary/10 text-primary"
+              }`}
+            >
+              {(item.claimedByEditorName || "ED").slice(0, 1)}
+            </span>
+            <span className="truncate text-xs font-medium text-foreground max-w-[100px]">
+              {isMe ? "You" : item.claimedByEditorName}
+            </span>
+          </div>
+        );
+      },
+    },
+    
+    {
+      key: "status",
+      header: "Status & Time",
+      sortable: true,
+      className: "w-[150px]",
+      render: (item) => (
+        <div className="space-y-1">
+          <ReviewStatusPill status={item.status} />
+          <p className="text-[10px] text-muted-foreground" title={formatDateTime(item.submittedAt)}>
+            Submitted {timeAgo(item.submittedAt)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "action",
+      header: "Action",
+      align: "right",
+      className: "w-[130px]",
+      render: (item) => {
+        const action = actionFor(item, currentUserId);
+        const isClaim = action.includes("Claim");
+        const isContinue = action.includes("Continue");
+        return (
+          <Link
+            {...linkFor(item)}
+            className={
+              isClaim || isContinue
+                ? "inline-flex justify-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:bg-primary/90 shadow-xs"
+                : "inline-flex justify-center rounded-xl border border-border/80 bg-background/60 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-muted shadow-2xs"
+            }
+          >
+            {action}
+          </Link>
+        );
+      },
+    },
+  ];
 
   return columns;
 }

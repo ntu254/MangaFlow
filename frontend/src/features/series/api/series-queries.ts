@@ -887,6 +887,18 @@ export function useStudioTaskActionMutation(taskId: string) {
   });
 }
 
+export function useStudioTaskPatchMutation(taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { priority?: string; dueAt?: string }>({
+    mutationFn: (patch) =>
+      apiRequest<unknown>(`/studio/tasks/${taskId}`, { method: "PATCH", body: patch }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studioKeys.task(taskId) });
+      queryClient.invalidateQueries({ queryKey: studioKeys.all });
+    },
+  });
+}
+
 export function useResolveCommentMutation() {
   const queryClient = useQueryClient();
   return useMutation<
