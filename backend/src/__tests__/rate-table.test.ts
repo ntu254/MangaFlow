@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { AuditEntryModel, ChapterModel, RateTableModel, StudioTaskModel } from "../db/models.js";
 import { seedDatabase } from "../seed.js";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 async function loginAs(email: string, password = email) {
   const response = await request(createApp())
@@ -17,7 +17,7 @@ async function loginAs(email: string, password = email) {
 
 describe("Rate table and task price snapshot contract", () => {
   beforeAll(async () => {
-    mongo = await MongoMemoryServer.create();
+    mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     await mongoose.connect(mongo.getUri());
   });
 
@@ -81,6 +81,76 @@ describe("Rate table and task price snapshot contract", () => {
       .expect(409);
 
     expect(response.body.code).toBe("RATE_WINDOW_OVERLAP");
+  });
+
+  it("rejects extending an active version into another active version's window", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    const app = createApp();
+    const base = {
+      code: "PATCH_WINDOW",
+      label: "Patch window",
+      workUnitType: "PAGE",
+      amount: 10,
+      effectiveFrom: "2026-01-01T00:00:00.000Z",
+      effectiveTo: "2026-02-01T00:00:00.000Z",
+    };
+    const first = await request(app)
+      .post("/api/admin/rates")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send(base)
+      .expect(201);
+    await request(app)
+      .post("/api/admin/rates")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ ...base, amount: 12, effectiveFrom: "2026-02-01T00:00:00.000Z", effectiveTo: null })
+      .expect(201);
+
+    const response = await request(app)
+      .patch(`/api/admin/rates/${first.body.data.id}`)
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({ effectiveTo: null })
+      .expect(409);
+
+    expect(response.body.code).toBe("RATE_WINDOW_OVERLAP");
+  });
+
+  it("schedules a replacement version without leaving a pricing gap", async () => {
+    const admin = await loginAs("admin@beachread.jp");
+    const app = createApp();
+    const current = await request(app)
+      .post("/api/admin/rates")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({
+        code: "SCHEDULED_RATE",
+        label: "Current rate",
+        workUnitType: "PAGE",
+        amount: 10,
+        currency: "USD",
+        effectiveFrom: "2026-01-01T00:00:00.000Z",
+      })
+      .expect(201);
+
+    const scheduled = await request(app)
+      .post(`/api/admin/rates/${current.body.data.id}/revisions`)
+      .set("Authorization", `Bearer ${admin.accessToken}`)
+      .send({
+        label: "Scheduled rate",
+        amount: 12,
+        currency: "USD",
+        effectiveFrom: "2026-02-01T00:00:00.000Z",
+      })
+      .expect(201);
+
+    expect(scheduled.body.data).toMatchObject({
+      code: "SCHEDULED_RATE",
+      version: 2,
+      amount: 12,
+      effectiveFrom: "2026-02-01T00:00:00.000Z",
+    });
+    await expect(RateTableModel.findOne({ id: current.body.data.id }).lean()).resolves.toMatchObject({
+      effectiveTo: new Date("2026-02-01T00:00:00.000Z"),
+      status: "ACTIVE",
+    });
   });
 
   it("resolves the active rate server-side and snapshots it on task creation", async () => {
