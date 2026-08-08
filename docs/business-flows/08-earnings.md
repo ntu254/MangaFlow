@@ -34,7 +34,10 @@ graph TD
 `rateCode`, work unit, positive amount, currency, version, status, and effective
 window. Active windows for the same code cannot overlap. The Admin manages these
 entries through `GET /api/admin/rates`, `POST /api/admin/rates`, and
-`PATCH /api/admin/rates/:id`. Task creation options come from
+`PATCH /api/admin/rates/:id`. To replace an active policy without a pricing
+gap, Admin uses `POST /api/admin/rates/:id/revisions`: the transaction closes
+the current version at the replacement's `effectiveFrom` and creates the next
+version. Task creation options come from
 `GET /api/rates/active`.
 
 Task creation accepts only `rateCode` and `quantity`. The backend resolves the

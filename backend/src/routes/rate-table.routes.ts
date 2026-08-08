@@ -5,6 +5,7 @@ import {
   listActiveRateOptions,
   listAdminRates,
   patchAdminRate,
+  scheduleAdminRateRevision,
 } from "../controllers/rate-table.controller.js";
 
 const router = Router();
@@ -12,6 +13,7 @@ const router = Router();
 router.get("/rates/active", requireRole("ADMIN", "MANGAKA", "EDITOR") as any, listActiveRateOptions);
 router.get("/admin/rates", requireRole("ADMIN") as any, listAdminRates);
 router.post("/admin/rates", requireRole("ADMIN") as any, createAdminRate);
+router.post("/admin/rates/:id/revisions", requireRole("ADMIN") as any, scheduleAdminRateRevision);
 router.patch("/admin/rates/:id", requireRole("ADMIN") as any, patchAdminRate);
 
 export default router;

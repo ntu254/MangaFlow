@@ -35,10 +35,20 @@ export type PatchRateTableRequest = {
   effectiveTo?: string | null;
 };
 
+export type ScheduleRateTableRevisionRequest = {
+  label: string;
+  amount: number;
+  currency?: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+};
+
 export const rateTableApi = {
   active: () => apiRequest("/rates/active"),
   list: () => apiRequest("/admin/rates"),
   create: (body: CreateRateTableRequest) => apiRequest("/admin/rates", { method: "POST", body }),
   patch: (id: string, body: PatchRateTableRequest) =>
     apiRequest(`/admin/rates/${id}`, { method: "PATCH", body }),
+  scheduleRevision: (id: string, body: ScheduleRateTableRevisionRequest) =>
+    apiRequest(`/admin/rates/${id}/revisions`, { method: "POST", body }),
 };

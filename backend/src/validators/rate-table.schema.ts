@@ -21,3 +21,13 @@ export const patchRateTableSchema = z
     effectiveTo: isoDate.nullable().optional(),
   })
   .strict();
+
+export const scheduleRateTableRevisionSchema = z
+  .object({
+    label: z.string().min(1).max(160),
+    amount: z.number().positive(),
+    currency: z.string().regex(/^[A-Za-z]{3}$/).optional(),
+    effectiveFrom: isoDate,
+    effectiveTo: isoDate.nullable().optional(),
+  })
+  .strict();

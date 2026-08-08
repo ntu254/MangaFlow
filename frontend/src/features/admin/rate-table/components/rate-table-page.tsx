@@ -37,9 +37,11 @@ import {
   useAdminRateTableQuery,
   useCreateRateTableMutation,
   usePatchRateTableMutation,
+  useScheduleRateTableRevisionMutation,
 } from "../api/rate-table.queries";
 
-type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+type StatusFilter = "ALL" | "EFFECTIVE" | "SCHEDULED" | "EXPIRED" | "INACTIVE";
+type RateWindowState = Exclude<StatusFilter, "ALL">;
 const ROWS_PER_PAGE = 8;
 
 function toIsoDate(value: string) {
@@ -54,16 +56,27 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function dateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function rateWindowState(rate: RateTableEntry, now = new Date()): RateWindowState {
+  if (rate.status === "INACTIVE") return "INACTIVE";
+  if (new Date(rate.effectiveFrom) > now) return "SCHEDULED";
+  if (rate.effectiveTo && new Date(rate.effectiveTo) <= now) return "EXPIRED";
+  return "EFFECTIVE";
+}
+
 export function AdminRateTablePage() {
   const { canQueryAdmin, denial } = useAdminAccess();
   const {
     data: rates = [],
     isLoading,
-    error,
     refetch,
   } = useAdminRateTableQuery({ enabled: canQueryAdmin });
   const createMutation = useCreateRateTableMutation();
   const patchMutation = usePatchRateTableMutation();
+  const scheduleRevisionMutation = useScheduleRateTableRevisionMutation();
 
   const [code, setCode] = useState("");
   const [label, setLabel] = useState("");
@@ -73,21 +86,25 @@ export function AdminRateTablePage() {
   const [effectiveFrom, setEffectiveFrom] = useState(() => new Date().toISOString().slice(0, 10));
   const [effectiveTo, setEffectiveTo] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   const [pendingRateId, setPendingRateId] = useState<string | null>(null);
+  const [revisionBase, setRevisionBase] = useState<RateTableEntry | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [page, setPage] = useState(1);
 
-  const activeCount = rates.filter((rate) => rate.status === "ACTIVE").length;
-  const inactiveCount = rates.filter((rate) => rate.status === "INACTIVE").length;
+  const effectiveCount = rates.filter((rate) => rateWindowState(rate) === "EFFECTIVE").length;
+  const scheduledCount = rates.filter((rate) => rateWindowState(rate) === "SCHEDULED").length;
   const codeCount = new Set(rates.map((rate) => rate.code)).size;
   const currencyCount = new Set(rates.map((rate) => rate.currency)).size;
 
   const filteredRates = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return rates
-      .filter((rate) => statusFilter === "ALL" || rate.status === statusFilter)
+      .filter((rate) => statusFilter === "ALL" || rateWindowState(rate) === statusFilter)
       .filter((rate) => {
         if (!needle) return true;
         return [rate.code, rate.label, rate.workUnitType, rate.currency]
@@ -104,7 +121,7 @@ export function AdminRateTablePage() {
       version: (rate) => rate.version,
       amount: (rate) => rate.amount,
       effectiveFrom: (rate) => new Date(rate.effectiveFrom),
-      status: (rate) => rate.status,
+      status: (rate) => rateWindowState(rate),
     },
     { key: "code", direction: "asc" },
   );
@@ -133,8 +150,27 @@ export function AdminRateTablePage() {
     setWorkUnitType("");
     setAmount("");
     setCurrency("VND");
-    setEffectiveFrom(new Date().toISOString().slice(0, 10));
+    setEffectiveFrom(dateInputValue(new Date()));
     setEffectiveTo("");
+    setRevisionBase(null);
+  };
+
+  const startRevision = (rate: RateTableEntry) => {
+    const firstRevisionDate = new Date(rate.effectiveFrom);
+    firstRevisionDate.setUTCDate(firstRevisionDate.getUTCDate() + 1);
+    const tomorrow = new Date();
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    setRevisionBase(rate);
+    setCode(rate.code);
+    setLabel(rate.label);
+    setWorkUnitType(rate.workUnitType);
+    setAmount(String(rate.amount));
+    setCurrency(rate.currency);
+    setEffectiveFrom(dateInputValue(firstRevisionDate > tomorrow ? firstRevisionDate : tomorrow));
+    setEffectiveTo("");
+    setFormError(null);
+    setSuccessMessage(null);
+    document.getElementById("rate-code")?.focus();
   };
 
   const createRate = async (event: FormEvent<HTMLFormElement>) => {
@@ -161,18 +197,39 @@ export function AdminRateTablePage() {
     }
 
     try {
-      await createMutation.mutateAsync({
-        code: code.trim().toUpperCase(),
-        label: label.trim(),
-        workUnitType: workUnitType.trim().toUpperCase(),
-        amount: numericAmount,
-        currency: currency.trim().toUpperCase(),
-        effectiveFrom: toIsoDate(effectiveFrom),
-        effectiveTo: effectiveTo ? toIsoDate(effectiveTo) : null,
-      });
+      if (revisionBase) {
+        await scheduleRevisionMutation.mutateAsync({
+          id: revisionBase.id,
+          body: {
+            label: label.trim(),
+            amount: numericAmount,
+            currency: currency.trim().toUpperCase(),
+            effectiveFrom: toIsoDate(effectiveFrom)!,
+            effectiveTo: effectiveTo ? toIsoDate(effectiveTo) : null,
+          },
+        });
+      } else {
+        await createMutation.mutateAsync({
+          code: code.trim().toUpperCase(),
+          label: label.trim(),
+          workUnitType: workUnitType.trim().toUpperCase(),
+          amount: numericAmount,
+          currency: currency.trim().toUpperCase(),
+          effectiveFrom: toIsoDate(effectiveFrom),
+          effectiveTo: effectiveTo ? toIsoDate(effectiveTo) : null,
+        });
+      }
       resetForm();
       setSuccessMessage(
-        "Rate version published. New tasks can resolve this policy within its effective window.",
+        revisionBase
+          ? {
+              title: "Revision scheduled",
+              description: "The current version closes when the new version starts.",
+            }
+          : {
+              title: "Rate version published",
+              description: "New tasks can resolve this policy within its effective window.",
+            },
       );
     } catch (mutationError) {
       setFormError(mapAdminError(mutationError));
@@ -225,10 +282,10 @@ export function AdminRateTablePage() {
         <MetricGrid columns={4}>
           <MetricCard
             icon={<CheckCircle2 className="size-4" />}
-            label="Active versions"
-            value={activeCount}
+            label="Effective now"
+            value={effectiveCount}
             hint="Available to resolve new tasks"
-            tone={activeCount > 0 ? "success" : "danger"}
+            tone={effectiveCount > 0 ? "success" : "danger"}
           />
           <MetricCard
             icon={<ShieldCheck className="size-4" />}
@@ -238,9 +295,9 @@ export function AdminRateTablePage() {
           />
           <MetricCard
             icon={<Clock3 className="size-4" />}
-            label="Historical versions"
-            value={inactiveCount}
-            hint="Retained for audit context"
+            label="Scheduled versions"
+            value={scheduledCount}
+            hint="Future pricing changes"
           />
           <MetricCard
             icon={<CircleHelp className="size-4" />}
@@ -261,22 +318,27 @@ export function AdminRateTablePage() {
                   <Plus className="size-4" />
                 </span>
                 <h2 className="font-serif text-[19px] font-semibold text-[var(--admin-ink)]">
-                  Publish a rate version
+                  {revisionBase ? `Schedule revision for ${revisionBase.code}` : "Publish a rate version"}
                 </h2>
               </div>
               <p className="mt-2 text-[12px] leading-5 text-[var(--admin-muted)]">
-                Publishing creates an active version. The effective window cannot overlap another
-                active version with the same code.
+                {revisionBase
+                  ? "The current version stays effective until this revision begins; no pricing gap is created."
+                  : "Publishing creates an active version. The effective window cannot overlap another active version with the same code."}
               </p>
             </div>
 
             <form onSubmit={createRate} className="space-y-4 p-5" noValidate>
-              <Field label="Code" helper="Stable key selected when a Mangaka creates a task.">
+              <Field
+                label="Code"
+                helper={revisionBase ? "A revision keeps the existing policy code." : "Stable key selected when a Mangaka creates a task."}
+              >
                 <Input
                   id="rate-code"
                   value={code}
                   onChange={(event) => setCode(event.target.value)}
                   placeholder="LETTERING_PAGE"
+                  disabled={!!revisionBase}
                   required
                   aria-required="true"
                   className="h-10 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-page)] text-[13px] uppercase outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-navy)] focus-visible:ring-offset-1"
@@ -292,14 +354,12 @@ export function AdminRateTablePage() {
                   className="h-10 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-page)] text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-navy)] focus-visible:ring-offset-1"
                 />
               </Field>
-              <Field
-                label="Work unit"
-                helper="The quantity unit used to calculate estimated amount."
-              >
+              <Field label="Work unit" helper="The quantity unit used to calculate estimated amount.">
                 <Input
                   value={workUnitType}
                   onChange={(event) => setWorkUnitType(event.target.value)}
                   placeholder="PAGE"
+                  disabled={!!revisionBase}
                   required
                   aria-required="true"
                   className="h-10 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-page)] text-[13px] uppercase outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-navy)] focus-visible:ring-offset-1"
@@ -353,7 +413,7 @@ export function AdminRateTablePage() {
 
               <div className="rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-page)] p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--admin-faint)]">
-                  Publish preview
+                  {revisionBase ? "Revision preview" : "Publish preview"}
                 </p>
                 <p className="mt-2 font-mono text-[16px] font-semibold tabular-nums text-[var(--admin-ink)]">
                   {amount || "—"} {currency.trim().toUpperCase() || "VND"} /{" "}
@@ -368,7 +428,7 @@ export function AdminRateTablePage() {
                 <div id="rate-form-error" role="alert">
                   <StateBlock
                     tone="danger"
-                    title="Rate version was not published"
+                    title={revisionBase ? "Revision was not scheduled" : "Rate version was not published"}
                     description={formError}
                   />
                 </div>
@@ -376,14 +436,32 @@ export function AdminRateTablePage() {
               {successMessage ? (
                 <StateBlock
                   tone="success"
-                  title="Rate version published"
-                  description={successMessage}
+                  title={successMessage.title}
+                  description={successMessage.description}
                 />
+              ) : null}
+              {revisionBase ? (
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={resetForm} className="h-10">
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={scheduleRevisionMutation.isPending}
+                    className="h-10 flex-1 gap-2 rounded-[6px] bg-[var(--admin-navy)] px-4 text-[13px] text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)]"
+                  >
+                    <Plus className="size-4" />
+                    {scheduleRevisionMutation.isPending ? "Scheduling" : "Schedule revision"}
+                  </Button>
+                </div>
               ) : null}
               <Button
                 type="submit"
-                disabled={createMutation.isPending}
-                className="h-10 w-full gap-2 rounded-[6px] bg-[var(--admin-navy)] px-4 text-[13px] text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] focus-visible:ring-2 focus-visible:ring-[var(--admin-navy)] focus-visible:ring-offset-2 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={createMutation.isPending || !!revisionBase}
+                className={cn(
+                  "h-10 w-full gap-2 rounded-[6px] bg-[var(--admin-navy)] px-4 text-[13px] text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] focus-visible:ring-2 focus-visible:ring-[var(--admin-navy)] focus-visible:ring-offset-2 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50",
+                  revisionBase && "hidden",
+                )}
               >
                 <Plus className="size-4" />
                 {createMutation.isPending ? "Publishing…" : "Publish rate version"}
@@ -399,7 +477,7 @@ export function AdminRateTablePage() {
                     Rate register
                   </h2>
                   <p className="mt-1 text-[12px] text-[var(--admin-muted)]">
-                    Active policy first; inactive versions remain available for audit context.
+                    Effective, scheduled, expired, and inactive versions are retained for audit context.
                   </p>
                 </div>
                 <span className="font-mono text-[11px] uppercase tracking-wide text-[var(--admin-faint)]">
@@ -422,8 +500,10 @@ export function AdminRateTablePage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">All statuses</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="ALL">All windows</SelectItem>
+                    <SelectItem value="EFFECTIVE">Effective now</SelectItem>
+                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                    <SelectItem value="EXPIRED">Expired</SelectItem>
                     <SelectItem value="INACTIVE">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
@@ -530,6 +610,7 @@ export function AdminRateTablePage() {
                     <TableBody>
                       {visibleRates.map((rate) => {
                         const isPending = pendingRateId === rate.id;
+                        const windowState = rateWindowState(rate);
                         return (
                           <TableRow
                             key={rate.id}
@@ -555,16 +636,37 @@ export function AdminRateTablePage() {
                               <span
                                 className={cn(
                                   "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                  rate.status === "ACTIVE"
+                                  windowState === "EFFECTIVE"
                                     ? "bg-[var(--role-editor)]/12 text-[var(--role-editor)]"
-                                    : "bg-muted text-muted-foreground",
+                                    : windowState === "SCHEDULED"
+                                      ? "bg-sky-100 text-sky-800"
+                                      : "bg-muted text-muted-foreground",
                                 )}
                               >
-                                {rate.status === "ACTIVE" ? "Active" : "Inactive"}
+                                {windowState === "EFFECTIVE"
+                                  ? "Effective"
+                                  : windowState === "SCHEDULED"
+                                    ? "Scheduled"
+                                    : windowState === "EXPIRED"
+                                      ? "Expired"
+                                      : "Inactive"}
                               </span>
                             </TableCell>
                             <TableCell className="pr-5 text-center">
                               {rate.status === "ACTIVE" ? (
+                                <div className="flex justify-center gap-2">
+                                  {windowState !== "EXPIRED" ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => startRevision(rate)}
+                                      disabled={patchMutation.isPending || scheduleRevisionMutation.isPending}
+                                      className="h-9 whitespace-nowrap rounded-[6px] border-[var(--role-editor)]/40 bg-[var(--admin-surface)] text-[12px] text-[var(--role-editor)] hover:bg-[var(--role-editor)]/10"
+                                    >
+                                      Revise
+                                    </Button>
+                                  ) : null}
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -575,6 +677,7 @@ export function AdminRateTablePage() {
                                 >
                                   {isPending ? "Deactivating…" : "Deactivate"}
                                 </Button>
+                                </div>
                               ) : (
                                 <Button
                                   type="button"

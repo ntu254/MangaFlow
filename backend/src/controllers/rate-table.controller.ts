@@ -1,12 +1,17 @@
 import { asyncRoute, created, ok } from "../lib/http.js";
 import type { AuthedRequest } from "../types.js";
 import { parseBody } from "../validators/common.js";
-import { createRateTableSchema, patchRateTableSchema } from "../validators/rate-table.schema.js";
+import {
+  createRateTableSchema,
+  patchRateTableSchema,
+  scheduleRateTableRevisionSchema,
+} from "../validators/rate-table.schema.js";
 import {
   createRateTableEntry,
   listActiveRates,
   listRateTable,
   patchRateTableEntry,
+  scheduleRateTableRevision,
 } from "../services/rate-table.service.js";
 
 export const listAdminRates = asyncRoute(async (req: AuthedRequest, res) => {
@@ -25,4 +30,9 @@ export const createAdminRate = asyncRoute(async (req: AuthedRequest, res) => {
 export const patchAdminRate = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(patchRateTableSchema, req);
   ok(res, await patchRateTableEntry(req, String(req.params.id), body));
+});
+
+export const scheduleAdminRateRevision = asyncRoute(async (req: AuthedRequest, res) => {
+  const body = parseBody(scheduleRateTableRevisionSchema, req);
+  created(res, await scheduleRateTableRevision(req, String(req.params.id), body));
 });

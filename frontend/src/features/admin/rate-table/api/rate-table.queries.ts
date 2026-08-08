@@ -4,6 +4,7 @@ import type {
   CreateRateTableRequest,
   PatchRateTableRequest,
   RateTableEntry,
+  ScheduleRateTableRevisionRequest,
 } from "@/shared/api/rate-table";
 import { adminKeys } from "../../_shared/api/admin-queries";
 
@@ -31,6 +32,18 @@ export function usePatchRateTableMutation() {
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: PatchRateTableRequest }) =>
       rateTableApi.patch(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.rateTable() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.activeRates() });
+    },
+  });
+}
+
+export function useScheduleRateTableRevisionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: ScheduleRateTableRevisionRequest }) =>
+      rateTableApi.scheduleRevision(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.rateTable() });
       queryClient.invalidateQueries({ queryKey: adminKeys.activeRates() });
