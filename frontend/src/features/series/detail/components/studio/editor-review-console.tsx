@@ -137,7 +137,7 @@ export function EditorReviewConsole({ chapter, series, comments }: Props) {
         chapter={chapter}
         series={series}
         title="Review decision"
-        visibleActions={["REQUEST_REVISION", "EDITOR_APPROVE", "REJECT"]}
+        visibleActions={["REQUEST_REVISION", "EDITOR_APPROVE"]}
       />
     </section>
   );
