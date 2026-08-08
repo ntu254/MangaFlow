@@ -147,7 +147,12 @@ export function ChapterActionPanel({
                 try {
                   await chapterActionMutation.mutateAsync({
                     action: "REQUEST_REVISION",
-                    payload: { reviewNote: reviewNote.trim() },
+                    payload: {
+                      targetType: "CHAPTER",
+                      targetId: chapter.id,
+                      feedback: reviewNote.trim(),
+                      reviewNote: reviewNote.trim(),
+                    },
                   });
                   toast.success("Revision requested.");
                   setRevisionOpen(false);

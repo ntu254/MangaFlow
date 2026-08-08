@@ -1212,7 +1212,7 @@ export async function applyChapterAction(
       body: note,
       text: note,
       isBlocking: true,
-      status: { $in: ["OPEN", "TIED", "FINALIZED", "NO_QUORUM", "CANCELLED"] },
+      status: "OPEN",
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
