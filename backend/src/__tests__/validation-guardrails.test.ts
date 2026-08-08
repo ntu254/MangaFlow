@@ -940,4 +940,46 @@ describe("MF-028 Mangaka Review Queue Live Submission Review", () => {
       .send({ hackerField: "evil", badField: 123 })
       .expect(400);
   });
+
+  it("requires a real date and at least one day between chapter delivery and review", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+
+    const invalidDate = await request(createApp())
+      .post("/api/series/s-berserk-prod/chapters")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ title: "Invalid deadline", draftDueAt: "not-a-date" })
+      .expect(400);
+    expect(invalidDate.body.code).toBe("VALIDATION_ERROR");
+
+    const sameDay = await request(createApp())
+      .post("/api/series/s-berserk-prod/chapters")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({
+        title: "No review buffer",
+        draftDueAt: "2099-05-10T12:00:00.000Z",
+        reviewDueAt: "2099-05-10T12:00:00.000Z",
+      })
+      .expect(400);
+    expect(sameDay.body.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("preserves the one-day review buffer when a chapter deadline is updated", async () => {
+    const mangaka = await loginAs("inoue@beachread.jp");
+    const created = await request(createApp())
+      .post("/api/series/s-berserk-prod/chapters")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({
+        title: "Deadline update guardrail",
+        draftDueAt: "2099-05-10T12:00:00.000Z",
+        reviewDueAt: "2099-05-12T12:00:00.000Z",
+      })
+      .expect(201);
+
+    const response = await request(createApp())
+      .patch(`/api/chapters/${created.body.data.id}`)
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ reviewDueAt: "2099-05-10T12:00:00.000Z" })
+      .expect(400);
+    expect(response.body.code).toBe("VALIDATION_ERROR");
+  });
 });
