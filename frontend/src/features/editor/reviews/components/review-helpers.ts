@@ -30,6 +30,13 @@ export function commentTone(comment: StudioComment): CommentTone {
   return "blue";
 }
 
+export function statusLabel(comment: StudioComment) {
+  if (comment.status === "RESOLVED") return "Resolved";
+  if (isBlocking(comment)) return "Blocking";
+  if (comment.status === "ADDRESSED") return "Addressed";
+  return "Open";
+}
+
 export const TONE_DOT: Record<CommentTone, string> = {
   rose: "bg-rose-500",
   blue: "bg-blue-500",
@@ -38,10 +45,10 @@ export const TONE_DOT: Record<CommentTone, string> = {
 };
 
 export const TONE_PILL: Record<CommentTone, string> = {
-  rose: "bg-rose-100 text-rose-900",
-  blue: "bg-blue-100 text-blue-900",
-  amber: "bg-amber-100 text-amber-900",
-  emerald: "bg-emerald-100 text-emerald-900",
+  rose: "bg-rose-100 text-rose-900 dark:bg-rose-950/80 dark:text-rose-300",
+  blue: "bg-blue-100 text-blue-900 dark:bg-blue-950/80 dark:text-blue-300",
+  amber: "bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300",
+  emerald: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300",
 };
 
 export function statsForComments(comments: StudioComment[]): CommentStats {

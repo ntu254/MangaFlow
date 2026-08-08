@@ -29,6 +29,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   assistant: [
     { to: "/app/assistant/dashboard", label: "Dashboard", group: "Workspace" },
+    { to: "/app/assistant/assignments", label: "Page Assignments", group: "Workspace" },
     { to: "/app/assistant/tasks", label: "My Tasks", group: "Workspace" },
     { to: "/app/assistant/earnings", label: "Earnings", group: "Account" },
     { to: "/app/assistant/notifications", label: "Notifications", group: "Account" },

@@ -11,6 +11,7 @@ import {
   FileCheck,
   FileCode2,
   FileEdit,
+  FileStack,
   Layers,
   Loader2,
   MessageSquare,
@@ -40,13 +41,48 @@ import {
   useStudioTasksQuery,
   useSubmissionsQuery,
 } from "../../api/assistant-queries";
+import { usePageAssignmentInboxQuery } from "@/features/series/api/series-queries";
 import { tasksForAssistant } from "../../model/assistant-access";
 import { formatDate, formatDateTime } from "@/shared/lib/format-date";
 import { TeamInvitationsPanel } from "./team-invitations-panel";
-import { PageAssignmentsPanel } from "./page-assignments-panel";
 
 function formatYen(n: number) {
   return `¥${n.toLocaleString("ja-JP")}`;
+}
+
+function PageAssignmentsBanner() {
+  const { data: assignments = [] } = usePageAssignmentInboxQuery();
+  const pending = useMemo(
+    () => assignments.filter((a: any) => (a.status || "PENDING") === "PENDING"),
+    [assignments],
+  );
+
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-indigo-900 dark:text-indigo-200 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
+          <FileStack className="size-5" />
+        </div>
+        <div>
+          <p className="text-xs font-bold">
+            {pending.length} Pending Page Assignment Invitation{pending.length > 1 ? "s" : ""}
+          </p>
+          <p className="text-[11px] text-indigo-800 dark:text-indigo-300">
+            Mangaka invited you to assist on specific manuscript pages. Review and accept to unlock tasks.
+          </p>
+        </div>
+      </div>
+
+      <Link
+        to="/app/assistant/assignments"
+        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 transition-colors shadow-xs"
+      >
+        Manage Assignments <ArrowRight className="size-3.5" />
+      </Link>
+    </div>
+  );
 }
 
 export function AssistantDashboard() {
@@ -183,7 +219,7 @@ export function AssistantDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* SaaS Dashboard Header — No Eyebrow per Craft Floor Rules */}
+      {/* SaaS Dashboard Header */}
       <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-serif">
@@ -196,6 +232,13 @@ export function AssistantDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/app/assistant/assignments"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs hover:bg-muted transition-colors"
+          >
+            <FileStack className="size-3.5 text-primary" /> Page Assignments
+          </Link>
+
           <Link
             to="/app/assistant/tasks"
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-95 transition-all"
@@ -236,8 +279,8 @@ export function AssistantDashboard() {
       {/* Team Invitations — shown when there are pending invites */}
       <TeamInvitationsPanel />
 
-      {/* Page Assignments — shown when there are pending page-assignment invitations */}
-      <PageAssignmentsPanel />
+      {/* Page Assignments Notification Banner — shown when there are pending invitations */}
+      <PageAssignmentsBanner />
 
       {/* 4-Grid SaaS Metric Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -439,13 +482,12 @@ export function AssistantDashboard() {
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                          risk.tone === "rose"
+                        className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${risk.tone === "rose"
                             ? "bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30"
                             : risk.tone === "amber"
                               ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30"
                               : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30"
-                        }`}
+                          }`}
                       >
                         {risk.label}
                       </span>

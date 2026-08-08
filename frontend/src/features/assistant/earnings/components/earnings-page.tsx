@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Coins } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, Coins } from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import {
   useAssistantEarningsQuery,
@@ -12,7 +13,7 @@ import {
   EARNING_STATUS_LABEL,
   type EarningStatus,
 } from "@/entities/submission/model/assistant-types";
-import { PageHeader, FilterSelect, SortableHeader } from "@/shared/ui";
+import { FilterSelect, SortableHeader } from "@/shared/ui";
 import { SelectItem } from "@/components/ui/select";
 import { StatCard } from "@/shared/ui/stat-card";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -74,12 +75,29 @@ export function EarningsPage() {
   if (!user) return null;
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        eyebrow="Account"
-        title="Earnings"
-        description="Read-only earnings created when Mangaka approves your current submission."
-      />
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Unified Page Header */}
+      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+            <Link
+              to="/app/assistant/dashboard"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="size-3.5" /> Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-foreground font-semibold">Earnings & Compensation</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-serif flex items-center gap-2.5">
+            <Coins className="size-6 text-emerald-600 dark:text-emerald-400" />
+            Studio Earnings & Ledger
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Track page artwork compensation, confirmed studio earnings, and payment period ledgers.
+          </p>
+        </div>
+      </div>
 
       {mine.length === 0 ? (
         <EmptyState

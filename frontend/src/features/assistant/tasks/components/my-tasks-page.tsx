@@ -16,8 +16,9 @@ import {
 import { tasksForAssistant } from "../../model/assistant-access";
 import { useAuth } from "@/shared/auth";
 import { PageShell } from "@/shared/layout/page-layout";
-import { PageHeader, SearchToolbar, StateBlock } from "@/shared/ui";
-import { RotateCcw } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, Layers, RotateCcw } from "lucide-react";
+import { SearchToolbar, StateBlock } from "@/shared/ui";
 import { useEffect, useMemo, useState } from "react";
 import { AssistantTaskDetailDrawer } from "./assistant-task-detail-drawer";
 import { AssistantTaskBoard, type BoardColumnKey } from "./assistant-task-board";
@@ -109,12 +110,7 @@ export function MyTasksPage() {
 
   if (tasksError) {
     return (
-      <PageShell>
-        <PageHeader
-          eyebrow="Production"
-          title="My tasks"
-          description="Assigned work queue with task scope, status, deadline, feedback, and studio entry."
-        />
+      <div className="mx-auto max-w-7xl space-y-6">
         <StateBlock
           tone="danger"
           title="Could not load your tasks"
@@ -124,17 +120,33 @@ export function MyTasksPage() {
               : "Please try again after the backend is available."
           }
         />
-      </PageShell>
+      </div>
     );
   }
-
   return (
-    <PageShell>
-      <PageHeader
-        eyebrow="Production"
-        title="My tasks"
-        description={`${mine.length} assigned tasks across the production workflow.`}
-      />
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Unified Page Header */}
+      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+            <Link
+              to="/app/assistant/dashboard"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="size-3.5" /> Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-foreground font-semibold">My Tasks</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-serif flex items-center gap-2.5">
+            <Layers className="size-6 text-primary" />
+            My Tasks Workbench
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {mine.length} assigned drawing task{mine.length === 1 ? "" : "s"} across production workflow.
+          </p>
+        </div>
+      </div>
 
       <TaskStatusSummary tasks={mine} />
 
@@ -142,13 +154,13 @@ export function MyTasksPage() {
         <SearchToolbar
           query={query}
           onQueryChange={setQuery}
-          placeholder="Search tasks..."
+          placeholder="Search tasks by title..."
           filters={
             <>
               <Select value={seriesFilter} onValueChange={onSeriesChange}>
                 <SelectTrigger
                   aria-label="Filter by series"
-                  className="h-10 w-44 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
+                  className="h-9 w-44 rounded-lg border-border/80 bg-card text-xs font-medium"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -164,7 +176,7 @@ export function MyTasksPage() {
               <Select value={chapterFilter} onValueChange={setChapterFilter}>
                 <SelectTrigger
                   aria-label="Filter by chapter"
-                  className="h-10 w-48 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
+                  className="h-9 w-48 rounded-lg border-border/80 bg-card text-xs font-medium"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -181,7 +193,7 @@ export function MyTasksPage() {
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger
                   aria-label="Filter by priority"
-                  className="h-10 w-40 rounded-[6px] border-[var(--admin-border)] bg-[var(--admin-surface)] text-[13px]"
+                  className="h-9 w-40 rounded-lg border-border/80 bg-card text-xs font-medium"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -202,7 +214,7 @@ export function MyTasksPage() {
                   onClick={clearFilters}
                   aria-label="Clear task filters"
                   title="Clear filters"
-                  className="grid size-10 place-items-center rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-muted)] hover:bg-[var(--admin-hover)]"
+                  className="grid size-9 place-items-center rounded-lg border border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                   <RotateCcw className="size-4" />
                 </button>
@@ -258,6 +270,6 @@ export function MyTasksPage() {
         open={!!selected}
         onOpenChange={(o) => !o && setSelectedId(null)}
       />
-    </PageShell>
+    </div>
   );
 }

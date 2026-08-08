@@ -1,22 +1,12 @@
 import { useEffect, useState } from "react";
-import { AlertOctagon, CheckCircle2, MessageSquare } from "lucide-react";
-import type { StudioComment } from "@/entities/series/model/studio-types";
+import { AlertOctagon, CheckCircle2, RotateCcw, XCircle, ShieldCheck } from "lucide-react";
 import type { StudioTask } from "@/entities/series/model/studio-types";
 import type { ChapterPage, ChapterReview } from "@/entities/series/model/series-types";
 import type { PublicationReadiness } from "../../model/editor-access";
-import { StatCard, Panel } from "@/shared/ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chapterPageLabel } from "@/entities/chapter/model/chapter-pages";
 import { formatDateTime } from "@/shared/lib/format-date";
-import {
-  commentText,
-  commentTone,
-  isBlocking,
-  isTantouBlocking,
-  TONE_DOT,
-  TONE_PILL,
-  type CommentStats,
-} from "./review-helpers";
+import type { CommentStats } from "./review-helpers";
 
 const CHECKLIST_ITEMS = [
   "Artwork quality",
@@ -27,55 +17,40 @@ const CHECKLIST_ITEMS = [
   "Publication readiness",
 ] as const;
 
-function statusLabel(comment: StudioComment) {
-  if (comment.status === "RESOLVED") return "Resolved";
-  if (isBlocking(comment)) return "Blocking";
-  if (comment.status === "ADDRESSED") return "Addressed";
-  return "Open";
-}
-
 export function ReviewSummaryPanel({
   stats,
   readiness,
   page,
   tasks,
-  pageComments,
   chapterReviews,
-  regionLabel,
   canApprove,
   canRevise,
   isPending,
-  canVerifyBlockingComments,
-  isCommentActionPending,
-  taskActionsPending,
-  onTaskAction,
   onApprove,
   onRequestRevision,
   onReject,
-  onResolveComment,
-  onReopenComment,
-  assignedEditorId,
 }: {
   stats: CommentStats;
   readiness: PublicationReadiness | null;
   page: ChapterPage | undefined;
   tasks: StudioTask[];
-  pageComments: StudioComment[];
   chapterReviews: ChapterReview[];
-  regionLabel: (regionId?: string) => string | undefined;
   canApprove: boolean;
   canRevise: boolean;
   isPending: boolean;
-  canVerifyBlockingComments: boolean;
-  isCommentActionPending: boolean;
-  taskActionsPending: boolean;
-  onTaskAction: (taskId: string, action: "EDITOR_APPROVE" | "COMPLETE") => void;
   onApprove: () => void;
   onRequestRevision: (payload: Record<string, unknown>) => void;
   onReject: (payload: Record<string, unknown>) => void;
-  onResolveComment: (comment: StudioComment) => void;
-  onReopenComment: (comment: StudioComment) => void;
-  assignedEditorId: string;
+  // Unused legacy props for backward compatibility signature
+  pageComments?: unknown;
+  regionLabel?: unknown;
+  canVerifyBlockingComments?: unknown;
+  isCommentActionPending?: unknown;
+  taskActionsPending?: unknown;
+  onTaskAction?: unknown;
+  onResolveComment?: unknown;
+  onReopenComment?: unknown;
+  assignedEditorId?: unknown;
 }) {
   const [checklist, setChecklist] = useState<Record<string, boolean>>(() => ({
     "File quality": Boolean(readiness && readiness.pagesUploaded > 0),
@@ -110,36 +85,74 @@ export function ReviewSummaryPanel({
   const canSendNegativeDecision = canRevise && Boolean(targetValue) && note.trim().length > 0;
 
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
-      <p className="font-serif text-[15px] text-[var(--admin-ink)]">Review Summary</p>
+    <div className="flex h-full flex-col min-h-0 divide-y divide-border/60 bg-card/60 overflow-y-auto">
+      {/* Executive Header & Readiness Status */}
+      <div className="p-3 bg-muted/20 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="font-serif font-bold text-xs text-foreground uppercase tracking-wider">
+            Editorial Decision Console
+          </p>
+        </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard
-          tone="rose"
-          icon={<AlertOctagon className="size-4" />}
-          label="Blocking issues"
-          value={stats.blocking}
-        />
-        <StatCard
-          tone="blue"
-          icon={<MessageSquare className="size-4" />}
-          label="Open comments"
-          value={stats.open}
-        />
-        <StatCard
-          tone="amber"
-          icon={<CheckCircle2 className="size-4" />}
-          label="Addressed awaiting check"
-          value={stats.addressed}
-        />
+        {/* Readiness Banner */}
+        <div
+          className={`flex items-center gap-2 rounded-xl p-2 text-xs font-semibold border ${
+            readiness?.ready
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+              : stats.blocking > 0
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300"
+                : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          {readiness?.ready ? (
+            <ShieldCheck className="size-4 shrink-0 text-emerald-500" />
+          ) : (
+            <AlertOctagon className="size-4 shrink-0 text-rose-500" />
+          )}
+          <span className="truncate">
+            {readiness?.ready
+              ? "Chapter is Ready for Publication"
+              : stats.blocking > 0
+                ? `${stats.blocking} Blocking Issues Pending`
+                : "Under Review / Revisions Pending"}
+          </span>
+        </div>
       </div>
 
-      <Panel title="Checklist">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+      {/* KPI Stat Pills Bar */}
+      <div className="p-3">
+        <div className="grid grid-cols-3 gap-1.5 text-center">
+          <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-2">
+            <p className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase">Blocking</p>
+            <p className="text-base font-extrabold text-rose-700 dark:text-rose-300 tabular-nums">
+              {stats.blocking}
+            </p>
+          </div>
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2">
+            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Addressed</p>
+            <p className="text-base font-extrabold text-amber-700 dark:text-amber-300 tabular-nums">
+              {stats.addressed}
+            </p>
+          </div>
+          <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-2">
+            <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Open</p>
+            <p className="text-base font-extrabold text-blue-700 dark:text-blue-300 tabular-nums">
+              {stats.open}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Editorial QC Checklist */}
+      <div className="p-3 space-y-2">
+        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          Editorial QC Checklist
+        </p>
+        <div className="grid grid-cols-2 gap-2">
           {CHECKLIST_ITEMS.map((item) => (
             <label
               key={item}
-              className="flex items-center gap-2 text-[12px] text-[var(--admin-ink)]"
+              className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card p-2 text-[11px] font-semibold text-foreground cursor-pointer hover:border-primary/40 transition-colors"
             >
               <Checkbox
                 checked={Boolean(checklist[item])}
@@ -147,207 +160,94 @@ export function ReviewSummaryPanel({
                   setChecklist((prev) => ({ ...prev, [item]: value === true }))
                 }
               />
-              {item}
+              <span className="truncate">{item}</span>
             </label>
           ))}
         </div>
-      </Panel>
+      </div>
 
-      <Panel title="Review snapshot">
-        {latestReview ? (
-          <div className="space-y-2 text-[12px] text-[var(--admin-muted)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-[var(--admin-ink)]">Frozen review set</span>
-              <span className="rounded bg-[var(--admin-hover)] px-1.5 py-0.5 text-[10px] font-semibold">
-                {latestReview.status}
-              </span>
-            </div>
-            <p>Pages frozen: {latestReview.pageVersionIds.length}</p>
-            <p>Created: {formatDateTime(latestReview.createdAt)}</p>
-            {latestReview.decidedAt ? (
-              <p>Decided: {formatDateTime(latestReview.decidedAt)}</p>
-            ) : null}
+      {/* Decision Action Console Form */}
+      <div className="p-3 space-y-3">
+        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          Editorial Decision & Actions
+        </p>
+
+        <div className="space-y-2">
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Target Problem Layer / Page
+            </label>
+            <select
+              value={targetValue}
+              onChange={(e) => setTargetValue(e.target.value)}
+              className="w-full rounded-lg border border-border/80 bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+            >
+              <option value="">Select Target (Optional)</option>
+              {targetOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-        ) : (
-          <p className="text-[12px] text-[var(--admin-faint)]">
-            No chapter review snapshot has been recorded yet.
-          </p>
-        )}
-      </Panel>
 
-      <Panel title="Assistant tasks">
-        {tasks.length === 0 ? (
-          <p className="text-[12px] text-[var(--admin-faint)]">
-            No assistant tasks on this chapter.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            <ul className="space-y-2">
-              {tasks.map((task) => {
-                const needsApprove = task.status === "MANGAKA_APPROVED";
-                const needsComplete = task.status === "EDITOR_APPROVED";
-                return (
-                  <li
-                    key={task.id}
-                    className="flex items-center justify-between gap-2 rounded-[6px] border border-[var(--admin-border)] p-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[12px] font-semibold text-[var(--admin-ink)]">
-                        {task.title}
-                      </p>
-                      <p className="text-[11px] text-[var(--admin-faint)]">
-                        {task.assigneeName} · {task.status}
-                      </p>
-                    </div>
-                    {needsApprove ? (
-                      <button
-                        type="button"
-                        disabled={taskActionsPending}
-                        onClick={() => onTaskAction(task.id, "EDITOR_APPROVE")}
-                        className="shrink-0 rounded-[5px] bg-[var(--admin-navy)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-40"
-                      >
-                        Approve
-                      </button>
-                    ) : needsComplete ? (
-                      <button
-                        type="button"
-                        disabled={taskActionsPending}
-                        onClick={() => onTaskAction(task.id, "COMPLETE")}
-                        className="shrink-0 rounded-[5px] border border-[var(--admin-border)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)] disabled:opacity-40"
-                      >
-                        Complete
-                      </button>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="text-[10px] text-[var(--admin-faint)]">
-              Completing a task records the assistant&apos;s earning (tracking only — not a
-              payment).
-            </p>
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Editorial Instructions / Feedback
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Enter revision notes or rejection details..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-border/80 bg-background p-2.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-primary shadow-2xs placeholder:text-muted-foreground/60"
+            />
           </div>
-        )}
-      </Panel>
 
-      <Panel title={`Comments (${pageComments.length})`} contentClassName="p-0">
-        {pageComments.length === 0 ? (
-          <p className="px-4 py-3 text-[12px] text-[var(--admin-faint)]">
-            No comments on this page yet.
-          </p>
-        ) : (
-          <ul className="divide-y divide-[var(--admin-border)]">
-            {pageComments.map((c, i) => {
-              const tone = commentTone(c);
-              const region = regionLabel(c.regionId);
-              const canVerify = canVerifyBlockingComments && isTantouBlocking(c, assignedEditorId);
-              return (
-                <li key={c.id} className="flex gap-2.5 px-4 py-2.5">
-                  <span
-                    className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white ${TONE_DOT[tone]}`}
-                  >
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[12px] font-semibold text-[var(--admin-ink)]">
-                        {pageLabel}
-                        {region ? ` · ${region}` : ""}
-                      </p>
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${TONE_PILL[tone]}`}
-                      >
-                        {statusLabel(c)}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[var(--admin-faint)]">
-                      {c.authorName} · {formatDateTime(c.createdAt)}
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-[var(--admin-muted)]">{commentText(c)}</p>
-                    {canVerify ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {c.status !== "RESOLVED" ? (
-                          <button
-                            type="button"
-                            disabled={isCommentActionPending}
-                            onClick={() => onResolveComment(c)}
-                            className="rounded-[5px] bg-[var(--admin-navy)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-40"
-                          >
-                            {c.status === "ADDRESSED" ? "Verify RESOLVED" : "Mark RESOLVED"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={isCommentActionPending}
-                            onClick={() => onReopenComment(c)}
-                            className="rounded-[5px] border border-[var(--admin-border)] px-2 py-1 text-[10px] font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)] disabled:opacity-40"
-                          >
-                            Reopen
-                          </button>
-                        )}
-                        <span className="text-[10px] text-[var(--admin-faint)]">
-                          Tantou verification
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Panel>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              disabled={!canSendNegativeDecision || isPending}
+              onClick={() => onRequestRevision(decisionPayload)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 shadow-2xs cursor-pointer transition-colors"
+            >
+              <RotateCcw className="size-3.5" /> Request Revision
+            </button>
+            <button
+              type="button"
+              disabled={!canSendNegativeDecision || isPending}
+              onClick={() => onReject(decisionPayload)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 shadow-2xs cursor-pointer transition-colors"
+            >
+              <XCircle className="size-3.5" /> Reject Chapter
+            </button>
+          </div>
 
-      <Panel title="Decision">
-        <label className="mb-2 block text-[11px] font-semibold text-[var(--admin-muted)]">
-          Problem target
-          <select
-            value={targetValue}
-            onChange={(e) => setTargetValue(e.target.value)}
-            className="mt-1 w-full rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-page)] px-3 py-2 text-[12px] text-[var(--admin-ink)] outline-none focus:border-[var(--admin-ink)]"
-          >
-            <option value="">Select target</option>
-            {targetOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Feedback or rejection reason..."
-          rows={3}
-          className="w-full resize-none rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-page)] px-3 py-2 text-[12px] text-[var(--admin-ink)] outline-none focus:border-[var(--admin-ink)]"
-        />
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            disabled={!canSendNegativeDecision || isPending}
-            onClick={() => onRequestRevision(decisionPayload)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[6px] border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[12px] font-semibold text-[var(--admin-ink)] hover:bg-[var(--admin-hover)] disabled:opacity-40"
-          >
-            Request Revision
-          </button>
-          <button
-            type="button"
-            disabled={!canSendNegativeDecision || isPending}
-            onClick={() => onReject(decisionPayload)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[6px] border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-900 hover:bg-rose-100 disabled:opacity-40"
-          >
-            Reject
-          </button>
           <button
             type="button"
             disabled={!canApprove || isPending}
             onClick={onApprove}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[6px] bg-[var(--admin-navy)] px-3 py-2 text-[12px] font-semibold text-[var(--admin-cream)] hover:bg-[var(--admin-navy-light)] disabled:opacity-40"
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-40 shadow-2xs cursor-pointer transition-colors"
           >
-            Approve Chapter
+            <CheckCircle2 className="size-4" /> Approve Chapter for Release
           </button>
         </div>
-      </Panel>
+      </div>
+
+      {/* Review Snapshot Footer Card */}
+      <div className="p-3 bg-muted/10 space-y-1.5 text-xs text-muted-foreground mt-auto">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-bold text-foreground text-[11px]">Snapshot Version</span>
+          <span className="rounded-full bg-muted border border-border/60 px-2 py-0.5 text-[10px] font-bold text-foreground uppercase">
+            {latestReview ? latestReview.status : "DRAFT"}
+          </span>
+        </div>
+        {latestReview && (
+          <p className="text-[10px]">
+            Frozen: <span className="font-semibold text-foreground">{latestReview.pageVersionIds.length} pages</span> · {formatDateTime(latestReview.createdAt)}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

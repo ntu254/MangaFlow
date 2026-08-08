@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { ArrowLeft, Check, Edit3, PanelLeft, PanelRight, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth";
 import {
   useChapterActionMutation,
   useChapterQuery,
   useChapterReviewsQuery,
+  useChaptersForSeriesQuery,
   useCommentsQuery,
   useSeriesDetailQuery,
 } from "@/entities/series";
@@ -18,6 +19,7 @@ import {
   useStudioTasksQuery,
   useTaskEditorActionMutation,
 } from "@/features/series";
+import { ReviewStatusPill } from "@/entities/submission";
 import { getDeadlineRisk, getPublicationReadiness } from "../../model/editor-access";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ReviewPagesSidebar } from "./review-pages-sidebar";
@@ -28,10 +30,13 @@ import { isBlocking, statsForComments } from "./review-helpers";
 
 export function ChapterReviewPage() {
   const { chapterId } = useParams({ from: "/app/editor/chapters/$chapterId/review" });
+  const navigate = useNavigate();
   const user = useAuth((s) => s.user);
   const { data: chapter, isLoading } = useChapterQuery(chapterId);
   const { data: chapterReviews = [] } = useChapterReviewsQuery(chapterId);
   const { data: series } = useSeriesDetailQuery(chapter?.seriesId ?? "");
+  const seriesIds = useMemo(() => (chapter?.seriesId ? [chapter.seriesId] : []), [chapter?.seriesId]);
+  const { data: allChapters = [] } = useChaptersForSeriesQuery(seriesIds);
   const { data: comments = [] } = useCommentsQuery({ chapterId });
   const { data: regions = [] } = useStudioRegionsQuery({ chapterId });
   const { data: tasks = [] } = useStudioTasksQuery({ chapterId });
@@ -43,6 +48,8 @@ export function ChapterReviewPage() {
   const [selectedPageId, setSelectedPageId] = useState("");
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [zoom, setZoom] = useState(1);
+  const [showLeftDock, setShowLeftDock] = useState(true);
+  const [showRightDock, setShowRightDock] = useState(true);
 
   const pages = useMemo(
     () => [...(chapter?.pages ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
@@ -93,7 +100,7 @@ export function ChapterReviewPage() {
   if (isLoading) {
     return (
       <div className="p-10">
-        <EmptyState title="Loading chapter" />
+        <EmptyState title="Loading Canva studio workspace..." />
       </div>
     );
   }
@@ -101,7 +108,7 @@ export function ChapterReviewPage() {
   if (!chapter || !series) {
     return (
       <div className="p-10">
-        <EmptyState title="Chapter not found" />
+        <EmptyState title="Chapter review dossier not found" />
       </div>
     );
   }
@@ -124,7 +131,7 @@ export function ChapterReviewPage() {
 
   function resolveComment(comment: (typeof comments)[number]) {
     if (!canVerifyBlockingComments) {
-      toast.error("Only the assigned Tantou can verify comments.");
+      toast.error("Only the assigned Tantou editor can verify comments.");
       return;
     }
     resolveCommentMutation.mutate(commentVariables(comment), {
@@ -135,7 +142,7 @@ export function ChapterReviewPage() {
 
   function reopenComment(comment: (typeof comments)[number]) {
     if (!canVerifyBlockingComments) {
-      toast.error("Only the assigned Tantou can reopen comments.");
+      toast.error("Only the assigned Tantou editor can reopen comments.");
       return;
     }
     reopenCommentMutation.mutate(commentVariables(comment), {
@@ -152,8 +159,8 @@ export function ChapterReviewPage() {
       { action, payload },
       {
         onSuccess: () =>
-          toast.success(action === "EDITOR_APPROVE" ? "Chapter approved." : "Revision requested."),
-        onError: () => toast.error("Failed to update chapter."),
+          toast.success(action === "EDITOR_APPROVE" ? "Chapter approved for release." : "Revision requested from author."),
+        onError: () => toast.error("Failed to update chapter state."),
       },
     );
   }
@@ -174,27 +181,116 @@ export function ChapterReviewPage() {
   }
 
   return (
-    <div className="-mx-6 -my-6 flex h-[calc(100vh-3.5rem)] flex-col bg-background lg:-mx-10 lg:-my-10">
-      <header className="flex items-center gap-3 border-b border-border bg-card/60 px-4 py-2.5">
-        <Link
-          to="/app/editor/review"
-          className="inline-flex items-center gap-1 text-xs font-medium text-[var(--admin-faint)] hover:text-[var(--admin-ink)]"
-        >
-          <ArrowLeft className="size-3.5" /> Review Queue
-        </Link>
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-background -m-4 sm:-m-6 lg:-m-10">
+      {/* Streamlined Canva Studio Header Bar */}
+      <header className="flex items-center justify-between border-b border-border/80 bg-card px-4 py-2 gap-3 shadow-2xs shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Link
+            to="/app/editor/review"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs font-bold text-foreground hover:bg-muted transition-colors shadow-2xs"
+          >
+            <ArrowLeft className="size-3.5" /> Queue
+          </Link>
+
+          <div className="h-4 w-[1px] bg-border/60 shrink-0 hidden sm:block" />
+
+          {/* Side Dock Toggle Buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowLeftDock(!showLeftDock)}
+              title="Toggle Pages Sidebar"
+              className={`rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                showLeftDock
+                  ? "border-primary/40 bg-primary/[0.08] text-primary"
+                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <PanelLeft className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowRightDock(!showRightDock)}
+              title="Toggle Inspector Sidebar"
+              className={`rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                showRightDock
+                  ? "border-primary/40 bg-primary/[0.08] text-primary"
+                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <PanelRight className="size-3.5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="font-serif font-bold text-sm text-foreground truncate">
+              {series.title} — Ch.{chapter.number}: {chapter.title || `Chapter ${chapter.number}`}
+            </h1>
+
+            <ReviewStatusPill status={chapter.status} />
+
+            {blockingCount > 0 && (
+              <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 shrink-0">
+                <ShieldAlert className="size-3" /> {blockingCount} Blocking
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            to="/app/editor/chapters/$chapterId/annotate"
+            params={{ chapterId }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs font-bold text-foreground hover:bg-muted transition-colors shadow-2xs"
+          >
+            <Edit3 className="size-3.5" /> Annotate Studio
+          </Link>
+
+          <button
+            type="button"
+            disabled={!canApprove || chapterAction.isPending}
+            onClick={() => runAction("EDITOR_APPROVE")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-40 transition-colors shadow-2xs cursor-pointer"
+          >
+            <Check className="size-3.5" /> Approve
+          </button>
+        </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_360px]">
-        <aside className="hidden min-h-0 flex-col border-r border-border bg-card/40 lg:flex">
-          <ReviewPagesSidebar
-            pages={pages}
-            commentsByPage={commentsByPage}
-            selectedPageId={activePageId}
-            onSelectPage={setSelectedPageId}
-          />
-        </aside>
+      {/* Main Studio Dynamic Canvas Grid */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Left Page Dock */}
+        {showLeftDock && (
+          <aside className="w-[320px] shrink-0 min-h-0 flex flex-col border-r border-border/80 bg-card/40">
+            <ReviewPagesSidebar
+              currentChapterId={chapterId}
+              allChapters={allChapters}
+              onSelectChapter={(id) =>
+                navigate({
+                  to: "/app/editor/chapters/$chapterId/review",
+                  params: { chapterId: id },
+                })
+              }
+              pages={pages}
+              commentsByPage={commentsByPage}
+              selectedPageId={activePageId}
+              onSelectPage={setSelectedPageId}
+              pageComments={pageComments}
+              tasks={tasks}
+              canVerifyBlockingComments={canVerifyBlockingComments}
+              assignedEditorId={series.editorId}
+              isCommentActionPending={isCommentActionPending}
+              onResolveComment={resolveComment}
+              onReopenComment={reopenComment}
+              regionLabel={(regionId) => (regionId ? regionLabelMap.get(regionId) : undefined)}
+              taskActionsPending={taskAction.isPending}
+              onTaskAction={runTaskAction}
+            />
+          </aside>
+        )}
 
-        <main className="flex min-h-0 flex-col px-3 pt-3">
+        {/* Middle Main Canva/Konva Canvas Viewer */}
+        <main className="flex-1 min-w-0 flex flex-col p-2 overflow-hidden bg-background">
           <ChapterReviewViewer
             chapter={chapter}
             series={series}
@@ -209,36 +305,42 @@ export function ChapterReviewPage() {
             onZoom={setZoom}
             onPrev={() => pages[activeIndex - 1] && setSelectedPageId(pages[activeIndex - 1].id)}
             onNext={() => pages[activeIndex + 1] && setSelectedPageId(pages[activeIndex + 1].id)}
+            pages={pages}
+            onSelectPage={setSelectedPageId}
           />
         </main>
 
-        <aside className="hidden min-h-0 flex-col border-l border-border bg-card/40 lg:flex">
-          <ReviewSummaryPanel
-            stats={chapterStats}
-            readiness={readiness}
-            page={activePage}
-            tasks={tasks}
-            pageComments={pageComments}
-            chapterReviews={chapterReviews}
-            regionLabel={(regionId) => (regionId ? regionLabelMap.get(regionId) : undefined)}
-            canApprove={canApprove && !!user}
-            canRevise={canRevise && !!user}
-            isPending={chapterAction.isPending}
-            canVerifyBlockingComments={canVerifyBlockingComments}
-            isCommentActionPending={isCommentActionPending}
-            taskActionsPending={taskAction.isPending}
-            onTaskAction={runTaskAction}
-            onApprove={() => runAction("EDITOR_APPROVE")}
-            onRequestRevision={(payload) => runAction("REQUEST_REVISION", payload)}
-            onReject={(payload) => runAction("REJECT", payload)}
-            onResolveComment={resolveComment}
-            onReopenComment={reopenComment}
-            assignedEditorId={series.editorId}
-          />
-        </aside>
+        {/* Right Editorial Summary Dock */}
+        {showRightDock && (
+          <aside className="w-[360px] shrink-0 min-h-0 flex flex-col border-l border-border/80 bg-card/40">
+            <ReviewSummaryPanel
+              stats={chapterStats}
+              readiness={readiness}
+              page={activePage}
+              tasks={tasks}
+              pageComments={pageComments}
+              chapterReviews={chapterReviews}
+              regionLabel={(regionId?: string) => (regionId ? regionLabelMap.get(regionId) : undefined)}
+              canApprove={canApprove && !!user}
+              canRevise={canRevise && !!user}
+              isPending={chapterAction.isPending}
+              canVerifyBlockingComments={canVerifyBlockingComments}
+              isCommentActionPending={isCommentActionPending}
+              taskActionsPending={taskAction.isPending}
+              onTaskAction={runTaskAction}
+              onApprove={() => runAction("EDITOR_APPROVE")}
+              onRequestRevision={(payload) => runAction("REQUEST_REVISION", payload)}
+              onReject={(payload) => runAction("REJECT", payload)}
+              onResolveComment={resolveComment}
+              onReopenComment={reopenComment}
+              assignedEditorId={series.editorId}
+            />
+          </aside>
+        )}
       </div>
 
-      <footer className="border-t border-border bg-card/60 px-4 py-3">
+      {/* Bottom Footer: Compact Timeline Bar */}
+      <footer className="border-t border-border/80 bg-card/80 px-4 py-1.5 shadow-2xs shrink-0">
         <ChapterReviewTimeline chapter={chapter} />
       </footer>
     </div>

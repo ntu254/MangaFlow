@@ -55,6 +55,7 @@ import { Route as AppAssistantSubmissionsRouteImport } from './routes/app.assist
 import { Route as AppAssistantNotificationsRouteImport } from './routes/app.assistant.notifications'
 import { Route as AppAssistantEarningsRouteImport } from './routes/app.assistant.earnings'
 import { Route as AppAssistantDashboardRouteImport } from './routes/app.assistant.dashboard'
+import { Route as AppAssistantAssignmentsRouteImport } from './routes/app.assistant.assignments'
 import { Route as AppAdminUsersRouteImport } from './routes/app.admin.users'
 import { Route as AppAdminRatesRouteImport } from './routes/app.admin.rates'
 import { Route as AppAdminNotificationsRouteImport } from './routes/app.admin.notifications'
@@ -310,6 +311,11 @@ const AppAssistantDashboardRoute = AppAssistantDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppAssistantRoute,
 } as any)
+const AppAssistantAssignmentsRoute = AppAssistantAssignmentsRouteImport.update({
+  id: '/assignments',
+  path: '/assignments',
+  getParentRoute: () => AppAssistantRoute,
+} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -459,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/notifications': typeof AppAdminNotificationsRoute
   '/app/admin/rates': typeof AppAdminRatesRoute
   '/app/admin/users': typeof AppAdminUsersRoute
+  '/app/assistant/assignments': typeof AppAssistantAssignmentsRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
   '/app/assistant/notifications': typeof AppAssistantNotificationsRoute
@@ -522,6 +529,7 @@ export interface FileRoutesByTo {
   '/app/admin/notifications': typeof AppAdminNotificationsRoute
   '/app/admin/rates': typeof AppAdminRatesRoute
   '/app/admin/users': typeof AppAdminUsersRoute
+  '/app/assistant/assignments': typeof AppAssistantAssignmentsRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
   '/app/assistant/notifications': typeof AppAssistantNotificationsRoute
@@ -590,6 +598,7 @@ export interface FileRoutesById {
   '/app/admin/notifications': typeof AppAdminNotificationsRoute
   '/app/admin/rates': typeof AppAdminRatesRoute
   '/app/admin/users': typeof AppAdminUsersRoute
+  '/app/assistant/assignments': typeof AppAssistantAssignmentsRoute
   '/app/assistant/dashboard': typeof AppAssistantDashboardRoute
   '/app/assistant/earnings': typeof AppAssistantEarningsRoute
   '/app/assistant/notifications': typeof AppAssistantNotificationsRoute
@@ -663,6 +672,7 @@ export interface FileRouteTypes {
     | '/app/admin/notifications'
     | '/app/admin/rates'
     | '/app/admin/users'
+    | '/app/assistant/assignments'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
     | '/app/assistant/notifications'
@@ -726,6 +736,7 @@ export interface FileRouteTypes {
     | '/app/admin/notifications'
     | '/app/admin/rates'
     | '/app/admin/users'
+    | '/app/assistant/assignments'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
     | '/app/assistant/notifications'
@@ -793,6 +804,7 @@ export interface FileRouteTypes {
     | '/app/admin/notifications'
     | '/app/admin/rates'
     | '/app/admin/users'
+    | '/app/assistant/assignments'
     | '/app/assistant/dashboard'
     | '/app/assistant/earnings'
     | '/app/assistant/notifications'
@@ -1174,6 +1186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssistantDashboardRouteImport
       parentRoute: typeof AppAssistantRoute
     }
+    '/app/assistant/assignments': {
+      id: '/app/assistant/assignments'
+      path: '/assignments'
+      fullPath: '/app/assistant/assignments'
+      preLoaderRoute: typeof AppAssistantAssignmentsRouteImport
+      parentRoute: typeof AppAssistantRoute
+    }
     '/app/admin/users': {
       id: '/app/admin/users'
       path: '/users'
@@ -1370,6 +1389,7 @@ const AppAssistantTasksRouteWithChildren =
   AppAssistantTasksRoute._addFileChildren(AppAssistantTasksRouteChildren)
 
 interface AppAssistantRouteChildren {
+  AppAssistantAssignmentsRoute: typeof AppAssistantAssignmentsRoute
   AppAssistantDashboardRoute: typeof AppAssistantDashboardRoute
   AppAssistantEarningsRoute: typeof AppAssistantEarningsRoute
   AppAssistantNotificationsRoute: typeof AppAssistantNotificationsRoute
@@ -1379,6 +1399,7 @@ interface AppAssistantRouteChildren {
 }
 
 const AppAssistantRouteChildren: AppAssistantRouteChildren = {
+  AppAssistantAssignmentsRoute: AppAssistantAssignmentsRoute,
   AppAssistantDashboardRoute: AppAssistantDashboardRoute,
   AppAssistantEarningsRoute: AppAssistantEarningsRoute,
   AppAssistantNotificationsRoute: AppAssistantNotificationsRoute,

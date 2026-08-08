@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Bell, Check } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, Bell, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   useNotificationsQuery,
@@ -40,25 +41,37 @@ export function AssistantNotificationsPage() {
     return <div className="space-y-4 p-6 text-sm text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="space-y-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Unified Page Header */}
+      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Workspace
-          </p>
-          <h1 className="font-serif text-3xl">Notifications</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {unreadCount} unread / {visible.length} total
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+            <Link
+              to="/app/assistant/dashboard"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="size-3.5" /> Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-foreground font-semibold">Notifications</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-serif flex items-center gap-2.5">
+            <Bell className="size-6 text-primary" />
+            Notifications & Activity
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {unreadCount} unread message{unreadCount === 1 ? "" : "s"} · {visible.length} total activity updates
           </p>
         </div>
+
         <button
           onClick={handleMarkAllRead}
           disabled={unreadCount === 0 || markRead.isPending}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
         >
           <Check className="size-3.5" /> Mark all as read
         </button>
-      </header>
+      </div>
 
       {visible.length === 0 ? (
         <EmptyState title="No new notifications" />
