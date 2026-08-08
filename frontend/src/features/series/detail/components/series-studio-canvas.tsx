@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/shared/auth";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { useChaptersForSeriesQuery, useSeriesDetailQuery } from "@/entities/series";
+import type { StudioTool } from "@/entities/series/model/studio-types";
 import { StudioTab } from "./studio-tab";
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
   initialPageId?: string;
   initialTaskId?: string;
   initialRegionId?: string;
+  initialTool?: StudioTool;
+  onBack?: () => void;
   backLink?: ReactNode;
 };
 
@@ -25,6 +28,8 @@ export function SeriesStudioCanvas({
   initialPageId,
   initialTaskId,
   initialRegionId,
+  initialTool,
+  onBack,
   backLink,
 }: Props) {
   const user = useAuth((s) => s.user);
@@ -64,6 +69,8 @@ export function SeriesStudioCanvas({
       initialPageId={initialPageId}
       initialTaskId={initialTaskId}
       initialRegionId={initialRegionId}
+      initialTool={initialTool}
+      onBack={onBack}
     />
   );
 }

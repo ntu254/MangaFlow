@@ -71,6 +71,7 @@ type Props = {
   initialPageId?: string;
   initialTaskId?: string;
   initialRegionId?: string;
+  initialTool?: StudioTool;
 };
 
 export function StudioTab({
@@ -82,18 +83,22 @@ export function StudioTab({
   initialPageId,
   initialTaskId,
   initialRegionId,
+  initialTool,
 }: Props) {
   const basePermissions = useMemo(() => getStudioPermissions(user, series), [user, series]);
   const [chapterId, setChapterId] = useState<string | undefined>(
     initialChapterId ?? chapters[0]?.id,
   );
   const [pageId, setPageId] = useState<string | undefined>(initialPageId);
-  const [tool, setTool] = useState<StudioTool>("select");
+  const [tool, setTool] = useState<StudioTool>(initialTool ?? "select");
   const [zoom, setZoom] = useState(1);
   const [selection, setSelection] = useState<StudioSelection>({ kind: "none" });
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [panTarget, setPanTarget] = useState<{ x: number; y: number; nonce: number } | null>(null);
   const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
+  const [commentAnchor, setCommentAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentBlocking, setCommentBlocking] = useState(false);
 
   const setRegionHidden = useStudio((s) => s.setRegionHidden);
   const setTaskHidden = useStudio((s) => s.setTaskHidden);
@@ -620,6 +625,17 @@ export function StudioTab({
                       },
                     );
                   }}
+                  onCreateCommentAt={({ x, y }) => {
+                    if (!permissions.canCreateComment) {
+                      toast.error("This role cannot create production comments.");
+                      return;
+                    }
+                    if (!page) return;
+                    setSelection({ kind: "page", pageId: page.id });
+                    setCommentAnchor({ x, y });
+                    setCommentBody("");
+                    setCommentBlocking(false);
+                  }}
                   zoom={zoom}
                   onZoomChange={setZoom}
                   containerWidth={size.w}
@@ -639,6 +655,71 @@ export function StudioTab({
               </div>
             </Suspense>
           )}
+
+          {commentAnchor && page && permissions.canCreateComment ? (
+            <form
+              className="absolute right-4 top-4 z-20 w-72 rounded-lg border border-border bg-card p-3 shadow-lg"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const body = commentBody.trim();
+                if (!body) return;
+                try {
+                  await createCommentMutation.mutateAsync({
+                    seriesId: series.id,
+                    chapterId: chapter?.id ?? "",
+                    pageId: page.id,
+                    targetType: "PAGE",
+                    targetId: page.id,
+                    body,
+                    text: body,
+                    isBlocking: commentBlocking,
+                    x: commentAnchor.x,
+                    y: commentAnchor.y,
+                  });
+                  toast.success(commentBlocking ? "Blocking feedback pinned." : "Feedback pinned.");
+                  setCommentAnchor(null);
+                  setCommentBody("");
+                  setCommentBlocking(false);
+                } catch (error) {
+                  toast.error(mapApiError(error));
+                }
+              }}
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-foreground">Pinned feedback</p>
+                <button
+                  type="button"
+                  onClick={() => setCommentAnchor(null)}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+              <textarea
+                autoFocus
+                value={commentBody}
+                onChange={(event) => setCommentBody(event.target.value)}
+                placeholder="Describe what should change…"
+                rows={3}
+                className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={commentBlocking}
+                  onChange={(event) => setCommentBlocking(event.target.checked)}
+                />
+                Blocks approval until resolved
+              </label>
+              <button
+                type="submit"
+                disabled={!commentBody.trim() || createCommentMutation.isPending}
+                className="mt-3 w-full rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {createCommentMutation.isPending ? "Saving…" : "Add feedback"}
+              </button>
+            </form>
+          ) : null}
 
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
             <BottomStudioToolbar

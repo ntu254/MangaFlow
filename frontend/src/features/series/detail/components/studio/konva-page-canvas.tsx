@@ -65,6 +65,21 @@ function viewportToNaturalRect(rect: RectShape, transform: ImageTransform): Rect
   };
 }
 
+function commentNaturalPoint(
+  comment: Pick<StudioComment, "x" | "y">,
+  naturalWidth: number,
+  naturalHeight: number,
+): { x: number; y: number } {
+  const x = comment.x ?? 0;
+  const y = comment.y ?? 0;
+  // New comments use normalized image coordinates so pins remain stable across exports.
+  // Existing records may contain natural pixels; continue rendering those without migration.
+  if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+    return { x: x * naturalWidth, y: y * naturalHeight };
+  }
+  return { x, y };
+}
+
 function clampRectToImage(rect: RectShape, naturalWidth: number, naturalHeight: number): RectShape {
   const minX = Math.max(0, Math.min(rect.x, naturalWidth));
   const minY = Math.max(0, Math.min(rect.y, naturalHeight));
@@ -178,6 +193,7 @@ type Props = {
   containerHeight: number;
   panTarget?: { x: number; y: number; nonce: number } | null;
   onJumpTo?: (x: number, y: number, commentId: string) => void;
+  onCreateCommentAt?: (point: { x: number; y: number }) => void;
   highlightCommentId?: string | null;
   canEditRegions?: boolean;
 };
@@ -197,6 +213,7 @@ export default function KonvaPageCanvas({
   containerHeight,
   panTarget,
   onJumpTo,
+  onCreateCommentAt,
   highlightCommentId,
   canEditRegions = false,
 }: Props) {
@@ -313,6 +330,17 @@ export default function KonvaPageCanvas({
   };
 
   const onMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (tool === "comment" && onCreateCommentAt) {
+      const ptr = stageRef.current?.getPointerPosition();
+      if (!ptr) return;
+      const point = viewportToNaturalPoint(ptr, imageTransform);
+      if (point.x < 0 || point.y < 0 || point.x > naturalWidth || point.y > naturalHeight) {
+        return;
+      }
+      onCreateCommentAt({ x: point.x / naturalWidth, y: point.y / naturalHeight });
+      e.cancelBubble = true;
+      return;
+    }
     if (tool !== "draw-region" || !canEditRegions) return;
     const stage = stageRef.current;
     if (!stage) return;
@@ -399,7 +427,12 @@ export default function KonvaPageCanvas({
           if (e.target === e.target.getStage()) onSelect({ kind: "none" });
         }}
         style={{
-          cursor: tool === "pan" ? "grab" : tool === "draw-region" ? "crosshair" : "default",
+          cursor:
+            tool === "pan"
+              ? "grab"
+              : tool === "draw-region" || tool === "comment"
+                ? "crosshair"
+                : "default",
         }}
       >
         {/* Background grid */}
@@ -530,8 +563,8 @@ export default function KonvaPageCanvas({
           {highlightComment && highlightComment.x != null && highlightComment.y != null ? (
             <Group listening={false}>
               <Circle
-                x={highlightComment.x}
-                y={highlightComment.y}
+                x={commentNaturalPoint(highlightComment, naturalWidth, naturalHeight).x}
+                y={commentNaturalPoint(highlightComment, naturalWidth, naturalHeight).y}
                 radius={90}
                 stroke="#3b82f6"
                 strokeWidth={4}
@@ -539,8 +572,8 @@ export default function KonvaPageCanvas({
                 dash={[12, 8]}
               />
               <Circle
-                x={highlightComment.x}
-                y={highlightComment.y}
+                x={commentNaturalPoint(highlightComment, naturalWidth, naturalHeight).x}
+                y={commentNaturalPoint(highlightComment, naturalWidth, naturalHeight).y}
                 radius={130}
                 stroke="#3b82f6"
                 strokeWidth={2}
@@ -581,8 +614,9 @@ export default function KonvaPageCanvas({
         style={{ width: containerWidth, height: containerHeight }}
       >
         {visibleComments.map((c) => {
+          const commentPoint = commentNaturalPoint(c, naturalWidth, naturalHeight);
           const commentRect = naturalToViewportRect(
-            { x: c.x ?? 0, y: c.y ?? 0, width: 0, height: 0 },
+            { x: commentPoint.x, y: commentPoint.y, width: 0, height: 0 },
             imageTransform,
           );
           const cx = commentRect.x;
@@ -638,7 +672,8 @@ export default function KonvaPageCanvas({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (c.x != null && c.y != null) onJumpTo(c.x, c.y, c.id);
+                            if (c.x != null && c.y != null)
+                              onJumpTo(commentPoint.x, commentPoint.y, c.id);
                           }}
                           className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted"
                           aria-label="Jump to comment"
