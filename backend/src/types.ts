@@ -37,21 +37,14 @@ export type ProposalStatus =
   | "ARCHIVED";
 
 export type VotingSessionStatus =
-  | "OPEN"
-  | "NO_QUORUM"
-  | "TIED"
-  | "FINALIZED"
-  | "CANCELLED";
+  "OPEN" | "NO_QUORUM" | "TIED" | "FINALIZED" | "CANCELLED";
 
 export type VoteDecision = "APPROVE" | "REJECT";
 
 export type TiePolicy = "CHAIR_DECIDES" | "REJECT" | "RETURN_TO_BOARD";
 
 export type TieResolution =
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED"
-  | "RETURNED_TO_BOARD";
+  "PENDING" | "APPROVED" | "REJECTED" | "RETURNED_TO_BOARD";
 
 export type ProposalAction =
   | "SUBMIT"
@@ -160,6 +153,8 @@ export type StudioTaskStatus =
   | "COMPLETED"
   | "REJECTED"
   | "CANCELLED";
+
+export type TaskDeliveryRole = "FINAL_PAGE" | "REGION_ASSET" | "SUPPORTING";
 
 export type TaskAssignmentStatus =
   "UNASSIGNED" | "PENDING" | "ACCEPTED" | "REJECTED";

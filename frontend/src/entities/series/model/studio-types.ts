@@ -109,6 +109,18 @@ export type PageAssignment = {
   rejectedReason?: string;
 };
 
+/**
+ * A page has one source-of-truth final asset, while several assistants can
+ * contribute work around it. Only FINAL_PAGE submissions may replace it.
+ */
+export type TaskDeliveryRole = "FINAL_PAGE" | "REGION_ASSET" | "SUPPORTING";
+
+export const TASK_DELIVERY_ROLE_LABEL: Record<TaskDeliveryRole, string> = {
+  FINAL_PAGE: "Final page",
+  REGION_ASSET: "Contribution asset",
+  SUPPORTING: "Supporting work",
+};
+
 export type PageAssignmentInboxItem = {
   pageId: string;
   pageNumber: number;
@@ -164,6 +176,10 @@ export type StudioTask = {
   pageId: string;
   /** @deprecated compatibility field; page assignment is authoritative. */
   pageTaskActive?: boolean;
+  /** FINAL_PAGE is the only role permitted to replace the page asset. */
+  deliveryRole?: TaskDeliveryRole;
+  /** A contribution explicitly required before the final page can be submitted. */
+  blocksPageDelivery?: boolean;
   title: string;
   type: RegionType;
   assigneeId: string;
@@ -194,6 +210,15 @@ export type StudioTask = {
   cancelled?: boolean;
   cancelledAt?: string;
 };
+
+/** Legacy page tasks are treated as final-page work until they are migrated. */
+export function taskDeliveryRole(task: Pick<StudioTask, "deliveryRole">): TaskDeliveryRole {
+  return task.deliveryRole ?? "FINAL_PAGE";
+}
+
+export function isFinalPageTask(task: Pick<StudioTask, "deliveryRole">): boolean {
+  return taskDeliveryRole(task) === "FINAL_PAGE";
+}
 
 export type StudioComment = {
   id: string;

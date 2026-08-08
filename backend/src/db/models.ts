@@ -519,7 +519,8 @@ export type ChapterPage = {
   pageAssignment?: PageAssignment;
 };
 
-export type PageAssignmentStatus = "PENDING" | "ACCEPTED" | "RELEASED" | "REJECTED";
+export type PageAssignmentStatus =
+  "PENDING" | "ACCEPTED" | "RELEASED" | "REJECTED";
 
 export type PageAssignment = {
   assistantId: string;
@@ -681,6 +682,8 @@ export type StudioTaskRecord = {
   seriesId?: string;
   /** True while the page has an active assignment in the new page-level flow. */
   pageTaskActive?: boolean;
+  deliveryRole?: "FINAL_PAGE" | "REGION_ASSET" | "SUPPORTING";
+  blocksPageDelivery?: boolean;
   title?: string;
   description?: string;
   type?: string;
@@ -730,6 +733,13 @@ const studioTaskSchema = looseSchema({
   pageId: { type: String },
   seriesId: { type: String, index: true },
   pageTaskActive: { type: Boolean, index: true },
+  deliveryRole: {
+    type: String,
+    enum: ["FINAL_PAGE", "REGION_ASSET", "SUPPORTING"],
+    default: "FINAL_PAGE",
+    index: true,
+  },
+  blocksPageDelivery: { type: Boolean, default: false, index: true },
   title: { type: String },
   description: { type: String },
   type: { type: String },
@@ -1040,12 +1050,7 @@ export type VotingSessionRecord = {
   id: string;
   title: string;
   mode?: string;
-  status:
-    | "OPEN"
-    | "TIED"
-    | "FINALIZED"
-    | "NO_QUORUM"
-    | "CANCELLED";
+  status: "OPEN" | "TIED" | "FINALIZED" | "NO_QUORUM" | "CANCELLED";
   version?: number;
   result?: "APPROVED" | "REJECTED" | null;
   targetType?: "PROPOSAL";
@@ -1351,7 +1356,10 @@ const rankingSchema = looseSchema({
   active: { type: Boolean, default: true, index: true },
 });
 
-rankingSchema.index({ period: 1, seriesId: 1, importBatchId: 1 }, { unique: true });
+rankingSchema.index(
+  { period: 1, seriesId: 1, importBatchId: 1 },
+  { unique: true },
+);
 rankingSchema.index({ period: 1, rank: 1 });
 rankingSchema.index({ period: 1, active: 1 });
 
@@ -1473,7 +1481,8 @@ export const ASSISTANT_SPECIALIZATIONS = [
   "GENERAL",
 ] as const;
 
-export type AssistantSpecialization = (typeof ASSISTANT_SPECIALIZATIONS)[number];
+export type AssistantSpecialization =
+  (typeof ASSISTANT_SPECIALIZATIONS)[number];
 
 export const seriesMemberSchema = looseSchema({
   seriesId: { type: String, required: true, index: true },

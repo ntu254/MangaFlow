@@ -24,7 +24,12 @@ import {
   runWorkflowTransaction,
   toObject,
 } from "./workflow-support.service.js";
-import { applyPageAssignmentAction, assertCurrentPageAssignment, currentPageAssignment, getPageContext } from "./page-assignment.service.js";
+import {
+  applyPageAssignmentAction,
+  assertCurrentPageAssignment,
+  currentPageAssignment,
+  getPageContext,
+} from "./page-assignment.service.js";
 
 function ensureActor(req: AuthedRequest) {
   if (!req.actor)
@@ -40,12 +45,20 @@ async function assertTaskSeriesActive(task: any) {
   const series = task.seriesId
     ? await SeriesModel.findOne({ id: task.seriesId }).lean()
     : task.chapterId
-      ? await ChapterModel.findOne({ id: task.chapterId }).lean().then((chapter: any) =>
-          chapter ? SeriesModel.findOne({ id: chapter.seriesId }).lean() : null,
-        )
+      ? await ChapterModel.findOne({ id: task.chapterId })
+          .lean()
+          .then((chapter: any) =>
+            chapter
+              ? SeriesModel.findOne({ id: chapter.seriesId }).lean()
+              : null,
+          )
       : null;
   if (series?.status === "ARCHIVED") {
-    throw new AppError(409, "Series is archived and its tasks are read-only.", "SERIES_ARCHIVED");
+    throw new AppError(
+      409,
+      "Series is archived and its tasks are read-only.",
+      "SERIES_ARCHIVED",
+    );
   }
 }
 
@@ -71,7 +84,8 @@ async function assertTaskChapterContentUnlocked(task: any, session?: any) {
   const query = ChapterModel.findOne(filter).select({ status: 1 });
   if (session) query.session(session);
   const chapter = await query.lean();
-  if (!chapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  if (!chapter)
+    throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
   assertChapterContentUnlocked(chapter);
 }
 
@@ -226,6 +240,9 @@ async function applyApprovedSubmissionToPage(
   task: any,
   session: any,
 ) {
+  // Contributions can have their own reviewed files, but the page's displayed
+  // artwork is changed only by its single final-page delivery.
+  if (task?.deliveryRole && task.deliveryRole !== "FINAL_PAGE") return;
   const pageId = submission?.pageId ?? task?.pageId;
   const fileKey = submission?.fileKey;
   const fileUrl = submission?.fileUrl ?? submission?.imageUrl;
@@ -244,7 +261,8 @@ async function applyApprovedSubmissionToPage(
     // image and the Studio canvas prefers it over fileKey/fileUrl, so a
     // stale entry here would keep showing the old artwork after approval
     // even though the page's own file fields are updated below.
-    const { aiWhitened: _staleAiWhitened, ...restMetadata } = page.metadata ?? {};
+    const { aiWhitened: _staleAiWhitened, ...restMetadata } =
+      page.metadata ?? {};
     return {
       ...page,
       fileKey: fileKey ?? page.fileKey,
@@ -319,6 +337,68 @@ async function assertSubmissionMatchesTaskScope(task: any, payload: any) {
   }
 }
 
+function taskDeliveryRole(task: any) {
+  // Keep existing task history working while new work is explicitly typed.
+  return task?.deliveryRole ?? "FINAL_PAGE";
+}
+
+function submissionHasEvidence(payload: any) {
+  return Boolean(
+    (typeof payload?.fileKey === "string" && payload.fileKey.trim()) ||
+    (typeof payload?.fileUrl === "string" && payload.fileUrl.trim()) ||
+    (typeof payload?.imageUrl === "string" && payload.imageUrl.trim()),
+  );
+}
+
+async function assertFinalPageDeliveryCanSubmit(task: any, payload: any) {
+  if (taskDeliveryRole(task) !== "FINAL_PAGE") {
+    if (
+      !submissionHasEvidence(payload) &&
+      !String(payload?.notes ?? "").trim()
+    ) {
+      throw new AppError(
+        400,
+        "Add a delivery note or attach an output before submitting this contribution.",
+        "CONTRIBUTION_EVIDENCE_REQUIRED",
+      );
+    }
+    return;
+  }
+
+  if (!submissionHasEvidence(payload)) {
+    throw new AppError(
+      400,
+      "A final page delivery must include the completed page file.",
+      "FINAL_PAGE_FILE_REQUIRED",
+    );
+  }
+
+  await assertCurrentPageAssignment(task, { requireAccepted: true });
+  const unfinishedBlocker = await StudioTaskModel.findOne({
+    pageId: task.pageId,
+    id: { $ne: task.id },
+    blocksPageDelivery: true,
+    status: {
+      $nin: [
+        "MANGAKA_APPROVED",
+        "EDITOR_APPROVED",
+        "COMPLETED",
+        "REJECTED",
+        "CANCELLED",
+      ],
+    },
+  })
+    .select({ title: 1 })
+    .lean();
+  if (unfinishedBlocker) {
+    throw new AppError(
+      409,
+      `Complete or approve the blocking task “${String((unfinishedBlocker as any).title ?? "Untitled task")}” before submitting the final page.`,
+      "FINAL_PAGE_DELIVERY_BLOCKED",
+    );
+  }
+}
+
 function stableJson(value: unknown): string {
   if (Array.isArray(value))
     return `[${value.map((item) => stableJson(item)).join(",")}]`;
@@ -368,7 +448,10 @@ export async function applyTaskAction(
   await assertTaskActionAllowed(actor, task, action);
   const isEditorialAction =
     normalizedAction === "EDITOR_APPROVE" || normalizedAction === "COMPLETE";
-  if (actor.role !== "ASSISTANT" && !(isEditorialAction && actor.role === "ADMIN")) {
+  if (
+    actor.role !== "ASSISTANT" &&
+    !(isEditorialAction && actor.role === "ADMIN")
+  ) {
     await assertCanMutateTask(actor, task);
   }
   const pageAssignment = task.pageId
@@ -548,11 +631,17 @@ export async function applyTaskAction(
       { session },
     );
     if (updatedTask.modifiedCount !== 1) {
-      throw new AppError(409, "Task changed while applying action.", "CONFLICT");
+      throw new AppError(
+        409,
+        "Task changed while applying action.",
+        "CONFLICT",
+      );
     }
     if (normalizedAction === "COMPLETE") {
       const submission = task.currentSubmissionId
-        ? await SubmissionModel.findOne({ id: String(task.currentSubmissionId) })
+        ? await SubmissionModel.findOne({
+            id: String(task.currentSubmissionId),
+          })
             .session(session)
             .lean()
         : null;
@@ -586,15 +675,29 @@ export async function applyTaskAction(
       );
     }
     if (normalizedAction === "REASSIGN") {
-      await audit(req, "TASK_ASSIGNED", "task", taskId, {
-        fromAssignee: task.assigneeId,
-        toAssignee: payload.newAssigneeId,
-      }, session);
+      await audit(
+        req,
+        "TASK_ASSIGNED",
+        "task",
+        taskId,
+        {
+          fromAssignee: task.assigneeId,
+          toAssignee: payload.newAssigneeId,
+        },
+        session,
+      );
     }
-    await audit(req, `task.${action.toLowerCase()}`, "task", taskId, {
-      fromStatus: task.status,
-      toStatus: patch.status ?? task.status,
-    }, session);
+    await audit(
+      req,
+      `task.${action.toLowerCase()}`,
+      "task",
+      taskId,
+      {
+        fromStatus: task.status,
+        toStatus: patch.status ?? task.status,
+      },
+      session,
+    );
     const taskEventType =
       normalizedAction === "ACCEPT"
         ? "task.assignment.accepted"
@@ -618,12 +721,17 @@ export async function applyTaskAction(
               : task.assigneeId,
           previousAssistantId: task.assigneeId,
           reason:
-            payload.reason ?? payload.rejectReason ?? payload.cancelReason ?? null,
+            payload.reason ??
+            payload.rejectReason ??
+            payload.cancelReason ??
+            null,
         },
         session,
       );
     }
-    return toObject(await StudioTaskModel.findOne({ id: taskId }).session(session).lean());
+    return toObject(
+      await StudioTaskModel.findOne({ id: taskId }).session(session).lean(),
+    );
   });
 }
 
@@ -642,8 +750,11 @@ export async function reopenTaskForRevision(
     );
   }
   if (task.pageId) {
-    const assignment = currentPageAssignment((await getPageContext(String(task.pageId))).page);
-    if (assignment) await assertCurrentPageAssignment(task, { requireAccepted: true });
+    const assignment = currentPageAssignment(
+      (await getPageContext(String(task.pageId))).page,
+    );
+    if (assignment)
+      await assertCurrentPageAssignment(task, { requireAccepted: true });
   }
   assertTaskAssignmentAccepted(task);
   if (!isCanonicalRevisionStatus(task.status)) {
@@ -666,12 +777,25 @@ export async function reopenTaskForRevision(
     ).lean();
     if (!updated)
       throw new AppError(409, "Task changed while reopening.", "CONFLICT");
-    await audit(req, "TASK_REOPENED_FOR_REVISION", "task", taskId, {
-      fromStatus: task.status,
-    }, session);
-    await createOutboxEvent("task.reopened", "task", taskId, {
-      assistantId: actor.id,
-    }, session);
+    await audit(
+      req,
+      "TASK_REOPENED_FOR_REVISION",
+      "task",
+      taskId,
+      {
+        fromStatus: task.status,
+      },
+      session,
+    );
+    await createOutboxEvent(
+      "task.reopened",
+      "task",
+      taskId,
+      {
+        assistantId: actor.id,
+      },
+      session,
+    );
     return toObject(updated);
   });
 }
@@ -755,6 +879,7 @@ export async function submitTaskWork(
     }
     return toObject(existingByKey);
   }
+  await assertFinalPageDeliveryCanSubmit(task, payload);
   if (task.status !== "IN_PROGRESS") {
     throw new AppError(
       409,

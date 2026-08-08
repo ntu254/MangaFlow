@@ -29,7 +29,9 @@ describe("multiple tasks per page", () => {
   }, 30_000);
 
   async function preparePage() {
-    const chapter = await ChapterModel.findOne({ id: "ch-s-berserk-prod-5" }).lean();
+    const chapter = await ChapterModel.findOne({
+      id: "ch-s-berserk-prod-5",
+    }).lean();
     await ChapterModel.updateOne(
       { id: "ch-s-berserk-prod-5" },
       {
@@ -52,7 +54,7 @@ describe("multiple tasks per page", () => {
     return owner;
   }
 
-  it("allows creating a second task on the same page", async () => {
+  it("allows supporting work beside the single final page delivery", async () => {
     const mangaka = await preparePage();
     const app = createApp();
     const base = {
@@ -66,17 +68,47 @@ describe("multiple tasks per page", () => {
     const first = await request(app)
       .post("/api/studio/tasks")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
-      .send({ ...base, title: "First task" })
+      .send({ ...base, title: "Final page", deliveryRole: "FINAL_PAGE" })
       .expect(201);
 
     const second = await request(app)
       .post("/api/studio/tasks")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
-      .send({ ...base, title: "Second task" })
+      .send({ ...base, title: "Cleanup note", deliveryRole: "SUPPORTING" })
       .expect(201);
 
     expect(first.body.data.pageId).toBe("ch-s-berserk-prod-5-p2");
     expect(second.body.data.pageId).toBe("ch-s-berserk-prod-5-p2");
     expect(second.body.data.id).not.toBe(first.body.data.id);
+    expect(first.body.data.deliveryRole).toBe("FINAL_PAGE");
+    expect(second.body.data.deliveryRole).toBe("SUPPORTING");
+    expect(second.body.data.pageTaskActive).toBe(false);
+  });
+
+  it("rejects a second active final delivery for the same page", async () => {
+    const mangaka = await preparePage();
+    const app = createApp();
+    const base = {
+      chapterId: "ch-s-berserk-prod-5",
+      pageId: "ch-s-berserk-prod-5-p2",
+      assigneeId: "u-assist",
+      rateCode: "SPEECH_BUBBLE",
+      quantity: 1,
+      deliveryRole: "FINAL_PAGE",
+    };
+
+    await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ ...base, title: "Final page v1" })
+      .expect(201);
+
+    const duplicate = await request(app)
+      .post("/api/studio/tasks")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ ...base, title: "Another final page" })
+      .expect(409);
+
+    expect(duplicate.body.code).toBe("FINAL_PAGE_DELIVERY_EXISTS");
   });
 });

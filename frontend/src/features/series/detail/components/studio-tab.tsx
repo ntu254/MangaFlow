@@ -1001,6 +1001,7 @@ export function StudioTab({
         chapter={chapter}
         page={page}
         region={selectedRegion}
+        pageTasks={tasks.filter((task) => task.pageId === page?.id)}
         members={assistantMembers}
         pageAssignment={page?.pageAssignment}
         rates={activeRates}
@@ -1026,6 +1027,8 @@ export function StudioTab({
               priority: data.priority,
               instructions: data.instructions,
               description: data.instructions,
+              deliveryRole: data.deliveryRole,
+              blocksPageDelivery: data.blocksPageDelivery,
             });
             setSelection({ kind: "task", taskId: created.id });
             toast.success("Task created.");

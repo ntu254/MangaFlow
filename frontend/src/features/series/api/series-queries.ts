@@ -52,11 +52,7 @@ export {
   useSendChapterToEditorReviewMutation,
 } from "@/entities/series/model/chapter-queries";
 export { seriesKeys } from "@/entities/series/model/series-types";
-export {
-  chapterKeys,
-  materialKeys,
-  studioKeys,
-} from "@/entities/series/model/series-types";
+export { chapterKeys, materialKeys, studioKeys } from "@/entities/series/model/series-types";
 export type { SeriesRanking } from "@/entities/series/model/series-types";
 
 // Sprint 2 — `accessScope` and `specialization` are the canonical fields
@@ -806,6 +802,8 @@ export function useCreateStudioTaskMutation() {
       priority: string;
       instructions: string;
       description?: string;
+      deliveryRole: "FINAL_PAGE" | "REGION_ASSET" | "SUPPORTING";
+      blocksPageDelivery: boolean;
     }
   >({
     mutationFn: (body) => apiRequest<StudioTask>("/studio/tasks", { method: "POST", body }),
@@ -1018,9 +1016,16 @@ function normalizeSubmissionStatus(raw: string): AssistantSubmission["status"] {
 
 export function useAssignPageMutation() {
   const queryClient = useQueryClient();
-  return useMutation<PageAssignment, Error, { pageId: string; assistantId: string; chapterId?: string; seriesId?: string }>({
+  return useMutation<
+    PageAssignment,
+    Error,
+    { pageId: string; assistantId: string; chapterId?: string; seriesId?: string }
+  >({
     mutationFn: ({ pageId, assistantId }) =>
-      apiRequest<PageAssignment>(`/studio/pages/${pageId}/assignment`, { method: "POST", body: { assistantId } }),
+      apiRequest<PageAssignment>(`/studio/pages/${pageId}/assignment`, {
+        method: "POST",
+        body: { assistantId },
+      }),
     onSuccess: async (_data, variables) => {
       for (const key of pageAssignmentInvalidations(variables)) {
         await queryClient.invalidateQueries({ queryKey: key as never });
@@ -1039,9 +1044,22 @@ export function usePageAssignmentInboxQuery(options: { enabled?: boolean } = {})
 
 export function usePageAssignmentActionMutation() {
   const queryClient = useQueryClient();
-  return useMutation<PageAssignment, Error, { pageId: string; action: "ACCEPT" | "REJECT" | "RELEASE"; reason?: string; chapterId?: string; seriesId?: string }>({
+  return useMutation<
+    PageAssignment,
+    Error,
+    {
+      pageId: string;
+      action: "ACCEPT" | "REJECT" | "RELEASE";
+      reason?: string;
+      chapterId?: string;
+      seriesId?: string;
+    }
+  >({
     mutationFn: ({ pageId, action, reason }) =>
-      apiRequest<PageAssignment>(`/studio/pages/${pageId}/assignment/actions/${action}`, { method: "POST", body: reason ? { reason } : {} }),
+      apiRequest<PageAssignment>(`/studio/pages/${pageId}/assignment/actions/${action}`, {
+        method: "POST",
+        body: reason ? { reason } : {},
+      }),
     onSuccess: async (_data, variables) => {
       for (const key of pageAssignmentInvalidations(variables)) {
         await queryClient.invalidateQueries({ queryKey: key as never });
@@ -1168,7 +1186,9 @@ export function useSubmissionQuery(submissionId: string) {
 
 // MF-029 — Editor review queue
 
-export function useEditorReviewQueueQuery(options: { enabled?: boolean } = {}) {
+export function useEditorReviewQueueQuery(
+  options: { enabled?: boolean; refetchInterval?: number } = {},
+) {
   return useQuery<AssistantSubmission[]>({
     queryKey: submissionKeys.editorReviewQueue(),
     queryFn: async () => {
@@ -1177,6 +1197,7 @@ export function useEditorReviewQueueQuery(options: { enabled?: boolean } = {}) {
     },
     enabled: options.enabled ?? true,
     staleTime: 30000,
+    refetchInterval: options.refetchInterval,
   });
 }
 

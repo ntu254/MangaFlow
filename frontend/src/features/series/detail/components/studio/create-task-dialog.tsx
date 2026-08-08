@@ -17,8 +17,15 @@ import type {
   PageAssignment,
   RegionType,
   StudioRegion,
+  StudioTask,
+  TaskDeliveryRole,
 } from "@/entities/series/model/studio-types";
-import { REGION_TYPE_LABEL } from "@/entities/series/model/studio-types";
+import {
+  REGION_TYPE_LABEL,
+  TASK_DELIVERY_ROLE_LABEL,
+  isFinalPageTask,
+  isTaskActive,
+} from "@/entities/series/model/studio-types";
 import type { User } from "@/shared/auth";
 import type { RateTableEntry } from "@/shared/api/rate-table";
 import { isRenderableFileUrl } from "@/shared/lib/file-url";
@@ -31,6 +38,7 @@ const schema = z.object({
   dueAt: z.string().min(1, "Select a Due date."),
   instructions: z.string().min(5, "Instructions must be at least 5 characters."),
   pageId: z.string().min(1, "No page selected."),
+  deliveryRole: z.enum(["FINAL_PAGE", "REGION_ASSET", "SUPPORTING"]),
 });
 
 const FIELD_LABEL: Record<string, string> = {
@@ -41,6 +49,7 @@ const FIELD_LABEL: Record<string, string> = {
   dueAt: "Due date",
   instructions: "Instructions",
   pageId: "Page",
+  deliveryRole: "Deliverable",
 };
 
 type Submit = (data: {
@@ -52,6 +61,8 @@ type Submit = (data: {
   priority: "low" | "normal" | "high";
   instructions: string;
   pageId: string;
+  deliveryRole: TaskDeliveryRole;
+  blocksPageDelivery: boolean;
 }) => boolean | Promise<boolean>;
 
 type Props = {
@@ -60,6 +71,7 @@ type Props = {
   chapter: Chapter | undefined;
   page: ChapterPage | undefined;
   region: StudioRegion | undefined;
+  pageTasks: StudioTask[];
   pageAssignment?: PageAssignment;
   members: User[];
   rates: RateTableEntry[];
@@ -72,6 +84,7 @@ export function CreateTaskDialog({
   chapter,
   page,
   region,
+  pageTasks,
   pageAssignment,
   members,
   rates,
@@ -84,12 +97,17 @@ export function CreateTaskDialog({
   const [dueAt, setDueAt] = useState("");
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
   const [instructions, setInstructions] = useState("");
+  const [deliveryRole, setDeliveryRole] = useState<TaskDeliveryRole>("FINAL_PAGE");
+  const [blocksPageDelivery, setBlocksPageDelivery] = useState(true);
   const selectedRate = rates.find((rate) => rate.code === rateCode);
   // One assistant task is always one page and one payable unit.
   const quantity = 1;
   const estimatedAmount = selectedRate ? selectedRate.amount : 0;
   const pageHasSource = Boolean(
     page?.fileKey || isRenderableFileUrl(page?.fileUrl ?? page?.imageUrl),
+  );
+  const hasActiveFinalDelivery = pageTasks.some(
+    (task) => isTaskActive(task.status) && isFinalPageTask(task),
   );
 
   useEffect(() => {
@@ -98,8 +116,15 @@ export function CreateTaskDialog({
       setAssigneeId(pageAssignment?.assistantId ?? "");
       setTitle(region ? `${REGION_TYPE_LABEL[region.type]} — ${region.label ?? "Region"}` : "");
       setRateCode(rates[0]?.code ?? "");
+      const nextRole: TaskDeliveryRole = region
+        ? "REGION_ASSET"
+        : hasActiveFinalDelivery
+          ? "SUPPORTING"
+          : "FINAL_PAGE";
+      setDeliveryRole(nextRole);
+      setBlocksPageDelivery(nextRole === "FINAL_PAGE");
     }
-  }, [open, pageAssignment, region, rates]);
+  }, [open, pageAssignment, region, rates, hasActiveFinalDelivery]);
 
   const submit = async () => {
     if (!page) {
@@ -126,6 +151,7 @@ export function CreateTaskDialog({
       dueAt,
       instructions,
       pageId: page.id,
+      deliveryRole,
     });
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
@@ -144,6 +170,8 @@ export function CreateTaskDialog({
       priority,
       instructions,
       pageId: page.id,
+      deliveryRole,
+      blocksPageDelivery: deliveryRole === "FINAL_PAGE" || blocksPageDelivery,
     });
     if (ok) onOpenChange(false);
   };
@@ -166,7 +194,7 @@ export function CreateTaskDialog({
             {pageAssignment
               ? `${pageAssignment.assistantName} · ${pageAssignment.status}`
               : "Not assigned"}
-            . Multiple tasks may use this page assignment.
+            . Only one task can deliver the final page; other tasks contribute work to it.
           </div>
           {!pageHasSource ? (
             <div className="rounded border border-rose-300 bg-rose-50 p-2 text-[11px] text-rose-900">
@@ -195,6 +223,48 @@ export function CreateTaskDialog({
               ))}
             </select>
           </Row>
+          <Row label="Deliverable">
+            <select
+              className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+              value={deliveryRole}
+              onChange={(event) => {
+                const nextRole = event.target.value as TaskDeliveryRole;
+                setDeliveryRole(nextRole);
+                if (nextRole === "FINAL_PAGE") setBlocksPageDelivery(true);
+              }}
+            >
+              <option value="FINAL_PAGE" disabled={hasActiveFinalDelivery}>
+                {TASK_DELIVERY_ROLE_LABEL.FINAL_PAGE}
+                {hasActiveFinalDelivery ? " (already assigned)" : ""}
+              </option>
+              <option value="REGION_ASSET">{TASK_DELIVERY_ROLE_LABEL.REGION_ASSET}</option>
+              <option value="SUPPORTING">{TASK_DELIVERY_ROLE_LABEL.SUPPORTING}</option>
+            </select>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {deliveryRole === "FINAL_PAGE"
+                ? "This is the only task allowed to replace the page file after Mangaka approval."
+                : deliveryRole === "REGION_ASSET"
+                  ? "Upload an asset for this contribution; it will not replace the full page."
+                  : "Submit a note or optional reference file; it will not replace the full page."}
+            </p>
+          </Row>
+          {deliveryRole !== "FINAL_PAGE" ? (
+            <label className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2.5 text-xs">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={blocksPageDelivery}
+                onChange={(event) => setBlocksPageDelivery(event.target.checked)}
+              />
+              <span>
+                <span className="font-semibold text-foreground">Block final page delivery</span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                  The Page Owner cannot submit the final file until this task is completed or
+                  approved.
+                </span>
+              </span>
+            </label>
+          ) : null}
           <Row label="Assignee">
             {members.length === 0 ? (
               <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">

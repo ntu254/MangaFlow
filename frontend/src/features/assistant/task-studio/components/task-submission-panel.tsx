@@ -1,5 +1,5 @@
 import { Textarea } from "@/components/ui/textarea";
-import type { StudioTask } from "@/entities/series/model/studio-types";
+import { taskDeliveryRole, type StudioTask } from "@/entities/series/model/studio-types";
 import { useCreateSubmissionMutation, useTaskSubmissionsQuery } from "../../api/assistant-queries";
 import { uploadFileToR2 } from "@/shared/lib/r2-upload";
 import type { User } from "@/shared/auth";
@@ -7,6 +7,7 @@ import { Send, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { deriveTaskStudioSubmissionState } from "@/entities/task/model/submission-state";
+import { MaterialDownloadLink } from "@/features/series/detail/components/material-file-controls";
 
 export function TaskSubmissionPanel({
   task,
@@ -36,6 +37,32 @@ export function TaskSubmissionPanel({
     [...existingSubmissions].sort((a, b) => b.version - a.version)[0]?.id ?? null;
   const [file, setFile] = useState<File | null>(null);
   const [note, setNote] = useState("");
+  const deliveryRole = taskDeliveryRole(task);
+  const requiresFile = deliveryRole !== "SUPPORTING";
+  const deliveryCopy =
+    deliveryRole === "FINAL_PAGE"
+      ? {
+          title: "Submit final page",
+          description:
+            "Upload the completed page. Once approved by Mangaka, it becomes the current page asset.",
+          fileLabel: "Final page file",
+          button: "Submit final page",
+        }
+      : deliveryRole === "REGION_ASSET"
+        ? {
+            title: "Submit contribution asset",
+            description:
+              "Upload the output for this contribution. It will not replace the complete page.",
+            fileLabel: "Region asset",
+            button: "Submit contribution",
+          }
+        : {
+            title: "Submit supporting work",
+            description:
+              "Add a completion note and optionally attach a reference file. It will not replace the complete page.",
+            fileLabel: "Reference file (optional)",
+            button: "Submit supporting work",
+          };
 
   function pick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -48,8 +75,12 @@ export function TaskSubmissionPanel({
   }
 
   async function submit() {
-    if (!file) {
-      toast.error("Please select a file to submit.");
+    if (requiresFile && !file) {
+      toast.error("Please select the required output file before submitting.");
+      return;
+    }
+    if (!requiresFile && !file && !note.trim()) {
+      toast.error("Add a completion note or attach a reference file before submitting.");
       return;
     }
 
@@ -142,6 +173,17 @@ export function TaskSubmissionPanel({
             </div>
           </dl>
         ) : null}
+        {latestSubmission?.fileKey || latestSubmission?.fileUrl ? (
+          <MaterialDownloadLink
+            fileKey={latestSubmission.fileKey}
+            fallbackUrl={latestSubmission.fileUrl}
+            fileName={latestSubmission.fileName}
+            ariaLabel={`Open ${latestSubmission.versionLabel}`}
+            className="inline-flex text-[11px] font-semibold text-primary hover:underline"
+          >
+            Open submitted file
+          </MaterialDownloadLink>
+        ) : null}
       </div>
     );
   }
@@ -149,9 +191,11 @@ export function TaskSubmissionPanel({
   return (
     <div className={`space-y-3 ${className}`}>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-foreground">{title}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+          {title === "Upload edited file" ? deliveryCopy.title : title}
+        </p>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          Upload the edited file for this task for Mangaka review.
+          {deliveryCopy.description}
         </p>
       </div>
       <div>
@@ -164,7 +208,7 @@ export function TaskSubmissionPanel({
       </div>
       <div>
         <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Output file
+          {deliveryCopy.fileLabel}
         </label>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/60 px-3 py-4 text-xs text-muted-foreground hover:border-foreground/40">
           <Upload className="size-3.5" />
@@ -190,7 +234,7 @@ export function TaskSubmissionPanel({
           disabled={createSubmission.isPending}
           className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-2 py-1.5 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-50"
         >
-          <Send className="size-3.5" /> Submit Work
+          <Send className="size-3.5" /> {deliveryCopy.button}
         </button>
       </div>
     </div>

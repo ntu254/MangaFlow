@@ -35,15 +35,21 @@ import {
   REGION_STATUS_BADGE,
   REGION_TYPE_LABEL,
   TASK_STATUS_BADGE,
+  TASK_DELIVERY_ROLE_LABEL,
   isTaskActive,
+  taskDeliveryRole,
 } from "@/entities/series/model/studio-types";
 import {
   useCreateSubmissionMutation,
   useStudioTaskPatchMutation,
   useTaskSubmissionsQuery,
 } from "../../../api/series-queries";
-import { MaterialDownloadLink } from "../material-file-controls";
-import { SUBMISSION_STATUS_BADGE } from "@/entities/submission/model/assistant-types";
+import { MaterialDownloadLink, MaterialPreviewImage } from "../material-file-controls";
+import {
+  SUBMISSION_STATUS_BADGE,
+  SUBMISSION_STATUS_LABEL,
+  type AssistantSubmission,
+} from "@/entities/submission/model/assistant-types";
 import { chapterPageLabel, chapterPageNumber } from "@/entities/chapter/model/chapter-pages";
 import { uploadFileToR2 } from "@/shared/lib/r2-upload";
 import { deriveTaskStudioSubmissionState } from "@/entities/task/model/submission-state";
@@ -279,6 +285,75 @@ function isAssistantTaskReadOnly(task: StudioTask, userId: string): boolean {
   return task.assigneeId !== userId || task.status !== "IN_PROGRESS";
 }
 
+function SubmissionHistory({ submissions }: { submissions: AssistantSubmission[] }) {
+  if (submissions.length === 0) {
+    return <p className="text-xs text-muted-foreground">No versions submitted yet.</p>;
+  }
+
+  return (
+    <ol className="space-y-2">
+      {[...submissions]
+        .sort((a, b) => b.version - a.version)
+        .map((submission) => {
+          const previewable = Boolean(
+            submission.mimeType?.startsWith("image/") ||
+            /\.(png|jpe?g|webp|gif)$/i.test(submission.fileName ?? ""),
+          );
+          const hasFile = Boolean(submission.fileKey || submission.fileUrl);
+          return (
+            <li key={submission.id} className="rounded-md border border-border bg-background p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-foreground">{submission.versionLabel}</span>
+                <Pill className={SUBMISSION_STATUS_BADGE[submission.status] || "bg-zinc-200"}>
+                  {SUBMISSION_STATUS_LABEL[submission.status]}
+                </Pill>
+              </div>
+              {previewable ? (
+                <MaterialPreviewImage
+                  fileKey={submission.fileKey}
+                  fallbackUrl={submission.fileUrl}
+                  alt={`Submitted ${submission.versionLabel}`}
+                  className="mt-2 max-h-44 w-full rounded border border-border bg-muted/20 object-contain"
+                  onMissing={
+                    <div className="mt-2 rounded border border-dashed border-border px-2 py-3 text-center text-[11px] text-muted-foreground">
+                      Preview unavailable. Open the submitted file instead.
+                    </div>
+                  }
+                />
+              ) : null}
+              {hasFile ? (
+                <MaterialDownloadLink
+                  fileKey={submission.fileKey}
+                  fallbackUrl={submission.fileUrl}
+                  fileName={submission.fileName}
+                  ariaLabel={`Open submitted ${submission.versionLabel}`}
+                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                >
+                  <Download className="size-3" /> Open submitted file
+                </MaterialDownloadLink>
+              ) : (
+                <p className="mt-2 text-[11px] text-muted-foreground">No file attached.</p>
+              )}
+              {submission.note ? (
+                <p className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-muted-foreground">
+                  {submission.note}
+                </p>
+              ) : null}
+              {submission.feedback ? (
+                <p className="mt-2 border-t border-border/60 pt-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                  <span className="font-semibold">Review note:</span> {submission.feedback}
+                </p>
+              ) : null}
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                Submitted {formatDateTime(submission.submittedAt)}
+              </p>
+            </li>
+          );
+        })}
+    </ol>
+  );
+}
+
 function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; readOnly: boolean }) {
   const createSubmission = useCreateSubmissionMutation();
   const { data: existingSubmissions = [] } = useTaskSubmissionsQuery(task.id);
@@ -294,6 +369,32 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
     [...existingSubmissions].sort((a, b) => b.version - a.version)[0]?.id ?? null;
   const [file, setFile] = useState<File | null>(null);
   const [note, setNote] = useState("");
+  const deliveryRole = taskDeliveryRole(task);
+  const requiresFile = deliveryRole !== "SUPPORTING";
+  const deliveryCopy =
+    deliveryRole === "FINAL_PAGE"
+      ? {
+          title: "Submit final page",
+          description:
+            "Upload the complete page. After Mangaka approval, this file replaces the page asset.",
+          fileLabel: "Final page file",
+          button: "Submit final page",
+        }
+      : deliveryRole === "REGION_ASSET"
+        ? {
+            title: "Submit contribution asset",
+            description:
+              "Upload the result for this contribution. It does not replace the complete page.",
+            fileLabel: "Region asset",
+            button: "Submit contribution",
+          }
+        : {
+            title: "Submit supporting work",
+            description:
+              "Add a completion note and, if useful, attach a reference file. It does not replace the complete page.",
+            fileLabel: "Reference file (optional)",
+            button: "Submit supporting work",
+          };
 
   const reset = () => {
     setFile(null);
@@ -301,8 +402,12 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
   };
 
   const submit = async () => {
-    if (!file) {
-      toast.error("Please select an edited file to submit.");
+    if (requiresFile && !file) {
+      toast.error("Please select the required output file before submitting.");
+      return;
+    }
+    if (!requiresFile && !file && !note.trim()) {
+      toast.error("Add a completion note or attach a reference file before submitting.");
       return;
     }
 
@@ -363,10 +468,10 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
     <div className="space-y-3 p-3">
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-foreground">
-          Upload edited file
+          {deliveryCopy.title}
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          Upload the edited file for this task for Mangaka review.
+          {deliveryCopy.description}
         </p>
       </div>
       <div>
@@ -379,7 +484,7 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
       </div>
       <div>
         <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Result file
+          {deliveryCopy.fileLabel}
         </label>
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/60 px-3 py-4 text-xs text-muted-foreground hover:border-foreground/40">
           <Upload className="size-3.5" />
@@ -411,7 +516,7 @@ function AssistantTaskSubmissionPanel({ task, readOnly }: { task: StudioTask; re
           disabled={createSubmission.isPending}
           onClick={submit}
         >
-          <Send className="size-3.5" /> Submit Work
+          <Send className="size-3.5" /> {deliveryCopy.button}
         </Button>
       </div>
     </div>
@@ -776,6 +881,10 @@ function InspectorBody({
         <div className="divide-y divide-border/60">
           <Field label="ID" value={<code className="text-[11px]">{task.id}</code>} />
           <Field label="Type" value={REGION_TYPE_LABEL[task.type]} />
+          <Field label="Deliverable" value={TASK_DELIVERY_ROLE_LABEL[taskDeliveryRole(task)]} />
+          {taskDeliveryRole(task) !== "FINAL_PAGE" ? (
+            <Field label="Blocks final page" value={task.blocksPageDelivery ? "Yes" : "No"} />
+          ) : null}
           <Field label="Assignee" value={task.assigneeName} />
           <Field
             label="Priority"
@@ -829,6 +938,13 @@ function InspectorBody({
             </div>
           ) : null}
         </div>
+
+        <section className="mt-4 border-t border-border pt-3" aria-label="Submission history">
+          <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Submitted versions
+          </h4>
+          <SubmissionHistory submissions={submissions} />
+        </section>
 
         {/* Mangaka Task Actions */}
         {permissions.mode === "mangaka" && (
@@ -910,43 +1026,6 @@ function InspectorBody({
                 </p>
               </div>
             ) : null}
-
-            {/* Submission History */}
-            <div className="mt-4 border-t border-border pt-3">
-              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Submission History
-              </h4>
-              {submissions.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No submissions yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {submissions.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="rounded-lg border border-border bg-muted/40 p-2 text-xs"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">
-                          {sub.versionLabel || `v${sub.version}`}
-                        </span>
-                        <Pill className={SUBMISSION_STATUS_BADGE[sub.status] || "bg-zinc-200"}>
-                          {sub.status}
-                        </Pill>
-                      </div>
-                      {sub.note && <p className="mt-1 text-muted-foreground">{sub.note}</p>}
-                      {sub.feedback && (
-                        <div className="mt-1 border-t border-border/40 pt-1 text-[11px] text-orange-600 dark:text-orange-400">
-                          <span className="font-semibold">Review:</span> {sub.feedback}
-                        </div>
-                      )}
-                      <div className="mt-1 text-[10px] text-muted-foreground">
-                        Submitted: {formatDateTime(sub.submittedAt)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {/* List task comments */}
             <div className="mt-4 border-t border-border pt-3">

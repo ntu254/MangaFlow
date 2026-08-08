@@ -62,6 +62,25 @@ import {
 import { TASK_ACTIONS } from "../types.js";
 import type { AuthedRequest } from "../types.js";
 
+async function assertFinalPageDeliveryAvailable(pageId: string) {
+  const existing = await StudioTaskModel.findOne({
+    pageId,
+    status: { $nin: PAGE_TASK_TERMINAL_STATUSES as any },
+    // Untagged legacy page tasks remain final-page work until migrated, so
+    // a new final delivery cannot silently compete with them.
+    $or: [{ deliveryRole: "FINAL_PAGE" }, { deliveryRole: { $exists: false } }],
+  })
+    .select({ id: 1, title: 1 })
+    .lean();
+  if (existing) {
+    throw new AppError(
+      409,
+      `This page already has an active final delivery (${String((existing as any).title ?? (existing as any).id)}). Complete, cancel, or reassign it before creating another.`,
+      "FINAL_PAGE_DELIVERY_EXISTS",
+    );
+  }
+}
+
 async function assertCanMutateStudioTarget(
   req: AuthedRequest,
   body: Record<string, unknown>,
@@ -561,94 +580,121 @@ export const deleteRegion = asyncRoute(async (req: AuthedRequest, res) => {
 export const assignPage = asyncRoute(async (req: AuthedRequest, res) => {
   const body = parseBody(assignPageSchema, req);
   await assertCanMutateStudioPage(requireActor(req), String(req.params.pageId));
-  const assignment = await assignPageToAssistant(String(req.params.pageId), body.assistantId);
-  await audit(req, "studio_page.assignment_create", "page", String(req.params.pageId), {
-    assistantId: body.assistantId,
-  });
+  const assignment = await assignPageToAssistant(
+    String(req.params.pageId),
+    body.assistantId,
+  );
+  await audit(
+    req,
+    "studio_page.assignment_create",
+    "page",
+    String(req.params.pageId),
+    {
+      assistantId: body.assistantId,
+    },
+  );
   created(res, assignment);
 });
 
-export const pageAssignmentAction = asyncRoute(async (req: AuthedRequest, res) => {
-  const body = parseBody(pageAssignmentActionSchema, req);
-  const assignment = await applyPageAssignmentAction(
-    requireActor(req),
-    String(req.params.pageId),
-    String(req.params.action),
-    body.reason ?? body.rejectReason,
-  );
-  await audit(req, `studio_page.assignment_${String(req.params.action).toLowerCase()}`, "page", String(req.params.pageId));
-  ok(res, assignment);
-});
+export const pageAssignmentAction = asyncRoute(
+  async (req: AuthedRequest, res) => {
+    const body = parseBody(pageAssignmentActionSchema, req);
+    const assignment = await applyPageAssignmentAction(
+      requireActor(req),
+      String(req.params.pageId),
+      String(req.params.action),
+      body.reason ?? body.rejectReason,
+    );
+    await audit(
+      req,
+      `studio_page.assignment_${String(req.params.action).toLowerCase()}`,
+      "page",
+      String(req.params.pageId),
+    );
+    ok(res, assignment);
+  },
+);
 
-export const listPageAssignmentInbox = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  if (actor.role !== "ASSISTANT") {
-    ok(res, []);
-    return;
-  }
-
-  const chapters = (await ChapterModel.find({
-    pages: {
-      $elemMatch: { "pageAssignment.assistantId": actor.id, "pageAssignment.status": "PENDING" },
-    },
-  }).lean()) as any[];
-  if (chapters.length === 0) {
-    ok(res, []);
-    return;
-  }
-
-  const seriesIds = [...new Set(chapters.map((chapter) => String(chapter.seriesId)))];
-  const [seriesList, activeMemberships] = await Promise.all([
-    SeriesModel.find({ id: { $in: seriesIds } })
-      .select({ id: 1, title: 1, authorId: 1, authorName: 1 })
-      .lean(),
-    SeriesMemberModel.find({
-      seriesId: { $in: seriesIds },
-      userId: actor.id,
-      role: "assistant",
-      status: "active",
-    }).lean(),
-  ]);
-  const seriesById = new Map(seriesList.map((s: any) => [String(s.id), s]));
-  const activeSeriesIds = new Set(activeMemberships.map((m: any) => String(m.seriesId)));
-
-  const items: Record<string, unknown>[] = [];
-  for (const chapter of chapters) {
-    if (!activeSeriesIds.has(String(chapter.seriesId))) continue;
-    const series = seriesById.get(String(chapter.seriesId));
-    for (const page of chapter.pages ?? []) {
-      const assignment = page?.pageAssignment;
-      if (
-        !assignment ||
-        String(assignment.assistantId) !== actor.id ||
-        assignment.status !== "PENDING"
-      ) {
-        continue;
-      }
-      const openTaskCount = await (StudioTaskModel as any).countDocuments({
-        pageId: page.id,
-        status: { $nin: PAGE_TASK_TERMINAL_STATUSES },
-      });
-      items.push({
-        pageId: page.id,
-        pageNumber: page.pageNumber,
-        chapterId: chapter.id,
-        chapterNumber: chapter.number,
-        chapterTitle: chapter.title,
-        seriesId: chapter.seriesId,
-        seriesTitle: series?.title ?? "",
-        mangakaId: series?.authorId ?? "",
-        mangakaName: series?.authorName ?? "",
-        assignedAt: assignment.assignedAt,
-        openTaskCount,
-      });
+export const listPageAssignmentInbox = asyncRoute(
+  async (req: AuthedRequest, res) => {
+    const actor = requireActor(req);
+    if (actor.role !== "ASSISTANT") {
+      ok(res, []);
+      return;
     }
-  }
-  items.sort(
-    (a, b) => new Date(String(b.assignedAt)).getTime() - new Date(String(a.assignedAt)).getTime(),
-  );
-  ok(res, items);
-});
+
+    const chapters = (await ChapterModel.find({
+      pages: {
+        $elemMatch: {
+          "pageAssignment.assistantId": actor.id,
+          "pageAssignment.status": "PENDING",
+        },
+      },
+    }).lean()) as any[];
+    if (chapters.length === 0) {
+      ok(res, []);
+      return;
+    }
+
+    const seriesIds = [
+      ...new Set(chapters.map((chapter) => String(chapter.seriesId))),
+    ];
+    const [seriesList, activeMemberships] = await Promise.all([
+      SeriesModel.find({ id: { $in: seriesIds } })
+        .select({ id: 1, title: 1, authorId: 1, authorName: 1 })
+        .lean(),
+      SeriesMemberModel.find({
+        seriesId: { $in: seriesIds },
+        userId: actor.id,
+        role: "assistant",
+        status: "active",
+      }).lean(),
+    ]);
+    const seriesById = new Map(seriesList.map((s: any) => [String(s.id), s]));
+    const activeSeriesIds = new Set(
+      activeMemberships.map((m: any) => String(m.seriesId)),
+    );
+
+    const items: Record<string, unknown>[] = [];
+    for (const chapter of chapters) {
+      if (!activeSeriesIds.has(String(chapter.seriesId))) continue;
+      const series = seriesById.get(String(chapter.seriesId));
+      for (const page of chapter.pages ?? []) {
+        const assignment = page?.pageAssignment;
+        if (
+          !assignment ||
+          String(assignment.assistantId) !== actor.id ||
+          assignment.status !== "PENDING"
+        ) {
+          continue;
+        }
+        const openTaskCount = await (StudioTaskModel as any).countDocuments({
+          pageId: page.id,
+          status: { $nin: PAGE_TASK_TERMINAL_STATUSES },
+        });
+        items.push({
+          pageId: page.id,
+          pageNumber: page.pageNumber,
+          chapterId: chapter.id,
+          chapterNumber: chapter.number,
+          chapterTitle: chapter.title,
+          seriesId: chapter.seriesId,
+          seriesTitle: series?.title ?? "",
+          mangakaId: series?.authorId ?? "",
+          mangakaName: series?.authorName ?? "",
+          assignedAt: assignment.assignedAt,
+          openTaskCount,
+        });
+      }
+    }
+    items.sort(
+      (a, b) =>
+        new Date(String(b.assignedAt)).getTime() -
+        new Date(String(a.assignedAt)).getTime(),
+    );
+    ok(res, items);
+  },
+);
 
 export const listTasks = asyncRoute(async (req: AuthedRequest, res) => {
   const filter = filterFromQuery(req);
@@ -677,11 +723,25 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
 
   const { page: taskPage } = await getPageContext(body.pageId);
   const pageAssignment = currentPageAssignment(taskPage);
-  if (!pageAssignment || !["PENDING", "ACCEPTED"].includes(String(pageAssignment.status))) {
-    throw new AppError(409, "Assign an assistant to this page before creating tasks.", "PAGE_ASSIGNMENT_REQUIRED");
+  if (
+    !pageAssignment ||
+    !["PENDING", "ACCEPTED"].includes(String(pageAssignment.status))
+  ) {
+    throw new AppError(
+      409,
+      "Assign an assistant to this page before creating tasks.",
+      "PAGE_ASSIGNMENT_REQUIRED",
+    );
   }
-  if (body.assigneeId && String(body.assigneeId) !== String(pageAssignment.assistantId)) {
-    throw new AppError(409, "Task assignee must match the page assignment.", "PAGE_ASSIGNMENT_MISMATCH");
+  if (
+    body.assigneeId &&
+    String(body.assigneeId) !== String(pageAssignment.assistantId)
+  ) {
+    throw new AppError(
+      409,
+      "Task assignee must match the page assignment.",
+      "PAGE_ASSIGNMENT_MISMATCH",
+    );
   }
   const assigneeId = pageAssignment.assistantId;
   const assigneeName = pageAssignment.assistantName;
@@ -689,7 +749,8 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const taskChapter = await ChapterModel.findOne({ "pages.id": body.pageId })
     .select({ status: 1 })
     .lean();
-  if (!taskChapter) throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
+  if (!taskChapter)
+    throw new AppError(404, "Chapter not found.", "CHAPTER_NOT_FOUND");
   assertChapterContentUnlocked(taskChapter);
   await assertTaskPageHasSource(body as Record<string, unknown>);
 
@@ -705,13 +766,23 @@ export const createTask = asyncRoute(async (req: AuthedRequest, res) => {
   const quantity = Number(body.quantity ?? 1);
   const rateSnapshot = Number(rate.amount);
   const estimatedAmount = quantity * rateSnapshot;
+  const deliveryRole = body.deliveryRole ?? "FINAL_PAGE";
+  if (deliveryRole === "FINAL_PAGE") {
+    await assertFinalPageDeliveryAvailable(body.pageId);
+  }
   const taskId = id("task");
   const taskBody = {
     ...body,
     assigneeId,
-    pageTaskActive: true,
+    deliveryRole,
+    // Page ownership is represented by PageAssignment. This compatibility
+    // field must only mirror the one task allowed to deliver the final page.
+    pageTaskActive: deliveryRole === "FINAL_PAGE",
+    blocksPageDelivery:
+      body.blocksPageDelivery ?? deliveryRole === "FINAL_PAGE",
     assigneeName,
-    assignmentStatus: pageAssignment.status === "ACCEPTED" ? "ACCEPTED" : "PENDING",
+    assignmentStatus:
+      pageAssignment.status === "ACCEPTED" ? "ACCEPTED" : "PENDING",
     isRequired: body.isRequired ?? true,
     rateCode: rate.code,
     rateVersion: rate.version,
@@ -795,6 +866,7 @@ export const patchTask = asyncRoute(async (req: AuthedRequest, res) => {
     "type",
     "priority",
     "dueAt",
+    "blocksPageDelivery",
     "isRequired",
     "metadata",
   ];

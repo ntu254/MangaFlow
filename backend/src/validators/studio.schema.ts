@@ -43,6 +43,10 @@ export const createStudioTaskSchema = z
     type: z.string().optional(),
     priority: z.string().optional(),
     dueAt: z.string().optional(),
+    deliveryRole: z
+      .enum(["FINAL_PAGE", "REGION_ASSET", "SUPPORTING"])
+      .optional(),
+    blocksPageDelivery: z.boolean().optional(),
     isRequired: z.boolean().optional(),
     workUnitType: z.string().optional(),
     rateCode: z.string().min(2).max(64).optional(),
@@ -57,7 +61,10 @@ export const assignPageSchema = z
   .strict();
 
 export const pageAssignmentActionSchema = z
-  .object({ reason: z.string().max(2000).optional(), rejectReason: z.string().max(2000).optional() })
+  .object({
+    reason: z.string().max(2000).optional(),
+    rejectReason: z.string().max(2000).optional(),
+  })
   .strict();
 
 export const patchStudioTaskSchema = z
@@ -73,6 +80,7 @@ export const patchStudioTaskSchema = z
     type: z.string().optional(),
     priority: z.string().optional(),
     dueAt: z.string().optional(),
+    blocksPageDelivery: z.boolean().optional(),
     isRequired: z.boolean().optional(),
     workUnitType: z.string().optional(),
     rateCode: z.string().min(2).max(64).optional(),
@@ -90,7 +98,9 @@ export const createCommentSchema = z
     regionId: z.string().optional(),
     taskId: z.string().optional(),
     // Structured target (new preferred)
-    targetType: z.enum(["CHAPTER", "PAGE", "REGION", "TASK", "SUBMISSION"]).optional(),
+    targetType: z
+      .enum(["CHAPTER", "PAGE", "REGION", "TASK", "SUBMISSION"])
+      .optional(),
     targetId: z.string().optional(),
     targetVersionId: z.string().optional(),
     // Primary content field
