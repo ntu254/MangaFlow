@@ -59,7 +59,7 @@ import { StudioInspector } from "./studio/studio-inspector";
 import { CreateTaskDialog } from "./studio/create-task-dialog";
 import { toTaskRatePayload } from "../model/task-payload";
 import { deriveTaskStudioSubmissionState } from "@/entities/task/model/submission-state";
-import { ChapterActionPanel } from "./chapter-action-panel";
+import { EditorReviewConsole } from "./studio/editor-review-console";
 
 const KonvaPageCanvas = lazy(() => import("./studio/konva-page-canvas"));
 
@@ -970,7 +970,7 @@ export function StudioTab({
           onReviewSubmission={handleReviewSubmission}
           editorReviewActions={
             permissions.mode === "editor" && chapter ? (
-              <ChapterActionPanel chapter={chapter} series={series} />
+              <EditorReviewConsole chapter={chapter} series={series} comments={comments} />
             ) : undefined
           }
           pageAssignment={page?.pageAssignment}
