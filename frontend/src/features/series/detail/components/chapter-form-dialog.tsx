@@ -15,6 +15,19 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
+function addCalendarDays(value: string, days: number): string {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day + days);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function todayDateInputValue(): string {
+  const date = new Date();
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function ChapterFormDialog({
   series,
   open,
@@ -34,7 +47,8 @@ export function ChapterFormDialog({
   const [draftDue, setDraftDue] = useState("");
   const [reviewDue, setReviewDue] = useState("");
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayDateInputValue();
+  const reviewMin = draftDue ? addCalendarDays(draftDue, 1) : todayStr;
 
   const submit = () => {
     if (!user) return;
@@ -50,8 +64,8 @@ export function ChapterFormDialog({
       toast.error("Review deadline cannot be set in the past.");
       return;
     }
-    if (draftDue && reviewDue && new Date(draftDue).getTime() > new Date(reviewDue).getTime()) {
-      toast.error("Draft deadline must be before or equal to Review deadline.");
+    if (draftDue && reviewDue && reviewDue < reviewMin) {
+      toast.error("Allow Tantou at least one full day after the draft is ready.");
       return;
     }
     createChapterMutation.mutate(
@@ -126,26 +140,39 @@ export function ChapterFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="ch-draft">Draft deadline</Label>
+              <Label htmlFor="ch-draft">Draft ready for Tantou</Label>
               <Input
                 id="ch-draft"
                 type="date"
                 value={draftDue}
                 min={todayStr}
-                onChange={(e) => setDraftDue(e.target.value)}
+                onChange={(e) => {
+                  const nextDraftDue = e.target.value;
+                  setDraftDue(nextDraftDue);
+                  if (nextDraftDue && (!reviewDue || reviewDue < addCalendarDays(nextDraftDue, 1))) {
+                    setReviewDue(addCalendarDays(nextDraftDue, 2));
+                  }
+                }}
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">When your draft is ready to hand off.</p>
             </div>
             <div>
-              <Label htmlFor="ch-review">Review deadline</Label>
+              <Label htmlFor="ch-review">Tantou review complete</Label>
               <Input
                 id="ch-review"
                 type="date"
                 value={reviewDue}
-                min={draftDue || todayStr}
+                min={reviewMin}
                 onChange={(e) => setReviewDue(e.target.value)}
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">At least one day after draft delivery.</p>
             </div>
           </div>
+          {!draftDue && !reviewDue ? (
+            <p className="text-xs text-muted-foreground">
+              Optional for now — add dates when you are ready to plan the handoff.
+            </p>
+          ) : null}
         </div>
         <DialogFooter>
           <button onClick={onClose} className="rounded border border-border px-3 py-1.5 text-xs">

@@ -2,23 +2,58 @@ import { z } from "zod";
 import { PAGE_STATUSES } from "../types.js";
 
 const pageStatusSchema = z.enum(PAGE_STATUSES);
+const isoDateTimeSchema = z.string().datetime({ offset: true });
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function isNotPastDate(dateStr?: string): boolean {
   if (!dateStr) return true;
   const target = new Date(dateStr).getTime();
-  if (Number.isNaN(target)) return true;
   const todayMidnight = new Date();
-  todayMidnight.setHours(0, 0, 0, 0);
+  todayMidnight.setUTCHours(0, 0, 0, 0);
   return target >= todayMidnight.getTime();
 }
 
-function isValidDateOrder(draftDueAt?: string, reviewDueAt?: string): boolean {
+function hasReviewBuffer(draftDueAt?: string, reviewDueAt?: string): boolean {
   if (!draftDueAt || !reviewDueAt) return true;
   const draftTime = new Date(draftDueAt).getTime();
   const reviewTime = new Date(reviewDueAt).getTime();
-  if (Number.isNaN(draftTime) || Number.isNaN(reviewTime)) return true;
-  return draftTime <= reviewTime;
+  return reviewTime - draftTime >= ONE_DAY_MS;
 }
+
+function addDeadlineIssues(
+  data: { draftDueAt?: string; reviewDueAt?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (!isNotPastDate(data.draftDueAt)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Draft delivery date cannot be set in the past.",
+      path: ["draftDueAt"],
+    });
+  }
+  if (!isNotPastDate(data.reviewDueAt)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Tantou review date cannot be set in the past.",
+      path: ["reviewDueAt"],
+    });
+  }
+  if (!hasReviewBuffer(data.draftDueAt, data.reviewDueAt)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Tantou review date must be at least one day after the draft delivery date.",
+      path: ["reviewDueAt"],
+    });
+  }
+}
+
+const deadlineFields = {
+  draftDueAt: isoDateTimeSchema.optional(),
+  reviewDueAt: isoDateTimeSchema.optional(),
+};
+
+/** Validates a complete deadline plan, including an existing chapter merged with a PATCH body. */
+export const chapterDeadlinePlanSchema = z.object(deadlineFields).superRefine(addDeadlineIssues);
 
 export const createChapterSchema = z
   .object({
@@ -27,39 +62,23 @@ export const createChapterSchema = z
     targetPages: z.number().int().min(1).max(200).optional(),
     assigneeId: z.string().optional(),
     assigneeName: z.string().optional(),
-    draftDueAt: z.string().optional(),
-    reviewDueAt: z.string().optional(),
+    ...deadlineFields,
     plannedAt: z.string().optional(),
   })
   .strict()
-  .refine((data) => isNotPastDate(data.draftDueAt), {
-    message: "Draft deadline (draftDueAt) cannot be set in the past.",
-    path: ["draftDueAt"],
-  })
-  .refine((data) => isNotPastDate(data.reviewDueAt), {
-    message: "Review deadline (reviewDueAt) cannot be set in the past.",
-    path: ["reviewDueAt"],
-  })
-  .refine((data) => isValidDateOrder(data.draftDueAt, data.reviewDueAt), {
-    message: "Draft deadline (draftDueAt) must be before or equal to review deadline (reviewDueAt).",
-    path: ["reviewDueAt"],
-  });
+  .superRefine(addDeadlineIssues);
 
 export const patchChapterSchema = z
   .object({
     title: z.string().min(1).max(200).optional(),
     number: z.number().int().min(1).max(9999).optional(),
     targetPages: z.number().int().min(1).max(200).optional(),
-    draftDueAt: z.string().optional(),
-    reviewDueAt: z.string().optional(),
+    ...deadlineFields,
     scheduledAt: z.string().optional(),
     reviewNotes: z.array(z.any()).optional(),
   })
   .strict()
-  .refine((data) => isValidDateOrder(data.draftDueAt, data.reviewDueAt), {
-    message: "Draft deadline (draftDueAt) must be before or equal to review deadline (reviewDueAt).",
-    path: ["reviewDueAt"],
-  });
+  .superRefine(addDeadlineIssues);
 
 export const createPageSchema = z
   .object({

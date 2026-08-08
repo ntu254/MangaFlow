@@ -52,6 +52,7 @@ import {
 } from "../validators/common.js";
 import { patchSeriesSchema } from "../validators/series.schema.js";
 import {
+  chapterDeadlinePlanSchema,
   createChapterSchema,
   patchChapterSchema,
   createPageSchema,
@@ -762,8 +763,20 @@ export const getChapter = asyncRoute(async (req: AuthedRequest, res) => {
 
 export const patchChapter = asyncRoute(async (req: AuthedRequest, res) => {
   const actor = requireActor(req);
-  await assertCanMutateChapterById(actor, String(req.params.chapterId));
+  const chapter = await assertCanMutateChapterById(actor, String(req.params.chapterId));
   const body = parseBody(patchChapterSchema, req);
+  if ("draftDueAt" in body || "reviewDueAt" in body) {
+    const deadlinePlan = chapterDeadlinePlanSchema.safeParse({
+      draftDueAt: body.draftDueAt ?? (chapter as any).draftDueAt?.toISOString(),
+      reviewDueAt: body.reviewDueAt ?? (chapter as any).reviewDueAt?.toISOString(),
+    });
+    if (!deadlinePlan.success) {
+      const message = deadlinePlan.error.issues
+        .map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`)
+        .join("; ");
+      throw new AppError(400, message, "VALIDATION_ERROR");
+    }
+  }
   const allowedFields = [
     "title",
     "number",

@@ -6,6 +6,19 @@ Chapters go through a canonical lifecycle: PLANNED -> IN_PRODUCTION -> TANTOU_RE
 Scheduling lives on the Publication entity, not on the chapter itself.
 Chapters follow the lifecycle of their parent Series and are never archived independently.
 
+## Delivery plan dates
+
+When creating or updating a Chapter, the Mangaka may optionally set a delivery
+plan. `draftDueAt` means **the draft is ready to hand off to Tantou**;
+`reviewDueAt` means **Tantou review is complete**. They are planning signals,
+not workflow gates: a Chapter can be created without either date.
+
+When both are present, the review date must be at least one full day after the
+draft-ready date. Each date must be a valid ISO timestamp and may not be in the
+past. The same rule is applied to `PATCH /api/chapters/:chapterId` after merging
+the request with the stored date, so a one-field edit cannot silently create an
+impossible plan.
+
 ## Flowchart
 
 ```mermaid
