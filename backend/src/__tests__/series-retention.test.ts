@@ -53,10 +53,9 @@ describe("Series retention lifecycle", () => {
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
       .expect(404);
 
-    await expect(SeriesModel.findOne({ id: "s-retention-delete" }).lean()).resolves.toMatchObject({
-      deletedAt: undefined,
-      status: "PRE_PRODUCTION",
-    });
+    const retained = await SeriesModel.findOne({ id: "s-retention-delete" }).lean();
+    expect(retained).toMatchObject({ status: "PRE_PRODUCTION" });
+    expect(retained).not.toHaveProperty("deletedAt");
   });
 
   it("hides legacy soft-deleted series instead of returning a mutable-looking record", async () => {
@@ -72,6 +71,12 @@ describe("Series retention lifecycle", () => {
     await request(createApp())
       .get("/api/series/s-retention-legacy")
       .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .expect(404);
+
+    await request(createApp())
+      .patch("/api/series/s-retention-legacy")
+      .set("Authorization", `Bearer ${mangaka.accessToken}`)
+      .send({ title: "Must remain inaccessible" })
       .expect(404);
   });
 });
