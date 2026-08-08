@@ -96,7 +96,12 @@ export function StudioTab({
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [panTarget, setPanTarget] = useState<{ x: number; y: number; nonce: number } | null>(null);
   const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
-  const [commentAnchor, setCommentAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [commentAnchor, setCommentAnchor] = useState<{
+    x: number;
+    y: number;
+    viewportX: number;
+    viewportY: number;
+  } | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [commentBlocking, setCommentBlocking] = useState(false);
 
@@ -431,6 +436,26 @@ export function StudioTab({
     };
   }, [canvasHost]);
 
+  const commentPopoverPosition = useMemo(() => {
+    if (!commentAnchor) return null;
+    const width = 288;
+    const height = 248;
+    const gutter = 16;
+    const safeEdge = 12;
+    const left =
+      commentAnchor.viewportX + gutter + width <= size.w
+        ? commentAnchor.viewportX + gutter
+        : commentAnchor.viewportX - width - gutter;
+    const top =
+      commentAnchor.viewportY + gutter + height <= size.h - 72
+        ? commentAnchor.viewportY + gutter
+        : commentAnchor.viewportY - height - gutter;
+    return {
+      left: Math.max(safeEdge, Math.min(left, size.w - width - safeEdge)),
+      top: Math.max(safeEdge, Math.min(top, size.h - height - safeEdge)),
+    };
+  }, [commentAnchor, size.h, size.w]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const triggerUpload = () => {
     if (!permissions.canUploadPages) {
@@ -625,14 +650,14 @@ export function StudioTab({
                       },
                     );
                   }}
-                  onCreateCommentAt={({ x, y }) => {
+                  onCreateCommentAt={({ x, y, viewportX, viewportY }) => {
                     if (!permissions.canCreateComment) {
                       toast.error("This role cannot create production comments.");
                       return;
                     }
                     if (!page) return;
                     setSelection({ kind: "page", pageId: page.id });
-                    setCommentAnchor({ x, y });
+                    setCommentAnchor({ x, y, viewportX, viewportY });
                     setCommentBody("");
                     setCommentBlocking(false);
                   }}
@@ -656,69 +681,79 @@ export function StudioTab({
             </Suspense>
           )}
 
-          {commentAnchor && page && permissions.canCreateComment ? (
-            <form
-              className="absolute right-4 top-4 z-20 w-72 rounded-lg border border-border bg-card p-3 shadow-lg"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                const body = commentBody.trim();
-                if (!body) return;
-                try {
-                  await createCommentMutation.mutateAsync({
-                    seriesId: series.id,
-                    chapterId: chapter?.id ?? "",
-                    pageId: page.id,
-                    targetType: "PAGE",
-                    targetId: page.id,
-                    body,
-                    text: body,
-                    isBlocking: commentBlocking,
-                    x: commentAnchor.x,
-                    y: commentAnchor.y,
-                  });
-                  toast.success(commentBlocking ? "Blocking feedback pinned." : "Feedback pinned.");
-                  setCommentAnchor(null);
-                  setCommentBody("");
-                  setCommentBlocking(false);
-                } catch (error) {
-                  toast.error(mapApiError(error));
-                }
-              }}
-            >
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-foreground">Pinned feedback</p>
-                <button
-                  type="button"
-                  onClick={() => setCommentAnchor(null)}
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </div>
-              <textarea
-                autoFocus
-                value={commentBody}
-                onChange={(event) => setCommentBody(event.target.value)}
-                placeholder="Describe what should change…"
-                rows={3}
-                className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          {commentAnchor && commentPopoverPosition && page && permissions.canCreateComment ? (
+            <>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute z-20 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+                style={{ left: commentAnchor.viewportX, top: commentAnchor.viewportY }}
               />
-              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={commentBlocking}
-                  onChange={(event) => setCommentBlocking(event.target.checked)}
-                />
-                Blocks approval until resolved
-              </label>
-              <button
-                type="submit"
-                disabled={!commentBody.trim() || createCommentMutation.isPending}
-                className="mt-3 w-full rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              <form
+                className="absolute z-20 w-72 rounded-lg border border-border bg-card p-3 shadow-lg"
+                style={commentPopoverPosition}
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  const body = commentBody.trim();
+                  if (!body) return;
+                  try {
+                    await createCommentMutation.mutateAsync({
+                      seriesId: series.id,
+                      chapterId: chapter?.id ?? "",
+                      pageId: page.id,
+                      targetType: "PAGE",
+                      targetId: page.id,
+                      body,
+                      text: body,
+                      isBlocking: commentBlocking,
+                      x: commentAnchor.x,
+                      y: commentAnchor.y,
+                    });
+                    toast.success(
+                      commentBlocking ? "Blocking feedback pinned." : "Feedback pinned.",
+                    );
+                    setCommentAnchor(null);
+                    setCommentBody("");
+                    setCommentBlocking(false);
+                  } catch (error) {
+                    toast.error(mapApiError(error));
+                  }
+                }}
               >
-                {createCommentMutation.isPending ? "Saving…" : "Add feedback"}
-              </button>
-            </form>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold text-foreground">Pinned feedback</p>
+                  <button
+                    type="button"
+                    onClick={() => setCommentAnchor(null)}
+                    className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <textarea
+                  autoFocus
+                  value={commentBody}
+                  onChange={(event) => setCommentBody(event.target.value)}
+                  placeholder="Describe what should change…"
+                  rows={3}
+                  className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={commentBlocking}
+                    onChange={(event) => setCommentBlocking(event.target.checked)}
+                  />
+                  Blocks approval until resolved
+                </label>
+                <button
+                  type="submit"
+                  disabled={!commentBody.trim() || createCommentMutation.isPending}
+                  className="mt-3 w-full rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {createCommentMutation.isPending ? "Saving…" : "Add feedback"}
+                </button>
+              </form>
+            </>
           ) : null}
 
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">

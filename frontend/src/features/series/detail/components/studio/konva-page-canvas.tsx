@@ -193,7 +193,12 @@ type Props = {
   containerHeight: number;
   panTarget?: { x: number; y: number; nonce: number } | null;
   onJumpTo?: (x: number, y: number, commentId: string) => void;
-  onCreateCommentAt?: (point: { x: number; y: number }) => void;
+  onCreateCommentAt?: (point: {
+    x: number;
+    y: number;
+    viewportX: number;
+    viewportY: number;
+  }) => void;
   highlightCommentId?: string | null;
   canEditRegions?: boolean;
 };
@@ -337,7 +342,12 @@ export default function KonvaPageCanvas({
       if (point.x < 0 || point.y < 0 || point.x > naturalWidth || point.y > naturalHeight) {
         return;
       }
-      onCreateCommentAt({ x: point.x / naturalWidth, y: point.y / naturalHeight });
+      onCreateCommentAt({
+        x: point.x / naturalWidth,
+        y: point.y / naturalHeight,
+        viewportX: ptr.x,
+        viewportY: ptr.y,
+      });
       e.cancelBubble = true;
       return;
     }
