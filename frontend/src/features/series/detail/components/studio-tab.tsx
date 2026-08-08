@@ -1002,7 +1002,6 @@ export function StudioTab({
         page={page}
         region={selectedRegion}
         pageTasks={tasks.filter((task) => task.pageId === page?.id)}
-        members={assistantMembers}
         pageAssignment={page?.pageAssignment}
         rates={activeRates}
         onSubmit={async (data) => {
