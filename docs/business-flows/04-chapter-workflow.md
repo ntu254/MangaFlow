@@ -19,6 +19,16 @@ past. The same rule is applied to `PATCH /api/chapters/:chapterId` after merging
 the request with the stored date, so a one-field edit cannot silently create an
 impossible plan.
 
+## Tantou Review Canvas
+
+During `TANTOU_REVIEW`, the assigned Tantou can open **Review Canvas** and pin
+feedback directly on a Page. A pin stores its Page target and normalized `x/y`
+coordinates, and can be marked blocking when it must be resolved before chapter
+approval. This is editorial evidence on the frozen Review Snapshot: it never
+grants access to upload or replace Page assets, or to create, edit, or delete
+production Regions. The owning Mangaka remains responsible for production
+changes after a revision is requested.
+
 ## Flowchart
 
 ```mermaid

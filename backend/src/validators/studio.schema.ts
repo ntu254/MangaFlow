@@ -97,6 +97,9 @@ export const createCommentSchema = z
     body: z.string().min(1).max(5000).optional(),
     /** @deprecated use body */
     text: z.string().min(1).max(5000).optional(),
+    // Relative canvas coordinates. They are feedback anchors, never editable artwork.
+    x: z.number().min(0).max(1).optional(),
+    y: z.number().min(0).max(1).optional(),
     // Primary blocking flag
     isBlocking: z.boolean().optional(),
   })
@@ -107,6 +110,8 @@ export const patchCommentSchema = z
     body: z.string().min(1).max(5000).optional(),
     /** @deprecated use body */
     text: z.string().min(1).max(5000).optional(),
+    x: z.number().min(0).max(1).optional(),
+    y: z.number().min(0).max(1).optional(),
     isBlocking: z.boolean().optional(),
   })
   .strict();

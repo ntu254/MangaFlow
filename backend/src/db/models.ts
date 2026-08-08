@@ -820,6 +820,9 @@ export type StudioCommentRecord = {
   body?: string;
   /** @deprecated use body */
   text?: string;
+  /** Relative point on the reviewed page, in the range 0..1. */
+  x?: number;
+  y?: number;
   status?: string;
   /** Primary blocking flag */
   isBlocking?: boolean;
@@ -847,6 +850,8 @@ const studioCommentSchema = looseSchema({
   body: { type: String },
   /** @deprecated map to body */
   text: { type: String },
+  x: { type: Number, min: 0, max: 1 },
+  y: { type: Number, min: 0, max: 1 },
   status: {
     type: String,
     default: "OPEN",

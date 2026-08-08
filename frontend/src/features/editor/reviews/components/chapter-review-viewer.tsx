@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Maximize2, Minus, Plus, Eye, EyeOff } from "lucide-react";
+import { useState, type MouseEvent } from "react";
+import { ChevronLeft, ChevronRight, Minus, Plus, Eye, EyeOff, Pin, Send, X } from "lucide-react";
 import type { Chapter, ChapterPage, ProductionSeries } from "@/entities/series/model/series-types";
 import type { StudioComment } from "@/entities/series/model/studio-types";
 import type { DeadlineRisk } from "@/entities/submission/model/review-types";
@@ -15,6 +16,10 @@ export function ChapterReviewViewer({
   pageCount,
   showAnnotations,
   onToggleAnnotations,
+  annotationMode,
+  onToggleAnnotationMode,
+  canAnnotate,
+  onCreateAnnotation,
   zoom,
   onZoom,
   onPrev,
@@ -29,6 +34,10 @@ export function ChapterReviewViewer({
   risk: DeadlineRisk | null;
   showAnnotations: boolean;
   onToggleAnnotations: (next: boolean) => void;
+  annotationMode: boolean;
+  onToggleAnnotationMode: () => void;
+  canAnnotate: boolean;
+  onCreateAnnotation: (input: { body: string; isBlocking: boolean; x: number; y: number }) => Promise<boolean>;
   zoom: number;
   onZoom: (next: number) => void;
   onPrev: () => void;
@@ -37,6 +46,33 @@ export function ChapterReviewViewer({
   onSelectPage?: (pageId: string) => void;
 }) {
   const pins = pageComments.filter((c) => typeof c.x === "number" && typeof c.y === "number");
+  const [draftPosition, setDraftPosition] = useState<{ x: number; y: number } | null>(null);
+  const [draftText, setDraftText] = useState("");
+  const [draftIsBlocking, setDraftIsBlocking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  function startAnnotation(event: MouseEvent<HTMLDivElement>) {
+    if (!annotationMode || !canAnnotate || !page) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setDraftPosition({
+      x: Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width)),
+      y: Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height)),
+    });
+    setDraftText("");
+    setDraftIsBlocking(false);
+  }
+
+  async function saveAnnotation() {
+    if (!draftPosition || !draftText.trim()) return;
+    setIsSaving(true);
+    const saved = await onCreateAnnotation({
+      body: draftText.trim(),
+      isBlocking: draftIsBlocking,
+      ...draftPosition,
+    });
+    setIsSaving(false);
+    if (saved) setDraftPosition(null);
+  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-zinc-900/90 dark:bg-zinc-950/95 shadow-inner">
@@ -83,6 +119,19 @@ export function ChapterReviewViewer({
             className="data-[state=checked]:bg-emerald-500 scale-75"
           />
         </label>
+
+        <button
+          type="button"
+          disabled={!canAnnotate}
+          aria-pressed={annotationMode}
+          onClick={onToggleAnnotationMode}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            annotationMode ? "bg-emerald-500 text-white" : "bg-white/10 text-white/90 hover:bg-white/20"
+          }`}
+          title={canAnnotate ? "Turn on pinning, then click the page" : "Only the assigned Tantou can annotate"}
+        >
+          <Pin className="size-3" /> {annotationMode ? "Click page to pin" : "Pin feedback"}
+        </button>
       </div>
 
       {/* Main Studio Canvas Viewport (Infinite Artboard Surface) */}
@@ -93,7 +142,12 @@ export function ChapterReviewViewer({
             style={{ transform: `scale(${zoom})`, width: "100%", maxWidth: "720px" }}
           >
             {/* Manga Artboard Frame */}
-            <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl ring-1 ring-black/40">
+            <div
+              className={`relative overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl ring-1 ring-black/40 ${
+                annotationMode && canAnnotate ? "cursor-crosshair" : ""
+              }`}
+              onClick={startAnnotation}
+            >
               <ResolvedImage
                 fileKey={page.fileKey}
                 fallbackUrl={page.fileUrl ?? page.imageUrl}
@@ -111,6 +165,7 @@ export function ChapterReviewViewer({
                 ? pins.map((c, i) => (
                   <span
                     key={c.id}
+                    onClick={(event) => event.stopPropagation()}
                     style={{ left: `${(c.x ?? 0) * 100}%`, top: `${(c.y ?? 0) * 100}%` }}
                     title={commentText(c)}
                     className={`absolute -translate-x-1/2 -translate-y-1/2 grid size-6 place-items-center rounded-full text-xs font-bold text-white shadow-xl ring-2 ring-black/50 ${TONE_DOT[commentTone(c)]} animate-in fade-in zoom-in-75 duration-200`}
@@ -119,6 +174,61 @@ export function ChapterReviewViewer({
                   </span>
                 ))
                 : null}
+
+              {draftPosition ? (
+                <>
+                  <span
+                    aria-hidden="true"
+                    style={{ left: `${draftPosition.x * 100}%`, top: `${draftPosition.y * 100}%` }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-xl ring-2 ring-white"
+                  >
+                    <Pin className="size-3" />
+                  </span>
+                  <div
+                    className="absolute inset-x-3 bottom-3 z-30 rounded-xl border border-primary/30 bg-card p-3 text-foreground shadow-xl"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold">Pin feedback on this page</p>
+                      <button
+                        type="button"
+                        onClick={() => setDraftPosition(null)}
+                        className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Cancel feedback pin"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                    <textarea
+                      autoFocus
+                      value={draftText}
+                      onChange={(event) => setDraftText(event.target.value)}
+                      placeholder="Describe the editorial feedback…"
+                      rows={3}
+                      className="w-full resize-none rounded-lg border border-border bg-background p-2 text-xs outline-none ring-offset-background focus:ring-2 focus:ring-primary"
+                    />
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                      <label className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={draftIsBlocking}
+                          onChange={(event) => setDraftIsBlocking(event.target.checked)}
+                          className="size-3.5 accent-rose-600"
+                        />
+                        Blocks approval
+                      </label>
+                      <button
+                        type="button"
+                        disabled={!draftText.trim() || isSaving}
+                        onClick={saveAnnotation}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Send className="size-3" /> {isSaving ? "Pinning…" : "Add feedback"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         ) : (

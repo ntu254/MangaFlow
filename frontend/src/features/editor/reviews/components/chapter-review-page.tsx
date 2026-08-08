@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Check, Edit3, PanelLeft, PanelRight, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Check, Edit3, PanelLeft, PanelRight, Pin, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/shared/auth";
 import {
@@ -9,6 +9,7 @@ import {
   useChapterReviewsQuery,
   useChaptersForSeriesQuery,
   useCommentsQuery,
+  useCreateCommentMutation,
   useSeriesDetailQuery,
 } from "@/entities/series";
 import {
@@ -28,7 +29,7 @@ import { ReviewSummaryPanel } from "./review-summary-panel";
 import { ChapterReviewTimeline } from "./review-progress-timeline";
 import { isBlocking, statsForComments } from "./review-helpers";
 
-export function ChapterReviewPage() {
+export function ChapterReviewPage({ initialAnnotationMode = false }: { initialAnnotationMode?: boolean }) {
   const { chapterId } = useParams({ from: "/app/editor/chapters/$chapterId/review" });
   const navigate = useNavigate();
   const user = useAuth((s) => s.user);
@@ -41,6 +42,7 @@ export function ChapterReviewPage() {
   const { data: regions = [] } = useStudioRegionsQuery({ chapterId });
   const { data: tasks = [] } = useStudioTasksQuery({ chapterId });
   const chapterAction = useChapterActionMutation(chapterId, chapter?.seriesId);
+  const createCommentMutation = useCreateCommentMutation();
   const taskAction = useTaskEditorActionMutation(chapterId);
   const resolveCommentMutation = useResolveCommentMutation();
   const reopenCommentMutation = useReopenCommentMutation();
@@ -50,6 +52,7 @@ export function ChapterReviewPage() {
   const [zoom, setZoom] = useState(1);
   const [showLeftDock, setShowLeftDock] = useState(true);
   const [showRightDock, setShowRightDock] = useState(true);
+  const [annotationMode, setAnnotationMode] = useState(initialAnnotationMode);
 
   const pages = useMemo(
     () => [...(chapter?.pages ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
@@ -117,6 +120,7 @@ export function ChapterReviewPage() {
   const canApprove = isTantouReview && blockingCount === 0;
   const canRevise = isTantouReview;
   const canVerifyBlockingComments = user?.role === "editor" && series.editorId === user.id;
+  const canAnnotate = canVerifyBlockingComments && isTantouReview;
   const isCommentActionPending =
     resolveCommentMutation.isPending || reopenCommentMutation.isPending;
 
@@ -178,6 +182,32 @@ export function ChapterReviewPage() {
         onError: (error) => toast.error(mapApiError(error)),
       },
     );
+  }
+
+  async function createCanvasComment(input: { body: string; isBlocking: boolean; x: number; y: number }) {
+    if (!canAnnotate || !activePage || !chapter || !series) {
+      toast.error("Only the assigned Tantou can annotate this chapter while it is under review.");
+      return false;
+    }
+    try {
+      await createCommentMutation.mutateAsync({
+        seriesId: series.id,
+        chapterId: chapter.id,
+        pageId: activePage.id,
+        targetType: "PAGE",
+        targetId: activePage.id,
+        body: input.body,
+        text: input.body,
+        isBlocking: input.isBlocking,
+        x: input.x,
+        y: input.y,
+      });
+      toast.success(input.isBlocking ? "Blocking feedback pinned to the page." : "Feedback pinned to the page.");
+      return true;
+    } catch (error) {
+      toast.error(mapApiError(error));
+      return false;
+    }
   }
 
   return (
@@ -243,8 +273,22 @@ export function ChapterReviewPage() {
             params={{ chapterId }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs font-bold text-foreground hover:bg-muted transition-colors shadow-2xs"
           >
-            <Edit3 className="size-3.5" /> Annotate Studio
+            <Edit3 className="size-3.5" /> Review Canvas
           </Link>
+
+          <button
+            type="button"
+            disabled={!canAnnotate}
+            onClick={() => setAnnotationMode((current) => !current)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition-colors shadow-2xs disabled:cursor-not-allowed disabled:opacity-40 ${
+              annotationMode
+                ? "border-primary/40 bg-primary/[0.08] text-primary"
+                : "border-border/80 bg-background text-foreground hover:bg-muted"
+            }`}
+            title={canAnnotate ? "Pin feedback directly on the current page" : "Available to the assigned Tantou during review"}
+          >
+            <Pin className="size-3.5" /> {annotationMode ? "Pinning feedback" : "Annotate"}
+          </button>
 
           <button
             type="button"
@@ -301,6 +345,10 @@ export function ChapterReviewPage() {
             risk={risk}
             showAnnotations={showAnnotations}
             onToggleAnnotations={setShowAnnotations}
+            annotationMode={annotationMode}
+            onToggleAnnotationMode={() => setAnnotationMode((current) => !current)}
+            canAnnotate={canAnnotate}
+            onCreateAnnotation={createCanvasComment}
             zoom={zoom}
             onZoom={setZoom}
             onPrev={() => pages[activeIndex - 1] && setSelectedPageId(pages[activeIndex - 1].id)}
