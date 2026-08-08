@@ -178,9 +178,9 @@ export function CreateTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl">Create Task</DialogTitle>
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[460px]">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
+          <DialogTitle className="font-serif text-xl sm:text-2xl">Create Task</DialogTitle>
           <DialogDescription>
             {chapter
               ? `Chapter ${chapter.number} · Page ${page?.index ?? "—"}`
@@ -188,173 +188,174 @@ export function CreateTaskDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 space-y-3">
-          <div className="rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
-            Page assignment:{" "}
-            {pageAssignment
-              ? `${pageAssignment.assistantName} · ${pageAssignment.status}`
-              : "Not assigned"}
-            . Only one task can deliver the final page; other tasks contribute work to it.
-          </div>
-          {!pageHasSource ? (
-            <div className="rounded border border-rose-300 bg-rose-50 p-2 text-[11px] text-rose-900">
-              This page has no usable source image. Upload the page first; the assistant Canvas
-              cannot start from an empty or expired resource.
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          <div className="space-y-2.5">
+            <div className="rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
+              Page assignment:{" "}
+              {pageAssignment
+                ? `${pageAssignment.assistantName} · ${pageAssignment.status}`
+                : "Not assigned"}
+              . Only one task can deliver the final page; other tasks contribute work to it.
             </div>
-          ) : null}
+            {!pageHasSource ? (
+              <div className="rounded border border-rose-300 bg-rose-50 p-2 text-[11px] text-rose-900">
+                This page has no usable source image. Upload the page first; the assistant Canvas
+                cannot start from an empty or expired resource.
+              </div>
+            ) : null}
 
-          <Row label="Title">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Clean Background"
-            />
-          </Row>
-          <Row label="Type">
-            <select
-              className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
-              value={type}
-              onChange={(e) => setType(e.target.value as RegionType)}
-            >
-              {Object.entries(REGION_TYPE_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Row>
-          <Row label="Deliverable">
-            <select
-              className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
-              value={deliveryRole}
-              onChange={(event) => {
-                const nextRole = event.target.value as TaskDeliveryRole;
-                setDeliveryRole(nextRole);
-                if (nextRole === "FINAL_PAGE") setBlocksPageDelivery(true);
-              }}
-            >
-              <option value="FINAL_PAGE" disabled={hasActiveFinalDelivery}>
-                {TASK_DELIVERY_ROLE_LABEL.FINAL_PAGE}
-                {hasActiveFinalDelivery ? " (already assigned)" : ""}
-              </option>
-              <option value="REGION_ASSET">{TASK_DELIVERY_ROLE_LABEL.REGION_ASSET}</option>
-              <option value="SUPPORTING">{TASK_DELIVERY_ROLE_LABEL.SUPPORTING}</option>
-            </select>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              {deliveryRole === "FINAL_PAGE"
-                ? "This is the only task allowed to replace the page file after Mangaka approval."
-                : deliveryRole === "REGION_ASSET"
-                  ? "Upload an asset for this contribution; it will not replace the full page."
-                  : "Submit a note or optional reference file; it will not replace the full page."}
-            </p>
-          </Row>
-          {deliveryRole !== "FINAL_PAGE" ? (
-            <label className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2.5 text-xs">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={blocksPageDelivery}
-                onChange={(event) => setBlocksPageDelivery(event.target.checked)}
+            <Row label="Title">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Clean Background"
               />
-              <span>
-                <span className="font-semibold text-foreground">Block final page delivery</span>
-                <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
-                  The Page Owner cannot submit the final file until this task is completed or
-                  approved.
+            </Row>
+            <Row label="Type">
+              <select
+                className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+                value={type}
+                onChange={(e) => setType(e.target.value as RegionType)}
+              >
+                {Object.entries(REGION_TYPE_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Deliverable">
+              <select
+                className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+                value={deliveryRole}
+                onChange={(event) => {
+                  const nextRole = event.target.value as TaskDeliveryRole;
+                  setDeliveryRole(nextRole);
+                  if (nextRole === "FINAL_PAGE") setBlocksPageDelivery(true);
+                }}
+              >
+                <option value="FINAL_PAGE" disabled={hasActiveFinalDelivery}>
+                  {TASK_DELIVERY_ROLE_LABEL.FINAL_PAGE}
+                  {hasActiveFinalDelivery ? " (already assigned)" : ""}
+                </option>
+                <option value="REGION_ASSET">{TASK_DELIVERY_ROLE_LABEL.REGION_ASSET}</option>
+                <option value="SUPPORTING">{TASK_DELIVERY_ROLE_LABEL.SUPPORTING}</option>
+              </select>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                {deliveryRole === "FINAL_PAGE"
+                  ? "This is the only task allowed to replace the page file after Mangaka approval."
+                  : deliveryRole === "REGION_ASSET"
+                    ? "Upload an asset for this contribution; it will not replace the full page."
+                    : "Submit a note or optional reference file; it will not replace the full page."}
+              </p>
+            </Row>
+            {deliveryRole !== "FINAL_PAGE" ? (
+              <label className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2.5 text-xs">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={blocksPageDelivery}
+                  onChange={(event) => setBlocksPageDelivery(event.target.checked)}
+                />
+                <span>
+                  <span className="font-semibold text-foreground">Block final page delivery</span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                    The Page Owner cannot submit the final file until this task is completed or
+                    approved.
+                  </span>
                 </span>
-              </span>
-            </label>
-          ) : null}
-          <Row label="Assignee">
-            {members.length === 0 ? (
-              <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                No assistants available
-              </div>
-            ) : (
-              <select
-                className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
-                value={pageAssignment?.assistantId ?? assigneeId}
-                disabled
-              >
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} · {m.role}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Row>
-          <Row label="Rate">
-            {rates.length === 0 ? (
-              <div className="rounded-md border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                No active rate is configured. Ask an Admin to configure the rate table.
-              </div>
-            ) : (
-              <select
-                className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
-                value={rateCode}
-                onChange={(e) => setRateCode(e.target.value)}
-              >
-                {rates.map((rate) => (
-                  <option key={rate.id} value={rate.code}>
-                    {rate.label} · {rate.amount.toLocaleString()} {rate.currency}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Row>
-          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            This task covers 1 selected {selectedRate?.workUnitType?.toLowerCase() ?? "unit"}.
-          </div>
-          {selectedRate ? (
-            <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-              <span>Estimated task amount</span>
-              <strong>
-                {estimatedAmount.toLocaleString()} {selectedRate.currency}
-              </strong>
+              </label>
+            ) : null}
+            <Row label="Assignee">
+              {members.length === 0 ? (
+                <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  No assistants available
+                </div>
+              ) : (
+                <select
+                  className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+                  value={pageAssignment?.assistantId ?? assigneeId}
+                  disabled
+                >
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} · {m.role}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Row>
+            <Row label="Rate">
+              {rates.length === 0 ? (
+                <div className="rounded-md border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  No active rate is configured. Ask an Admin to configure the rate table.
+                </div>
+              ) : (
+                <select
+                  className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+                  value={rateCode}
+                  onChange={(e) => setRateCode(e.target.value)}
+                >
+                  {rates.map((rate) => (
+                    <option key={rate.id} value={rate.code}>
+                      {rate.label} · {rate.amount.toLocaleString()} {rate.currency}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Row>
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              This task covers 1 selected {selectedRate?.workUnitType?.toLowerCase() ?? "unit"}.
             </div>
-          ) : null}
-          <Row label="Due date">
-            <Input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
-          </Row>
-          <Row label="Priority">
-            <select
-              className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as "low" | "normal" | "high")}
-            >
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-            </select>
-          </Row>
-          <Row label="Instructions">
-            <Textarea
-              rows={4}
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Clean background mountains and valley. Remove dust and noise…"
-            />
-          </Row>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={submit}
-              disabled={
-                !pageHasSource ||
-                !pageAssignment ||
-                pageAssignment.status === "RELEASED" ||
-                pageAssignment.status === "REJECTED" ||
-                rates.length === 0
-              }
-            >
-              Create task
-            </Button>
+            {selectedRate ? (
+              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                <span>Estimated task amount</span>
+                <strong>
+                  {estimatedAmount.toLocaleString()} {selectedRate.currency}
+                </strong>
+              </div>
+            ) : null}
+            <Row label="Due date">
+              <Input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+            </Row>
+            <Row label="Priority">
+              <select
+                className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as "low" | "normal" | "high")}
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+              </select>
+            </Row>
+            <Row label="Instructions">
+              <Textarea
+                rows={3}
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Clean background mountains and valley. Remove dust and noise…"
+              />
+            </Row>
           </div>
+        </div>
+        <div className="flex shrink-0 justify-end gap-2 border-t border-border bg-background px-4 py-3 sm:px-5">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={
+              !pageHasSource ||
+              !pageAssignment ||
+              pageAssignment.status === "RELEASED" ||
+              pageAssignment.status === "REJECTED" ||
+              rates.length === 0
+            }
+          >
+            Create task
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
