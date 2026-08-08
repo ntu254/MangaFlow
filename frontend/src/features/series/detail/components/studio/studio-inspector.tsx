@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -78,6 +78,7 @@ type Props = {
   onAssignPage?: (assistantId: string) => void;
   onPageAssignmentAction?: (action: "ACCEPT" | "REJECT" | "RELEASE", reason?: string) => void;
   pageAssignmentBusy?: boolean;
+  editorReviewActions?: ReactNode;
 };
 export function StudioInspector(props: Props) {
   return (
@@ -96,6 +97,9 @@ export function StudioInspector(props: Props) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="inspector" className="flex-1 overflow-y-auto px-3 pb-4">
+            {props.editorReviewActions ? (
+              <div className="pt-3">{props.editorReviewActions}</div>
+            ) : null}
             <InspectorBody {...props} />
           </TabsContent>
           <TabsContent value="comments" className="flex-1 overflow-y-auto px-3 pb-4">

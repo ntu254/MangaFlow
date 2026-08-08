@@ -59,6 +59,7 @@ import { StudioInspector } from "./studio/studio-inspector";
 import { CreateTaskDialog } from "./studio/create-task-dialog";
 import { toTaskRatePayload } from "../model/task-payload";
 import { deriveTaskStudioSubmissionState } from "@/entities/task/model/submission-state";
+import { ChapterActionPanel } from "./chapter-action-panel";
 
 const KonvaPageCanvas = lazy(() => import("./studio/konva-page-canvas"));
 
@@ -344,6 +345,15 @@ export function StudioTab({
   const pageRegions = regions.filter((r) => r.pageId === page?.id);
   const pageTasks = tasks.filter((t) => t.pageId === page?.id);
   const pageComments = comments.filter((c) => c.pageId === page?.id);
+  const chapterBlockingComments = useMemo(
+    () =>
+      comments.filter(
+        (comment) =>
+          comment.chapterId === chapter?.id && comment.isBlocking && comment.status !== "RESOLVED",
+      ).length,
+    [chapter?.id, comments],
+  );
+  const chapterDeadlineRisk = getStudioDeadlineRisk(chapter);
   const knownAssigneeNames = useMemo(() => {
     const names = new Map<string, string>();
     tasks.forEach((task) => {
@@ -538,6 +548,15 @@ export function StudioTab({
         onUploadPages={triggerUpload}
         onBack={onBack}
         permissions={permissions}
+        editorReview={
+          permissions.mode === "editor"
+            ? {
+                blockingComments: chapterBlockingComments,
+                deadlineLabel: chapterDeadlineRisk?.label ?? "—",
+                deadlineTone: chapterDeadlineRisk?.tone ?? "neutral",
+              }
+            : undefined
+        }
       />
 
       <input
@@ -949,6 +968,11 @@ export function StudioTab({
           userId={user.id}
           onTaskAction={handleTaskAction}
           onReviewSubmission={handleReviewSubmission}
+          editorReviewActions={
+            permissions.mode === "editor" && chapter ? (
+              <ChapterActionPanel chapter={chapter} series={series} />
+            ) : undefined
+          }
           pageAssignment={page?.pageAssignment}
           assistantMembers={assistantMembers}
           pageAssignmentBusy={
@@ -1014,6 +1038,20 @@ export function StudioTab({
       />
     </div>
   );
+}
+
+function getStudioDeadlineRisk(chapter: Chapter | undefined): {
+  tone: "neutral" | "rose" | "amber" | "emerald";
+  label: string;
+} {
+  const dueAt = chapter?.reviewDueAt ?? chapter?.draftDueAt;
+  if (!dueAt) return { tone: "neutral", label: "—" };
+
+  const days = Math.round((new Date(dueAt).getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return { tone: "rose", label: `Overdue ${-days}d` };
+  if (days <= 2) return { tone: "rose", label: `${days}d` };
+  if (days <= 5) return { tone: "amber", label: `${days}d` };
+  return { tone: "emerald", label: `${days}d` };
 }
 
 function EmptyCenter({ children }: { children: React.ReactNode }) {

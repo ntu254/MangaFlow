@@ -22,6 +22,11 @@ type Props = {
   canUndo?: boolean;
   canRedo?: boolean;
   permissions: StudioPermissionSet;
+  editorReview?: {
+    blockingComments: number;
+    deadlineLabel: string;
+    deadlineTone: "neutral" | "rose" | "amber" | "emerald";
+  };
 };
 
 export function StudioTopBar({
@@ -38,6 +43,7 @@ export function StudioTopBar({
   canUndo,
   canRedo,
   permissions,
+  editorReview,
 }: Props) {
   const deadline = chapter?.reviewDueAt ?? chapter?.draftDueAt;
 
@@ -92,6 +98,42 @@ export function StudioTopBar({
             <Meta label="Tasks" value={taskCount} />
             <Meta label="Comments" value={commentCount} />
             <Meta label="Deadline" value={deadline ? formatDate(deadline) : "—"} />
+            {editorReview ? (
+              <Meta
+                label="Blocking"
+                value={
+                  <span
+                    className={
+                      editorReview.blockingComments > 0
+                        ? "text-rose-700 dark:text-rose-300"
+                        : "text-emerald-700 dark:text-emerald-300"
+                    }
+                  >
+                    {editorReview.blockingComments}
+                  </span>
+                }
+              />
+            ) : null}
+            {editorReview ? (
+              <Meta
+                label="Review due"
+                value={
+                  <span
+                    className={
+                      editorReview.deadlineTone === "rose"
+                        ? "text-rose-700 dark:text-rose-300"
+                        : editorReview.deadlineTone === "amber"
+                          ? "text-amber-700 dark:text-amber-300"
+                          : editorReview.deadlineTone === "emerald"
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : undefined
+                    }
+                  >
+                    {editorReview.deadlineLabel}
+                  </span>
+                }
+              />
+            ) : null}
           </div>
         </div>
 
