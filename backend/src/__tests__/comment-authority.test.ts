@@ -66,9 +66,11 @@ describe("CT-01 blocking-comment authority", () => {
     const res = await request(createApp())
       .post("/api/comments")
       .set("Authorization", `Bearer ${editor.accessToken}`)
-      .send(blockingBody)
+      .send({ ...blockingBody, x: 0.25, y: 0.75 })
       .expect(201);
     expect(res.body.data.isBlocking).toBe(true);
+    expect(res.body.data.x).toBe(0.25);
+    expect(res.body.data.y).toBe(0.75);
   });
   it("allows any otherwise-authorized actor to create a non-blocking comment", async () => {
     const mangaka = await loginAs("inoue@beachread.jp");
