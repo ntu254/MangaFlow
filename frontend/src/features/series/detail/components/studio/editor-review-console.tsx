@@ -133,7 +133,12 @@ export function EditorReviewConsole({ chapter, series, comments }: Props) {
         )}
       </div>
 
-      <ChapterActionPanel chapter={chapter} series={series} />
+      <ChapterActionPanel
+        chapter={chapter}
+        series={series}
+        title="Review decision"
+        visibleActions={["REQUEST_REVISION", "EDITOR_APPROVE", "REJECT"]}
+      />
     </section>
   );
 }

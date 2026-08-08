@@ -37,9 +37,13 @@ const TONES: Partial<Record<ChapterAction, string>> = {
 export function ChapterActionPanel({
   chapter,
   series,
+  visibleActions,
+  title = "Chapter actions",
 }: {
   chapter: Chapter;
   series: ProductionSeries;
+  visibleActions?: ChapterAction[];
+  title?: string;
 }) {
   const user = useAuth((s) => s.user);
   const chapterActionMutation = useChapterActionMutation(chapter.id, series.id);
@@ -53,7 +57,9 @@ export function ChapterActionPanel({
   const [assigneeId, setAssigneeId] = useState(chapter.assigneeId);
 
   if (!user) return null;
-  const actions = allowedChapterActions(user, chapter, series);
+  const actions = allowedChapterActions(user, chapter, series).filter(
+    (action) => !visibleActions || visibleActions.includes(action),
+  );
   const selfApprovalBlocked = user.role === "editor" && user.id === series.authorId;
 
   const run = async (a: ChapterAction) => {
@@ -75,7 +81,7 @@ export function ChapterActionPanel({
   return (
     <div className="rounded-md border border-border bg-card/40 p-4">
       <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        Chapter actions
+        {title}
       </p>
       {actions.length === 0 ? (
         <p className="text-xs text-muted-foreground">No actions available.</p>
