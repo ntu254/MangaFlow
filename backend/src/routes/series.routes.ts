@@ -5,7 +5,6 @@ import {
   getSeries,
   patchSeries,
   seriesLifecycleAction,
-  deleteSeries,
   listSeriesChapters,
   createSeriesChapter,
   getSeriesSummary,
@@ -48,7 +47,6 @@ router.post(
   requireExactRole("EDITOR", "MANGAKA") as any,
   seriesLifecycleAction,
 );
-router.delete("/series/:id", requireExactRole("MANGAKA") as any, deleteSeries);
 router.get("/series/:id/chapters", listSeriesChapters);
 router.post("/series/:id/chapters", requireExactRole("MANGAKA") as any, createSeriesChapter);
 router.get("/series/:seriesId/summary", getSeriesSummary);

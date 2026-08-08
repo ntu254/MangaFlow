@@ -106,20 +106,20 @@ export async function assertCanMutateSeries(actor: RequestActor, series: any) {
     throw new AppError(409, "Series is archived and cannot be modified.", "SERIES_ARCHIVED");
   }
   if (series.deletedAt) {
-    throw new AppError(409, "Series is deleted and cannot be modified.", "SERIES_DELETED");
+    throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
   }
   if (!(await canMutateSeries(actor, series))) throw forbidden("You do not have permission to change this series.");
 }
 
 export async function assertCanReadSeriesById(actor: RequestActor, seriesId: string) {
-  const series = await SeriesModel.findOne({ id: seriesId }).lean();
+  const series = await SeriesModel.findOne({ id: seriesId, deletedAt: { $exists: false } }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
   await assertCanReadSeries(actor, series);
   return series;
 }
 
 export async function assertCanMutateSeriesById(actor: RequestActor, seriesId: string) {
-  const series = await SeriesModel.findOne({ id: seriesId }).lean();
+  const series = await SeriesModel.findOne({ id: seriesId, deletedAt: { $exists: false } }).lean();
   if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
   await assertCanMutateSeries(actor, series);
   return series;

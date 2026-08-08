@@ -436,8 +436,11 @@ export type SeriesRecord = {
   archivedAt?: Date;
   archivedById?: string;
   archiveReason?: string;
+  /** @deprecated Legacy soft-delete marker. New Series must remain retained. */
   deletedAt?: Date;
+  /** @deprecated Legacy soft-delete metadata. */
   deletedById?: string;
+  /** @deprecated Legacy soft-delete metadata. */
   deleteReason?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -482,6 +485,7 @@ const seriesSchema = looseSchema({
   archivedAt: { type: Date },
   archivedById: { type: String },
   archiveReason: { type: String },
+  // Retained only so legacy data can be recognized and kept out of normal views.
   deletedAt: { type: Date },
   deletedById: { type: String },
   deleteReason: { type: String },

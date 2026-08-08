@@ -83,16 +83,6 @@ function seriesSlug(input: string, fallback: string) {
   return slugify(input) || fallback;
 }
 
-async function seriesHasRelatedData(seriesId: string) {
-  const [publishedChapters, submissions, tasks, publications] = await Promise.all([
-    ChapterModel.countDocuments({ seriesId }),
-    SubmissionModel.countDocuments({ seriesId }),
-    StudioTaskModel.countDocuments({ seriesId }),
-    PublicationModel.countDocuments({ seriesId }),
-  ]);
-  return publishedChapters > 0 || submissions > 0 || tasks > 0 || publications > 0;
-}
-
 async function productionScopeForChapters(actor: RequestActor) {
   if (actor.role === "ASSISTANT") {
     return { assigneeId: actor.id };
@@ -127,6 +117,10 @@ export const listSeries = asyncRoute(async (req: AuthedRequest, res) => {
       filter.id = { $in: seriesIds };
     }
   }
+
+  // `deletedAt` is retained only for legacy soft-deleted records. Those records
+  // must stay out of normal production views so they cannot look actionable.
+  filter.deletedAt = { $exists: false };
 
   const { page, limit, skip } = paginationFromQuery(req);
   const [series, total] = await Promise.all([
@@ -356,46 +350,6 @@ export const seriesLifecycleAction = asyncRoute(async (req: AuthedRequest, res) 
     cancelledPublications,
   });
   ok(res, { ...updated, cancelledPublications });
-});
-
-export const deleteSeries = asyncRoute(async (req: AuthedRequest, res) => {
-  const actor = requireActor(req);
-  const seriesId = String(req.params.id);
-  const series = await SeriesModel.findOne({ id: seriesId }).lean();
-  if (!series) throw new AppError(404, "Series not found.", "SERIES_NOT_FOUND");
-
-  const isDraft = ["PRE_PRODUCTION", "PLANNING"].includes(String((series as any).status));
-  if (!isDraft || actor.role !== "MANGAKA") {
-    throw new AppError(403, "You do not have permission to delete this series.", "FORBIDDEN");
-  }
-  if ((series as any).authorId !== actor.id) {
-    throw new AppError(403, "Only the owning Mangaka can delete a safe draft series.", "FORBIDDEN");
-  }
-
-  const hasRelatedData = await seriesHasRelatedData(seriesId);
-
-  if (hasRelatedData) {
-    throw new AppError(
-      409,
-      "Only a draft or pre-production series without production work can be deleted.",
-      "SERIES_HAS_PRODUCTION_DATA",
-    );
-  }
-
-  const softDeleted = await SeriesModel.findOneAndUpdate(
-    { id: seriesId },
-    {
-      $set: {
-        deletedAt: nowIso(),
-        updatedAt: nowIso(),
-      },
-    },
-    { returnDocument: "after" },
-  ).lean();
-  await audit(req, "series.soft_delete", "series", seriesId, {
-    previousStatus: (series as any).status,
-  });
-  ok(res, softDeleted);
 });
 
 export const listSeriesChapters = asyncRoute(async (req: AuthedRequest, res) => {

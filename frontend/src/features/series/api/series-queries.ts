@@ -247,18 +247,6 @@ export function useSeriesLifecycleMutation(seriesId: string) {
   });
 }
 
-export function useDeleteSeriesMutation(seriesId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<ProductionSeries | { id: string; deleted: true }, Error, void>({
-    mutationFn: () =>
-      seriesApi.delete(seriesId) as Promise<ProductionSeries | { id: string; deleted: true }>,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: seriesKeys.mine() });
-      queryClient.invalidateQueries({ queryKey: seriesKeys.detail(seriesId) });
-    },
-  });
-}
-
 export function useRankingsQuery(seriesId: string) {
   return useQuery<SeriesRanking[]>({
     queryKey: seriesKeys.rankings(seriesId),

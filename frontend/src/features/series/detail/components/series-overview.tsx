@@ -10,7 +10,6 @@ import {
   PencilRuler,
   ClipboardCheck,
   Send,
-  Trash2,
   FileText,
   Calendar as CalendarIcon,
   CheckCircle2,
@@ -23,14 +22,12 @@ import {
   Plus,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { ResolvedImage } from "@/shared/ui";
 import {
   mapApiError,
   useChapterReadinessQuery,
   useSendChapterToEditorReviewMutation,
   useCommentsQuery,
-  useDeleteSeriesMutation,
   useSeriesActivityQuery,
   useSeriesLifecycleMutation,
   useStudioTasksQuery,
@@ -113,55 +110,28 @@ export function SeriesOverview({
 
 export function SeriesHeaderActions({
   series,
-  chapters,
   setTab,
 }: {
   series: ProductionSeries;
-  chapters: Chapter[];
   setTab: (t: Tab) => void;
 }) {
   const user = useAuth((s) => s.user);
   const navigate = useNavigate();
   const lifecycle = useSeriesLifecycleMutation(series.id);
-  const deleteSeries = useDeleteSeriesMutation(series.id);
-  const isPublic = ["ONGOING", "COMPLETED", "PUBLISHED", "PUBLIC"].includes(series.status);
-  const hasPublishedChapters = chapters.some((chapter) => chapter.status === "PUBLISHED");
   const isOwner = !!user && user.role === "mangaka" && user.id === series.authorId;
   const isAssignedTantou = !!user && user.role === "editor" && user.id === series.editorId;
-  // Active series are only ever cancelled by the Board through an At-risk CANCEL
-  // decision; Archive/Unpublish are not available to Mangaka or Tantou.
-  const canArchive = false;
-  const canUnpublish = false;
-  const canDelete =
-    !!user &&
-    ["PRE_PRODUCTION", "PLANNING"].includes(series.status) &&
-    isOwner &&
-    !hasPublishedChapters;
   // Production can start only by the owner or the currently assigned Tantou.
   const canStartProduction =
     !!user &&
     ["PRE_PRODUCTION", "PLANNING"].includes(series.status) &&
     (isOwner || isAssignedTantou);
-  const busy = lifecycle.isPending || deleteSeries.isPending;
-
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const busy = lifecycle.isPending;
 
   const handleStartProduction = () => {
     lifecycle.mutate("start_production", {
       onSuccess: () =>
         toast.success("Series is now ONGOING — chapters can be sent to editor review."),
       onError: (err) => toast.error(mapApiError(err)),
-    });
-  };
-
-  const handleDelete = () => {
-    deleteSeries.mutate(undefined, {
-      onSuccess: () => {
-        toast.success("Series deleted.");
-        setDeleteDialogOpen(false);
-        navigate({ to: "/app/series" });
-      },
-      onError: (err) => toast.error(err instanceof Error ? err.message : "Cannot delete series."),
     });
   };
 
@@ -177,18 +147,6 @@ export function SeriesHeaderActions({
         >
           <Rocket className="h-3.5 w-3.5" />{" "}
           {lifecycle.isPending ? "Starting..." : "Start production"}
-        </button>
-      ) : null}
-      {canDelete ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setDeleteDialogOpen(true)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40"
-          aria-label="Delete series"
-          title="Delete draft series"
-        >
-          <Trash2 className="h-4 w-4" />
         </button>
       ) : null}
       <button
@@ -207,17 +165,6 @@ export function SeriesHeaderActions({
         <Plus className="h-3.5 w-3.5" /> New Chapter
       </button>
 
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Delete Series"
-        description="This draft series will be soft-deleted. It can be restored by an administrator."
-        impactExplanation="The series will be hidden from all views. All data will be preserved and can be recovered."
-        confirmLabel="Soft Delete"
-        variant="danger"
-        onConfirm={handleDelete}
-        isLoading={deleteSeries.isPending}
-      />
     </div>
   );
 }

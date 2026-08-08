@@ -259,7 +259,7 @@ export function SeriesDetailPage({ slug, tab }: { slug: string; tab: Tab }) {
               Open Studio
             </button>
             {!isLocked && (
-              <SeriesHeaderActions series={series} chapters={chapters} setTab={goTab} />
+              <SeriesHeaderActions series={series} setTab={goTab} />
             )}
           </div>
         </div>

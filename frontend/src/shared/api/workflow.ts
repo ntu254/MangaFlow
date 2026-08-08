@@ -25,7 +25,6 @@ export const seriesApi = {
     apiRequest(`/series/${id}`, { method: "PATCH", body }),
   action: (id: string, action: "archive" | "unpublish" | "start_production") =>
     apiRequest(`/series/${id}/actions/${action}`, { method: "POST", body: {} }),
-  delete: (id: string) => apiRequest(`/series/${id}`, { method: "DELETE" }),
   chapters: (id: string) => apiRequest(`/series/${id}/chapters`),
   chapterAction: (chapterId: string, action: string, body?: unknown) =>
     apiRequest(`/chapters/${chapterId}/actions/${action}`, { method: "POST", body: body ?? {} }),

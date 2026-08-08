@@ -27,9 +27,8 @@ graph TD
     K -- UNPUBLISH --> L[Status: HIATUS]
     K -- ARCHIVE --> M[Status: ARCHIVED]
 
-    J --> N{Owning Mangaka deletes?}
-    N -- Related or public data exists --> O[Soft archive/delete marker]
-    N -- Empty, private and owned --> P[Soft delete]
+    J --> N{Board at-risk decision?}
+    N -- CANCEL --> O[Status: ARCHIVED<br/>visibility: UNLISTED]
 ```
 
 ## Status Values
@@ -85,6 +84,10 @@ has been removed.
 | Delete | Owning Mangaka (private/no-related-data guard) | `ADMIN` removed (FLOW-GAP-04 — Resolved) |
 
 ## Canonical Decision — FLOW-GAP-04 (Resolved)
+> **Series retention update:** self-delete is no longer supported. A Board-approved Series
+> remains linked to its Proposal for audit; Board governance owns cancellation. The Delete
+> row above describes the retired soft-delete behavior.
+
 Series routes no longer accept `ADMIN` for any lifecycle action. Admin is limited to
 user account lifecycle and Board Chair designation management. Series lifecycle
 permissions belong to the owning Mangaka and assigned Tantou, enforced by the
@@ -93,7 +96,7 @@ per-action matrix above (`series.controller.ts:270-384`). Implemented by CT-11.
 ## Invariants
 - An approved Proposal creates at most one production Series.
 - Manual creation does not bypass Proposal approval.
-- Admin cannot create, start, pause, archive or delete a Series as a workflow actor.
+- No workflow actor can delete a Series; the approved Proposal-Series link is retained for audit.
 - Assistant participation is through Series membership and Task assignment, not Series ownership.
 
 ## Key Files
