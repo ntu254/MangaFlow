@@ -19,13 +19,16 @@ import { SeriesMonitorTable } from "./series/series-monitor-table";
 
 type QuickFilterKey = "ALL" | "AT_RISK" | "PENDING_REVIEW" | "PUBLISH_READY";
 
+/** Auto-refresh interval for the Series Monitor dashboard (ms) */
+const POLL_INTERVAL = 15_000;
+
 export function SeriesMonitorPage() {
   const user = useAuth((s) => s.user);
-  const { data: series = [] } = useMySeriesQuery();
-  const { data: chapters = [] } = useMyChaptersQuery();
-  const { data: comments = [] } = useCommentsQuery({});
-  const { data: proposals = [] } = useProposalsQuery();
-  const { data: liveSubmissions = [] } = useEditorReviewQueueQuery();
+  const { data: series = [] } = useMySeriesQuery(true, { refetchInterval: POLL_INTERVAL });
+  const { data: chapters = [] } = useMyChaptersQuery({ refetchInterval: POLL_INTERVAL });
+  const { data: comments = [] } = useCommentsQuery({ refetchInterval: POLL_INTERVAL });
+  const { data: proposals = [] } = useProposalsQuery({ refetchInterval: POLL_INTERVAL });
+  const { data: liveSubmissions = [] } = useEditorReviewQueueQuery({ refetchInterval: POLL_INTERVAL });
 
   const mySeries = useMemo(() => (user ? seriesForEditor(series, user.id) : []), [series, user]);
   const myChapters = useMemo(

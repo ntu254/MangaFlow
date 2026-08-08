@@ -9,18 +9,22 @@ export function useCommentsQuery(filters: {
   pageId?: string;
   regionId?: string;
   taskId?: string;
+  refetchInterval?: number;
+  staleTime?: number;
 }) {
+  const { refetchInterval, staleTime, ...filterParams } = filters;
   const params = new URLSearchParams();
-  if (filters.seriesId) params.set("seriesId", filters.seriesId);
-  if (filters.chapterId) params.set("chapterId", filters.chapterId);
-  if (filters.pageId) params.set("pageId", filters.pageId);
-  if (filters.regionId) params.set("regionId", filters.regionId);
-  if (filters.taskId) params.set("taskId", filters.taskId);
+  if (filterParams.seriesId) params.set("seriesId", filterParams.seriesId);
+  if (filterParams.chapterId) params.set("chapterId", filterParams.chapterId);
+  if (filterParams.pageId) params.set("pageId", filterParams.pageId);
+  if (filterParams.regionId) params.set("regionId", filterParams.regionId);
+  if (filterParams.taskId) params.set("taskId", filterParams.taskId);
   const qs = params.toString();
   return useQuery<StudioComment[]>({
-    queryKey: studioKeys.comments(filters),
+    queryKey: studioKeys.comments(filterParams),
     queryFn: () => apiRequest<StudioComment[]>(`/comments${qs ? `?${qs}` : ""}`),
-    staleTime: 30000,
+    staleTime: staleTime ?? 30000,
+    refetchInterval,
   });
 }
 

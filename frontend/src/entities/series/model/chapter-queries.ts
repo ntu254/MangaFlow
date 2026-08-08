@@ -17,7 +17,10 @@ export type SendEditorReviewResult = {
   message: string;
 };
 
-export function useMyChaptersQuery() {
+export function useMyChaptersQuery(options?: {
+  refetchInterval?: number;
+  staleTime?: number;
+}) {
   const user = useAuth((s) => s.user);
   const canLoadMyChapters =
     user?.role === "editor" || user?.role === "mangaka" || user?.role === "assistant";
@@ -26,7 +29,8 @@ export function useMyChaptersQuery() {
     queryKey: chapterKeys.all,
     queryFn: () => apiRequest<Chapter[]>("/chapters?mine=true"),
     enabled: !!user && hasApiTokens() && canLoadMyChapters,
-    staleTime: 60000,
+    staleTime: options?.staleTime ?? 60000,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

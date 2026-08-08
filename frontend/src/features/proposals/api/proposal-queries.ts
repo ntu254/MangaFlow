@@ -27,6 +27,7 @@ export function useProposalsQuery(filters?: {
   status?: string;
   assignedEditorId?: string;
   authorId?: string;
+  refetchInterval?: number;
 }) {
   return useQuery<SeriesProposal[]>({
     queryKey: proposalKeys.list(filters),
@@ -53,6 +54,7 @@ export function useProposalsQuery(filters?: {
       });
     },
     staleTime: 30000,
+    refetchInterval: filters?.refetchInterval,
   });
 }
 
